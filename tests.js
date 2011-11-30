@@ -1,11 +1,17 @@
 var connect = require('connect'),
-    raven = require('./lib/middleware/connect-raven');
+    raven = require('./index'),
+    raven_middleware = require('./lib/middleware/connect-raven');
 
-var raven_options = {
+var options = {
     key: 'testing123',
     servers: ['http://sentry.dev:9000/store/'],
 };
 
+raven.patch_global(options);
+
 connect(function(req, res){
     idontexist['what'];
-}, raven(raven_options)).listen(3000);
+}, raven_middleware(options)).listen(3000);
+
+// testing the patch_global method
+ffdasfsd.fdasfd;
