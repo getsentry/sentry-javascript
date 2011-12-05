@@ -10,7 +10,7 @@ client = new raven.Client(options);
 
 client.createFromText('Testing!!!', function(result){});
 
-raven.patchGlobal(options);
+raven.patchGlobal(client);
 
 function handle_request(req, res) {
     throw new Error('broke');
