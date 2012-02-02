@@ -31,7 +31,7 @@
         logger: 'javascript',
         site: undefined,
         fetchHeaders: false,  // Does not work for cross-domain requests
-        noHeaders: false  // Primarily for testing
+        testMode: false  // Disables some things that randomize the signature
     };
 
     Raven.config = function(config) {
@@ -41,18 +41,16 @@
     };
 
     Raven.getHeaders = function() {
-        if (!self.options.noHeaders) {
-            var headers = "";
-        
-            if (self.options.fetchHeaders) {
-                headers = $.ajax({type: 'HEAD', url: root.location, async: false})
-                           .getAllResponseHeaders();
-            }
-        
-            headers += "Referer: " + document.referrer + "\n";
-            headers += "User-Agent: " + navigator.userAgent + "\n";
-            return headers;
+        var headers = "";
+    
+        if (self.options.fetchHeaders) {
+            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
+                       .getAllResponseHeaders();
         }
+    
+        headers += "Referer: " + document.referrer + "\n";
+        headers += "User-Agent: " + navigator.userAgent + "\n";
+        return headers;
     };
     
     Raven.getSignature = function(message, timestamp) {
@@ -150,15 +148,18 @@
                 "type": type,
                 "value": message
             },
-            "sentry.interfaces.Http": {
-                "url": url,
-                "querystring": querystring,
-                "headers": self.getHeaders()
-            },
             "project": self.options.projectId,
             "logger": self.options.logger,
             "site": self.options.site
         };
+        
+        if (!self.options.testMode) {
+            data["sentry.interfaces.Http"] = {
+                "url": url,
+                "querystring": querystring,
+                "headers": self.getHeaders()
+            };
+        }
         
         timestamp = timestamp || (new Date).getTime();
         encoded_msg = "message=" + base64_encode(JSON.stringify(data));

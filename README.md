@@ -38,13 +38,13 @@ Configure the client like this:
         logger: 'yoursite.errors.javascript'
     });
 
-**secretKey** - *required* If you're using project auth, this should be the
+**secretKey** - (*required*) If you're using project auth, this should be the
 desired user's secret key. Otherwise, this should be the global superuser key.
 
 **publicKey** - This is only needed if you're using project auth, and it should
 be the desired user's public key.
 
-**servers** - *required* An array of servers to send exception info to.
+**servers** - (*required*) An array of servers to send exception info to.
 
 **projectId** - The id of the project to log the exception to. Defaults to '1'.
 

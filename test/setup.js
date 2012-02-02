@@ -3,7 +3,7 @@ Raven.config({
     secretKey: '77ec8c99a8854256aa68ccb91dd9119d',
     servers: ['/api/store/'],
     // These are different for each browser, making the signature unpredictable
-    noHeaders: true
+    testMode: true
 });
 
 var timestamp = 1328155597571;
