@@ -1,7 +1,11 @@
 // Raven.js
 //
 // Originally based on the Arecibo JavaScript client.
-// Requires either jQuery (>1.4.2) or Zepto.js.
+//
+// Requires:
+//     * Either jQuery (>1.5) or Zepto.js.
+//     * base64_encode from php.js (included in the vendor folder)
+//     * crypto-sha1-hmac from Crypto-JS (included in the vendor folder)
 
 (function(){
     // Save a reference to the global object (`window` in the browser, `global`
@@ -20,68 +24,69 @@
 
     Raven.loaded = false;
     Raven.options = {
-        fetchHeaders: false,
-        publicKey: null,
-        secretKey: null,
+        fetchHeaders: false,  // Does not work for cross-domain requests
+        publicKey: null,  // Leave as null if not using project auth
+        secretKey: null,  // The global superuser key if not using project auth
         servers: [],
         projectId: 1,
         logger: 'javascript',
         site: null
     };
 
-    Raven.config = function (data) {
-        for (var k in data) {
-            self.options[k] = data[k];
-        }
-    };
-
-    Raven.parseUrl = function(url) {
-        var url_parts = url.split('?');
-        var querystring = url_parts[1];
-
-        return {
-            url: url_parts[0],
-            querystring: url_parts[1]
-        };
+    Raven.config = function(config) {
+        $.each(config, function(i, option) {
+            self.options[i] = option;
+        });
     };
 
     Raven.getHeaders = function() {
+        var headers = "";
+        
         if (self.options.fetchHeaders) {
-            var req = new XMLHttpRequest();
-            req.open('HEAD', document.location, false);
-            req.send(null);
-            headers = req.getAllResponseHeaders().toLowerCase();
-        } else {
-            headers = {
-                "Referer": document.referrer,
-                "User-Agent": navigator.userAgent
-            };
+            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
+                       .getAllResponseHeaders();
         }
+        
+        headers += "Referer: " + document.referrer + "\n";
+        headers += "User-Agent: " + navigator.userAgent + "\n";
         return headers;
     };
-
-    Raven.addEvent = function(elem, event, func) {
-        if (elem.addEventListener) {
-            elem.addEventListener(event, func, false);
-            return true;
-        } else if (elem.attachEvent) {
-            var result = elem.attachEvent("on"+event, func);
-            return result;
+    
+    Raven.getSignature = function(message, timestamp) {
+        return Crypto.HMAC(Crypto.SHA1, timestamp + " " + message,
+                           self.options.secretKey);
+    };
+    
+    Raven.getAuthHeader = function(signature, timestamp) {
+        var header = "Sentry sentry_version=2.0, ";
+        header += "sentry_timestamp=" + timestamp + ", ";
+        header += "sentry_signature=" + signature + ", ";
+        header += "sentry_client=raven-js/" + self.VERSION;
+        if (self.options.publicKey) {
+            header += ", sentry_key=" + self.options.publicKey;
         }
-        return false;
+        return header
     };
 
-    Raven.process = function(data) {
+    Raven.process = function(data, timestamp) {
         data.project = self.options.projectId;
         data.logger = self.options.logger;
         data.site = self.options.site;
-
-        var req = new XMLHttpRequest();
-        // req.setRequestHeader('User-Agent', 'Sentry:JS/1.0');
-        // req.setRequestHeader('Content-type', 'application/json');
-        // req.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        req.open('POST', self.options.server + '?project_id=' + self.options.projectId, false);
-        req.send(JSON.stringify(data));
+        
+        timestamp = timestamp || (new Date).getTime();
+        var message = base64_encode(JSON.stringify(data));
+        var signature = self.getSignature(message, timestamp);
+        
+        $.each(self.options.servers, function (i, server) {
+            $.ajax({
+                type: 'POST',
+                url: server,
+                data: message,
+                headers: {
+                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
+                }
+            });
+        });
     };
 
     Raven.parseTraceback = function(tb) {
@@ -107,7 +112,8 @@
 
     Raven.captureException = function(e) {
         var lineno;
-        var url = root.location.href;
+        var url = root.location.pathname;
+        var querystring = root.location.search.slice(1);
         var traceback;
         var stack;
         var headers;
@@ -132,7 +138,6 @@
             }
         }
 
-        var urlparts = self.parseUrl(url);
         var label = e.toString();
         if (lineno) {
             label = label + " at " + lineno;
@@ -163,8 +168,8 @@
                 "value": e.message
             },
             "sentry.interfaces.Http": {
-                "url": urlparts.url,
-                "querystring": urlparts.querystring,
+                "url": url,
+                "querystring": querystring,
                 "headers": self.getHeaders()
             }
         };
@@ -181,8 +186,8 @@
         */
 
         root.onerror = function(message, fileurl, lineno, stack) {
-            var url = root.location.href;
-            var urlparts = self.parseUrl(url);
+            var url = root.location.pathname;
+            var querystring = root.location.search.slice(1);
             var label = message + ' at line ' + lineno;
             var data = {
                 "message": label,
@@ -199,8 +204,8 @@
                     "value": message
                 },
                 "sentry.interfaces.Http": {
-                    "url": urlparts.url,
-                    "querystring": urlparts.querystring,
+                    "url": url,
+                    "querystring": querystring,
                     "headers": self.getHeaders()
                 }
             };
