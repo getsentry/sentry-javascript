@@ -24,13 +24,14 @@
 
     Raven.loaded = false;
     Raven.options = {
-        fetchHeaders: false,  // Does not work for cross-domain requests
-        secretKey: null,  // The global superuser key if not using project auth
-        publicKey: null,  // Leave as null if not using project auth
+        secretKey: undefined,  // The global key if not using project auth
+        publicKey: undefined,  // Leave as undefined if not using project auth
         servers: [],
         projectId: 1,
         logger: 'javascript',
-        site: null
+        site: undefined,
+        fetchHeaders: false,  // Does not work for cross-domain requests
+        noHeaders: false  // Primarily for testing
     };
 
     Raven.config = function(config) {
@@ -40,16 +41,18 @@
     };
 
     Raven.getHeaders = function() {
-        var headers = "";
+        if (!self.options.noHeaders) {
+            var headers = "";
         
-        if (self.options.fetchHeaders) {
-            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
-                       .getAllResponseHeaders();
+            if (self.options.fetchHeaders) {
+                headers = $.ajax({type: 'HEAD', url: root.location, async: false})
+                           .getAllResponseHeaders();
+            }
+        
+            headers += "Referer: " + document.referrer + "\n";
+            headers += "User-Agent: " + navigator.userAgent + "\n";
+            return headers;
         }
-        
-        headers += "Referer: " + document.referrer + "\n";
-        headers += "User-Agent: " + navigator.userAgent + "\n";
-        return headers;
     };
     
     Raven.getSignature = function(message, timestamp) {
@@ -68,27 +71,6 @@
         return header
     };
 
-    Raven.process = function(data, timestamp) {
-        data.project = self.options.projectId;
-        data.logger = self.options.logger;
-        data.site = self.options.site;
-        
-        timestamp = timestamp || (new Date).getTime();
-        var message = "message=" + base64_encode(JSON.stringify(data));
-        var signature = self.getSignature(message, timestamp);
-        
-        $.each(self.options.servers, function (i, server) {
-            $.ajax({
-                type: 'POST',
-                url: server,
-                data: message,
-                headers: {
-                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
-                }
-            });
-        });
-    };
-
     Raven.parseTraceback = function(tb) {
         // first line is simply the repeated message:
         // ReferenceError: aldfjalksdjf is not defined
@@ -96,116 +78,101 @@
         // following lines (in Chrome at least) contain
         // a line of context
         //     at http://localhost:9000/1/group/306:41:5
-        var stack = [];
-        var lines = tb.split('\n');
-        for (var i=1, line; (line = lines[i]); i++) {
-            var chunks = line.split(':');
-            var lineno = chunks.slice(-2)[0];
-            var filename = chunks.slice(0, -2).join(':').split(' at ')[1];
+        var stack = [],
+            lines = tb.split('\n');
+        $.each(lines.slice(1), function(i, line) {
+            var chunks = line.split(':'),
+                lineno = chunks.slice(-2)[0],
+                filename = chunks.slice(0, -2).join(':').split(' at ')[1];
             stack.push({
                 'lineno': lineno,
                 'filename': filename
             });
-        }
+        });
         return stack;
     };
 
     Raven.captureException = function(e) {
-        var lineno, traceback, stack, headers, fileurl,
-            url = root.location.pathname,
-            querystring = root.location.search.slice(1);
+        var lineno, traceback, fileurl;
 
-        if (e.line) { // WebKit
+        if (e.line) {  // WebKit
             lineno = e.line;
-        } else if (e.lineNumber) { // Mozilla
+        } else if (e.lineNumber) {  // Mozilla
             lineno = e.lineNumber;
         }
 
-        if (e.sourceURL) { // Webkit
+        if (e.sourceURL) {  // Webkit
             fileurl = e.sourceURL;
-        } else if (e.fileName) { // Mozilla
+        } else if (e.fileName) {  // Mozilla
             fileurl = e.fileName;
         }
-        if (e.stack) {
-            try {
-                traceback = self.parseTraceback(e.stack);
-            } catch (ex) {
-
-            }
+        
+        self.process(e, fileurl, lineno, e.stack);
+    };
+    
+    Raven.process = function(message, fileurl, lineno, stack, timestamp) {
+        var label, traceback, stacktrace, data, encoded_msg, signature, type,
+            url = root.location.pathname,
+            querystring = root.location.search.slice(1);  // Remove the ?
+        
+        if (typeof(message) === 'object') {
+            type = message.name;
+            message = message.message;
         }
-
-        var label = e.toString();
+        
         if (lineno) {
-            label = label + " at " + lineno;
+            label = message + " at " + lineno;
         }
-
+        
+        if (stack) {
+            try {
+                traceback = self.parseTraceback(stack);
+            } catch (err) {}
+        }
+        
         if (traceback) {
-            stack = {
-                "frames": traceback
-            };
+            stacktrace = {"frames": traceback};
             fileurl = fileurl || traceback[0].filename;
         } else if (fileurl) {
-            stack = {
-                "frames": [
-                    {
-                        "filename": fileurl,
-                        "lineno": lineno
-                    }
-                ]
+            stacktrace = {
+                "frames": [{
+                    "filename": fileurl,
+                    "lineno": lineno
+                }]
             };
         }
-
-        var data = {
+        
+        data = {
             "message": label,
-            "culprit": fileurl || undefined,
-            "sentry.interfaces.Stacktrace": stack || undefined,
+            "culprit": fileurl,
+            "sentry.interfaces.Stacktrace": stacktrace,
             "sentry.interfaces.Exception": {
-                "type": e.name,
-                "value": e.message
+                "type": type,
+                "value": message
             },
             "sentry.interfaces.Http": {
                 "url": url,
                 "querystring": querystring,
                 "headers": self.getHeaders()
-            }
+            },
+            "project": self.options.projectId,
+            "logger": self.options.logger,
+            "site": self.options.site
         };
-
-        self.process(data);
-    };
-
-    Raven.registerGlobalHandler = function() {
-        /*
-            NOTE: window.onerror support was added to WebKit in 2011 and will
-            not be available in older versions. See:
-                https://bugs.webkit.org/show_bug.cgi?id=8519
-                http://code.google.com/p/chromium/issues/detail?id=7771
-        */
-
-        root.onerror = function(message, fileurl, lineno, stack) {
-            var url = root.location.pathname;
-            var querystring = root.location.search.slice(1);
-            var label = message + ' at line ' + lineno;
-            var data = {
-                "message": label,
-                "culprit": fileurl,
-                "sentry.interfaces.Stacktrace": {
-                    "frames": [
-                        {
-                            "filename": fileurl,
-                            "lineno": lineno
-                        }
-                    ]
-                },
-                "sentry.interfaces.Exception": {
-                    "value": message
-                },
-                "sentry.interfaces.Http": {
-                    "url": url,
-                    "querystring": querystring,
-                    "headers": self.getHeaders()
+        
+        timestamp = timestamp || (new Date).getTime();
+        encoded_msg = "message=" + base64_encode(JSON.stringify(data));
+        signature = self.getSignature(encoded_msg, timestamp);
+        
+        $.each(self.options.servers, function (i, server) {
+            $.ajax({
+                type: 'POST',
+                url: server,
+                data: encoded_msg,
+                headers: {
+                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
                 }
-            };
-            self.process(data);
-        };
+            });
+        });
     };
 }).call(this);
