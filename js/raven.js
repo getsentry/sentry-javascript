@@ -17,7 +17,7 @@
 
     var self = Raven;
     
-    Raven.VERSION = '0.1';
+    Raven.VERSION = '0.1.0';
     
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
