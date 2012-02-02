@@ -111,13 +111,9 @@
     };
 
     Raven.captureException = function(e) {
-        var lineno;
-        var url = root.location.pathname;
-        var querystring = root.location.search.slice(1);
-        var traceback;
-        var stack;
-        var headers;
-        var fileurl;
+        var lineno, traceback, stack, headers, fileurl,
+            url = root.location.pathname,
+            querystring = root.location.search.slice(1);
 
         if (e.line) { // WebKit
             lineno = e.line;
@@ -147,7 +143,7 @@
             stack = {
                 "frames": traceback
             };
-            fileurl = traceback[0].filename;
+            fileurl = fileurl || traceback[0].filename;
         } else if (fileurl) {
             stack = {
                 "frames": [
