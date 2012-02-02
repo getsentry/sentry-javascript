@@ -25,8 +25,8 @@
     Raven.loaded = false;
     Raven.options = {
         fetchHeaders: false,  // Does not work for cross-domain requests
-        publicKey: null,  // Leave as null if not using project auth
         secretKey: null,  // The global superuser key if not using project auth
+        publicKey: null,  // Leave as null if not using project auth
         servers: [],
         projectId: 1,
         logger: 'javascript',
@@ -74,7 +74,7 @@
         data.site = self.options.site;
         
         timestamp = timestamp || (new Date).getTime();
-        var message = base64_encode(JSON.stringify(data));
+        var message = "message=" + base64_encode(JSON.stringify(data));
         var signature = self.getSignature(message, timestamp);
         
         $.each(self.options.servers, function (i, server) {

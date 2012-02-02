@@ -14,13 +14,13 @@ $(document).ready(function() {
     }
     var timestamp = 1328155597571;
     
-    // Monkey-patch jQuery.ajax with a mock function
-    var ajax_options;
+    // // Monkey-patch $.ajax with a mock function
+    var ajax_options = {};
     $.ajax = function(options) {
         ajax_options = options;
     };
     
-    var parseAuthHeader = function(header) {
+    function parseAuthHeader(header) {
         var values = {};
         $.each(header.slice(7).split(', '), function(i, value) {
             values[value.split('=')[0]] = value.split('=')[1];
@@ -30,7 +30,7 @@ $(document).ready(function() {
     
     test("should correctly base64 encode the data", function() {
         Raven.process(data, timestamp);
-        var decoded_data = JSON.parse(base64_decode(ajax_options.data));
+        var decoded_data = JSON.parse(base64_decode(ajax_options.data.slice(8)));
         
         equal(decoded_data['Once'], "upon a midnight dreary");
         equal(decoded_data['while'], "I pondered weak and weary")
@@ -46,9 +46,9 @@ $(document).ready(function() {
         equal(values.sentry_key, 'e89652ec30b94d9db6ea6f28580ab499',
               "sentry_key should match the public key");
         
-        // message = base64.b64encode('{"Once":"upon a midnight dreary","while":"I pondered weak and weary","project":1,"logger":"javascript","site":null}')
+        // message = "message=" + base64.b64encode('{"Once":"upon a midnight dreary","while":"I pondered weak and weary","project":1,"logger":"javascript","site":null}')
         // hmac.new('77ec8c99a8854256aa68ccb91dd9119d', '1328155597571 %s' % message, hashlib.sha1).hexdigest()
-        equal(values.sentry_signature, 'a3dd0a3d02661040268aa81f99a3dcf83ee22e71',
+        equal(values.sentry_signature, 'b84f9b017ccbeb4b394c5fd62617cbfc34dd039a',
               "sentry_signature should match one generated with python");
     });
 
