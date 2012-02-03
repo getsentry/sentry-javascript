@@ -1,6 +1,6 @@
-RAVEN = ./js/raven.js
-BASE64 = ./js/vendor/base64_encode.js
-CRYPTO = ./js/vendor/crypto-sha1-hmac.min.js
+RAVEN = ./src/raven.js
+BASE64 = ./src/vendor/base64_encode.js
+CRYPTO = ./src/vendor/crypto-sha1-hmac.min.js
 VER = $(shell cat version.txt)
 RAVEN_MIN = ./dist/raven-${VER}.min.js
 TMP = /tmp/raven.js
