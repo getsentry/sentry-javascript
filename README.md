@@ -8,6 +8,8 @@ logging and aggregation platform.
 
 ## Install
 
+Download the latest version [here][6].
+
 Raven.js requires either [jQuery][2] (>1.5) or [Zepto.js][3].
 
 The minified distribution file includes code from two other open-source
@@ -15,8 +17,6 @@ projects:
 
 * base64_encode from [php.js][4] (included in the minified distribution)
 * crypto-sha1-hmac from [Crypto-JS][5] (included in minified distribution)
-
-Download the latest version from the Download Packages section [here][6].
 
 First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
@@ -28,7 +28,7 @@ minified distribution file from the 'dist' directory:
 [3]: http://zeptojs.com/
 [4]: http://phpjs.org/
 [5]: http://code.google.com/p/crypto-js/
-[6]: https://github.com/lincolnloop/raven-js/downloads
+[6]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.1.0.tar.gz
 
 
 ## Configuration
