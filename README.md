@@ -8,17 +8,19 @@ logging and aggregation platform.
 
 ## Install
 
-Raven.js has a few requirements:
+Raven.js requires either [jQuery][2] (>1.5) or [Zepto.js][3].
 
- * Either [jQuery][2] (>1.5) or [Zepto.js][3].
- * base64_encode from [php.js][4] (included in the vendor folder)
- * crypto-sha1-hmac from [Crypto-JS][5] (included in the vendor folder)
+The minified distribution file includes code from two other open-source
+projects:
 
-Include Raven and the requirements in your document's head:
+* base64_encode from [php.js][4] (included in the minified distribution)
+* crypto-sha1-hmac from [Crypto-JS][5] (included in minified distribution)
 
-    <script type="text/javascript" src="js/raven.js"></script>
-    <script type="text/javascript" src="js/vendor/base64_encode.min.js"></script>
-    <script type="text/javascript" src="js/vendor/crypto-sha1-hmac.min.js"></script>
+First include jQuery or Zepto in your document's head. Then include the
+minified distribution file from the 'dist' directory:
+
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/raven-0.1.0.min.js"></script>
 
 [2]: http://jquery.com/
 [3]: http://zeptojs.com/
