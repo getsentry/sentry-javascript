@@ -16,6 +16,8 @@ projects:
 * base64_encode from [php.js][4] (included in the minified distribution)
 * crypto-sha1-hmac from [Crypto-JS][5] (included in minified distribution)
 
+Download the latest version from the Download Packages section [here][6].
+
 First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
 
@@ -26,6 +28,7 @@ minified distribution file from the 'dist' directory:
 [3]: http://zeptojs.com/
 [4]: http://phpjs.org/
 [5]: http://code.google.com/p/crypto-js/
+[6]: https://github.com/lincolnloop/raven-js/downloads
 
 
 ## Configuration
