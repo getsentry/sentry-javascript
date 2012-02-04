@@ -16,7 +16,6 @@
     <script type="text/javascript" src="../src/raven.js"></script>
 
     <!-- Unit tests -->
-    <script type="text/javascript" src="setup.js"></script>
     <script type="text/javascript" src="process.js"></script>
     <script type="text/javascript" src="exception.js"></script>
 </head>
@@ -27,7 +26,33 @@
         <h2 id="qunit-banner"></h2>
         <h2 id="qunit-userAgent"></h2>
         <ol id="qunit-tests"></ol>
-        <div id="qunit-fixture"></div>
+        <div id="qunit-fixture">
+            <!-- Reset the test environment between each test -->
+            <script type="text/javascript">
+                var $P = new PHP_JS();
+                
+                var config_opts = $P.base64_encode(JSON.stringify({
+                    "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
+                    "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
+                    "servers": ["/api/store/"],
+                    "signatureUrl": null,
+                    "testMode": true
+                }));
+                Raven.config(config_opts);
+
+                var timestamp = 1328155597571;
+
+                // Monkey-patch ajax calls with mock functions
+                var ajax_calls = [];
+                $.ajax = function(options) {
+                    ajax_calls.push(options);
+                };
+                $.post = function(url, data, success) {
+                	ajax_calls.push({url: url, data: data, success: success});
+                	success({"signature": "dummy-signature"});
+                }
+            </script>
+        </div>
     </div>
 </body>
 </html>

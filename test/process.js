@@ -16,7 +16,7 @@ $(document).ready(function() {
     
     test("should correctly base64 encode the data", function() {
         Raven.process(message, fileurl, lineno, undefined, timestamp);
-        var decoded_data = JSON.parse($P.base64_decode(ajax_options.data.slice(8)));
+        var decoded_data = JSON.parse($P.base64_decode(ajax_calls[0].data.slice(8)));
         
         equal(decoded_data['culprit'], fileurl);
         equal(decoded_data['message'], message + " at " + lineno);
@@ -27,7 +27,7 @@ $(document).ready(function() {
     
     test("should correctly generate Sentry headers", function() {
         Raven.process(message, fileurl, lineno, undefined, timestamp);
-        var values = parseAuthHeader(ajax_options.headers['X-Sentry-Auth']);
+        var values = parseAuthHeader(ajax_calls[0].headers['X-Sentry-Auth']);
         
         equal(values.sentry_key, 'e89652ec30b94d9db6ea6f28580ab499',
               "sentry_key should match the public key");
@@ -38,5 +38,15 @@ $(document).ready(function() {
         equal(values.sentry_signature, '4799ab65ff3052aa8768987d918014c6d40f75d0',
               "sentry_signature should match one generated with python");
     });
+
+	test("should hit an external url for signature if desired", function() {
+		Raven.config({"signatureUrl": "/api/sign-error/"});
+		Raven.process(message, fileurl, lineno, undefined, timestamp);
+		
+		// The first Ajax call in this case should be to the signature URL
+		equal(ajax_calls[0].url, '/api/sign-error/');
+		equal(ajax_calls[0].data.timestamp, timestamp);
+		notEqual(ajax_calls[1].headers['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
+	});
 
 });

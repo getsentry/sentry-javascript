@@ -33,6 +33,7 @@
         projectId: 1,
         logger: 'javascript',
         site: undefined,
+		signatureUrl: undefined,
         fetchHeaders: false,  // Does not work for cross-domain requests
         testMode: false  // Disables some things that randomize the signature
     };
@@ -60,9 +61,18 @@
         return headers;
     };
     
-    Raven.getSignature = function(message, timestamp) {
-        return Crypto.HMAC(Crypto.SHA1, timestamp + " " + message,
-                           self.options.secretKey);
+    Raven.getSignature = function(message, timestamp, callback) {
+		if (self.options.signatureUrl) {
+			$.post(self.options.signatureUrl, {
+				message: message, timestamp: timestamp
+			}, function(data) {
+				callback(data.signature);
+			});
+		} else {
+			var signature = Crypto.HMAC(Crypto.SHA1, timestamp + " " + message,
+	                           	    self.options.secretKey);
+			callback(signature);
+		}
     };
     
     Raven.getAuthHeader = function(signature, timestamp) {
@@ -116,7 +126,7 @@
     };
     
     Raven.process = function(message, fileurl, lineno, stack, timestamp) {
-        var label, traceback, stacktrace, data, encoded_msg, signature, type,
+        var label, traceback, stacktrace, data, encoded_msg, type,
             url = root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
         
@@ -170,17 +180,17 @@
         
         timestamp = timestamp || (new Date).getTime();
         encoded_msg = "message=" + $P.base64_encode(JSON.stringify(data));
-        signature = self.getSignature(encoded_msg, timestamp);
-        
-        $.each(self.options.servers, function (i, server) {
-            $.ajax({
-                type: 'POST',
-                url: server,
-                data: encoded_msg,
-                headers: {
-                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
-                }
-            });
-        });
+        self.getSignature(encoded_msg, timestamp, function(signature) {
+			$.each(self.options.servers, function (i, server) {
+	            $.ajax({
+	                type: 'POST',
+	                url: server,
+	                data: encoded_msg,
+	                headers: {
+	                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
+	                }
+	            });
+	        });
+		});
     };
 }).call(this);

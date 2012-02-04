@@ -85,8 +85,28 @@ those cases it will simply do nothing.
 ## Security
 
 The `Raven.config` method above is insecure because it reveals the secretKey.
-If would would like to obfuscate this somewhat, you can pass the options to the
-`config` method as a base64 encoded JSON string:
+
+### Server-side Signing
+
+One way to work around this is to send the message to the server for signing.
+Use the `signatureUrl` configuration option to provide a url to use to obtain a
+signature. Raven.js will send a POST request to the url containing a "message",
+with the base64 encoded message, and a "timestamp". The server-side code should
+then use the secret key to sign the request using a SHA1-signed HMAC.
+
+To generate the HMAC signature, take the following example (in Python):
+
+    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+
+The response should be a JSON string containing a "signature" key with the
+generated signature:
+
+    {"signature": "4799ab65ff3052aa8768987d918014c6d40f75d0"}
+
+### Simple Obfuscation
+
+If would just would like to obfuscate this somewhat, you can pass the options
+to the `config` method as a base64 encoded JSON string:
 
     Raven.config("eyJzZWNyZXRLZXkiOiAiNzdlYzhjOTlhODg1NDI1NmFhNjhjY2I5MWRkOTExOWQiLCAicHVibGljS2V5IjogImU4OTY1MmVjMzBiOTRkOWRiNmVhNmYyODU4MGFiNDk5IiwgInNlcnZlcnMiOiBbImh0dHA6Ly95b3VyLnNlbnRyeXNlcnZlci5jb20vYXBpL3N0b3JlLyJdLCAicHJvamVjdElkIjogMSwgImxvZ2dlciI6ICJ5b3Vyc2l0ZS5lcnJvcnMuamF2YXNjcmlwdCJ9");
 
