@@ -3,8 +3,14 @@
 <head>
     <title>Raven Test Suite</title>
 
-    <!-- jQuery -->
-    <script type="text/javascript" src="vendor/jquery-1.7.1.min.js"></script>
+    <!-- jQuery or Zepto-->
+    <script type="text/javascript">
+        if (querystring = window.location.search.slice(1).indexOf('lib=zepto') != -1) {
+            document.write('<' + 'script type="text/javascript" src="vendor/zepto-0.8.min.js"><' + '/script>');
+        } else {
+            document.write('<' + 'script type="text/javascript" src="vendor/jquery-1.7.1.min.js"><' + '/script>');
+        }
+    </script>
 
     <!-- Qunit -->
     <link rel="stylesheet" href="vendor/qunit.css" type="text/css" media="screen" />
@@ -23,6 +29,11 @@
 <body>
     <div>
         <h1 id="qunit-header">Raven Test Suite</h1>
+        <script type="text/javascript">
+            if ($ === window.Zepto) {
+                $('#qunit-header').append(' (Zepto)');
+            }
+        </script>
         <h2 id="qunit-banner"></h2>
         <h2 id="qunit-userAgent"></h2>
         <ol id="qunit-tests"></ol>

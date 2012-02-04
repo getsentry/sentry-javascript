@@ -567,8 +567,9 @@ extend(QUnit, {
 	 * If jQuery is available, uses jQuery's html(), otherwise just innerHTML.
 	 */
 	reset: function() {
-		if ( window.jQuery ) {
-			jQuery( "#qunit-fixture" ).html( config.fixture );
+		var $ = window.jQuery || window.Zepto || window.ender;
+		if ( window.$ ) {
+			$( "#qunit-fixture" ).html( config.fixture );
 		} else {
 			var main = id( 'qunit-fixture' );
 			if ( main ) {
