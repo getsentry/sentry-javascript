@@ -4,7 +4,7 @@
 //
 // Requires:
 //     * Either jQuery (>1.5) or Zepto.js.
-//     * base64_encode from php.js (included in the vendor folder)
+//     * base64_encode/decode from php.js (included in the vendor folder)
 //     * crypto-sha1-hmac from Crypto-JS (included in the vendor folder)
 
 (function(){
@@ -21,6 +21,9 @@
     
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
+
+	// php.js owns $P, for base64 encoding
+	var $P = new PHP_JS();
 
     Raven.loaded = false;
     Raven.options = {
@@ -162,7 +165,7 @@
         }
         
         timestamp = timestamp || (new Date).getTime();
-        encoded_msg = "message=" + base64_encode(JSON.stringify(data));
+        encoded_msg = "message=" + $P.base64_encode(JSON.stringify(data));
         signature = self.getSignature(encoded_msg, timestamp);
         
         $.each(self.options.servers, function (i, server) {

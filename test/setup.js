@@ -8,6 +8,8 @@ Raven.config({
 
 var timestamp = 1328155597571;
 
+var $P = new PHP_JS();
+
 // // Monkey-patch $.ajax with a mock function
 var ajax_options = {};
 $.ajax = function(options) {

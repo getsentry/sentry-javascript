@@ -16,7 +16,7 @@ $(document).ready(function() {
     
     test("should correctly base64 encode the data", function() {
         Raven.process(message, fileurl, lineno, undefined, timestamp);
-        var decoded_data = JSON.parse(base64_decode(ajax_options.data.slice(8)));
+        var decoded_data = JSON.parse($P.base64_decode(ajax_options.data.slice(8)));
         
         equal(decoded_data['culprit'], fileurl);
         equal(decoded_data['message'], message + " at " + lineno);
