@@ -15,7 +15,7 @@ raven:
 	mkdir -p dist
 
 	# Generate the compressed file
-	cat ${RAVEN} ${BASE64} ${CRYPTO} | \
+	cat ${BASE64} ${CRYPTO} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" | \
 		${COMPRESSOR} --type js > ${RAVEN_MIN}
 
