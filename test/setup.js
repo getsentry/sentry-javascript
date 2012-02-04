@@ -1,10 +1,4 @@
-Raven.config({
-    publicKey: 'e89652ec30b94d9db6ea6f28580ab499',
-    secretKey: '77ec8c99a8854256aa68ccb91dd9119d',
-    servers: ['/api/store/'],
-    // These are different for each browser, making the signature unpredictable
-    testMode: true
-});
+Raven.config("eyJwdWJsaWNLZXkiOiAiZTg5NjUyZWMzMGI5NGQ5ZGI2ZWE2ZjI4NTgwYWI0OTkiLCAic2VjcmV0S2V5IjogIjc3ZWM4Yzk5YTg4NTQyNTZhYTY4Y2NiOTFkZDkxMTlkIiwgInNlcnZlcnMiOiBbIi9hcGkvc3RvcmUvIl0sICJ0ZXN0TW9kZSI6IHRydWV9");
 
 var timestamp = 1328155597571;
 

@@ -38,9 +38,13 @@
     };
 
     Raven.config = function(config) {
+		if (typeof(config) === "string") {
+			config = JSON.parse($P.base64_decode(config));
+		}
         $.each(config, function(i, option) {
             self.options[i] = option;
         });
+		
     };
 
     Raven.getHeaders = function() {

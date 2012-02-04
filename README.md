@@ -36,11 +36,11 @@ minified distribution file from the 'dist' directory:
 Configure the client like this:
 
     Raven.config({
-        secretKey: '77ec8c99a8854256aa68ccb91dd9119d',
-        publicKey: 'e89652ec30b94d9db6ea6f28580ab499',
-        servers: ['http://your.sentryserver.com/api/store/'],
-        projectId: 1,
-        logger: 'yoursite.errors.javascript'
+        "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
+        "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
+        "servers": ["http://your.sentryserver.com/api/store/"],
+        "projectId": 1,
+        "logger": "yoursite.errors.javascript"
     });
 
 **secretKey** - (*required*) If you're using project auth, this should be the
@@ -81,6 +81,19 @@ to the `window.onerror` attribute:
 
 This should be harmless on browsers that don't support window.onerror, and in
 those cases it will simply do nothing.
+
+## Security
+
+The `Raven.config` method above is insecure because it reveals the secretKey.
+If would would like to obfuscate this somewhat, you can pass the options to the
+`config` method as a base64 encoded JSON string:
+
+    Raven.config("eyJzZWNyZXRLZXkiOiAiNzdlYzhjOTlhODg1NDI1NmFhNjhjY2I5MWRkOTExOWQiLCAicHVibGljS2V5IjogImU4OTY1MmVjMzBiOTRkOWRiNmVhNmYyODU4MGFiNDk5IiwgInNlcnZlcnMiOiBbImh0dHA6Ly95b3VyLnNlbnRyeXNlcnZlci5jb20vYXBpL3N0b3JlLyJdLCAicHJvamVjdElkIjogMSwgImxvZ2dlciI6ICJ5b3Vyc2l0ZS5lcnJvcnMuamF2YXNjcmlwdCJ9");
+
+This is still insecure, but it is less obvious than calling it with plain text
+options.
+
+More security options will be forthcoming.
 
 ## Support
 
