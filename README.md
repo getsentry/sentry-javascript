@@ -43,8 +43,10 @@ Configure the client like this:
         "logger": "yoursite.errors.javascript"
     });
 
-**secretKey** - (*required*) If you're using project auth, this should be the
-desired user's secret key. Otherwise, this should be the global superuser key.
+**secretKey** - If you're using project auth, this should be the desired user's
+secret key. Otherwise, this should be the global superuser key. If you are
+using the `signatureUrl` option below, then you should omit this from your
+config.
 
 **publicKey** - This is only needed if you're using project auth, and it should
 be the desired user's public key.
@@ -61,6 +63,9 @@ be the desired user's public key.
 **fetchHeaders** - Generate a HEAD request to gather header information to send
 with the message. This defaults to 'false' because it doesn't work on
 cross-domain requests.
+
+**signatureUrl** - Use a server side url to get a signature for the message.
+See below in the "Security" section for more details.
 
 
 ## Logging Errors
