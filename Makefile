@@ -1,5 +1,5 @@
 RAVEN = ./src/raven.js
-BASE64 = ./src/vendor/base64_encode.js
+BASE64 = ./src/vendor/base64.js
 CRYPTO = ./src/vendor/crypto-sha1-hmac.min.js
 VER = $(shell cat version.txt)
 RAVEN_MIN = ./dist/raven-${VER}.min.js
