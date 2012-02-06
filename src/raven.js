@@ -34,7 +34,7 @@
         logger: 'javascript',
         site: undefined,
 		signatureUrl: undefined,
-        fetchHeaders: false,  // Does not work for cross-domain requests
+        fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false  // Disables some things that randomize the signature
     };
 
@@ -49,15 +49,28 @@
     };
 
     Raven.getHeaders = function() {
-        var headers = "";
+        var headers = {};
     
         if (self.options.fetchHeaders) {
             headers = $.ajax({type: 'HEAD', url: root.location, async: false})
                        .getAllResponseHeaders();
         }
     
-        headers += "Referer: " + document.referrer + "\n";
-        headers += "User-Agent: " + navigator.userAgent + "\n";
+        headers["Referer"] = document.referrer;
+        headers["User-Agent"] = navigator.userAgent;
+        return headers;
+    };
+    
+    Raven.parseHeaders = function(headers_string) {
+        /*
+         * Parse the header string returned from getAllResponseHeaders
+         */
+        var headers = {};
+        $.each(headers_string.split('\n'), function(i, header) {
+            var name = header.slice(0, header.indexOf(':')),
+                value = header.slice(header.indexOf(':') + 2);
+            headers[name] = value;
+        });
         return headers;
     };
     

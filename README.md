@@ -28,7 +28,7 @@ minified distribution file from the 'dist' directory:
 [3]: http://zeptojs.com/
 [4]: http://phpjs.org/
 [5]: http://code.google.com/p/crypto-js/
-[6]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.1.2.tar.gz
+[6]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.1.3.tar.gz
 
 
 ## Configuration
