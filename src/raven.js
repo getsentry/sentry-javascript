@@ -179,7 +179,7 @@
         }
         
         timestamp = timestamp || (new Date).getTime();
-        encoded_msg = "message=" + $P.base64_encode(JSON.stringify(data));
+        encoded_msg = $P.base64_encode(JSON.stringify(data));
         self.getSignature(encoded_msg, timestamp, function(signature) {
 			$.each(self.options.servers, function (i, server) {
 	            $.ajax({

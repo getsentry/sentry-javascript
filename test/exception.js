@@ -9,7 +9,7 @@ $(document).ready(function() {
             Raven.captureException(err);
         }
         
-        data = JSON.parse($P.base64_decode(ajax_calls[0].data.slice(8)));
+        data = JSON.parse($P.base64_decode(ajax_calls[0].data));
         
         equal(data.culprit.slice(-12), 'exception.js',
               'the culprit should be the exception.js unit test file');
