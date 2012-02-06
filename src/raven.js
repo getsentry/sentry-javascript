@@ -140,7 +140,7 @@
     
     Raven.process = function(message, fileurl, lineno, stack, timestamp) {
         var label, traceback, stacktrace, data, encoded_msg, type,
-            url = root.location.pathname,
+            url = root.location.origin + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
         
         if (typeof(message) === 'object') {
