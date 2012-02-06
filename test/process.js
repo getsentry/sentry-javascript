@@ -36,7 +36,7 @@ $(document).ready(function() {
         // message = "message=" + base64.b64encode('{"message":"Once upon a midnight dreary at 12","culprit":"http://edgarallen.poe/nevermore/","sentry.interfaces.Stacktrace":{"frames":[{"filename":"http://edgarallen.poe/nevermore/","lineno":12}]},"sentry.interfaces.Exception":{"value":"Once upon a midnight dreary"},"project":1,"logger":"javascript"}')
         // hmac.new('77ec8c99a8854256aa68ccb91dd9119d', '1328155597571 %s' % message, hashlib.sha1).hexdigest()
         equal(values.sentry_signature, '4799ab65ff3052aa8768987d918014c6d40f75d0',
-              "sentry_signature should match one generated with python");
+              "sentry_signature should match a hash generated with python");
     });
 
 	test("should hit an external url for signature if desired", function() {
