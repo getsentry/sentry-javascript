@@ -11,14 +11,14 @@
     // Save a reference to the global object (`window` in the browser, `global`
     // on the server).
     var root = this;
-    
+
     var Raven;
     Raven = root.Raven = {};
 
     var self = Raven;
-    
+
     Raven.VERSION = '@VERSION';
-    
+
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
 
@@ -45,22 +45,22 @@
         $.each(config, function(i, option) {
             self.options[i] = option;
         });
-		
+
     };
 
     Raven.getHeaders = function() {
         var headers = {};
-    
+
         if (self.options.fetchHeaders) {
             headers = $.ajax({type: 'HEAD', url: root.location, async: false})
                        .getAllResponseHeaders();
         }
-    
+
         headers["Referer"] = document.referrer;
         headers["User-Agent"] = navigator.userAgent;
         return headers;
     };
-    
+
     Raven.parseHeaders = function(headers_string) {
         /*
          * Parse the header string returned from getAllResponseHeaders
@@ -73,7 +73,7 @@
         });
         return headers;
     };
-    
+
     Raven.getSignature = function(message, timestamp, callback) {
 		if (self.options.signatureUrl) {
 			$.post(self.options.signatureUrl, {
@@ -87,7 +87,7 @@
 			callback(signature);
 		}
     };
-    
+
     Raven.getAuthHeader = function(signature, timestamp) {
         var header = "Sentry sentry_version=2.0, ";
         header += "sentry_timestamp=" + timestamp + ", ";
@@ -134,30 +134,28 @@
         } else if (e.fileName) {  // Mozilla
             fileurl = e.fileName;
         }
-        
+
         self.process(e, fileurl, lineno, e.stack);
     };
-    
+
     Raven.process = function(message, fileurl, lineno, stack, timestamp) {
         var label, traceback, stacktrace, data, encoded_msg, type,
             url = root.location.origin + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
-        
+
         if (typeof(message) === 'object') {
             type = message.name;
             message = message.message;
         }
-        
-        if (lineno) {
-            label = message + " at " + lineno;
-        }
-        
+
+        label = lineno ? message + " at " + lineno : message;
+
         if (stack) {
             try {
                 traceback = self.parseTraceback(stack);
             } catch (err) {}
         }
-        
+
         if (traceback) {
             stacktrace = {"frames": traceback};
             fileurl = fileurl || traceback[0].filename;
@@ -169,7 +167,7 @@
                 }]
             };
         }
-        
+
         data = {
             "message": label,
             "culprit": fileurl,
@@ -182,7 +180,7 @@
             "logger": self.options.logger,
             "site": self.options.site
         };
-        
+
         if (!self.options.testMode) {
             data["sentry.interfaces.Http"] = {
                 "url": url,
@@ -190,7 +188,7 @@
                 "headers": self.getHeaders()
             };
         }
-        
+
         timestamp = timestamp || (new Date).getTime();
         encoded_msg = $P.base64_encode(JSON.stringify(data));
         self.getSignature(encoded_msg, timestamp, function(signature) {
