@@ -3,8 +3,8 @@
 This is an experimental JavaScript client for the [Sentry][1] realtime event
 logging and aggregation platform.
 
-The minified distribution file includes code from two other open-source
-projects:
+The full and minified distribution files include code from two other
+open-source projects:
 
 * base64_encode from [php.js][2] (included in the minified distribution)
 * crypto-sha1-hmac from [Crypto-JS][3] (included in minified distribution)
