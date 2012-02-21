@@ -162,7 +162,7 @@
                 fn = '(unknown)';
                 filename = chunks[0]
             }
-            
+
             if (filename && filename != '(unknown source)') {
                 if (filename.slice(0, 1) == '(') {
                     // Remove parentheses
@@ -170,11 +170,11 @@
                 } else {
                     filename = filename.split(':');
                 }
-            
+
                 lineno = filename.slice(-2)[0];
                 filename = filename.slice(0, -2).join(':');
             }
-            
+
             traceback.push({
                 'function': fn,
                 'filename': filename,
@@ -199,24 +199,28 @@
         $.each(lines, function(i, line) {
             if (line) {
                 chunks = line.split('@');
-                fn = chunks[0].split('(');
-                
-                if (fn[1] != ')') {
-                    args = fn[1].slice(0, -1).split(',');
-                } else {
-                    args = undefined;
-                }
-                
-                if (fn[0]) {
-                    fn = fn[0]
+                if (chunks[0]) {
+                    fn = chunks[0].split('(');
+
+                    if (fn[1] != ')') {
+                        args = fn[1].slice(0, -1).split(',');
+                    } else {
+                        args = undefined;
+                    }
+
+                    if (fn[0]) {
+                        fn = fn[0]
+                    } else {
+                        fn = '(unknown)';
+                    }
                 } else {
                     fn = '(unknown)';
                 }
-                
+
                 filename = chunks[1].split(':');
                 lineno = filename.slice(-1)[0];
                 filename = filename.slice(0, -1).join(':');
-                
+
                 traceback.push({
                     'function': fn,
                     'filename': filename,
@@ -227,7 +231,7 @@
         });
         return traceback;
 	};
-	
+
 	Raven.otherTraceback = function(callee) {
 		/*
 		 * Generates best-efforts tracebacks for other browsers, such as Safari
@@ -253,7 +257,7 @@
         }
         return traceback;
 	};
-	
+
 	Raven.stringifyArguments = function(args) {
 		/*
 		 * Converts a callee's arguments to strings
@@ -262,7 +266,7 @@
 			self = this,
 			UNKNOWN = '<unknown>',
 			results = [];
-		
+
 		$.each(args, function(i, arg) {
 			if (arg === undefined) {
                 results.push('undefined');
@@ -285,7 +289,7 @@
 				results.push(UNKNOWN);
 			}
 		});
-		
+
 		return results;
 	};
 
