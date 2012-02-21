@@ -38,7 +38,7 @@
         testMode: false  // Disables some things that randomize the signature
     };
 
-	Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
+    Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
     Raven.config = function(config) {
 		if (typeof(config) === "string") {
@@ -141,26 +141,39 @@
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
-            chunks = $.trim(line).slice(3).split(' ');
+            chunks = $.trim(line).slice(3)
+            if (chunks == "unknown source") {
+                return  // Skip this one
+            } else {
+                chunks = chunks.split(' ');
+            }
 
-            if (chunks.length > 1) {
+            if (chunks.length > 2) {
+                // If there are more than 2 chunks, there are spaces in the
+                // filename
+                fn = chunks[0];
+                filename = chunks.slice(1).join(' ');
+                lineno = '(unknown)';
+            } else if (chunks.length == 2) {
                 // If there are two chunks, the first one is the function name
                 fn = chunks[0];
                 filename = chunks[1]
             } else {
-                fn = undefined;
+                fn = '(unknown)';
                 filename = chunks[0]
             }
             
-            if (filename.slice(0, 1) == '(') {
-                // Remove parentheses
-                filename = filename.slice(1, -1).split(':');
-            } else {
-                filename = filename.split(':');
-            }
+            if (filename && filename != '(unknown source)') {
+                if (filename.slice(0, 1) == '(') {
+                    // Remove parentheses
+                    filename = filename.slice(1, -1).split(':');
+                } else {
+                    filename = filename.split(':');
+                }
             
-            lineno = filename.slice(-2)[0];
-            filename = filename.slice(-3)[0].slice(2);
+                lineno = filename.slice(-2)[0];
+                filename = filename.slice(0, -2).join(':');
+            }
             
             traceback.push({
                 'function': fn,
@@ -197,12 +210,12 @@
                 if (fn[0]) {
                     fn = fn[0]
                 } else {
-                    fn = undefined;
+                    fn = '(unknown)';
                 }
                 
                 filename = chunks[1].split(':');
                 lineno = filename.slice(-1)[0];
-                filename = filename.slice(-2)[0].slice(2);
+                filename = filename.slice(0, -1).join(':');
                 
                 traceback.push({
                     'function': fn,
@@ -324,16 +337,16 @@
         timestamp = timestamp || (new Date).getTime();
         encoded_msg = $P.base64_encode(JSON.stringify(data));
         self.getSignature(encoded_msg, timestamp, function(signature) {
-			$.each(self.options.servers, function (i, server) {
-	            $.ajax({
-	                type: 'POST',
-	                url: server,
-	                data: encoded_msg,
-	                headers: {
-	                    'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
-	                }
-	            });
-	        });
-		});
+            $.each(self.options.servers, function (i, server) {
+                $.ajax({
+                    type: 'POST',
+                    url: server,
+                    data: encoded_msg,
+                    headers: {
+                        'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
+                    }
+                });
+            });
+        });
     };
 }).call(this);
