@@ -57,13 +57,4 @@ $(document).ready(function() {
         }
     });
 
-    test("should have error message without line number", function() {
-        Raven.captureException(new Error('ManuallyThrownError'));
-
-        var data = JSON.parse($P.base64_decode(ajax_calls[0].data));
-
-        equal(data.message, 'ManuallyThrownError',
-                 'the message should match');
-    });
-
 });

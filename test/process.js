@@ -48,5 +48,14 @@ $(document).ready(function() {
 		equal(ajax_calls[0].data.timestamp, timestamp);
 		notEqual(ajax_calls[1].headers['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
 	});
+	
+	test("should omit 'at' if there is no line number provided", function() {
+        Raven.process('ManuallyThrownError');
+
+        var data = JSON.parse($P.base64_decode(ajax_calls[0].data));
+
+        equal(data.message, 'ManuallyThrownError',
+                 'the message should match');
+    });
 
 });
