@@ -38,6 +38,8 @@
         testMode: false  // Disables some things that randomize the signature
     };
 
+	Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
+
     Raven.config = function(config) {
 		if (typeof(config) === "string") {
 			config = JSON.parse($P.base64_decode(config));
@@ -99,27 +101,6 @@
         return header
     };
 
-    Raven.parseTraceback = function(tb) {
-        // first line is simply the repeated message:
-        // ReferenceError: aldfjalksdjf is not defined
-
-        // following lines (in Chrome at least) contain
-        // a line of context
-        //     at http://localhost:9000/1/group/306:41:5
-        var stack = [],
-            lines = tb.split('\n');
-        $.each(lines.slice(1), function(i, line) {
-            var chunks = line.split(':'),
-                lineno = chunks.slice(-2)[0],
-                filename = chunks.slice(0, -2).join(':').split(' at ')[1];
-            stack.push({
-                'lineno': lineno,
-                'filename': filename
-            });
-        });
-        return stack;
-    };
-
     Raven.captureException = function(e) {
         var lineno, traceback, fileurl;
 
@@ -135,11 +116,168 @@
             fileurl = e.fileName;
         }
 
-        self.process(e, fileurl, lineno, e.stack);
+		if (e.arguments && e.stack) {
+	        traceback = this.chromeTraceback(e);
+		} else if (e.stack) {
+			traceback = this.firefoxTraceback(e);
+		} else {
+		    traceback = [{"filename": fileurl, "lineno": lineno}]
+			traceback = traceback.concat(this.otherTraceback(arguments.callee));
+		}
+
+        self.process(e, fileurl, lineno, traceback);
     };
 
-    Raven.process = function(message, fileurl, lineno, stack, timestamp) {
-        var label, traceback, stacktrace, data, encoded_msg, type,
+    Raven.chromeTraceback = function(e) {
+        /*
+         * First line is simply the repeated message:
+         *   ReferenceError: aldfjalksdjf is not defined
+         *
+         * Following lines contain error context:
+         *   at http://localhost:9000/1/group/306:41:5
+         */
+		var chunks, fn, filename, lineno,
+            traceback = [],
+            lines = e.stack.split('\n');
+        $.each(lines.slice(1), function(i, line) {
+            // Trim the 'at ' from the beginning, and split by spaces
+            chunks = $.trim(line).slice(3).split(' ');
+
+            if (chunks.length > 1) {
+                // If there are two chunks, the first one is the function name
+                fn = chunks[0];
+                filename = chunks[1]
+            } else {
+                fn = undefined;
+                filename = chunks[0]
+            }
+            
+            if (filename.slice(0, 1) == '(') {
+                // Remove parentheses
+                filename = filename.slice(1, -1).split(':');
+            } else {
+                filename = filename.split(':');
+            }
+            
+            lineno = filename.slice(-2)[0];
+            filename = filename.slice(-3)[0].slice(2);
+            
+            traceback.push({
+                'function': fn,
+                'filename': filename,
+                'lineno': lineno
+            });
+        });
+        return traceback;
+    };
+
+	Raven.firefoxTraceback = function(e) {
+	    /*
+	     * Each line is a function with args and a filename, separated by an ampersand.
+	     *   unsubstantiatedClaim("I am Batman")@http://raven-js.com/test/exception.js:7
+	     *
+	     * Anonymous functions are presented without a name, but including args.
+	     *   (66)@http://raven-js.com/test/vendor/qunit.js:418
+	     *
+	     */
+		var chunks, fn, args, filename, lineno,
+            traceback = [],
+            lines = e.stack.split('\n');
+        $.each(lines, function(i, line) {
+            if (line) {
+                chunks = line.split('@');
+                fn = chunks[0].split('(');
+                
+                if (fn[1] != ')') {
+                    args = fn[1].slice(0, -1).split(',');
+                } else {
+                    args = undefined;
+                }
+                
+                if (fn[0]) {
+                    fn = fn[0]
+                } else {
+                    fn = undefined;
+                }
+                
+                filename = chunks[1].split(':');
+                lineno = filename.slice(-1)[0];
+                filename = filename.slice(-2)[0].slice(2);
+                
+                traceback.push({
+                    'function': fn,
+                    'filename': filename,
+                    'lineno': lineno,
+                    'vars': {'arguments': args}
+                })
+            }
+        });
+        return traceback;
+	};
+	
+	Raven.otherTraceback = function(callee) {
+		/*
+		 * Generates best-efforts tracebacks for other browsers, such as Safari
+		 * or IE.
+		 */
+		var fn, args,
+		    ANON = '<anonymous>',
+			traceback = [],
+			max = 9;
+        while (callee && traceback.length < max) {
+            fn = callee.name || (this.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
+            if (callee.arguments) {
+                args = this.stringifyArguments(callee.arguments);
+            } else {
+                args = undefined;
+            }
+            traceback.push({
+                'function': fn,
+                'post_context': callee.toString().split('\n'),
+                'vars': {'arguments': args}
+            });
+            callee = callee.caller;
+        }
+        return traceback;
+	};
+	
+	Raven.stringifyArguments = function(args) {
+		/*
+		 * Converts a callee's arguments to strings
+		 */
+		var fn,
+			self = this,
+			UNKNOWN = '<unknown>',
+			results = [];
+		
+		$.each(args, function(i, arg) {
+			if (arg === undefined) {
+                results.push('undefined');
+            } else if (arg === null) {
+                results.push('null');
+			} else if (arg instanceof Array) {
+				results.push(self.stringifyArguments(arg));
+			} else if (arg.constructor) {
+				fn = arg.constructor.name || (self.funcNameRE.test(arg.constructor.toString()) ? RegExp.$1 || UNKNOWN : UNKNOWN);
+				if (fn == 'String') {
+					results.push('"' + arg + '"');
+				} else if (fn == 'Number' || fn == 'Date') {
+					results.push(arg);
+				} else if (fn == 'Boolean') {
+					results.push(arg ? 'true' : 'false');
+				} else {
+					results.push(fn);
+				}
+			} else {
+				results.push(UNKNOWN);
+			}
+		});
+		
+		return results;
+	};
+
+    Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
+        var label, stacktrace, data, encoded_msg, type,
             url = root.location.origin + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
@@ -149,12 +287,6 @@
         }
 
         label = lineno ? message + " at " + lineno : message;
-
-        if (stack) {
-            try {
-                traceback = self.parseTraceback(stack);
-            } catch (err) {}
-        }
 
         if (traceback) {
             stacktrace = {"frames": traceback};

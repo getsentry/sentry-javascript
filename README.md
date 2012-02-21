@@ -3,20 +3,26 @@
 This is an experimental JavaScript client for the [Sentry][1] realtime event
 logging and aggregation platform.
 
+The minified distribution file includes code from two other open-source
+projects:
+
+* base64_encode from [php.js][2] (included in the minified distribution)
+* crypto-sha1-hmac from [Crypto-JS][3] (included in minified distribution)
+
+The stacktrace generation was inspired by the [javascript-stacktrace][4]
+project, and includes heavily modified portions of that project's code.
+
 [1]: http://getsentry.com/
+[2]: http://phpjs.org/
+[3]: http://code.google.com/p/crypto-js/
+[4]: https://github.com/eriwen/javascript-stacktrace
 
 
 ## Install
 
-Download the latest version [here][6].
+Download the latest version [here][5].
 
-Raven.js requires either [jQuery][2] (>1.5) or [Zepto.js][3].
-
-The minified distribution file includes code from two other open-source
-projects:
-
-* base64_encode from [php.js][4] (included in the minified distribution)
-* crypto-sha1-hmac from [Crypto-JS][5] (included in minified distribution)
+Raven.js requires either [jQuery][6] (>1.5) or [Zepto.js][7].
 
 First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
@@ -24,11 +30,9 @@ minified distribution file from the 'dist' directory:
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/raven-0.1.0.min.js"></script>
 
-[2]: http://jquery.com/
-[3]: http://zeptojs.com/
-[4]: http://phpjs.org/
-[5]: http://code.google.com/p/crypto-js/
-[6]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.1.4.tar.gz
+[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.1.4.tar.gz
+[6]: http://jquery.com/
+[7]: http://zeptojs.com/
 
 
 ## Configuration
