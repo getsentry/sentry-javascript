@@ -85,7 +85,7 @@
 			});
 		} else {
 			var signature = Crypto.HMAC(Crypto.SHA1, timestamp + " " + message,
-	                           	    self.options.secretKey);
+                                        self.options.secretKey);
 			callback(signature);
 		}
     };
@@ -98,7 +98,7 @@
         if (self.options.publicKey) {
             header += ", sentry_key=" + self.options.publicKey;
         }
-        return header
+        return header;
     };
 
     Raven.captureException = function(e) {
@@ -117,11 +117,11 @@
         }
 
 		if (e.arguments && e.stack) {
-	        traceback = this.chromeTraceback(e);
+            traceback = this.chromeTraceback(e);
 		} else if (e.stack) {
 			traceback = this.firefoxTraceback(e);
 		} else {
-		    traceback = [{"filename": fileurl, "lineno": lineno}]
+            traceback = [{"filename": fileurl, "lineno": lineno}];
 			traceback = traceback.concat(this.otherTraceback(arguments.callee));
 		}
 
@@ -141,9 +141,9 @@
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
-            chunks = $.trim(line).slice(3)
+            chunks = $.trim(line).slice(3);
             if (chunks == "unknown source") {
-                return  // Skip this one
+                return;  // Skip this one
             } else {
                 chunks = chunks.split(' ');
             }
@@ -157,10 +157,10 @@
             } else if (chunks.length == 2) {
                 // If there are two chunks, the first one is the function name
                 fn = chunks[0];
-                filename = chunks[1]
+                filename = chunks[1];
             } else {
                 fn = '(unknown)';
-                filename = chunks[0]
+                filename = chunks[0];
             }
 
             if (filename && filename != '(unknown source)') {
@@ -185,14 +185,14 @@
     };
 
 	Raven.firefoxTraceback = function(e) {
-	    /*
-	     * Each line is a function with args and a filename, separated by an ampersand.
-	     *   unsubstantiatedClaim("I am Batman")@http://raven-js.com/test/exception.js:7
-	     *
-	     * Anonymous functions are presented without a name, but including args.
-	     *   (66)@http://raven-js.com/test/vendor/qunit.js:418
-	     *
-	     */
+        /*
+         * Each line is a function with args and a filename, separated by an ampersand.
+         *   unsubstantiatedClaim("I am Batman")@http://raven-js.com/test/exception.js:7
+         *
+         * Anonymous functions are presented without a name, but including args.
+         *   (66)@http://raven-js.com/test/vendor/qunit.js:418
+         *
+         */
 		var chunks, fn, args, filename, lineno,
             traceback = [],
             lines = e.stack.split('\n');
@@ -209,7 +209,7 @@
                     }
 
                     if (fn[0]) {
-                        fn = fn[0]
+                        fn = fn[0];
                     } else {
                         fn = '(unknown)';
                     }
@@ -226,7 +226,7 @@
                     'filename': filename,
                     'lineno': lineno,
                     'vars': {'arguments': args}
-                })
+                });
             }
         });
         return traceback;
@@ -234,11 +234,11 @@
 
 	Raven.otherTraceback = function(callee) {
 		/*
-		 * Generates best-efforts tracebacks for other browsers, such as Safari
-		 * or IE.
-		 */
+         * Generates best-efforts tracebacks for other browsers, such as Safari
+         * or IE.
+         */
 		var fn, args,
-		    ANON = '<anonymous>',
+            ANON = '<anonymous>',
 			traceback = [],
 			max = 9;
         while (callee && traceback.length < max) {
@@ -260,8 +260,8 @@
 
 	Raven.stringifyArguments = function(args) {
 		/*
-		 * Converts a callee's arguments to strings
-		 */
+         * Converts a callee's arguments to strings
+         */
 		var fn,
 			self = this,
 			UNKNOWN = '<unknown>',
@@ -338,7 +338,7 @@
             };
         }
 
-        timestamp = timestamp || (new Date).getTime();
+        timestamp = timestamp || (new Date()).getTime();
         encoded_msg = $P.base64_encode(JSON.stringify(data));
         self.getSignature(encoded_msg, timestamp, function(signature) {
             $.each(self.options.servers, function (i, server) {
