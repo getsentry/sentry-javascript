@@ -249,6 +249,8 @@
                 args = undefined;
             }
             traceback.push({
+                'filename': '(unknown source)',
+                'lineno': '(unknown)',
                 'function': fn,
                 'post_context': callee.toString().split('\n'),
                 'vars': {'arguments': args}
