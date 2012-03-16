@@ -1,18 +1,25 @@
 {
   "name": "raven",
-  "description": "A standalone (Node.js) client for django-sentry (Sentry 2.0) ",
+  "description": "A standalone (Node.js) client for Sentry",
   "keywords": ["raven", "sentry", "python"],
-  "version": "0.1-dev",
+  "version": "0.1.0-dev",
   "repository": "git://github.com/mattrobenolt/raven-node.git",
   "author": "Matt Robenolt <matt@ydekproductions.com>",
   "main": "index",
+  "scripts": {
+    "test": "make test"
+  },
   "engines": {
     "node": ">= 0.6.0 < 0.7.0"
   },
   "dependencies": {
-    "node-uuid": "1.2.0"
+    "node-uuid": "*"
   },
   "devDependencies": {
-    "connect": "1.7.1"
+    "connect": "*",
+    "express": "*",
+    "mocha": "*",
+    "should": "*",
+    "nock": "*",
   }
 }
