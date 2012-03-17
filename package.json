@@ -20,6 +20,6 @@
     "express": "*",
     "mocha": "*",
     "should": "*",
-    "nock": "*",
+    "nock": "*"
   }
 }
