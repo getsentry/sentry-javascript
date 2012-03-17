@@ -25,8 +25,8 @@ describe('raven.Client', function(){
         it('should send a plain text message to Sentry server', function(done){
             var scope = nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
-                .post('/269', '*')
-                .reply(200, {});
+                .post('/api/store/', '*')
+                .reply(200, 'OK');
 
             client.createFromText('Hey!');
             setTimeout(function(){scope.done(); done();}, 2); // Really should not take more than 5ms to work.
