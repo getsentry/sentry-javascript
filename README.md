@@ -16,8 +16,6 @@ var client = new raven.Client('{{ SENTRY_DSN }}');
 client.createFromText('Hello, world!');
 ```
 
-Error logging
-
 ## Logging an error
 ```javascript
 client.createFromError(new Error('Broke!'));
