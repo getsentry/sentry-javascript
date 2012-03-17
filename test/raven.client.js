@@ -29,7 +29,7 @@ describe('raven.Client', function(){
                 .reply(200, 'OK');
 
             client.createFromText('Hey!');
-            setTimeout(function(){scope.done(); done();}, 2); // Really should not take more than 5ms to work.
+            setTimeout(function(){scope.done(); done();}, 10); // Really should not take more than 10ms to work.
         });
     });
 });
