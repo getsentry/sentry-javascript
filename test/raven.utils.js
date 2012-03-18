@@ -2,19 +2,19 @@ var raven = require('../')
   , fs = require('fs');
 
 describe('raven.utils', function() {
-  describe('#construct_checksum()', function(){
+  describe('#constructChecksum()', function(){
     it('should md5 hash the message', function(){
       var kwargs = {
         'foo': 'bar',
         'message': 'This is awesome!'
       };
-      raven.utils.construct_checksum(kwargs).should.equal('caf30724990022cfec2532741d6b631e');
+      raven.utils.constructChecksum(kwargs).should.equal('caf30724990022cfec2532741d6b631e');
     });
   });
 
-  describe('#get_signature()', function(){
+  describe('#getSignature()', function(){
     it('should sign a key, timestamp, and message with md5 hash', function(){
-      raven.utils.get_signature('abc', 'This is awesome!', 1331932297938).should.equal('76cfb41aa49f91e5eb4ffbb1fe0c5b578459c537');
+      raven.utils.getSignature('abc', 'This is awesome!', 1331932297938).should.equal('76cfb41aa49f91e5eb4ffbb1fe0c5b578459c537');
     });
   });
 
