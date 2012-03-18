@@ -13,8 +13,7 @@
     "node": ">= 0.6.0"
   },
   "dependencies": {
-    "node-uuid": "*",
-    "npm": "*"
+    "node-uuid": "*"
   },
   "devDependencies": {
     "connect": "*",
