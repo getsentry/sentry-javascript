@@ -13,33 +13,33 @@ $ npm install raven
 var raven = require('raven');
 var client = new raven.Client('{{ SENTRY_DSN }}');
 
-client.createFromText('Hello, world!');
+client.captureMessage('Hello, world!');
 ```
 
 ## Logging an error
 ```javascript
-client.createFromError(new Error('Broke!'));
+client.captureError(new Error('Broke!'));
 ```
 
 ## Logging a query
 ```javascript
-client.createFromQuery('SELECT * FROM `awesome`', 'mysql');
+client.captureQuery('SELECT * FROM `awesome`', 'mysql');
 ```
 
 ## Sentry Identifier
 ```javascript
-client.createFromText('Hello, world!', function(result) {
+client.captureMessage('Hello, world!', function(result) {
     console.log(client.getIdent(result));
 });
 ```
 
 ```javascript
-client.createFromError(new Error('Broke!'), function(result) {
+client.captureError(new Error('Broke!'), function(result) {
   console.log(client.getIdent(result));
 });
 ```
 
-__Note__: `client.createFromText` will also return the result directly without the need for a callback, such as: `var result = client.createFromText('Hello, world!');`
+__Note__: `client.captureMessage` will also return the result directly without the need for a callback, such as: `var result = client.captureMessage('Hello, world!');`
 
 ## Catching global errors
 For those times when you don't catch all errors in your application. ;)
@@ -55,9 +55,9 @@ raven.patchGlobal('{{ SENTRY_DSN }}');
 ## Methods
 ```javascript
 new raven.Client(dsn[, options])
-client.createFromText(string[,callback])
-client.createFromError(Error[,callback])
-client.createFromQuery(string, string[,callback])
+client.captureMessage(string[,callback])
+client.captureError(Error[,callback])
+client.captureQuery(string, string[,callback])
 ```
 
 ## Integrations

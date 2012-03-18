@@ -32,26 +32,26 @@ describe('raven.Client', function(){
         });
     });
 
-    describe('#createFromText()', function(){
+    describe('#captureMessage()', function(){
         it('should send a plain text message to Sentry server', function(done){
             var scope = nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
 
-            client.createFromText('Hey!');
+            client.captureMessage('Hey!');
             wait(scope, done);
         });
     });
 
-    describe('#createFromError()', function(){
+    describe('#captureError()', function(){
         it('should send an Error to Sentry server', function(done){
             var scope = nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
 
-            client.createFromError(new Error('wtf?'));
+            client.captureError(new Error('wtf?'));
             wait(scope, done);
         });
     });
