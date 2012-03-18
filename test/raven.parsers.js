@@ -31,6 +31,27 @@ describe('raven.parsers', function(){
     });
   });
 
+  describe('#parseRequest()', function(){
+    it('should parse a request object', function(){
+      var mockReq = {
+        method: 'GET',
+        url: '/some/path?key=value',
+        headers: {
+          host: 'mattrobenolt.com'
+        },
+        body: '',
+        cookies: {},
+        socket: {
+          encrypted: true
+        }
+      };
+      var parsed = raven.parsers.parseRequest(mockReq);
+      parsed.should.have.property('sentry.interfaces.Http');
+      parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal('test');
+    });
+  });
+
   describe('#parseError()', function(){
     it('should parse plain Error object', function(done){
       raven.parsers.parseError(new Error(), {}, function(parsed){
