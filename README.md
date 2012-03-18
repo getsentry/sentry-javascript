@@ -95,4 +95,3 @@ app.listen(3000);
  * More complete test coverage
  * More comments in code
  * More third party integration
- * Logging support for SQL

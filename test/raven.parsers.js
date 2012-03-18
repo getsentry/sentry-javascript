@@ -19,6 +19,26 @@ describe('raven.parsers', function(){
     });
   });
 
+  describe('#parseQuery()', function(){
+    it('should parse a query', function(){
+      var query = 'SELECT * FROM `something`';
+      var engine = 'mysql';
+      var parsed = raven.parsers.parseQuery(query, engine);
+      parsed['message'].should.equal('SELECT * FROM `something`');
+      parsed.should.have.property('sentry.interfaces.Query');
+      parsed['sentry.interfaces.Query'].query.should.equal('SELECT * FROM `something`');
+      parsed['sentry.interfaces.Query'].engine.should.equal('mysql');
+    });
+
+    it('should parse some text with kwargs', function(){
+      var parsed = raven.parsers.parseText('Howdy', {'foo': 'bar'});
+      parsed['message'].should.equal('Howdy');
+      parsed.should.have.property('sentry.interfaces.Message');
+      parsed['sentry.interfaces.Message'].message.should.equal('Howdy');
+      parsed['foo'].should.equal('bar');
+    });
+  });
+
   describe('#parseError()', function(){
     it('should parse plain Error object', function(done){
       raven.parsers.parseError(new Error(), {}, function(parsed){
