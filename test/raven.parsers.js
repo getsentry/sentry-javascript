@@ -29,14 +29,6 @@ describe('raven.parsers', function(){
       parsed['sentry.interfaces.Query'].query.should.equal('SELECT * FROM `something`');
       parsed['sentry.interfaces.Query'].engine.should.equal('mysql');
     });
-
-    it('should parse some text with kwargs', function(){
-      var parsed = raven.parsers.parseText('Howdy', {'foo': 'bar'});
-      parsed['message'].should.equal('Howdy');
-      parsed.should.have.property('sentry.interfaces.Message');
-      parsed['sentry.interfaces.Message'].message.should.equal('Howdy');
-      parsed['foo'].should.equal('bar');
-    });
   });
 
   describe('#parseError()', function(){
