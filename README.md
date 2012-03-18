@@ -40,11 +40,11 @@ __Note__: `client.createFromText` will also return the result directly without t
 For those times when you don't catch all errors in your application. ;)
 
 ```javascript
-client.patchGlobals();
+client.patchGlobal();
 // or
-raven.patchGlobals(client);
+raven.patchGlobal(client);
 // or
-raven.patchGlobals('{{ SENTRY_DSN }}');
+raven.patchGlobal('{{ SENTRY_DSN }}');
 ```
 
 ## Methods
