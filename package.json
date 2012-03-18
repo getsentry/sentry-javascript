@@ -21,6 +21,7 @@
     "express": "*",
     "mocha": "*",
     "should": "*",
-    "nock": "*"
+    "nock": "*",
+    "glob": "*"
   }
 }
