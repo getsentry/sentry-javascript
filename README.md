@@ -21,6 +21,11 @@ client.createFromText('Hello, world!');
 client.createFromError(new Error('Broke!'));
 ```
 
+## Logging a query
+```javascript
+client.createFromQuery('SELECT * FROM `awesome`', 'mysql');
+```
+
 ## Sentry Identifier
 ```javascript
 client.createFromText('Hello, world!', function(result) {
@@ -52,6 +57,7 @@ raven.patchGlobal('{{ SENTRY_DSN }}');
 new raven.Client(dsn[, options])
 client.createFromText(string[,callback])
 client.createFromError(Error[,callback])
+client.createFromQuery(string, string[,callback])
 ```
 
 ## Integrations
