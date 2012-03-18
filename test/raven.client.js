@@ -4,6 +4,11 @@ var raven = require('../')
 
 var dsn = 'https://public:private@app.getsentry.com/269';
 
+describe('raven.version', function(){
+    it('should be valid', function(){
+        raven.version.should.match(/^\d+\.\d+\.\d+(-\w+)?$/);
+    });
+});
 
 describe('raven.Client', function(){
     var client;
