@@ -22,6 +22,66 @@ describe('raven.Client', function(){
         client = new raven.Client(dsn);
     });
 
+    it('should parse the DSN with options', function(){
+        var expected = {
+            protocol: 'https',
+            public_key: 'public',
+            private_key: 'private',
+            host: 'app.getsentry.com',
+            path: '',
+            project_id: 269
+        };
+        var client = new raven.Client(dsn, {name: 'YAY!', site:'Googlez'});
+        client.dsn.should.eql(expected);
+        client.name.should.equal('YAY!');
+        client.site.should.equal('Googlez');
+    });
+
+    it('should pull SENTRY_DSN from environment', function(){
+        var expected = {
+            protocol: 'https',
+            public_key: 'abc',
+            private_key: '123',
+            host: 'app.getsentry.com',
+            path: '',
+            project_id: 1
+        };
+        process.env.SENTRY_DSN='https://abc:123@app.getsentry.com/1';
+        var client = new raven.Client();
+        client.dsn.should.eql(expected);
+        delete process.env.SENTRY_DSN; // gotta clean up so it doesn't leak into other tests
+    });
+
+    it('should pull SENTRY_DSN from environment when passing options', function(){
+        var expected = {
+            protocol: 'https',
+            public_key: 'abc',
+            private_key: '123',
+            host: 'app.getsentry.com',
+            path: '',
+            project_id: 1
+        };
+        process.env.SENTRY_DSN='https://abc:123@app.getsentry.com/1';
+        var client = new raven.Client({name: 'YAY!'});
+        client.dsn.should.eql(expected);
+        client.name.should.equal('YAY!');
+        delete process.env.SENTRY_DSN; // gotta clean up so it doesn't leak into other tests
+    });
+
+    it('should pull SENTRY_NAME from environment', function(){
+        process.env.SENTRY_NAME='new_name';
+        var client = new raven.Client(dsn);
+        client.name.should.eql('new_name');
+        delete process.env.SENTRY_NAME;
+    });
+
+    it('should pull SENTRY_SITE from environment', function(){
+        process.env.SENTRY_SITE='Googlez';
+        var client = new raven.Client(dsn);
+        client.site.should.eql('Googlez');
+        delete process.env.SENTRY_SITE;
+    });
+
     describe('#getIdent()', function(){
         it('should match', function(){
             var result = {

@@ -16,6 +16,11 @@ var client = new raven.Client('{{ SENTRY_DSN }}');
 client.captureMessage('Hello, world!');
 ```
 
+Run with:
+```
+$ NODE_ENV=production node script.js
+```
+
 ## Logging an error
 ```javascript
 client.captureError(new Error('Broke!'));
@@ -40,6 +45,19 @@ client.captureError(new Error('Broke!'), function(result) {
 ```
 
 __Note__: `client.captureMessage` will also return the result directly without the need for a callback, such as: `var result = client.captureMessage('Hello, world!');`
+
+## Environment variables
+### NODE_ENV
+`NODE_ENV` must be set to `production` for Sentry to actually work. Without being in production, a warning is issued and logging disabled.
+
+### SENTRY_DSN
+Optionally declare the DSN to use for the client through the environment. Initializing the client in your app won't require setting the DSN.
+
+### SENTRY_NAME
+Optionally set the name for the client to use. [What is name?](http://raven.readthedocs.org/en/latest/config/index.html#name)
+
+### SENTRY_SITE
+Optionally set the site for the client to use. [What is site?](http://raven.readthedocs.org/en/latest/config/index.html#site)
 
 ## Catching global errors
 For those times when you don't catch all errors in your application. ;)
@@ -97,7 +115,6 @@ app.listen(3000);
 ```
 
 ## Todo
- * Support for process.env.SENTRY_DSN
  * More complete test coverage
  * More comments in code
  * More third party integration
