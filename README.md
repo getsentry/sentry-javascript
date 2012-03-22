@@ -48,6 +48,7 @@ __Note__: `client.captureMessage` will also return the result directly without t
 
 ## Events
 If you really care if the event was logged or errored out, Client emits two events, `logged` and `error`:
+
 ```javascript
 client.on('logged', function(){
   console.log('Yay, it worked!');
