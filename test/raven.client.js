@@ -14,6 +14,11 @@ describe('raven.version', function(){
     it('should be valid', function(){
         raven.version.should.match(/^\d+\.\d+\.\d+(-\w+)?$/);
     });
+
+    it('should match package.json', function(){
+        var version = require('../package.json').version;
+        raven.version.should.equal(version);
+    });
 });
 
 describe('raven.Client', function(){
