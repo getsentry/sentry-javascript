@@ -118,3 +118,4 @@ app.listen(3000);
  * More complete test coverage
  * More comments in code
  * More third party integration
+ * Client should extend EventEmitter and emit events when logs are sent instead of being 100% blind
