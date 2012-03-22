@@ -46,6 +46,18 @@ client.captureError(new Error('Broke!'), function(result) {
 
 __Note__: `client.captureMessage` will also return the result directly without the need for a callback, such as: `var result = client.captureMessage('Hello, world!');`
 
+## Events
+If you really care if the event was logged or errored out, Client emits two events, `logged` and `error`:
+```javascript
+client.on('logged', function(){
+  console.log('Yay, it worked!');
+});
+client.on('error', function(){
+  console.log('oh well, Sentry is broke.');
+})
+client.captureMessage('Boom');
+```
+
 ## Environment variables
 ### NODE_ENV
 `NODE_ENV` must be set to `production` for Sentry to actually work. Without being in production, a warning is issued and logging disabled.
@@ -118,4 +130,3 @@ app.listen(3000);
  * More complete test coverage
  * More comments in code
  * More third party integration
- * Client should extend EventEmitter and emit events when logs are sent instead of being 100% blind

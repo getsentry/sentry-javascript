@@ -4,12 +4,6 @@ var raven = require('../')
 
 var dsn = 'https://public:private@app.getsentry.com/269';
 
-function wait(scope, done) {
-    setTimeout(function() {
-        scope.done(); done();
-    }, 10);
-}
-
 describe('raven.version', function(){
     it('should be valid', function(){
         raven.version.should.match(/^\d+\.\d+\.\d+(-\w+)?$/);
@@ -23,7 +17,7 @@ describe('raven.version', function(){
 
 describe('raven.Client', function(){
     var client;
-    before(function(){
+    beforeEach(function(){
         client = new raven.Client(dsn);
     });
 
@@ -104,8 +98,24 @@ describe('raven.Client', function(){
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
 
+            client.on('logged', function(){
+                scope.done();
+                done();
+            });
             client.captureMessage('Hey!');
-            wait(scope, done);
+        });
+
+        it('should emit error when request returns non 200', function(done){
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(500, 'Oops!');
+
+            client.on('error', function(){
+                scope.done();
+                done();
+            });
+            client.captureMessage('Hey!');
         });
     });
 
@@ -116,8 +126,11 @@ describe('raven.Client', function(){
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
 
+            client.on('logged', function(){
+                scope.done();
+                done();
+            });
             client.captureError(new Error('wtf?'));
-            wait(scope, done);
         });
     });
 
