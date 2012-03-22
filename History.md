@@ -1,3 +1,6 @@
+# 0.2.1 - 3/22/2012
+ * Fixed connect/express middleware, thanks Almad!
+
 # 0.2.0 - 3/18/2012
  * Renamed all methods to follow `client.capture*()` pattern. (Sorry if you were already using it!)
  * All `npm` installed modules are shoved into Sentry for debugging

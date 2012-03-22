@@ -2,7 +2,7 @@
   "name": "raven",
   "description": "A standalone (Node.js) client for Sentry",
   "keywords": ["raven", "sentry", "python"],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "repository": "git://github.com/mattrobenolt/raven-node.git",
   "author": "Matt Robenolt <matt@ydekproductions.com>",
   "main": "index",
