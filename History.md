@@ -1,3 +1,6 @@
+# 0.2.2 - 3/22/2012
+ * raven.Client now emits `logged` and `error` events.
+
 # 0.2.1 - 3/22/2012
  * Fixed connect/express middleware, thanks Almad!
 
