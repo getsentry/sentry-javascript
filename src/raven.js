@@ -119,7 +119,12 @@
 		if (e.arguments && e.stack) {
             traceback = this.chromeTraceback(e);
 		} else if (e.stack) {
-			traceback = this.firefoxTraceback(e);
+            // Detect edge cases where Chrome doesn't have 'arguments'
+            if (e.stack.indexOf('@') == -1) {
+                traceback = this.chromeTraceback(e);
+            } else {
+                traceback = this.firefoxTraceback(e);
+            }
 		} else {
             traceback = [{"filename": fileurl, "lineno": lineno}];
 			traceback = traceback.concat(this.otherTraceback(arguments.callee));
