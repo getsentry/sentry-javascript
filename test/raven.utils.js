@@ -1,7 +1,8 @@
 var raven = require('../')
   , fs = require('fs')
   , glob = require('glob')
-  , path = require('path');
+  , path = require('path')
+  , should = require('should');
 
 describe('raven.utils', function() {
   describe('#constructChecksum()', function(){
@@ -136,6 +137,14 @@ describe('raven.utils', function() {
       });
     });
 
+    it('should throw an error parsing an invalid stack', function(done){
+      raven.utils.parseStack('wtf?', function(err, frames){
+        should.exist(err);
+        err.should.be.an.instanceof(Error);
+        done();
+      });
+    });
+
     var stacks = glob.sync(__dirname + '/fixtures/stacks/*.txt');
     var results = glob.sync(__dirname + '/fixtures/stacks/*.json');
     stacks.forEach(function(stackname, index) {
@@ -144,6 +153,7 @@ describe('raven.utils', function() {
       it('should parse stack with '+path.basename(stackname, '.txt').replace(/_/g, ' '), function(done) {
         raven.utils.parseStack(stack, function(err, frames){
           frames.should.eql(result);
+          should.not.exist(err);
           done();
         });
       });
