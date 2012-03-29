@@ -114,8 +114,8 @@ generated signature:
 
 ### Simple Obfuscation
 
-If you would just would like to obfuscate this somewhat, you can pass the
-options to the `config` method as a base64 encoded JSON string:
+If you would just like to obfuscate this somewhat, you can pass the options to
+the `config` method as a base64 encoded JSON string:
 
     Raven.config("eyJzZWNyZXRLZXkiOiAiNzdlYzhjOTlhODg1NDI1NmFhNjhjY2I5MWRkOTExOWQiLCAicHVibGljS2V5IjogImU4OTY1MmVjMzBiOTRkOWRiNmVhNmYyODU4MGFiNDk5IiwgInNlcnZlcnMiOiBbImh0dHA6Ly95b3VyLnNlbnRyeXNlcnZlci5jb20vYXBpL3N0b3JlLyJdLCAicHJvamVjdElkIjogMSwgImxvZ2dlciI6ICJ5b3Vyc2l0ZS5lcnJvcnMuamF2YXNjcmlwdCJ9");
 
