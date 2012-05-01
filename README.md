@@ -3,18 +3,10 @@
 This is an experimental JavaScript client for the [Sentry][1] realtime event
 logging and aggregation platform.
 
-The full and minified distribution files include code from two other
-open-source projects:
-
-* base64_encode from [php.js][2] (included in the minified distribution)
-* crypto-sha1-hmac from [Crypto-JS][3] (included in minified distribution)
-
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code.
 
 [1]: http://getsentry.com/
-[2]: http://phpjs.org/
-[3]: http://code.google.com/p/crypto-js/
 [4]: https://github.com/eriwen/javascript-stacktrace
 
 
@@ -40,17 +32,11 @@ minified distribution file from the 'dist' directory:
 Configure the client like this:
 
     Raven.config({
-        "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
         "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
         "servers": ["http://your.sentryserver.com/api/store/"],
         "projectId": 1,
         "logger": "yoursite.errors.javascript"
     });
-
-**secretKey** - If you're using project auth, this should be the desired user's
-secret key. Otherwise, this should be the global superuser key. If you are
-using the `signatureUrl` option below, then you should omit this from your
-config.
 
 **publicKey** - This is only needed if you're using project auth, and it should
 be the desired user's public key.
@@ -93,36 +79,11 @@ those cases it will simply do nothing.
 
 ## Security
 
-The `Raven.config` method above is insecure because it reveals the secretKey.
+Raven requires you to set up the CORS headers within Sentry. These headers should include
+the base URI of which you plan to send events from.
 
-### Server-side Signing
-
-One way to work around this is to send the message to the server for signing.
-Use the `signatureUrl` configuration option to provide a url to use to obtain a
-signature. Raven.js will send a POST request to the url containing a "message",
-with the base64 encoded message, and a "timestamp". The server-side code should
-then use the secret key to sign the request using a SHA1-signed HMAC.
-
-To generate the HMAC signature, take the following example (in Python):
-
-    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
-
-The response should be a JSON string containing a "signature" key with the
-generated signature:
-
-    {"signature": "4799ab65ff3052aa8768987d918014c6d40f75d0"}
-
-### Simple Obfuscation
-
-If you would just like to obfuscate this somewhat, you can pass the options to
-the `config` method as a base64 encoded JSON string:
-
-    Raven.config("eyJzZWNyZXRLZXkiOiAiNzdlYzhjOTlhODg1NDI1NmFhNjhjY2I5MWRkOTExOWQiLCAicHVibGljS2V5IjogImU4OTY1MmVjMzBiOTRkOWRiNmVhNmYyODU4MGFiNDk5IiwgInNlcnZlcnMiOiBbImh0dHA6Ly95b3VyLnNlbnRyeXNlcnZlci5jb20vYXBpL3N0b3JlLyJdLCAicHJvamVjdElkIjogMSwgImxvZ2dlciI6ICJ5b3Vyc2l0ZS5lcnJvcnMuamF2YXNjcmlwdCJ9");
-
-This is still insecure, but it is less obvious than calling it with plain text
-options.
-
-More security options will be forthcoming.
+For example, if you are using raven-js on http://example.com, you should list <code>http://example.com</code>
+in your origins configuration. If you only wanted to allow events from /foo, set the value to <code>http://example.com/foo</code>.
 
 ## Support
 
