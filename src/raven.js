@@ -161,6 +161,10 @@
         self.process(e, fileurl, lineno, traceback);
     };
 
+    Raven.captureMessage = function(msg) {
+        self.process(msg);
+    };
+
     Raven.trimString = function(str) {
         return str.replace(/^\s+|\s+$/g, "");
     };
