@@ -66,7 +66,7 @@
         }
 
         return {
-            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path + 'api/store/'],
+            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path + 'api/' + project_id + '/store/'],
             publicKey: uri.user,
             secretKey: uri.password,
             projectId: project_id
