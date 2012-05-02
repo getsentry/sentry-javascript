@@ -32,8 +32,6 @@ $(document).ready(function() {
 
         data = JSON.parse($P.base64_decode(ajax_calls[0].data));
 
-        equal(data.culprit.slice(-12), 'exception.js',
-              'the culprit should be the exception.js unit test file');
         equal(data.logger, 'javascript',
               'the logger should be the default value');
         notEqual(data.message.indexOf('varThatDoesNotExist'), -1,
@@ -42,6 +40,9 @@ $(document).ready(function() {
               'the error should be a ReferenceError');
 
         if (mode !== 'other') {
+            equal(data.culprit.slice(-12), 'exception.js',
+              'the culprit should be the exception.js unit test file');
+            
             frame = data['sentry.interfaces.Stacktrace'].frames[0];
             equal(frame.function, 'outlandishClaim');
             equal(frame.lineno, '7');

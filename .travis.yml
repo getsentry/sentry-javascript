@@ -1,0 +1,8 @@
+# language doesn't matter, we're only using phantom.js
+language: node_js
+node_js:
+    - 0.6
+script: phantomjs phantom-js-loader.js && phantomjs phantom-js-loader.js zepto
+branches:
+    only:
+        - travis
