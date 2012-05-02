@@ -133,6 +133,10 @@
         self.process(e, fileurl, lineno, traceback);
     };
 
+    Raven.captureMessage = function(msg) {
+        self.process(msg);
+    };
+
     Raven.chromeTraceback = function(e) {
         /*
          * First line is simply the repeated message:
