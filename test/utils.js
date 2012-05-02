@@ -1,5 +1,21 @@
 $(document).ready(function() {
 
+    module("Raven.config");
+    
+    test("should parse dsn as only argument", function() {
+        // TODO: this test isnt isolated
+        var dsn = "http://public:secret@example.com:80/project-id";
+        
+        Raven.config(dsn);
+        var config = Raven.options;
+
+        equal(config['publicKey'], 'public');
+        equal(config['secretKey'], 'secret');
+        equal(config['servers'][0], 'http://example.com:80/api/store/');
+        equal(config['projectId'], 'project-id');
+
+    });
+
     module("Raven.parseHeaders");
     
     test("should parse headers into an object", function() {
@@ -14,5 +30,40 @@ $(document).ready(function() {
         equal(headers['Vary'], "Cookie");
         equal(headers['Content-Type'], "text/html; charset=utf-8");
     });
+
+    module("Raven.parseDSN");
+    
+    test("should parse dsn into an object", function() {
+        var dsn = "http://public:secret@example.com:80/project-id";
+        
+        var config = Raven.parseDSN(dsn);
+        equal(config['publicKey'], 'public');
+        equal(config['secretKey'], 'secret');
+        equal(config['servers'][0], 'http://example.com:80/api/store/');
+        equal(config['projectId'], 'project-id');
+    });
+
+
+    test("should parse dsn with a path", function() {
+        var dsn = "http://public:secret@example.com:80/path/project-id";
+        
+        var config = Raven.parseDSN(dsn);
+        equal(config['publicKey'], 'public');
+        equal(config['secretKey'], 'secret');
+        equal(config['servers'][0], 'http://example.com:80/path/api/store/');
+        equal(config['projectId'], 'project-id');
+    });
+
+    test("should parse dsn without a secret key", function() {
+        var dsn = "http://public@example.com:80/path/project-id";
+        
+        var config = Raven.parseDSN(dsn);
+        equal(config['publicKey'], 'public');
+        equal(config['secretKey'], '');
+        equal(config['servers'][0], 'http://example.com:80/path/api/store/');
+        equal(config['projectId'], 'project-id');
+    });
+
+
 
 });
