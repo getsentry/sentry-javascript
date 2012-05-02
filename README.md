@@ -11,6 +11,7 @@ full and minified distribution files include [parseUri][5].
 [4]: https://github.com/eriwen/javascript-stacktrace
 [5]: http://blog.stevenlevithan.com/archives/parseuri
 
+![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)
 
 ## Install
 
