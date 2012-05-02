@@ -1,6 +1,5 @@
-language: node_js
-node_js:
-    - 0.6
+# language doesn't matter, we're only using phantom.js
+language: python
 script: phantomjs phantom-js-loader.js
 branches:
     only:
