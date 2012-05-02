@@ -4,6 +4,7 @@
 //
 // Requires:
 //     * Either jQuery (>1.5) or Zepto.js.
+//     * parseUri (included in the full and minified distribution files)
 
 (function(){
     // Save a reference to the global object (`window` in the browser, `global`
@@ -40,6 +41,8 @@
             if (config.indexOf('http') === 0) {
                 // new-style DSN configuration
                 config = Raven.parseDSN(config);
+            } else {
+                throw "Base64 encoded config is no longer supported - use DSN";
             }
         }
         $.each(config, function(i, option) {

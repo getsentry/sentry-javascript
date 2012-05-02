@@ -3,13 +3,9 @@
 This is an experimental JavaScript client for the [Sentry][1] realtime event
 logging and aggregation platform.
 
-The full and minified distribution files include code from another
-open-source project:
-
-* parseUri from [parseUri][5] (included in minified distribution)
-
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
-project, and includes heavily modified portions of that project's code.
+project, and includes heavily modified portions of that project's code. The
+full and minified distribution files include [parseUri][5].
 
 [1]: http://getsentry.com/
 [4]: https://github.com/eriwen/javascript-stacktrace
