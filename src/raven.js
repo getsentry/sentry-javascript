@@ -4,8 +4,6 @@
 //
 // Requires:
 //     * Either jQuery (>1.5) or Zepto.js.
-//     * base64_encode/decode from php.js (included in the vendor folder)
-//     * crypto-sha1-hmac from Crypto-JS (included in the vendor folder)
 
 (function(){
     // Save a reference to the global object (`window` in the browser, `global`
@@ -21,9 +19,6 @@
 
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
-
-	// php.js owns $P, for base64 encoding
-	var $P = new PHP_JS();
 
     Raven.loaded = false;
     Raven.options = {
@@ -41,9 +36,6 @@
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
     Raven.config = function(config) {
-		if (typeof(config) === "string") {
-			config = JSON.parse($P.base64_decode(config));
-		}
         $.each(config, function(i, option) {
             self.options[i] = option;
         });
@@ -84,19 +76,19 @@
 				callback(data.signature);
 			});
 		} else {
-			var signature = Crypto.HMAC(Crypto.SHA1, timestamp + " " + message,
-                                        self.options.secretKey);
-			callback(signature);
+			callback();
 		}
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
         var header = "Sentry sentry_version=2.0, ";
         header += "sentry_timestamp=" + timestamp + ", ";
-        header += "sentry_signature=" + signature + ", ";
         header += "sentry_client=raven-js/" + self.VERSION;
         if (self.options.publicKey) {
             header += ", sentry_key=" + self.options.publicKey;
+        }
+        if (signature) {
+            header += ", sentry_signature=" + signature;
         }
         return header;
     };
@@ -346,15 +338,19 @@
         }
 
         timestamp = timestamp || (new Date()).getTime();
-        encoded_msg = $P.base64_encode(JSON.stringify(data));
+        encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
+            var header = self.getAuthHeader(signature, timestamp);
             $.each(self.options.servers, function (i, server) {
                 $.ajax({
                     type: 'POST',
                     url: server,
                     data: encoded_msg,
                     headers: {
-                        'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
+                        // We send both headers, since Authentication may be blocked,
+                        // and custom headers arent supported in IE9
+                        'X-Sentry-Auth': header,
+                        'Authentication': header
                     }
                 });
             });

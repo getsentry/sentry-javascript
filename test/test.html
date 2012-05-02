@@ -17,8 +17,6 @@
     <script type="text/javascript" src="vendor/qunit.js"></script>
 
     <!-- Raven -->
-    <script type="text/javascript" src="../src/vendor/base64.js"></script>
-    <script type="text/javascript" src="../src/vendor/crypto-sha1-hmac.min.js"></script>
     <script type="text/javascript" src="../src/raven.js"></script>
 
     <!-- Unit tests -->
@@ -41,15 +39,13 @@
         <div id="qunit-fixture">
             <!-- Reset the test environment between each test -->
             <script type="text/javascript">
-                var $P = new PHP_JS();
-                
-                var config_opts = $P.base64_encode(JSON.stringify({
+                var config_opts = {
                     "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
                     "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
-                    "servers": ["/api/store/"],
+                    "servers": ["/api/default/store/"],
                     "signatureUrl": null,
                     "testMode": true
-                }));
+                };
                 Raven.config(config_opts);
 
                 var timestamp = 1328155597571;
