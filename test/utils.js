@@ -31,6 +31,18 @@ $(document).ready(function() {
         equal(headers['Content-Type'], "text/html; charset=utf-8");
     });
 
+    module("Raven.trimString");
+
+    test("should trim leading space", function() {
+        var result = Raven.trimString('  foo');
+        equal(result, 'foo');
+    });
+
+    test("should trim trailing space", function() {
+        var result = Raven.trimString('foo  ');
+        equal(result, 'foo');
+    });
+
     module("Raven.parseDSN");
     
     test("should parse dsn into an object", function() {

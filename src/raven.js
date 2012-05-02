@@ -161,6 +161,10 @@
         self.process(e, fileurl, lineno, traceback);
     };
 
+    Raven.trimString = function(str) {
+        return str.replace(/^\s+|\s+$/g, "");
+    };
+
     Raven.chromeTraceback = function(e) {
         /*
          * First line is simply the repeated message:
@@ -174,7 +178,7 @@
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
-            chunks = $.trim(line).slice(3);
+            chunks = Raven.trimString(line).slice(3);
             if (chunks == "unknown source") {
                 return;  // Skip this one
             } else {
