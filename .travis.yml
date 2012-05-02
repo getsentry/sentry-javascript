@@ -5,4 +5,4 @@ node_js:
 script: phantomjs phantom-js-loader.js && phantomjs phantom-js-loader.js zepto
 branches:
     only:
-        - travis
+        - develop
