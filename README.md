@@ -8,6 +8,7 @@ open-source projects:
 
 * base64_encode from [php.js][2] (included in the minified distribution)
 * crypto-sha1-hmac from [Crypto-JS][3] (included in minified distribution)
+* parseUri from [parseUri][5] (included in minified distribution)
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code.
@@ -16,6 +17,7 @@ project, and includes heavily modified portions of that project's code.
 [2]: http://phpjs.org/
 [3]: http://code.google.com/p/crypto-js/
 [4]: https://github.com/eriwen/javascript-stacktrace
+[5]: http://blog.stevenlevithan.com/archives/parseuri
 
 
 ## Install
@@ -37,13 +39,17 @@ minified distribution file from the 'dist' directory:
 
 ## Configuration
 
-Configure the client like this:
+Configure the client by passing the DSN as the first argument:
+
+    Raven.config('http://secret:public@example.com/project-id');
+
+Or if you need to specify additional options:
 
     Raven.config({
         "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
         "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
         "servers": ["http://your.sentryserver.com/api/store/"],
-        "projectId": 1,
+        "projectId": "project-id",
         "logger": "yoursite.errors.javascript"
     });
 
@@ -114,8 +120,8 @@ generated signature:
 
 ### Simple Obfuscation
 
-If you would just would like to obfuscate this somewhat, you can pass the
-options to the `config` method as a base64 encoded JSON string:
+If you would just like to obfuscate this somewhat, you can pass the options to
+the `config` method as a base64 encoded JSON string:
 
     Raven.config("eyJzZWNyZXRLZXkiOiAiNzdlYzhjOTlhODg1NDI1NmFhNjhjY2I5MWRkOTExOWQiLCAicHVibGljS2V5IjogImU4OTY1MmVjMzBiOTRkOWRiNmVhNmYyODU4MGFiNDk5IiwgInNlcnZlcnMiOiBbImh0dHA6Ly95b3VyLnNlbnRyeXNlcnZlci5jb20vYXBpL3N0b3JlLyJdLCAicHJvamVjdElkIjogMSwgImxvZ2dlciI6ICJ5b3Vyc2l0ZS5lcnJvcnMuamF2YXNjcmlwdCJ9");
 

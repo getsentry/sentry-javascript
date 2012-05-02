@@ -22,8 +22,8 @@
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
 
-	// php.js owns $P, for base64 encoding
-	var $P = new PHP_JS();
+    // php.js owns $P, for base64 encoding
+    var $P = new PHP_JS();
 
     Raven.loaded = false;
     Raven.options = {
@@ -33,7 +33,7 @@
         projectId: 1,
         logger: 'javascript',
         site: undefined,
-		signatureUrl: undefined,
+        signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false  // Disables some things that randomize the signature
     };
@@ -41,13 +41,41 @@
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
     Raven.config = function(config) {
-		if (typeof(config) === "string") {
-			config = JSON.parse($P.base64_decode(config));
-		}
+        if (typeof(config) === "string") {
+            if (config.indexOf('http') === 0) {
+                // new-style DSN configuration
+                config = Raven.parseDSN(config);
+            } else {
+                // assume old base64-style
+                config = JSON.parse($P.base64_decode(config));
+            }
+        }
         $.each(config, function(i, option) {
             self.options[i] = option;
         });
 
+    };
+
+    Raven.parseDSN = function(dsn) {
+        var uri = parseUri(dsn);
+        var path_idx = uri.path.lastIndexOf('/');
+        var project_id;
+        var path;
+
+        if (path_idx === -1) {
+            project_id = uri.path.substr(1);
+            path = '';
+        } else {
+            path = uri.path.substr(1, path_idx);
+            project_id = uri.path.substr(path_idx + 1);
+        }
+
+        return {
+            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path + 'api/store/'],
+            publicKey: uri.user,
+            secretKey: uri.password,
+            projectId: project_id
+        };
     };
 
     Raven.getHeaders = function() {
@@ -133,6 +161,14 @@
         self.process(e, fileurl, lineno, traceback);
     };
 
+    Raven.captureMessage = function(msg) {
+        self.process(msg);
+    };
+
+    Raven.trimString = function(str) {
+        return str.replace(/^\s+|\s+$/g, "");
+    };
+
     Raven.chromeTraceback = function(e) {
         /*
          * First line is simply the repeated message:
@@ -146,7 +182,7 @@
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
-            chunks = $.trim(line).slice(3);
+            chunks = Raven.trimString(line).slice(3);
             if (chunks == "unknown source") {
                 return;  // Skip this one
             } else {
