@@ -340,13 +340,17 @@
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
+            var header = self.getAuthHeader(signature, timestamp);
             $.each(self.options.servers, function (i, server) {
                 $.ajax({
                     type: 'POST',
                     url: server,
                     data: encoded_msg,
                     headers: {
-                        'X-Sentry-Auth': self.getAuthHeader(signature, timestamp)
+                        // We send both headers, since Authentication may be blocked,
+                        // and custom headers arent supported in IE9
+                        'X-Sentry-Auth': header,
+                        'Authentication': header
                     }
                 });
             });
