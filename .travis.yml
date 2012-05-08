@@ -6,3 +6,5 @@ script: phantomjs phantom-js-loader.js && phantomjs phantom-js-loader.js zepto
 branches:
     only:
         - develop
+notifications:
+    irc: "irc.freenode.org#sentry"

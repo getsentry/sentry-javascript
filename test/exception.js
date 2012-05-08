@@ -30,7 +30,7 @@ $(document).ready(function() {
             }
         }
 
-        data = JSON.parse($P.base64_decode(ajax_calls[0].data));
+        data = JSON.parse(ajax_calls[0].data);
 
         equal(data.logger, 'javascript',
               'the logger should be the default value');
@@ -69,7 +69,7 @@ $(document).ready(function() {
                 Raven.captureException(err);
             }
 
-            data = JSON.parse($P.base64_decode(ajax_calls[0].data));
+            data = JSON.parse(ajax_calls[0].data);
 
             frame = data['sentry.interfaces.Stacktrace'].frames[0];
             equal(frame.function, 'outlandishClaim');
