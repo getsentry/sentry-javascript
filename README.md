@@ -1,7 +1,12 @@
 # Raven.js
 
-This is an experimental JavaScript client for the [Sentry][1] realtime event
-logging and aggregation platform.
+![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)
+
+This is a JavaScript client for the [Sentry][1] realtime event logging and
+aggregation platform.
+
+Raven.js v0.4 requires Sentry v4.1 or later. If
+you are running an earlier version of Sentry, you should use Raven.js v0.3.
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code. The
@@ -10,8 +15,6 @@ full and minified distribution files include [parseUri][5].
 [1]: http://getsentry.com/
 [4]: https://github.com/eriwen/javascript-stacktrace
 [5]: http://blog.stevenlevithan.com/archives/parseuri
-
-![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)
 
 ## Install
 
@@ -23,16 +26,23 @@ First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
 
     <script type="text/javascript" src="js/jquery.js"></script>
-    <script type="text/javascript" src="js/raven-0.3.min.js"></script>
+    <script type="text/javascript" src="js/raven-0.4.min.js"></script>
 
-[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.3.tar.gz
+[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.4.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 
 
 ## Configuration
 
-Configure the client by passing the DSN as the first argument:
+First, you will need to configure Sentry to allow requests from the domain name
+that is hosting your JavaScript. Go to *Account &rarr; Projects* and select
+the project you want to configure. Under "Client Security", list the domains
+you want to access Sentry from.
+
+![Client Security](http://f.cl.ly/items/1t2A33243O2V1U160C39/client-security.png)
+
+Next, configure the client by passing the DSN as the first argument:
 
     Raven.config('http://secret:public@example.com/project-id');
 
@@ -40,13 +50,12 @@ Or if you need to specify additional options:
 
     Raven.config({
         "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
-        "servers": ["http://your.sentryserver.com/api/store/"],
+        "servers": ["http://your.sentryserver.com/api/1/store/"],
         "projectId": "project-id",
         "logger": "yoursite.errors.javascript"
     });
 
-**publicKey** - This is only needed if you're using project auth, and it should
-be the desired user's public key.
+**publicKey** - The desired user's public key.
 
 **servers** - (*required*) An array of servers to send exception info to.
 
@@ -86,11 +95,13 @@ those cases it will simply do nothing.
 
 ## Security
 
-Raven requires you to set up the CORS headers within Sentry. These headers should include
-the base URI of which you plan to send events from.
+Raven requires you to set up the CORS headers within Sentry. These headers
+should include the base URI of which you plan to send events from.
 
-For example, if you are using raven-js on http://example.com, you should list <code>http://example.com</code>
-in your origins configuration. If you only wanted to allow events from /foo, set the value to <code>http://example.com/foo</code>.
+For example, if you are using raven-js on http://example.com, you should list
+<code>http://example.com</code> in your origins configuration. If you only
+wanted to allow events from /foo, set the value to
+<code>http://example.com/foo</code>.
 
 ## Support
 
