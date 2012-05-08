@@ -40,7 +40,7 @@ that is hosting your JavaScript. Go to *Account &rarr; Projects* and select
 the project you want to configure. Under "Client Security", list the domains
 you want to access Sentry from.
 
-![Client Security](http://f.cl.ly/items/1t2A33243O2V1U160C39/client-security.png)
+>![Client Security](http://f.cl.ly/items/1t2A33243O2V1U160C39/client-security.png)
 
 Next, configure the client by passing the DSN as the first argument:
 
