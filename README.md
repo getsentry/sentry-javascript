@@ -5,8 +5,8 @@
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
 
-Raven.js v0.4 requires Sentry v4.1 or later. If
-you are running an earlier version of Sentry, you should use Raven.js v0.3.
+Raven.js v0.4 and above requires Sentry v4.1 or later. If you are running an
+earlier version of Sentry, you should use Raven.js v0.3.
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code. The
@@ -60,7 +60,8 @@ Or if you need to specify additional options:
 **servers** - (*required*) An array of servers to send exception info to. This
 should be just the base URL. For example, if your API store URL is
 "http://mysentry.com/api/4/store/", then the base URL is "http://mysentry.com/"
-and the projectId is 4.
+and the projectId is 4. This is a **backwards-incompatible** change introduced
+in v0.5.
 
 **projectId** - The id of the project to log the exception to. Defaults to '1'.
 
