@@ -3,7 +3,6 @@ $(document).ready(function() {
     module("Raven.config");
 
     test("should parse dsn as only argument", function() {
-        // TODO: this test isnt isolated
         var dsn = "http://public:secret@example.com:80/project-id";
 
         Raven.config(dsn);
@@ -13,16 +12,43 @@ $(document).ready(function() {
         equal(config['secretKey'], 'secret');
         equal(config['servers'][0], 'http://example.com:80/api/project-id/store/');
         equal(config['projectId'], 'project-id');
+    });
 
+    test("should accept servers as base URLs and add API info", function() {
+        Raven.config({
+            "publicKey": "public",
+            "servers": ["http://mysentry.com/"],
+            "projectId": "project-id"
+        });
+
+        var config = Raven.options;
+
+        equal(config['publicKey'], 'public');
+        equal(config['servers'][0], 'http://mysentry.com/api/project-id/store/');
+        equal(config['projectId'], 'project-id');
+    });
+
+    test("should handle base URLs without a trailing slash", function() {
+        Raven.config({
+            "publicKey": "public",
+            "servers": ["http://mysentry.com"],
+            "projectId": "project-id"
+        });
+
+        var config = Raven.options;
+
+        equal(config['publicKey'], 'public');
+        equal(config['servers'][0], 'http://mysentry.com/api/project-id/store/');
+        equal(config['projectId'], 'project-id');
     });
 
     module("Raven.parseHeaders");
 
     test("should parse headers into an object", function() {
-        var hstring = "Date: Mon, 06 Feb 2012 17:25:42 GMT\n"
-        hstring += "Server: WSGIServer/0.1 Python/2.7.2\n"
-        hstring += "Vary: Cookie\n"
-        hstring += "Content-Type: text/html; charset=utf-8\n"
+        var hstring = "Date: Mon, 06 Feb 2012 17:25:42 GMT\n";
+        hstring += "Server: WSGIServer/0.1 Python/2.7.2\n";
+        hstring += "Vary: Cookie\n";
+        hstring += "Content-Type: text/html; charset=utf-8\n";
 
         var headers = Raven.parseHeaders(hstring);
         equal(headers['Date'], "Mon, 06 Feb 2012 17:25:42 GMT");
@@ -51,7 +77,7 @@ $(document).ready(function() {
         var config = Raven.parseDSN(dsn);
         equal(config['publicKey'], 'public');
         equal(config['secretKey'], 'secret');
-        equal(config['servers'][0], 'http://example.com:80/api/project-id/store/');
+        equal(config['servers'][0], 'http://example.com:80/');
         equal(config['projectId'], 'project-id');
     });
 
@@ -62,7 +88,7 @@ $(document).ready(function() {
         var config = Raven.parseDSN(dsn);
         equal(config['publicKey'], 'public');
         equal(config['secretKey'], 'secret');
-        equal(config['servers'][0], 'http://example.com:80/path/api/project-id/store/');
+        equal(config['servers'][0], 'http://example.com:80/path/');
         equal(config['projectId'], 'project-id');
     });
 
@@ -72,7 +98,7 @@ $(document).ready(function() {
         var config = Raven.parseDSN(dsn);
         equal(config['publicKey'], 'public');
         equal(config['secretKey'], '');
-        equal(config['servers'][0], 'http://example.com:80/path/api/project-id/store/');
+        equal(config['servers'][0], 'http://example.com:80/path/');
         equal(config['projectId'], 'project-id');
     });
 

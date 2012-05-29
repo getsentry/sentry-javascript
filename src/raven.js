@@ -12,7 +12,7 @@
     var root = this;
 
     var Raven;
-    Raven = root.Raven = {};
+    root.Raven = Raven = {};
 
     var self = Raven;
 
@@ -37,6 +37,8 @@
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
     Raven.config = function(config) {
+        var servers = [];
+
         if (typeof(config) === "string") {
             if (config.indexOf('http') === 0) {
                 // new-style DSN configuration
@@ -45,9 +47,20 @@
                 throw "Base64 encoded config is no longer supported - use DSN";
             }
         }
-        $.each(config, function(i, option) {
-            self.options[i] = option;
+
+        $.each(config, function(key, option) {
+            self.options[key] = option;
         });
+
+        // Expand server base URLs into API URLs
+        $.each(self.options['servers'], function(i, server) {
+            // Add a trailing slash if one isn't provided
+            if (server.slice(-1) !== '/') {
+                server += '/';
+            }
+            servers.push(server + 'api/' + self.options['projectId'] + '/store/');
+        });
+        self.options['servers'] = servers;
 
     };
 
@@ -66,7 +79,7 @@
         }
 
         return {
-            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path + 'api/' + project_id + '/store/'],
+            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path],
             publicKey: uri.user,
             secretKey: uri.password,
             projectId: project_id

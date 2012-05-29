@@ -44,20 +44,23 @@ you want to access Sentry from.
 
 Next, configure the client by passing the DSN as the first argument:
 
-    Raven.config('http://secret:public@example.com/project-id');
+    Raven.config('http://public@example.com/project-id');
 
 Or if you need to specify additional options:
 
     Raven.config({
         "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
-        "servers": ["http://your.sentryserver.com/api/1/store/"],
+        "servers": ["http://your.sentryserver.com/"],
         "projectId": "project-id",
         "logger": "yoursite.errors.javascript"
     });
 
 **publicKey** - The desired user's public key.
 
-**servers** - (*required*) An array of servers to send exception info to.
+**servers** - (*required*) An array of servers to send exception info to. This
+should be just the base URL. For example, if your API store URL is
+"http://mysentry.com/api/4/store/", then the base URL is "http://mysentry.com/"
+and the projectId is 4.
 
 **projectId** - The id of the project to log the exception to. Defaults to '1'.
 

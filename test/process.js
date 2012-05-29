@@ -8,7 +8,7 @@ $(document).ready(function() {
             values[value.split('=')[0]] = value.split('=')[1];
         });
         return values;
-    };
+    }
 
     var message = "Once upon a midnight dreary",
         fileurl = 'http://edgarallen.poe/nevermore/',
