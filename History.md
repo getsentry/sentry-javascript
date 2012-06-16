@@ -1,4 +1,4 @@
-# 0.2.4 - 6/13/2012
+# 0.2.4 - 6/16/2012
  * Added parsing DSNs with non-standard port. [Fixes #4]
  * Added BSD license
 
