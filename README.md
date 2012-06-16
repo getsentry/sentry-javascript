@@ -1,4 +1,6 @@
 # Raven [![Build Status](https://secure.travis-ci.org/mattrobenolt/raven-node.png?branch=master)](http://travis-ci.org/mattrobenolt/raven-node)
+**Node v0.8 compatible**
+
 Log errors and stack traces in [Sentry](http://getsentry.com/) from within your Node.js applications. Includes middleware support for [Connect](http://www.senchalabs.org/connect/)/[Express](http://expressjs.com/).
 
 All processing and sending happens asynchronously to not slow things down if/when Sentry is down or slow.
