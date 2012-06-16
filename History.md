@@ -1,3 +1,7 @@
+# 0.2.4 - 6/13/2012
+ * Added parsing DSNs with non-standard port. [Fixes #4]
+ * Added BSD license
+
 # 0.2.3 - 3/30/2012
  * Prevent any potentially odd stack traces from causing Raven to crash. [Fixes #2]
 
