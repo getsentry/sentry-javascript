@@ -30,7 +30,8 @@ describe('raven.utils', function() {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'app.getsentry.com',
         path: '',
-        project_id: 269
+        project_id: 269,
+        port: 443
       };
       dsn.should.eql(expected);
     });
@@ -43,7 +44,22 @@ describe('raven.utils', function() {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
         path: 'some/other/path',
-        project_id: 269
+        project_id: 269,
+        port: 80
+      };
+      dsn.should.eql(expected);
+    });
+
+    it('should parse DNS with non-standard port', function(){
+      var dsn = raven.utils.parseDSN('https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:8443/some/other/path/269');
+      var expected = {
+        protocol: 'https',
+        public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
+        private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
+        host: 'mysentry.com',
+        path: 'some/other/path',
+        project_id: 269,
+        port: 8443
       };
       dsn.should.eql(expected);
     });

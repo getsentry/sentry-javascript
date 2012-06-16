@@ -28,7 +28,8 @@ describe('raven.Client', function(){
             private_key: 'private',
             host: 'app.getsentry.com',
             path: '',
-            project_id: 269
+            project_id: 269,
+            port: 443
         };
         var client = new raven.Client(dsn, {name: 'YAY!', site:'Googlez'});
         client.dsn.should.eql(expected);
@@ -43,7 +44,8 @@ describe('raven.Client', function(){
             private_key: '123',
             host: 'app.getsentry.com',
             path: '',
-            project_id: 1
+            project_id: 1,
+            port: 443
         };
         process.env.SENTRY_DSN='https://abc:123@app.getsentry.com/1';
         var client = new raven.Client();
@@ -58,7 +60,8 @@ describe('raven.Client', function(){
             private_key: '123',
             host: 'app.getsentry.com',
             path: '',
-            project_id: 1
+            project_id: 1,
+            port: 443
         };
         process.env.SENTRY_DSN='https://abc:123@app.getsentry.com/1';
         var client = new raven.Client({name: 'YAY!'});
@@ -126,6 +129,21 @@ describe('raven.Client', function(){
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
 
+            client.on('logged', function(){
+                scope.done();
+                done();
+            });
+            client.captureError(new Error('wtf?'));
+        });
+
+        it('should send an Error to Sentry server on another port', function(done){
+            var scope = nock('https://app.getsentry.com:8443')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(200, 'OK');
+
+            var dsn = 'https://public:private@app.getsentry.com:8443/269';
+            var client = new raven.Client(dsn);
             client.on('logged', function(){
                 scope.done();
                 done();
