@@ -22,6 +22,8 @@
     "mocha": "*",
     "should": "*",
     "nock": "*",
-    "glob": "*"
+    "glob": "*",
+    "buffer-equal": "*",
+    "mock-udp": "*"
   }
 }

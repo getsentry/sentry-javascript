@@ -1,6 +1,7 @@
 var raven = require('../')
   , fs = require('fs')
-  , nock = require('nock');
+  , nock = require('nock')
+  , mockudp = require('mock-udp');
 
 var dsn = 'https://public:private@app.getsentry.com/269';
 
@@ -143,6 +144,18 @@ describe('raven.Client', function(){
                 .reply(200, 'OK');
 
             var dsn = 'https://public:private@app.getsentry.com:8443/269';
+            var client = new raven.Client(dsn);
+            client.on('logged', function(){
+                scope.done();
+                done();
+            });
+            client.captureError(new Error('wtf?'));
+        });
+
+        it('should send an Error to Sentry server over UDP', function(done){
+            var scope = mockudp('app.getsentry.com:1234');
+
+            var dsn = 'udp://public:private@app.getsentry.com:1234/269';
             var client = new raven.Client(dsn);
             client.on('logged', function(){
                 scope.done();
