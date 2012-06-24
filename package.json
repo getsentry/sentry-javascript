@@ -23,7 +23,6 @@
     "should": "*",
     "nock": "*",
     "glob": "*",
-    "buffer-equal": "*",
     "mock-udp": "*"
   }
 }
