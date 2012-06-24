@@ -50,7 +50,7 @@ describe('raven.utils', function() {
       dsn.should.eql(expected);
     });
 
-    it('should parse DNS with non-standard port', function(){
+    it('should parse DSN with non-standard port', function(){
       var dsn = raven.utils.parseDSN('https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:8443/some/other/path/269');
       var expected = {
         protocol: 'https',
@@ -97,10 +97,7 @@ describe('raven.utils', function() {
   });
 
   describe('#parseStack()', function(){
-    var stack;
-    beforeEach(function(){
-      stack = fs.readFileSync(__dirname + '/fixtures/stack.txt', 'utf8');
-    });
+    var stack = fs.readFileSync(__dirname + '/fixtures/stack.txt', 'utf8');
 
     it('should not throw an error', function(done){
       raven.utils.parseStack(stack, done);
