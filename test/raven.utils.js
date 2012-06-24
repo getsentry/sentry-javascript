@@ -63,6 +63,20 @@ describe('raven.utils', function() {
       };
       dsn.should.eql(expected);
     });
+
+    it('should ignore a sub-transport protocol', function(){
+      var dsn = raven.utils.parseDSN('gevent+https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:8443/some/other/path/269');
+      var expected = {
+        protocol: 'https',
+        public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
+        private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
+        host: 'mysentry.com',
+        path: 'some/other/path',
+        project_id: 269,
+        port: 8443
+      };
+      dsn.should.eql(expected);
+    });
   });
 
   describe('#parseAuthHeader()', function(){
