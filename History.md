@@ -1,3 +1,7 @@
+# 0.3.0 - 6/23/2012
+ * Separate transports out into their own module for portability
+ * Added UDP transport [Fixes #10]
+
 # 0.2.4 - 6/16/2012
  * Added parsing DSNs with non-standard port. [Fixes #4]
  * Added BSD license
