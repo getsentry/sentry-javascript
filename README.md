@@ -77,6 +77,8 @@ cross-domain requests.
 **signatureUrl** - Use a server side url to get a signature for the message.
 See below in the "Security" section for more details.
 
+**ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error"]`.
+
 
 ## Logging Errors
 

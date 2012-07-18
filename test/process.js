@@ -58,4 +58,11 @@ $(document).ready(function() {
                  'the message should match');
     });
 
+    test("should ignore errors passed in `ignoreErrors`", function() {
+        Raven.process("Error to ignore");
+
+        // Raven should bail before making an ajax call
+        equal(ajax_calls.length, 0);
+    });
+
 });

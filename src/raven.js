@@ -31,7 +31,8 @@
         site: undefined,
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
-        testMode: false  // Disables some things that randomize the signature
+        testMode: false,  // Disables some things that randomize the signature
+        ignoreErrors: []
     };
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
@@ -352,6 +353,9 @@
         if (typeof(message) === 'object') {
             type = message.name;
             message = message.message;
+        }
+        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
+            return;
         }
 
         label = lineno ? message + " at " + lineno : message;
