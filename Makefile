@@ -1,6 +1,4 @@
 RAVEN = ./src/raven.js
-BASE64 = ./src/vendor/base64.js
-CRYPTO = ./src/vendor/crypto-sha1-hmac.min.js
 PARSEURI = ./src/vendor/uri.js
 VER = $(shell cat version.txt)
 RAVEN_FULL = ./dist/raven-${VER}.js
