@@ -20,7 +20,7 @@ full and minified distribution files include [parseUri][5].
 
 Download the latest version [here][5].
 
-Raven.js requires either [jQuery][6] (>1.5) or [Zepto.js][7].
+Raven.js requires either [jQuery][6] (>1.5) or [Zepto.js][7] (>0.8).
 
 First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:

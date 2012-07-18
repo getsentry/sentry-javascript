@@ -3,7 +3,7 @@
 // Originally based on the Arecibo JavaScript client.
 //
 // Requires:
-//     * Either jQuery (>1.5) or Zepto.js.
+//     * Either jQuery (>1.5) or Zepto.js (>0.8).
 //     * parseUri (included in the full and minified distribution files)
 
 (function(){
