@@ -160,7 +160,7 @@
             if (e.stack.indexOf('@') == -1) {
                 traceback = this.chromeTraceback(e);
             } else {
-                traceback = this.firefoxTraceback(e);
+                traceback = this.firefoxOrSafariTraceback(e);
             }
         } else {
             traceback = [{"filename": fileurl, "lineno": lineno}];
@@ -234,7 +234,7 @@
         return traceback;
     };
 
-    Raven.firefoxTraceback = function(e) {
+    Raven.firefoxOrSafariTraceback = function(e) {
         /*
          * Each line is a function with args and a filename, separated by an ampersand.
          *   unsubstantiatedClaim("I am Batman")@http://raven-js.com/test/exception.js:7
@@ -252,7 +252,7 @@
                 if (chunks[0]) {
                     fn = chunks[0].split('(');
 
-                    if (fn[1] != ')') {
+                    if (fn.length > 1 && fn[1] != ')') {
                         args = fn[1].slice(0, -1).split(',');
                     } else {
                         args = undefined;
@@ -267,9 +267,16 @@
                     fn = '(unknown)';
                 }
 
-                filename = chunks[1].split(':');
-                lineno = filename.slice(-1)[0];
-                filename = filename.slice(0, -1).join(':');
+                if (chunks.length > 1) {
+                    filename = chunks[1].split(':');
+                    lineno = filename.slice(-1)[0];
+                    filename = filename.slice(0, -1).join(':');
+                } else if (chunks[0] == '[native code]') {
+                    fn = '(unknown)';
+                    filename = '[native code]';
+                    lineno = 0;
+                    args = undefined;
+                }
 
                 traceback.push({
                     'function': fn,
