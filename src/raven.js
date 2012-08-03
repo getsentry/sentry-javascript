@@ -18,6 +18,52 @@
 
     Raven.VERSION = '@VERSION';
 
+    // $.each and $.inArray stolen from jQuery.
+    function forEach(obj, callback) {
+        var name,
+            i = 0,
+            length = obj.length,
+            isObj = length === undefined;
+
+        if (isObj) {
+            for (name in obj) {
+                if (callback.call(obj[name], name, obj[name]) === false) {
+                    break;
+                }
+            }
+        } else {
+            for (; i < length;) {
+                if (callback.call(obj[i], i, obj[i++]) === false) {
+                    break;
+                }
+            }
+        }
+
+        return obj;
+    }
+
+    function inArray(elem, arr, i) {
+        var len;
+
+        if (arr) {
+            if (Array.prototype.indexOf) {
+                return Array.prototype.indexOf.call(arr, elem, i);
+            }
+
+            len = arr.length;
+            i = i ? i < 0 ? Math.max(0, len + i) : i : 0;
+
+            for (; i < len; i++) {
+                // Skip accessing in sparse arrays
+                if (i in arr && arr[i] === elem) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
 
@@ -49,12 +95,12 @@
             }
         }
 
-        $.each(config, function(key, option) {
+        forEach(config, function(key, option) {
             self.options[key] = option;
         });
 
         // Expand server base URLs into API URLs
-        $.each(self.options['servers'], function(i, server) {
+        forEach(self.options['servers'], function(i, server) {
             // Add a trailing slash if one isn't provided
             if (server.slice(-1) !== '/') {
                 server += '/';
@@ -105,7 +151,7 @@
          * Parse the header string returned from getAllResponseHeaders
          */
         var headers = {};
-        $.each(headers_string.split('\n'), function(i, header) {
+        forEach(headers_string.split('\n'), function(i, header) {
             var name = header.slice(0, header.indexOf(':')),
                 value = header.slice(header.indexOf(':') + 2);
             headers[name] = value;
@@ -189,7 +235,7 @@
         var chunks, fn, filename, lineno,
             traceback = [],
             lines = e.stack.split('\n');
-        $.each(lines.slice(1), function(i, line) {
+        forEach(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
             chunks = Raven.trimString(line).slice(3);
             if (chunks == "unknown source") {
@@ -246,7 +292,7 @@
         var chunks, fn, args, filename, lineno,
             traceback = [],
             lines = e.stack.split('\n');
-        $.each(lines, function(i, line) {
+        forEach(lines, function(i, line) {
             if (line) {
                 chunks = line.split('@');
                 if (chunks[0]) {
@@ -326,7 +372,7 @@
             UNKNOWN = '<unknown>',
             results = [];
 
-        $.each(args, function(i, arg) {
+        forEach(args, function(i, arg) {
             if (arg === undefined) {
                 results.push('undefined');
             } else if (arg === null) {
@@ -361,7 +407,7 @@
             type = message.name;
             message = message.message;
         }
-        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
+        if (inArray(message, self.options.ignoreErrors) >= 0) {
             return;
         }
 
@@ -404,7 +450,7 @@
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
             var header = self.getAuthHeader(signature, timestamp);
-            $.each(self.options.servers, function (i, server) {
+            forEach(self.options.servers, function (i, server) {
                 $.ajax({
                     type: 'POST',
                     url: server,
