@@ -67,6 +67,29 @@
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
 
+    function jQueryPost(url, data, callback, headers) {
+        var args = {
+            type: 'POST',
+            url: url,
+            data: data,
+        };
+
+        if (callback != null) {
+            args.success = callback;
+        }
+
+        if (headers != null) {
+            args.headers = headers;
+        }
+
+        $.ajax(args);
+    }
+
+    function jQueryFetchHeaders() {
+        return $.ajax({type: 'HEAD', url: root.location, async: false})
+           .getAllResponseHeaders();
+    }
+
     Raven.loaded = false;
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
@@ -78,7 +101,9 @@
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false,  // Disables some things that randomize the signature
-        ignoreErrors: []
+        ignoreErrors: [],
+        postMethod: jQueryPost,
+        fetchHeadersMethod: jQueryFetchHeaders
     };
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
@@ -137,8 +162,7 @@
         var headers = {};
 
         if (self.options.fetchHeaders) {
-            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
-                       .getAllResponseHeaders();
+            headers = Raven.options.fetchHeadersMethod();
         }
 
         headers["Referer"] = document.referrer;
@@ -161,7 +185,7 @@
 
     Raven.getSignature = function(message, timestamp, callback) {
         if (self.options.signatureUrl) {
-            $.post(self.options.signatureUrl, {
+            Raven.options.postMethod(self.options.signatureUrl, {
                 message: message, timestamp: timestamp
             }, function(data) {
                 callback(data.signature);
@@ -451,16 +475,11 @@
         self.getSignature(encoded_msg, timestamp, function(signature) {
             var header = self.getAuthHeader(signature, timestamp);
             forEach(self.options.servers, function (i, server) {
-                $.ajax({
-                    type: 'POST',
-                    url: server,
-                    data: encoded_msg,
-                    headers: {
-                        // We send both headers, since Authentication may be blocked,
-                        // and custom headers arent supported in IE9
-                        'X-Sentry-Auth': header,
-                        'Authentication': header
-                    }
+                Raven.options.postMethod(server, encoded_msg, null, {
+                    // We send both headers, since Authentication may be blocked
+                    // and custom headers arent supported in IE9
+                    'X-Sentry-Auth': header,
+                    'Authentication': header
                 });
             });
         });
