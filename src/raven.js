@@ -209,7 +209,7 @@
     };
 
     Raven.captureException = function(e) {
-        var lineno, traceback, fileurl;
+        var fileurl = null, lineno = null, traceback = null;
 
         if (e.line) {  // WebKit
             lineno = e.line;
@@ -232,7 +232,7 @@
             } else {
                 traceback = this.firefoxOrSafariTraceback(e);
             }
-        } else {
+        } else if (fileurl != null && lineno != null) {
             traceback = [{"filename": fileurl, "lineno": lineno}];
             traceback = traceback.concat(this.otherTraceback(arguments.callee));
         }
@@ -423,9 +423,18 @@
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
-        var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+        var label, stacktrace, data, encoded_msg, type, url,
             querystring = root.location.search.slice(1);  // Remove the ?
+
+        if (root.location.origin !== undefined) {
+            url = root.location.origin + root.location.pathname;
+        } else {
+            url = root.location.protocol + '//' + root.location.host;
+            if (root.location.port) {
+                url += ':' + root.location.port;
+            }
+            url += root.location.pathname;
+        }
 
         if (typeof(message) === 'object') {
             type = message.name;
