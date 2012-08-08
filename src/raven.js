@@ -26,7 +26,7 @@
         secretKey: undefined,  // The global key if not using project auth
         publicKey: undefined,  // Leave as undefined if not using project auth
         servers: [],
-        projectId: 1,
+        projectId: undefined,
         logger: 'javascript',
         site: undefined,
         signatureUrl: undefined,
@@ -59,7 +59,11 @@
             if (server.slice(-1) !== '/') {
                 server += '/';
             }
-            servers.push(server + 'api/' + self.options['projectId'] + '/store/');
+            if(self.options['projectId']) {
+                servers.push(server + 'api/' + self.options['projectId'] + '/store/');                
+            } else {
+                servers.push(server);
+            }
         });
         self.options['servers'] = servers;
 
