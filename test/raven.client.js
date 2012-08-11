@@ -5,6 +5,17 @@ var raven = require('../')
 
 var dsn = 'https://public:private@app.getsentry.com/269';
 
+var _oldConsoleWarn = console.warn;
+function mockConsoleWarn() {
+    console.warn = function() {
+        console.warn._called = true;
+    };
+    console.warn._called = false;
+}
+function restoreConsoleWarn() {
+    console.warn = _oldConsoleWarn;
+}
+
 describe('raven.version', function(){
     it('should be valid', function(){
         raven.version.should.match(/^\d+\.\d+\.\d+(-\w+)?$/);
@@ -19,6 +30,7 @@ describe('raven.version', function(){
 describe('raven.Client', function(){
     var client;
     beforeEach(function(){
+        process.env.NODE_ENV='production';
         client = new raven.Client(dsn);
     });
 
@@ -71,6 +83,14 @@ describe('raven.Client', function(){
         delete process.env.SENTRY_DSN; // gotta clean up so it doesn't leak into other tests
     });
 
+    it('should be disabled when no DSN specified', function(){
+        mockConsoleWarn();
+        var client = new raven.Client();
+        client._enabled.should.eql(false);
+        console.warn._called.should.eql(false);
+        restoreConsoleWarn();
+    });
+
     it('should pull SENTRY_NAME from environment', function(){
         process.env.SENTRY_NAME='new_name';
         var client = new raven.Client(dsn);
@@ -83,6 +103,14 @@ describe('raven.Client', function(){
         var client = new raven.Client(dsn);
         client.site.should.eql('Googlez');
         delete process.env.SENTRY_SITE;
+    });
+
+    it('should be disabled for a falsey DSN', function(){
+        mockConsoleWarn();
+        var client = new raven.Client(false);
+        client._enabled.should.eql(false);
+        console.warn._called.should.eql(false);
+        restoreConsoleWarn();
     });
 
     describe('#getIdent()', function(){

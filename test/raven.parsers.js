@@ -48,7 +48,7 @@ describe('raven.parsers', function(){
       var parsed = raven.parsers.parseRequest(mockReq);
       parsed.should.have.property('sentry.interfaces.Http');
       parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal('test');
+      parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal('production');
     });
   });
 
