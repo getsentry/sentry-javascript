@@ -129,7 +129,5 @@ app.get('/', function mainHandler(req, res) {
 app.listen(3000);
 ```
 
-## Todo
- * More complete test coverage
- * More comments in code
- * More third party integration
+## Support
+You can find me on IRC. I troll in `#sentry` on `freenode`.
