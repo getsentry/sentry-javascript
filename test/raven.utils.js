@@ -64,6 +64,11 @@ describe('raven.utils', function() {
       dsn.should.eql(expected);
     });
 
+    it('should return false for a falsey dns', function(){
+      raven.utils.parseDSN(false).should.eql(false);
+      raven.utils.parseDSN('').should.eql(false);
+    });
+
     it('should parse UDP DSN', function(){
       var dsn = raven.utils.parseDSN('udp://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:1234/some/other/path/269');
       var expected = {

@@ -1,3 +1,6 @@
+# 0.4.0 - ...
+ * Silence and disable Raven/Sentry when using a non-existent or falsey DSN value
+
 # 0.3.0 - 6/23/2012
  * Separate transports out into their own module for portability
  * Added UDP transport [Fixes #10]
