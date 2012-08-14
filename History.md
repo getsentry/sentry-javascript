@@ -1,4 +1,4 @@
-# 0.4.0 - ...
+# 0.4.0 - 8/14/2012
  * Silence and disable Raven/Sentry when using a non-existent or falsey DSN value
 
 # 0.3.0 - 6/23/2012
