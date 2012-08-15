@@ -353,9 +353,14 @@
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
-        var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+        var label, stacktrace, data, encoded_msg, type, url,
             querystring = root.location.search.slice(1);  // Remove the ?
+
+        if(root.location.origin) {
+            url = root.location.origin + root.location.pathname
+        } else {
+            url = root.location.href
+        }
 
         if (typeof(message) === 'object') {
             type = message.name;
