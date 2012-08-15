@@ -186,7 +186,7 @@
          * Following lines contain error context:
          *   at http://localhost:9000/1/group/306:41:5
          */
-        var chunks, fn, filename, lineno,
+        var chunks, fn, filename, lineno, fileBits,
             traceback = [],
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
@@ -213,16 +213,16 @@
                 filename = chunks[0];
             }
 
-            if (filename && filename != '(unknown source)') {
-                if (filename.slice(0, 1) == '(') {
+            if (filename && filename !== '(unknown source)') {
+                if (filename[0] === '(') {
                     // Remove parentheses
-                    filename = filename.slice(1, -1).split(':');
-                } else {
-                    filename = filename.split(':');
+                    filename = filename.slice(1, -1);
                 }
-
-                lineno = filename.slice(-2)[0];
-                filename = filename.slice(0, -2).join(':');
+                // filename should be: <scheme>://<uri>:<line>:<column>
+                // where :<column> is optional
+                fileBits = filename.split(':');
+                lineno = fileBits[2];
+                filename = fileBits.slice(0, 2).join(':');
             }
 
             traceback.push({
