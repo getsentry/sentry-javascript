@@ -1,6 +1,6 @@
 # Raven.js
 
-![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)
+[![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)](https://secure.travis-ci.org/lincolnloop/raven-js/builds)
 
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
@@ -77,7 +77,7 @@ cross-domain requests.
 **signatureUrl** - Use a server side url to get a signature for the message.
 See below in the "Security" section for more details.
 
-**ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error"]`.
+**ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error."]`.
 
 
 ## Logging Errors
