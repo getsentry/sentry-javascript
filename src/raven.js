@@ -354,7 +354,7 @@
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
         var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+            url = root.location.protocol + "//" + root.location.host + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
         if (typeof(message) === 'object') {
