@@ -32,7 +32,8 @@
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false,  // Disables some things that randomize the signature
-        ignoreErrors: []
+        ignoreErrors: [],
+        ignoreUrls: []
     };
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
@@ -368,6 +369,14 @@
         }
         if ($.inArray(message, self.options.ignoreErrors) >= 0) {
             return;
+        }
+
+        var len=ignoreUrls.length;
+
+        for(var i=0; i<len; i++) {
+            if(ignoreUrls[i].test(fileurl)) {
+                return;
+            }
         }
 
         label = lineno ? message + " at " + lineno : message;
