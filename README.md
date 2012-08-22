@@ -79,6 +79,7 @@ See below in the "Security" section for more details.
 
 **ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error."]`.
 
+**ignoreUrls** - An array of regular expressions matching urls which will not get passed to sentry. Ie. you should set it to [/maps.google.com/] to avoid logging of errors which happens in Google Maps scripts or to [/jquery.js$/] to ignore errors in jquery library.
 
 ## Logging Errors
 
