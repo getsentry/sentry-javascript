@@ -1,6 +1,6 @@
 # Raven.js
 
-![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)
+[![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)](https://secure.travis-ci.org/lincolnloop/raven-js/builds)
 
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
@@ -26,9 +26,9 @@ First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
 
     <script type="text/javascript" src="js/jquery.js"></script>
-    <script type="text/javascript" src="js/raven-0.5.2.min.js"></script>
+    <script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
 
-[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.5.2.tar.gz
+[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.5.3.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 
@@ -77,7 +77,7 @@ cross-domain requests.
 **signatureUrl** - Use a server side url to get a signature for the message.
 See below in the "Security" section for more details.
 
-**ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error"]`.
+**ignoreErrors** - An array of error messages that should not get passed to sentry. You'll probably want to set this to `["Script error."]`.
 
 
 ## Logging Errors
