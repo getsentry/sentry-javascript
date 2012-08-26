@@ -32,7 +32,8 @@
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false,  // Disables some things that randomize the signature
-        ignoreErrors: []
+        ignoreErrors: [],
+        ignoreUrls: []
     };
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
@@ -353,9 +354,14 @@
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
-        var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+        var label, stacktrace, data, encoded_msg, type, url,
             querystring = root.location.search.slice(1);  // Remove the ?
+
+        if(root.location.origin) {
+            url = root.location.origin + root.location.pathname
+        } else {
+            url = root.location.href
+        }
 
         if (typeof(message) === 'object') {
             type = message.name;
@@ -363,6 +369,14 @@
         }
         if ($.inArray(message, self.options.ignoreErrors) >= 0) {
             return;
+        }
+
+        var len=ignoreUrls.length;
+
+        for(var i=0; i<len; i++) {
+            if(ignoreUrls[i].test(fileurl)) {
+                return;
+            }
         }
 
         label = lineno ? message + " at " + lineno : message;
