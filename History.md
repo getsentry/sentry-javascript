@@ -1,3 +1,7 @@
+# master
+  * Added test coverage to `patchGlobal()`
+  * Quit using my own deprecated `get_ident()` method inside `patchGlobal`
+
 # 0.4.1 - 9/3/2012
  * patchGlobal() was actually broken. :( Thanks @ligthyear [Fixes #17]
 
