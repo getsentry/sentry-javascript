@@ -201,24 +201,25 @@ describe('raven.Client', function(){
             process._events.uncaughtException = before; // patch it back to what it was
         });
 
-        /* Why can't I do this?!?!
         it('should send an uncaughtException to Sentry server', function(done){
             var scope = nock('https://app.getsentry.com')
-                .filteringRequestBody(/.*\/, '*')
+                .filteringRequestBody(/.*/, '*')
                 .post('/api/store/', '*')
                 .reply(200, 'OK');
+
+            // remove existing uncaughtException handlers
             var before = process._events.uncaughtException;
             process.removeAllListeners('uncaughtException');
-            console.log(process._events);
-            client.patchGlobal();
-            console.log(process._events);
-            ''(); // should be caught and sent to Sentry
-            before.forEach(function(cb) {
-                // restore old callbacks
-                process.on('uncaughtException', cb);
+
+            client.on('logged', function(){
+                // restore things to how they were
+                process._events.uncaughtException = before;
+
+                scope.done();
+                done();
             });
-            done();
+            client.patchGlobal();
+            process.emit('uncaughtException', new Error('derp'));
         });
-        */
     });
 });
