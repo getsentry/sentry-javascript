@@ -1,3 +1,6 @@
+# 0.4.1 - 9/3/2012
+ * patchGlobal() was actually broken. :( Thanks @ligthyear [Fixes #17]
+
 # 0.4.0 - 8/14/2012
  * Silence and disable Raven/Sentry when using a non-existent or falsey DSN value
 
