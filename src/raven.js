@@ -90,7 +90,7 @@
     Raven.getHeaders = function() {
         var headers = {};
 
-        if (self.options.fetchHeaders) {
+        if (self.options.fetchHeaders && !self.options.testMode) {
             headers = $.ajax({type: 'HEAD', url: root.location, async: false})
                        .getAllResponseHeaders();
         }
@@ -392,13 +392,11 @@
             "site": self.options.site
         };
 
-        if (!self.options.testMode) {
-            data["sentry.interfaces.Http"] = {
-                "url": url,
-                "querystring": querystring,
-                "headers": self.getHeaders()
-            };
-        }
+        data["sentry.interfaces.Http"] = {
+            "url": url,
+            "querystring": querystring,
+            "headers": self.getHeaders()
+        };
 
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
