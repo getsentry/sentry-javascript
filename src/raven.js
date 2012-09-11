@@ -366,10 +366,8 @@
             return;
         }
 
-        var len=ignoreUrls.length;
-
-        for(var i=0; i<len; i++) {
-            if(ignoreUrls[i].test(fileurl)) {
+        for (var i = 0; i < ignoreUrls.length; i++) {
+            if (ignoreUrls[i].test(fileurl)) {
                 return;
             }
         }
