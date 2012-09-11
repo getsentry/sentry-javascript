@@ -90,7 +90,7 @@
     Raven.getHeaders = function() {
         var headers = {};
 
-        if (self.options.fetchHeaders) {
+        if (self.options.fetchHeaders && !self.options.testMode) {
             headers = $.ajax({type: 'HEAD', url: root.location, async: false})
                        .getAllResponseHeaders();
         }
@@ -354,7 +354,7 @@
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
         var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+            url = (root.location.origin || (window.location.protocol + "//" + window.location.host)) + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
         if (typeof(message) === 'object') {
@@ -392,13 +392,11 @@
             "site": self.options.site
         };
 
-        if (!self.options.testMode) {
-            data["sentry.interfaces.Http"] = {
-                "url": url,
-                "querystring": querystring,
-                "headers": self.getHeaders()
-            };
-        }
+        data["sentry.interfaces.Http"] = {
+            "url": url,
+            "querystring": querystring,
+            "headers": self.getHeaders()
+        };
 
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
