@@ -65,6 +65,13 @@ $(document).ready(function() {
         equal(ajax_calls.length, 0);
     });
 
+    test("should ignore urls passed in `ignoreUrls`", function() {
+        Raven.process("Test error", "https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js");
+
+        // Raven should bail before making an ajax call
+        equal(ajax_calls.length, 0);
+    });
+
     test("should send a proper url", function() {
       Raven.process("Fail");
 

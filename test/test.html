@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Raven Test Suite</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
     <!-- jQuery or Zepto-->
     <script type="text/javascript">
@@ -50,7 +50,8 @@
                     "servers": ["/"],
                     "signatureUrl": null,
                     "testMode": true,
-                    "ignoreErrors": ["Error to ignore"]
+                    "ignoreErrors": ["Error to ignore"],
+                    "ignoreUrls": [/ajax\.googleapis\.com\/ajax\/libs\/jquery/i]
                 };
                 Raven.config(config_opts);
 
