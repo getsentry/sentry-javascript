@@ -28,7 +28,7 @@ minified distribution file from the 'dist' directory:
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
 
-[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.5.3.tar.gz
+[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.6.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 
