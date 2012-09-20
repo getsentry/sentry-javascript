@@ -3,7 +3,7 @@
 // Originally based on the Arecibo JavaScript client.
 //
 // Requires:
-//     * Either jQuery (>1.5) or Zepto.js.
+//     * Either jQuery (>1.5) or Zepto.js (>0.8).
 //     * parseUri (included in the full and minified distribution files)
 
 (function(){
@@ -12,7 +12,7 @@
     var root = this;
 
     var Raven;
-    Raven = root.Raven = {};
+    root.Raven = Raven = {};
 
     var self = Raven;
 
@@ -31,12 +31,16 @@
         site: undefined,
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
-        testMode: false  // Disables some things that randomize the signature
+        testMode: false,  // Disables some things that randomize the signature
+        ignoreErrors: [],
+        ignoreUrls: []
     };
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
     Raven.config = function(config) {
+        var servers = [];
+
         if (typeof(config) === "string") {
             if (config.indexOf('http') === 0) {
                 // new-style DSN configuration
@@ -45,9 +49,20 @@
                 throw "Base64 encoded config is no longer supported - use DSN";
             }
         }
-        $.each(config, function(i, option) {
-            self.options[i] = option;
+
+        $.each(config, function(key, option) {
+            self.options[key] = option;
         });
+
+        // Expand server base URLs into API URLs
+        $.each(self.options['servers'], function(i, server) {
+            // Add a trailing slash if one isn't provided
+            if (server.slice(-1) !== '/') {
+                server += '/';
+            }
+            servers.push(server + 'api/' + self.options['projectId'] + '/store/');
+        });
+        self.options['servers'] = servers;
 
     };
 
@@ -66,7 +81,7 @@
         }
 
         return {
-            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path + 'api/' + project_id + '/store/'],
+            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path],
             publicKey: uri.user,
             secretKey: uri.password,
             projectId: project_id
@@ -76,7 +91,7 @@
     Raven.getHeaders = function() {
         var headers = {};
 
-        if (self.options.fetchHeaders) {
+        if (self.options.fetchHeaders && !self.options.testMode) {
             headers = $.ajax({type: 'HEAD', url: root.location, async: false})
                        .getAllResponseHeaders();
         }
@@ -100,15 +115,15 @@
     };
 
     Raven.getSignature = function(message, timestamp, callback) {
-		if (self.options.signatureUrl) {
-			$.post(self.options.signatureUrl, {
-				message: message, timestamp: timestamp
-			}, function(data) {
-				callback(data.signature);
-			});
-		} else {
-			callback();
-		}
+        if (self.options.signatureUrl) {
+            $.post(self.options.signatureUrl, {
+                message: message, timestamp: timestamp
+            }, function(data) {
+                callback(data.signature);
+            });
+        } else {
+            callback();
+        }
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
@@ -139,19 +154,19 @@
             fileurl = e.fileName;
         }
 
-		if (e.arguments && e.stack) {
+        if (e.arguments && e.stack) {
             traceback = this.chromeTraceback(e);
-		} else if (e.stack) {
+        } else if (e.stack) {
             // Detect edge cases where Chrome doesn't have 'arguments'
             if (e.stack.indexOf('@') == -1) {
                 traceback = this.chromeTraceback(e);
             } else {
-                traceback = this.firefoxTraceback(e);
+                traceback = this.firefoxOrSafariTraceback(e);
             }
-		} else {
+        } else {
             traceback = [{"filename": fileurl, "lineno": lineno}];
-			traceback = traceback.concat(this.otherTraceback(arguments.callee));
-		}
+            traceback = traceback.concat(this.otherTraceback(arguments.callee));
+        }
 
         self.process(e, fileurl, lineno, traceback);
     };
@@ -172,7 +187,7 @@
          * Following lines contain error context:
          *   at http://localhost:9000/1/group/306:41:5
          */
-		var chunks, fn, filename, lineno,
+        var chunks, fn, filename, lineno, fileBits,
             traceback = [],
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
@@ -199,16 +214,16 @@
                 filename = chunks[0];
             }
 
-            if (filename && filename != '(unknown source)') {
-                if (filename.slice(0, 1) == '(') {
+            if (filename && filename !== '(unknown source)') {
+                if (filename[0] === '(') {
                     // Remove parentheses
-                    filename = filename.slice(1, -1).split(':');
-                } else {
-                    filename = filename.split(':');
+                    filename = filename.slice(1, -1);
                 }
-
-                lineno = filename.slice(-2)[0];
-                filename = filename.slice(0, -2).join(':');
+                // filename should be: <scheme>://<uri>:<line>:<column>
+                // where :<column> is optional
+                fileBits = filename.split(':');
+                lineno = fileBits[2];
+                filename = fileBits.slice(0, 2).join(':');
             }
 
             traceback.push({
@@ -220,7 +235,7 @@
         return traceback;
     };
 
-	Raven.firefoxTraceback = function(e) {
+    Raven.firefoxOrSafariTraceback = function(e) {
         /*
          * Each line is a function with args and a filename, separated by an ampersand.
          *   unsubstantiatedClaim("I am Batman")@http://raven-js.com/test/exception.js:7
@@ -229,7 +244,7 @@
          *   (66)@http://raven-js.com/test/vendor/qunit.js:418
          *
          */
-		var chunks, fn, args, filename, lineno,
+        var chunks, fn, args, filename, lineno,
             traceback = [],
             lines = e.stack.split('\n');
         $.each(lines, function(i, line) {
@@ -238,7 +253,7 @@
                 if (chunks[0]) {
                     fn = chunks[0].split('(');
 
-                    if (fn[1] != ')') {
+                    if (fn.length > 1 && fn[1] != ')') {
                         args = fn[1].slice(0, -1).split(',');
                     } else {
                         args = undefined;
@@ -253,9 +268,16 @@
                     fn = '(unknown)';
                 }
 
-                filename = chunks[1].split(':');
-                lineno = filename.slice(-1)[0];
-                filename = filename.slice(0, -1).join(':');
+                if (chunks.length > 1) {
+                    filename = chunks[1].split(':');
+                    lineno = filename.slice(-1)[0];
+                    filename = filename.slice(0, -1).join(':');
+                } else if (chunks[0] == '[native code]') {
+                    fn = '(unknown)';
+                    filename = '[native code]';
+                    lineno = 0;
+                    args = undefined;
+                }
 
                 traceback.push({
                     'function': fn,
@@ -266,17 +288,17 @@
             }
         });
         return traceback;
-	};
+    };
 
-	Raven.otherTraceback = function(callee) {
-		/*
+    Raven.otherTraceback = function(callee) {
+        /*
          * Generates best-efforts tracebacks for other browsers, such as Safari
          * or IE.
          */
-		var fn, args,
+        var fn, args,
             ANON = '<anonymous>',
-			traceback = [],
-			max = 9;
+            traceback = [],
+            max = 9;
         while (callee && traceback.length < max) {
             fn = callee.name || (this.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
             if (callee.arguments) {
@@ -294,51 +316,60 @@
             callee = callee.caller;
         }
         return traceback;
-	};
+    };
 
-	Raven.stringifyArguments = function(args) {
-		/*
+    Raven.stringifyArguments = function(args) {
+        /*
          * Converts a callee's arguments to strings
          */
-		var fn,
-			self = this,
-			UNKNOWN = '<unknown>',
-			results = [];
+        var fn,
+            self = this,
+            UNKNOWN = '<unknown>',
+            results = [];
 
-		$.each(args, function(i, arg) {
-			if (arg === undefined) {
+        $.each(args, function(i, arg) {
+            if (arg === undefined) {
                 results.push('undefined');
             } else if (arg === null) {
                 results.push('null');
-			} else if (arg instanceof Array) {
-				results.push(self.stringifyArguments(arg));
-			} else if (arg.constructor) {
-				fn = arg.constructor.name || (self.funcNameRE.test(arg.constructor.toString()) ? RegExp.$1 || UNKNOWN : UNKNOWN);
-				if (fn == 'String') {
-					results.push('"' + arg + '"');
-				} else if (fn == 'Number' || fn == 'Date') {
-					results.push(arg);
-				} else if (fn == 'Boolean') {
-					results.push(arg ? 'true' : 'false');
-				} else {
-					results.push(fn);
-				}
-			} else {
-				results.push(UNKNOWN);
-			}
-		});
+            } else if (arg instanceof Array) {
+                results.push(self.stringifyArguments(arg));
+            } else if (arg.constructor) {
+                fn = arg.constructor.name || (self.funcNameRE.test(arg.constructor.toString()) ? RegExp.$1 || UNKNOWN : UNKNOWN);
+                if (fn == 'String') {
+                    results.push('"' + arg + '"');
+                } else if (fn == 'Number' || fn == 'Date') {
+                    results.push(arg);
+                } else if (fn == 'Boolean') {
+                    results.push(arg ? 'true' : 'false');
+                } else {
+                    results.push(fn);
+                }
+            } else {
+                results.push(UNKNOWN);
+            }
+        });
 
-		return results;
-	};
+        return results;
+    };
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
         var label, stacktrace, data, encoded_msg, type,
-            url = root.location.origin + root.location.pathname,
+            url = root.location.protocol + '//' + root.location.host + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
         if (typeof(message) === 'object') {
             type = message.name;
             message = message.message;
+        }
+        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
+            return;
+        }
+
+        for (var i = 0; i < self.options.ignoreUrls.length; i++) {
+            if (self.options.ignoreUrls[i].test(fileurl)) {
+                return;
+            }
         }
 
         label = lineno ? message + " at " + lineno : message;
@@ -368,13 +399,11 @@
             "site": self.options.site
         };
 
-        if (!self.options.testMode) {
-            data["sentry.interfaces.Http"] = {
-                "url": url,
-                "querystring": querystring,
-                "headers": self.getHeaders()
-            };
-        }
+        data["sentry.interfaces.Http"] = {
+            "url": url,
+            "querystring": querystring,
+            "headers": self.getHeaders()
+        };
 
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);

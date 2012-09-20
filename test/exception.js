@@ -14,19 +14,18 @@ $(document).ready(function() {
     module("Raven.captureException");
 
     test("should collect error information and report to Sentry", function() {
-        var mode, data, frame;
+        var isSupported, data, frame, caughtErr;
 
         try {
             giveMeAnError();
         } catch(err) {
+            caughtErr = err;
             Raven.captureException(err);
 
-            if (err.arguments && err.stack) {
-                mode = 'chrome';
-            } else if (err.stack) {
-                mode = 'firefox';
+            if (err.stack) {
+                isSupported = true;
             } else {
-                mode = 'other';
+                isSupported = false;
             }
         }
 
@@ -39,7 +38,7 @@ $(document).ready(function() {
         equal(data['sentry.interfaces.Exception'].type, 'ReferenceError',
               'the error should be a ReferenceError');
 
-        if (mode !== 'other') {
+        if (isSupported) {
             equal(data.culprit.slice(-12), 'exception.js',
               'the culprit should be the exception.js unit test file');
             
@@ -47,7 +46,9 @@ $(document).ready(function() {
             equal(frame.function, 'outlandishClaim');
             equal(frame.lineno, '7');
 
-            if (mode === 'firefox') {
+            // if the browser provides the arguments in the error
+            // verify they were parsed
+            if (caughtErr.stack.indexOf("I am Batman") !== -1) {
                 equal(frame.vars.arguments[0], '"I am Batman"');
                 equal(frame.vars.arguments[1], '"Seriously"');
             }
@@ -57,24 +58,5 @@ $(document).ready(function() {
             equal(frame.lineno, '3');
         }
     });
-
-    if (navigator.userAgent.indexOf('Chrome') != -1) {
-        test("should handle edge cases where Chrome errors have no arguments", function() {
-            var data, frame;
-
-            try {
-                giveMeAnError();
-            } catch(err) {
-                delete err.arguments;
-                Raven.captureException(err);
-            }
-
-            data = JSON.parse(ajax_calls[0].data);
-
-            frame = data['sentry.interfaces.Stacktrace'].frames[0];
-            equal(frame.function, 'outlandishClaim');
-            equal(frame.lineno, '7');
-        });
-    }
 
 });

@@ -8,7 +8,7 @@ $(document).ready(function() {
             values[value.split('=')[0]] = value.split('=')[1];
         });
         return values;
-    };
+    }
 
     var message = "Once upon a midnight dreary",
         fileurl = 'http://edgarallen.poe/nevermore/',
@@ -56,6 +56,27 @@ $(document).ready(function() {
 
         equal(data.message, 'ManuallyThrownError',
                  'the message should match');
+    });
+
+    test("should ignore errors passed in `ignoreErrors`", function() {
+        Raven.process("Error to ignore");
+
+        // Raven should bail before making an ajax call
+        equal(ajax_calls.length, 0);
+    });
+
+    test("should ignore urls passed in `ignoreUrls`", function() {
+        Raven.process("Test error", "https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js");
+
+        // Raven should bail before making an ajax call
+        equal(ajax_calls.length, 0);
+    });
+
+    test("should send a proper url", function() {
+      Raven.process("Fail");
+
+      var data = JSON.parse(ajax_calls[0].data);
+      equal(data["sentry.interfaces.Http"].url.indexOf('undefined'), -1, "If the url contains the string 'undefined' it probably means there is an issue.");
     });
 
 });

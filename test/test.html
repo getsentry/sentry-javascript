@@ -2,11 +2,12 @@
 <html>
 <head>
     <title>Raven Test Suite</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
     <!-- jQuery or Zepto-->
     <script type="text/javascript">
         if (querystring = window.location.search.slice(1).indexOf('lib=zepto') != -1) {
-            document.write('<' + 'script type="text/javascript" src="vendor/zepto-0.8.min.js"><' + '/script>');
+            document.write('<' + 'script type="text/javascript" src="vendor/zepto-1.0rc1.min.js"><' + '/script>');
         } else {
             document.write('<' + 'script type="text/javascript" src="vendor/jquery-1.7.1.min.js"><' + '/script>');
         }
@@ -40,13 +41,17 @@
         <ol id="qunit-tests"></ol>
         <div id="qunit-fixture">
             <!-- Reset the test environment between each test -->
+            <script type="text/javascript" src="../src/raven.js"></script>
+
             <script type="text/javascript">
                 var config_opts = {
                     "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
                     "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
-                    "servers": ["/api/default/store/"],
+                    "servers": ["/"],
                     "signatureUrl": null,
-                    "testMode": true
+                    "testMode": true,
+                    "ignoreErrors": ["Error to ignore"],
+                    "ignoreUrls": [/ajax\.googleapis\.com\/ajax\/libs\/jquery/i]
                 };
                 Raven.config(config_opts);
 
