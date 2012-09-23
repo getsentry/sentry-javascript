@@ -1,3 +1,6 @@
+# master
+  * Resolve `node_modules` path properly [Fixes #23]
+
 # 0.4.4 - 11/10/2012
   * Prevent 'error' event from bubbling up due to no listeners [See #22]
   * Augment 'error' event emitter with an actual Error object [See #22]
