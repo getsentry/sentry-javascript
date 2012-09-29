@@ -167,6 +167,13 @@
             traceback = [{"filename": fileurl, "lineno": lineno}];
             traceback = traceback.concat(this.otherTraceback(arguments.callee));
         }
+        
+        // Sometimes the browsers report a linenumber as undefined. When that happens
+        // the JSON strinfication will remove it. That's bad. This just makes sure
+        // there's always a valid line number.
+        for (var i = 0; i < traceback.length; i++) {
+            traceback[i].lineno = traceback[i].lineno || 0;
+        }
 
         self.process(e, fileurl, lineno, traceback);
     };
