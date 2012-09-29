@@ -165,6 +165,18 @@ describe('raven.Client', function(){
             client.captureError(new Error('wtf?'));
         });
 
+        it('should send a plain text "error" as a Message instead', function(done){
+            // See: https://github.com/mattrobenolt/raven-node/issues/18
+            var old = client.captureMessage;
+            client.captureMessage = function(message) {
+                // I'm also appending "Error: " to the beginning to help hint
+                message.should.equal('Error: wtf?');
+                done();
+                client.captureMessage = old;
+            };
+            client.captureError('wtf?');
+        });
+
         it('should send an Error to Sentry server on another port', function(done){
             var scope = nock('https://app.getsentry.com:8443')
                 .filteringRequestBody(/.*/, '*')
