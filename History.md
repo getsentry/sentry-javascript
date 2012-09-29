@@ -1,6 +1,7 @@
-# master
+# 0.4.2 - 9/29/2012
   * Added test coverage to `patchGlobal()`
   * Quit using my own deprecated `get_ident()` method inside `patchGlobal`
+  * Send string errors as a normal message to prevent Sentry server from crying [Fixes #18]
 
 # 0.4.1 - 9/3/2012
  * patchGlobal() was actually broken. :( Thanks @ligthyear [Fixes #17]
