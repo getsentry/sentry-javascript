@@ -90,6 +90,17 @@ raven.patchGlobal(client);
 raven.patchGlobal('{{ SENTRY_DSN }}');
 ```
 
+It is recommended that you don't leave the process running after receiving an `uncaughtException` (http://nodejs.org/api/process.html#process_event_uncaughtexception), so an optional callback is provided to allow you to hook in something like:
+
+```javascript
+client.patchGlobal(function() {
+  console.log('Bye, bye, world.')
+  process.exit(1);
+});
+```
+
+The callback is called **after** the event has been sent to the Sentry server.
+
 ## Methods
 ```javascript
 new raven.Client(dsn[, options])
