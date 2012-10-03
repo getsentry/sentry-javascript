@@ -1,3 +1,7 @@
+# 0.4.3 - 10/02/2012
+  * Allow a callback to be given to `patchGlobal()` [Fixes #19]
+  * Removed old `patch_global()` alias
+
 # 0.4.2 - 9/29/2012
   * Added test coverage to `patchGlobal()`
   * Quit using my own deprecated `get_ident()` method inside `patchGlobal`
