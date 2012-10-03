@@ -233,5 +233,25 @@ describe('raven.Client', function(){
             client.patchGlobal();
             process.emit('uncaughtException', new Error('derp'));
         });
+
+        it('should trigger a callback after an uncaughtException', function(done){
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(200, 'OK');
+
+            // remove existing uncaughtException handlers
+            var before = process._events.uncaughtException;
+            process.removeAllListeners('uncaughtException');
+
+            client.patchGlobal(function(){
+                // restore things to how they were
+                process._events.uncaughtException = before;
+
+                scope.done();
+                done();
+            });
+            process.emit('uncaughtException', new Error('derp'));
+        });
     });
 });
