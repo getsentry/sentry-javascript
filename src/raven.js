@@ -92,8 +92,11 @@
         var headers = {};
 
         if (self.options.fetchHeaders && !self.options.testMode) {
-            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
-                       .getAllResponseHeaders();
+            headers = $.ajax({
+                type: 'HEAD',
+                url: root.location,
+                async: false
+            }).getAllResponseHeaders();
         }
 
         headers["Referer"] = document.referrer;
@@ -116,10 +119,17 @@
 
     Raven.getSignature = function(message, timestamp, callback) {
         if (self.options.signatureUrl) {
-            $.post(self.options.signatureUrl, {
-                message: message, timestamp: timestamp
-            }, function(data) {
-                callback(data.signature);
+            $.ajax({
+                type: 'POST',
+                url: self.options.signatureUrl,
+                data: {
+                    message: message,
+                    timestamp: timestamp
+                },
+                dataType: 'json',
+                success: function(data) {
+                    callback(data.signature);
+                }
             });
         } else {
             callback();
@@ -414,6 +424,7 @@
                     type: 'POST',
                     url: server,
                     data: encoded_msg,
+                    dataType: 'json',
                     headers: {
                         // We send both headers, since Authentication may be blocked,
                         // and custom headers arent supported in IE9
