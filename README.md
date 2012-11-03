@@ -70,6 +70,23 @@ in v0.5.
 
 **site** - An optional site name to include with the message.
 
+**dataCallback** - An optional callback to add special parameters on data before sending to Sentry
+
+```javascript
+    Raven.config({
+        // options...
+        dataCallback: function (data) {
+            data['sentry.interfaces.User'] = {
+    			is_authenticated: true,
+				id: 1,
+				username: 'Foo',
+				email: 'Bar'
+            };
+            return data;
+        }
+    }];
+```
+
 **fetchHeaders** - Generate a HEAD request to gather header information to send
 with the message. This defaults to 'false' because it doesn't work on
 cross-domain requests.
