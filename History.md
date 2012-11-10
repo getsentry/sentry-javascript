@@ -1,3 +1,7 @@
+# 0.4.4 - 11/10/2012
+  * Prevent 'error' event from bubbling up due to no listeners [See #22]
+  * Augment 'error' event emitter with an actual Error object [See #22]
+
 # 0.4.3 - 10/02/2012
   * Allow a callback to be given to `patchGlobal()` [Fixes #19]
   * Removed old `patch_global()` alias
