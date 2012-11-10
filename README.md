@@ -60,10 +60,21 @@ If you really care if the event was logged or errored out, Client emits two even
 client.on('logged', function(){
   console.log('Yay, it worked!');
 });
-client.on('error', function(){
+client.on('error', function(e){
   console.log('oh well, Sentry is broke.');
 })
 client.captureMessage('Boom');
+```
+
+### Error Event
+The event error is augmented with the original Sentry response object as well as the response body and statusCode for easier debugging.
+
+```javascript
+client.on('error', function(e){
+  console.log(e.responseBody);  // raw response body, usually contains a message explaining the failure
+  console.log(e.statusCode);  // status code of the http request
+  console.log(e.response);  // entire raw http response object
+});
 ```
 
 ## Environment variables
