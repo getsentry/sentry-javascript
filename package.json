@@ -14,7 +14,7 @@
     "node": ">= 0.6.0"
   },
   "dependencies": {
-    "node-uuid": "*"
+    "node-uuid": "1.4.0"
   },
   "devDependencies": {
     "connect": "*",
