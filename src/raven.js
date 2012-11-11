@@ -354,7 +354,7 @@
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
-        var label, stacktrace, data, encoded_msg, type,
+        var label, stacktrace, data, encoded_msg, type, i, j,
             url = root.location.protocol + '//' + root.location.host + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
@@ -362,11 +362,14 @@
             type = message.name;
             message = message.message;
         }
-        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
-            return;
+
+        for (i = 0, j = self.options.ignoreErrors.length; i < j; i++) {
+            if (message === self.options.ignoreErrors[i]) {
+                return;
+            }
         }
 
-        for (var i = 0; i < self.options.ignoreUrls.length; i++) {
+        for (i = 0, j = self.options.ignoreUrls.length; i < j; i++) {
             if (self.options.ignoreUrls[i].test(fileurl)) {
                 return;
             }
