@@ -179,6 +179,8 @@
         return str.replace(/^\s+|\s+$/g, "");
     };
 
+    Raven.chromeUrlRegex = /([\w\. ]+)\s+\((.*):(\d+):\d+\)$/;
+
     Raven.chromeTraceback = function(e) {
         /*
          * First line is simply the repeated message:
@@ -187,49 +189,40 @@
          * Following lines contain error context:
          *   at http://localhost:9000/1/group/306:41:5
          */
-        var chunks, fn, filename, lineno, fileBits,
+        var chunks, fn, filename, lineno, idx,
             traceback = [],
             lines = e.stack.split('\n');
         $.each(lines.slice(1), function(i, line) {
             // Trim the 'at ' from the beginning, and split by spaces
-            chunks = Raven.trimString(line).slice(3);
-            if (chunks == "unknown source") {
+            line = Raven.trimString(line).slice(3);
+            if (line === "unknown source") {
                 return;  // Skip this one
-            } else {
-                chunks = chunks.split(' ');
             }
-
-            if (chunks.length > 2) {
-                // If there are more than 2 chunks, there are spaces in the
-                // filename
-                fn = chunks[0];
-                filename = chunks.slice(1).join(' ');
-                lineno = '(unknown)';
-            } else if (chunks.length == 2) {
-                // If there are two chunks, the first one is the function name
-                fn = chunks[0];
-                filename = chunks[1];
-            } else {
-                fn = '(unknown)';
-                filename = chunks[0];
-            }
-
-            if (filename && filename !== '(unknown source)') {
-                if (filename[0] === '(') {
-                    // Remove parentheses
-                    filename = filename.slice(1, -1);
+            chunks = Raven.chromeUrlRegex.exec(line);
+            if (chunks){
+                fn = chunks[1];
+                filename = chunks[2];
+                lineno = parseInt(chunks[3], 10);
+            }else{
+                fn = '';
+                filename = line;
+                lineno = -1;
+                // some lines are just a filename with a line number and a char number, let's try and parse that
+                idx = line.lastIndexOf(':');
+                if (idx !== -1){
+                    line = line.substring(0, idx);
+                    idx = line.lastIndexOf(':');
+                    if (idx !== -1){
+                        filename = line.substring(0, idx);
+                        lineno = parseInt(line.substring(idx + 1), 10);
+                    }
                 }
-                // filename should be: <scheme>://<uri>:<line>:<column>
-                // where :<column> is optional
-                fileBits = filename.split(':');
-                lineno = fileBits[2];
-                filename = fileBits.slice(0, 2).join(':');
             }
 
             traceback.push({
                 'function': fn,
                 'filename': filename,
-                'lineno': lineno
+                'lineno': isNaN(lineno) ? -1 : lineno
             });
         });
         return traceback;
