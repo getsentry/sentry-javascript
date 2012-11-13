@@ -263,7 +263,7 @@
 
                 if (chunks.length > 1) {
                     filename = chunks[1].split(':');
-                    lineno = filename.slice(-1)[0];
+                    lineno = parseInt(filename.slice(-1)[0], 10);
                     filename = filename.slice(0, -1).join(':');
                 } else if (chunks[0] == '[native code]') {
                     fn = '(unknown)';
@@ -275,7 +275,7 @@
                 traceback.push({
                     'function': fn,
                     'filename': filename,
-                    'lineno': lineno,
+                    'lineno': isNaN(lineno) ? -1 : lineno,
                     'vars': {'arguments': args}
                 });
             }
@@ -301,7 +301,7 @@
             }
             traceback.push({
                 'filename': '(unknown source)',
-                'lineno': '(unknown)',
+                'lineno': -1,
                 'function': fn,
                 'post_context': callee.toString().split('\n'),
                 'vars': {'arguments': args}
