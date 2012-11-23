@@ -1,6 +1,6 @@
 # Raven.js
 
-[![Build Status](https://secure.travis-ci.org/lincolnloop/raven-js.png?branch=develop)](https://secure.travis-ci.org/lincolnloop/raven-js/builds)
+[![Build Status](https://secure.travis-ci.org/getsentry/raven-js.png?branch=develop)](https://secure.travis-ci.org/getsentry/raven-js/builds)
 
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
@@ -28,7 +28,7 @@ minified distribution file from the 'dist' directory:
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
 
-[5]: https://github.com/downloads/lincolnloop/raven-js/raven-js-0.6.tar.gz
+[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.6.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 
@@ -116,5 +116,5 @@ wanted to allow events from /foo, set the value to
 
 ## Support
 
- * [Bug Tracker](https://github.com/lincolnloop/raven-js/issues)
+ * [Bug Tracker](https://github.com/getsentry/raven-js/issues)
  * [IRC](irc://chat.freenode.net/sentry) (chat.freenode.net, #sentry)
