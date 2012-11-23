@@ -7,6 +7,8 @@ TMP = /tmp/raven.min.js
 
 COMPRESSOR ?= `which yuicompressor`
 
+.PHONY: test
+
 #
 # Build the compressed all-in-one file
 #
@@ -24,3 +26,7 @@ raven:
 	echo "/* Raven.js v${VER} | https://github.com/lincolnloop/raven-js/ */" | \
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
+
+test:
+	phantomjs phantom-js-loader.js
+	phantomjs phantom-js-loader.js zepto
