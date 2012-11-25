@@ -20,6 +20,12 @@
 
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
+    if (typeof($) === 'undefined') {
+        throw "Raven requires one of the following libraries: jQuery, Zepto, or ender";
+    }
+    if (root.jQuery === $ && $.fn.jquery < '1.5.0') {
+        throw "A newer version of jQuery is required";
+    }
 
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
