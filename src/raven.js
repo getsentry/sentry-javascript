@@ -49,6 +49,14 @@
             }
         }
 
+        // XXX: is there a better place to put this?
+        if ($ === undefined) {
+            throw "Unable to find required library (jQuery, Zepto, ender)";
+        }
+        if (root.jQuery === $ && $().jquery < '1.5.0') {
+            throw "A newer version of jQuery is required";
+        }
+
         $.each(config, function(key, option) {
             self.options[key] = option;
         });
