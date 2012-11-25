@@ -20,6 +20,12 @@
 
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
+    if (typeof($) === 'undefined') {
+        throw "Raven requires one of the following libraries: jQuery, Zepto, or ender";
+    }
+    if (root.jQuery === $ && $.fn.jquery < '1.5.0') {
+        throw "A newer version of jQuery is required";
+    }
 
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
@@ -47,14 +53,6 @@
             } else {
                 throw "Base64 encoded config is no longer supported - use DSN";
             }
-        }
-
-        // XXX: is there a better place to put this?
-        if (typeof($) === 'undefined') {
-            throw "Unable to find required library (jQuery, Zepto, ender)";
-        }
-        if (root.jQuery === $ && $().jquery < '1.5.0') {
-            throw "A newer version of jQuery is required";
         }
 
         $.each(config, function(key, option) {
