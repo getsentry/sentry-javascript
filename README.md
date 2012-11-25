@@ -77,10 +77,10 @@ in v0.5.
         // options...
         dataCallback: function (data) {
             data['sentry.interfaces.User'] = {
-    			is_authenticated: true,
-				id: 1,
-				username: 'Foo',
-				email: 'Bar'
+                is_authenticated: true,
+                id: 1,
+                username: 'Foo',
+                email: 'Bar'
             };
             return data;
         }
