@@ -21,7 +21,6 @@
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
 
-    Raven.loaded = false;
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
         publicKey: undefined,  // Leave as undefined if not using project auth
