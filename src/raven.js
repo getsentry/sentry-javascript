@@ -34,6 +34,7 @@
         projectId: 1,
         logger: 'javascript',
         site: undefined,
+        dataCallback: null,
         signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         testMode: false,  // Disables some things that randomize the signature
@@ -409,6 +410,8 @@
             "querystring": querystring,
             "headers": self.getHeaders()
         };
+
+        if (typeof(self.options.dataCallback) == 'function') data = self.options.dataCallback(data);
 
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
