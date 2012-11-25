@@ -61,11 +61,11 @@
                 var ajax_calls = [];
                 $.ajax = function(options) {
                     ajax_calls.push(options);
+                    if (options.success) {
+                        // HACK
+                        options.success({"signature": "dummy-signature"});
+                    }
                 };
-                $.post = function(url, data, success) {
-                	ajax_calls.push({url: url, data: data, success: success});
-                	success({"signature": "dummy-signature"});
-                }
             </script>
         </div>
     </div>
