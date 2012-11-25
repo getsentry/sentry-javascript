@@ -50,7 +50,7 @@
         }
 
         // XXX: is there a better place to put this?
-        if ($ === undefined) {
+        if (typeof($) === 'undefined') {
             throw "Unable to find required library (jQuery, Zepto, ender)";
         }
         if (root.jQuery === $ && $().jquery < '1.5.0') {
