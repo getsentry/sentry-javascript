@@ -222,7 +222,7 @@
             traceback.push({
                 'function': fn,
                 'filename': filename,
-                'lineno': isNaN(lineno) ? -1 : lineno
+                'lineno': isNaN(lineno) ? null : lineno
             });
         });
         return traceback;
@@ -275,7 +275,7 @@
                 traceback.push({
                     'function': fn,
                     'filename': filename,
-                    'lineno': isNaN(lineno) ? -1 : lineno,
+                    'lineno': isNaN(lineno) ? null : lineno,
                     'vars': {'arguments': args}
                 });
             }
@@ -301,7 +301,7 @@
             }
             traceback.push({
                 'filename': '(unknown source)',
-                'lineno': -1,
+                'lineno': null,
                 'function': fn,
                 'post_context': callee.toString().split('\n'),
                 'vars': {'arguments': args}
