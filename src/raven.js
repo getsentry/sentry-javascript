@@ -145,8 +145,8 @@
         return header;
     };
 
-    Raven.captureException = function(e) {
-        var lineno, traceback, fileurl;
+    Raven.captureException = function(e, options) {
+        var label, lineno, traceback, fileurl, data;
 
         if (e.line) {  // WebKit
             lineno = e.line;
@@ -160,7 +160,7 @@
             fileurl = e.fileName;
         }
 
-        if (e.arguments && e.stack) {
+        if (e["arguments"] && e.stack) {
             traceback = this.chromeTraceback(e);
         } else if (e.stack) {
             // Detect edge cases where Chrome doesn't have 'arguments'
@@ -174,11 +174,71 @@
             traceback = traceback.concat(this.otherTraceback(arguments.callee));
         }
 
-        self.process(e, fileurl, lineno, traceback);
+        self.process(e, fileurl, lineno, traceback, options);
     };
 
-    Raven.captureMessage = function(msg) {
-        self.process(msg);
+    Raven.captureMessage = function(msg, options) {
+        var data = this.arrayMerge({
+            'message': msg
+        }, options);
+        
+        self.send(data);
+    };
+
+    Raven.process = function(message, fileurl, lineno, traceback, options) {
+        var type, stacktrace;
+
+        if (typeof(message) === 'object') {
+            type = message.name;
+            message = message.message;
+        }
+
+        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
+            return;
+        }
+
+
+        if (traceback) {
+            stacktrace = {"frames": traceback};
+            fileurl = fileurl || traceback[0].filename;
+        } else if (fileurl) {
+            stacktrace = {
+                "frames": [{
+                    "filename": fileurl,
+                    "lineno": lineno
+                }]
+            };
+        }
+
+        for (var i = 0; i < self.options.ignoreUrls.length; i++) {
+            if (self.options.ignoreUrls[i].test(fileurl)) {
+                return;
+            }
+        }
+
+        label = lineno ? message + " at " + lineno : message;
+
+        data = this.arrayMerge({
+            "sentry.interfaces.Exception": {
+                "type": type,
+                "value": message
+            },
+            "sentry.interfaces.Stacktrace": stacktrace,
+            "culprit": fileurl,
+            "message": label
+        }, options);
+
+        self.send(data);
+    };
+
+    Raven.arrayMerge = function(arr1, arr2) {
+        if (typeof(arr2) === "undefined") {
+            return arr1;
+        }
+        $.each(arr2, function(key, value){
+            arr1[key] = value;
+        });
+        return arr1;
     };
 
     Raven.trimString = function(str) {
@@ -307,8 +367,8 @@
             max = 9;
         while (callee && traceback.length < max) {
             fn = callee.name || (this.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
-            if (callee.arguments) {
-                args = this.stringifyArguments(callee.arguments);
+            if (callee["arguments"]) {
+                args = this.stringifyArguments(callee["arguments"]);
             } else {
                 args = undefined;
             }
@@ -359,61 +419,53 @@
         return results;
     };
 
-    Raven.process = function(message, fileurl, lineno, traceback, timestamp) {
-        var label, stacktrace, data, encoded_msg, type,
+    Raven.getUTCNow = function() {
+        var now = new Date();
+        var now_utc = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+            now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+
+        return now_utc;
+    };
+
+    Raven.dateToISOString = function(date) {
+        if (Date.prototype.toISOString) {
+            return date.toISOString();
+        }
+
+        function pad(n) { return n < 10 ? '0' + n : n; }
+        
+        return date.getUTCFullYear() + '-' +
+            pad(date.getUTCMonth() + 1) + '-' +
+            pad(date.getUTCDate()) + 'T' +
+            pad(date.getUTCHours()) + ':' +
+            pad(date.getUTCMinutes()) + ':' +
+            pad(date.getUTCSeconds()) + 'Z';
+    };
+
+    Raven.send = function(data) {
+        var encoded_msg,
+            timestamp= new Date().getTime(),
             url = root.location.protocol + '//' + root.location.host + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
-        if (typeof(message) === 'object') {
-            type = message.name;
-            message = message.message;
-        }
-        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
-            return;
-        }
-
-        for (var i = 0; i < self.options.ignoreUrls.length; i++) {
-            if (self.options.ignoreUrls[i].test(fileurl)) {
-                return;
-            }
-        }
-
-        label = lineno ? message + " at " + lineno : message;
-
-        if (traceback) {
-            stacktrace = {"frames": traceback};
-            fileurl = fileurl || traceback[0].filename;
-        } else if (fileurl) {
-            stacktrace = {
-                "frames": [{
-                    "filename": fileurl,
-                    "lineno": lineno
-                }]
-            };
-        }
-
-        data = {
-            "message": label,
-            "culprit": fileurl,
-            "sentry.interfaces.Stacktrace": stacktrace,
-            "sentry.interfaces.Exception": {
-                "type": type,
-                "value": message
-            },
+        data = this.arrayMerge({
             "project": self.options.projectId,
             "logger": self.options.logger,
-            "site": self.options.site
-        };
+            "site": self.options.site,
+            "timestamp": this.getUTCNow(),
+            "sentry.interfaces.Http": {
+                "url": url,
+                "querystring": querystring,
+                "headers": self.getHeaders()
+            }
+        }, data);
 
-        data["sentry.interfaces.Http"] = {
-            "url": url,
-            "querystring": querystring,
-            "headers": self.getHeaders()
-        };
+        if (typeof(self.options.dataCallback) == 'function') {
+            data = self.options.dataCallback(data);
+        }
 
-        if (typeof(self.options.dataCallback) == 'function') data = self.options.dataCallback(data);
+        data.timestamp = this.dateToISOString(data.timestamp);
 
-        timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
             var header = self.getAuthHeader(signature, timestamp);
