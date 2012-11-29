@@ -427,33 +427,33 @@
         return now_utc;
     };
 
+    Raven.pad = function(n, amount) {
+        var i,
+            len = ('' + n).length;
+        if (typeof(amount) === "undefined") {
+            amount = 2;
+        }
+        if (len >= amount) {
+            return n;
+        }
+        for (i=0; i < (amount - len); i++) {
+            n = '0' + n;
+        }
+        return n;
+    };
+
     Raven.dateToISOString = function(date) {
         if (Date.prototype.toISOString) {
             return date.toISOString();
         }
-
-        function pad(n, amount) {
-            var i,
-                len = ('' + n).length;
-            if (typeof(amount) === "undefined") {
-                amount = 2;
-            }
-            if (len >= amount) {
-                return n;
-            }
-            for (i=0; i < (amount - len); i++) {
-                n = '0' + n;
-            }
-            return n;
-        }
         
         return date.getUTCFullYear() + '-' +
-            pad(date.getUTCMonth() + 1) + '-' +
-            pad(date.getUTCDate()) + 'T' +
-            pad(date.getUTCHours()) + ':' +
-            pad(date.getUTCMinutes()) + ':' +
-            pad(date.getUTCSeconds()) + '.' +
-            pad(date.getUTCMilliseconds(), 3) + 'Z';
+            this.pad(date.getUTCMonth() + 1) + '-' +
+            this.pad(date.getUTCDate()) + 'T' +
+            this.pad(date.getUTCHours()) + ':' +
+            this.pad(date.getUTCMinutes()) + ':' +
+            this.pad(date.getUTCSeconds()) + '.' +
+            this.pad(date.getUTCMilliseconds(), 3) + 'Z';
     };
 
     Raven.send = function(data) {

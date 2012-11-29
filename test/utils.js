@@ -127,12 +127,13 @@ $(document).ready(function() {
 
     module("Raven.dateToISOString");
 
+    var now = new Date(Date.UTC(2012, 5, 22, 14, 2, 53, 34));
+
     if (Date.prototype.toISOString) {
         // is this a realistic way to test things?
         test("should transform with ECMA5", function() {
-            var now = new Date('2012-06-22T20:02:53.000+0600');
             var result = Raven.dateToISOString(now);
-            equal(result, '2012-06-22T14:02:53.000Z');
+            equal(result, '2012-06-22T14:02:53.034Z');
         });
     }
 
@@ -142,10 +143,9 @@ $(document).ready(function() {
         orig = Date.prototype.toISOString;
         Date.prototype.toISOString = undefined;
 
-        var now = new Date('2012-06-22T20:02:53.000+0600');
         var result = Raven.dateToISOString(now);
 
-        equal(result, '2012-06-22T14:02:53.000Z');
+        equal(result, '2012-06-22T14:02:53.034Z');
 
         Date.prototype.toISOString = orig;
     });
