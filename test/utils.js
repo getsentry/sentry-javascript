@@ -102,6 +102,27 @@ $(document).ready(function() {
         equal(config['projectId'], 'project-id');
     });
 
+    module("Raven.arrayMerge");
 
+    test("should compose values from both arrays", function() {
+        var arr1 = {foo: "bar"};
+        var arr2 = {bar: "baz"};
+        var result = Raven.arrayMerge(arr1, arr2);
+        equal(result["foo"], "bar");
+        equal(result["bar"], "baz");
+    });
+
+    test("should overwrite values from second array", function() {
+        var arr1 = {foo: "bar"};
+        var arr2 = {foo: "baz"};
+        var result = Raven.arrayMerge(arr1, arr2);
+        equal(result["foo"], "baz");
+    });
+
+    test("should handle an undefined second array", function() {
+        var arr1 = {foo: "bar"};
+        var result = Raven.arrayMerge(arr1);
+        equal(result["foo"], "bar");
+    });
 
 });
