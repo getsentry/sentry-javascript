@@ -25,8 +25,10 @@ Raven.js requires either [jQuery][6] (>1.5) or [Zepto.js][7] (>0.8).
 First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
 
+```html
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
+```
 
 [5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.6.tar.gz
 [6]: http://jquery.com/
@@ -44,16 +46,20 @@ you want to access Sentry from.
 
 Next, configure the client by passing the DSN as the first argument:
 
+```javascript
     Raven.config('http://public@example.com/project-id');
+```
 
 Or if you need to specify additional options:
 
+```javascript
     Raven.config({
         "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
         "servers": ["http://your.sentryserver.com/"],
         "projectId": "project-id",
         "logger": "yoursite.errors.javascript"
     });
+```
 
 **publicKey** - The desired user's public key.
 
@@ -106,17 +112,21 @@ Google Hosted jQuery library.
 
 You can manually log errors like this:
 
+```javascript
     try {
         errorThrowingCode();
     } catch(err) {
         Raven.captureException(err);
         // Handle error...
     }
+```
 
 On browsers that support it, you can attach the `Raven.process` method directly
 to the `window.onerror` attribute:
 
+```javascript
     window.onerror = Raven.process;
+```
 
 This should be harmless on browsers that don't support window.onerror, and in
 those cases it will simply do nothing.
