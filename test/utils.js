@@ -125,4 +125,28 @@ $(document).ready(function() {
         equal(result["foo"], "bar");
     });
 
+    module("Raven.dateToISOString");
+
+    if (Date.prototype.toISOString) {
+        // is this a realistic way to test things?
+        test("should transform with ECMA5", function() {
+            var now = new Date('2012-06-22T20:02:53.000+0600');
+            var result = Raven.dateToISOString(now);
+            equal(result, '2012-06-22T14:02:53.000Z');
+        });
+    }
+
+
+    // is this a realistic way to test things?
+    test("should transform with shim", function() {
+        orig = Date.prototype.toISOString;
+        Date.prototype.toISOString = undefined;
+
+        var now = new Date('2012-06-22T20:02:53.000+0600');
+        var result = Raven.dateToISOString(now);
+
+        equal(result, '2012-06-22T14:02:53.000Z');
+
+        Date.prototype.toISOString = orig;
+    });
 });
