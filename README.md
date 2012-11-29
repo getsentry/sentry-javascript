@@ -26,8 +26,8 @@ First include jQuery or Zepto in your document's head. Then include the
 minified distribution file from the 'dist' directory:
 
 ```html
-    <script type="text/javascript" src="js/jquery.js"></script>
-    <script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
 ```
 
 [5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.6.tar.gz
@@ -47,18 +47,18 @@ you want to access Sentry from.
 Next, configure the client by passing the DSN as the first argument:
 
 ```javascript
-    Raven.config('http://public@example.com/project-id');
+Raven.config('http://public@example.com/project-id');
 ```
 
 Or if you need to specify additional options:
 
 ```javascript
-    Raven.config({
-        "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
-        "servers": ["http://your.sentryserver.com/"],
-        "projectId": "project-id",
-        "logger": "yoursite.errors.javascript"
-    });
+Raven.config({
+    "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
+    "servers": ["http://your.sentryserver.com/"],
+    "projectId": "project-id",
+    "logger": "yoursite.errors.javascript"
+});
 ```
 
 **publicKey** - The desired user's public key.
@@ -79,18 +79,18 @@ in v0.5.
 **dataCallback** - An optional callback to add special parameters on data before sending to Sentry
 
 ```javascript
-    Raven.config({
-        // options...
-        dataCallback: function (data) {
-            data['sentry.interfaces.User'] = {
-                is_authenticated: true,
-                id: 1,
-                username: 'Foo',
-                email: 'Bar'
-            };
-            return data;
-        }
-    }];
+Raven.config({
+    // options...
+    dataCallback: function (data) {
+        data['sentry.interfaces.User'] = {
+            is_authenticated: true,
+            id: 1,
+            username: 'Foo',
+            email: 'Bar'
+        };
+        return data;
+    }
+}];
 ```
 
 **fetchHeaders** - Generate a HEAD request to gather header information to send
@@ -113,19 +113,19 @@ Google Hosted jQuery library.
 You can manually log errors like this:
 
 ```javascript
-    try {
-        errorThrowingCode();
-    } catch(err) {
-        Raven.captureException(err);
-        // Handle error...
-    }
+try {
+    errorThrowingCode();
+} catch(err) {
+    Raven.captureException(err);
+    // Handle error...
+}
 ```
 
 On browsers that support it, you can attach the `Raven.process` method directly
 to the `window.onerror` attribute:
 
 ```javascript
-    window.onerror = Raven.process;
+window.onerror = Raven.process;
 ```
 
 This should be harmless on browsers that don't support window.onerror, and in
