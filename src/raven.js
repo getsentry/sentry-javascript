@@ -9,6 +9,8 @@
 (function(){
     // Save a reference to the global object (`window` in the browser, `global`
     // on the server).
+    "use strict";
+
     var root = this;
 
     var Raven;
@@ -61,14 +63,14 @@
         });
 
         // Expand server base URLs into API URLs
-        $.each(self.options['servers'], function(i, server) {
+        $.each(self.options.servers, function(i, server) {
             // Add a trailing slash if one isn't provided
             if (server.slice(-1) !== '/') {
                 server += '/';
             }
-            servers.push(server + 'api/' + self.options['projectId'] + '/store/');
+            servers.push(server + 'api/' + self.options.projectId + '/store/');
         });
-        self.options['servers'] = servers;
+        self.options.servers = servers;
 
     };
 
@@ -102,7 +104,7 @@
                        .getAllResponseHeaders();
         }
 
-        headers["Referer"] = document.referrer;
+        headers.Referer = document.referrer;
         headers["User-Agent"] = navigator.userAgent;
         return headers;
     };
@@ -146,7 +148,7 @@
     };
 
     Raven.captureException = function(e, options) {
-        var label, lineno, traceback, fileurl, data;
+        var label, lineno, fileurl, traceback;
 
         if (e.line) {  // WebKit
             lineno = e.line;
@@ -186,7 +188,7 @@
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, options) {
-        var type, stacktrace;
+        var type, stacktrace, label, data;
 
         if (typeof(message) === 'object') {
             type = message.name;
