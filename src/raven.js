@@ -163,24 +163,24 @@
         }
 
         if (e["arguments"] && e.stack) {
-            traceback = this.chromeTraceback(e);
+            traceback = self.chromeTraceback(e);
         } else if (e.stack) {
             // Detect edge cases where Chrome doesn't have 'arguments'
             if (e.stack.indexOf('@') == -1) {
-                traceback = this.chromeTraceback(e);
+                traceback = self.chromeTraceback(e);
             } else {
-                traceback = this.firefoxOrSafariTraceback(e);
+                traceback = self.firefoxOrSafariTraceback(e);
             }
         } else {
             traceback = [{"filename": fileurl, "lineno": lineno}];
-            traceback = traceback.concat(this.otherTraceback(Raven.captureException));
+            traceback = traceback.concat(self.otherTraceback(Raven.captureException));
         }
 
         self.process(e, fileurl, lineno, traceback, options);
     };
 
     Raven.captureMessage = function(msg, options) {
-        var data = this.arrayMerge({
+        var data = self.arrayMerge({
             'message': msg
         }, options);
         
@@ -220,7 +220,7 @@
 
         label = lineno ? message + " at " + lineno : message;
 
-        data = this.arrayMerge({
+        data = self.arrayMerge({
             "sentry.interfaces.Exception": {
                 "type": type,
                 "value": message
@@ -368,9 +368,9 @@
             traceback = [],
             max = 9;
         while (callee && traceback.length < max) {
-            fn = callee.name || (this.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
+            fn = callee.name || (self.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
             if (callee["arguments"]) {
-                args = this.stringifyArguments(callee["arguments"]);
+                args = self.stringifyArguments(callee["arguments"]);
             } else {
                 args = undefined;
             }
@@ -450,12 +450,12 @@
         }
         
         return date.getUTCFullYear() + '-' +
-            this.pad(date.getUTCMonth() + 1) + '-' +
-            this.pad(date.getUTCDate()) + 'T' +
-            this.pad(date.getUTCHours()) + ':' +
-            this.pad(date.getUTCMinutes()) + ':' +
-            this.pad(date.getUTCSeconds()) + '.' +
-            this.pad(date.getUTCMilliseconds(), 3) + 'Z';
+            self.pad(date.getUTCMonth() + 1) + '-' +
+            self.pad(date.getUTCDate()) + 'T' +
+            self.pad(date.getUTCHours()) + ':' +
+            self.pad(date.getUTCMinutes()) + ':' +
+            self.pad(date.getUTCSeconds()) + '.' +
+            self.pad(date.getUTCMilliseconds(), 3) + 'Z';
     };
 
     Raven.send = function(data) {
@@ -464,11 +464,11 @@
             url = root.location.protocol + '//' + root.location.host + root.location.pathname,
             querystring = root.location.search.slice(1);  // Remove the ?
 
-        data = this.arrayMerge({
+        data = self.arrayMerge({
             "project": self.options.projectId,
             "logger": self.options.logger,
             "site": self.options.site,
-            "timestamp": this.getUTCNow(),
+            "timestamp": self.getUTCNow(),
             "sentry.interfaces.Http": {
                 "url": url,
                 "querystring": querystring,
@@ -480,7 +480,7 @@
             data = self.options.dataCallback(data);
         }
 
-        data.timestamp = this.dateToISOString(data.timestamp);
+        data.timestamp = self.dateToISOString(data.timestamp);
 
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
