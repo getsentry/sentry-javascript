@@ -28,5 +28,6 @@ raven:
 	mv ${TMP} ${RAVEN_MIN}
 
 test:
+	jshint .
 	phantomjs phantom-js-loader.js
 	phantomjs phantom-js-loader.js zepto

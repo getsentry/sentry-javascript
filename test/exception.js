@@ -29,6 +29,8 @@ $(document).ready(function() {
             }
         }
 
+        equal(ajax_calls.length, 1);
+
         data = JSON.parse(ajax_calls[0].data);
 
         equal(data.logger, 'javascript',
@@ -43,18 +45,18 @@ $(document).ready(function() {
               'the culprit should be the exception.js unit test file');
             
             frame = data['sentry.interfaces.Stacktrace'].frames[0];
-            equal(frame.function, 'outlandishClaim');
+            equal(frame["function"], 'outlandishClaim');
             equal(frame.lineno, '7');
 
             // if the browser provides the arguments in the error
             // verify they were parsed
             if (caughtErr.stack.indexOf("I am Batman") !== -1) {
-                equal(frame.vars.arguments[0], '"I am Batman"');
-                equal(frame.vars.arguments[1], '"Seriously"');
+                equal(frame.vars["arguments"][0], '"I am Batman"');
+                equal(frame.vars["arguments"][1], '"Seriously"');
             }
 
             frame = data['sentry.interfaces.Stacktrace'].frames[1];
-            equal(frame.function, 'giveMeAnError');
+            equal(frame["function"], 'giveMeAnError');
             equal(frame.lineno, '3');
         }
     });
