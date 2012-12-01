@@ -15,7 +15,8 @@ $(document).ready(function() {
         lineno = 12;
 
     test("should correctly capture the data", function() {
-        Raven.process(message, fileurl, lineno, undefined, timestamp);
+        Raven.process(message, fileurl, lineno, undefined);
+        notEqual(ajax_calls.length, 0);
         var data = JSON.parse(ajax_calls[0].data);
 
         equal(data['culprit'], fileurl);
@@ -26,7 +27,8 @@ $(document).ready(function() {
     });
 
     test("should correctly generate Sentry headers", function() {
-        Raven.process(message, fileurl, lineno, undefined, timestamp);
+        Raven.process(message, fileurl, lineno, undefined);
+        notEqual(ajax_calls.length, 0);
         var values = parseAuthHeader(ajax_calls[0].headers['X-Sentry-Auth']);
 
         equal(values.sentry_key, 'e89652ec30b94d9db6ea6f28580ab499',
@@ -41,16 +43,18 @@ $(document).ready(function() {
 
 	test("should hit an external url for signature if desired", function() {
 		Raven.config({"signatureUrl": "/api/sign-error/"});
-		Raven.process(message, fileurl, lineno, undefined, timestamp);
+		Raven.process(message, fileurl, lineno, undefined);
+
+        notEqual(ajax_calls.length, 0);
 
 		// The first Ajax call in this case should be to the signature URL
 		equal(ajax_calls[0].url, '/api/sign-error/');
-		equal(ajax_calls[0].data.timestamp, timestamp);
 		notEqual(ajax_calls[1].headers['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
 	});
 
 	test("should omit 'at' if there is no line number provided", function() {
         Raven.process('ManuallyThrownError');
+        notEqual(ajax_calls.length, 0);
 
         var data = JSON.parse(ajax_calls[0].data);
 
@@ -74,6 +78,7 @@ $(document).ready(function() {
 
     test("should send a proper url", function() {
       Raven.process("Fail");
+      notEqual(ajax_calls.length, 0);
 
       var data = JSON.parse(ajax_calls[0].data);
       equal(data["sentry.interfaces.Http"].url.indexOf('undefined'), -1, "If the url contains the string 'undefined' it probably means there is an issue.");
