@@ -423,10 +423,9 @@
 
     Raven.getUTCNow = function() {
         var now = new Date();
-        var now_utc = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+        
+        return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
             now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
-
-        return now_utc;
     };
 
     Raven.pad = function(n, amount) {
