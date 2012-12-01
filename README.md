@@ -131,6 +131,17 @@ window.onerror = Raven.process;
 This should be harmless on browsers that don't support window.onerror, and in
 those cases it will simply do nothing.
 
+## Passing additional data
+
+The captureException and captureMessage functions allow an additional options argument which
+you can use to pass various data (such as ``tags``):
+
+```javascript
+Raven.captureMessage('My error', {
+    tags: {key: "value"}
+});
+```
+
 ## Security
 
 Raven requires you to set up the CORS headers within Sentry. These headers
