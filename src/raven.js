@@ -173,7 +173,7 @@
             }
         } else {
             traceback = [{"filename": fileurl, "lineno": lineno}];
-            traceback = traceback.concat(this.otherTraceback(arguments.callee));
+            traceback = traceback.concat(this.otherTraceback(Raven.captureException));
         }
 
         self.process(e, fileurl, lineno, traceback, options);
