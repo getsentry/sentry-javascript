@@ -1,6 +1,6 @@
 # Raven.js
 
-[![Build Status](https://secure.travis-ci.org/getsentry/raven-js.png?branch=develop)](https://secure.travis-ci.org/getsentry/raven-js/builds)
+[![Build Status](https://secure.travis-ci.org/getsentry/raven-js.png?branch=master)](https://secure.travis-ci.org/getsentry/raven-js/builds)
 
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
@@ -27,10 +27,10 @@ minified distribution file from the 'dist' directory:
 
 ```html
 <script type="text/javascript" src="js/jquery.js"></script>
-<script type="text/javascript" src="js/raven-0.5.3.min.js"></script>
+<script type="text/javascript" src="js/raven-0.7.min.js"></script>
 ```
 
-[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.6.tar.gz
+[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.7.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 

@@ -23,7 +23,7 @@ raven:
 	cat ${RAVEN_FULL} | ${COMPRESSOR} --type js > ${RAVEN_MIN}
 
 	# Prepend the tiny header to the compressed file
-	echo "/* Raven.js v${VER} | https://github.com/lincolnloop/raven-js/ */" | \
+	echo "/* Raven.js v${VER} | https://github.com/getsentry/raven-js/ */" | \
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
 
