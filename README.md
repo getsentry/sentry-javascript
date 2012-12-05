@@ -156,5 +156,7 @@ app.get('/', function mainHandler(req, res) {
 app.listen(3000);
 ```
 
+__Note__: `raven.middleware.express` or `raven.middleware.connect` *must* be added to the middleware stack *before* any other error handling middlewares or there's a chance that the error will never get to Sentry.
+
 ## Support
 You can find me on IRC. I troll in `#sentry` on `freenode`.
