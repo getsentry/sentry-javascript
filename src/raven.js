@@ -431,13 +431,6 @@
         return results;
     };
 
-    Raven.getUTCNow = function() {
-        var now = new Date();
-        
-        return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-            now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
-    };
-
     Raven.pad = function(n, amount) {
         var i,
             len = ('' + n).length;
@@ -477,7 +470,7 @@
             "project": self.options.projectId,
             "logger": self.options.logger,
             "site": self.options.site,
-            "timestamp": self.getUTCNow(),
+            "timestamp": new Date(),
             "sentry.interfaces.Http": {
                 "url": url,
                 "querystring": querystring,
