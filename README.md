@@ -27,10 +27,10 @@ minified distribution file from the 'dist' directory:
 
 ```html
 <script type="text/javascript" src="js/jquery.js"></script>
-<script type="text/javascript" src="js/raven-0.7.min.js"></script>
+<script type="text/javascript" src="js/raven-0.7.1.min.js"></script>
 ```
 
-[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.7.tar.gz
+[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.7.1.tar.gz
 [6]: http://jquery.com/
 [7]: http://zeptojs.com/
 
