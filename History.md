@@ -1,4 +1,4 @@
-# master
+# 0.4.5 - 12/05/2012
   * Resolve `node_modules` path properly [Fixes #23]
 
 # 0.4.4 - 11/10/2012
