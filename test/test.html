@@ -17,9 +17,12 @@
     <link rel="stylesheet" href="vendor/qunit.css" type="text/css" media="screen" />
     <script type="text/javascript" src="vendor/qunit.js"></script>
     <script type="text/javascript" src="vendor/qunit-logging.js"></script>
+    <script type="text/javascript" src="vendor/sinon-server-1.5.0.js"></script>
+    <script type="text/javascript" src="vendor/sinon-ie-1.5.0.js"></script>
 
     <!-- Raven -->
-	<script type="text/javascript" src="../src/vendor/uri.js"></script>
+    <script type="text/javascript" src="../src/vendor/uri.js"></script>
+    <script type="text/javascript" src="../src/vendor/XMLHttpRequest.js"></script>
     <script type="text/javascript" src="../src/raven.js"></script>
 
     <!-- Unit tests -->
@@ -59,6 +62,11 @@
 
                 // Monkey-patch ajax calls with mock functions
                 var ajax_calls = [];
+                var xhr = sinon.useFakeXMLHttpRequest();
+                xhr.onCreate = function(xhr) {
+                    ajax_calls.push(xhr);
+                };
+                /*
                 $.ajax = function(options) {
                     ajax_calls.push(options);
                 };
@@ -66,6 +74,7 @@
                 	ajax_calls.push({url: url, data: data, success: success});
                 	success({"signature": "dummy-signature"});
                 }
+                */
             </script>
         </div>
     </div>

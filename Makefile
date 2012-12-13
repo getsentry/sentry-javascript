@@ -1,5 +1,6 @@
 RAVEN = ./src/raven.js
 PARSEURI = ./src/vendor/uri.js
+XMLHTTP = ./src/vendor/XMLHttpRequest.js
 VER = $(shell cat version.txt)
 RAVEN_FULL = ./dist/raven-${VER}.js
 RAVEN_MIN = ./dist/raven-${VER}.min.js
@@ -15,7 +16,7 @@ raven:
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${BASE64} ${CRYPTO} ${PARSEURI} ${RAVEN} | \
+	cat ${BASE64} ${CRYPTO} ${PARSEURI} ${XMLHTTP} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
 	cat ${RAVEN_FULL} | ${COMPRESSOR} --type js > ${RAVEN_MIN}

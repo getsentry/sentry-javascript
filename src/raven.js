@@ -18,8 +18,42 @@
 
     Raven.VERSION = '@VERSION';
 
-    // jQuery, Zepto, or Ender owns the `$` variable.
-    var $ = root.jQuery || root.Zepto || root.ender;
+    // Stub our own
+    var $ = {
+        each: function(obj, callback) {
+            var i, j;
+
+            if (obj.length === undefined) {
+                for (i in obj) {
+                    if (obj.hasOwnProperty(i)) {
+                        callback.call(null, i, obj[i]);
+                    }
+                }
+            } else {
+                for (i = 0, j = obj.length; i < j; i++) {
+                    callback.call(null, i, obj[i]);
+                }
+            }
+        },
+
+        getXHR: function() {
+            if (window.XMLHttpRequest) {
+                return new XMLHttpRequest();
+            } else if (window.ActiveXObject) { // IE
+                return new ActiveXObject("MSXML2.XMLHTTP.3.0");
+            }
+        },
+
+        ajax: function(options) {
+            var xhr = $.getXHR();
+
+        },
+
+        post: function(options) {
+            options.method = 'POST';
+            return $.ajax(options);
+        }
+    };
 
     Raven.loaded = false;
     Raven.options = {
@@ -92,8 +126,10 @@
         var headers = {};
 
         if (self.options.fetchHeaders && !self.options.testMode) {
-            headers = $.ajax({type: 'HEAD', url: root.location, async: false})
-                       .getAllResponseHeaders();
+            var xhr = $.getXHR();
+            xhr.open('HEAD', root.location, false);
+            xhr.send();
+            headers = xhr.getAllResponseHeaders();
         }
 
         headers["Referer"] = document.referrer;

@@ -16,6 +16,7 @@ $(document).ready(function() {
 
     test("should correctly capture the data", function() {
         Raven.process(message, fileurl, lineno, undefined, timestamp);
+        console.log(ajax_calls);
         var data = JSON.parse(ajax_calls[0].data);
 
         equal(data['culprit'], fileurl);
