@@ -54,21 +54,19 @@ $(document).ready(function() {
         //       "sentry_signature should match a hash generated with python");
     });
 
-	test("should hit an external url for signature if desired", function() {
-		Raven.config({"signatureUrl": "/api/sign-error/"});
-		Raven.process(message, fileurl, lineno, undefined);
+    test("should hit an external url for signature if desired", function() {
+        Raven.config({"signatureUrl": "/api/sign-error/"});
+        Raven.process(message, fileurl, lineno, undefined);
         fakeServer.respond();
 
         equal(fakeServer.requests.length, 2);
 
-        console.log(fakeServer.requests)
+        // The first Ajax call in this case should be to the signature URL
+        equal(fakeServer.requests[0].url, '/api/sign-error/');
+        notEqual(fakeServer.requests[1].requestHeaders['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
+    });
 
-		// The first Ajax call in this case should be to the signature URL
-		equal(fakeServer.requests[0].url, '/api/sign-error/');
-		notEqual(fakeServer.requests[1].requestHeaders['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
-	});
-
-	test("should omit 'at' if there is no line number provided", function() {
+    test("should omit 'at' if there is no line number provided", function() {
         Raven.process('ManuallyThrownError');
         equal(fakeServer.requests.length, 1);
 
