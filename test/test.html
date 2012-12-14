@@ -4,14 +4,7 @@
     <title>Raven Test Suite</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
-    <!-- jQuery or Zepto-->
-    <script type="text/javascript">
-        if (querystring = window.location.search.slice(1).indexOf('lib=zepto') != -1) {
-            document.write('<' + 'script type="text/javascript" src="vendor/zepto-1.0rc1.min.js"><' + '/script>');
-        } else {
-            document.write('<' + 'script type="text/javascript" src="vendor/jquery-1.7.1.min.js"><' + '/script>');
-        }
-    </script>
+    <script type="text/javascript" src="vendor/jquery-1.7.1.min.js"></script>
 
     <!-- Qunit -->
     <link rel="stylesheet" href="vendor/qunit.css" type="text/css" media="screen" />
@@ -22,7 +15,6 @@
 
     <!-- Raven -->
     <script type="text/javascript" src="../src/vendor/uri.js"></script>
-    <script type="text/javascript" src="../src/vendor/XMLHttpRequest.js"></script>
     <script type="text/javascript" src="../src/raven.js"></script>
 
     <!-- Unit tests -->
@@ -34,11 +26,6 @@
 <body>
     <div>
         <h1 id="qunit-header">Raven Test Suite</h1>
-        <script type="text/javascript">
-            if ($ === window.Zepto) {
-                $('#qunit-header').append(' (Zepto)');
-            }
-        </script>
         <h2 id="qunit-banner"></h2>
         <h2 id="qunit-userAgent"></h2>
         <ol id="qunit-tests"></ol>
@@ -58,14 +45,7 @@
                 };
                 Raven.config(config_opts);
 
-                var timestamp = 1328155597571;
 
-                // Monkey-patch ajax calls with mock functions
-                var ajax_calls = [];
-                var xhr = sinon.useFakeXMLHttpRequest();
-                xhr.onCreate = function(xhr) {
-                    ajax_calls.push(xhr);
-                };
                 /*
                 $.ajax = function(options) {
                     ajax_calls.push(options);
