@@ -102,6 +102,51 @@ $(document).ready(function() {
         equal(config['projectId'], 'project-id');
     });
 
+    module("Raven.arrayMerge");
+
+    test("should compose values from both arrays", function() {
+        var arr1 = {foo: "bar"};
+        var arr2 = {bar: "baz"};
+        var result = Raven.arrayMerge(arr1, arr2);
+        equal(result["foo"], "bar");
+        equal(result["bar"], "baz");
+    });
+
+    test("should overwrite values from second array", function() {
+        var arr1 = {foo: "bar"};
+        var arr2 = {foo: "baz"};
+        var result = Raven.arrayMerge(arr1, arr2);
+        equal(result["foo"], "baz");
+    });
+
+    test("should handle an undefined second array", function() {
+        var arr1 = {foo: "bar"};
+        var result = Raven.arrayMerge(arr1);
+        equal(result["foo"], "bar");
+    });
+
+    module("Raven.dateToISOString");
+
+    var now = new Date(Date.UTC(2012, 5, 22, 14, 2, 53, 34));
+
+    if (Date.prototype.toISOString) {
+        // is this a realistic way to test things?
+        test("should transform with ECMA5", function() {
+            var result = Raven.dateToISOString(now);
+            equal(result, '2012-06-22T14:02:53.034Z');
+        });
+    }
 
 
+    // is this a realistic way to test things?
+    test("should transform with shim", function() {
+        orig = Date.prototype.toISOString;
+        Date.prototype.toISOString = undefined;
+
+        var result = Raven.dateToISOString(now);
+
+        equal(result, '2012-06-22T14:02:53.034Z');
+
+        Date.prototype.toISOString = orig;
+    });
 });

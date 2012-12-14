@@ -2,7 +2,10 @@
 language: node_js
 node_js:
     - 0.6
-script: phantomjs phantom-js-loader.js && phantomjs phantom-js-loader.js zepto
+before_script:
+    - npm install -g jshint
+script:
+    - make test
 branches:
     only:
         - develop
