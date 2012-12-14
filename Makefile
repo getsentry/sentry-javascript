@@ -30,4 +30,3 @@ raven:
 test:
 	jshint .
 	phantomjs phantom-js-loader.js
-	phantomjs phantom-js-loader.js zepto
