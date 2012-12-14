@@ -17,7 +17,7 @@ raven:
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${BASE64} ${CRYPTO} ${PARSEURI} ${RAVEN} | \
+	cat ${PARSEURI} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
 	cat ${RAVEN_FULL} | ${COMPRESSOR} --type js > ${RAVEN_MIN}
@@ -30,4 +30,3 @@ raven:
 test:
 	jshint .
 	phantomjs phantom-js-loader.js
-	phantomjs phantom-js-loader.js zepto

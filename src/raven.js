@@ -3,7 +3,6 @@
 // Originally based on the Arecibo JavaScript client.
 //
 // Requires:
-//     * Either jQuery (>1.5) or Zepto.js (>0.8).
 //     * parseUri (included in the full and minified distribution files)
 
 (function(){
@@ -20,14 +19,32 @@
 
     Raven.VERSION = '@VERSION';
 
-    // jQuery, Zepto, or Ender owns the `$` variable.
-    var $ = root.jQuery || root.Zepto || root.ender;
-    if (typeof($) === 'undefined') {
-        throw "Raven requires one of the following libraries: jQuery, Zepto, or ender";
-    }
-    if (root.jQuery === $ && $.fn.jquery < '1.5.0') {
-        throw "A newer version of jQuery is required";
-    }
+    // Stub our own
+    var $ = {
+        each: function(obj, callback) {
+            var i, j;
+
+            if (obj.length === undefined) {
+                for (i in obj) {
+                    if (obj.hasOwnProperty(i)) {
+                        callback.call(null, i, obj[i]);
+                    }
+                }
+            } else {
+                for (i = 0, j = obj.length; i < j; i++) {
+                    callback.call(null, i, obj[i]);
+                }
+            }
+        },
+
+        getXHR: function() {
+            if (window.XMLHttpRequest) {
+                return new XMLHttpRequest();
+            } else if (window.ActiveXObject) { // IE
+                return new ActiveXObject("MSXML2.XMLHTTP.3.0");
+            }
+        }
+    };
 
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
@@ -100,11 +117,10 @@
         var headers = {};
 
         if (self.options.fetchHeaders && !self.options.testMode) {
-            headers = $.ajax({
-                type: 'HEAD',
-                url: root.location,
-                async: false
-            }).getAllResponseHeaders();
+            var xhr = $.getXHR();
+            xhr.open('HEAD', root.location, false);
+            xhr.send();
+            headers = xhr.getAllResponseHeaders();
         }
 
         headers.Referer = document.referrer;
@@ -126,22 +142,24 @@
     };
 
     Raven.getSignature = function(message, timestamp, callback) {
-        if (self.options.signatureUrl) {
-            $.ajax({
-                type: 'POST',
-                url: self.options.signatureUrl,
-                data: {
-                    message: message,
-                    timestamp: timestamp
-                },
-                dataType: 'json',
-                success: function(data) {
-                    callback(data.signature);
+        // bail if there is no signatureUrl set
+        if (!self.options.signatureUrl) return callback();
+
+        var xhr = $.getXHR(),
+            body = 'message=' + encodeURIComponent(message) +
+                   '&timestamp=' + encodeURIComponent(timestamp);
+        xhr.open('POST', self.options.signatureUrl, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    callback(JSON.parse(xhr.responseText).signature);
+                } else {
+                    callback();
                 }
-            });
-        } else {
-            callback();
-        }
+            }
+        };
+        xhr.send(body);
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
@@ -193,22 +211,23 @@
         var data = self.arrayMerge({
             'message': msg
         }, options);
-        
+
         self.send(data);
     };
 
     Raven.process = function(message, fileurl, lineno, traceback, options) {
-        var type, stacktrace, label, data;
+        var type, stacktrace, label, data, i, j;
 
         if (typeof(message) === 'object') {
             type = message.name;
             message = message.message;
         }
 
-        if ($.inArray(message, self.options.ignoreErrors) >= 0) {
-            return;
+        for (i = 0, j = self.options.ignoreErrors.length; i < j; i++) {
+            if (message === self.options.ignoreErrors[i]) {
+                return;
+            }
         }
-
 
         if (traceback) {
             stacktrace = {"frames": traceback};
@@ -222,7 +241,7 @@
             };
         }
 
-        for (var i = 0; i < self.options.ignoreUrls.length; i++) {
+        for (i = 0, j = self.options.ignoreUrls.length; i < j; i++) {
             if (self.options.ignoreUrls[i].test(fileurl)) {
                 return;
             }
@@ -450,7 +469,7 @@
         if (Date.prototype.toISOString) {
             return date.toISOString();
         }
-        
+
         return date.getUTCFullYear() + '-' +
             self.pad(date.getUTCMonth() + 1) + '-' +
             self.pad(date.getUTCDate()) + 'T' +
@@ -486,20 +505,17 @@
 
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
-            var header = self.getAuthHeader(signature, timestamp);
+            var header = self.getAuthHeader(signature, timestamp),
+                xhr;
             $.each(self.options.servers, function (i, server) {
-                $.ajax({
-                    type: 'POST',
-                    url: server,
-                    data: encoded_msg,
-                    dataType: 'json',
-                    headers: {
-                        // We send both headers, since Authentication may be blocked,
-                        // and custom headers arent supported in IE9
-                        'X-Sentry-Auth': header,
-                        'Authentication': header
-                    }
-                });
+                xhr = $.getXHR();
+                xhr.open('POST', server, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                // We send both headers, since Authentication may be blocked,
+                // and custom headers arent supported in IE9
+                xhr.setRequestHeader('X-Sentry-Auth', header);
+                xhr.setRequestHeader('Authentication', header);
+                xhr.send(encoded_msg);
             });
         });
     };

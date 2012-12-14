@@ -2,11 +2,10 @@
 var fs = require('fs'),
     page = new WebPage(),
     file = fs.absolute('test/test.html'),
-    lib = phantom.args[0] || 'jquery',
-    path = 'file://' + file + '?lib=' + lib;
+    path = 'file://' + file;
 
 page.onConsoleMessage = function(msg) {
-    console.log(lib + ': ' + msg);
+    console.log(msg);
     if (/^Tests completed in/.test(msg)) {
         phantom.exit(page.evaluate(function () {
             if (window.QUnit && QUnit.config && QUnit.config.stats) {
