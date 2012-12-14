@@ -1,13 +1,13 @@
 # language doesn't matter, we're only using phantom.js
 language: node_js
 node_js:
-    - 0.6
+    - 0.8.16
 before_script:
-    - npm install -g jshint
+    - npm install
 script:
     - make test
 branches:
     only:
-        - develop
+        - master
 notifications:
     irc: "irc.freenode.org#sentry"

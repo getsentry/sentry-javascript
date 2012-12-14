@@ -5,9 +5,7 @@ RAVEN_FULL = ./dist/raven-${VER}.js
 RAVEN_MIN = ./dist/raven-${VER}.min.js
 TMP = /tmp/raven.min.js
 
-COMPRESSOR ?= `which yuicompressor`
-
-.PHONY: test
+.PHONY: raven test
 
 #
 # Build the compressed all-in-one file
@@ -20,7 +18,7 @@ raven:
 	cat ${BASE64} ${CRYPTO} ${PARSEURI} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
-	cat ${RAVEN_FULL} | ${COMPRESSOR} --type js > ${RAVEN_MIN}
+	cat ${RAVEN_FULL} | ./node_modules/.bin/uglifyjs -o ${RAVEN_MIN}
 
 	# Prepend the tiny header to the compressed file
 	echo "/* Raven.js v${VER} | https://github.com/getsentry/raven-js/ */" | \
@@ -28,6 +26,5 @@ raven:
 	mv ${TMP} ${RAVEN_MIN}
 
 test:
-	jshint .
-	phantomjs phantom-js-loader.js
-	phantomjs phantom-js-loader.js zepto
+	./node_modules/.bin/jshint .
+	./node_modules/.bin/phantomjs phantom-js-loader.js
