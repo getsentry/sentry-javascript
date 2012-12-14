@@ -2,4 +2,8 @@
   "name": "raven",
   "version": "0.7.1",
   "main": ["src/raven.js", "src/vendor/uri.js"]
+  "dependencies": {
+    "jquery": "*",
+    "zepto": "*"
+  }
 }
