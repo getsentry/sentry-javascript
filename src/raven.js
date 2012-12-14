@@ -42,16 +42,6 @@
             } else if (window.ActiveXObject) { // IE
                 return new ActiveXObject("MSXML2.XMLHTTP.3.0");
             }
-        },
-
-        ajax: function(options) {
-            var xhr = $.getXHR();
-
-        },
-
-        post: function(options) {
-            options.method = 'POST';
-            return $.ajax(options);
         }
     };
 
@@ -151,15 +141,21 @@
     };
 
     Raven.getSignature = function(message, timestamp, callback) {
-        if (self.options.signatureUrl) {
-            $.post(self.options.signatureUrl, {
-                message: message, timestamp: timestamp
-            }, function(data) {
-                callback(data.signature);
-            });
-        } else {
-            callback();
-        }
+        // bail if there is no signatureUrl set
+        if (!self.options.signatureUrl) return callback();
+
+        var xhr = $.getXHR(),
+            body = 'message=' + encodeURIComponent(message) +
+                   '&timestamp=' + encodeURIComponent(timestamp);
+        xhr.open('POST', self.options.signatureUrl, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                xhr.status === 200 &&
+                    callback(JSON.parse(xhr.responseText).signature) ||
+                    callback();
+            }
+        };
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
@@ -447,19 +443,17 @@
         timestamp = timestamp || (new Date()).getTime();
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
-            var header = self.getAuthHeader(signature, timestamp);
+            var header = self.getAuthHeader(signature, timestamp),
+                xhr;
             $.each(self.options.servers, function (i, server) {
-                $.ajax({
-                    type: 'POST',
-                    url: server,
-                    data: encoded_msg,
-                    headers: {
-                        // We send both headers, since Authentication may be blocked,
-                        // and custom headers arent supported in IE9
-                        'X-Sentry-Auth': header,
-                        'Authentication': header
-                    }
-                });
+                xhr = $.getXHR();
+                xhr.open('POST', server, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                // We send both headers, since Authentication may be blocked,
+                // and custom headers arent supported in IE9
+                xhr.setRequestHeader('X-Sentry-Auth', header);
+                xhr.setRequestHeader('Authentication', header);
+                xhr.send(encoded_msg);
             });
         });
     };
