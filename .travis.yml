@@ -1,7 +1,7 @@
 # language doesn't matter, we're only using phantom.js
 language: node_js
 node_js:
-    - 0.8.16
+    - 0.8
 before_script:
     - npm install
 script:
