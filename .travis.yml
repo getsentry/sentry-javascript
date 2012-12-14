@@ -6,8 +6,5 @@ before_script:
     - npm install
 script:
     - make test
-branches:
-    only:
-        - master
 notifications:
     irc: "irc.freenode.org#sentry"
