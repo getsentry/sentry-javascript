@@ -158,6 +158,7 @@
                     callback();
             }
         };
+        xhr.send(body);
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
