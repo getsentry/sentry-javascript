@@ -8,14 +8,10 @@ TMP = /tmp/raven.min.js
 DEPENDENCIES = \
 	./src/vendor/uri.js
 
-.PHONY: raven test
 
 #
 # Build the compressed all-in-one file
 #
-
-develop:
-	npm install .
 
 raven:
 	mkdir -p dist
@@ -31,6 +27,12 @@ raven:
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
 
+develop:
+	npm install .
+
 test:
 	./node_modules/.bin/jshint .
 	./node_modules/.bin/phantomjs phantom-js-loader.js
+
+
+.PHONY: raven test develop
