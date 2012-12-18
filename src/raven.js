@@ -164,11 +164,11 @@
         xhr.send(body);
     };
 
-    Raven.onError = function(old) {
-        return typeof(old) === 'function' ?
-            function(message, url, lineno) {
-                old.call(window, message, url, lineno);
-                Raven.process(message, url, lineno);
+    Raven.onError = function(oldOnError) {
+        return typeof(oldOnError) === 'function' ?
+            function() {
+                oldOnError.apply(null, arguments);
+                Raven.process.apply(null, arguments);
             } : Raven.process;
     };
 
