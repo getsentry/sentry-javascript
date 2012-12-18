@@ -47,6 +47,17 @@
         }
     };
 
+    function wrapped(f) {
+        return function _wrapped(event) {
+            try {
+                return f.apply(this, arguments);
+            } catch (err) {
+                Raven.captureException(err);
+                throw err;
+            }
+        };
+    }
+
     Raven.options = {
         secretKey: undefined,  // The global key if not using project auth
         publicKey: undefined,  // Leave as undefined if not using project auth
@@ -516,4 +527,55 @@
             });
         });
     };
+
+    Raven.wrapCallback = function(_super) {
+        return function(f, t) {
+            return _super.call(this, wrapped(f), t);
+        };
+    };
+
+    Raven.patchNative = function() {
+        window.setTimeout  = Raven.wrapCallback(window.setTimeout);
+        window.setInterval = Raven.wrapCallback(window.setInterval);
+    };
+
+    Raven.patchjQuery = function(jQuery) {
+        jQuery = jQuery || window.jQuery;
+        if (jQuery === undefined)
+            return;
+
+        jQuery.fn.ready = Raven.wrapCallback(jQuery.fn.ready);
+
+        jQuery.event.add = (function (_super) {
+            return function (elem, types, handler, data, selector) {
+
+                if (handler && !handler.handler) {
+                    var f, ret;
+
+                    // Copy the GUID between the wrapped handler and the real
+                    // handler so that $.fn.unbind etc. can continue to work.
+                    f = wrapped(handler);
+                    f.guid = handler.guid;
+                    ret = _super(elem, types, f, data, selector);
+                    handler.guid = f.guid;
+
+                    return ret;
+
+                } else if (handler && handler.handler) {
+                    handler.handler = wrapped(handler.handler);
+                    return _super.apply(this, arguments);
+
+                } else {
+                    return _super.apply(this, arguments);
+                }
+            };
+
+        }(jQuery.event.add));
+    };
+
+    Raven.patchAll = function() {
+        Raven.patchNative();
+        Raven.patchjQuery();
+    };
+
 }).call(this);
