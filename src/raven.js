@@ -64,7 +64,7 @@
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
-    Raven.config = function(config) {
+    Raven.config = function(config, bind) {
         var servers = [];
 
         if (typeof(config) === "string") {
@@ -90,6 +90,7 @@
         });
         self.options.servers = servers;
 
+        bind && window.onError = Raven.onError(window.onError);
     };
 
     Raven.parseDSN = function(dsn) {
@@ -161,6 +162,14 @@
             }
         };
         xhr.send(body);
+    };
+
+    Raven.onError = function(old) {
+        return typeof(old) === 'function' ?
+            function(e) {
+                old.call(window, e);
+                Raven.captureException(e);
+            } : Raven.captureException;
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
