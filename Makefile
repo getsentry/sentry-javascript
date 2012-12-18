@@ -1,9 +1,12 @@
 RAVEN = ./src/raven.js
-PARSEURI = ./src/vendor/uri.js
 VER = $(shell cat version.txt)
 RAVEN_FULL = ./dist/raven-${VER}.js
 RAVEN_MIN = ./dist/raven-${VER}.min.js
 TMP = /tmp/raven.min.js
+
+# Third party dependencies
+DEPENDENCIES = \
+	./src/vendor/uri.js
 
 .PHONY: raven test
 
@@ -18,7 +21,7 @@ raven:
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${PARSEURI} ${RAVEN} | \
+	cat ${DEPENDENCIES} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -c -o ${RAVEN_MIN} ${RAVEN_FULL}
