@@ -1,0 +1,3 @@
+[submodule "src/vendor/TraceKit"]
+	path = src/vendor/TraceKit
+	url = git://github.com/occ/TraceKit.git
