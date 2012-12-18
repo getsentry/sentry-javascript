@@ -1,0 +1,17 @@
+{
+  "name": "raven-js",
+  "version": "0.0.0",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/getsentry/raven-js.git"
+  },
+  "devDependencies": {
+    "phantomjs": "*",
+    "jshint": "*",
+    "uglify-js": "*"
+  },
+  "private": true
+}
