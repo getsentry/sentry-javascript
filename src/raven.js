@@ -16,6 +16,7 @@
     root.Raven = Raven = {};
 
     var self = Raven;
+    var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
 
     Raven.VERSION = '@VERSION';
 
@@ -361,6 +362,9 @@
                 if (chunks.length > 1) {
                     filename = chunks[1].split(':');
                     lineno = parseInt(filename.slice(-1)[0], 10);
+                    if (isSafari) {
+                        lineno += 1; // no idea
+                    }
                     filename = filename.slice(0, -1).join(':');
                 } else if (chunks[0] == '[native code]') {
                     fn = '(unknown)';

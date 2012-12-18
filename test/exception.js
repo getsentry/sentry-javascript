@@ -56,7 +56,8 @@ $(document).ready(function() {
 
             frame = data['sentry.interfaces.Stacktrace'].frames[0];
             equal(frame["function"], 'outlandishClaim');
-            equal(frame.lineno, '7');
+            equal(frame.lineno, '7',
+                'the frame has the correct lineno');
 
             // if the browser provides the arguments in the error
             // verify they were parsed
@@ -67,7 +68,8 @@ $(document).ready(function() {
 
             frame = data['sentry.interfaces.Stacktrace'].frames[1];
             equal(frame["function"], 'giveMeAnError');
-            equal(frame.lineno, '3');
+            equal(frame.lineno, '3',
+                'the frame has the correct lineno');
         }
     });
 
