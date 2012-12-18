@@ -116,15 +116,11 @@ try {
 }
 ```
 
-On browsers that support it, you can attach the `Raven.process` method directly
-to the `window.onerror` attribute:
+You can have Raven capture all uncaught errors by passing `true` to `Raven.config`.
 
 ```javascript
-window.onerror = Raven.process;
+Raven.config('http://public@example.com/project-id', true);
 ```
-
-This should be harmless on browsers that don't support window.onerror, and in
-those cases it will simply do nothing.
 
 ## Passing additional data
 

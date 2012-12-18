@@ -64,7 +64,7 @@
 
     Raven.funcNameRE = /function\s*([\w\-$]+)?\s*\(/i;
 
-    Raven.config = function(config) {
+    Raven.config = function(config, bind) {
         var servers = [];
 
         if (typeof(config) === "string") {
@@ -90,6 +90,7 @@
         });
         self.options.servers = servers;
 
+        bind && window.onError = Raven.onError(window.onError);
     };
 
     Raven.parseDSN = function(dsn) {
@@ -161,6 +162,20 @@
             }
         };
         xhr.send(body);
+    };
+
+    Raven.onError = function(oldOnError) {
+        return function() {
+            Raven.process.apply(null, arguments);
+
+            if (oldOnError) {
+                return oldOnError.apply(null, arguments);
+            }
+
+            // apparently onerror handlers should return false.
+            // I don't know why.
+            return false;
+        };
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
