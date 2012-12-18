@@ -18,7 +18,7 @@ raven:
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${BASE64} ${CRYPTO} ${PARSEURI} ${RAVEN} | \
+	cat ${PARSEURI} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -c -o ${RAVEN_MIN} ${RAVEN_FULL}

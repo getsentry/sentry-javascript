@@ -1,6 +1,19 @@
 $(document).ready(function() {
 
-    module("Raven.process");
+    var fakeServer;
+
+    module("Raven.process", {
+        setup: function() {
+            fakeServer = sinon.fakeServer.create();
+            fakeServer.respondWith('POST', '/api/sign-error/',
+                    [200, {'Content-Type': 'application/json'},
+                    '{"signature": "dummy-signature"}']);
+        },
+
+        teardown: function() {
+            fakeServer.restore();
+        }
+    });
 
     function parseAuthHeader(header) {
         var values = {};
@@ -16,8 +29,8 @@ $(document).ready(function() {
 
     test("should correctly capture the data", function() {
         Raven.process(message, fileurl, lineno, undefined);
-        notEqual(ajax_calls.length, 0);
-        var data = JSON.parse(ajax_calls[0].data);
+        equal(fakeServer.requests.length, 1);
+        var data = JSON.parse(fakeServer.requests[0].requestBody);
 
         equal(data['culprit'], fileurl);
         equal(data['message'], message + " at " + lineno);
@@ -28,8 +41,8 @@ $(document).ready(function() {
 
     test("should correctly generate Sentry headers", function() {
         Raven.process(message, fileurl, lineno, undefined);
-        notEqual(ajax_calls.length, 0);
-        var values = parseAuthHeader(ajax_calls[0].headers['X-Sentry-Auth']);
+        equal(fakeServer.requests.length, 1);
+        var values = parseAuthHeader(fakeServer.requests[0].requestHeaders['X-Sentry-Auth']);
 
         equal(values.sentry_key, 'e89652ec30b94d9db6ea6f28580ab499',
               "sentry_key should match the public key");
@@ -41,22 +54,23 @@ $(document).ready(function() {
         //       "sentry_signature should match a hash generated with python");
     });
 
-	test("should hit an external url for signature if desired", function() {
-		Raven.config({"signatureUrl": "/api/sign-error/"});
-		Raven.process(message, fileurl, lineno, undefined);
+    test("should hit an external url for signature if desired", function() {
+        Raven.config({"signatureUrl": "/api/sign-error/"});
+        Raven.process(message, fileurl, lineno, undefined);
+        fakeServer.respond();
 
-        notEqual(ajax_calls.length, 0);
+        equal(fakeServer.requests.length, 2);
 
-		// The first Ajax call in this case should be to the signature URL
-		equal(ajax_calls[0].url, '/api/sign-error/');
-		notEqual(ajax_calls[1].headers['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
-	});
+        // The first Ajax call in this case should be to the signature URL
+        equal(fakeServer.requests[0].url, '/api/sign-error/');
+        notEqual(fakeServer.requests[1].requestHeaders['X-Sentry-Auth'].indexOf('dummy-signature'), -1);
+    });
 
-	test("should omit 'at' if there is no line number provided", function() {
+    test("should omit 'at' if there is no line number provided", function() {
         Raven.process('ManuallyThrownError');
-        notEqual(ajax_calls.length, 0);
+        equal(fakeServer.requests.length, 1);
 
-        var data = JSON.parse(ajax_calls[0].data);
+        var data = JSON.parse(fakeServer.requests[0].requestBody);
 
         equal(data.message, 'ManuallyThrownError',
                  'the message should match');
@@ -66,21 +80,21 @@ $(document).ready(function() {
         Raven.process("Error to ignore");
 
         // Raven should bail before making an ajax call
-        equal(ajax_calls.length, 0);
+        equal(fakeServer.requests.length, 0);
     });
 
     test("should ignore urls passed in `ignoreUrls`", function() {
         Raven.process("Test error", "https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js");
 
         // Raven should bail before making an ajax call
-        equal(ajax_calls.length, 0);
+        equal(fakeServer.requests.length, 0);
     });
 
     test("should send a proper url", function() {
       Raven.process("Fail");
-      notEqual(ajax_calls.length, 0);
+      notEqual(fakeServer.requests.length, 0);
 
-      var data = JSON.parse(ajax_calls[0].data);
+      var data = JSON.parse(fakeServer.requests[0].requestBody);
       equal(data["sentry.interfaces.Http"].url.indexOf('undefined'), -1, "If the url contains the string 'undefined' it probably means there is an issue.");
     });
 

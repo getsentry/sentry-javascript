@@ -11,7 +11,17 @@ function outlandishClaim(arg1, arg2) {
 
 $(document).ready(function() {
 
-    module("Raven.captureException");
+    var fakeServer;
+
+    module("Raven.captureException", {
+        setup: function() {
+            fakeServer = sinon.fakeServer.create();
+        },
+
+        teardown: function() {
+            fakeServer.restore();
+        }
+    });
 
     test("should collect error information and report to Sentry", function() {
         var isSupported, data, frame, caughtErr;
@@ -29,9 +39,9 @@ $(document).ready(function() {
             }
         }
 
-        equal(ajax_calls.length, 1);
+        equal(fakeServer.requests.length, 1);
 
-        data = JSON.parse(ajax_calls[0].data);
+        data = JSON.parse(fakeServer.requests[0].requestBody);
 
         equal(data.logger, 'javascript',
               'the logger should be the default value');
@@ -43,7 +53,7 @@ $(document).ready(function() {
         if (isSupported) {
             equal(data.culprit.slice(-12), 'exception.js',
               'the culprit should be the exception.js unit test file');
-            
+
             frame = data['sentry.interfaces.Stacktrace'].frames[0];
             equal(frame["function"], 'outlandishClaim');
             equal(frame.lineno, '7');
