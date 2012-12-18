@@ -45,7 +45,7 @@ $(document).ready(function() {
 
         equal(data.logger, 'javascript',
               'the logger should be the default value');
-        notEqual(data.message.indexOf('varThatDoesNotExist'), -1,
+        equal(data.message.indexOf('varThatDoesNotExist') !== -1, true,
                  'the offending variable name should show up in the message');
         equal(data['sentry.interfaces.Exception'].type, 'ReferenceError',
               'the error should be a ReferenceError');
