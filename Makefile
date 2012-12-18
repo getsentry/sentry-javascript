@@ -11,6 +11,9 @@ TMP = /tmp/raven.min.js
 # Build the compressed all-in-one file
 #
 
+develop:
+	npm install .
+
 raven:
 	mkdir -p dist
 
