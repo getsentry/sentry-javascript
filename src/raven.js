@@ -166,10 +166,10 @@
 
     Raven.onError = function(old) {
         return typeof(old) === 'function' ?
-            function(e) {
-                old.call(window, e);
-                Raven.captureException(e);
-            } : Raven.captureException;
+            function(message, url, lineno) {
+                old.call(window, message, url, lineno);
+                Raven.process(message, url, lineno);
+            } : Raven.process;
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
