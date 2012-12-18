@@ -165,11 +165,17 @@
     };
 
     Raven.onError = function(oldOnError) {
-        return typeof(oldOnError) === 'function' ?
-            function() {
-                oldOnError.apply(null, arguments);
-                Raven.process.apply(null, arguments);
-            } : Raven.process;
+        return function() {
+            Raven.process.apply(null, arguments);
+
+            if (oldOnError) {
+                return oldOnError.apply(null, arguments);
+            }
+
+            // apparently onerror handlers should return false.
+            // I don't know why.
+            return false;
+        };
     };
 
     Raven.getAuthHeader = function(signature, timestamp) {
