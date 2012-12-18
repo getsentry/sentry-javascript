@@ -195,7 +195,7 @@
             traceback = self.chromeTraceback(e);
         } else if (e.stack) {
             // Detect edge cases where Chrome doesn't have 'arguments'
-            if (e.stack.indexOf('@') == -1) {
+            if (e.stack.indexOf('@') === -1) {
                 traceback = self.chromeTraceback(e);
             } else {
                 traceback = self.firefoxOrSafariTraceback(e);
@@ -366,7 +366,7 @@
                         lineno += 1; // no idea
                     }
                     filename = filename.slice(0, -1).join(':');
-                } else if (chunks[0] == '[native code]') {
+                } else if (chunks[0] === '[native code]') {
                     fn = '(unknown)';
                     filename = '[native code]';
                     lineno = 0;
@@ -430,11 +430,11 @@
                 results.push(self.stringifyArguments(arg));
             } else if (arg.constructor) {
                 fn = arg.constructor.name || (self.funcNameRE.test(arg.constructor.toString()) ? RegExp.$1 || UNKNOWN : UNKNOWN);
-                if (fn == 'String') {
+                if (fn === 'String') {
                     results.push('"' + arg + '"');
-                } else if (fn == 'Number' || fn == 'Date') {
+                } else if (fn === 'Number' || fn === 'Date') {
                     results.push(arg);
-                } else if (fn == 'Boolean') {
+                } else if (fn === 'Boolean') {
                     results.push(arg ? 'true' : 'false');
                 } else {
                     results.push(fn);
@@ -494,7 +494,7 @@
             }
         }, data);
 
-        if (typeof(self.options.dataCallback) == 'function') {
+        if (typeof(self.options.dataCallback) === 'function') {
             data = self.options.dataCallback(data);
         }
 
