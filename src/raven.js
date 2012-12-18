@@ -39,9 +39,9 @@
 
         getXHR: function() {
             if (window.XMLHttpRequest) {
-                return new XMLHttpRequest();
+                return new window.XMLHttpRequest();
             } else if (window.ActiveXObject) { // IE
-                return new ActiveXObject("MSXML2.XMLHTTP.3.0");
+                return new window.ActiveXObject("MSXML2.XMLHTTP.3.0");
             }
         }
     };
