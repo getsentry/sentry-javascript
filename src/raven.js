@@ -174,38 +174,6 @@
         // and get it picked up in the subscriber
         // TraceKit.report(e, options);
         TraceKit.report(e);
-
-        /*
-        var label, lineno, fileurl, traceback;
-
-        if (e.line) {  // WebKit
-            lineno = e.line;
-        } else if (e.lineNumber) {  // Mozilla
-            lineno = e.lineNumber;
-        }
-
-        if (e.sourceURL) {  // Webkit
-            fileurl = e.sourceURL;
-        } else if (e.fileName) {  // Mozilla
-            fileurl = e.fileName;
-        }
-
-        if (e["arguments"] && e.stack) {
-            traceback = self.chromeTraceback(e);
-        } else if (e.stack) {
-            // Detect edge cases where Chrome doesn't have 'arguments'
-            if (e.stack.indexOf('@') === -1) {
-                traceback = self.chromeTraceback(e);
-            } else {
-                traceback = self.firefoxOrSafariTraceback(e);
-            }
-        } else {
-            traceback = [{"filename": fileurl, "lineno": lineno}];
-            traceback = traceback.concat(self.otherTraceback(Raven.captureException));
-        }
-
-        self.process(e, fileurl, lineno, traceback, options);
-        */
     };
 
     Raven.captureMessage = function(msg, options) {
