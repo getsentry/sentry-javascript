@@ -2,6 +2,7 @@
     "strict": true,
     "browser": true,
     "predef": [
-        "parseUri"
+        "parseUri",
+        "TraceKit"
     ]
 }
