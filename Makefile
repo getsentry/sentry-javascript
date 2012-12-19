@@ -33,7 +33,7 @@ develop:
 
 test:
 	./node_modules/.bin/jshint .
-	./node_modules/.bin/phantomjs phantom-js-loader.js
+	./node_modules/.bin/mocha-phantomjs -R dot test/test.html
 
 
 .PHONY: raven test develop

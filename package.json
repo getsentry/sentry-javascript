@@ -11,7 +11,10 @@
   "devDependencies": {
     "phantomjs": "*",
     "jshint": "*",
-    "uglify-js": "*"
+    "uglify-js": "*",
+    "mocha": "*",
+    "chai": "*",
+    "mocha-phantomjs": "git://github.com/mattrobenolt/mocha-phantomjs.git#no-global-phantom"
   },
   "private": true
 }
