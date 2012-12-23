@@ -187,7 +187,7 @@
         processException(
             stackInfo.message,
             stackInfo.url,
-            frames[0].lineno,
+            stackInfo.lineno,
             frames,
             options
         );
