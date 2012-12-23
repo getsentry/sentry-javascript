@@ -53,17 +53,17 @@ describe('Raven', function() {
         expect(body.culprit).to.equal(window.location.href);
         expect(body.project).to.equal(1);
         expect(body.logger).to.equal('javascript');
-        expect(body.message).to.equal('varThatDoesNotExist is not defined');
+        expect(body.message.indexOf('varThatDoesNotExist')).to.not.equal(-1);
         expect(body.timestamp).to.be.a('string');
-        expect(body['sentry.interfaces.Exception'].value).to.equal('varThatDoesNotExist is not defined');
+        expect(body['sentry.interfaces.Exception'].value.indexOf('varThatDoesNotExist')).to.not.equal(-1);
         expect(body['sentry.interfaces.Http'].headers).to.be.an('object');
         expect(body['sentry.interfaces.Http'].querystring).to.be.equal(window.location.search.substr(1));
 
-        var url = window.location.origin + '/test/raven.test.js';
+        // var url = window.location.origin + '/test/raven.test.js';
         var expectedFrames = [
-          {filename: 'raven.test.js', 'function': 'outlandishClaim', lineno: 7, abs_path: url},
-          {filename: 'raven.test.js', 'function': 'giveMeAnError',   lineno: 3, abs_path: url},
-          {filename: 'raven.test.js', 'function': 'generateError',   lineno: 11, abs_path: url}
+          {filename: 'raven.test.js', 'function': 'outlandishClaim', lineno: 7},
+          {filename: 'raven.test.js', 'function': 'giveMeAnError',   lineno: 3},
+          {filename: 'raven.test.js', 'function': 'generateError',   lineno: 11}
         ];
         for (var i=0; i<expectedFrames.length; i++) {
           for (var key in expectedFrames[i]) {
