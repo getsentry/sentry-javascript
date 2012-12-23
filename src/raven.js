@@ -267,55 +267,6 @@
         return arr1;
     }
 
-/*
-    Raven.chromeTraceback = function(e) {
-        /*
-         * First line is simply the repeated message:
-         *   ReferenceError: aldfjalksdjf is not defined
-         *
-         * Following lines contain error context:
-         *   at http://localhost:9000/1/group/306:41:5
-         *
-        var chunks, fn, filename, lineno, idx,
-            traceback = [],
-            lines = e.stack.split('\n');
-        each(lines.slice(1), function(i, line) {
-            // Trim the 'at ' from the beginning, and split by spaces
-            line = Raven.trimString(line).slice(3);
-            if (line === "unknown source") {
-                return;  // Skip this one
-            }
-            chunks = Raven.chromeUrlRegex.exec(line);
-            if (chunks){
-                fn = chunks[1];
-                filename = chunks[2];
-                lineno = parseInt(chunks[3], 10);
-            }else{
-                fn = '';
-                filename = line;
-                lineno = -1;
-                // some lines are just a filename with a line number and a char number, let's try and parse that
-                idx = line.lastIndexOf(':');
-                if (idx !== -1){
-                    line = line.substring(0, idx);
-                    idx = line.lastIndexOf(':');
-                    if (idx !== -1){
-                        filename = line.substring(0, idx);
-                        lineno = parseInt(line.substring(idx + 1), 10);
-                    }
-                }
-            }
-
-            traceback.push({
-                'function': fn,
-                'filename': filename,
-                'lineno': isNaN(lineno) ? null : lineno
-            });
-        });
-        return traceback;
-    };
-*/
-
     function pad(n, amount) {
         var i,
             len = ('' + n).length;
@@ -370,7 +321,6 @@
         data.timestamp = dateToISOString(data.timestamp);
 
         encoded_msg = JSON.stringify(data);
-        //console.log(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
             var header = self.getAuthHeader(signature, timestamp),
                 xhr;
