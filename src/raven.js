@@ -160,11 +160,35 @@
     };
 
     function handleStackInfo(stackInfo, options) {
+        var frames = [], i, j;
+        for (i = 0, j = stackInfo.stack.length; i < j; i++) {
+            // normalize the frames data
+            var currentStack = stackInfo.stack[i],
+                currentFrame = {
+                    abs_path:   currentStack.url,
+                    filename:   currentStack.url.split(/\/([^\/]+)$/)[1], // extract the filename
+                    lineno:     currentStack.line,
+                    'function': currentStack.func
+                };
+
+            if (currentStack.context) {
+                // TraceKit provides 4 lines of context total.
+                // The first two are lines before the current line.
+                // The third is the offending line.
+                // The last (4th) is the only line AFTER the context provided,
+                //   so we have to manually wrap it in an array
+                currentFrame.pre_context = currentStack.context.slice(0, 2);
+                currentFrame.context_line = currentStack.context[2];
+                currentFrame.post_context = [currentStack.context[3]];
+            }
+
+            frames[i] = currentFrame;
+        }
         processException(
             stackInfo.message,
             stackInfo.url,
-            stackInfo.stack[0].lineno,
-            stackInfo.stack,
+            frames[0].lineno,
+            frames,
             options
         );
     }
@@ -185,7 +209,7 @@
         );
     };
 
-    function processException(message, fileurl, lineno, traceback, options) {
+    function processException(message, fileurl, lineno, frames, options) {
         var type, stacktrace, label, i, j;
 
         if (typeof(message) === 'object') {
@@ -199,9 +223,9 @@
             }
         }
 
-        if (traceback) {
-            stacktrace = {"frames": traceback};
-            fileurl = fileurl || traceback[0].filename;
+        if (frames) {
+            stacktrace = {"frames": frames};
+            fileurl = fileurl || frames[0].filename;
         } else if (fileurl) {
             stacktrace = {
                 "frames": [{
