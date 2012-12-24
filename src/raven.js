@@ -189,12 +189,8 @@
         );
     }
 
-    Raven.captureException = function(e, options) {
-        // I'm going to patch TraceKit to allow passing along arbitrary options
-        // and get it picked up in the subscriber
-        // TraceKit.report(e, options);
-        TraceKit.report(e);
-    };
+    // lol, awesome
+    Raven.captureException = TraceKit.report;
 
     Raven.captureMessage = function(msg, options) {
         // Fire away!
