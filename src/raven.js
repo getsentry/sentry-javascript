@@ -172,14 +172,10 @@
                 };
 
             if (currentStack.context) {
-                // TraceKit provides 4 lines of context total.
-                // The first two are lines before the current line.
-                // The third is the offending line.
-                // The last (4th) is the only line AFTER the context provided,
-                //   so we have to manually wrap it in an array
-                currentFrame.pre_context = currentStack.context.slice(0, 2);
-                currentFrame.context_line = currentStack.context[2];
-                currentFrame.post_context = [currentStack.context[3]];
+                var pivot = ~~(currentStack.context.length / 2);
+                currentFrame.pre_context = currentStack.context.slice(0, pivot);
+                currentFrame.context_line = currentStack.context[pivot];
+                currentFrame.post_context = currentStack.context.slice(pivot + 1);
             }
 
             frames[i] = currentFrame;
