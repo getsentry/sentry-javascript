@@ -126,6 +126,41 @@ window.onerror = Raven.process;
 This should be harmless on browsers that don't support window.onerror, and in
 those cases it will simply do nothing.
 
+### Recording errors before Raven has loaded
+
+If your application loads a significant amount of JavaScript you may want to record errors which
+occur before the raven JavaScript has loaded, especially as this allows you to avoid the raven.js
+request temporarily delaying a user-visible resource.
+
+This example installs a primitive error handler as early as possible — typically a `<script>` in
+the HTML `<head>` — which will be replaced as soon as Raven loads:
+
+```html
+<html>
+    <head>
+        <script>
+            var _ravenQueue = [];
+            window.onerror = function(message, file, lineNumber) {
+               var msg = lineNumber ? message + " at " + lineNumber : message;
+               _ravenQueue.push({message: msg, culprit: file});
+            }
+        </script>
+    </head>
+    <body>
+        …
+        <script src="{% static "external/raven-0.7.1.min.js" %}"></script>
+        <script>
+            Raven.config("{{ RAVEN_DSN|safe }}");
+            window.onerror = Raven.process;
+            for (var i = 0; i < _ravenQueue.length; i++) {
+                Raven.send(_ravenQueue[i]);
+            };
+        </script>
+    </body>
+</html>
+```
+
+
 ## Passing additional data
 
 The captureException and captureMessage functions allow an additional options argument which
