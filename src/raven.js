@@ -406,10 +406,13 @@
             max = 9;
         while (callee && traceback.length < max) {
             fn = callee.name || (self.funcNameRE.test(callee.toString()) ? RegExp.$1 || ANON : ANON);
-            if (callee["arguments"]) {
-                args = self.stringifyArguments(callee["arguments"]);
-            } else {
-                args = undefined;
+            args = undefined;
+            try {
+                if (callee["arguments"]) {
+                    args = self.stringifyArguments(callee["arguments"]);
+                }
+            } catch(e) {
+                // lol, we don't care
             }
             traceback.push({
                 'filename': '(unknown source)',
