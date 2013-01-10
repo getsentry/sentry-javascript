@@ -146,17 +146,19 @@
         xhr.send(body);
     };
 
-    Raven.getAuthHeader = function(signature, timestamp) {
-        var header = "Sentry sentry_version=2.0, ";
-        header += "sentry_timestamp=" + timestamp + ", ";
-        header += "sentry_client=raven-js/" + self.VERSION;
+    Raven.getAuthQueryString = function(signature, timestamp) {
+        var qs = [
+            "sentry_version=2.0",
+            "sentry_timestamp=" + timestamp,
+            "sentry_client=raven-js/" + self.VERSION
+        ];
         if (globalOptions.publicKey) {
-            header += ", sentry_key=" + globalOptions.publicKey;
+            qs.push("sentry_key=" + globalOptions.publicKey);
         }
         if (signature) {
-            header += ", sentry_signature=" + signature;
+            qs.push("sentry_signature=" + signature);
         }
-        return header;
+        return '?' + qs.join('&');
     };
 
     function handleStackInfo(stackInfo, options) {
@@ -314,16 +316,12 @@
 
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
-            var header = self.getAuthHeader(signature, timestamp),
+            var auth = self.getAuthQueryString(signature, timestamp),
                 xhr;
             each(globalOptions.servers, function (i, server) {
                 xhr = getXHR();
-                xhr.open('POST', server, true);
+                xhr.open('POST', server + auth, true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
-                // We send both headers, since Authentication may be blocked,
-                // and custom headers arent supported in IE9
-                xhr.setRequestHeader('X-Sentry-Auth', header);
-                xhr.setRequestHeader('Authentication', header);
                 xhr.send(encoded_msg);
             });
         });
