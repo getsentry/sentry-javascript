@@ -183,6 +183,7 @@
             frames[i] = currentFrame;
         }
         processException(
+            stackInfo.name,
             stackInfo.message,
             stackInfo.url,
             stackInfo.lineno,
@@ -203,13 +204,8 @@
         );
     };
 
-    function processException(message, fileurl, lineno, frames, options) {
-        var type, stacktrace, label, i, j;
-
-        if (typeof(message) === 'object') {
-            type = message.name;
-            message = message.message;
-        }
+    function processException(type, message, fileurl, lineno, frames, options) {
+        var stacktrace, label, i, j;
 
         for (i = 0, j = globalOptions.ignoreErrors.length; i < j; i++) {
             if (message === globalOptions.ignoreErrors[i]) {
