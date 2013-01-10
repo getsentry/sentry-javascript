@@ -9,7 +9,7 @@
 ;(function(window, undefined){
     // Save a reference to the global object (`window` in the browser, `global`
     // on the server).
-    "use strict";
+    'use strict';
 
     var Raven;
     window.Raven = Raven = {};
@@ -38,7 +38,7 @@
         if (window.XMLHttpRequest) {
             return new window.XMLHttpRequest();
         } else if (window.ActiveXObject) { // IE
-            return new window.ActiveXObject("MSXML2.XMLHTTP.3.0");
+            return new window.ActiveXObject('MSXML2.XMLHTTP.3.0');
         }
     }
 
@@ -59,12 +59,12 @@
     Raven.config = function(config) {
         var servers = [];
 
-        if (typeof(config) === "string") {
+        if (typeof(config) === 'string') {
             if (config.indexOf('http') === 0) {
                 // new-style DSN configuration
                 config = Raven.parseDSN(config);
             } else {
-                throw "Base64 encoded config is no longer supported - use DSN";
+                throw 'Base64 encoded config is no longer supported - use DSN';
             }
         }
 
@@ -121,7 +121,7 @@
         }
 
         headers.Referer = document.referrer;
-        headers["User-Agent"] = navigator.userAgent;
+        headers['User-Agent'] = navigator.userAgent;
         return headers;
     };
 
@@ -148,15 +148,15 @@
 
     Raven.getAuthQueryString = function(signature, timestamp) {
         var qs = [
-            "sentry_version=2.0",
-            "sentry_timestamp=" + timestamp,
-            "sentry_client=raven-js/" + self.VERSION
+            'sentry_version=2.0',
+            'sentry_timestamp=' + timestamp,
+            'sentry_client=raven-js/' + self.VERSION
         ];
         if (globalOptions.publicKey) {
-            qs.push("sentry_key=" + globalOptions.publicKey);
+            qs.push('sentry_key=' + globalOptions.publicKey);
         }
         if (signature) {
-            qs.push("sentry_signature=" + signature);
+            qs.push('sentry_signature=' + signature);
         }
         return '?' + qs.join('&');
     };
@@ -218,13 +218,13 @@
         }
 
         if (frames) {
-            stacktrace = {"frames": frames};
+            stacktrace = {frames: frames};
             fileurl = fileurl || frames[0].filename;
         } else if (fileurl) {
             stacktrace = {
-                "frames": [{
-                    "filename": fileurl,
-                    "lineno": lineno
+                frames: [{
+                    filename: fileurl,
+                    lineno: lineno
                 }]
             };
         }
@@ -235,24 +235,24 @@
             }
         }
 
-        label = lineno ? message + " at " + lineno : message;
+        label = lineno ? message + ' at ' + lineno : message;
 
         // Fire away!
         send(
             arrayMerge({
-                "sentry.interfaces.Exception": {
-                    "type": type,
-                    "value": message
+                'sentry.interfaces.Exception': {
+                    type: type,
+                    value: message
                 },
-                "sentry.interfaces.Stacktrace": stacktrace,
-                "culprit": fileurl,
-                "message": label
+                'sentry.interfaces.Stacktrace': stacktrace,
+                culprit: fileurl,
+                message: label
             }, options)
         );
     }
 
     function arrayMerge(arr1, arr2) {
-        if (typeof(arr2) === "undefined") {
+        if (typeof(arr2) === 'undefined') {
             return arr1;
         }
         each(arr2, function(key, value){
@@ -264,7 +264,7 @@
     function pad(n, amount) {
         var i,
             len = ('' + n).length;
-        if (typeof(amount) === "undefined") {
+        if (typeof(amount) === 'undefined') {
             amount = 2;
         }
         if (len >= amount) {
@@ -297,14 +297,14 @@
             querystring = window.location.search.slice(1);  // Remove the ?
 
         data = arrayMerge({
-            "project": globalOptions.projectId,
-            "logger": globalOptions.logger,
-            "site": globalOptions.site,
-            "timestamp": new Date(),
-            "sentry.interfaces.Http": {
-                "url": url,
-                "querystring": querystring,
-                "headers": self.getHeaders()
+            project: globalOptions.projectId,
+            logger: globalOptions.logger,
+            site: globalOptions.site,
+            timestamp: new Date(),
+            'sentry.interfaces.Http': {
+                url: url,
+                querystring: querystring,
+                headers: self.getHeaders()
             }
         }, data);
 
