@@ -88,10 +88,10 @@
     };
 
     Raven.parseDSN = function(dsn) {
-        var uri = parseUri(dsn);
-        var path_idx = uri.path.lastIndexOf('/');
-        var project_id;
-        var path;
+        var uri = parseUri(dsn),
+            path_idx = uri.path.lastIndexOf('/'),
+            project_id,
+            path;
 
         if (path_idx === -1) {
             project_id = uri.path.substr(1);
@@ -292,7 +292,7 @@
 
     function send(data) {
         var encoded_msg,
-            timestamp= new Date().getTime(),
+            timestamp = new Date().getTime(),
             url = window.location.protocol + '//' + window.location.host + window.location.pathname,
             querystring = window.location.search.slice(1);  // Remove the ?
 
