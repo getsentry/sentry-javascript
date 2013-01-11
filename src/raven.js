@@ -34,12 +34,21 @@
         }
     }
 
-    function getXHR() {
-        if (window.XMLHttpRequest) {
-            return new window.XMLHttpRequest();
-        } else if (window.ActiveXObject) { // IE
-            return new window.ActiveXObject('MSXML2.XMLHTTP.3.0');
+    // Create the XHR object.
+    function createCORSRequest(method, url) {
+        var xhr = new XMLHttpRequest();
+        if ("withCredentials" in xhr) {
+            // XHR for Chrome/Firefox/Opera/Safari.
+            xhr.open(method, url, true);
+        } else if (typeof XDomainRequest != "undefined") {
+            // XDomainRequest for IE.
+            xhr = new XDomainRequest();
+            xhr.open(method, url);
+        } else {
+            // CORS not supported.
+            xhr = null;
         }
+        return xhr;
     }
 
     var globalOptions = {
@@ -102,46 +111,29 @@
         }
 
         return {
-            servers: [uri.protocol + '://' + uri.host + ':' + uri.port + '/' + path],
+            servers: [uri.protocol + '://' + uri.host + (uri.port ? ':' + uri.port : '') + '/' + path],
             publicKey: uri.user,
             secretKey: uri.password,
             projectId: project_id
         };
     };
 
-    // wtf is this doing?
-    Raven.getHeaders = function() {
-        var headers = {};
-
-        if (globalOptions.fetchHeaders) {
-            var xhr = getXHR();
-            xhr.open('HEAD', window.location, false);
-            xhr.send();
-            headers = xhr.getAllResponseHeaders();
-        }
-
-        headers.Referer = document.referrer;
-        headers['User-Agent'] = navigator.userAgent;
-        return headers;
-    };
-
     Raven.getSignature = function(message, timestamp, callback) {
         // bail if there is no signatureUrl set
         if (!globalOptions.signatureUrl) return callback();
 
-        var xhr = getXHR(),
+        var xhr = createCORSRequest('POST', globalOptions.signatureUrl),
             body = 'message=' + encodeURIComponent(message) +
                    '&timestamp=' + encodeURIComponent(timestamp);
-        xhr.open('POST', globalOptions.signatureUrl, true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    callback(JSON.parse(xhr.responseText).signature);
-                } else {
-                    callback();
-                }
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                callback(JSON.parse(xhr.responseText).signature);
+            } else {
+                callback();
             }
+        };
+        xhr.onerror = function() {
+            callback();
         };
         xhr.send(body);
     };
@@ -168,7 +160,7 @@
             var currentStack = stackInfo.stack[i],
                 currentFrame = {
                     abs_path:   currentStack.url,
-                    filename:   currentStack.url.split(/\/([^\/]+)$/)[1], // extract the filename
+                    filename:   currentStack.url.split(/\/([^\/]+)$/)[1] || currentStack.url, // extract the filename
                     lineno:     currentStack.line,
                     'function': currentStack.func
                 };
@@ -299,8 +291,7 @@
             timestamp: new Date(),
             'sentry.interfaces.Http': {
                 url: url,
-                querystring: querystring,
-                headers: self.getHeaders()
+                querystring: querystring
             }
         }, data);
 
@@ -312,12 +303,9 @@
 
         encoded_msg = JSON.stringify(data);
         self.getSignature(encoded_msg, timestamp, function(signature) {
-            var auth = self.getAuthQueryString(signature, timestamp),
-                xhr;
+            var auth = self.getAuthQueryString(signature, timestamp), xhr;
             each(globalOptions.servers, function (i, server) {
-                xhr = getXHR();
-                xhr.open('POST', server + auth, true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr = createCORSRequest('POST', server + auth);
                 xhr.send(encoded_msg);
             });
         });
