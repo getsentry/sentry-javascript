@@ -303,12 +303,11 @@
 
         data.timestamp = dateToISOString(data.timestamp);
 
-        encoded_msg = JSON.stringify(data);
+        encoded_msg = '&data=' + encodeURIComponent(JSON.stringify(data));
         self.getSignature(encoded_msg, timestamp, function(signature) {
             var auth = self.getAuthQueryString(signature, timestamp), xhr;
             each(globalOptions.servers, function (i, server) {
-                xhr = createCORSRequest('POST', server + auth);
-                xhr.send(encoded_msg);
+                new Image().src = server + auth + encoded_msg;
             });
         });
     }
