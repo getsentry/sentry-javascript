@@ -1,12 +1,10 @@
 # Raven.js
 
-[![Build Status](https://secure.travis-ci.org/getsentry/raven-js.png?branch=master)](https://secure.travis-ci.org/getsentry/raven-js/builds)
-
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
 
-Raven.js v0.4 and above requires Sentry v4.1 or later. If you are running an
-earlier version of Sentry, you should use Raven.js v0.3.
+Raven.js v1.0 and above requires Sentry v5._something_ or later. If you are running an
+earlier version of Sentry, you should use Raven.js pre 1.0.
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code. The
@@ -49,10 +47,10 @@ Or if you need to specify additional options:
 
 ```javascript
 Raven.config({
-    "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
-    "servers": ["http://your.sentryserver.com/"],
-    "projectId": "project-id",
-    "logger": "yoursite.errors.javascript"
+    publicKey: "e89652ec30b94d9db6ea6f28580ab499",
+    servers: ["http://your.sentryserver.com/"],
+    projectId: "project-id",
+    logger: "yoursite.errors.javascript"
 });
 ```
 
@@ -88,10 +86,6 @@ Raven.config({
 }];
 ```
 
-**fetchHeaders** - Generate a HEAD request to gather header information to send
-with the message. This defaults to 'false' because it doesn't work on
-cross-domain requests.
-
 **signatureUrl** - Use a server side url to get a signature for the message.
 See below in the "Security" section for more details.
 
@@ -116,15 +110,11 @@ try {
 }
 ```
 
-On browsers that support it, you can attach the `Raven.process` method directly
-to the `window.onerror` attribute:
+To install error capturing globally, you need to *install* Raven.
 
 ```javascript
-window.onerror = Raven.process;
+Raven.install();
 ```
-
-This should be harmless on browsers that don't support window.onerror, and in
-those cases it will simply do nothing.
 
 ## Passing additional data
 
