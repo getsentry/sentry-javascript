@@ -90,6 +90,8 @@
             servers.push(server + 'api/' + globalOptions.projectId + '/store/');
         });
         globalOptions.servers = servers;
+
+        return this;
     };
 
     Raven.install = function() {
