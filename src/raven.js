@@ -501,6 +501,7 @@
             "logger": self.options.logger,
             "site": self.options.site,
             "timestamp": new Date(),
+            "platform": "javascript",
             "sentry.interfaces.Http": {
                 "url": url,
                 "querystring": querystring,
