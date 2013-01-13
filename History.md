@@ -1,3 +1,6 @@
+# 0.4.6 - 1/13/2013
+  * Added `platform=node` to payload for Sentry 5.1
+
 # 0.4.5 - 12/05/2012
   * Resolve `node_modules` path properly [Fixes #23]
 
