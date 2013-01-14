@@ -245,10 +245,12 @@
     function send(data) {
         if (!hasJSON) return;  // needs JSON support
 
-        var encoded_msg,
+        var encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data)),
             timestamp = new Date().getTime(),
             url = window.location.protocol + '//' + window.location.host + window.location.pathname,
-            querystring = window.location.search.slice(1);  // Remove the ?
+            querystring = window.location.search.slice(1),  // Remove the ?
+            auth = self.getAuthQueryString(timestamp),
+            xhr;
 
         data = arrayMerge({
             project: globalOptions.projectId,
@@ -267,8 +269,6 @@
 
         data.timestamp = dateToISOString(data.timestamp);
 
-        encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-        var auth = self.getAuthQueryString(timestamp), xhr;
         each(globalOptions.servers, function (i, server) {
             new Image().src = server + auth + encoded_msg;
         });
