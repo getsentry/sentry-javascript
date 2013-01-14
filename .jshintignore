@@ -3,3 +3,4 @@ dist/
 src/vendor/
 phantom-js-loader.js
 node_modules/
+runtests.js

@@ -3,6 +3,7 @@
     "browser": true,
     "predef": [
         "parseUri",
-        "TraceKit"
+        "TraceKit",
+        "XDomainRequest"
     ]
 }

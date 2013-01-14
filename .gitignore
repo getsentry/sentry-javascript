@@ -9,3 +9,7 @@
 
 dist
 node_modules
+
+sauce_connect.log
+
+test/scratch.html
