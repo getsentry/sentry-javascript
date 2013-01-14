@@ -36,23 +36,6 @@
         }
     }
 
-    // Create the XHR object.
-    function createCORSRequest(method, url) {
-        var xhr = new XMLHttpRequest();
-        if ("withCredentials" in xhr) {
-            // XHR for Chrome/Firefox/Opera/Safari.
-            xhr.open(method, url, true);
-        } else if (typeof XDomainRequest != "undefined") {
-            // XDomainRequest for IE.
-            xhr = new XDomainRequest();
-            xhr.open(method, url);
-        } else {
-            // CORS not supported.
-            xhr = null;
-        }
-        return xhr;
-    }
-
     var globalOptions = {
         secretKey: undefined,  // The global key if not using project auth
         publicKey: undefined,  // Leave as undefined if not using project auth
@@ -61,7 +44,6 @@
         logger: 'javascript',
         site: undefined,
         dataCallback: null,
-        signatureUrl: undefined,
         fetchHeaders: false,  // Generates a synchronous request to your server
         ignoreErrors: [],
         ignoreUrls: []
@@ -71,12 +53,7 @@
         var servers = [];
 
         if (typeof(config) === 'string') {
-            if (config.indexOf('http') === 0) {
-                // new-style DSN configuration
-                config = Raven.parseDSN(config);
-            } else {
-                throw 'Base64 encoded config is no longer supported - use DSN';
-            }
+            config = Raven.parseDSN(config);
         }
 
         each(config, function(key, option) {
@@ -124,27 +101,7 @@
         };
     };
 
-    Raven.getSignature = function(message, timestamp, callback) {
-        // bail if there is no signatureUrl set
-        if (!globalOptions.signatureUrl) return callback();
-
-        var xhr = createCORSRequest('POST', globalOptions.signatureUrl),
-            body = 'message=' + encodeURIComponent(message) +
-                   '&timestamp=' + encodeURIComponent(timestamp);
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                callback(JSON.parse(xhr.responseText).signature);
-            } else {
-                callback();
-            }
-        };
-        xhr.onerror = function() {
-            callback();
-        };
-        xhr.send(body);
-    };
-
-    Raven.getAuthQueryString = function(signature, timestamp) {
+    Raven.getAuthQueryString = function(timestamp) {
         var qs = [
             'sentry_version=2.0',
             'sentry_timestamp=' + timestamp,
@@ -152,9 +109,6 @@
         ];
         if (globalOptions.publicKey) {
             qs.push('sentry_key=' + globalOptions.publicKey);
-        }
-        if (signature) {
-            qs.push('sentry_signature=' + signature);
         }
         return '?' + qs.join('&');
     };
@@ -313,12 +267,10 @@
 
         data.timestamp = dateToISOString(data.timestamp);
 
-        encoded_msg = '&data=' + encodeURIComponent(JSON.stringify(data));
-        self.getSignature(encoded_msg, timestamp, function(signature) {
-            var auth = self.getAuthQueryString(signature, timestamp), xhr;
-            each(globalOptions.servers, function (i, server) {
-                new Image().src = server + auth + encoded_msg;
-            });
+        encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+        var auth = self.getAuthQueryString(timestamp), xhr;
+        each(globalOptions.servers, function (i, server) {
+            new Image().src = server + auth + encoded_msg;
         });
     }
 })(window);
