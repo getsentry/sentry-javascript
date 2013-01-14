@@ -13,3 +13,5 @@ node_modules
 sauce_connect.log
 
 scratch/
+
+BrowserStackTunnel.jar

@@ -245,7 +245,7 @@
     function send(data) {
         if (!hasJSON) return;  // needs JSON support
 
-        var encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data)),
+        var encoded_msg,
             timestamp = new Date().getTime(),
             url = window.location.protocol + '//' + window.location.host + window.location.pathname,
             querystring = window.location.search.slice(1),  // Remove the ?
@@ -268,6 +268,8 @@
         }
 
         data.timestamp = dateToISOString(data.timestamp);
+
+        encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
         each(globalOptions.servers, function (i, server) {
             new Image().src = server + auth + encoded_msg;
