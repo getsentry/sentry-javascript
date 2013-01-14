@@ -18,6 +18,8 @@
 
     Raven.VERSION = '@VERSION';
 
+    var hasJSON = typeof(window.JSON) !== 'undefined';
+
     function each(obj, callback) {
         var i, j;
 
@@ -95,6 +97,8 @@
     };
 
     Raven.install = function() {
+        if (!hasJSON) return;  // no sense installing without JSON support
+
         TraceKit.report.subscribe(handleStackInfo);
     };
 
@@ -193,7 +197,7 @@
         // Fire away!
         send(
             arrayMerge({
-                'message': msg
+                message: msg
             }, options)
         );
     };
@@ -281,6 +285,8 @@
     }
 
     function send(data) {
+        if (!hasJSON) return;  // needs JSON support
+
         var encoded_msg,
             timestamp = new Date().getTime(),
             url = window.location.protocol + '//' + window.location.host + window.location.pathname,
