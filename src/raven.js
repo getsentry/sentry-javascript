@@ -160,7 +160,7 @@
     };
 
     function handleStackInfo(stackInfo, options) {
-        var frames = [], i, j;
+        var frames = [], pivot, context, i, j, ii, jj;
         for (i = 0, j = stackInfo.stack.length; i < j; i++) {
             // normalize the frames data
             var currentStack = stackInfo.stack[i],
@@ -172,10 +172,14 @@
                 };
 
             if (currentStack.context) {
-                var pivot = ~~(currentStack.context.length / 2);
-                currentFrame.pre_context = currentStack.context.slice(0, pivot);
-                currentFrame.context_line = currentStack.context[pivot];
-                currentFrame.post_context = currentStack.context.slice(pivot + 1);
+                context = currentStack.context;
+                for(ii = 0, jj = context.length; ii < jj; ii++) {
+                    if (context[ii].length > 150) context[ii] = '...truncated...';
+                }
+                pivot = ~~(context.length / 2);
+                currentFrame.pre_context = context.slice(0, pivot);
+                currentFrame.context_line = context[pivot];
+                currentFrame.post_context = context.slice(pivot + 1);
             }
 
             frames[i] = currentFrame;
