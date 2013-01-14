@@ -149,7 +149,20 @@
     }
 
     // lol, awesome
-    Raven.captureException = TraceKit.report;
+    Raven.captureException = function(ex) {
+        // TraceKit.report will re-raise any exception passed to it,
+        // which means you have to wrap it in try/catch. Instead, we
+        // can wrap it here and only re-raise if TraceKit.report
+        // raises an exception different from the one we asked to
+        // report on.
+        try {
+            TraceKit.report(ex);
+        } catch(ex1) {
+            if(ex !== ex1) {
+                throw ex1;
+            }
+        }
+    }
 
     Raven.captureMessage = function(msg, options) {
         // Fire away!
