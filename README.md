@@ -3,7 +3,7 @@
 This is a JavaScript client for the [Sentry][1] realtime event logging and
 aggregation platform.
 
-Raven.js v1.0 and above requires Sentry v5._something_ or later. If you are running an
+Raven.js v1.0 and above requires Sentry v5.1.5 or later. If you are running an
 earlier version of Sentry, you should use Raven.js pre 1.0.
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
