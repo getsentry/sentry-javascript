@@ -11,8 +11,8 @@
     // on the server).
     'use strict';
 
-    var Raven;
-    window.Raven = Raven = {};
+    var Raven = {};
+    window.Raven = Raven;
 
     var self = Raven;
 
