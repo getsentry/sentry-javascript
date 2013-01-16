@@ -262,8 +262,7 @@
             timestamp = new Date().getTime(),
             url = window.location.protocol + '//' + window.location.host + window.location.pathname,
             querystring = window.location.search.slice(1),  // Remove the ?
-            auth = self.getAuthQueryString(timestamp),
-            xhr;
+            auth = self.getAuthQueryString(timestamp);
 
         data = arrayMerge({
             project: globalOptions.projectId,
