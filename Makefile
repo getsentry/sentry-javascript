@@ -7,7 +7,6 @@ TMP = /tmp/raven.min.js
 
 # Third party dependencies
 DEPENDENCIES = \
-	./src/vendor/uri.js \
 	./src/vendor/TraceKit/tracekit.js
 
 
