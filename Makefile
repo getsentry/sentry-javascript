@@ -22,7 +22,7 @@ raven:
 	cat ${DEPENDENCIES} ${RAVEN} | \
 		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
 
-	./node_modules/.bin/uglifyjs -c -o ${RAVEN_MIN} ${RAVEN_FULL}
+	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
 
 	# Prepend the tiny header to the compressed file
 	echo "/* Raven.js v${VER} | https://github.com/getsentry/raven-js/ */" | \
