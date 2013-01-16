@@ -108,6 +108,17 @@ var Raven = {
 };
 
 /**** Private functions ****/
+function parseUri(str) {
+    var keys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
+        m = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/.exec(str),
+        uri = {},
+        i = 14;
+
+    while (i--) uri[keys[i]] = m[i] || '';
+
+    return uri;
+}
+
 function each(obj, callback) {
     var i, j;
 
