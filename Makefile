@@ -1,7 +1,8 @@
 RAVEN = ./src/raven.js
 VER = $(shell cat version.txt)
-RAVEN_FULL = ./dist/raven-${VER}.js
-RAVEN_MIN = ./dist/raven-${VER}.min.js
+RAVEN_FULL = ./dist/raven.js
+RAVEN_MIN = ./dist/raven.min.js
+BRANCH = $(shell git rev-parse --short --abbrev-ref HEAD)
 TMP = /tmp/raven.min.js
 
 # Third party dependencies
@@ -35,5 +36,18 @@ test:
 	./node_modules/.bin/jshint .
 	./node_modules/.bin/mocha-phantomjs -R dot test/test.html
 
+release: raven
+	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VER}/raven.js
+	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VER}/raven.min.js
 
-.PHONY: raven test develop
+post-commit: raven
+	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
+	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
+
+clean:
+	rm -rf dist
+
+install-hooks:
+	cp -rfp hooks/* .git/hooks
+
+.PHONY: raven test develop release post-commit clean install-hooks
