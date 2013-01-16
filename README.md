@@ -8,24 +8,20 @@ earlier version of Sentry, you should use Raven.js pre 1.0.
 
 The stacktrace generation was inspired by the [javascript-stacktrace][4]
 project, and includes heavily modified portions of that project's code. The
-full and minified distribution files include [parseUri][5].
+full and minified distribution files include [parseUri][5] and [TraceKit][6].
 
 [1]: http://getsentry.com/
 [4]: https://github.com/eriwen/javascript-stacktrace
 [5]: http://blog.stevenlevithan.com/archives/parseuri
+[6]: https://github.com/occ/TraceKit
 
 ## Install
 
-Download the latest version [here][5].
-
-
-Simply include the minified distribution file from the 'dist' directory:
+Simply include the minified distribution file on your page:
 
 ```html
-<script type="text/javascript" src="js/raven-0.7.1.min.js"></script>
+<script type="text/javascript" src="//d3nslu0hdya83q.cloudfront.net/dist/1.0-beta4/raven.min.js"></script>
 ```
-
-[5]: https://github.com/downloads/getsentry/raven-js/raven-js-0.7.1.tar.gz
 
 
 ## Configuration
@@ -86,9 +82,6 @@ Raven.config({
 }];
 ```
 
-**signatureUrl** - Use a server side url to get a signature for the message.
-See below in the "Security" section for more details.
-
 **ignoreErrors** - An array of error messages that should not get passed to
 Sentry. You'll probably want to set this to `["Script error."]`.
 
@@ -114,6 +107,8 @@ To install error capturing globally, you need to *install* Raven.
 
 ```javascript
 Raven.install();
+// or
+Raven.config(...).install();
 ```
 
 ## Passing additional data
