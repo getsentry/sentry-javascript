@@ -1,6 +1,7 @@
 test/
 dist/
 src/vendor/
+scratch/
 phantom-js-loader.js
 node_modules/
 runtests.js
