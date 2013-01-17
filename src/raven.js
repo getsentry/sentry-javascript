@@ -160,7 +160,11 @@ function parseDSN(dsn) {
     };
 }
 
+var cached_auth;
+
 function getAuthQueryString() {
+    if (cached_auth) return cached_auth;
+
     var qs = [
         'sentry_version=2.0',
         'sentry_client=raven-js/' + Raven.VERSION
@@ -168,7 +172,9 @@ function getAuthQueryString() {
     if (globalOptions.publicKey) {
         qs.push('sentry_key=' + globalOptions.publicKey);
     }
-    return '?' + qs.join('&');
+
+    cached_auth = '?' + qs.join('&');
+    return cached_auth;
 }
 
 function handleStackInfo(stackInfo, options) {
