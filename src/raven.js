@@ -29,7 +29,7 @@ var Raven = {
     /*
      * Raven.config()
      *
-     * Configure raven with a DSN or config object
+     * Configure raven with a DSN and extra options
      */
     config: function(dsn, options) {
         var uri = parseUri(dsn),
@@ -44,7 +44,7 @@ var Raven = {
             });
         }
 
-        // "Script error."" is hard coded into browsers for errors that it can't read.
+        // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
 
