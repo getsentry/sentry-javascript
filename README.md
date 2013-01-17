@@ -169,6 +169,10 @@ you can use to pass various data (such as ``tags``):
 ```javascript
 Raven.captureMessage('My error', {
     tags: {key: "value"}
+    extra: {
+        color: "red",
+        something_neat: [1, 2, 3, 4]
+    }
 });
 ```
 
