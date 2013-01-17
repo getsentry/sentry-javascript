@@ -2,8 +2,7 @@
     "strict": true,
     "browser": true,
     "predef": [
-        "parseUri",
         "TraceKit",
-        "XDomainRequest"
+        "console"
     ]
 }

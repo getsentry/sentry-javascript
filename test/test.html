@@ -33,7 +33,7 @@
         else {
             (function(runner){
               var failed = [];
-            
+
               runner.on('fail', function(test, err){
                 failed.push({
                   title: test.title,
@@ -44,26 +44,13 @@
                   }
                 });
               });
-            
+
               runner.on('end', function(){
                 runner.stats.failed = failed;
                 global.mochaResults = runner.stats;
               });
             })(mocha.run());
         }
-    </script>
-    <script>
-        Raven.config({
-            publicKey: "e89652ec30b94d9db6ea6f28580ab499",
-            secretKey: "77ec8c99a8854256aa68ccb91dd9119d",
-            servers: ["/"],
-            signatureUrl: null,
-            testMode: true,
-            ignoreErrors: ["Error to ignore"],
-            ignoreUrls: [/ajax\.googleapis\.com\/ajax\/libs\/jquery/i]
-        });
-
-        Raven.install();
     </script>
   </body>
 </html>

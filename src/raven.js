@@ -3,8 +3,7 @@
 // Originally based on the Arecibo JavaScript client.
 //
 // Requires:
-//     * TraceKit
-//     * parseUri (included in the full and minified distribution files)
+//     * TraceKit (included in the full and minified distribution files)
 
 ;(function(window, undefined){
 
@@ -14,13 +13,9 @@
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var hasJSON = typeof(window.JSON) !== 'undefined',
+    globalServer,
     globalOptions = {
-        publicKey: undefined,  // Leave as undefined if not using project auth
-        servers: [],
-        projectId: 1,
         logger: 'javascript',
-        site: undefined,
-        dataCallback: null,
         ignoreErrors: [],
         ignoreUrls: []
     };
@@ -36,32 +31,30 @@ var Raven = {
      *
      * Configure raven with a DSN or config object
      */
-    config: function(config) {
-        var servers = [];
+    config: function(dsn, options) {
+        var uri = parseUri(dsn),
+            lastSlash = uri.path.lastIndexOf('/'),
+            projectId = uri.path.substr(lastSlash + 1),
+            path = uri.path.substr(1, lastSlash);
 
-        if (typeof(config) === 'string') {
-            config = parseDSN(config);
+        // merge in options
+        if (options) {
+            each(options, function(key, value){
+                globalOptions[key] = value;
+            });
         }
-
-        each(config, function(key, option) {
-            globalOptions[key] = option;
-        });
-
-        // Expand server base URLs into API URLs
-        each(globalOptions.servers, function(i, server) {
-            // Add a trailing slash if one isn't provided
-            if (server.slice(-1) !== '/') {
-                server += '/';
-            }
-            servers.push(server + 'api/' + globalOptions.projectId + '/store/');
-        });
-        globalOptions.servers = servers;
 
         // "Script error."" is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
 
-        return this;
+        // assemble the endpoint from the uri pieces
+        globalServer = uri.protocol + '://' + uri.host +
+                      (uri.port ? ':' + uri.port : '') +
+                      '/' + path + 'api/' + projectId + '/store/';
+
+        // return for chaining
+        return Raven;
     },
 
     /*
@@ -71,9 +64,18 @@ var Raven = {
      * to capture and report uncaught exceptions.
      */
     install: function() {
-        if (!hasJSON) return;  // no sense installing without JSON support
+        if (!isSetup()) return;
 
         TraceKit.report.subscribe(handleStackInfo);
+    },
+
+    /*
+     * Raven.uninstall()
+     *
+     * Uninstalls the global error handler.
+     */
+    uninstall: function() {
+        TraceKit.report.unsubscribe(handleStackInfo);
     },
 
     /*
@@ -139,31 +141,10 @@ function each(obj, callback) {
     }
 }
 
-function parseDSN(dsn) {
-    var uri = parseUri(dsn),
-        path_idx = uri.path.lastIndexOf('/'),
-        project_id,
-        path;
-
-    if (path_idx === -1) {
-        project_id = uri.path.substr(1);
-        path = '';
-    } else {
-        path = uri.path.substr(1, path_idx);
-        project_id = uri.path.substr(path_idx + 1);
-    }
-
-    return {
-        servers: [uri.protocol + '://' + uri.host + (uri.port ? ':' + uri.port : '') + '/' + path],
-        publicKey: uri.user,
-        projectId: project_id
-    };
-}
-
-var cached_auth;
+var cachedAuth;
 
 function getAuthQueryString() {
-    if (cached_auth) return cached_auth;
+    if (cachedAuth) return cachedAuth;
 
     var qs = [
         'sentry_version=2.0',
@@ -173,8 +154,8 @@ function getAuthQueryString() {
         qs.push('sentry_key=' + globalOptions.publicKey);
     }
 
-    cached_auth = '?' + qs.join('&');
-    return cached_auth;
+    cachedAuth = '?' + qs.join('&');
+    return cachedAuth;
 }
 
 function handleStackInfo(stackInfo, options) {
@@ -267,7 +248,7 @@ function arrayMerge(arr1, arr2) {
 }
 
 function send(data) {
-    if (!hasJSON) return;  // needs JSON support
+    if (!isSetup()) return;
 
     var encoded_msg,
         url = window.location.protocol + '//' + window.location.host + window.location.pathname,
@@ -291,9 +272,17 @@ function send(data) {
 
     encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
-    each(globalOptions.servers, function (i, server) {
-        new Image().src = server + auth + encoded_msg;
-    });
+    // Actually make the request
+    new Image().src = globalServer + auth + encoded_msg;
+}
+
+function isSetup() {
+    if (!hasJSON) return false;  // needs JSON support
+    if (!globalServer) {
+        console.error("Error: Raven has not been configured.");
+        return false;
+    }
+    return true;
 }
 
 // Expose Raven to the world

@@ -11,43 +11,25 @@ function generateError() {
   try { giveMeAnError(); } catch(e) { return e; }
 }
 
+TraceKit.remoteFetching = false;
+
 describe('Raven', function() {
-  var fakeServer, error;
+  var error = generateError();
 
   describe('.captureException', function() {
     beforeEach(function() {
-      fakeServer = sinon.fakeServer.create();
-      error = generateError();
-
-      TraceKit.remoteFetching = false;
+      Raven.config('http://e89652ec30b94d9db6ea6f28580ab499@localhost/69');
     });
 
     afterEach(function() {
-      fakeServer.restore();
-      TraceKit.remoteFetching = true;
+      //
     });
 
-    it('should submit an XHR request', function(done) {
-      try {
-        Raven.captureException(error);
-      } catch(e) {
-        // should reraise
-        expect(e).to.be.ok;
-      }
-      // captureException happens async, so we need to wait until next tick
-      setTimeout(function() {
-        expect(fakeServer.requests.length).to.equal(1);
-        done();
-      }, 0);
-    });
-
+    /*
     it('should produce a sane JSON payload', function(done) {
-      try {
-        Raven.captureException(error);
-      } catch(e) {}
+      Raven.captureException(error);
 
       setTimeout(function() {
-        var req = fakeServer.requests[0];
         var body = JSON.parse(req.requestBody);
 
         expect(body.culprit).to.equal(window.location.href);
@@ -74,5 +56,6 @@ describe('Raven', function() {
         done();
       }, 0);
     });
+    */
   });
 });
