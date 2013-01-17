@@ -160,10 +160,9 @@ function parseDSN(dsn) {
     };
 }
 
-function getAuthQueryString(timestamp) {
+function getAuthQueryString() {
     var qs = [
         'sentry_version=2.0',
-        'sentry_timestamp=' + timestamp,
         'sentry_client=raven-js/' + Raven.VERSION
     ];
     if (globalOptions.publicKey) {
@@ -261,49 +260,18 @@ function arrayMerge(arr1, arr2) {
     return arr1;
 }
 
-function pad(n, amount) {
-    var i,
-        len = ('' + n).length;
-    if (typeof(amount) === 'undefined') {
-        amount = 2;
-    }
-    if (len >= amount) {
-        return n;
-    }
-    for (i=0; i < (amount - len); i++) {
-        n = '0' + n;
-    }
-    return n;
-}
-
-function dateToISOString(date) {
-    if (Date.prototype.toISOString) {
-        return date.toISOString();
-    }
-
-    return date.getUTCFullYear() + '-' +
-        pad(date.getUTCMonth() + 1) + '-' +
-        pad(date.getUTCDate()) + 'T' +
-        pad(date.getUTCHours()) + ':' +
-        pad(date.getUTCMinutes()) + ':' +
-        pad(date.getUTCSeconds()) + '.' +
-        pad(date.getUTCMilliseconds(), 3) + 'Z';
-}
-
 function send(data) {
     if (!hasJSON) return;  // needs JSON support
 
     var encoded_msg,
-        now = new Date(),
         url = window.location.protocol + '//' + window.location.host + window.location.pathname,
         querystring = window.location.search.slice(1),  // Remove the ?
-        auth = getAuthQueryString(now.getTime());
+        auth = getAuthQueryString();
 
     data = arrayMerge({
         project: globalOptions.projectId,
         logger: globalOptions.logger,
         site: globalOptions.site,
-        timestamp: dateToISOString(now),
         platform: 'javascript',
         'sentry.interfaces.Http': {
             url: url,
