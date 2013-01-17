@@ -1,5 +1,5 @@
 {
   "name": "raven",
-  "version": "1.0-beta7",
+  "version": "1.0-beta8",
   "main": ["src/raven.js", "src/vendor/TraceKit/tracekit.js"]
 }
