@@ -20,7 +20,7 @@ full and minified distribution files include [parseUri][5] and [TraceKit][6].
 Simply include the minified distribution file on your page:
 
 ```html
-<script type="text/javascript" src="//d3nslu0hdya83q.cloudfront.net/dist/1.0-beta8/raven.min.js"></script>
+<script type="text/javascript" src="//d3nslu0hdya83q.cloudfront.net/dist/1.0-beta9/raven.min.js"></script>
 ```
 
 
