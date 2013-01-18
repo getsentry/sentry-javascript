@@ -14,6 +14,7 @@
 // since JSON is required to encode the payload
 var hasJSON = !isUndefined(window.JSON),
     globalServer,
+    globalUser,
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -67,6 +68,8 @@ var Raven = {
         if (!isSetup()) return;
 
         TraceKit.report.subscribe(handleStackInfo);
+
+        return Raven;
     },
 
     /*
@@ -76,6 +79,8 @@ var Raven = {
      */
     uninstall: function() {
         TraceKit.report.unsubscribe(handleStackInfo);
+
+        return Raven;
     },
 
     /*
@@ -96,6 +101,8 @@ var Raven = {
                 throw ex1;
             }
         }
+
+        return Raven;
     },
 
     /*
@@ -110,6 +117,19 @@ var Raven = {
                 message: msg
             }, options)
         );
+
+        return Raven;
+    },
+
+    /*
+     * Raven.setUser()
+     *
+     * Set/clear a user to be sent along with the payload.
+     */
+    setUser: function(user) {
+       globalUser = user;
+
+       return Raven;
     }
 };
 
@@ -273,6 +293,8 @@ function send(data) {
     if (typeof(globalOptions.dataCallback) === 'function') {
         data = globalOptions.dataCallback(data);
     }
+
+    if (globalUser) data['sentry.interfaces.User'] = globalUser;
 
     encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
