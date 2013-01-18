@@ -42,48 +42,18 @@ Raven.config('http://public@example.com/project-id');
 Or if you need to specify additional options:
 
 ```javascript
-Raven.config({
-    publicKey: "e89652ec30b94d9db6ea6f28580ab499",
-    servers: ["http://your.sentryserver.com/"],
-    projectId: "project-id",
+Raven.config('http://public@example.com/project-id', {
     logger: "yoursite.errors.javascript"
 });
 ```
-
-**publicKey** - The desired user's public key.
-
-**servers** - (*required*) An array of servers to send exception info to. This
-should be just the base URL. For example, if your API store URL is
-"http://mysentry.com/api/4/store/", then the base URL is "http://mysentry.com/"
-and the projectId is 4. This is a **backwards-incompatible** change introduced
-in v0.5.
-
-**projectId** - The id of the project to log the exception to. Defaults to '1'.
 
 **logger** - The logger name you wish to send with the message. Defaults to
 'javascript'.
 
 **site** - An optional site name to include with the message.
 
-**dataCallback** - An optional callback to add special parameters on data before sending to Sentry
-
-```javascript
-Raven.config({
-    // options...
-    dataCallback: function (data) {
-        data['sentry.interfaces.User'] = {
-            is_authenticated: true,
-            id: 1,
-            username: 'Foo',
-            email: 'Bar'
-        };
-        return data;
-    }
-}];
-```
-
 **ignoreErrors** - An array of error messages that should not get passed to
-Sentry. You'll probably want to set this to `["Script error."]`.
+Sentry.
 
 **ignoreUrls** - An array of regular expressions matching urls which will not
 get passed to Sentry. For example, you could set it to
@@ -109,6 +79,22 @@ To install error capturing globally, you need to *install* Raven.
 Raven.install();
 // or
 Raven.config(...).install();
+```
+
+## Capturing authenticated users
+```javascript
+Raven.setUser({
+    email: 'matt@example.com',
+    id: '123'
+})
+```
+
+`setUser` accepts an arbitrary object of data. The data is passed as-is.
+
+If you need to unset the user object, you can just call `setUser` without an argument. This would be useful in a web app where the user is logging in/out without refreshing the page.
+
+```javascript
+Raven.setUser();
 ```
 
 ## Passing additional data
