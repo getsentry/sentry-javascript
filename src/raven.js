@@ -12,7 +12,7 @@
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
-var hasJSON = typeof(window.JSON) !== 'undefined',
+var hasJSON = !isUndefined(window.JSON),
     globalServer,
     globalOptions = {
         logger: 'javascript',
@@ -123,6 +123,10 @@ function parseUri(str) {
     while (i--) uri[keys[i]] = m[i] || '';
 
     return uri;
+}
+
+function isUndefined(what) {
+    return typeof what === 'undefined';
 }
 
 function each(obj, callback) {
@@ -238,7 +242,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 }
 
 function arrayMerge(arr1, arr2) {
-    if (typeof(arr2) === 'undefined') {
+    if (isUndefined(arr2)) {
         return arr1;
     }
     each(arr2, function(key, value){
