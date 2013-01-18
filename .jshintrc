@@ -1,5 +1,5 @@
 {
-    "strict": true,
+    "globalstrict": true,
     "browser": true,
     "predef": [
         "TraceKit",

@@ -5,8 +5,6 @@
 // Requires:
 //     * TraceKit (included in the full and minified distribution files)
 
-;(function(window, undefined){
-
 'use strict';
 
 // First, check for JSON support
@@ -318,8 +316,3 @@ function isSetup() {
     }
     return true;
 }
-
-// Expose Raven to the world
-window.Raven = Raven;
-
-})(window);

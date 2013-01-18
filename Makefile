@@ -25,8 +25,8 @@ raven:
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${DEPENDENCIES} ${RAVEN} | \
-		sed "s/@VERSION/${VER}/" > ${RAVEN_FULL}
+	cat ${DEPENDENCIES} ./src/_header.js ${RAVEN} ./src/_footer.js | \
+		sed "s/@VERSION/${VER}/" >> ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
 
