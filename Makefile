@@ -10,6 +10,13 @@ DEPENDENCIES = \
 	./src/vendor/TraceKit/tracekit.js
 
 
+develop: update-submodules
+	npm install .
+
+update-submodules:
+	git submodule init
+	git submodule update
+
 #
 # Build the compressed all-in-one file
 #
@@ -27,9 +34,6 @@ raven:
 	echo "/* Raven.js v${VER} | https://github.com/getsentry/raven-js/ */" | \
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
-
-develop:
-	npm install .
 
 test:
 	./node_modules/.bin/jshint .
