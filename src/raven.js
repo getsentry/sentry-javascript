@@ -13,6 +13,7 @@
 var hasJSON = !isUndefined(window.JSON),
     globalServer,
     globalUser,
+    globalKey,
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -51,6 +52,8 @@ var Raven = {
         globalServer = uri.protocol + '://' + uri.host +
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + projectId + '/store/';
+
+        globalKey = uri.user;
 
         // return for chaining
         return Raven;
@@ -172,8 +175,8 @@ function getAuthQueryString() {
         'sentry_version=2.0',
         'sentry_client=raven-js/' + Raven.VERSION
     ];
-    if (globalOptions.publicKey) {
-        qs.push('sentry_key=' + globalOptions.publicKey);
+    if (globalKey) {
+        qs.push('sentry_key=' + globalKey);
     }
 
     cachedAuth = '?' + qs.join('&');
