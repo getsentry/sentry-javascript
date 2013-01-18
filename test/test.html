@@ -13,15 +13,13 @@
     <script>
         mocha.ui('bdd')
         mocha.reporter('html')
-        expect = chai.expect
+        var assert = chai.assert
     </script>
 
-    <!-- Mock XHR -->
-    <script src="vendor/sinon-server-1.5.0.js"></script>
-    <script src="vendor/sinon-ie-1.5.0.js"></script>
+    <!-- Mocking -->
+    <script src="vendor/sinon-1.5.2.js"></script>
 
     <!-- Raven -->
-    <script src="../src/vendor/uri.js"></script>
     <script src="../src/vendor/TraceKit/tracekit.js"></script>
     <script src="../src/raven.js"></script>
 

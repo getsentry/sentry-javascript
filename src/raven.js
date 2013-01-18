@@ -14,6 +14,7 @@ var hasJSON = !isUndefined(window.JSON),
     globalServer,
     globalUser,
     globalKey,
+    globalProject,
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -34,7 +35,6 @@ var Raven = {
     config: function(dsn, options) {
         var uri = parseUri(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
-            projectId = uri.path.substr(lastSlash + 1),
             path = uri.path.substr(1, lastSlash);
 
         // merge in options
@@ -48,12 +48,13 @@ var Raven = {
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
 
+        globalKey = uri.user;
+        globalProject = ~~uri.path.substr(lastSlash + 1);
+
         // assemble the endpoint from the uri pieces
         globalServer = uri.protocol + '://' + uri.host +
                       (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + projectId + '/store/';
-
-        globalKey = uri.user;
+                      '/' + path + 'api/' + globalProject + '/store/';
 
         // return for chaining
         return Raven;
@@ -184,39 +185,10 @@ function getAuthQueryString() {
 }
 
 function handleStackInfo(stackInfo, options) {
-    var frames = [], pivot, context, i, j, ii, jj, currentStack, currentFrame;
+    var frames = [], frame, context, i = stackInfo.stack.length;
 
-    for (i = 0, j = stackInfo.stack.length; i < j; i++) {
-        // normalize the frames data
-        currentStack = stackInfo.stack[i];
-        currentFrame = {
-            abs_path:   currentStack.url,
-            filename:   currentStack.url.split(/\/([^\/]+)$/)[1] || currentStack.url, // extract the filename
-            lineno:     currentStack.line,
-            colno:      currentStack.column,
-            'function': currentStack.func
-        };
+    while (i--) frames[i] = normalizeFrame(stackInfo.stack[i]);
 
-        if (currentStack.context) {
-            context = currentStack.context;
-            pivot = ~~(context.length / 2);
-            for(ii = 0, jj = context.length; ii < jj; ii++) {
-                if (context[ii].length > 150) {
-                    if (ii === pivot && !isUndefined(currentFrame.colno)) {
-                        // The context_line is the line throwing the error
-                        // so we want to try and capture the relevant part
-                        // by slicing around the offending column.
-                        context[ii] = context[ii].substr(Math.max(0, currentFrame.colno - 10), 50);
-                    } else context[ii] = '...truncated...';
-                }
-            }
-            currentFrame.pre_context = context.slice(0, pivot);
-            currentFrame.context_line = context[pivot];
-            currentFrame.post_context = context.slice(pivot + 1);
-        }
-
-        frames[i] = currentFrame;
-    }
     processException(
         stackInfo.name,
         stackInfo.message,
@@ -227,16 +199,79 @@ function handleStackInfo(stackInfo, options) {
     );
 }
 
-function processException(type, message, fileurl, lineno, frames, options) {
-    var stacktrace, label, i, j;
+function normalizeFrame(frame) {
+    // normalize the frames data
+    var normalized = {
+        abs_path:   frame.url,
+        filename:   frame.url.split(/\/([^\/]+)$/)[1] || frame.url, // extract the filename
+        lineno:     frame.line,
+        colno:      frame.column,
+        'function': frame.func
+    }, context = extractContextFromFrame(frame);
 
-    for (i = 0, j = globalOptions.ignoreErrors.length; i < j; i++) {
+    if (context) {
+        var i = 3, keys = ['pre_context', 'context_line', 'post_context'];
+        while (i--) normalized[keys[i]] = context[i];
+    }
+
+    return normalized;
+}
+
+function extractContextFromFrame(frame) {
+    if (!frame.context) return;
+
+    var context = frame.context,
+        pivot = ~~(context.length / 2),
+        i = context.length, isMinified = false, line;
+
+    while(i--) {
+        line = context[i];
+        // We're making a guess to see if the source is minified or not.
+        // To do that, we make the assumption if *any* of the lines passed
+        // in are greater than 300 characters long, we bail.
+        // Sentry will see that there isn't a context
+        if (line.length > 300) {
+            isMinified = true;
+            break;
+        }
+    }
+
+    if (isMinified) {
+        // The source is minified and we don't know which column. Fuck it.
+        if (isUndefined(frame.column)) return;
+
+        // Source maps are enabled and has a column number, let Sentry try and grab it
+        if (globalOptions.sourceMaps) return;
+
+        // If the source is minified with sourcemaps disabled and has a frame column
+        // we take a chunk of the offending line to hopefully shed some light
+        return [
+            [],  // no pre_context
+            context[pivot].substr(frame.column, 50), // grab 50 characters, starting at the offending column
+            []   // no post_context
+        ];
+    }
+
+    return [
+        context.slice(0, pivot),    // pre_context
+        context[pivot],             // context_line
+        context.slice(pivot + 1)    // post_context
+    ];
+}
+
+function processException(type, message, fileurl, lineno, frames, options) {
+    var stacktrace, label, i;
+
+    // IE8 really doesn't have Array.prototype.indexOf
+    // Filter out a message that matches our ignore list
+    i = globalOptions.ignoreErrors.length;
+    while (i--) {
         if (message === globalOptions.ignoreErrors[i]) {
             return;
         }
     }
 
-    if (frames) {
+    if (frames && frames.length) {
         stacktrace = {frames: frames};
         fileurl = fileurl || frames[0].filename;
     } else if (fileurl) {
@@ -248,7 +283,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
-    for (i = 0, j = globalOptions.ignoreUrls.length; i < j; i++) {
+    i = globalOptions.ignoreUrls.length;
+    while (i--) {
         if (globalOptions.ignoreUrls[i].test(fileurl)) {
             return;
         }
@@ -271,7 +307,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 }
 
 function arrayMerge(arr1, arr2) {
-    if (isUndefined(arr2)) {
+    if (!arr2) {
         return arr1;
     }
     each(arr2, function(key, value){
@@ -283,13 +319,11 @@ function arrayMerge(arr1, arr2) {
 function send(data) {
     if (!isSetup()) return;
 
-    var encoded_msg,
-        url = window.location.protocol + '//' + window.location.host + window.location.pathname,
-        querystring = window.location.search.slice(1),  // Remove the ?
-        auth = getAuthQueryString();
+    var url = window.location.protocol + '//' + window.location.host + window.location.pathname,
+        querystring = window.location.search.slice(1);  // Remove the ?
 
     data = arrayMerge({
-        project: globalOptions.projectId,
+        project: globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
@@ -299,16 +333,17 @@ function send(data) {
         }
     }, data);
 
+    if (globalUser) data['sentry.interfaces.User'] = globalUser;
+
     if (typeof(globalOptions.dataCallback) === 'function') {
         data = globalOptions.dataCallback(data);
     }
 
-    if (globalUser) data['sentry.interfaces.User'] = globalUser;
+    makeRequest(data);
+}
 
-    encoded_msg = '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-
-    // Actually make the request
-    new Image().src = globalServer + auth + encoded_msg;
+function makeRequest(data) {
+    new Image().src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 }
 
 function isSetup() {
