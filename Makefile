@@ -21,7 +21,7 @@ update-submodules:
 # Build the compressed all-in-one file
 #
 
-raven:
+raven: clean
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
