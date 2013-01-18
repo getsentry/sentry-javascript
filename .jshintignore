@@ -1,10 +1,9 @@
 test/
 dist/
-src/vendor/
+vendor/
 scratch/
 phantom-js-loader.js
 node_modules/
 runtests.js
-src/_header.js
-src/_footer.js
 example/
+template/

@@ -4,10 +4,13 @@ RAVEN_FULL = ./dist/raven.js
 RAVEN_MIN = ./dist/raven.min.js
 BRANCH = $(shell git rev-parse --short --abbrev-ref HEAD)
 TMP = /tmp/raven.min.js
+TEST = test/test.html
+
+REPORTER = dot
 
 # Third party dependencies
 DEPENDENCIES = \
-	./src/vendor/TraceKit/tracekit.js
+	./vendor/TraceKit/tracekit.js
 
 
 develop: update-submodules
@@ -25,7 +28,7 @@ raven: clean
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${DEPENDENCIES} ./src/_header.js ${RAVEN} ./src/_footer.js | \
+	cat ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
 		sed "s/@VERSION/${VER}/" >> ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
@@ -36,8 +39,8 @@ raven: clean
 	mv ${TMP} ${RAVEN_MIN}
 
 test:
-	./node_modules/.bin/jshint .
-	./node_modules/.bin/mocha-phantomjs -R dot test/test.html
+	@./node_modules/.bin/jshint .
+	@./node_modules/.bin/mocha-phantomjs -R ${REPORTER} ${TEST}
 
 release: raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VER}/raven.js
@@ -47,10 +50,14 @@ post-commit: raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
+PORT = 8002
+runserver:
+	python -m SimpleHTTPServer ${PORT}
+
 clean:
 	rm -rf dist
 
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: raven test develop release post-commit clean install-hooks
+.PHONY: raven test develop release post-commit clean runserver install-hooks
