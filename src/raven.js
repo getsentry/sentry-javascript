@@ -192,15 +192,23 @@ function handleStackInfo(stackInfo, options) {
             abs_path:   currentStack.url,
             filename:   currentStack.url.split(/\/([^\/]+)$/)[1] || currentStack.url, // extract the filename
             lineno:     currentStack.line,
+            colno:      currentStack.column,
             'function': currentStack.func
         };
 
         if (currentStack.context) {
             context = currentStack.context;
-            for(ii = 0, jj = context.length; ii < jj; ii++) {
-                if (context[ii].length > 150) context[ii] = '...truncated...';
-            }
             pivot = ~~(context.length / 2);
+            for(ii = 0, jj = context.length; ii < jj; ii++) {
+                if (context[ii].length > 150) {
+                    if (ii === pivot && !isUndefined(currentFrame.colno)) {
+                        // The context_line is the line throwing the error
+                        // so we want to try and capture the relevant part
+                        // by slicing around the offending column.
+                        context[ii] = context[ii].substr(Math.max(0, currentFrame.colno - 10), 50);
+                    } else context[ii] = '...truncated...';
+                }
+            }
             currentFrame.pre_context = context.slice(0, pivot);
             currentFrame.context_line = context[pivot];
             currentFrame.post_context = context.slice(pivot + 1);
