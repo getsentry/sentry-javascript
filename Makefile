@@ -42,6 +42,20 @@ test:
 	@./node_modules/.bin/jshint .
 	@./node_modules/.bin/mocha-phantomjs -R ${REPORTER} ${TEST}
 
+test-in-the-cloud:
+	@if [ ! -f Sauce-Connect.jar ]; then \
+		echo "Downloading Sauce Connect..."; \
+		curl https://saucelabs.com/downloads/Sauce-Connect-latest.zip > Sauce-Connect-latest.zip; \
+		unzip Sauce-Connect-latest Sauce-Connect.jar; \
+		rm Sauce-Connect-latest.zip; \
+	fi
+	@echo "Booting up Sauce Connect. This will take a while..."
+	@$(MAKE) runserver 2>&1 > /dev/null &
+	@java -jar Sauce-Connect.jar raven-js b39f5c10-ec75-40ce-8ca3-56727f2901f3 2>&1 > /dev/null &
+	@sleep 45
+	@clear
+	@node runtests.js
+
 release: raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VER}/raven.js
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VER}/raven.min.js
@@ -50,7 +64,7 @@ post-commit: raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
-PORT = 8002
+PORT = 8888
 runserver:
 	python -m SimpleHTTPServer ${PORT}
 
@@ -60,4 +74,4 @@ clean:
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: raven test develop release post-commit clean runserver install-hooks
+.PHONY: raven test test-in-the-cloud develop release post-commit clean runserver install-hooks
