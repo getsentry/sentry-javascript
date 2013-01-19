@@ -374,7 +374,8 @@ describe('globals', function() {
         platform: 'javascript',
         'sentry.interfaces.Http': {
           url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1)
+          querystring: window.location.search.slice(1),
+          cookie: window.document.cookie
         },
         foo: 'bar'
       }]);
@@ -403,7 +404,8 @@ describe('globals', function() {
         platform: 'javascript',
         'sentry.interfaces.Http': {
           url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1)
+          querystring: window.location.search.slice(1),
+          cookie: window.document.cookie
         },
         'sentry.interfaces.User': {
           name: 'Matt'

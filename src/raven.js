@@ -329,7 +329,8 @@ function send(data) {
         platform: 'javascript',
         'sentry.interfaces.Http': {
             url: url,
-            querystring: querystring
+            querystring: querystring,
+            cookie: window.document.cookie
         }
     }, data);
 
