@@ -7,6 +7,5 @@ before_script:
     - npm install
 script:
     - make test
-    - make test-in-the-cloud
 notifications:
     irc: "irc.freenode.org#sentry"
