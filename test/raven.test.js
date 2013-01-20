@@ -39,6 +39,15 @@ describe('globals', function() {
     });
   });
 
+  describe('isFunction', function() {
+    it('should do as advertised', function() {
+      assert.isTrue(isFunction(function(){}));
+      assert.isFalse(isFunction({}));
+      assert.isFalse(isFunction(''));
+      assert.isFalse(isFunction(undefined));
+    });
+  });
+
   describe('isSetup', function() {
     it('should return false with no JSON support', function() {
       globalServer = 'http://localhost/';
