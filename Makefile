@@ -61,7 +61,7 @@ release: raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
 
 post-commit:
-	VERSION=$(shell git rev-parse HEAD | cut -c1-10) $(MAKE) raven
+	VERSION=$(shell git rev-parse --short HEAD) $(MAKE) raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
