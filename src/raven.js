@@ -75,6 +75,26 @@ var Raven = {
     },
 
     /*
+     * Raven.context()
+     *
+     * Wrap code within a context so Raven can capture errors
+     * reliably across domains.
+     */
+    context: function(options, func) {
+        // options is optional
+        if (typeof options === 'function') {
+            func = options;
+            options = {};
+        }
+
+        try {
+            func();
+        } catch(e) {
+            Raven.captureException(e, options);
+        }
+    },
+
+    /*
      * Raven.uninstall()
      *
      * Uninstalls the global error handler.
