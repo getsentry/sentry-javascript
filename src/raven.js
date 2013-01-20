@@ -82,7 +82,7 @@ var Raven = {
      */
     context: function(options, func) {
         // options is optional
-        if (typeof options === 'function') {
+        if (isFunction(options)) {
             func = options;
             options = undefined;
         }
@@ -169,6 +169,10 @@ function parseUri(str) {
 
 function isUndefined(what) {
     return typeof what === 'undefined';
+}
+
+function isFunction(what) {
+    return typeof what === 'function';
 }
 
 function each(obj, callback) {
@@ -356,7 +360,7 @@ function send(data) {
 
     if (globalUser) data['sentry.interfaces.User'] = globalUser;
 
-    if (typeof(globalOptions.dataCallback) === 'function') {
+    if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);
     }
 
