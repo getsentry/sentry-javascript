@@ -1,66 +1,54 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-    <title>Raven Test Suite</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <head>
+    <title>Raven.js Test Suite</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <!-- Mocha -->
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script>
+        mocha.ui('bdd')
+        mocha.reporter('html')
+        var assert = chai.assert
+    </script>
 
-    <script type="text/javascript" src="vendor/jquery-1.7.1.min.js"></script>
-
-    <!-- Qunit -->
-    <link rel="stylesheet" href="vendor/qunit.css" type="text/css" media="screen" />
-    <script type="text/javascript" src="vendor/qunit.js"></script>
-    <script type="text/javascript" src="vendor/qunit-logging.js"></script>
-    <script type="text/javascript" src="vendor/sinon-server-1.5.0.js"></script>
-    <script type="text/javascript" src="vendor/sinon-ie-1.5.0.js"></script>
+    <!-- Mocking -->
+    <script src="vendor/sinon-1.5.2.js"></script>
 
     <!-- Raven -->
-    <script type="text/javascript" src="../src/vendor/uri.js"></script>
-    <script type="text/javascript" src="../src/raven.js"></script>
+    <script src="../vendor/TraceKit/tracekit.js"></script>
+    <script src="../src/raven.js"></script>
 
-    <!-- Unit tests -->
-    <script type="text/javascript" src="process.js"></script>
-    <script type="text/javascript" src="exception.js"></script>
-    <script type="text/javascript" src="utils.js"></script>
-</head>
+    <!-- Tests -->
+    <script src="raven.test.js"></script>
 
-<body>
-    <div>
-        <h1 id="qunit-header">Raven Test Suite</h1>
-        <h2 id="qunit-banner"></h2>
-        <h2 id="qunit-userAgent"></h2>
-        <ol id="qunit-tests"></ol>
-        <div id="qunit-fixture">
-            <!-- Reset the test environment between each test -->
-            <script type="text/javascript" src="../src/raven.js"></script>
+    <script>
+        if (window.mochaPhantomJS) mochaPhantomJS.run();
+        else {
+            (function(runner){
+              var failed = [];
 
-            <script type="text/javascript">
-                var config_opts = {
-                    "publicKey": "e89652ec30b94d9db6ea6f28580ab499",
-                    "secretKey": "77ec8c99a8854256aa68ccb91dd9119d",
-                    "servers": ["/"],
-                    "signatureUrl": null,
-                    "testMode": true,
-                    "ignoreErrors": ["Error to ignore"],
-                    "ignoreUrls": [/ajax\.googleapis\.com\/ajax\/libs\/jquery/i]
-                };
-                Raven.config(config_opts);
+              runner.on('fail', function(test, err){
+                failed.push({
+                  title: test.title,
+                  fullTitle: test.fullTitle(),
+                  error: {
+                    message: err.message,
+                    stack: err.stack
+                  }
+                });
+              });
 
-
-                /*
-                $.ajax = function(options) {
-                    ajax_calls.push(options);
-                    if (options.success) {
-                        // HACK
-                        options.success({"signature": "dummy-signature"});
-                    }
-                };
-                $.post = function(url, data, success) {
-                	ajax_calls.push({url: url, data: data, success: success});
-                	success({"signature": "dummy-signature"});
-                }
-                */
-            </script>
-        </div>
-    </div>
-</body>
+              runner.on('end', function(){
+                runner.stats.failed = failed;
+                global.mochaResults = runner.stats;
+              });
+            })(mocha.run());
+        }
+    </script>
+  </body>
 </html>

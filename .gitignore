@@ -9,3 +9,12 @@
 
 dist
 node_modules
+
+sauce_connect.log
+
+scratch/
+
+BrowserStackTunnel.jar
+Sauce-Connect.jar
+
+Sauce-Connect-latest.zip

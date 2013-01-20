@@ -1,7 +1,8 @@
 {
-    "strict": true,
+    "globalstrict": true,
     "browser": true,
     "predef": [
-        "parseUri"
+        "TraceKit",
+        "console"
     ]
 }

@@ -11,7 +11,12 @@
   "devDependencies": {
     "phantomjs": "*",
     "jshint": "*",
-    "uglify-js": "*"
+    "uglify-js": "*",
+    "mocha": "*",
+    "chai": "*",
+    "mocha-phantomjs": "*",
+    "mocha-cloud": "*",
+    "mocha-cloud-grid-view": "*"
   },
   "private": true
 }

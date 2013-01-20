@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "Building and publishing..."
+make post-commit
+echo "Done."
