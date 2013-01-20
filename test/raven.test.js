@@ -601,6 +601,46 @@ describe('Raven (public API)', function() {
     });
   });
 
+  describe('.context', function() {
+    it('should execute the callback with options', function() {
+      var spy = sinon.spy();
+      sinon.stub(Raven, 'captureException');
+      Raven.context({'foo': 'bar'}, spy);
+      assert.isTrue(spy.calledOnce);
+      assert.isFalse(Raven.captureException.called);
+      Raven.captureException.restore();
+    });
+
+    it('should execute the callback without options', function() {
+      var spy = sinon.spy();
+      sinon.stub(Raven, 'captureException');
+      Raven.context(spy);
+      assert.isTrue(spy.calledOnce);
+      assert.isFalse(Raven.captureException.called);
+      Raven.captureException.restore();
+    });
+
+    it('should capture the exception with options', function() {
+      var error = new Error('crap');
+      var broken = function() { throw error; };
+      sinon.stub(Raven, 'captureException');
+      Raven.context({'foo': 'bar'}, broken);
+      assert.isTrue(Raven.captureException.called);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
+      Raven.captureException.restore();
+    });
+
+    it('should capture the exception without options', function() {
+      var error = new Error('crap');
+      var broken = function() { throw error; };
+      sinon.stub(Raven, 'captureException');
+      Raven.context(broken);
+      assert.isTrue(Raven.captureException.called);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
+      Raven.captureException.restore();
+    });
+  });
+
   describe('.uninstall', function() {
     it('should unsubscribe from TraceKit', function() {
       sinon.stub(TraceKit.report, 'unsubscribe');

@@ -84,7 +84,7 @@ var Raven = {
         // options is optional
         if (typeof options === 'function') {
             func = options;
-            options = {};
+            options = undefined;
         }
 
         try {
