@@ -1,5 +1,5 @@
 RAVEN = ./src/raven.js
-VER = $(shell cat version.txt)
+VERSION ?= $(shell cat version.txt)
 RAVEN_FULL = ./dist/raven.js
 RAVEN_MIN = ./dist/raven.min.js
 BRANCH = $(shell git rev-parse --short --abbrev-ref HEAD)
@@ -29,12 +29,12 @@ raven: clean
 
 	# Generate the full and compressed distributions
 	cat ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
-		sed "s/@VERSION/${VER}/" >> ${RAVEN_FULL}
+		sed "s/@VERSION/${VERSION}/" >> ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
 
 	# Prepend the tiny header to the compressed file
-	echo "/* Raven.js v${VER} | https://github.com/getsentry/raven-js/ */" | \
+	echo "/* Raven.js ${VERSION} | https://github.com/getsentry/raven-js/ */" | \
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
 
@@ -57,10 +57,11 @@ test-in-the-cloud:
 	@node runtests.js
 
 release: raven
-	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VER}/raven.js
-	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VER}/raven.min.js
+	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VERSION}/raven.js
+	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
 
-post-commit: raven
+post-commit:
+	VERSION=$(shell git rev-parse HEAD | cut -c1-10) $(MAKE) raven
 	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
