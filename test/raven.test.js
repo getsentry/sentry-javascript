@@ -610,6 +610,16 @@ describe('Raven (public API)', function() {
     });
   });
 
+  describe('.wrap', function() {
+    it('should return a wrapped callback', function() {
+      var spy = sinon.spy();
+      var wrapped = Raven.wrap(spy);
+      assert.isFunction(wrapped);
+      wrapped();
+      assert.isTrue(spy.calledOnce);
+    });
+  });
+
   describe('.context', function() {
     it('should execute the callback with options', function() {
       var spy = sinon.spy();
@@ -618,6 +628,13 @@ describe('Raven (public API)', function() {
       assert.isTrue(spy.calledOnce);
       assert.isFalse(Raven.captureException.called);
       Raven.captureException.restore();
+    });
+
+    it('should execute the callback with arguments', function() {
+      var spy = sinon.spy();
+      var args = [1, 2];
+      Raven.context(spy, args);
+      assert.deepEqual(spy.lastCall.args, args);
     });
 
     it('should execute the callback without options', function() {

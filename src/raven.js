@@ -89,20 +89,36 @@ var Raven = {
      * Raven.context()
      *
      * Wrap code within a context so Raven can capture errors
-     * reliably across domains.
+     * reliably across domains that is executed immediately.
      */
-    context: function(options, func) {
+    context: function(options, func, args) {
+        if (isFunction(options)) {
+            args = func;
+            func = options;
+            options = undefined;
+        }
+
+        Raven.wrap(options, func).apply(this, args);
+    },
+
+    /* Raven.wrap()
+     *
+     * Wrap code within a context and returns back a new function to be executed
+     */
+    wrap: function(options, func) {
         // options is optional
         if (isFunction(options)) {
             func = options;
             options = undefined;
         }
 
-        try {
-            func();
-        } catch(e) {
-            Raven.captureException(e, options);
-        }
+        return function() {
+            try {
+                func.apply(this, arguments);
+            } catch(e) {
+                Raven.captureException(e, options);
+            }
+        };
     },
 
     /*
