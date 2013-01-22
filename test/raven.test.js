@@ -120,7 +120,8 @@ describe('globals', function() {
         'function': 'lol',
         pre_context: ['line1'],
         context_line: 'line2',
-        post_context: ['line3']
+        post_context: ['line3'],
+        in_app: true
       });
       window.extractContextFromFrame.restore();
     });
@@ -140,7 +141,8 @@ describe('globals', function() {
         filename: 'file.js',
         lineno: 10,
         colno: 11,
-        'function': 'lol'
+        'function': 'lol',
+        in_app: true
       });
       window.extractContextFromFrame.restore();
     });

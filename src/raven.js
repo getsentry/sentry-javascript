@@ -265,9 +265,7 @@ function normalizeFrame(frame) {
         while (i--) normalized[keys[i]] = context[i];
     }
 
-    if (/\.Raven\./.test(normalized['function'])) {
-        normalized.in_app = true;
-    }
+    normalized.in_app = !/\.Raven\./.test(normalized['function']);
 
     return normalized;
 }
