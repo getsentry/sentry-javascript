@@ -10,7 +10,8 @@
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
-var hasJSON = !isUndefined(window.JSON),
+var _Raven = window.Raven,
+    hasJSON = !isUndefined(window.JSON),
     globalServer,
     globalUser,
     globalKey,
@@ -26,6 +27,16 @@ var hasJSON = !isUndefined(window.JSON),
  */
 var Raven = {
     VERSION: '@VERSION',
+
+    /*
+     * Raven.noConflict()
+     *
+     * Allow multiple versions of Raven to be installed.
+     */
+    noConflict: function() {
+        window.Raven = _Raven;
+        return Raven;
+    },
 
     /*
      * Raven.config()
