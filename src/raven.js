@@ -257,12 +257,16 @@ function normalizeFrame(frame) {
         filename:   frame.url.split(/\/([^\/]+)$/)[1] || frame.url, // extract the filename
         lineno:     frame.line,
         colno:      frame.column,
-        'function': frame.func
+        'function': frame.func || ''
     }, context = extractContextFromFrame(frame);
 
     if (context) {
         var i = 3, keys = ['pre_context', 'context_line', 'post_context'];
         while (i--) normalized[keys[i]] = context[i];
+    }
+
+    if (/\.Raven\./.test(normalized['function']) {
+        normalized.in_app = true;
     }
 
     return normalized;
