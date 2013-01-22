@@ -7,6 +7,9 @@
 .Spotlight-V100
 .Trashes
 
+docs/html
+docs/doctrees
+
 dist
 node_modules
 
