@@ -70,7 +70,7 @@ var Raven = {
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + globalProject + '/store/';
 
-        if (options.fetchContext) {
+        if (globalOptions.fetchContext) {
             TraceKit.remoteFetching = true;
         }
 
