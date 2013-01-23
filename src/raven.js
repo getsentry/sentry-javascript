@@ -277,7 +277,7 @@ function extractContextFromFrame(frame) {
         pivot = ~~(context.length / 2),
         i = context.length, isMinified = false, line;
 
-    while(i--) {
+    while (i--) {
         line = context[i];
         // We're making a guess to see if the source is minified or not.
         // To do that, we make the assumption if *any* of the lines passed
