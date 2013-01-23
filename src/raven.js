@@ -369,21 +369,28 @@ function arrayMerge(arr1, arr2) {
     return arr1;
 }
 
-function send(data) {
-    if (!isSetup()) return;
-
+function getHttpData() {
     var url = window.location.protocol + '//' + window.location.host + window.location.pathname,
         querystring = window.location.search.slice(1);  // Remove the ?
+
+    return {
+        url: url,
+        querystring: querystring,
+        headers: {
+            'User-Agent': navigator.userAgent
+        }
+    };
+}
+
+function send(data) {
+    if (!isSetup()) return;
 
     data = arrayMerge({
         project: globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
-        'sentry.interfaces.Http': {
-            url: url,
-            querystring: querystring
-        }
+        'sentry.interfaces.Http': getHttpData()
     }, data);
 
     if (globalUser) data['sentry.interfaces.User'] = globalUser;

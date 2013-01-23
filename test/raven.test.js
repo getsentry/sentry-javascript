@@ -30,6 +30,23 @@ describe('globals', function() {
     flushRavenState();
   });
 
+  describe('getHttpData', function() {
+    var data = getHttpData();
+
+    it('should have a url', function() {
+        assert.equal(data.url, window.location.protocol + '//' + window.location.host + window.location.pathname);
+    });
+
+    it('should have a querystring', function() {
+      assert.equal(data.querystring, window.location.search.slice(1));
+    });
+
+    it('should have the user-agent header', function() {
+      assert.equal(data.headers['User-Agent'], navigator.userAgent);
+    });
+
+  });
+
   describe('isUndefined', function() {
     it('should do as advertised', function() {
       assert.isTrue(isUndefined());
@@ -385,7 +402,10 @@ describe('globals', function() {
         platform: 'javascript',
         'sentry.interfaces.Http': {
           url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1)
+          querystring: window.location.search.slice(1),
+          headers: {
+            'User-Agent': navigator.userAgent
+          }
         },
         foo: 'bar'
       }]);
@@ -414,7 +434,10 @@ describe('globals', function() {
         platform: 'javascript',
         'sentry.interfaces.Http': {
           url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1)
+          querystring: window.location.search.slice(1),
+          headers: {
+            'User-Agent': navigator.userAgent
+          }
         },
         'sentry.interfaces.User': {
           name: 'Matt'
