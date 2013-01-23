@@ -371,15 +371,22 @@ function arrayMerge(arr1, arr2) {
 
 function getHttpData() {
     var url = window.location.protocol + '//' + window.location.host + window.location.pathname,
-        querystring = window.location.search.slice(1);  // Remove the ?
+        querystring = window.location.search.slice(1),  // Remove the ?
+        http;
 
-    return {
+    http = {
         url: url,
         querystring: querystring,
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
+
+    if (window.document.referrer) {
+        http.headers.Referer = window.document.referrer;
+    }
+
+    return http;
 }
 
 function send(data) {
