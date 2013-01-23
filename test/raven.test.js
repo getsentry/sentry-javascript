@@ -45,6 +45,15 @@ describe('globals', function() {
       assert.equal(data.headers['User-Agent'], navigator.userAgent);
     });
 
+    it('should have referer header when available', function() {
+      // lol this test is awful
+      if (window.document.referrer) {
+        assert.equal(data.headers.Referer, window.document.referrer);
+      } else {
+        assert.isUndefined(data.headers.Referer);
+      }
+    });
+
   });
 
   describe('isUndefined', function() {
