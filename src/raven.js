@@ -22,6 +22,9 @@ var _Raven = window.Raven,
         ignoreUrls: []
     };
 
+// Disable Tracekit's remote fetching by default
+TraceKit.remoteFetching = false;
+
 /*
  * The core Raven object
  */
@@ -66,6 +69,10 @@ var Raven = {
         globalServer = uri.protocol + '://' + uri.host +
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + globalProject + '/store/';
+
+        if (options.fetchContext) {
+            TraceKit.remoteFetching = true;
+        }
 
         // return for chaining
         return Raven;
@@ -270,7 +277,8 @@ function normalizeFrame(frame) {
 }
 
 function extractContextFromFrame(frame) {
-    if (!frame.context) return;
+    // immediately check if we should even attempt to parse a context
+    if (!frame.context || !globalOptions.fetchContext) return;
 
     var context = frame.context,
         pivot = ~~(context.length / 2),
@@ -292,10 +300,7 @@ function extractContextFromFrame(frame) {
         // The source is minified and we don't know which column. Fuck it.
         if (isUndefined(frame.column)) return;
 
-        // Source maps are enabled and has a column number, let Sentry try and grab it
-        if (globalOptions.sourceMaps) return;
-
-        // If the source is minified with sourcemaps disabled and has a frame column
+        // If the source is minified and has a frame column
         // we take a chunk of the offending line to hopefully shed some light
         return [
             [],  // no pre_context
