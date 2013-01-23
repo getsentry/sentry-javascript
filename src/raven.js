@@ -256,7 +256,7 @@ function normalizeFrame(frame) {
         abs_path:   frame.url,
         lineno:     frame.line,
         colno:      frame.column,
-        'function': frame.func || ''
+        'function': frame.func || '?'
     }, context = extractContextFromFrame(frame);
 
     if (context) {
