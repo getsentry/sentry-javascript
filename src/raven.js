@@ -254,7 +254,6 @@ function normalizeFrame(frame) {
     // normalize the frames data
     var normalized = {
         abs_path:   frame.url,
-        filename:   parseUri(frame.url).file, // extract the filename
         lineno:     frame.line,
         colno:      frame.column,
         'function': frame.func || ''
