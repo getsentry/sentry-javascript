@@ -23,9 +23,12 @@ function setupRaven() {
   Raven.config(SENTRY_DSN);
 }
 
-TraceKit.remoteFetching = false;
 
 describe('globals', function() {
+  beforeEach(function() {
+    globalOptions.fetchContext = true;
+  });
+
   afterEach(function() {
     flushRavenState();
   });
@@ -138,9 +141,10 @@ describe('globals', function() {
         // context: []  context is stubbed
       };
 
+      globalOptions.fetchContext = true;
+
       assert.deepEqual(normalizeFrame(frame), {
         abs_path: 'http://example.com/path/file.js',
-        filename: 'file.js',
         lineno: 10,
         colno: 11,
         'function': 'lol',
@@ -162,9 +166,10 @@ describe('globals', function() {
         // context: []  context is stubbed
       };
 
+      globalOptions.fetchContext = true;
+
       assert.deepEqual(normalizeFrame(frame), {
         abs_path: 'http://example.com/path/file.js',
-        filename: 'file.js',
         lineno: 10,
         colno: 11,
         'function': 'lol',
@@ -216,14 +221,24 @@ describe('globals', function() {
       assert.isUndefined(extractContextFromFrame(frame));
     });
 
-    it('should reject a minified context with sourceMaps enabled', function() {
+    it('should reject a minified context with fetchContext disabled', function() {
       var frame = {
         column: 2,
         context: [
-          new Array(1000).join('f')
+          'line1',
+          'line2',
+          'line3',
+          'line4',
+          'line5',
+          'culprit',
+          'line7',
+          'line8',
+          'line9',
+          'line10',
+          'line11'
         ]
       };
-      globalOptions.sourceMaps = true;
+      globalOptions.fetchContext = false;
       assert.isUndefined(extractContextFromFrame(frame));
     });
 
@@ -404,7 +419,7 @@ describe('globals', function() {
       };
 
       send({foo: 'bar'});
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
+      assert.deepEqual(window.makeRequest.lastCall.args[0], {
         project: 2,
         logger: 'javascript',
         site: 'THE BEST',
@@ -417,7 +432,7 @@ describe('globals', function() {
           }
         },
         foo: 'bar'
-      }]);
+      });
 
       window.isSetup.restore();
       window.makeRequest.restore();
