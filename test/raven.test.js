@@ -144,7 +144,7 @@ describe('globals', function() {
       globalOptions.fetchContext = true;
 
       assert.deepEqual(normalizeFrame(frame), {
-        abs_path: 'http://example.com/path/file.js',
+        filename: 'http://example.com/path/file.js',
         lineno: 10,
         colno: 11,
         'function': 'lol',
@@ -169,7 +169,7 @@ describe('globals', function() {
       globalOptions.fetchContext = true;
 
       assert.deepEqual(normalizeFrame(frame), {
-        abs_path: 'http://example.com/path/file.js',
+        filename: 'http://example.com/path/file.js',
         lineno: 10,
         colno: 11,
         'function': 'lol',
@@ -595,7 +595,7 @@ describe('globals', function() {
         },
         'sentry.interfaces.Stacktrace': {
           frames: [{
-            abs_path: 'http://example.com/file1.js',
+            filename: 'http://example.com/file1.js',
             filename: 'file1.js',
             lineno: 10,
             colno: 11,
@@ -604,7 +604,7 @@ describe('globals', function() {
             context_line: 'line2',
             pre_context: ['line1']
           }, {
-            abs_path: 'http://example.com/file2.js',
+            filename: 'http://example.com/file2.js',
             filename: 'file2.js',
             lineno: 12,
             colno: 13,

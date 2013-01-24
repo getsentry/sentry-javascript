@@ -260,7 +260,7 @@ function handleStackInfo(stackInfo, options) {
 function normalizeFrame(frame) {
     // normalize the frames data
     var normalized = {
-        abs_path:   frame.url,
+        filename:   frame.url,
         lineno:     frame.line,
         colno:      frame.column,
         'function': frame.func || '?'
