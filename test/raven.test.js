@@ -411,6 +411,11 @@ describe('globals', function() {
     it('should build a good data payload', function() {
       sinon.stub(window, 'isSetup').returns(true);
       sinon.stub(window, 'makeRequest');
+      sinon.stub(window, 'getHttpData').returns({
+        url: 'http://localhost/',
+        querystring: 'a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
 
       globalProject = 2;
       globalOptions = {
@@ -425,10 +430,10 @@ describe('globals', function() {
         site: 'THE BEST',
         platform: 'javascript',
         'sentry.interfaces.Http': {
-          url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1),
+          url: 'http://localhost/',
+          querystring: 'a=b',
           headers: {
-            'User-Agent': navigator.userAgent
+            'User-Agent': 'lolbrowser'
           }
         },
         foo: 'bar'
@@ -436,11 +441,17 @@ describe('globals', function() {
 
       window.isSetup.restore();
       window.makeRequest.restore();
+      window.getHttpData.restore();
     });
 
     it('should build a good data payload with a User', function() {
       sinon.stub(window, 'isSetup').returns(true);
       sinon.stub(window, 'makeRequest');
+      sinon.stub(window, 'getHttpData').returns({
+        url: 'http://localhost/',
+        querystring: 'a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
 
       globalProject = 2;
       globalOptions = {
@@ -457,10 +468,10 @@ describe('globals', function() {
         site: 'THE BEST',
         platform: 'javascript',
         'sentry.interfaces.Http': {
-          url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1),
+          url: 'http://localhost/',
+          querystring: 'a=b',
           headers: {
-            'User-Agent': navigator.userAgent
+            'User-Agent': 'lolbrowser'
           }
         },
         'sentry.interfaces.User': {
