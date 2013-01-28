@@ -20,6 +20,9 @@ update-submodules:
 	git submodule init
 	git submodule update
 
+docs:
+	cd docs; $(MAKE) html
+
 #
 # Build the compressed all-in-one file
 #
@@ -75,4 +78,4 @@ clean:
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: raven test test-in-the-cloud develop release post-commit clean runserver install-hooks
+.PHONY: develop update-submodules docs raven test test-in-the-cloud develop release post-commit clean runserver install-hooks
