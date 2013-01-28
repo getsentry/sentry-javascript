@@ -189,14 +189,16 @@ var Raven = {
     }
 };
 
+var uriKeys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
+    uriPattern = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+
 /**** Private functions ****/
 function parseUri(str) {
-    var keys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
-        m = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/.exec(str),
+    var m = uriPattern.exec(str),
         uri = {},
         i = 14;
 
-    while (i--) uri[keys[i]] = m[i] || '';
+    while (i--) uri[uriKeys[i]] = m[i] || '';
 
     return uri;
 }
