@@ -57,13 +57,13 @@ test-in-the-cloud:
 	@node runtests.js
 
 release: raven
-	s3cmd put --acl-public --guess-mime-type dist/raven.js s3://getsentry-cdn/dist/${VERSION}/raven.js
-	s3cmd put --acl-public --guess-mime-type dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
+	s3cmd put --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=30672000" dist/raven.js s3://getsentry-cdn/dist/${VERSION}/raven.js
+	s3cmd put --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=30672000" dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
 
 build:
 	VERSION=$(shell git rev-parse --short HEAD) $(MAKE) raven
-	s3cmd put --acl-public --guess-mime-type --add-header "Cache-control: public, max-age=1800" dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
-	s3cmd put --acl-public --guess-mime-type --add-header "Cache-control: public, max-age=1800" dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
+	s3cmd put --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=1800" dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
+	s3cmd put --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=1800" dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
 PORT = 8888
 runserver:
