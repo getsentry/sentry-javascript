@@ -284,15 +284,14 @@ function extractContextFromFrame(frame) {
 
     var context = frame.context,
         pivot = ~~(context.length / 2),
-        i = context.length, isMinified = false, line;
+        i = context.length, isMinified = false;
 
     while (i--) {
-        line = context[i];
         // We're making a guess to see if the source is minified or not.
         // To do that, we make the assumption if *any* of the lines passed
         // in are greater than 300 characters long, we bail.
         // Sentry will see that there isn't a context
-        if (line.length > 300) {
+        if (context[i].length > 300) {
             isMinified = true;
             break;
         }
