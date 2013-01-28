@@ -23,6 +23,12 @@ update-submodules:
 docs:
 	cd docs; $(MAKE) html
 
+docs-live:
+	while true; do \
+		sleep 2; \
+		$(MAKE) docs; \
+	done
+
 #
 # Build the compressed all-in-one file
 #
@@ -78,4 +84,4 @@ clean:
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: develop update-submodules docs raven test test-in-the-cloud develop release post-commit clean runserver install-hooks
+.PHONY: develop update-submodules docs docs-live raven test test-in-the-cloud develop release post-commit clean runserver install-hooks

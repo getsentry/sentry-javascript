@@ -1,22 +1,36 @@
-.. raven-js documentation master file, created by
-   sphinx-quickstart on Mon Jan 21 21:04:27 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Raven.js
+========
 
-Welcome to raven-js's documentation!
-====================================
+Raven.js is a standalone JavaScript client for `Sentry <http://www.getsentry.com/>`_.
 
-Contents:
+**This version of Raven.js requires Sentry 5.3 or newer.**
+
+
+Getting Started
+---------------
 
 .. toctree::
    :maxdepth: 2
 
+   install/index
+   config/index
+   usage/index
+
+Developers
+----------
+.. toctree::
+   :maxdepth: 2
+
+   contributing/index
+
+Resources
+---------
+* `Bug Tracker <https://github.com/getsentry/raven-js/issues>`_
+* `Code <https://github.com/getsentry/raven-js>`_
+* `IRC <irc://irc.freenode.net/sentry>`_ (irc.freenode.net, #sentry)
 
 
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+:ref:`search`
