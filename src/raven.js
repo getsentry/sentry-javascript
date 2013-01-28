@@ -374,13 +374,8 @@ function arrayMerge(arr1, arr2) {
 }
 
 function getHttpData() {
-    var url = window.location.protocol + '//' + window.location.host + window.location.pathname,
-        querystring = window.location.search.slice(1),  // Remove the ?
-        http;
-
-    http = {
-        url: url,
-        querystring: querystring,
+    var http = {
+        url: window.location.href,
         headers: {
             'User-Agent': navigator.userAgent
         }

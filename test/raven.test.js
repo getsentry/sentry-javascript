@@ -37,11 +37,7 @@ describe('globals', function() {
     var data = getHttpData();
 
     it('should have a url', function() {
-        assert.equal(data.url, window.location.protocol + '//' + window.location.host + window.location.pathname);
-    });
-
-    it('should have a querystring', function() {
-      assert.equal(data.querystring, window.location.search.slice(1));
+        assert.equal(data.url, window.location.href);
     });
 
     it('should have the user-agent header', function() {
@@ -412,8 +408,7 @@ describe('globals', function() {
       sinon.stub(window, 'isSetup').returns(true);
       sinon.stub(window, 'makeRequest');
       sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/',
-        querystring: 'a=b',
+        url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
       });
 
@@ -430,8 +425,7 @@ describe('globals', function() {
         site: 'THE BEST',
         platform: 'javascript',
         'sentry.interfaces.Http': {
-          url: 'http://localhost/',
-          querystring: 'a=b',
+          url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
           }
@@ -448,8 +442,7 @@ describe('globals', function() {
       sinon.stub(window, 'isSetup').returns(true);
       sinon.stub(window, 'makeRequest');
       sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/',
-        querystring: 'a=b',
+        url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
       });
 
@@ -468,8 +461,7 @@ describe('globals', function() {
         site: 'THE BEST',
         platform: 'javascript',
         'sentry.interfaces.Http': {
-          url: 'http://localhost/',
-          querystring: 'a=b',
+          url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
           }
