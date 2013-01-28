@@ -25,4 +25,6 @@ CDNJS.com
 
 `cdnjs.com <http://cdnjs.com>`_ also gives us SPDY support!
 
-*Not updated yet*
+.. code-block:: html
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.0/raven.min.js"></script>
