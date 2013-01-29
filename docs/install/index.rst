@@ -37,7 +37,7 @@ We also provide a way to deploy the sentry plugin via `bower
 
 .. code-block:: sh
     
-    bower install raven-js#1.0.1
+    bower install raven-js
 
 Please note that it automatically deploys the ``tracekit`` requirement and you should link it **before** ``raven-js``.
 
