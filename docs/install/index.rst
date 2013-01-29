@@ -28,3 +28,25 @@ CDNJS.com
 .. code-block:: html
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.0/raven.min.js"></script>
+
+Bower
+~~~~~
+
+We also provide a way to deploy the sentry plugin via `bower
+<http://twitter.github.com/bower/>`_. Usefull if you want serve your scripts instead relying on CDNs and mantain a ``component.json`` with a list of dependencies and versions.
+
+.. code-block:: sh
+    
+    bower install raven-js
+
+Please note that it automatically deploys the ``tracekit`` requirement and you should link it **before** ``raven-js``.
+
+.. code-block:: html
+
+    <script src="/components/tracekit/tracekit.js"></script>
+    <script src="/components/raven-js/src/raven.js"></script>
+
+Also note that both files are uncompresed but are ready to pass any decent javascript compressor like `uglify
+<https://github.com/mishoo/UglifyJS>`_ or `closure
+<https://developers.google.com/closure/>`_.
+
