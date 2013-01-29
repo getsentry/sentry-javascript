@@ -12,7 +12,7 @@ We serve our own builds off of Amazon CloudFront. They are accessible over both 
 
 .. code-block:: html
 
-    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.1/raven.min.js"></script>
+    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.0/raven.min.js"></script>
 
 If you're feeling adventurous, we also host a **master** build, which should be considered *potentially* unstable, but bleeding edge.
 
@@ -27,7 +27,7 @@ CDNJS.com
 
 .. code-block:: html
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.1/raven.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.0/raven.min.js"></script>
 
 Bower
 ~~~~~
