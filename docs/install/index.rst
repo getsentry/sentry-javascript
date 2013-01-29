@@ -32,8 +32,8 @@ CDNJS.com
 Bower
 ~~~~~
 
-We also provide a way to deploy the sentry plugin via `bower
-<http://twitter.github.com/bower/>`_. Usefull if you want serve your scripts instead relying on CDNs and mantain a ``component.json`` with a list of dependencies and versions.
+We also provide a way to deploy Raven via `bower
+<http://twitter.github.com/bower/>`_. Useful if you want serve your scripts instead relying on CDNs and mantain a ``component.json`` with a list of dependencies and versions.
 
 .. code-block:: sh
     
@@ -46,7 +46,7 @@ Please note that it automatically deploys the ``tracekit`` requirement and you s
     <script src="/components/tracekit/tracekit.js"></script>
     <script src="/components/raven-js/src/raven.js"></script>
 
-Also note that both files are uncompresed but are ready to pass any decent javascript compressor like `uglify
-<https://github.com/mishoo/UglifyJS>`_ or `closure
+Also note that both files are uncompresed but are ready to pass to any decent JavaScript compressor like `uglify
+<https://github.com/mishoo/UglifyJS2>`_ or `closure
 <https://developers.google.com/closure/>`_.
 
