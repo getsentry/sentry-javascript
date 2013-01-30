@@ -516,7 +516,8 @@ describe('globals', function() {
 
   describe('handleStackInfo', function() {
     it('should work as advertised', function() {
-      sinon.stub(window, 'normalizeFrame').returns('frame');
+      var frame = {url: 'http://example.com'};
+      sinon.stub(window, 'normalizeFrame').returns(frame);
       sinon.stub(window, 'processException');
 
       var stackInfo = {
@@ -524,12 +525,14 @@ describe('globals', function() {
         message: 'hey',
         url: 'http://example.com',
         lineno: 10,
-        stack: new Array(2)
+        stack: [
+          frame, frame
+        ]
       };
 
       handleStackInfo(stackInfo, {foo: 'bar'});
       assert.deepEqual(window.processException.lastCall.args, [
-        'Matt', 'hey', 'http://example.com', 10, ['frame', 'frame'], {foo: 'bar'}
+        'Matt', 'hey', 'http://example.com', 10, [frame, frame], {foo: 'bar'}
       ]);
       window.normalizeFrame.restore();
       window.processException.restore();
@@ -613,6 +616,26 @@ describe('globals', function() {
       */
       window.makeRequest.restore();
     });
+  });
+  
+  it('should ignore frames that dont have a url', function() {
+    sinon.stub(window, 'normalizeFrame').returns(undefined);
+    sinon.stub(window, 'processException');
+
+    var stackInfo = {
+      name: 'Matt',
+      message: 'hey',
+      url: 'http://example.com',
+      lineno: 10,
+      stack: new Array(2)
+    };
+
+    handleStackInfo(stackInfo, {foo: 'bar'});
+    assert.deepEqual(window.processException.lastCall.args, [
+      'Matt', 'hey', 'http://example.com', 10, [], {foo: 'bar'}
+    ]);
+    window.normalizeFrame.restore();
+    window.processException.restore();
   });
 });
 

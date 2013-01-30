@@ -245,9 +245,14 @@ function getAuthQueryString() {
 }
 
 function handleStackInfo(stackInfo, options) {
-    var frames = [], i = stackInfo.stack.length;
+    var frames = [], i = 0, j = stackInfo.stack.length, frame;
 
-    while (i--) frames[i] = normalizeFrame(stackInfo.stack[i]);
+    for (; i < j; i++) {
+        frame = normalizeFrame(stackInfo.stack[i]);
+        if (frame) {
+            frames.push(frame);
+        }
+    }
 
     processException(
         stackInfo.name,
@@ -260,6 +265,8 @@ function handleStackInfo(stackInfo, options) {
 }
 
 function normalizeFrame(frame) {
+    if (!frame.url) return;
+
     // normalize the frames data
     var normalized = {
         filename:   frame.url,
