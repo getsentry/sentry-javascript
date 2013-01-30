@@ -66,15 +66,23 @@ test-in-the-cloud:
 	@node runtests.js
 
 FAR_FUTURE = $(shell TZ=GMT date -v+1y "+%a, %d %h %Y %T %Z")
-FAR_FUTURE_OPTIONS = --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=30672000" --add-header "Expires: ${FAR_FUTURE}"
+FAR_FUTURE_OPTIONS = --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=30672000" --add-header "Expires: ${FAR_FUTURE}" --add-header "Content-Encoding: gzip"
 release: raven
+	gzip -6 dist/raven.js
+	mv dist/raven.js.gz dist/raven.js
+	gzip -6 dist/raven.min.js
+	mv dist/raven.min.js.gz dist/raven.min.js
 	s3cmd put ${FAR_FUTURE_OPTIONS} dist/raven.js s3://getsentry-cdn/dist/${VERSION}/raven.js
 	s3cmd put ${FAR_FUTURE_OPTIONS} dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
 
 SHORT_FUTURE = $(shell TZ=GMT date -v+30M "+%a, %d %h %Y %T %Z")
-SHORT_FUTURE_OPTIONS = --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=1800" --add-header "Expires: ${SHORT_FUTURE}"
+SHORT_FUTURE_OPTIONS = --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=1800" --add-header "Expires: ${SHORT_FUTURE}" --add-header "Content-Encoding: gzip"
 build:
 	VERSION=$(shell git rev-parse --short HEAD) $(MAKE) raven
+	gzip -6 dist/raven.js
+	mv dist/raven.js.gz dist/raven.js
+	gzip -6 dist/raven.min.js
+	mv dist/raven.min.js.gz dist/raven.min.js
 	s3cmd put ${SHORT_FUTURE_OPTIONS} dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put ${SHORT_FUTURE_OPTIONS} dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
 
@@ -88,4 +96,4 @@ clean:
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: develop update-submodules docs docs-live raven test test-in-the-cloud develop release post-commit clean runserver install-hooks
+.PHONY: develop update-submodules docs docs-live raven test test-in-the-cloud develop release build clean runserver install-hooks
