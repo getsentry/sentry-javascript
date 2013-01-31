@@ -37,13 +37,13 @@ raven: clean
 	mkdir -p dist
 
 	# Generate the full and compressed distributions
-	cat ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
+	cat ./template/_copyright.js ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
 		sed "s/@VERSION/${VERSION}/" >> ${RAVEN_FULL}
 
 	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
 
 	# Prepend the tiny header to the compressed file
-	echo "/* Raven.js ${VERSION} | https://github.com/getsentry/raven-js/ */" | \
+	echo "/* Raven.js ${VERSION} | github.com/getsentry/raven-js */" | \
 		cat - ${RAVEN_MIN} > ${TMP}
 	mv ${TMP} ${RAVEN_MIN}
 
