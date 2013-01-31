@@ -23,7 +23,7 @@ If you're feeling adventurous, we also host a **master** build, which should be 
 CDNJS.com
 ~~~~~~~~~
 
-`cdnjs.com <http://cdnjs.com>`_ also gives us SPDY support!
+`cdnjs.com <http://cdnjs.com>`_ also gives us `SPDY <http://en.wikipedia.org/wiki/SPDY>`_ support! Again, just leave the protocol off, and it'll do it's magic.
 
 .. code-block:: html
 
