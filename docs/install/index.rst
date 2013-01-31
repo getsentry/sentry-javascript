@@ -12,7 +12,7 @@ We serve our own builds off of Amazon CloudFront. They are accessible over both 
 
 .. code-block:: html
 
-    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.0/raven.min.js"></script>
+    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.2/raven.min.js"></script>
 
 If you're feeling adventurous, we also host a **master** build, which should be considered *potentially* unstable, but bleeding edge.
 
@@ -27,7 +27,7 @@ CDNJS.com
 
 .. code-block:: html
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.0/raven.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.2/raven.min.js"></script>
 
 Bower
 ~~~~~
@@ -36,7 +36,7 @@ We also provide a way to deploy Raven via `bower
 <http://twitter.github.com/bower/>`_. Useful if you want serve your scripts instead relying on CDNs and mantain a ``component.json`` with a list of dependencies and versions.
 
 .. code-block:: sh
-    
+
     bower install raven-js
 
 Please note that it automatically deploys the ``tracekit`` requirement and you should link it **before** ``raven-js``.
