@@ -33,6 +33,14 @@ describe('globals', function() {
     flushRavenState();
   });
 
+  it('should not have TraceKit on window', function() {
+    assert.isUndefined(window.TraceKit);
+  });
+
+  it('should have a local TK', function() {
+    assert.isObject(TK);
+  });
+
   describe('getHttpData', function() {
     var data = getHttpData();
 
@@ -617,7 +625,7 @@ describe('globals', function() {
       window.makeRequest.restore();
     });
   });
-  
+
   it('should ignore frames that dont have a url', function() {
     sinon.stub(window, 'normalizeFrame').returns(undefined);
     sinon.stub(window, 'processException');
@@ -664,22 +672,22 @@ describe('Raven (public API)', function() {
   describe('.install', function() {
     it('should check `isSetup`', function() {
       sinon.stub(window, 'isSetup').returns(false);
-      sinon.stub(TraceKit.report, 'subscribe');
+      sinon.stub(TK.report, 'subscribe');
       Raven.install();
       assert.isTrue(window.isSetup.calledOnce);
-      assert.isFalse(TraceKit.report.subscribe.calledOnce);
+      assert.isFalse(TK.report.subscribe.calledOnce);
       window.isSetup.restore();
-      TraceKit.report.subscribe.restore();
+      TK.report.subscribe.restore();
     });
 
     it('should register itself with TraceKit', function() {
       sinon.stub(window, 'isSetup').returns(true);
-      sinon.stub(TraceKit.report, 'subscribe');
+      sinon.stub(TK.report, 'subscribe');
       assert.equal(Raven, Raven.install());
-      assert.isTrue(TraceKit.report.subscribe.calledOnce);
-      assert.equal(TraceKit.report.subscribe.lastCall.args[0], handleStackInfo);
+      assert.isTrue(TK.report.subscribe.calledOnce);
+      assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
       window.isSetup.restore();
-      TraceKit.report.subscribe.restore();
+      TK.report.subscribe.restore();
     });
   });
 
@@ -742,11 +750,11 @@ describe('Raven (public API)', function() {
 
   describe('.uninstall', function() {
     it('should unsubscribe from TraceKit', function() {
-      sinon.stub(TraceKit.report, 'unsubscribe');
+      sinon.stub(TK.report, 'unsubscribe');
       Raven.uninstall();
-      assert.isTrue(TraceKit.report.unsubscribe.calledOnce);
-      assert.equal(TraceKit.report.unsubscribe.lastCall.args[0], handleStackInfo);
-      TraceKit.report.unsubscribe.restore();
+      assert.isTrue(TK.report.unsubscribe.calledOnce);
+      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
+      TK.report.unsubscribe.restore();
     });
   });
 
@@ -787,34 +795,34 @@ describe('Raven (public API)', function() {
   });
 
   describe('.captureException', function() {
-    it('should call TraceKit.report', function() {
+    it('should call TK.report', function() {
       var error = new Error('crap');
-      sinon.stub(TraceKit, 'report');
+      sinon.stub(TK, 'report');
       Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(TraceKit.report.calledOnce);
-      assert.deepEqual(TraceKit.report.lastCall.args, [error, {foo: 'bar'}]);
-      TraceKit.report.restore();
+      assert.isTrue(TK.report.calledOnce);
+      assert.deepEqual(TK.report.lastCall.args, [error, {foo: 'bar'}]);
+      TK.report.restore();
     });
 
     it('shouldn\'t reraise the if the error is the same error', function() {
       var error = new Error('crap');
-      sinon.stub(TraceKit, 'report').throws(error);
+      sinon.stub(TK, 'report').throws(error);
       // this would raise if the errors didn't match
       Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(TraceKit.report.calledOnce);
-      TraceKit.report.restore();
+      assert.isTrue(TK.report.calledOnce);
+      TK.report.restore();
     });
 
     it('should reraise a different error', function(done) {
       var error = new Error('crap1');
-      sinon.stub(TraceKit, 'report').throws(error);
+      sinon.stub(TK, 'report').throws(error);
       try {
         Raven.captureException(new Error('crap2'));
       } catch(e) {
         assert.equal(e, error);
         done();
       }
-      TraceKit.report.restore();
+      TK.report.restore();
     });
   });
 });

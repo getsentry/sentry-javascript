@@ -22,8 +22,10 @@ var _Raven = window.Raven,
         ignoreUrls: []
     };
 
+var TK = TraceKit.noConflict();
+
 // Disable Tracekit's remote fetching by default
-TraceKit.remoteFetching = false;
+TK.remoteFetching = false;
 
 /*
  * The core Raven object
@@ -71,7 +73,7 @@ var Raven = {
                       '/' + path + 'api/' + globalProject + '/store/';
 
         if (globalOptions.fetchContext) {
-            TraceKit.remoteFetching = true;
+            TK.remoteFetching = true;
         }
 
         // return for chaining
@@ -87,7 +89,7 @@ var Raven = {
     install: function() {
         if (!isSetup()) return;
 
-        TraceKit.report.subscribe(handleStackInfo);
+        TK.report.subscribe(handleStackInfo);
 
         return Raven;
     },
@@ -134,7 +136,7 @@ var Raven = {
      * Uninstalls the global error handler.
      */
     uninstall: function() {
-        TraceKit.report.unsubscribe(handleStackInfo);
+        TK.report.unsubscribe(handleStackInfo);
 
         return Raven;
     },
@@ -151,7 +153,7 @@ var Raven = {
         // raises an exception different from the one we asked to
         // report on.
         try {
-            TraceKit.report(ex, options);
+            TK.report(ex, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
