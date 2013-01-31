@@ -92,6 +92,7 @@ runserver:
 
 clean:
 	rm -rf dist
+	rm -rf docs/html
 
 install-hooks:
 	cp -rfp hooks/* .git/hooks
