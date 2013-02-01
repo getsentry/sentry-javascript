@@ -216,7 +216,7 @@ function isFunction(what) {
 function each(obj, callback) {
     var i, j;
 
-    if (obj.length === undefined) {
+    if (isUndefined(obj.length)) {
         for (i in obj) {
             if (obj.hasOwnProperty(i)) {
                 callback.call(null, i, obj[i]);
