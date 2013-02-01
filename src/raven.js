@@ -247,12 +247,16 @@ function getAuthQueryString() {
 }
 
 function handleStackInfo(stackInfo, options) {
-    var frames = [], i = 0, j = stackInfo.stack && stackInfo.stack.length || 0, frame;
+    var frames = [],
+        i = 0,
+        j, frame;
 
-    for (; i < j; i++) {
-        frame = normalizeFrame(stackInfo.stack[i]);
-        if (frame) {
-            frames.push(frame);
+    if (stackInfo.stack && (j = stackInfo.stack.length)) {
+        for (; i < j; i++) {
+            frame = normalizeFrame(stackInfo.stack[i]);
+            if (frame) {
+                frames.push(frame);
+            }
         }
     }
 
