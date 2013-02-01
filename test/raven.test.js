@@ -645,6 +645,27 @@ describe('globals', function() {
     window.normalizeFrame.restore();
     window.processException.restore();
   });
+
+  it('should not shit when there is no stack object from TK', function() {
+    sinon.stub(window, 'normalizeFrame').returns(undefined);
+    sinon.stub(window, 'processException');
+
+    var stackInfo = {
+      name: 'Matt',
+      message: 'hey',
+      url: 'http://example.com',
+      lineno: 10
+      // stack: new Array(2)
+    };
+
+    handleStackInfo(stackInfo);
+    assert.isFalse(window.normalizeFrame.called);
+    assert.deepEqual(window.processException.lastCall.args, [
+      'Matt', 'hey', 'http://example.com', 10, [], undefined
+    ]);
+    window.normalizeFrame.restore();
+    window.processException.restore();
+  });
 });
 
 describe('Raven (public API)', function() {
