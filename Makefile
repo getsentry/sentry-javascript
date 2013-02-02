@@ -93,7 +93,6 @@ runserver:
 clean:
 	rm -rf dist
 	rm -rf docs/html
-	rm -rf node_modules
 
 install-hooks:
 	cp -rfp hooks/* .git/hooks

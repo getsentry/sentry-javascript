@@ -17,7 +17,10 @@ window.Image = function Image() {
   imageCache.push(this);
 };
 
-var console = {error: function(){}};
+// window.console must be stubbed in for browsers that don't have it
+if (typeof window.console === 'undefined') {
+  console = {error: function(){}};
+}
 
 var SENTRY_DSN = 'http://abc@example.com:80/2';
 
