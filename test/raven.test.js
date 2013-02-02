@@ -17,6 +17,8 @@ window.Image = function Image() {
   imageCache.push(this);
 };
 
+var console = {error: function(){}};
+
 var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
