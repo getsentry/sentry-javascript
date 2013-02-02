@@ -688,6 +688,14 @@ describe('Raven (public API)', function() {
       assert.equal(globalOptions.foo, 'bar');
       assert.equal(globalProject, 2);
     });
+
+    it('should work with a protocol relative DSN', function() {
+      Raven.config('//abc@example.com/2');
+      assert.equal(globalKey, 'abc');
+      assert.equal(globalServer, '//example.com/api/2/store/');
+      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
+      assert.equal(globalProject, 2);
+    });
   });
 
   describe('.install', function() {

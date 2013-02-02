@@ -68,9 +68,13 @@ var Raven = {
         globalProject = ~~uri.path.substr(lastSlash + 1);
 
         // assemble the endpoint from the uri pieces
-        globalServer = uri.protocol + '://' + uri.host +
+        globalServer = '//' + uri.host +
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + globalProject + '/store/';
+
+        if (uri.protocol) {
+            globalServer = uri.protocol + ':' + globalServer;
+        }
 
         if (globalOptions.fetchContext) {
             TK.remoteFetching = true;
