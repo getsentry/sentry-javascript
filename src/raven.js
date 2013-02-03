@@ -1,10 +1,3 @@
-// Raven.js
-//
-// Originally based on the Arecibo JavaScript client.
-//
-// Requires:
-//     * TraceKit (included in the full and minified distribution files)
-
 'use strict';
 
 // First, check for JSON support
@@ -28,15 +21,18 @@ var TK = TraceKit.noConflict();
 TK.remoteFetching = false;
 
 /*
- * The core Raven object
+ * The core Raven singleton
+ *
+ * @this {Raven}
  */
 var Raven = {
     VERSION: '@VERSION',
 
     /*
-     * Raven.noConflict()
-     *
      * Allow multiple versions of Raven to be installed.
+     * Strip Raven from the global context and returns the instance.
+     *
+     * @return {Raven}
      */
     noConflict: function() {
         window.Raven = _Raven;
@@ -44,9 +40,11 @@ var Raven = {
     },
 
     /*
-     * Raven.config()
+     * Configure Raven with a DSN and extra options
      *
-     * Configure raven with a DSN and extra options
+     * @param {string} dsn The public Sentry DSN
+     * @param {object} options Optional set of of global options [optional]
+     * @return {Raven}
      */
     config: function(dsn, options) {
         var uri = parseUri(dsn),
@@ -85,10 +83,12 @@ var Raven = {
     },
 
     /*
-     * Raven.install()
-     *
      * Installs a global window.onerror error handler
      * to capture and report uncaught exceptions.
+     * At this point, install() is required to be called due
+     * to the way TraceKit is set up.
+     *
+     * @return {Raven}
      */
     install: function() {
         if (!isSetup()) return;
@@ -99,10 +99,12 @@ var Raven = {
     },
 
     /*
-     * Raven.context()
-     *
      * Wrap code within a context so Raven can capture errors
      * reliably across domains that is executed immediately.
+     *
+     * @param {object} options A specific set of options for this context [optional]
+     * @param {function} func The callback to be immediately executed within the context
+     * @param {array} args An array of arguments to be called with the callback [optional]
      */
     context: function(options, func, args) {
         if (isFunction(options)) {
@@ -114,9 +116,12 @@ var Raven = {
         Raven.wrap(options, func).apply(this, args);
     },
 
-    /* Raven.wrap()
-     *
+    /*
      * Wrap code within a context and returns back a new function to be executed
+     *
+     * @param {object} options A specific set of options for this context [optional]
+     * @param {function} func The function to be wrapped in a new context
+     * @return {function} The newly wrapped functions with a context
      */
     wrap: function(options, func) {
         // options is optional
@@ -135,9 +140,9 @@ var Raven = {
     },
 
     /*
-     * Raven.uninstall()
-     *
      * Uninstalls the global error handler.
+     *
+     * @return {Raven}
      */
     uninstall: function() {
         TK.report.unsubscribe(handleStackInfo);
@@ -146,9 +151,11 @@ var Raven = {
     },
 
     /*
-     * Raven.captureException()
-     *
      * Manually capture an exception and send it over to Sentry
+     *
+     * @param {error} ex An exception to be logged
+     * @param {object} options A specific set of options for this error [optional]
+     * @return {Raven}
      */
     captureException: function(ex, options) {
         // TraceKit.report will re-raise any exception passed to it,
@@ -168,9 +175,11 @@ var Raven = {
     },
 
     /*
-     * Raven.captureMessage()
-     *
      * Manually send a message to Sentry
+     *
+     * @param {string} msg A plain message to be captured in Sentry
+     * @param {object} options A specific set of options for this message [optional]
+     * @return {Raven}
      */
     captureMessage: function(msg, options) {
         // Fire away!
@@ -184,9 +193,10 @@ var Raven = {
     },
 
     /*
-     * Raven.setUser()
-     *
      * Set/clear a user to be sent along with the payload.
+     *
+     * @param {object} user An object representing user data [optional]
+     * @return {Raven}
      */
     setUser: function(user) {
        globalUser = user;
