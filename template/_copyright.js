@@ -1,4 +1,4 @@
-/*!
+/*
  * Raven.js @VERSION
  * https://github.com/getsentry/raven-js
  *
@@ -11,4 +11,4 @@
  *
  */
 
-/* @license Raven.js @VERSION | github.com/getsentry/raven-js */
+/*! Raven.js @VERSION | github.com/getsentry/raven-js */

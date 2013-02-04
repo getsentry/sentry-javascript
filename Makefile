@@ -40,7 +40,7 @@ raven: clean
 	cat ./template/_copyright.js ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
 		sed "s/@VERSION/${VERSION}/" >> ${RAVEN_FULL}
 
-	cd dist && ../node_modules/.bin/uglifyjs --source-map=raven.min.map --comments -m -c -o raven.min.js raven.js
+	cd dist && ../node_modules/.bin/uglifyjs --source-map=raven.min.map --comments=/^!/ -m -c -o raven.min.js raven.js
 
 test:
 	@./node_modules/.bin/jshint .
