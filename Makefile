@@ -40,12 +40,7 @@ raven: clean
 	cat ./template/_copyright.js ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
 		sed "s/@VERSION/${VERSION}/" >> ${RAVEN_FULL}
 
-	./node_modules/.bin/uglifyjs -m -c -o ${RAVEN_MIN} ${RAVEN_FULL}
-
-	# Prepend the tiny header to the compressed file
-	echo "/* Raven.js ${VERSION} | github.com/getsentry/raven-js */" | \
-		cat - ${RAVEN_MIN} > ${TMP}
-	mv ${TMP} ${RAVEN_MIN}
+	cd dist && ../node_modules/.bin/uglifyjs --source-map=raven.min.map --comments -m -c -o raven.min.js raven.js
 
 test:
 	@./node_modules/.bin/jshint .
@@ -74,6 +69,7 @@ release: raven
 	mv dist/raven.min.js.gz dist/raven.min.js
 	s3cmd put ${FAR_FUTURE_OPTIONS} dist/raven.js s3://getsentry-cdn/dist/${VERSION}/raven.js
 	s3cmd put ${FAR_FUTURE_OPTIONS} dist/raven.min.js s3://getsentry-cdn/dist/${VERSION}/raven.min.js
+	s3cmd put ${FAR_FUTURE_OPTIONS} dist/raven.min.js.map s3://getsentry-cdn/dist/${VERSION}/raven.min.map
 
 SHORT_FUTURE = $(shell TZ=GMT date -v+30M "+%a, %d %h %Y %T %Z")
 SHORT_FUTURE_OPTIONS = --acl-public --guess-mime-type --add-header "Cache-Control: public, max-age=1800" --add-header "Expires: ${SHORT_FUTURE}" --add-header "Content-Encoding: gzip"
@@ -85,6 +81,7 @@ build:
 	mv dist/raven.min.js.gz dist/raven.min.js
 	s3cmd put ${SHORT_FUTURE_OPTIONS} dist/raven.js s3://getsentry-cdn/build/${BRANCH}/raven.js
 	s3cmd put ${SHORT_FUTURE_OPTIONS} dist/raven.min.js s3://getsentry-cdn/build/${BRANCH}/raven.min.js
+	s3cmd put ${SHORT_FUTURE_OPTIONS} dist/raven.min.js.map s3://getsentry-cdn/build/${BRANCH}/raven.min.map
 
 PORT = 8888
 runserver:

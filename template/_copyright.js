@@ -10,3 +10,5 @@
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
  */
+
+/* @license Raven.js @VERSION | github.com/getsentry/raven-js */
