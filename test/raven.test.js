@@ -861,9 +861,12 @@ describe('Raven (public API)', function() {
 
     it('should capture as a normal message if a string is passed', function() {
       sinon.stub(Raven, 'captureMessage');
+      sinon.stub(TK, 'report');
       Raven.captureException('derp');
       assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
+      assert.isFalse(TK.report.called);
       Raven.captureMessage.restore();
+      TK.report.restore();
     });
   });
 });
