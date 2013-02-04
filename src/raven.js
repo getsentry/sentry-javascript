@@ -448,7 +448,9 @@ function makeRequest(data) {
 function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
-        console.error("Error: Raven has not been configured.");
+        if (window.console && console.error) {
+            console.error("Error: Raven has not been configured.");
+        }
         return false;
     }
     return true;
