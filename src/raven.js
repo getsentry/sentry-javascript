@@ -158,6 +158,11 @@ var Raven = {
      * @return {Raven}
      */
     captureException: function(ex, options) {
+        // If a string is passed through, recall as a message
+        if (typeof ex === 'string') {
+            return Raven.captureMessage(ex, options);
+        }
+
         // TraceKit.report will re-raise any exception passed to it,
         // which means you have to wrap it in try/catch. Instead, we
         // can wrap it here and only re-raise if TraceKit.report
