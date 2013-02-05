@@ -21,3 +21,5 @@ BrowserStackTunnel.jar
 Sauce-Connect.jar
 
 Sauce-Connect-latest.zip
+
+*.pyc
