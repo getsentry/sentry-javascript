@@ -1,7 +1,6 @@
+/*! Raven.js @VERSION | github.com/getsentry/raven-js */
+
 /*
- * Raven.js @VERSION
- * https://github.com/getsentry/raven-js
- *
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
@@ -10,5 +9,3 @@
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
  */
-
-/*! Raven.js @VERSION | github.com/getsentry/raven-js */
