@@ -780,6 +780,14 @@ describe('Raven (public API)', function() {
       assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
       Raven.captureException.restore();
     });
+
+    it('should execute the callback without arguments', function() {
+      // This is only reproducable in a browser that complains about passing
+      // undefined to Function.apply
+      var spy = sinon.spy();
+      Raven.context(spy);
+      assert.deepEqual(spy.lastCall.args, []);
+    });
   });
 
   describe('.uninstall', function() {
