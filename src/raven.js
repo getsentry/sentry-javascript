@@ -108,7 +108,7 @@ var Raven = {
      */
     context: function(options, func, args) {
         if (isFunction(options)) {
-            args = func;
+            args = func || [];
             func = options;
             options = undefined;
         }
