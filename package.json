@@ -11,7 +11,7 @@
   "devDependencies": {
     "phantomjs": "*",
     "jshint": "*",
-    "uglify-js": "*",
+    "uglify-js": "git://github.com/mishoo/UglifyJS2.git",
     "mocha": "*",
     "chai": "*",
     "mocha-phantomjs": "*",
