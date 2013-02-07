@@ -1,1 +1,0 @@
-Raven.config('http://public@example.com');
