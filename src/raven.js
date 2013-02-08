@@ -408,14 +408,14 @@ function arrayMerge(arr1, arr2) {
 
 function getHttpData() {
     var http = {
-        url: window.location.href,
+        url: document.location.href,
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
 
-    if (window.document.referrer) {
-        http.headers.Referer = window.document.referrer;
+    if (document.referrer) {
+        http.headers.Referer = document.referrer;
     }
 
     return http;
