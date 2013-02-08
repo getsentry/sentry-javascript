@@ -242,8 +242,11 @@ function each(obj, callback) {
             }
         }
     } else {
-        for (i = 0, j = obj.length; i < j; i++) {
-            callback.call(null, i, obj[i]);
+        j = obj.length;
+        if (j) {
+            for (i = 0; i < j; i++) {
+                callback.call(null, i, obj[i]);
+            }
         }
     }
 }
