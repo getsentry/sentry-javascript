@@ -10,10 +10,26 @@ Using our CDN
 
 We serve our own builds off of Amazon CloudFront. They are accessible over both http and https, so we recommend leaving the protocol off.
 
+Minor release with automatic bug fixes
+--------------------------------------
+This is the recommended method to maintain compatability and still receive minor bugfixes.
+
+.. code-block:: html
+
+    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js"></script>
+
+``1.0`` will update for all ``1.0.x`` releases. ``1.1.0`` would not get automatically updated, for example.
+
+Tagged version
+--------------
+Stick with a specific version to avoid any risk at all, but it's recommended to pay attention to updates frequently since new versions are released often.
+
 .. code-block:: html
 
     <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.5/raven.min.js"></script>
 
+Bleeding Edge
+-------------
 If you're feeling adventurous, we also host a **master** build, which should be considered *potentially* unstable, but bleeding edge.
 
 .. code-block:: html
@@ -23,7 +39,7 @@ If you're feeling adventurous, we also host a **master** build, which should be 
 CDNJS.com
 ~~~~~~~~~
 
-`cdnjs.com <http://cdnjs.com>`_ also gives us `SPDY <http://en.wikipedia.org/wiki/SPDY>`_ support! Again, just leave the protocol off, and it'll do it's magic.
+`cdnjs.com <http://cdnjs.com>`_ hosts our **tagged versions** and gives us `SPDY <http://en.wikipedia.org/wiki/SPDY>`_ support! Again, just leave the protocol off, and it'll do it's magic.
 
 .. code-block:: html
 
