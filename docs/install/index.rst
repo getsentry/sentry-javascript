@@ -29,24 +29,24 @@ CDNJS.com
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.5/raven.min.js"></script>
 
-Bower
-~~~~~
+.. Bower
+   ~~~~~
 
-We also provide a way to deploy Raven via `bower
-<http://twitter.github.com/bower/>`_. Useful if you want serve your scripts instead relying on CDNs and mantain a ``component.json`` with a list of dependencies and versions.
+   We also provide a way to deploy Raven via `bower
+   <http://twitter.github.com/bower/>`_. Useful if you want serve your scripts    instead relying on CDNs and mantain a ``component.json`` with a list of    dependencies and versions.
 
-.. code-block:: sh
+   .. code-block:: sh
 
-    bower install raven-js
+       bower install raven-js
 
-Please note that it automatically deploys the ``tracekit`` requirement and you should link it **before** ``raven-js``.
+   Please note that it automatically deploys the ``tracekit`` requirement and  you   should link it **before** ``raven-js``.
 
-.. code-block:: html
+   .. code-block:: html
 
-    <script src="/components/tracekit/tracekit.js"></script>
-    <script src="/components/raven-js/src/raven.js"></script>
+       <script src="/components/tracekit/tracekit.js"></script>
+       <script src="/components/raven-js/src/raven.js"></script>
 
-Also note that both files are uncompresed but are ready to pass to any decent JavaScript compressor like `uglify
-<https://github.com/mishoo/UglifyJS2>`_ or `closure
-<https://developers.google.com/closure/>`_.
+   Also note that both files are uncompresed but are ready to pass to any  decent   JavaScript compressor like `uglify
+   <https://github.com/mishoo/UglifyJS2>`_ or `closure
+   <https://developers.google.com/closure/>`_.
 
