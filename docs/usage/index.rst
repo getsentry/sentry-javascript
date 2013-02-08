@@ -21,6 +21,15 @@ The simplest way, is to try and explicitly capture and report potentially proble
         Raven.captureException(e)
     }
 
+**Do not** throw strings! Always throw an actual ``Error`` object. For example:
+
+.. code-block:: javascript
+
+    throw new Error('broken')  // good
+    throw 'broken'  // bad
+
+It's impossible to retrieve a stack trace from a string. If this happens, Raven transmits the error as a plain message.
+
 context/wrap
 ------------
 
