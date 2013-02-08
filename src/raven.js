@@ -266,17 +266,15 @@ function getAuthQueryString() {
 }
 
 function handleStackInfo(stackInfo, options) {
-    var frames = [],
-        i = 0,
-        j, frame;
+    var frames = [];
 
-    if (stackInfo.stack && (j = stackInfo.stack.length)) {
-        for (; i < j; i++) {
-            frame = normalizeFrame(stackInfo.stack[i]);
+    if (stackInfo.stack && stackInfo.stack.length) {
+        each(stackInfo.stack, function(i, stack) {
+            var frame = normalizeFrame(stack);
             if (frame) {
                 frames.push(frame);
             }
-        }
+        });
     }
 
     processException(
