@@ -2,7 +2,7 @@
   "name": "raven-js",
   "version": "1.0.5",
   "dependencies": {
-    "tracekit": "https://github.com/getsentry/TraceKit/archive/00e836085f0036c90b477002486a5fbc56fb2a9c.zip"
+    "tracekit": "https://github.com/getsentry/TraceKit/archive/2aabd7bb3f01ad99afc16dc475ce87cd21252ff6.zip"
   },
   "main": "src/raven.js"
 }
