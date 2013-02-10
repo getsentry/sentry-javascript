@@ -18,6 +18,15 @@
 
     <!-- Mocking -->
     <script src="vendor/sinon-1.5.2.js"></script>
+    <script>
+    beforeEach(function() {
+        this.sinon = sinon.sandbox.create();
+    });
+
+    afterEach(function() {
+        this.sinon.restore();
+    });
+    </script>
 
     <!-- Raven -->
     <script src="../vendor/TraceKit/tracekit.js"></script>
