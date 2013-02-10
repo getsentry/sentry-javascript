@@ -4,7 +4,7 @@ RAVEN_FULL = ./dist/raven.js
 RAVEN_MIN = ./dist/raven.min.js
 BRANCH = $(shell git rev-parse --short --abbrev-ref HEAD)
 TMP = /tmp/raven.min.js
-TEST = test/test.html
+TEST = test/index.html
 
 REPORTER = dot
 

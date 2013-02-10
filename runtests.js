@@ -32,7 +32,7 @@ cloud.browser('firefox', '17', 'Windows 2003');
 
 // the local url to test
 
-cloud.url('http://localhost:8888/test/test.html');
+cloud.url('http://localhost:8888/test/index.html');
 
 // setup
 
@@ -66,15 +66,15 @@ cloud.start(function(){
 // cloud.on('init', function(browser){
   // console.log('  init : %s %s', browser.browserName, browser.version);
 // });
-// 
+//
 // cloud.on('start', function(browser){
   // console.log('  start : %s %s', browser.browserName, browser.version);
 // });
-// 
+//
 // cloud.on('end', function(browser, res){
   // console.log(res);
   // console.log('  end : %s %s : %d failures', browser.browserName, browser.version, res.failures);
 // });
-// 
+//
 // cloud.start();
-// 
+//
