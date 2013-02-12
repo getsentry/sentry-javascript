@@ -1,4 +1,3 @@
-
 // Expose Raven to the world
 window.Raven = Raven;
 
@@ -8,7 +7,9 @@ if (isFunction(window.define) && define.amd) {
     define(function() { return Raven; });
 
     define = wrapArguments(define);
-    require = wrapArguments(require);
+    if (isFunction(window.require)) {
+        require = wrapArguments(require)
+    };
 }
 
 })(window);
