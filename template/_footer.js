@@ -3,7 +3,7 @@
 window.Raven = Raven;
 
 // AMD
-if (typeof define === 'function' && define.amd) {
+if (isFunction(window.define) && define.amd) {
     // export Raven before we wrap
     define(function() { return Raven; });
 

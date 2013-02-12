@@ -462,7 +462,7 @@ function wrapArguments(what) {
         var args = [], i = arguments.length, arg;
         while(i--) {
             arg = arguments[i];
-            args[i] = typeof arg === 'function' ? Raven.wrap(arg) : arg;
+            args[i] = isFunction(arg) ? Raven.wrap(arg) : arg;
         }
         what.apply(null, args);
     }
