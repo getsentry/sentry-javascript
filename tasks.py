@@ -16,7 +16,7 @@ FAR_FUTURE = datetime.timedelta(days=365)
 @task
 def test():
     run('node_modules/.bin/jshint .')
-    run('node_modules/.bin/mocha-phantomjs -R dot test/test.html')
+    run('node_modules/.bin/mocha-phantomjs -R dot test/index.html')
 
 
 @task
