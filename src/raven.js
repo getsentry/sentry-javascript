@@ -456,3 +456,17 @@ function isSetup() {
     }
     return true;
 }
+
+function wrapArguments(what) {
+    function wrapped() {
+        var args = [], i = arguments.length, arg;
+        while(i--) {
+            arg = arguments[i];
+            args[i] = typeof arg === 'function' ? Raven.wrap(arg) : arg;
+        }
+        what.apply(null, args);
+    }
+    // copy over properties of the old function
+    for (var k in what) wrapped[k] = what[k];
+    return wrapped;
+}
