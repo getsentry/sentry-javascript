@@ -460,3 +460,19 @@ function isSetup() {
     }
     return true;
 }
+
+function wrapArguments(what) {
+    if (!isFunction(what)) return what;
+
+    function wrapped() {
+        var args = [], i = arguments.length, arg;
+        while(i--) {
+            arg = arguments[i];
+            args[i] = isFunction(arg) ? Raven.wrap(arg) : arg;
+        }
+        what.apply(null, args);
+    }
+    // copy over properties of the old function
+    for (var k in what) wrapped[k] = what[k];
+    return wrapped;
+}
