@@ -60,10 +60,21 @@ If you really care if the event was logged or errored out, Client emits two even
 client.on('logged', function(){
   console.log('Yay, it worked!');
 });
-client.on('error', function(){
+client.on('error', function(e){
   console.log('oh well, Sentry is broke.');
 })
 client.captureMessage('Boom');
+```
+
+### Error Event
+The event error is augmented with the original Sentry response object as well as the response body and statusCode for easier debugging.
+
+```javascript
+client.on('error', function(e){
+  console.log(e.responseBody);  // raw response body, usually contains a message explaining the failure
+  console.log(e.statusCode);  // status code of the http request
+  console.log(e.response);  // entire raw http response object
+});
 ```
 
 ## Environment variables
@@ -137,13 +148,15 @@ connect(
 #### Express
 ```javascript
 var app = require('express').createServer();
-app.error(raven.middleware.express('{{ SENTRY_DSN }}'));
-app.error(onError); // optional error handler if you want to display the error id to a user
+app.use(raven.middleware.express('{{ SENTRY_DSN }}'));
+app.use(onError); // optional error handler if you want to display the error id to a user
 app.get('/', function mainHandler(req, res) {
   throw new Error('Broke!');
 });
 app.listen(3000);
 ```
+
+__Note__: `raven.middleware.express` or `raven.middleware.connect` *must* be added to the middleware stack *before* any other error handling middlewares or there's a chance that the error will never get to Sentry.
 
 ## Support
 You can find me on IRC. I troll in `#sentry` on `freenode`.

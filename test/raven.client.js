@@ -149,6 +149,32 @@ describe('raven.Client', function(){
             });
             client.captureMessage('Hey!');
         });
+
+        it('shouldn\'t shit it\'s pants when error is emitted without a listener', function(){
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(500, 'Oops!');
+
+            client.captureMessage('Hey!');
+        });
+
+        it('should attach an Error object when emitting error', function(done){
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(500, 'Oops!');
+
+            client.on('error', function(e){
+                e.statusCode.should.eql(500);
+                e.responseBody.should.eql('Oops!');
+                e.response.should.be.ok;
+                scope.done();
+                done();
+            });
+
+            client.captureMessage('Hey!');
+        });
     });
 
     describe('#captureError()', function(){
