@@ -765,7 +765,11 @@ describe('Raven (public API)', function() {
       var error = new Error('crap');
       var broken = function() { throw error; };
       sinon.stub(Raven, 'captureException');
-      Raven.context({'foo': 'bar'}, broken);
+      try {
+        Raven.context({'foo': 'bar'}, broken);
+      } catch(e) {
+        assert.equal(e, error);
+      }
       assert.isTrue(Raven.captureException.called);
       assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
       Raven.captureException.restore();
@@ -775,7 +779,11 @@ describe('Raven (public API)', function() {
       var error = new Error('crap');
       var broken = function() { throw error; };
       sinon.stub(Raven, 'captureException');
-      Raven.context(broken);
+      try {
+        Raven.context(broken);
+      } catch(e) {
+        assert.equal(e, error);
+      }
       assert.isTrue(Raven.captureException.called);
       assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
       Raven.captureException.restore();
