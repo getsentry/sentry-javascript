@@ -51,6 +51,10 @@ var Raven = {
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
 
+        if (options.ignoreErrors && window.console && console.warn) {
+            console.warn('DeprecationWarning: `ignoreErrors` is going to be removed soon.');
+        }
+
         // merge in options
         if (options) {
             each(options, function(key, value){
