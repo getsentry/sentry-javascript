@@ -1,8 +1,6 @@
 {
   "name": "raven-js",
   "version": "1.1.0-pre",
-  "dependencies": {
-    "tracekit": "https://github.com/getsentry/TraceKit/archive/1595b5afcd63dfc303e009c083f885d348642ee0.zip"
-  },
+  "dependencies": {},
   "main": "dist/1.1.0-pre/raven.js"
 }
