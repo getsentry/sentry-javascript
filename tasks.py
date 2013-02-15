@@ -31,6 +31,7 @@ def release():
     "Publish a tagged version"
     test.body()
     make(VERSION)
+    tag(VERSION)
 
 
 def make(version):
@@ -42,8 +43,8 @@ def make(version):
 
 
 def gzip(path):
-    run('gzip -6 dist/%s' % path)
-    run('mv dist/%s.gz dist/%s' % (path, path))
+    run('gzip -6 build/%s' % path)
+    run('mv build/%s.gz build/%s' % (path, path))
 
 
 def publish(path, version, args):
@@ -59,6 +60,8 @@ def publish(path, version, args):
     upload(path, args + cache, package, branch)
 
     if package == 'dist':
+        run('mkdir -p dist/%s' % version)
+        run('cp build/%s dist/%s' % (path, version))
         version = version.split('.')
         version.pop()
         cache = get_cache_headers(MEDIUM_FUTURE)
@@ -66,9 +69,15 @@ def publish(path, version, args):
             upload(path, args + cache, package, '.'.join(version))
             version.pop()
 
+def tag(version):
+    run('git add dist/%s' % version)
+    run('git commit -m "%s"' % version)
+    run('git tag %s' % version)
+    run('git push origin %s' % version)
+
 
 def upload(path, args, package, build):
-    run('s3cmd put %s dist/%s s3://getsentry-cdn/%s/%s/%s' %
+    run('s3cmd put %s build/%s s3://getsentry-cdn/%s/%s/%s' %
         (' '.join(args), path, package, build, path))
 
 

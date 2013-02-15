@@ -1,7 +1,7 @@
 RAVEN = ./src/raven.js
 VERSION ?= $(shell cat version.txt)
-RAVEN_FULL = ./dist/raven.js
-RAVEN_MIN = ./dist/raven.min.js
+RAVEN_FULL = ./build/raven.js
+RAVEN_MIN = ./build/raven.min.js
 BRANCH = $(shell git rev-parse --short --abbrev-ref HEAD)
 TMP = /tmp/raven.min.js
 TEST = test/index.html
@@ -34,13 +34,13 @@ docs-live:
 #
 
 raven: clean
-	mkdir -p dist
+	mkdir -p build
 
 	# Generate the full and compressed distributions
 	cat ./template/_copyright.js ${DEPENDENCIES} ./template/_header.js ${RAVEN} ./template/_footer.js | \
 		sed "s/@VERSION/${VERSION}/" >> ${RAVEN_FULL}
 
-	cd dist && ../node_modules/.bin/uglifyjs --source-map=raven.min.map --comments=/^!/ -m -c -o raven.min.js raven.js
+	cd build && ../node_modules/.bin/uglifyjs --source-map=raven.min.map --comments=/^!/ -m -c -o raven.min.js raven.js
 
 test:
 	@./node_modules/.bin/jshint .
@@ -65,7 +65,7 @@ runserver:
 	python -m SimpleHTTPServer ${PORT}
 
 clean:
-	rm -rf dist
+	rm -rf build
 	rm -rf docs/html
 
 install-hooks:
