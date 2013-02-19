@@ -1,3 +1,0 @@
-TypeError: string is not a function
-    at String.CALL_NON_FUNCTION (native)
-    at Context.<anonymous> (/Does/Not/Exist/test/raven.client.js:73:13)

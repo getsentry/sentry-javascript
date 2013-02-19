@@ -1,9 +1,0 @@
-[{
-  "function": "String.CALL_NON_FUNCTION",
-  "filename": "native",
-  "lineno": 0
-}, {
-  "function": "Context.<anonymous>",
-  "filename": "/Does/Not/Exist/test/raven.client.js",
-  "lineno": 73
-}]

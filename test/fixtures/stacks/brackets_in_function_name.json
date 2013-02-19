@@ -1,9 +1,0 @@
-[{
-  "function": "Object.mainHandler [as handle]",
-  "filename": "/Does/Not/Exist/tests.js",
-  "lineno": 34
-}, {
-  "function": "next",
-  "filename": "/Does/Not/Exist/node_modules/connect/lib/http.js",
-  "lineno": 203
-}]

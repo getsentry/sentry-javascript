@@ -1,3 +1,0 @@
-Error: Broke!
-    at Object.mainHandler [as handle] (/Does/Not/Exist/tests.js:34:11)
-    at next (/Does/Not/Exist/node_modules/connect/lib/http.js:203:15)
