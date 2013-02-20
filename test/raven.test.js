@@ -6,7 +6,6 @@ function flushRavenState() {
   globalProject = undefined;
   globalOptions = {
     logger: 'javascript',
-    ignoreErrors: [],
     ignoreUrls: []
   };
   Raven.uninstall();
@@ -262,16 +261,11 @@ describe('globals', function() {
   });
 
   describe('processException', function() {
-    it('should respect `ignoreErrors`', function() {
+    it('should ignore "Script error."', function() {
       this.sinon.stub(window, 'send');
 
-      globalOptions.ignoreErrors = ['e1', 'e2'];
-      processException('Error', 'e1', 'http://example.com', []);
+      processException('', 'Script error.');
       assert.isFalse(window.send.called);
-      processException('Error', 'e2', 'http://example.com', []);
-      assert.isFalse(window.send.called);
-      processException('Error', 'error', 'http://example.com', []);
-      assert.isTrue(window.send.calledOnce);
     });
 
     it('should respect `ignoreUrls`', function() {
@@ -657,7 +651,6 @@ describe('Raven (public API)', function() {
       assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
       assert.equal(globalKey, 'abc');
       assert.equal(globalServer, 'http://example.com:80/api/2/store/');
-      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
       assert.equal(globalOptions.foo, 'bar');
       assert.equal(globalProject, 2);
     });
@@ -666,7 +659,6 @@ describe('Raven (public API)', function() {
       Raven.config('//abc@example.com/2');
       assert.equal(globalKey, 'abc');
       assert.equal(globalServer, '//example.com/api/2/store/');
-      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
       assert.equal(globalProject, 2);
     });
   });

@@ -11,7 +11,6 @@ var _Raven = window.Raven,
     globalProject,
     globalOptions = {
         logger: 'javascript',
-        ignoreErrors: [],
         ignoreUrls: []
     };
 
@@ -51,20 +50,12 @@ var Raven = {
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
 
-        if (options && options.ignoreErrors && window.console && console.warn) {
-            console.warn('DeprecationWarning: `ignoreErrors` is going to be removed soon.');
-        }
-
         // merge in options
         if (options) {
             each(options, function(key, value){
                 globalOptions[key] = value;
             });
         }
-
-        // "Script error." is hard coded into browsers for errors that it can't read.
-        // this is the result of a script being pulled in from an external domain and CORS.
-        globalOptions.ignoreErrors.push('Script error.');
 
         globalKey = uri.user;
         globalProject = ~~uri.path.substr(lastSlash + 1);
@@ -358,14 +349,9 @@ function extractContextFromFrame(frame) {
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, label, i;
 
-    // IE8 really doesn't have Array.prototype.indexOf
-    // Filter out a message that matches our ignore list
-    i = globalOptions.ignoreErrors.length;
-    while (i--) {
-        if (message === globalOptions.ignoreErrors[i]) {
-            return;
-        }
-    }
+    // "Script error." is hard coded into browsers for errors that it can't read.
+    // this is the result of a script being pulled in from an external domain and CORS.
+    if (message === 'Script error.') return;
 
     if (frames && frames.length) {
         stacktrace = {frames: frames};
