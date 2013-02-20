@@ -302,7 +302,7 @@ function normalizeFrame(frame) {
         while (i--) normalized[keys[i]] = context[i];
     }
 
-    normalized.in_app = !/(Raven|TraceKit)\./.test(normalized['function']);
+    // normalized.in_app = !/(Raven|TraceKit)\./.test(normalized['function']);
 
     return normalized;
 }

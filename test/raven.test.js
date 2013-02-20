@@ -158,7 +158,7 @@ describe('globals', function() {
         pre_context: ['line1'],
         context_line: 'line2',
         post_context: ['line3'],
-        in_app: true
+        // in_app: true
       });
     });
 
@@ -179,7 +179,7 @@ describe('globals', function() {
         lineno: 10,
         colno: 11,
         'function': 'lol',
-        in_app: true
+        // in_app: true
       });
     });
   });
