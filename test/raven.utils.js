@@ -15,12 +15,6 @@ describe('raven.utils', function() {
     });
   });
 
-  describe('#getSignature()', function(){
-    it('should sign a key, timestamp, and message with md5 hash', function(){
-      raven.utils.getSignature('abc', 'This is awesome!', 1331932297938).should.equal('76cfb41aa49f91e5eb4ffbb1fe0c5b578459c537');
-    });
-  });
-
   describe('#parseDSN()', function(){
     it('should parse hosted Sentry DSN without path', function(){
       var dsn = raven.utils.parseDSN('https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@app.getsentry.com/269');
@@ -106,12 +100,11 @@ describe('raven.utils', function() {
 
   describe('#parseAuthHeader()', function(){
     it('should parse all parameters', function(){
-      var signature = 'abc',
-        timestamp = 12345,
+      var timestamp = 12345,
         api_key = 'xyz',
         project_id = 1;
-      var expected = 'Sentry sentry_version=2.0, sentry_signature=abc, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=xyz, project_id=1';
-      raven.utils.getAuthHeader(signature, timestamp, api_key, project_id).should.equal(expected);
+      var expected = 'Sentry sentry_version=2.0, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=xyz, project_id=1';
+      raven.utils.getAuthHeader(timestamp, api_key, project_id).should.equal(expected);
     });
   });
 
