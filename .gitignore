@@ -10,7 +10,6 @@
 docs/html
 docs/doctrees
 
-dist
 node_modules
 
 sauce_connect.log
