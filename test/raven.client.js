@@ -113,6 +113,15 @@ describe('raven.Client', function(){
         restoreConsoleWarn();
     });
 
+    it('should be disabled and warn when NODE_ENV=test', function(){
+        mockConsoleWarn();
+        process.env.NODE_ENV = 'test';
+        var client = new raven.Client(dsn);
+        client._enabled.should.eql(false);
+        console.warn._called.should.eql(true);
+        restoreConsoleWarn();
+    });
+
     describe('#getIdent()', function(){
         it('should match', function(){
             var result = {

@@ -1,3 +1,6 @@
+# 0.4.7 - 1/13/2013
+  * Actually disable when NODE_ENV does not equal 'production' [Fixes #25]
+
 # 0.4.6 - 1/13/2013
   * Added `platform=node` to payload for Sentry 5.1
 
