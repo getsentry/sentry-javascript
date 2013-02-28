@@ -42,8 +42,8 @@ def make(version):
 
 
 def gzip(path):
-    run('gzip -6 dist/%s' % path)
-    run('mv dist/%s.gz dist/%s' % (path, path))
+    run('gzip -6 build/%s' % path)
+    run('mv build/%s.gz build/%s' % (path, path))
 
 
 def publish(path, version, args):
@@ -68,7 +68,7 @@ def publish(path, version, args):
 
 
 def upload(path, args, package, build):
-    run('s3cmd put %s dist/%s s3://getsentry-cdn/%s/%s/%s' %
+    run('s3cmd put %s build/%s s3://getsentry-cdn/%s/%s/%s' %
         (' '.join(args), path, package, build, path))
 
 
