@@ -15,6 +15,7 @@ node_modules
 sauce_connect.log
 
 scratch/
+build/
 
 BrowserStackTunnel.jar
 Sauce-Connect.jar
