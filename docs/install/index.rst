@@ -26,7 +26,7 @@ Stick with a specific version to avoid any risk at all, but it's recommended to 
 
 .. code-block:: html
 
-    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.6/raven.min.js"></script>
+    <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0.7/raven.min.js"></script>
 
 Bleeding Edge
 -------------
@@ -43,7 +43,7 @@ CDNJS.com
 
 .. code-block:: html
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.6/raven.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/1.0.7/raven.min.js"></script>
 
 .. Bower
    ~~~~~
