@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "dependencies": {},
-  "main": "dist/1.0.6/raven.js"
+  "main": "dist/1.0.7/raven.js"
 }
