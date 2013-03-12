@@ -17,6 +17,7 @@ Getting Started
    install/index
    config/index
    usage/index
+   tips/index
 
 Developers
 ----------
