@@ -101,6 +101,17 @@ describe('raven.parsers', function(){
       }
     });
 
+    it('should have a string stack after parsing', function(done){
+      try {
+        throw new Error('Derp');
+      } catch(e) {
+        raven.parsers.parseError(e, {}, function(parsed){
+          e.stack.should.be.a('string')
+          done();
+        });
+      }
+    });
+
     it('should parse caught real error', function(done){
       try {
         var o = {};
