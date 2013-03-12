@@ -1,4 +1,5 @@
 var raven = require('../');
+var client = new raven.Client()
 raven.parsers = require('../lib/parsers');
 
 describe('raven.parsers', function(){
@@ -50,7 +51,9 @@ describe('raven.parsers', function(){
 
   describe('#parseError()', function(){
     it('should parse plain Error object', function(done){
-      raven.parsers.parseError(new Error(), {}, function(parsed){
+      var err = new Error();
+      client.captureError(err, {}, function(r){
+        var parsed = err.raven.kwargs;
         parsed['message'].should.equal('Error: <no message>');
         parsed.should.have.property('sentry.interfaces.Exception');
         parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
@@ -62,7 +65,9 @@ describe('raven.parsers', function(){
     });
 
     it('should parse Error with message', function(done){
-      raven.parsers.parseError(new Error('Crap'), {}, function(parsed){
+      var err = new Error('Crap');
+      client.captureError(err, {}, function(r){
+        var parsed = err.raven.kwargs;
         parsed['message'].should.equal('Error: Crap');
         parsed.should.have.property('sentry.interfaces.Exception');
         parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
@@ -74,7 +79,9 @@ describe('raven.parsers', function(){
     });
 
     it('should parse TypeError with message', function(done){
-      raven.parsers.parseError(new TypeError('Crap'), {}, function(parsed){
+      var err = new TypeError('Crap');
+      client.captureError(err, {}, function(r){
+        var parsed = err.raven.kwargs;
         parsed['message'].should.equal('TypeError: Crap');
         parsed.should.have.property('sentry.interfaces.Exception');
         parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
@@ -89,7 +96,8 @@ describe('raven.parsers', function(){
       try {
         throw new Error('Derp');
       } catch(e) {
-        raven.parsers.parseError(e, {}, function(parsed){
+        client.captureError(e, {}, function(r){
+          var parsed = e.raven.kwargs;
           parsed['message'].should.equal('Error: Derp');
           parsed.should.have.property('sentry.interfaces.Exception');
           parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
@@ -105,7 +113,7 @@ describe('raven.parsers', function(){
       try {
         throw new Error('Derp');
       } catch(e) {
-        raven.parsers.parseError(e, {}, function(parsed){
+        client.captureError(e, {}, function(r){
           e.stack.should.be.a('string')
           done();
         });
@@ -117,7 +125,8 @@ describe('raven.parsers', function(){
         var o = {};
         o['...']['Derp']();
       } catch(e) {
-        raven.parsers.parseError(e, {}, function(parsed){
+        client.captureError(e, {}, function(r){
+          var parsed = e.raven.kwargs;
           parsed['message'].should.equal('TypeError: Cannot call method \'Derp\' of undefined');
           parsed.should.have.property('sentry.interfaces.Exception');
           parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
