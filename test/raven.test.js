@@ -7,7 +7,8 @@ function flushRavenState() {
   globalOptions = {
     logger: 'javascript',
     ignoreErrors: [],
-    ignoreUrls: []
+    ignoreUrls: [],
+    tags: {}
   };
   Raven.uninstall();
 }
@@ -465,6 +466,38 @@ describe('globals', function() {
           name: 'Matt'
         },
         foo: 'bar'
+      }]);
+    });
+
+    it('should merge in global tags', function() {
+      this.sinon.stub(window, 'isSetup').returns(true);
+      this.sinon.stub(window, 'makeRequest');
+      this.sinon.stub(window, 'getHttpData').returns({
+        url: 'http://localhost/?a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
+
+      globalProject = 2;
+      globalOptions = {
+        logger: 'javascript',
+        site: 'THE BEST',
+        tags: {tag1: 'value1'}
+      };
+
+
+      send({tags: {tag2: 'value2'}});
+      assert.deepEqual(window.makeRequest.lastCall.args, [{
+        project: 2,
+        logger: 'javascript',
+        site: 'THE BEST',
+        platform: 'javascript',
+        'sentry.interfaces.Http': {
+          url: 'http://localhost/?a=b',
+          headers: {
+            'User-Agent': 'lolbrowser'
+          }
+        },
+        tags: {tag1: 'value1', tag2: 'value2'}
       }]);
     });
 
