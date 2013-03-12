@@ -91,3 +91,41 @@ Dealing with minified source code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_. *Information coming soon*
+
+
+Capturing errors which occur before Raven has loaded
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your application loads a significant amount of JavaScript you may want to record errors which
+occur before the raven JavaScript has loaded, especially as this allows you to avoid the raven.js
+request temporarily blocking a user-visible resource.
+
+This example installs a primitive error handler as early as possible — typically a `<script>` in
+the HTML `<head>` — which will be replaced as soon as Raven loads:
+
+.. code-block:: html
+
+    <html>
+        <head>
+            …
+            <script>
+                var _raven_queue = [];
+                window.onerror = function(message, file, line) {
+                   var msg = line ? message + " at " + line : message;
+                   _raven_queue.push([msg, {culprit: file}]);
+                }
+            </script>
+            …
+        </head>
+        <body>
+            …
+            <script src="{% static "external/raven-1.0.1.min.js" %}"></script>
+            <script>
+                window.onerror = null; /* Clear our temporary handler */
+                Raven.config(YOUR_DSN).install();
+                for (var i=0; i < _raven_queue.length; i++) {
+                    Raven.captureMessage.apply(this, _raven_queue[i]);
+                };
+            </script>
+        </body>
+    </html>
