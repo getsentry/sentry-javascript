@@ -55,6 +55,17 @@ Similar to ``ignoreErrors``, but will ignore errors from whole urls patching a r
       ignoreUrls: [/graph\.facebook\.com/i]
     }
 
+includePaths
+------------
+
+An array of regex patterns to indicate which urls are a part of your app. All other frames will appear collapsed inside Sentry to make it easier to discern between frames that happened in your code vs other code. It'd be suggested to add the current page url, and the host for your CDN.
+
+.. code-block:: javascript
+
+    {
+        includePaths: [/https?:\/\/getsentry\.com/, /https?:\/\/cdn\.getsentry\.com/]
+    }
+
 Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -73,6 +84,10 @@ Putting it all together
                 ],
                 ignoreErrors: [
                     'fb_xd_fragment'
+                ],
+                includePaths: [
+                    /https?:\/\/(www\.)?getsentry\.com/,
+                    /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
                 ]
             };
             Raven.config('https://public@getsentry.com/1', options).install();

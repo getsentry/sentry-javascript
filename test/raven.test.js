@@ -8,6 +8,7 @@ function flushRavenState() {
     logger: 'javascript',
     ignoreErrors: [],
     ignoreUrls: [],
+    includePaths: [],
     tags: {}
   };
   Raven.uninstall();
@@ -32,6 +33,7 @@ function setupRaven() {
 
 describe('globals', function() {
   beforeEach(function() {
+    setupRaven();
     globalOptions.fetchContext = true;
   });
 
@@ -160,7 +162,7 @@ describe('globals', function() {
         pre_context: ['line1'],
         context_line: 'line2',
         post_context: ['line3'],
-        // in_app: true
+        in_app: true
       });
     });
 
@@ -181,7 +183,51 @@ describe('globals', function() {
         lineno: 10,
         colno: 11,
         'function': 'lol',
-        // in_app: true
+        in_app: true
+      });
+    });
+
+    it('should not mark `in_app` if rules match', function() {
+      this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+      var frame = {
+        url: 'http://example.com/path/file.js',
+        line: 10,
+        column: 11,
+        func: 'lol'
+        // context: []  context is stubbed
+      };
+
+      globalOptions.fetchContext = true;
+      globalOptions.includePaths = /^http:\/\/example\.com/;
+
+      assert.deepEqual(normalizeFrame(frame), {
+        filename: 'http://example.com/path/file.js',
+        lineno: 10,
+        colno: 11,
+        'function': 'lol',
+        in_app: true
+      });
+    });
+
+    it('should mark `in_app` if rules do not match', function() {
+      this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+      var frame = {
+        url: 'http://lol.com/path/file.js',
+        line: 10,
+        column: 11,
+        func: 'lol'
+        // context: []  context is stubbed
+      };
+
+      globalOptions.fetchContext = true;
+      globalOptions.includePaths = /^http:\/\/example\.com/;
+
+      assert.deepEqual(normalizeFrame(frame), {
+        filename: 'http://lol.com/path/file.js',
+        lineno: 10,
+        colno: 11,
+        'function': 'lol',
+        in_app: false
       });
     });
   });
@@ -278,7 +324,7 @@ describe('globals', function() {
     it('should respect `ignoreUrls`', function() {
       this.sinon.stub(window, 'send');
 
-      globalOptions.ignoreUrls = [/.+?host1.+/, /.+?host2.+/];
+      globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
       processException('Error', 'error', 'http://host1/', []);
       assert.isFalse(window.send.called);
       processException('Error', 'error', 'http://host2/', []);

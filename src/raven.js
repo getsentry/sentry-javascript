@@ -13,6 +13,7 @@ var _Raven = window.Raven,
         logger: 'javascript',
         ignoreErrors: [],
         ignoreUrls: [],
+        includePaths: [],
         tags: {}
     };
 
@@ -58,6 +59,10 @@ var Raven = {
                 globalOptions[key] = value;
             });
         }
+
+        // join regexp rules into one big rule
+        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
+        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
@@ -301,14 +306,22 @@ function normalizeFrame(frame) {
         lineno:     frame.line,
         colno:      frame.column,
         'function': frame.func || '?'
-    }, context = extractContextFromFrame(frame);
+    }, context = extractContextFromFrame(frame), i;
 
     if (context) {
-        var i = 3, keys = ['pre_context', 'context_line', 'post_context'];
+        var keys = ['pre_context', 'context_line', 'post_context'];
+        i = 3;
         while (i--) normalized[keys[i]] = context[i];
     }
 
-    // normalized.in_app = !/(Raven|TraceKit)\./.test(normalized['function']);
+    normalized.in_app = !( // determine if an exception came from outside of our app
+        // first we check the global includePaths list.
+        !globalOptions.includePaths.test(normalized.filename) ||
+        // Now we check for fun, if the function name is Raven or TraceKit
+        /(Raven|TraceKit)\./.test(normalized['function']) ||
+        // finally, we do a last ditch effort and check for raven.min.js
+        /raven\.(min\.)js$/.test(normalized.filename)
+    );
 
     return normalized;
 }
@@ -376,12 +389,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
-    i = globalOptions.ignoreUrls.length;
-    while (i--) {
-        if (globalOptions.ignoreUrls[i].test(fileurl)) {
-            return;
-        }
-    }
+    if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
 
     label = lineno ? message + ' at ' + lineno : message;
 
@@ -479,4 +487,12 @@ function wrapArguments(what) {
     // copy over properties of the old function
     for (var k in what) wrapped[k] = what[k];
     return wrapped;
+}
+
+function joinRegExp(patterns) {
+    // Combine an array of regular expressions into one large regexp
+    var sources = [], i = patterns.length;
+    // lol, map
+    while (i--) sources[i] = patterns[i].source;
+    return new RegExp(sources.join('|'), 'i');
 }
