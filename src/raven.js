@@ -22,6 +22,8 @@ var TK = TraceKit.noConflict();
 // Disable Tracekit's remote fetching by default
 TK.remoteFetching = false;
 
+var ravenCallbacks = {};
+
 /*
  * The core Raven singleton
  *
@@ -214,8 +216,110 @@ var Raven = {
        globalUser = user;
 
        return Raven;
+    },
+
+    on: function(eventType, eventCallback, eventContext) {
+        var eventCallbacks;
+
+        if (!eventType || typeof eventType !== "string") {
+            throw new TypeError("Unknown Event: " + eventType);
+        }
+
+        if (!isFunction(eventCallback)) {
+            throw new TypeError("Cannot attach non-function as a callback: " + eventCallback);
+        }
+
+        eventCallbacks = ravenCallbacks[eventType] || (ravenCallbacks[eventType] = []);
+
+        eventCallbacks.push({
+            callback: eventCallback,
+            context: eventContext
+        });
+
+        return Raven;
+    },
+
+    off: function(eventType, eventFunction, eventContext) {
+        var eventCallbacks, matches, key;
+
+        if (typeof eventType !== "string" && eventType != null) {
+            throw new TypeError("Event must be null or a string to remove: " + eventType);
+        }
+
+        if (eventFunction == null && eventContext == null) {
+            matches = callbackMatchesAlways;
+        } else if (eventFunction == null && eventContext != null) {
+            matches = callbackMatchesContext;
+        } else if (eventFunction != null && eventContext == null) {
+            matches = callbackMatchesFunction;
+        } else {
+            matches = callbackMatchesBoth;
+        }
+
+        eventCallbacks = ravenCallbacks[eventType];
+
+        if (eventType == null) {
+            for (key in ravenCallbacks) {
+                if (ravenCallbacks.hasOwnProperty(key)) {
+                    eventCallbacks = ravenCallbacks[key];
+                    removeCallbacks(eventCallbacks, matches, eventFunction, eventContext);
+                }
+            }
+        } else {
+            removeCallbacks(eventCallbacks, matches, eventFunction, eventContext);
+        }
+
+        return Raven;
     }
 };
+
+function callbackMatchesFunction(callback, func, ctx) {
+    return callback.callback === func;
+}
+
+function callbackMatchesContext(callback, func, ctx) {
+    return callback.context === ctx;
+}
+
+function callbackMatchesBoth(callback, func, ctx) {
+    return callbackMatchesFunction.apply(null, arguments) && callbackMatchesContext.apply(null, arguments);
+}
+
+function callbackMatchesAlways() {
+    return true;
+}
+
+function removeCallbacks(callbacks, matches, func, ctx) {
+    var i, callback, len;
+
+    if (!callbacks) {
+        return;
+    }
+
+    for (i = 0, len = callbacks.length; i < len;) {
+        callback = callbacks[i];
+        if (callback && matches(callback, func, ctx)) {
+            callbacks.splice(i, 1);
+            len -= 1;
+        } else {
+            i += 1;
+        }
+    }
+}
+
+function triggerEvent(eventType, args) {
+    var eventCallbacks = ravenCallbacks[eventType],
+        len,
+        i;
+
+    if (!eventCallbacks) {
+        return;
+    }
+
+    for (i = 0, len = eventCallbacks.length; i < len; ++i) {
+        eventCallbacks[i].callback.apply(eventCallbacks[i].context, args);
+    }
+}
 
 var uriKeys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
     uriPattern = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
@@ -286,6 +390,8 @@ function handleStackInfo(stackInfo, options) {
             }
         });
     }
+
+    triggerEvent('handle', [stackInfo, options]);
 
     processException(
         stackInfo.name,
@@ -458,8 +564,24 @@ function send(data) {
     makeRequest(data);
 }
 
+
 function makeRequest(data) {
-    new Image().src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var img, src;
+
+    function success() {
+        triggerEvent('success', [data, src]);
+    }
+
+    function failure() {
+        triggerEvent('failure', [data, src]);
+    }
+
+    src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    img = new Image();
+    img.onload = success;
+    img.onerror = failure;
+    img.onabort = failure;
+    img.src = src;
 }
 
 function isSetup() {
