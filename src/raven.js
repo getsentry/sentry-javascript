@@ -22,8 +22,6 @@ var TK = TraceKit.noConflict();
 // Disable Tracekit's remote fetching by default
 TK.remoteFetching = false;
 
-var ravenCallbacks = {};
-
 /*
  * The core Raven singleton
  *
@@ -216,108 +214,34 @@ var Raven = {
        globalUser = user;
 
        return Raven;
-    },
-
-    on: function(eventType, eventCallback, eventContext) {
-        var eventCallbacks;
-
-        if (!eventType || typeof eventType !== "string") {
-            throw new TypeError("Unknown Event: " + eventType);
-        }
-
-        if (!isFunction(eventCallback)) {
-            throw new TypeError("Cannot attach non-function as a callback: " + eventCallback);
-        }
-
-        eventCallbacks = ravenCallbacks[eventType] || (ravenCallbacks[eventType] = []);
-
-        eventCallbacks.push({
-            callback: eventCallback,
-            context: eventContext
-        });
-
-        return Raven;
-    },
-
-    off: function(eventType, eventFunction, eventContext) {
-        var eventCallbacks, matches, key;
-
-        if (typeof eventType !== "string" && eventType != null) {
-            throw new TypeError("Event must be null or a string to remove: " + eventType);
-        }
-
-        if (eventFunction == null && eventContext == null) {
-            matches = callbackMatchesAlways;
-        } else if (eventFunction == null && eventContext != null) {
-            matches = callbackMatchesContext;
-        } else if (eventFunction != null && eventContext == null) {
-            matches = callbackMatchesFunction;
-        } else {
-            matches = callbackMatchesBoth;
-        }
-
-        eventCallbacks = ravenCallbacks[eventType];
-
-        if (eventType == null) {
-            for (key in ravenCallbacks) {
-                if (ravenCallbacks.hasOwnProperty(key)) {
-                    eventCallbacks = ravenCallbacks[key];
-                    removeCallbacks(eventCallbacks, matches, eventFunction, eventContext);
-                }
-            }
-        } else {
-            removeCallbacks(eventCallbacks, matches, eventFunction, eventContext);
-        }
-
-        return Raven;
     }
 };
 
-function callbackMatchesFunction(callback, func, ctx) {
-    return callback.callback === func;
-}
+function triggerEvent(eventType, options) {
+    var event, key;
 
-function callbackMatchesContext(callback, func, ctx) {
-    return callback.context === ctx;
-}
+    eventType = 'raven' + eventType[0].toUpperCase() + eventType.substr(1);
 
-function callbackMatchesBoth(callback, func, ctx) {
-    return callbackMatchesFunction.apply(null, arguments) && callbackMatchesContext.apply(null, arguments);
-}
-
-function callbackMatchesAlways() {
-    return true;
-}
-
-function removeCallbacks(callbacks, matches, func, ctx) {
-    var i, callback, len;
-
-    if (!callbacks) {
-        return;
+    if (document.createEvent) {
+        event = document.createEvent("HTMLEvents");
+        event.initEvent(eventType, true, true);
+    } else {
+        event = document.createEventObject();
+        event.eventType = eventType;
     }
 
-    for (i = 0, len = callbacks.length; i < len;) {
-        callback = callbacks[i];
-        if (callback && matches(callback, func, ctx)) {
-            callbacks.splice(i, 1);
-            len -= 1;
-        } else {
-            i += 1;
-        }
-    }
-}
-
-function triggerEvent(eventType, args) {
-    var eventCallbacks = ravenCallbacks[eventType],
-        len,
-        i;
-
-    if (!eventCallbacks) {
-        return;
+    if (typeof options !== "object") {
+        options = {}
     }
 
-    for (i = 0, len = eventCallbacks.length; i < len; ++i) {
-        eventCallbacks[i].callback.apply(eventCallbacks[i].context, args);
+    for (key in options) if (options.hasOwnProperty(key)) {
+        event[key] = options[key]
+    }
+
+    if (document.createEvent) {
+        document.dispatchEvent(event);
+    } else {
+        document.fireEvent("on" + event.eventType.toLowerCase(), event);
     }
 }
 
@@ -391,7 +315,10 @@ function handleStackInfo(stackInfo, options) {
         });
     }
 
-    triggerEvent('handle', [stackInfo, options]);
+    triggerEvent('handle', {
+        stackInfo: stackInfo,
+        options: options
+    });
 
     processException(
         stackInfo.name,
@@ -569,11 +496,17 @@ function makeRequest(data) {
     var img, src;
 
     function success() {
-        triggerEvent('success', [data, src]);
+        triggerEvent('success', {
+            data: data,
+            src: src
+        });
     }
 
     function failure() {
-        triggerEvent('failure', [data, src]);
+        triggerEvent('failure', {
+            data: data,
+            src: src
+        });
     }
 
     src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
