@@ -19,17 +19,15 @@ def test():
     run('node_modules/.bin/mocha-phantomjs -R dot test/index.html')
 
 
-@task
+@task('test')
 def build():
     "Publish a nightly build"
-    test.body()
     make(get_rev())
 
 
-@task
+@task('test')
 def release():
     "Publish a tagged version"
-    test.body()
     make(VERSION)
     tag(VERSION)
 
