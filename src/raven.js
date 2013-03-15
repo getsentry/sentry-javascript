@@ -282,7 +282,7 @@ function handleStackInfo(stackInfo, options) {
         each(stackInfo.stack, function(i, stack) {
             var frame = normalizeFrame(stack);
             if (frame) {
-                frames.push(frame);
+                frames.unshift(frame);
             }
         });
     }
