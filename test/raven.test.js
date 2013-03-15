@@ -14,6 +14,14 @@ function flushRavenState() {
   Raven.uninstall();
 }
 
+var requestCache = [];
+window.XMLHttpRequest = function XMLHttpRequest () {
+  var me = this;
+  this.open = function (method, uri) { this.uri = uri }
+  this.setRequestHeader = function () {}
+  this.send = function (data) { me.data = data; requestCache.push(me); }
+}
+
 var imageCache = [];
 window.Image = function Image() {
   imageCache.push(this);
@@ -570,7 +578,20 @@ describe('globals', function() {
   });
 
   describe('makeRequest', function() {
-    it('should load an Image', function() {
+    it('should load create an XMLHttpRequest', function() {
+      requestCache = [];
+      this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
+      globalServer = 'http://localhost/';
+
+      makeRequest({foo: 'bar'});
+      assert.equal(requestCache.length, 1);
+      assert.equal(requestCache[0].uri, 'http://localhost/?lol');
+      assert.equal(requestCache[0].data, '{"foo":"bar"}')
+    });
+
+    it('should load create an image if XMLHttpRequest is unavailable', function() {
+      var xhr = window.XMLHttpRequest;
+      window.XMLHttpRequest = undefined;
       imageCache = [];
       this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
       globalServer = 'http://localhost/';
@@ -578,6 +599,7 @@ describe('globals', function() {
       makeRequest({foo: 'bar'});
       assert.equal(imageCache.length, 1);
       assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
+      window.XMLHttpRequest = xhr;
     });
   });
 
@@ -870,10 +892,10 @@ describe('Raven (public API)', function() {
     });
 
     it('should work as advertised #integration', function() {
-      imageCache = [];
+      requestCache = [];
       setupRaven();
       Raven.captureMessage('lol', {foo: 'bar'});
-      assert.equal(imageCache.length, 1);
+      assert.equal(requestCache.length, 1);
       // It'd be hard to assert the actual payload being sent
       // since it includes the generated url, which is going to
       // vary between users running the tests
