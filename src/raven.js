@@ -459,7 +459,16 @@ function send(data) {
 }
 
 function makeRequest(data) {
-    new Image().src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var uri = globalServer + getAuthQueryString();
+
+    if (window.XMLHttpRequest) {
+      var req = new XMLHttpRequest();
+      req.open("POST", uri);
+      req.setRequestHeader("content-type", "text/plain; charset=UTF-8");
+      req.send(JSON.stringify(data));
+    } else {
+      new Image().src = uri + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    }
 }
 
 function isSetup() {
