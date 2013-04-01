@@ -8,7 +8,7 @@ All processing and sending happens asynchronously to not slow things down if/whe
 ## Compatibility
  * 0.6.x
  * 0.8.x
- * 0.9.x (latest unstable)
+ * 0.10.x
 
 ## Installation
 ```
