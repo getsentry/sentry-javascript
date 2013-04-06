@@ -110,5 +110,13 @@ describe('raven.utils', function() {
 
   describe('#parseStack()', function(){
     // needs new tests with a mock callsite object
+    it('shouldnt barf on an invalid stack', function(){
+      var parseStack = raven.utils.parseStack;
+      var callback = function(frames) { frames.length.should.equal(0); }
+      parseStack('lol', callback);
+      parseStack(undefined, callback);
+      parseStack([], callback);
+      parseStack([{lol: 1}], callback);
+    });
   });
 });
