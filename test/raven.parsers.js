@@ -1,4 +1,5 @@
 var raven = require('../');
+var client = new raven.Client()
 raven.parsers = require('../lib/parsers');
 
 describe('raven.parsers', function(){
@@ -96,6 +97,17 @@ describe('raven.parsers', function(){
           parsed['sentry.interfaces.Exception']['value'].should.equal('Derp');
           parsed.should.have.property('sentry.interfaces.Stacktrace');
           parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          done();
+        });
+      }
+    });
+
+    it('should have a string stack after parsing', function(done){
+      try {
+        throw new Error('Derp');
+      } catch(e) {
+        raven.parsers.parseError(e, {}, function(parsed){
+          e.stack.should.be.a('string')
           done();
         });
       }
