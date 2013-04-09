@@ -23,10 +23,14 @@ var client = new raven.Client('{{ SENTRY_DSN }}');
 client.captureMessage('Hello, world!');
 ```
 
-Run with:
+## Disable Raven
+Pass `false` as the DSN (or any falsey value).
+
+```javascript
+client = new raven.Client(process.env.NODE_ENV === 'production' && '{{ SENTRY_DSN }}')
 ```
-$ NODE_ENV=production node script.js
-```
+
+__Note__: We don't infer this from `NODE_ENV` automatically anymore. It's up to you to implement whatever logic you'd like.
 
 ## Logging an error
 ```javascript
@@ -78,9 +82,6 @@ client.on('error', function(e){
 ```
 
 ## Environment variables
-### NODE_ENV
-`NODE_ENV` must be set to `production` for Sentry to actually work. Without being in production, a warning is issued and logging disabled.
-
 ### SENTRY_DSN
 Optionally declare the DSN to use for the client through the environment. Initializing the client in your app won't require setting the DSN.
 
