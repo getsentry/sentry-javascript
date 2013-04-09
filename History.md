@@ -1,3 +1,10 @@
+# 0.5.0 - 4/8/2013
+  * Remove NODE_ENV entirely, fixes many issues since people have different opinions on wtf this means
+  * Several fixes in collecting a better stack trace, thanks @azylman
+  * Pass exception through to the patchGlobal callback, thanks @ktmud [See #28]
+  * Official 0.10 support!
+  * Other misc things. https://github.com/mattrobenolt/raven-node/compare/v0.4.7...v0.5.0
+
 # 0.4.7 - 1/13/2013
   * Actually disable when NODE_ENV does not equal 'production' [Fixes #25]
 
