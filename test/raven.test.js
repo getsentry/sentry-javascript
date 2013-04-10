@@ -731,6 +731,27 @@ describe('Raven (public API)', function() {
     });
   });
 
+  describe('callback function', function() {
+    it('should callback a function if it is global', function() {
+      window.RavenCallback = function(raven) {
+        raven.config("http://random@some.other.server:80/2").install();
+      };
+
+      this.sinon.stub(window, 'isSetup').returns(false);
+      this.sinon.stub(TK.report, 'subscribe');
+
+      Raven.afterLoad();
+
+      assert.equal(globalKey, 'random');
+      assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
+      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
+      assert.equal(globalProject, 2);
+
+      assert.isTrue(window.isSetup.calledOnce);
+      assert.isFalse(TK.report.subscribe.calledOnce);
+    });
+  });
+
   describe('.config', function() {
     it('should work with a DSN', function() {
       assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');

@@ -30,6 +30,12 @@ TK.remoteFetching = false;
 var Raven = {
     VERSION: '@VERSION',
 
+    afterLoad: function() {
+        if (window.RavenCallback) {
+            window.RavenCallback(this);
+        }
+    },
+
     /*
      * Allow multiple versions of Raven to be installed.
      * Strip Raven from the global context and returns the instance.
@@ -496,3 +502,5 @@ function joinRegExp(patterns) {
     while (i--) sources[i] = patterns[i].source;
     return new RegExp(sources.join('|'), 'i');
 }
+
+Raven.afterLoad();
