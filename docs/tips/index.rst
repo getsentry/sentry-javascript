@@ -29,7 +29,7 @@ The community has compiled a list of common ignore rules for common things, like
           'bmi_SafeAddOnload',
           'EBCallBackMessageReceived',
           // See http://toolbar.conduit.com/Developer/HtmlAndGadget/Methods/JSInjection.aspx
-          'conduitPage',
+          'conduitPage'
         ],
         ignoreUrls: [
           // Facebook flakiness
