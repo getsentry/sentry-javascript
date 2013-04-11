@@ -30,9 +30,16 @@ TK.remoteFetching = false;
 var Raven = {
     VERSION: '@VERSION',
 
+    /*
+     * Allow Raven to be configured as soon as it is loaded
+     * It uses a global RavenConfig = {dsn: '...', config: {}}
+     *
+     * @return undefined
+     */
     afterLoad: function() {
-        if (window.RavenCallback) {
-            window.RavenCallback(this);
+        var globalConfig = window.RavenConfig;
+        if (globalConfig) {
+            this.config(globalConfig.dsn, globalConfig.config).install();
         }
     },
 

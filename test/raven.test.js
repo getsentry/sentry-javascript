@@ -733,8 +733,9 @@ describe('Raven (public API)', function() {
 
   describe('callback function', function() {
     it('should callback a function if it is global', function() {
-      window.RavenCallback = function(raven) {
-        raven.config("http://random@some.other.server:80/2").install();
+      window.RavenConfig = {
+        dsn: "http://random@some.other.server:80/2",
+        config: {some: 'config'}
       };
 
       this.sinon.stub(window, 'isSetup').returns(false);
@@ -745,6 +746,7 @@ describe('Raven (public API)', function() {
       assert.equal(globalKey, 'random');
       assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
       assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
+      assert.equal(globalOptions.some, 'config');
       assert.equal(globalProject, 2);
 
       assert.isTrue(window.isSetup.calledOnce);
