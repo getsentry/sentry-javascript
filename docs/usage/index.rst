@@ -90,4 +90,8 @@ Passing additional data
 Dealing with minified source code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_. *Information coming soon*
+Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.
+
+We have provided some instructions to creating Source Maps over at https://www.getsentry.com/docs/sourcemaps/.
+
+I have also made a `Source Map Validator <http://sourcemap-validator.herokuapp.com/>`_ to help verify that things are correct.
