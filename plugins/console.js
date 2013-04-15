@@ -5,14 +5,23 @@ var originalConsole = console,
     logLevels = ['debug', 'info', 'warn', 'error'],
     level;
 
-while(level = logLevels.pop()) {
-    console[level] = function () {
+var logForGivenLevel = function(level) {
+    return function () {
         var args = [].slice.call(arguments);
         Raven.captureMessage('' + args, {level: level, logger: 'console'});
 
         // this fails for some browsers. :(
-        originalConsole[level] && originalConsole[level].apply(null, args);
+        if (originalConsole[level]) {
+             originalConsole[level].apply(null, args);
+        }
     };
+};
+
+
+level = logLevels.pop();
+while(level) {
+    console[level] = logForGivenLevel(level);
+    level = logLevels.pop();
 }
 // export
 window.console = console;

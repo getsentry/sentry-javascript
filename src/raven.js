@@ -31,6 +31,19 @@ var Raven = {
     VERSION: '@VERSION',
 
     /*
+     * Allow Raven to be configured as soon as it is loaded
+     * It uses a global RavenConfig = {dsn: '...', config: {}}
+     *
+     * @return undefined
+     */
+    afterLoad: function() {
+        var globalConfig = window.RavenConfig;
+        if (globalConfig) {
+            this.config(globalConfig.dsn, globalConfig.config).install();
+        }
+    },
+
+    /*
      * Allow multiple versions of Raven to be installed.
      * Strip Raven from the global context and returns the instance.
      *
@@ -496,3 +509,5 @@ function joinRegExp(patterns) {
     while (i--) sources[i] = patterns[i].source;
     return new RegExp(sources.join('|'), 'i');
 }
+
+Raven.afterLoad();
