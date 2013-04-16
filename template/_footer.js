@@ -4,7 +4,7 @@ window.Raven = Raven;
 
 // AMD
 if (typeof define === 'function' && define.amd) {
-    define(function() { return Raven; });
+    define('raven', [], function() { return Raven; });
 }
 
 })(window);
