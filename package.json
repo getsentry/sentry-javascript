@@ -8,7 +8,7 @@
   "license": "BSD",
   "main": "index",
   "scripts": {
-    "test": "NODE_ENV=test mocha --reporter dot"
+    "test": "NODE_ENV=test mocha --reporter list"
   },
   "engines": {
     "node": ">= 0.6.0"

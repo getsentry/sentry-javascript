@@ -279,4 +279,20 @@ describe('raven.Client', function(){
             process.emit('uncaughtException', new Error('derp'));
         });
     });
+
+    it('should use a custom transport', function(){
+        var expected = {
+            protocol: 'udp',
+            public_key: 'public',
+            private_key: 'private',
+            host: 'app.getsentry.com',
+            path: '',
+            project_id: 269,
+            port: 443
+        };
+        var dsn = 'heka+udp://public:private@app.getsentry.com/269';
+        var client = new raven.Client(dsn, {transport: 'some_heka_instance'});
+        client.dsn.should.eql(expected);
+        client.transport.should.equal('some_heka_instance');
+    });
 });
