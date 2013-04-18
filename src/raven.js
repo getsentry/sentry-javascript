@@ -501,6 +501,11 @@ function send(data) {
         data = globalOptions.dataCallback(data);
     }
 
+    // Check if the request should be filtered or not
+    if (isFunction(globalOptions.shouldSendCallback) && !globalOptions.shouldSendCallback(data)) {
+        return;
+    }
+
     makeRequest(data);
 }
 
