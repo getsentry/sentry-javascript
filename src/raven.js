@@ -230,6 +230,34 @@ var Raven = {
     }
 };
 
+function triggerEvent(eventType, options) {
+    var event, key;
+
+    eventType = 'raven' + eventType[0].toUpperCase() + eventType.substr(1);
+
+    if (document.createEvent) {
+        event = document.createEvent("HTMLEvents");
+        event.initEvent(eventType, true, true);
+    } else {
+        event = document.createEventObject();
+        event.eventType = eventType;
+    }
+
+    if (typeof options !== "object") {
+        options = {}
+    }
+
+    for (key in options) if (options.hasOwnProperty(key)) {
+        event[key] = options[key]
+    }
+
+    if (document.createEvent) {
+        document.dispatchEvent(event);
+    } else {
+        document.fireEvent("on" + event.eventType.toLowerCase(), event);
+    }
+}
+
 var uriKeys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
     uriPattern = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
 
@@ -299,6 +327,11 @@ function handleStackInfo(stackInfo, options) {
             }
         });
     }
+
+    triggerEvent('handle', {
+        stackInfo: stackInfo,
+        options: options
+    });
 
     processException(
         stackInfo.name,
@@ -471,8 +504,30 @@ function send(data) {
     makeRequest(data);
 }
 
+
 function makeRequest(data) {
-    new Image().src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var img, src;
+
+    function success() {
+        triggerEvent('success', {
+            data: data,
+            src: src
+        });
+    }
+
+    function failure() {
+        triggerEvent('failure', {
+            data: data,
+            src: src
+        });
+    }
+
+    src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    img = new Image();
+    img.onload = success;
+    img.onerror = failure;
+    img.onabort = failure;
+    img.src = src;
 }
 
 function isSetup() {
