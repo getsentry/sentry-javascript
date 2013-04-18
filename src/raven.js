@@ -236,25 +236,25 @@ function triggerEvent(eventType, options) {
     eventType = 'raven' + eventType[0].toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
-        event = document.createEvent("HTMLEvents");
+        event = document.createEvent('HTMLEvents');
         event.initEvent(eventType, true, true);
     } else {
         event = document.createEventObject();
         event.eventType = eventType;
     }
 
-    if (typeof options !== "object") {
-        options = {}
+    if (typeof options !== 'object') {
+        options = {};
     }
 
     for (key in options) if (options.hasOwnProperty(key)) {
-        event[key] = options[key]
+        event[key] = options[key];
     }
 
     if (document.createEvent) {
         document.dispatchEvent(event);
     } else {
-        document.fireEvent("on" + event.eventType.toLowerCase(), event);
+        document.fireEvent('on' + event.eventType.toLowerCase(), event);
     }
 }
 
