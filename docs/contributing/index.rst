@@ -34,4 +34,4 @@ Then visit: http://localhost:8888/test/test.html
 Contributing Back Code
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Please, send over suggestions and bug fixes in the form of pull requests on `GitHub <https://github.com/getsenty/raven-js>`_. Any fixes/features should include tests.
+Please, send over suggestions and bug fixes in the form of pull requests on `GitHub <https://github.com/getsentry/raven-js>`_. Any fixes/features should include tests.
