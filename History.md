@@ -1,3 +1,6 @@
+# 0.5.1 - 5/1/2013
+  * Add support for third party transports, thanks @crankycoder
+
 # 0.5.0 - 4/8/2013
   * Remove NODE_ENV entirely, fixes many issues since people have different opinions on wtf this means
   * Several fixes in collecting a better stack trace, thanks @azylman
