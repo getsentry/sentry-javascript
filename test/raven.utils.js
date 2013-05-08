@@ -23,7 +23,7 @@ describe('raven.utils', function() {
         public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'app.getsentry.com',
-        path: '',
+        path: '/',
         project_id: 269,
         port: 443
       };
@@ -37,7 +37,7 @@ describe('raven.utils', function() {
         public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
-        path: 'some/other/path',
+        path: '/some/other/path/',
         project_id: 269,
         port: 80
       };
@@ -51,7 +51,7 @@ describe('raven.utils', function() {
         public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
-        path: 'some/other/path',
+        path: '/some/other/path/',
         project_id: 269,
         port: 8443
       };
@@ -70,7 +70,7 @@ describe('raven.utils', function() {
         public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
-        path: 'some/other/path',
+        path: '/some/other/path/',
         project_id: 269,
         port: 1234
       };
@@ -90,7 +90,7 @@ describe('raven.utils', function() {
         public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
-        path: 'some/other/path',
+        path: '/some/other/path/',
         project_id: 269,
         port: 8443
       };
