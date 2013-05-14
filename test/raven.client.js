@@ -228,6 +228,23 @@ describe('raven.Client', function(){
             });
             client.captureError(new Error('wtf?'));
         });
+
+        it('shouldn\'t choke on circular references', function(done){
+            // See: https://github.com/mattrobenolt/raven-node/pull/46
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(200, 'OK');
+
+            client.on('logged', function(){
+                scope.done();
+                done();
+            });
+            // create circular reference
+            var kwargs = {extra:{}};
+            kwargs.extra.kwargs = kwargs;
+            client.captureError(new Error('wtf?'), kwargs);
+        });
     });
 
     describe('#patchGlobal()', function(){
