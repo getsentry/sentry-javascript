@@ -492,6 +492,11 @@ function send(data) {
     // Merge in the tags separately since arrayMerge doesn't handle a deep merge
     data.tags = arrayMerge(globalOptions.tags, data.tags);
 
+    // If there are hashtags present in the URL add these to the 'tags' dict.
+    if (window.location.hash){
+        data.tags = arrayMerge({hashtag:window.location.hash}, data.tags)
+    }
+
     // If there are no tags, strip the key from the payload alltogther.
     if (!data.tags) delete data.tags;
 
