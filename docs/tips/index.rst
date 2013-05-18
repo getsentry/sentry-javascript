@@ -6,6 +6,8 @@ Decluttering Sentry
 
 The community has compiled a list of common ignore rules for common things, like Facebook, Chrome extensions, etc. So it's recommended to at least check these out and see if they apply to you. `Check out the original gist <https://gist.github.com/impressiver/5092952>`_.
 
+See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`
+
 .. code-block:: javascript
 
     var ravenOptions = {
