@@ -13,6 +13,7 @@ var _Raven = window.Raven,
         logger: 'javascript',
         ignoreErrors: [],
         ignoreUrls: [],
+        whitelistUrls: [],
         includePaths: [],
         tags: {}
     };
@@ -75,6 +76,7 @@ var Raven = {
 
         // join regexp rules into one big rule
         globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
+        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
         globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
@@ -436,6 +438,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     }
 
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
+    if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
 
     label = lineno ? message + ' at ' + lineno : message;
 
