@@ -55,6 +55,19 @@ Similar to ``ignoreErrors``, but will ignore errors from whole urls patching a r
       ignoreUrls: [/graph\.facebook\.com/i]
     }
 
+.. _config-whitelist-urls:
+
+whitelistUrls
+-------------
+
+The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern.
+
+.. code-block:: javascript
+
+    {
+      whitelistUrls: [/getsentry\.com/, /cdn\.getsentry\.com/]
+    }
+
 includePaths
 ------------
 

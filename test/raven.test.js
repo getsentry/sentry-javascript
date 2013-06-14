@@ -8,6 +8,7 @@ function flushRavenState() {
     logger: 'javascript',
     ignoreErrors: [],
     ignoreUrls: [],
+    whitelistUrls: [],
     includePaths: [],
     tags: {}
   };
@@ -331,6 +332,18 @@ describe('globals', function() {
       assert.isFalse(window.send.called);
       processException('Error', 'error', 'http://host3/', []);
       assert.isTrue(window.send.calledOnce);
+    });
+
+    it('should respect `whitelistUrls`', function() {
+      this.sinon.stub(window, 'send');
+
+      globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+      processException('Error', 'error', 'http://host1/', []);
+      assert.equal(window.send.callCount, 1);
+      processException('Error', 'error', 'http://host2/', []);
+      assert.equal(window.send.callCount, 2);
+      processException('Error', 'error', 'http://host3/', []);
+      assert.equal(window.send.callCount, 2);
     });
 
     it('should send a proper payload with frames', function() {
@@ -770,6 +783,35 @@ describe('Raven (public API)', function() {
       assert.equal(globalServer, '//example.com/api/2/store/');
       assert.deepEqual(globalOptions.ignoreErrors, ['Script error.'], 'it should install "Script error." by default');
       assert.equal(globalProject, 2);
+    });
+
+    describe('whitelistUrls', function() {
+      it('should be false if none are passed', function() {
+        Raven.config('//abc@example.com/2');
+        assert.equal(globalOptions.whitelistUrls, false);
+      });
+
+      it('should join into a single RegExp', function() {
+        Raven.config('//abc@example.com/2', {
+          whitelistUrls: [
+            /my.app/i,
+            /other.app/i
+          ]
+        });
+
+        assert.match(globalOptions.whitelistUrls, /my.app|other.app/i);
+      });
+
+      it('should handle strings as well', function() {
+        Raven.config('//abc@example.com/2', {
+          whitelistUrls: [
+            /my.app/i,
+            "stringy.app"
+          ]
+        });
+
+        assert.match(globalOptions.whitelistUrls, /my.app|stringy.app/i);
+      });
     });
   });
 

@@ -35,3 +35,8 @@ Contributing Back Code
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Please, send over suggestions and bug fixes in the form of pull requests on `GitHub <https://github.com/getsentry/raven-js>`_. Any fixes/features should include tests.
+
+Documentation
+-------------
+
+The documentation is written using `reStructuredText <http://en.wikipedia.org/wiki/ReStructuredText>`_, and compiled using `Sphinx <http://sphinx-doc.org/>`_
