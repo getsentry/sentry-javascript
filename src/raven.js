@@ -235,7 +235,7 @@ var Raven = {
 function triggerEvent(eventType, options) {
     var event, key;
 
-    eventType = 'raven' + eventType[0].toUpperCase() + eventType.substr(1);
+    eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
         event = document.createEvent('HTMLEvents');
@@ -254,9 +254,14 @@ function triggerEvent(eventType, options) {
     }
 
     if (document.createEvent) {
+        // IE9 if standards
         document.dispatchEvent(event);
     } else {
-        document.fireEvent('on' + event.eventType.toLowerCase(), event);
+        // IE8 regardless of Quirks or Standards
+        // IE9 if quirks
+        try {
+            document.fireEvent('on' + event.eventType.toLowerCase(), event);
+        } catch(e) {}
     }
 }
 
