@@ -99,6 +99,10 @@ var Raven = {
             TK.remoteFetching = true;
         }
 
+        if (globalOptions.linesOfContext) {
+            TK.linesOfContext = globalOptions.linesOfContext;
+        }
+
         // return for chaining
         return Raven;
     },
