@@ -235,7 +235,7 @@ var Raven = {
 function triggerEvent(eventType, options) {
     var event, key;
 
-    eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
+    eventType = 'raven' + eventType.substring(0,1).toUpperCase() + eventType.substring(1);
 
     if (document.createEvent) {
         event = document.createEvent('HTMLEvents');
