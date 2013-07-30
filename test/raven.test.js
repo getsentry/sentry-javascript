@@ -560,6 +560,38 @@ describe('globals', function() {
       }]);
     });
 
+    it('should merge in global extra', function() {
+      this.sinon.stub(window, 'isSetup').returns(true);
+      this.sinon.stub(window, 'makeRequest');
+      this.sinon.stub(window, 'getHttpData').returns({
+        url: 'http://localhost/?a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
+
+      globalProject = 2;
+      globalOptions = {
+        logger: 'javascript',
+        site: 'THE BEST',
+        extra: {key1: 'value1'}
+      };
+
+
+      send({extra: {key2: 'value2'}});
+      assert.deepEqual(window.makeRequest.lastCall.args, [{
+        project: 2,
+        logger: 'javascript',
+        site: 'THE BEST',
+        platform: 'javascript',
+        'sentry.interfaces.Http': {
+          url: 'http://localhost/?a=b',
+          headers: {
+            'User-Agent': 'lolbrowser'
+          }
+        },
+        extra: {key1: 'value1', key2: 'value2'}
+      }]);
+    });
+
     it('should let dataCallback override everything', function() {
       this.sinon.stub(window, 'isSetup').returns(true);
       this.sinon.stub(window, 'makeRequest');
