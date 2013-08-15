@@ -167,7 +167,9 @@ var Raven = {
             };
 
         for (property in func) {
-            wrappedFunction[property] = func[property];
+            if (func.hasOwnProperty(property)) {
+                wrappedFunction[property] = func[property];
+            }
         }
 
         return wrappedFunction;
