@@ -1,3 +1,0 @@
-[submodule "vendor/TraceKit"]
-	path = vendor/TraceKit
-	url = git://github.com/getsentry/TraceKit.git
