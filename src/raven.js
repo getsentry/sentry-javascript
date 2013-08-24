@@ -156,14 +156,23 @@ var Raven = {
             options = undefined;
         }
 
-        return function() {
-            try {
-                return func.apply(this, arguments);
-            } catch(e) {
-                Raven.captureException(e, options);
-                throw e;
+        var property,
+            wrappedFunction = function() {
+                try {
+                    func.apply(this, arguments);
+                } catch(e) {
+                    Raven.captureException(e, options);
+                    throw e;
+                }
+            };
+
+        for (property in func) {
+            if (func.hasOwnProperty(property)) {
+                wrappedFunction[property] = func[property];
             }
-        };
+        }
+
+        return wrappedFunction;
     },
 
     /*
