@@ -873,6 +873,18 @@ describe('Raven (public API)', function() {
       wrapped();
       assert.isTrue(spy.calledOnce);
     });
+    it('should copy property when wrapping function', function() {
+      var func = function() {};
+      func.test = true;
+      var wrapped = Raven.wrap(func);
+      assert.isTrue(wrapped.test);
+    });
+    it('should not copy prototype property when wrapping function', function() {
+      var func = function() {};
+      func.prototype.test = true;
+      var wrapped = Raven.wrap(func);
+      assert.isUndefined(new wrapped().test);
+    });
   });
 
   describe('.context', function() {
