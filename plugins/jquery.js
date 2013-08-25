@@ -2,7 +2,8 @@
  * Extended support for backtraces and global error handling for most
  * asynchronous jQuery functions.
  */
-;(function (window, Raven, $) {
+;(function(window, Raven, $) {
+'use strict';
 
 // quit if jQuery isn't on the page
 if (!$) {
