@@ -1,1 +1,55 @@
-Hey
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    .container {
+        width: auto;
+        max-width: 680px;
+        padding: 0 15px;
+    }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="page-header"><h1>raven.js</h1></div>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" value="jquery">
+        jQuery
+      </label>
+    </div>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" value="require">
+        require.js
+      </label>
+    </div>
+    <input id="download" class="form-control input-lg" type="text" />
+</div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+<script>
+$(function() {
+    var plugins = [], base = '//cdn.ravenjs.com/build/1.0.8/', $download = $('#download');
+    $('input[type="checkbox"]').on('click', function() {
+        var val = $(this).val();
+        if ($(this).prop('checked')) {
+            plugins.push($(this).val());
+        } else {
+            plugins.splice(plugins.indexOf(val), 1);
+        }
+        if (plugins) {
+            plugins.sort();
+            $download.val(base + plugins.join(',') + '/raven.min.js');
+        } else {
+            $download.val(base + 'raven.min.js');
+        }
+    });
+    $download.val(base + 'raven.min.js');
+    $download.on('click', function() { $(this).select(); });
+});
+</script>
+</body>
+</html>
