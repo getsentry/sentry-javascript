@@ -83,6 +83,7 @@ var Raven = {
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
+        globalOptions.ignoreErrors.push('Script error');
 
         globalKey = uri.user;
         globalProject = ~~uri.path.substr(lastSlash + 1);
