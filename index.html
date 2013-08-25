@@ -40,7 +40,7 @@ $(function() {
         } else {
             plugins.splice(plugins.indexOf(val), 1);
         }
-        if (plugins) {
+        if (plugins.length) {
             plugins.sort();
             $download.val(base + plugins.join(',') + '/raven.min.js');
         } else {
