@@ -1,3 +1,7 @@
+# 0.5.2 - 9/10/2013
+  * Fix compatibilities with CoffeeScript [Fixes #47] [Fixes #50]
+  * Doesnt chose on circular references
+
 # 0.5.1 - 5/1/2013
   * Add support for third party transports, thanks @crankycoder
 
