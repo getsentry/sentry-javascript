@@ -1,3 +1,6 @@
+# 0.5.3 - 10/4/2013
+  * Bump raw-stacktrace version
+
 # 0.5.2 - 9/10/2013
   * Fix compatibilities with CoffeeScript [Fixes #47] [Fixes #50]
   * Doesnt chose on circular references
