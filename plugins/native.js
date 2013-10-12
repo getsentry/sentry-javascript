@@ -8,7 +8,7 @@ var _helper = function _helper(fnName) {
     var originalFn = window[fnName];
     window[fnName] = function ravenAsyncExtension() {
         // Make a copy of the arguments
-        var args = _slice.call(arguments);
+        var args = [].slice.call(arguments);
         var originalCallback = args[0];
         if (typeof (originalCallback) === 'function') {
             args[0] = Raven.wrap(originalCallback);
