@@ -107,7 +107,7 @@ describe('raven.parsers', function(){
         throw new Error('Derp');
       } catch(e) {
         raven.parsers.parseError(e, {}, function(parsed){
-          e.stack.should.be.a('string')
+          e.stack.should.be.a.String;
           done();
         });
       }
