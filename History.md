@@ -1,5 +1,5 @@
 # 0.5.4 - 10/13/2013
-  * Fix DNS parser when using Sentry at a non-root URL, thanks @rcoup [See #44]
+  * Fix DSN parser when using Sentry at a non-root URL, thanks @rcoup [See #44]
 
 # 0.5.3 - 10/4/2013
   * Bump raw-stacktrace version
