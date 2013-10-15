@@ -885,6 +885,12 @@ describe('Raven (public API)', function() {
       var wrapped = Raven.wrap(func);
       assert.isUndefined(new wrapped().test);
     });
+    it('should return the result of a wrapped function', function() {
+      var func = function() { return 'foo' };
+      func.prototype.test = true;
+      var wrapped = Raven.wrap(func);
+      assert.equal(wrapped(), 'foo');
+    });
   });
 
   describe('.context', function() {
