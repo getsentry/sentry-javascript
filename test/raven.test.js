@@ -887,7 +887,6 @@ describe('Raven (public API)', function() {
     });
     it('should return the result of a wrapped function', function() {
       var func = function() { return 'foo' };
-      func.prototype.test = true;
       var wrapped = Raven.wrap(func);
       assert.equal(wrapped(), 'foo');
     });
