@@ -817,6 +817,13 @@ describe('Raven (public API)', function() {
       assert.equal(globalProject, 2);
     });
 
+    it('should work should work at a non root path', function() {
+      Raven.config('//abc@example.com/sentry/2');
+      assert.equal(globalKey, 'abc');
+      assert.equal(globalServer, '//example.com/sentry/api/2/store/');
+      assert.equal(globalProject, 2);
+    });
+
     describe('whitelistUrls', function() {
       it('should be false if none are passed', function() {
         Raven.config('//abc@example.com/2');
