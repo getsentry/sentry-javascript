@@ -140,7 +140,7 @@ var Raven = {
             options = undefined;
         }
 
-        Raven.wrap(options, func).apply(this, args);
+        return Raven.wrap(options, func).apply(this, args);
     },
 
     /*
