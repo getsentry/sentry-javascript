@@ -956,6 +956,12 @@ describe('Raven (public API)', function() {
       Raven.context(spy);
       assert.deepEqual(spy.lastCall.args, []);
     });
+
+    it('should return the result of the wrapped function', function() {
+      var val = {};
+      var func = function() { return val; };
+      assert.equal(Raven.context(func), val);
+    });
   });
 
   describe('.uninstall', function() {
