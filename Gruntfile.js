@@ -1,6 +1,9 @@
 module.exports = function(grunt) {
+    var _ = grunt.util._;
 
-    grunt.initConfig({
+    var plugins = (grunt.option('plugins') || '').split(',');
+
+    var gruntConfig = {
         pkg: grunt.file.readJSON('package.json'),
         concat: {
             options: {
@@ -11,8 +14,7 @@ module.exports = function(grunt) {
                     'vendor/**/*.js',
                     'template/_header.js',
                     'src/**/*.js',
-                    'template/_footer.js',
-                    'plugins/**/*.js'
+                    'template/_footer.js'
                 ],
                 dest: 'build/<%= pkg.name %>.js'
             }
@@ -27,7 +29,22 @@ module.exports = function(grunt) {
                 }
             }
         }
+    };
+
+    // Create plugin paths and verify hey exist
+    var plugins = _.map(plugins, function (plugin) {
+        var path = 'plugins/' + plugin + '.js';
+
+        if(!grunt.file.exists(path))
+            throw new Error("Plugin '" + plugin + "' not found in plugins directory.");
+
+        return path;
     });
+
+    // Amend plugins to the concat source list
+    gruntConfig.concat.dist.src = gruntConfig.concat.dist.src.concat(plugins);
+
+    grunt.initConfig(gruntConfig);
 
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-concat');
