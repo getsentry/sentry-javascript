@@ -1,4 +1,4 @@
-/*! Raven.js @VERSION | github.com/getsentry/raven-js */
+/*! Raven.js <%= pkg.version %> | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit

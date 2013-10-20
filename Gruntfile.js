@@ -60,7 +60,8 @@ module.exports = function(grunt) {
         clean: ['build'],
         concat: {
             options: {
-                separator: '\n'
+                separator: '\n',
+                banner: grunt.file.read('template/_copyright.js')
             },
             core: {
                 src: coreFiles.concat(plugins),
@@ -73,7 +74,7 @@ module.exports = function(grunt) {
 
         uglify: {
             options: {
-                banner: '/*! Raven.js <%= pkg.version %> | github.com/getsentry/raven-js */\n',
+                banner: grunt.file.read('template/_copyright.min.js')
             },
             dist: {
                 src: ['build/**/*.js'],
