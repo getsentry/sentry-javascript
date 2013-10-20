@@ -14,9 +14,7 @@
     "uglify-js": "git://github.com/mishoo/UglifyJS2.git",
     "mocha": "*",
     "chai": "*",
-    "mocha-phantomjs": "*",
-    "mocha-cloud": "*",
-    "mocha-cloud-grid-view": "*"
+    "mocha-phantomjs": "*"
   },
   "private": true
 }

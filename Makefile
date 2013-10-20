@@ -46,19 +46,6 @@ test:
 	@./node_modules/.bin/jshint .
 	@./node_modules/.bin/mocha-phantomjs -R ${REPORTER} ${TEST}
 
-test-in-the-cloud:
-	@if [ ! -f Sauce-Connect.jar ]; then \
-		echo "Downloading Sauce Connect..."; \
-		curl https://saucelabs.com/downloads/Sauce-Connect-latest.zip > Sauce-Connect-latest.zip; \
-		unzip Sauce-Connect-latest Sauce-Connect.jar; \
-		rm Sauce-Connect-latest.zip; \
-	fi
-	@echo "Booting up Sauce Connect. This will take a while..."
-	@$(MAKE) runserver 2>&1 > /dev/null &
-	@java -jar Sauce-Connect.jar raven-js b39f5c10-ec75-40ce-8ca3-56727f2901f3 2>&1 > /dev/null &
-	@sleep 45
-	@clear
-	@node runtests.js
 
 PORT = 8888
 runserver:
@@ -71,4 +58,4 @@ clean:
 install-hooks:
 	cp -rfp hooks/* .git/hooks
 
-.PHONY: develop update-submodules docs docs-live raven test test-in-the-cloud clean runserver install-hooks
+.PHONY: develop update-submodules docs docs-live raven test clean runserver install-hooks
