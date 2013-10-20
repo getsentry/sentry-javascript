@@ -1,38 +1,17 @@
 module.exports = function(grunt) {
     var _ = grunt.util._;
+    var path = require('path');
 
-    var plugins = (grunt.option('plugins') || '').split(',');
+    var coreFiles = [
+        'vendor/**/*.js',
+        'template/_header.js',
+        'src/**/*.js',
+        'template/_footer.js'
+    ];
 
-    var gruntConfig = {
-        pkg: grunt.file.readJSON('package.json'),
-        concat: {
-            options: {
-                separator: '\n'
-            },
-            dist: {
-                src: [
-                    'vendor/**/*.js',
-                    'template/_header.js',
-                    'src/**/*.js',
-                    'template/_footer.js'
-                ],
-                dest: 'build/<%= pkg.name %>.js'
-            }
-        },
-        uglify: {
-            options: {
-                banner: '/*! Raven.js <%= pkg.version %> | github.com/getsentry/raven-js */\n'
-            },
-            dist: {
-                files: {
-                    'build/<%= pkg.name %>.min.js': ['<%= concat.dist.dest %>']
-                }
-            }
-        }
-    };
-
+    var plugins = grunt.option('plugins');
     // Create plugin paths and verify hey exist
-    var plugins = _.map(plugins, function (plugin) {
+    plugins = _.map(plugins ? plugins.split(',') : [], function (plugin) {
         var path = 'plugins/' + plugin + '.js';
 
         if(!grunt.file.exists(path))
@@ -41,14 +20,77 @@ module.exports = function(grunt) {
         return path;
     });
 
-    // Amend plugins to the concat source list
-    gruntConfig.concat.dist.src = gruntConfig.concat.dist.src.concat(plugins);
+    // Taken from http://dzone.com/snippets/calculate-all-combinations
+    var combine = function (a) {
+        var fn = function (n, src, got, all) {
+            if (n == 0) {
+                all.push(got);
+                return;
+            }
+
+            for (var j = 0; j < src.length; j++) {
+                fn(n - 1, src.slice(j + 1), got.concat([src[j]]), all);
+            }
+        };
+
+        var all = [a];
+
+        for (var i = 0; i < a.length; i++) {
+            fn(i, a, [], all);
+        }
+
+        return all;
+    };
+
+    var pluginCombinations = combine(grunt.file.expand('plugins/*.js'));
+    var pluginConcatFiles = _.reduce(pluginCombinations, function (dict, comb) {
+        var key = _.map(comb, function (plugin) {
+            return path.basename(plugin, '.js');
+        });
+        key.sort();
+
+        var dest = path.join('build/', key.join(','), '/<%= pkg.name %>.js');
+        dict[dest] = coreFiles.concat(comb);
+
+        return dict;
+    }, {});
+
+    var gruntConfig = {
+        pkg: grunt.file.readJSON('package.json'),
+        clean: ['build'],
+        concat: {
+            options: {
+                separator: '\n'
+            },
+            core: {
+                src: coreFiles.concat(plugins),
+                dest: 'build/<%= pkg.name %>.js'
+            },
+            all: {
+                files: pluginConcatFiles
+            }
+        },
+
+        uglify: {
+            options: {
+                banner: '/*! Raven.js <%= pkg.version %> | github.com/getsentry/raven-js */\n',
+            },
+            dist: {
+                src: ['build/**/*.js'],
+                ext: '.min.js',
+                expand: true
+            }
+        }
+    };
 
     grunt.initConfig(gruntConfig);
 
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-concat');
+    grunt.loadNpmTasks('grunt-contrib-clean');
 
-    grunt.registerTask('default', ['concat', 'uglify']);
+    grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
+    grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify']);
 
+    grunt.registerTask('default', ['build.all']);
 };
