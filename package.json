@@ -1,6 +1,6 @@
 {
-  "name": "raven-js",
-  "version": "0.0.0",
+  "name": "raven",
+  "version": "1.1.0-pre",
   "scripts": {
     "test": "make test"
   },
@@ -9,12 +9,12 @@
     "url": "git://github.com/getsentry/raven-js.git"
   },
   "devDependencies": {
-    "phantomjs": "*",
-    "jshint": "*",
-    "uglify-js": "git://github.com/mishoo/UglifyJS2.git",
-    "mocha": "*",
-    "chai": "*",
-    "mocha-phantomjs": "*"
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.6.3",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-mocha": "~0.4.1",
+    "chai": "~1.8.1"
   },
   "private": true
 }
