@@ -3,6 +3,7 @@
  * functions. Adopted from Closure Library's errorhandler.js
  */
 ;(function extendToAsynchronousCallbacks(window, Raven) {
+"use strict";
 
 var _helper = function _helper(fnName) {
     var originalFn = window[fnName];

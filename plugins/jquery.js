@@ -55,11 +55,13 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     // Force options to be an object
     options = options || {};
 
+    /*jshint -W084*/
     while(key = keys.pop()) {
         if ($.isFunction(options[key])) {
             options[key] = Raven.wrap(options[key]);
         }
     }
+    /*jshint +W084*/
 
     try {
         return _oldAjax.call(this, url, options);

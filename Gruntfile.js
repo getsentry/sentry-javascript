@@ -81,6 +81,13 @@ module.exports = function(grunt) {
                 ext: '.min.js',
                 expand: true
             }
+        },
+
+        jshint: {
+            options: {
+                jshintrc: '.jshintrc'
+            },
+            all: ['src/**/*.js', 'plugins/**/*.js']
         }
     };
 
@@ -89,6 +96,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-jshint');
 
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
     grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify']);
