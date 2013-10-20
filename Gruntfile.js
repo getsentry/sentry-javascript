@@ -10,9 +10,9 @@ module.exports = function(grunt) {
                 src: [
                     'vendor/**/*.js',
                     'template/_header.js',
-                    'src/*.js',
+                    'src/**/*.js',
                     'template/_footer.js',
-                    'plugins/*.js'
+                    'plugins/**/*.js'
                 ],
                 dest: 'build/<%= pkg.name %>.js'
             }
