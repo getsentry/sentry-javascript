@@ -84,7 +84,9 @@ module.exports = function(grunt) {
                                      path.basename(dest, '.js')) +
                            '.map';
                 },
-                sourceMappingURL: '<%= pkg.name %>.min.map',
+                sourceMappingURL: function (dest) {
+                    return path.basename(dest, '.js') + '.map';
+                },
                 preserveComments: 'some'
             },
             dist: {
