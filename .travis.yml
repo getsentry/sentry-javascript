@@ -4,8 +4,9 @@ node_js:
     - 0.8
 before_script:
     - npm install -g phantomjs
+    - npm install -g grunt-cli
     - npm install
 script:
-    - make test
+    - grunt test
 notifications:
     irc: "irc.freenode.org#sentry"
