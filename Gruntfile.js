@@ -59,7 +59,7 @@ module.exports = function(grunt) {
 
     var gruntConfig = {
         pkg: grunt.file.readJSON('package.json'),
-        aws: grunt.file.readJSON('aws.json'),
+        aws: grunt.file.exists('aws.json') ? grunt.file.readJSON('aws.json'): {},
 
         clean: ['build'],
         concat: {
