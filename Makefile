@@ -18,7 +18,4 @@ clean:
 	rm -rf build
 	rm -rf docs/html
 
-install-hooks:
-	cp -rfp hooks/* .git/hooks
-
-.PHONY: develop update-submodules docs docs-live clean install-hooks
+.PHONY: develop update-submodules docs docs-live clean
