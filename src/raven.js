@@ -30,7 +30,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '@VERSION',
+    VERSION: '<%= pkg.version %>',
 
     /*
      * Allow Raven to be configured as soon as it is loaded

@@ -63,7 +63,8 @@ module.exports = function(grunt) {
         concat: {
             options: {
                 separator: '\n',
-                banner: grunt.file.read('template/_copyright.js')
+                banner: grunt.file.read('template/_copyright.js'),
+                process: true
             },
             core: {
                 src: coreFiles.concat(plugins),
