@@ -15,6 +15,7 @@
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-clean": "~0.4.0",
     "grunt-mocha": "~0.4.1",
+    "grunt-release": "~0.6.0",
     "chai": "~1.8.1"
   },
   "private": true

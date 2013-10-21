@@ -111,6 +111,13 @@ module.exports = function(grunt) {
                 src: ['test/index.html'],
                 nonull: true
             }
+        },
+
+        release: {
+            options: {
+                npm:           false,
+                commitMessage: 'Release <%= version %>'
+            }
         }
     };
 
@@ -124,6 +131,7 @@ module.exports = function(grunt) {
 
     // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-mocha');
+    grunt.loadNpmTasks('grunt-release');
 
     // Build tasks
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
