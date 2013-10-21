@@ -9,6 +9,7 @@
     "url": "git://github.com/getsentry/raven-js.git"
   },
   "devDependencies": {
+    "chai": "~1.8.1",
     "grunt": "~0.4.1",
     "grunt-contrib-jshint": "~0.6.3",
     "grunt-contrib-uglify": "~0.2.2",
@@ -16,7 +17,7 @@
     "grunt-contrib-clean": "~0.4.0",
     "grunt-mocha": "~0.4.1",
     "grunt-release": "~0.6.0",
-    "chai": "~1.8.1"
+    "grunt-s3": "~0.2.0-alpha.3"
   },
   "private": true
 }

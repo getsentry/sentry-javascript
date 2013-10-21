@@ -68,6 +68,7 @@ def publish(path, version, args):
             upload(path, args + cache, package, '.'.join(version))
             version.pop()
 
+
 def tag(version):
     run('git add dist/%s' % version)
     run('git commit -m "%s"' % version)

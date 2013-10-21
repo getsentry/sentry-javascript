@@ -59,6 +59,8 @@ module.exports = function(grunt) {
 
     var gruntConfig = {
         pkg: grunt.file.readJSON('package.json'),
+        aws: grunt.file.readJSON('aws.json'),
+
         clean: ['build'],
         concat: {
             options: {
@@ -120,6 +122,22 @@ module.exports = function(grunt) {
                 npm:           false,
                 commitMessage: 'Release <%= version %>'
             }
+        },
+
+        s3: {
+            options: {
+                key: '<%= aws.key %>',
+                secret: '<%= aws.secret %>',
+                bucket: '<%= aws.bucket %>',
+                access: 'public-read'
+            },
+            all: {
+                upload: [{
+                    src: 'build/**/*',
+                    dest: 'build/<%= pkg.version %>/',
+                    rel: 'build/'
+                }]
+            }
         }
     };
 
@@ -134,6 +152,7 @@ module.exports = function(grunt) {
     // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-mocha');
     grunt.loadNpmTasks('grunt-release');
+    grunt.loadNpmTasks('grunt-s3');
 
     // Build tasks
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
@@ -142,5 +161,6 @@ module.exports = function(grunt) {
     // Test task
     grunt.registerTask('test', ['jshint', 'mocha']);
 
+    grunt.registerTask('publish', ['test', 'build.all', 'release', 's3']);
     grunt.registerTask('default', ['build.all']);
 };
