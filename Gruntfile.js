@@ -81,7 +81,7 @@ module.exports = function(grunt) {
                 sourceMap: function (dest) {
                     return path.join(path.dirname(dest),
                                      path.basename(dest, '.js')) +
-                           '.map.js';
+                           '.map';
                 }
             },
             dist: {
