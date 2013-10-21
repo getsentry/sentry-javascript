@@ -1,9 +1,10 @@
 import datetime
+import json
 
 from invoke.tasks import task
 from invoke.runner import run
 
-VERSION = open('version.txt').read().strip()
+VERSION = json.load(open('package.json'))['version']
 
 BASE_S3_ARGS = ['--acl-public']
 JS_S3_ARGS = ['--guess-mime-type', '--add-header "Content-Encoding: gzip"']
