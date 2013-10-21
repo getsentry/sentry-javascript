@@ -1,4 +1,6 @@
 module.exports = function(grunt) {
+    "use strict";
+
     var _ = grunt.util._;
     var path = require('path');
 
@@ -23,7 +25,7 @@ module.exports = function(grunt) {
     // Taken from http://dzone.com/snippets/calculate-all-combinations
     var combine = function (a) {
         var fn = function (n, src, got, all) {
-            if (n == 0) {
+            if (n === 0) {
                 all.push(got);
                 return;
             }
@@ -92,7 +94,7 @@ module.exports = function(grunt) {
             options: {
                 jshintrc: '.jshintrc'
             },
-            all: ['src/**/*.js', 'plugins/**/*.js']
+            all: ['Gruntfile.js', 'src/**/*.js', 'plugins/**/*.js']
         },
 
         mocha: {
