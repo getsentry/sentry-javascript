@@ -74,7 +74,12 @@ module.exports = function(grunt) {
 
         uglify: {
             options: {
-                banner: grunt.file.read('template/_copyright.min.js')
+                banner: grunt.file.read('template/_copyright.min.js'),
+                sourceMap: function (dest) {
+                    return path.join(path.dirname(dest),
+                                     path.basename(dest, '.js')) +
+                           '.map.js';
+                }
             },
             dist: {
                 src: ['build/**/*.js'],
