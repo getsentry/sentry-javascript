@@ -32,6 +32,9 @@ TK.remoteFetching = false;
 var Raven = {
     VERSION: '<%= pkg.version %>',
 
+    // Expose TraceKit to the Raven namespace
+    TraceKit: TK,
+
     /*
      * Allow Raven to be configured as soon as it is loaded
      * It uses a global RavenConfig = {dsn: '...', config: {}}
