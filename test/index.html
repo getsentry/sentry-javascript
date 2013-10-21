@@ -3,16 +3,16 @@
   <head>
     <title>Raven.js Test Suite</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+    <link rel="stylesheet" href="../node_modules/grunt-mocha/node_modules/mocha/mocha.css" />
   </head>
   <body>
     <div id="mocha"></div>
     <!-- Mocha -->
-    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/grunt-mocha/node_modules/mocha/mocha.js"></script>
     <script src="../node_modules/chai/chai.js"></script>
     <script>
-        mocha.ui('bdd')
-        mocha.reporter('html')
+        mocha.ui('bdd');
+        mocha.reporter('html');
         var assert = chai.assert
     </script>
 
@@ -36,8 +36,7 @@
     <script src="raven.test.js"></script>
 
     <script>
-        if (window.mochaPhantomJS) mochaPhantomJS.run();
-        else {
+        if (!window.PHANTOMJS) {
             (function(runner){
               var failed = [];
 

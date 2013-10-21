@@ -88,6 +88,22 @@ module.exports = function(grunt) {
                 jshintrc: '.jshintrc'
             },
             all: ['src/**/*.js', 'plugins/**/*.js']
+        },
+
+        mocha: {
+            all: {
+                options: {
+                    mocha: {
+                        ignoreLeaks: true,
+                        grep:        grunt.option('grep')
+                    },
+                    log:      true,
+                    reporter: 'Dot',
+                    run:      true
+                },
+                src: ['test/index.html'],
+                nonull: true
+            }
         }
     };
 
@@ -97,6 +113,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+
+    grunt.loadNpmTasks('grunt-mocha');
 
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
     grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify']);
