@@ -15,7 +15,6 @@ docs-live:
 	done
 
 clean:
-	rm -rf build
 	rm -rf docs/html
 
 .PHONY: develop update-submodules docs docs-live clean
