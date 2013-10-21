@@ -96,6 +96,14 @@ module.exports = function(grunt) {
             }
         },
 
+        fixSourceMaps: {
+            options: {
+                srcBase: 'build',
+                destBase: 'build'
+            },
+            all: ['build/**/*.map']
+        },
+
         jshint: {
             options: {
                 jshintrc: '.jshintrc'
@@ -145,6 +153,34 @@ module.exports = function(grunt) {
 
     grunt.initConfig(gruntConfig);
 
+    // Custom Grunt tasks
+    grunt.registerMultiTask('fixSourceMaps', function () {
+        var options = this.options({
+            destBase: '',
+            srcBase: ''
+        });
+
+        this.files.forEach(function (f) {
+            var result;
+            var sources = f.src.filter(function (filepath) {
+                if (!grunt.file.exists(filepath)) {
+                    grunt.log.warn('Source file "' + filepath + '" not found.');
+                    return false;
+                } else {
+                    return true;
+                }
+            }).forEach(function (filepath) {
+                var sMap = grunt.file.readJSON(filepath);
+                sMap.file = path.relative(options.destBase, sMap.file);
+                sMap.sources = _.map(sMap.sources, path.relative.bind(path, options.srcBase));
+
+                grunt.file.write(filepath, JSON.stringify(sMap));
+                // Print a success message.
+                grunt.log.writeln('File "' + filepath + '" fixed.');
+            });
+        });
+    });
+
     // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-concat');
@@ -157,8 +193,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-s3');
 
     // Build tasks
-    grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
-    grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify']);
+    grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify', 'fixSourceMaps']);
+    grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify', 'fixSourceMaps']);
 
     // Test task
     grunt.registerTask('test', ['jshint', 'mocha']);
