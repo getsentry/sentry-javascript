@@ -97,10 +97,6 @@ module.exports = function(grunt) {
         },
 
         fixSourceMaps: {
-            options: {
-                srcBase: 'build',
-                destBase: 'build'
-            },
             all: ['build/**/*.map']
         },
 
@@ -155,11 +151,6 @@ module.exports = function(grunt) {
 
     // Custom Grunt tasks
     grunt.registerMultiTask('fixSourceMaps', function () {
-        var options = this.options({
-            destBase: '',
-            srcBase: ''
-        });
-
         this.files.forEach(function (f) {
             var result;
             var sources = f.src.filter(function (filepath) {
@@ -170,9 +161,10 @@ module.exports = function(grunt) {
                     return true;
                 }
             }).forEach(function (filepath) {
+                var base = path.dirname(filepath);
                 var sMap = grunt.file.readJSON(filepath);
-                sMap.file = path.relative(options.destBase, sMap.file);
-                sMap.sources = _.map(sMap.sources, path.relative.bind(path, options.srcBase));
+                sMap.file = path.relative(base, sMap.file);
+                sMap.sources = _.map(sMap.sources, path.relative.bind(path, base));
 
                 grunt.file.write(filepath, JSON.stringify(sMap));
                 // Print a success message.
