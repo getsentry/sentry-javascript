@@ -109,15 +109,21 @@ module.exports = function(grunt) {
 
     grunt.initConfig(gruntConfig);
 
+    // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
 
+    // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-mocha');
 
+    // Build tasks
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify']);
     grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify']);
+
+    // Test task
+    grunt.registerTask('test', ['jshint', 'mocha']);
 
     grunt.registerTask('default', ['build.all']);
 };
