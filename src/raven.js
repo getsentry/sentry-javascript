@@ -347,14 +347,14 @@ function handleErrorReport(stackInfo, options) {
         logged = false;
 
     if (cb && cb(stackInfo, options, handleStack)) {
-        logged = true;
-        handleStackInfo(stackInfo, options);
-    } else {
-        handleStackInfo(stackInfo, options);
+        handleStack();
+    } else if(!cb) {
+        handleStack();
     }
 
     function handleStack() {
         if (!logged) {
+            logged = true;
             handleStackInfo(stackInfo, options);
         }
     }
