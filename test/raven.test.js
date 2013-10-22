@@ -803,17 +803,6 @@ describe('handleErrorReport', function() {
     assert.isTrue(window.handleStackInfo.calledOnce)
   })
 
-  it('should call handleStackInfo if cb returns true', function() {
-    var cb = this.sinon.stub().returns(true)
-    this.sinon.stub(window, 'handleStackInfo')
-    Raven.config(SENTRY_DSN, {
-      shouldReportErrorCallback: cb
-    })
-    handleErrorReport()
-    assert.isTrue(cb.calledOnce)
-    assert.isTrue(window.handleStackInfo.calledOnce)
-  })
-
   it('should allow cb call handleStackInfo through a callback', function() {
     var cb = function(stackInfo, options, done) {
       done()
