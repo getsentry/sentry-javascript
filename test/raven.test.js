@@ -765,6 +765,23 @@ describe('globals', function() {
   });
 });
 
+describe('handleErrorReport', function() {
+  afterEach(function() {
+    flushRavenState();
+  });
+
+  it('should pass args to handleStackInfo', function() {
+    var stackInfo = {},
+        options = {}
+
+    setupRaven();
+    this.sinon.stub(window, 'handleStackInfo')
+
+    handleErrorReport()
+    assert.isTrue(window.handleStackInfo.calledOnce)
+  })
+})
+
 describe('Raven (public API)', function() {
   afterEach(function() {
     flushRavenState();
@@ -868,7 +885,7 @@ describe('Raven (public API)', function() {
       this.sinon.stub(TK.report, 'subscribe');
       assert.equal(Raven, Raven.install());
       assert.isTrue(TK.report.subscribe.calledOnce);
-      assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
+      assert.equal(TK.report.subscribe.lastCall.args[0], handleErrorReport);
     });
   });
 
@@ -963,7 +980,7 @@ describe('Raven (public API)', function() {
       this.sinon.stub(TK.report, 'unsubscribe');
       Raven.uninstall();
       assert.isTrue(TK.report.unsubscribe.calledOnce);
-      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
+      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleErrorReport);
     });
   });
 
