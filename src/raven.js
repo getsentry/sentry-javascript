@@ -439,6 +439,13 @@ function extractContextFromFrame(frame) {
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, label, i;
 
+    // Sometimes an exception is getting logged in Sentry as
+    // <no message value>
+    // This can only mean that the message was falsey since this value
+    // is hardcoded into Sentry itself.
+    // At this point, if the message is falsey, we bail since it's useless
+    if (!message) return;
+
     // IE8 really doesn't have Array.prototype.indexOf
     // Filter out a message that matches our ignore list
     i = globalOptions.ignoreErrors.length;

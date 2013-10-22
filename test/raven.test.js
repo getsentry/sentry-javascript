@@ -451,6 +451,13 @@ describe('globals', function() {
         extra: 'awesome'
       }]);
     });
+
+    it('should ignored falsey messages', function() {
+      this.sinon.stub(window, 'send');
+
+      processException('Error', '', 'http://example.com', []);
+      assert.isFalse(window.send.called);
+    });
   });
 
   describe('send', function() {
