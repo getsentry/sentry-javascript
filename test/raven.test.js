@@ -5,14 +5,14 @@ function flushRavenState() {
   globalUser = undefined;
   globalProject = undefined;
   globalOptions = {
-      logger: 'javascript',
-      ignoreErrors: [],
-      ignoreUrls: [],
-      whitelistUrls: [],
-      includePaths: [],
-      collectWindowErrors: true,
-      tags: {},
-      extra: {}
+    logger: 'javascript',
+    ignoreErrors: [],
+    ignoreUrls: [],
+    whitelistUrls: [],
+    includePaths: [],
+    collectWindowErrors: true,
+    tags: {},
+    extra: {}
   };
   Raven.uninstall();
 }
