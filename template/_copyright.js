@@ -1,4 +1,4 @@
-/*! Raven.js <%= pkg.version %> | github.com/getsentry/raven-js */
+/*! Raven.js <%= pkg.version %> (<%= gitinfo.local.branch.current.shortSHA %>) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
