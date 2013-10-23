@@ -187,6 +187,7 @@ module.exports = function(grunt) {
     // Build tasks
     grunt.registerTask('build.core', ['clean', 'concat:core', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build.all', ['clean', 'concat:all', 'uglify', 'fixSourceMaps']);
+    grunt.registerTask('build', ['build.all']);
 
     // Test task
     grunt.registerTask('test', ['jshint', 'mocha']);
