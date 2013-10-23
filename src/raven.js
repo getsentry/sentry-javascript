@@ -104,6 +104,10 @@ var Raven = {
             TK.remoteFetching = true;
         }
 
+        if (globalOptions.collectWindowErrors) {
+            TK.collectWindowErrors = true;
+        }
+
         if (globalOptions.linesOfContext) {
             TK.linesOfContext = globalOptions.linesOfContext;
         }
@@ -123,7 +127,7 @@ var Raven = {
     install: function() {
         if (!isSetup()) return;
 
-        TK.report.subscribe(handleStackInfo);
+        TK.report.subscribe(handleErrorReport);
 
         return Raven;
     },
@@ -185,7 +189,7 @@ var Raven = {
      * @return {Raven}
      */
     uninstall: function() {
-        TK.report.unsubscribe(handleStackInfo);
+        TK.report.unsubscribe(handleErrorReport);
 
         return Raven;
     },
@@ -339,6 +343,24 @@ function getAuthQueryString() {
 
     cachedAuth = '?' + qs.join('&');
     return cachedAuth;
+}
+
+function handleErrorReport(stackInfo, options) {
+    var cb = globalOptions.shouldReportErrorCallback,
+        logged = false;
+
+    if (cb && cb(stackInfo, options, handleStack)) {
+        handleStack();
+    } else if(!cb) {
+        handleStack();
+    }
+
+    function handleStack() {
+        if (!logged) {
+            logged = true;
+            handleStackInfo(stackInfo, options);
+        }
+    }
 }
 
 function handleStackInfo(stackInfo, options) {

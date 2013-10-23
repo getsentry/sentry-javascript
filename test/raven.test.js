@@ -772,6 +772,71 @@ describe('globals', function() {
   });
 });
 
+describe('handleErrorReport', function() {
+  afterEach(function() {
+    flushRavenState();
+  });
+
+  it('should pass call handleStackInfo', function() {
+    var stackInfo = {},
+        options = {}
+
+    setupRaven();
+    this.sinon.stub(window, 'handleStackInfo')
+
+    handleErrorReport()
+    assert.isTrue(window.handleStackInfo.calledOnce)
+  })
+
+  it('should not call handleStackInfo if cb returns false', function() {
+    var cb = this.sinon.stub().returns(false)
+    this.sinon.stub(window, 'handleStackInfo')
+    Raven.config(SENTRY_DSN, {
+      shouldReportErrorCallback: cb
+    })
+    handleErrorReport()
+    assert.isTrue(cb.calledOnce)
+    assert.equal(window.handleStackInfo.callCount, 0)
+  })
+
+  it('should call handleStackInfo if cb returns true', function() {
+    var cb = this.sinon.stub().returns(true)
+    this.sinon.stub(window, 'handleStackInfo')
+    Raven.config(SENTRY_DSN, {
+      shouldReportErrorCallback: cb
+    })
+    handleErrorReport()
+    assert.isTrue(cb.calledOnce)
+    assert.isTrue(window.handleStackInfo.calledOnce)
+  })
+
+  it('should allow cb call handleStackInfo through a callback', function() {
+    var cb = function(stackInfo, options, done) {
+      done()
+    }
+    this.sinon.stub(window, 'handleStackInfo')
+    Raven.config(SENTRY_DSN, {
+      shouldReportErrorCallback: cb
+    })
+    handleErrorReport()
+    assert.isTrue(window.handleStackInfo.calledOnce)
+  })
+
+  it('handleStackInfo should only be calledOnce per error', function() {
+    var cb = function(stackInfo, options, done) {
+      done()
+      done()
+      return true
+    }
+    this.sinon.stub(window, 'handleStackInfo')
+    Raven.config(SENTRY_DSN, {
+      shouldReportErrorCallback: cb
+    })
+    handleErrorReport()
+    assert.equal(window.handleStackInfo.callCount, 1)
+  })
+})
+
 describe('Raven (public API)', function() {
   afterEach(function() {
     flushRavenState();
@@ -875,7 +940,7 @@ describe('Raven (public API)', function() {
       this.sinon.stub(TK.report, 'subscribe');
       assert.equal(Raven, Raven.install());
       assert.isTrue(TK.report.subscribe.calledOnce);
-      assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
+      assert.equal(TK.report.subscribe.lastCall.args[0], handleErrorReport);
     });
   });
 
@@ -976,7 +1041,7 @@ describe('Raven (public API)', function() {
       this.sinon.stub(TK.report, 'unsubscribe');
       Raven.uninstall();
       assert.isTrue(TK.report.unsubscribe.calledOnce);
-      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
+      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleErrorReport);
     });
   });
 
