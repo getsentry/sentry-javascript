@@ -10,7 +10,9 @@ function flushRavenState() {
     ignoreUrls: [],
     whitelistUrls: [],
     includePaths: [],
-    tags: {}
+    collectWindowErrors: true,
+    tags: {},
+    extra: {}
   };
   Raven.uninstall();
 }
@@ -859,6 +861,27 @@ describe('Raven (public API)', function() {
         assert.match(globalOptions.whitelistUrls, /my.app|stringy.app/i);
       });
     });
+
+    describe('collectWindowErrors', function() {
+      it('should be true by default', function() {
+        Raven.config(SENTRY_DSN)
+        assert.isTrue(TK.collectWindowErrors)
+      })
+      it('should be true if set to true', function() {
+        Raven.config(SENTRY_DSN, {
+          collectWindowErrors: true
+        })
+
+        assert.isTrue(TK.collectWindowErrors)
+      })
+      it('should be false if set to false', function() {
+        Raven.config(SENTRY_DSN, {
+          collectWindowErrors: false
+        })
+
+        assert.isFalse(TK.collectWindowErrors)
+      })
+    })
   });
 
   describe('.install', function() {
