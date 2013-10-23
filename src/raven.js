@@ -15,6 +15,7 @@ var _Raven = window.Raven,
         ignoreUrls: [],
         whitelistUrls: [],
         includePaths: [],
+        collectWindowErrors: true,
         tags: {},
         extra: {}
     };
@@ -108,9 +109,7 @@ var Raven = {
             TK.linesOfContext = globalOptions.linesOfContext;
         }
 
-        if (!isUndefined(globalOptions.collectWindowErrors)) {
-            TK.collectWindowErrors = globalOptions.collectWindowErrors;
-        }
+        TK.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
         return Raven;
