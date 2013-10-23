@@ -330,7 +330,7 @@ function getAuthQueryString() {
     if (cachedAuth) return cachedAuth;
 
     var qs = [
-        'sentry_version=3',
+        'sentry_version=4',
         'sentry_client=raven-js/' + Raven.VERSION
     ];
     if (globalKey) {

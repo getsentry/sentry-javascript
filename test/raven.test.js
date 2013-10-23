@@ -115,7 +115,7 @@ describe('globals', function() {
   describe('getAuthQueryString', function() {
     it('should return a properly formatted string and cache it', function() {
       setupRaven();
-      var expected = '?sentry_version=3&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
+      var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
       assert.strictEqual(getAuthQueryString(), expected);
       assert.strictEqual(cachedAuth, expected);
     });
