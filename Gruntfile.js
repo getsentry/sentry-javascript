@@ -192,5 +192,5 @@ module.exports = function(grunt) {
     grunt.registerTask('test', ['jshint', 'mocha']);
 
     grunt.registerTask('publish', ['test', 'build.all', 's3']);
-    grunt.registerTask('default', ['build.all']);
+    grunt.registerTask('default', ['test']);
 };
