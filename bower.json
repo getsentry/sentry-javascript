@@ -2,5 +2,5 @@
   "name": "raven-js",
   "version": "1.1.0-pre",
   "dependencies": {},
-  "main": "dist/1.1.0-pre/raven.js"
+  "main": "dist/raven.js"
 }
