@@ -163,6 +163,10 @@ var Raven = {
             options = undefined;
         }
 
+        if (func['raven.js']) {
+            return func; // already wrapped
+        }
+
         var property,
             wrappedFunction = function() {
                 try {
@@ -178,6 +182,8 @@ var Raven = {
                 wrappedFunction[property] = func[property];
             }
         }
+
+        wrappedFunction['raven.js'] = true;
 
         return wrappedFunction;
     },
