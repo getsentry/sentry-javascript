@@ -140,7 +140,7 @@ module.exports = function(grunt) {
             all: {
                 upload: [{
                     src: 'build/**/*',
-                    dest: 'build/<%= pkg.version %>/',
+                    dest: '<%= pkg.version %>/',
                     rel: 'build/'
                 }]
             }
