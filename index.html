@@ -22,14 +22,14 @@
     </div>
     <div class="checkbox">
       <label>
-        <input type="checkbox" value="require">
-        require.js
+        <input type="checkbox" value="native">
+        native (setTimeout/setInterval patches)
       </label>
     </div>
     <div class="checkbox">
       <label>
-        <input type="checkbox" value="native">
-        native (setTimeout/setInterval patches)
+        <input type="checkbox" value="require">
+        require.js
       </label>
     </div>
     <div class="checkbox">
@@ -59,7 +59,10 @@ $(function() {
             $download.val(base + 'raven.min.js');
         }
     });
-    $('input[value="jquery"]').click();
+    var defaults = ['jquery', 'native'];
+    for (var i=0; i<defaults.length; i++) {
+        $('input[value="'+defaults[i]+'"]').click();
+    }
     $download.on('click', function() { $(this).select(); });
 });
 </script>
