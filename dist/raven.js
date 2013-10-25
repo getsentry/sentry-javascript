@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0-pre | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.0-rc1 (9d3d77e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1115,6 +1115,7 @@ var _Raven = window.Raven,
         ignoreUrls: [],
         whitelistUrls: [],
         includePaths: [],
+        collectWindowErrors: true,
         tags: {},
         extra: {}
     };
@@ -1130,7 +1131,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0-pre',
+    VERSION: '1.1.0-rc1',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1207,6 +1208,8 @@ var Raven = {
         if (globalOptions.linesOfContext) {
             TK.linesOfContext = globalOptions.linesOfContext;
         }
+
+        TK.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
         return Raven;
@@ -1430,7 +1433,7 @@ function getAuthQueryString() {
     if (cachedAuth) return cachedAuth;
 
     var qs = [
-        'sentry_version=3',
+        'sentry_version=4',
         'sentry_client=raven-js/' + Raven.VERSION
     ];
     if (globalKey) {
