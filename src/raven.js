@@ -164,6 +164,7 @@ var Raven = {
         }
 
         var property,
+            IS_WRAPPED_KEY = 'raven.js',
             wrappedFunction = function() {
                 try {
                     return func.apply(this, arguments);
@@ -173,11 +174,17 @@ var Raven = {
                 }
             };
 
+        if (func[IS_WRAPPED_KEY] && func[IS_WRAPPED_KEY] === (options || true)) {
+            return func; // already wrapped in same context
+        }
+
         for (property in func) {
             if (func.hasOwnProperty(property)) {
                 wrappedFunction[property] = func[property];
             }
         }
+
+        wrappedFunction[IS_WRAPPED_KEY] = options || true;
 
         return wrappedFunction;
     },
