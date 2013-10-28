@@ -144,6 +144,25 @@ module.exports = function(grunt) {
                     rel: 'build/'
                 }]
             }
+        },
+
+        connect: {
+            test: {
+                options: {
+                    port: 8000,
+                    debug: true,
+                    keepalive: true
+                }
+            },
+
+            docs: {
+                options: {
+                    port: 8000,
+                    debug: true,
+                    base: 'docs/html',
+                    keepalive: true
+                }
+            }
         }
     };
 
@@ -178,6 +197,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-connect');
 
     // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-mocha');
@@ -192,6 +212,10 @@ module.exports = function(grunt) {
 
     // Test task
     grunt.registerTask('test', ['jshint', 'mocha']);
+
+    // Webserver tasks
+    grunt.registerTask('run:test', ['connect:test']);
+    grunt.registerTask('run:docs', ['connect:docs']);
 
     grunt.registerTask('publish', ['test', 'build.all', 's3']);
     grunt.registerTask('default', ['test']);

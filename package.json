@@ -19,7 +19,8 @@
     "grunt-mocha": "~0.4.1",
     "grunt-release": "~0.6.0",
     "grunt-s3": "~0.2.0-alpha.3",
-    "grunt-gitinfo": "~0.1.1"
+    "grunt-gitinfo": "~0.1.1",
+    "grunt-contrib-connect": "~0.5.0"
   },
   "private": true
 }
