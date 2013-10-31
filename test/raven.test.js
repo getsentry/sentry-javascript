@@ -362,11 +362,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', 'http://example.com/override.js', 10, frames, {});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: frames
         },
         culprit: 'http://example.com/override.js',
@@ -375,11 +375,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', '', 10, frames, {});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: frames
         },
         culprit: 'http://example.com/file1.js',
@@ -388,11 +388,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', '', 10, frames, {extra: 'awesome'});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: frames
         },
         culprit: 'http://example.com/file1.js',
@@ -406,11 +406,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: [{
             filename: 'http://example.com/override.js',
             lineno: 10
@@ -422,11 +422,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: [{
             filename: 'http://example.com/override.js',
             lineno: 10
@@ -438,11 +438,11 @@ describe('globals', function() {
 
       processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
       assert.deepEqual(window.send.lastCall.args, [{
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'lol'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: [{
             filename: 'http://example.com/override.js',
             lineno: 10
@@ -492,7 +492,7 @@ describe('globals', function() {
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
-        'sentry.interfaces.Http': {
+        request: {
           url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
@@ -524,13 +524,13 @@ describe('globals', function() {
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
-        'sentry.interfaces.Http': {
+        request: {
           url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
           }
         },
-        'sentry.interfaces.User': {
+        user: {
           name: 'Matt'
         },
         foo: 'bar'
@@ -559,7 +559,7 @@ describe('globals', function() {
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
-        'sentry.interfaces.Http': {
+        request: {
           url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
@@ -591,7 +591,7 @@ describe('globals', function() {
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
-        'sentry.interfaces.Http': {
+        request: {
           url: 'http://localhost/?a=b',
           headers: {
             'User-Agent': 'lolbrowser'
@@ -699,15 +699,15 @@ describe('globals', function() {
         project: 2,
         logger: 'javascript',
         platform: 'javascript',
-        'sentry.interfaces.Http': {
+        request: {
           url: window.location.protocol + '//' + window.location.host + window.location.pathname,
           querystring: window.location.search.slice(1)
         },
-        'sentry.interfaces.Exception': {
+        exception: {
           type: 'Error',
           value: 'crap'
         },
-        'sentry.interfaces.Stacktrace': {
+        stacktrace: {
           frames: [{
             filename: 'http://example.com/file1.js',
             filename: 'file1.js',

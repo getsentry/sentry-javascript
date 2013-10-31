@@ -478,11 +478,13 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // Fire away!
     send(
         arrayMerge({
-            'sentry.interfaces.Exception': {
+            // sentry.interfaces.Exception
+            exception: {
                 type: type,
                 value: message
             },
-            'sentry.interfaces.Stacktrace': stacktrace,
+            // sentry.interfaces.Stacktrace
+            stacktrace: stacktrace,
             culprit: fileurl,
             message: label
         }, options)
@@ -522,7 +524,8 @@ function send(data) {
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
-        'sentry.interfaces.Http': getHttpData()
+        // sentry.interfaces.Http
+        request: getHttpData()
     }, data);
 
     // Merge in the tags and extra separately since arrayMerge doesn't handle a deep merge
@@ -533,7 +536,10 @@ function send(data) {
     if (!data.tags) delete data.tags;
     if (!data.extra) delete data.extra;
 
-    if (globalUser) data['sentry.interfaces.User'] = globalUser;
+    if (globalUser) {
+        // sentry.interfaces.User
+        data.user = globalUser;
+    }
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);
