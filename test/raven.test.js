@@ -1,6 +1,7 @@
 function flushRavenState() {
   cachedAuth = undefined;
   hasJSON = !isUndefined(window.JSON);
+  lastCapturedException = undefined;
   globalServer = undefined;
   globalUser = undefined;
   globalProject = undefined;
@@ -1045,6 +1046,13 @@ describe('Raven (public API)', function() {
       Raven.captureException(error, {foo: 'bar'});
       assert.isTrue(TK.report.calledOnce);
       assert.deepEqual(TK.report.lastCall.args, [error, {foo: 'bar'}]);
+    });
+
+    it('should store the last exception', function() {
+      var error = new Error('crap');
+      this.sinon.stub(TK, 'report');
+      Raven.captureException(error);
+      assert.equal(Raven.lastException(), error);
     });
 
     it('shouldn\'t reraise the if the error is the same error', function() {

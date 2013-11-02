@@ -5,6 +5,7 @@
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
     hasJSON = !!(window.JSON && window.JSON.stringify),
+    lastCapturedException,
     globalServer,
     globalUser,
     globalKey,
@@ -206,6 +207,9 @@ var Raven = {
             return Raven.captureMessage(ex, options);
         }
 
+        // Store the raw exception object for potential debugging and introspection
+        lastCapturedException = ex;
+
         // TraceKit.report will re-raise any exception passed to it,
         // which means you have to wrap it in try/catch. Instead, we
         // can wrap it here and only re-raise if TraceKit.report
@@ -250,6 +254,15 @@ var Raven = {
        globalUser = user;
 
        return Raven;
+    },
+
+    /*
+     * Get the latest raw exception that was captured by Raven.
+     *
+     * @return {error}
+     */
+    lastException: function() {
+        return lastCapturedException;
     }
 };
 
