@@ -908,6 +908,7 @@ describe('Raven (public API)', function() {
       var spy = this.sinon.spy();
       var wrapped = Raven.wrap(spy);
       assert.isFunction(wrapped);
+      assert.isTrue(wrapped.__raven__);
       wrapped();
       assert.isTrue(spy.calledOnce);
     });
@@ -927,6 +928,21 @@ describe('Raven (public API)', function() {
       var func = function() { return 'foo' };
       var wrapped = Raven.wrap(func);
       assert.equal(wrapped(), 'foo');
+    });
+    it('should not wrap a non-function', function() {
+      assert.equal(Raven.wrap('lol'), 'lol');
+      assert.equal(Raven.wrap({}, 'lol'), 'lol');
+      var a = [1, 2];
+      assert.equal(Raven.wrap(a), a);
+    });
+    it('should wrap function arguments', function() {
+      var spy = this.sinon.spy();
+      var wrapped = Raven.wrap(function(f) {
+        assert.isTrue(f.__raven__);
+        f();
+      });
+      wrapped(spy);
+      assert.isTrue(spy.calledOnce);
     });
   });
 

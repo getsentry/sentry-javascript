@@ -2,7 +2,7 @@
     "use strict";
 
     if (typeof define === 'function' && define.amd) {
-        window.define = Raven.wrapArguments(define);
-        window.require = Raven.wrapArguments(require);
+        window.define = Raven.wrap(define);
+        window.require = Raven.wrap(require);
     }
 }(this, Raven));
