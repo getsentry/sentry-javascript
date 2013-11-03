@@ -4,6 +4,7 @@ Installation
 Raven is distributed in a few different methods, but they all should be included inside the ``<head>`` of your page.
 
 You should try and include Raven as high up on the page as possible. Ideally, you'd like to include Raven first, in order to potentially catch errors from other JavaScript files.
+But to use plugins (e.g. to wrap all jQuery event handlers to catch, report and reraise exceptions), you must load Raven after the library you want it to patch.
 
 Using our CDN
 ~~~~~~~~~~~~~
