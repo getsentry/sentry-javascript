@@ -735,43 +735,43 @@ describe('globals', function() {
       }]);
       */
     });
-  });
 
-  it('should ignore frames that dont have a url', function() {
-    this.sinon.stub(window, 'normalizeFrame').returns(undefined);
-    this.sinon.stub(window, 'processException');
+    it('should ignore frames that dont have a url', function() {
+      this.sinon.stub(window, 'normalizeFrame').returns(undefined);
+      this.sinon.stub(window, 'processException');
 
-    var stackInfo = {
-      name: 'Matt',
-      message: 'hey',
-      url: 'http://example.com',
-      lineno: 10,
-      stack: new Array(2)
-    };
+      var stackInfo = {
+        name: 'Matt',
+        message: 'hey',
+        url: 'http://example.com',
+        lineno: 10,
+        stack: new Array(2)
+      };
 
-    handleStackInfo(stackInfo, {foo: 'bar'});
-    assert.deepEqual(window.processException.lastCall.args, [
-      'Matt', 'hey', 'http://example.com', 10, [], {foo: 'bar'}
-    ]);
-  });
+      handleStackInfo(stackInfo, {foo: 'bar'});
+      assert.deepEqual(window.processException.lastCall.args, [
+        'Matt', 'hey', 'http://example.com', 10, [], {foo: 'bar'}
+      ]);
+    });
 
-  it('should not shit when there is no stack object from TK', function() {
-    this.sinon.stub(window, 'normalizeFrame').returns(undefined);
-    this.sinon.stub(window, 'processException');
+    it('should not shit when there is no stack object from TK', function() {
+      this.sinon.stub(window, 'normalizeFrame').returns(undefined);
+      this.sinon.stub(window, 'processException');
 
-    var stackInfo = {
-      name: 'Matt',
-      message: 'hey',
-      url: 'http://example.com',
-      lineno: 10
-      // stack: new Array(2)
-    };
+      var stackInfo = {
+        name: 'Matt',
+        message: 'hey',
+        url: 'http://example.com',
+        lineno: 10
+        // stack: new Array(2)
+      };
 
-    handleStackInfo(stackInfo);
-    assert.isFalse(window.normalizeFrame.called);
-    assert.deepEqual(window.processException.lastCall.args, [
-      'Matt', 'hey', 'http://example.com', 10, [], undefined
-    ]);
+      handleStackInfo(stackInfo);
+      assert.isFalse(window.normalizeFrame.called);
+      assert.deepEqual(window.processException.lastCall.args, [
+        'Matt', 'hey', 'http://example.com', 10, [], undefined
+      ]);
+    });
   });
 });
 
