@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0-rc2 (eafd5f4) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.0-rc3 (067521d) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0-rc2',
+    VERSION: '1.1.0-rc3',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1258,29 +1258,55 @@ var Raven = {
      * @return {function} The newly wrapped functions with a context
      */
     wrap: function(options, func) {
+        // 1 argument has been passed, and it's not a function
+        // so just return it
+        if (isUndefined(func) && !isFunction(options)) {
+            return options;
+        }
+
         // options is optional
         if (isFunction(options)) {
             func = options;
             options = undefined;
         }
 
-        var property,
-            wrappedFunction = function() {
-                try {
-                    return func.apply(this, arguments);
-                } catch(e) {
-                    Raven.captureException(e, options);
-                    throw e;
-                }
-            };
+        // At this point, we've passed along 2 arguments, and the second one
+        // is not a function either, so we'll just return the second argument.
+        if (!isFunction(func)) {
+            return func;
+        }
 
-        for (property in func) {
-            if (func.hasOwnProperty(property)) {
-                wrappedFunction[property] = func[property];
+        // We don't wanna wrap it twice!
+        if (func.__raven__) {
+            return func;
+        }
+
+        var self = this;
+
+        function wrapped() {
+            var args = [], i = arguments.length;
+            // Recursively wrap all of a function's arguments that are
+            // functions themselves.
+            while(i--) args[i] = Raven.wrap(options, arguments[i]);
+            try {
+                return func.apply(self, args);
+            } catch(e) {
+                Raven.captureException(e, options);
             }
         }
 
-        return wrappedFunction;
+        // copy over properties of the old function
+        for (var property in func) {
+            if (func.hasOwnProperty(property)) {
+                wrapped[property] = func[property];
+            }
+        }
+
+        // Signal that this function has been wrapped already
+        // for both debugging and to prevent it to being wrapped twice
+        wrapped.__raven__ = true;
+
+        return wrapped;
     },
 
     /*
@@ -1419,6 +1445,10 @@ function isUndefined(what) {
 
 function isFunction(what) {
     return typeof what === 'function';
+}
+
+function isString(what) {
+    return typeof what === 'string';
 }
 
 function each(obj, callback) {
@@ -1703,27 +1733,20 @@ function isSetup() {
     return true;
 }
 
-function wrapArguments(what) {
-    if (!isFunction(what)) return what;
-
-    function wrapped() {
-        var args = [], i = arguments.length, arg;
-        while(i--) {
-            arg = arguments[i];
-            args[i] = isFunction(arg) ? Raven.wrap(arg) : arg;
-        }
-        what.apply(null, args);
-    }
-    // copy over properties of the old function
-    for (var k in what) wrapped[k] = what[k];
-    return wrapped;
-}
-
 function joinRegExp(patterns) {
-    // Combine an array of regular expressions into one large regexp
+    // Combine an array of regular expressions and strings into one large regexp
     var sources = [], i = patterns.length;
     // lol, map
-    while (i--) sources[i] = patterns[i].source;
+    while (i--) {
+        if (isString(patterns[i])) {
+            // If it's a string, we need to escape it
+            // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+            sources[i] = patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+        } else {
+            // If it's a regexp already, we want to extract the source
+            sources[i] = patterns[i].source;
+        }
+    }
     return new RegExp(sources.join('|'), 'i');
 }
 
