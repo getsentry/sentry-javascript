@@ -347,6 +347,10 @@ function isFunction(what) {
     return typeof what === 'function';
 }
 
+function isString(what) {
+    return typeof what === 'string';
+}
+
 function each(obj, callback) {
     var i, j;
 
@@ -630,10 +634,19 @@ function isSetup() {
 }
 
 function joinRegExp(patterns) {
-    // Combine an array of regular expressions into one large regexp
+    // Combine an array of regular expressions and strings into one large regexp
     var sources = [], i = patterns.length;
     // lol, map
-    while (i--) sources[i] = patterns[i].source;
+    while (i--) {
+        if (isString(patterns[i])) {
+            // If it's a string, we need to escape it
+            // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+            sources[i] = patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+        } else {
+            // If it's a regexp already, we want to extract the source
+            sources[i] = patterns[i].source;
+        }
+    }
     return new RegExp(sources.join('|'), 'i');
 }
 

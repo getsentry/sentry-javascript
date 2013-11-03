@@ -93,6 +93,15 @@ describe('globals', function() {
     });
   });
 
+  describe('isString', function() {
+    it('should do as advertised', function() {
+      assert.isTrue(isString(''));
+      assert.isFalse(isString({}));
+      assert.isFalse(isString(undefined));
+      assert.isFalse(isString(function(){}))
+    });
+  });
+
   describe('isSetup', function() {
     it('should return false with no JSON support', function() {
       globalServer = 'http://localhost/';
@@ -771,6 +780,14 @@ describe('globals', function() {
       assert.deepEqual(window.processException.lastCall.args, [
         'Matt', 'hey', 'http://example.com', 10, [], undefined
       ]);
+    });
+  });
+
+  describe('joinRegExp', function() {
+    it('should work as advertised', function() {
+      assert.equal(joinRegExp([
+        'a', 'b', 'a.b', /d/, /[0-9]/
+      ]).source, 'a|b|a\\.b|d|[0-9]');
     });
   });
 });
