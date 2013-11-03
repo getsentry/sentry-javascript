@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0-rc1 (9d3d77e) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.0-rc2 (eafd5f4) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1105,6 +1105,7 @@ window.TraceKit = TraceKit;
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
     hasJSON = !!(window.JSON && window.JSON.stringify),
+    lastCapturedException,
     globalServer,
     globalUser,
     globalKey,
@@ -1131,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0-rc1',
+    VERSION: '1.1.0-rc2',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1306,6 +1307,9 @@ var Raven = {
             return Raven.captureMessage(ex, options);
         }
 
+        // Store the raw exception object for potential debugging and introspection
+        lastCapturedException = ex;
+
         // TraceKit.report will re-raise any exception passed to it,
         // which means you have to wrap it in try/catch. Instead, we
         // can wrap it here and only re-raise if TraceKit.report
@@ -1350,6 +1354,15 @@ var Raven = {
        globalUser = user;
 
        return Raven;
+    },
+
+    /*
+     * Get the latest raw exception that was captured by Raven.
+     *
+     * @return {error}
+     */
+    lastException: function() {
+        return lastCapturedException;
     }
 };
 
@@ -1578,11 +1591,13 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // Fire away!
     send(
         arrayMerge({
-            'sentry.interfaces.Exception': {
+            // sentry.interfaces.Exception
+            exception: {
                 type: type,
                 value: message
             },
-            'sentry.interfaces.Stacktrace': stacktrace,
+            // sentry.interfaces.Stacktrace
+            stacktrace: stacktrace,
             culprit: fileurl,
             message: label
         }, options)
@@ -1622,7 +1637,8 @@ function send(data) {
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
-        'sentry.interfaces.Http': getHttpData()
+        // sentry.interfaces.Http
+        request: getHttpData()
     }, data);
 
     // Merge in the tags and extra separately since arrayMerge doesn't handle a deep merge
@@ -1633,7 +1649,10 @@ function send(data) {
     if (!data.tags) delete data.tags;
     if (!data.extra) delete data.extra;
 
-    if (globalUser) data['sentry.interfaces.User'] = globalUser;
+    if (globalUser) {
+        // sentry.interfaces.User
+        data.user = globalUser;
+    }
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);
