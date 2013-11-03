@@ -163,6 +163,16 @@ module.exports = function(grunt) {
                     keepalive: true
                 }
             }
+        },
+
+        copy: {
+            dist: {
+                expand: true,
+                flatten: true,
+                cwd: 'build/',
+                src: '**',
+                dest: 'dist/'
+            }
         }
     };
 
@@ -198,6 +208,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
+    grunt.loadNpmTasks('grunt-contrib-copy');
 
     // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-mocha');
@@ -209,6 +220,7 @@ module.exports = function(grunt) {
     grunt.registerTask('build.core', ['clean', 'gitinfo', 'concat:core', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build.all', ['clean', 'gitinfo', 'concat:all', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build', ['build.all']);
+    grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
     grunt.registerTask('test', ['jshint', 'mocha']);
