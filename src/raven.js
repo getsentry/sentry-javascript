@@ -294,6 +294,8 @@ var Raven = {
 function triggerEvent(eventType, options) {
     var event, key;
 
+    options = options || {};
+
     eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
@@ -302,10 +304,6 @@ function triggerEvent(eventType, options) {
     } else {
         event = document.createEventObject();
         event.eventType = eventType;
-    }
-
-    if (typeof options !== 'object') {
-        options = {};
     }
 
     for (key in options) if (options.hasOwnProperty(key)) {
