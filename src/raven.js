@@ -635,7 +635,7 @@ function joinRegExp(patterns) {
         if (isString(patterns[i])) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            sources[i] = patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+            sources[i] = '^' + patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") + '$';
         } else {
             // If it's a regexp already, we want to extract the source
             sources[i] = patterns[i].source;
