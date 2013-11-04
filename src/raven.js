@@ -230,9 +230,7 @@ var Raven = {
      */
     captureException: function(ex, options) {
         // If a string is passed through, recall as a message
-        if (typeof ex === 'string') {
-            return Raven.captureMessage(ex, options);
-        }
+        if (isString(ex)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
