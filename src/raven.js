@@ -80,15 +80,16 @@ var Raven = {
             });
         }
 
-        // join regexp rules into one big rule
-        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
-        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
-        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
-
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
         globalOptions.ignoreErrors.push('Script error');
+
+        // join regexp rules into one big rule
+        globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
+        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
+        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
+        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         globalKey = uri.user;
         globalProject = ~~uri.path.substr(lastSlash + 1);
@@ -492,14 +493,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // At this point, if the message is falsey, we bail since it's useless
     if (!message) return;
 
-    // IE8 really doesn't have Array.prototype.indexOf
-    // Filter out a message that matches our ignore list
-    i = globalOptions.ignoreErrors.length;
-    while (i--) {
-        if (message === globalOptions.ignoreErrors[i]) {
-            return;
-        }
-    }
+    if (globalOptions.ignoreErrors.test(message)) return;
 
     if (frames && frames.length) {
         stacktrace = {frames: frames};

@@ -119,14 +119,12 @@ describe('globals', function() {
 
     it('should return true when everything is all gravy', function() {
       hasJSON = true;
-      setupRaven();
       assert.isTrue(isSetup());
     });
   });
 
   describe('getAuthQueryString', function() {
     it('should return a properly formatted string and cache it', function() {
-      setupRaven();
       var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
       assert.strictEqual(getAuthQueryString(), expected);
       assert.strictEqual(cachedAuth, expected);
@@ -325,7 +323,7 @@ describe('globals', function() {
     it('should respect `ignoreErrors`', function() {
       this.sinon.stub(window, 'send');
 
-      globalOptions.ignoreErrors = ['e1', 'e2'];
+      globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
       processException('Error', 'e1', 'http://example.com', []);
       assert.isFalse(window.send.called);
       processException('Error', 'e2', 'http://example.com', []);
@@ -669,7 +667,6 @@ describe('globals', function() {
 
     it('should work as advertised #integration', function() {
       this.sinon.stub(window, 'makeRequest');
-      setupRaven();
       var stackInfo = {
         name: 'Error',
         message: 'crap',
@@ -817,7 +814,8 @@ describe('Raven (public API)', function() {
 
       assert.equal(globalKey, 'random');
       assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
-      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.', 'Script error'], 'it should install "Script error." by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
       assert.equal(globalOptions.some, 'config');
       assert.equal(globalProject, 2);
 
@@ -831,7 +829,8 @@ describe('Raven (public API)', function() {
       assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
       assert.equal(globalKey, 'abc');
       assert.equal(globalServer, 'http://example.com:80/api/2/store/');
-      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.', 'Script error'], 'it should install "Script error." by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
       assert.equal(globalOptions.foo, 'bar');
       assert.equal(globalProject, 2);
     });
@@ -840,7 +839,8 @@ describe('Raven (public API)', function() {
       Raven.config('//abc@example.com/2');
       assert.equal(globalKey, 'abc');
       assert.equal(globalServer, '//example.com/api/2/store/');
-      assert.deepEqual(globalOptions.ignoreErrors, ['Script error.', 'Script error'], 'it should install "Script error." by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
       assert.equal(globalProject, 2);
     });
 
