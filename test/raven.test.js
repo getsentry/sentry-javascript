@@ -136,14 +136,23 @@ describe('globals', function() {
     });
   });
 
-  describe('parseUri', function() {
+  describe('parseDSN', function() {
     it('should do what it advertises', function() {
-      var pieces = parseUri(SENTRY_DSN);
+      var pieces = parseDSN('http://abc@example.com:80/2');
       assert.strictEqual(pieces.protocol, 'http');
       assert.strictEqual(pieces.user, 'abc');
       assert.strictEqual(pieces.port, '80');
       assert.strictEqual(pieces.path, '/2');
       assert.strictEqual(pieces.host, 'example.com');
+    });
+
+    it('should parse protocol relative', function() {
+      var pieces = parseDSN('//user@mattrobenolt.com/');
+      assert.strictEqual(pieces.protocol, '');
+      assert.strictEqual(pieces.user, 'user');
+      assert.strictEqual(pieces.port, '');
+      assert.strictEqual(pieces.path, '/');
+      assert.strictEqual(pieces.host, 'mattrobenolt.com');
     });
   });
 

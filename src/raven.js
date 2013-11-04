@@ -69,7 +69,7 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
-        var uri = parseUri(dsn),
+        var uri = parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
 
@@ -326,18 +326,18 @@ function triggerEvent(eventType, options) {
     }
 }
 
-var uriKeys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
-    uriPattern = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+var dsnKeys = 'source protocol user host port path'.split(' '),
+    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.]+)(?::(\d+))?(\/.*)/;
 
 /**** Private functions ****/
-function parseUri(str) {
-    var m = uriPattern.exec(str),
-        uri = {},
-        i = 14;
+function parseDSN(str) {
+    var m = dsnPattern.exec(str),
+        dsn = {},
+        i = 6;
 
-    while (i--) uri[uriKeys[i]] = m[i] || '';
+    while (i--) dsn[dsnKeys[i]] = m[i] || '';
 
-    return uri;
+    return dsn;
 }
 
 function isUndefined(what) {
