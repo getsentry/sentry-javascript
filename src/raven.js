@@ -626,14 +626,12 @@ function joinRegExp(patterns) {
     // Be mad.
     var sources = [], i = patterns.length;
     while (i--) {
-        if (isString(patterns[i])) {
+        sources[i] = isString(patterns[i]) ?
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            sources[i] = '^' + patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") + '$';
-        } else {
+            '^' + patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") + '$' :
             // If it's a regexp already, we want to extract the source
-            sources[i] = patterns[i].source;
-        }
+            patterns[i].source;
     }
     return new RegExp(sources.join('|'), 'i');
 }
