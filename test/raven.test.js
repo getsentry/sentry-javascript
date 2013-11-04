@@ -882,24 +882,26 @@ describe('Raven (public API)', function() {
 
     describe('collectWindowErrors', function() {
       it('should be true by default', function() {
-        Raven.config(SENTRY_DSN)
-        assert.isTrue(TK.collectWindowErrors)
-      })
+        Raven.config(SENTRY_DSN);
+        assert.isTrue(TK.collectWindowErrors);
+      });
+
       it('should be true if set to true', function() {
         Raven.config(SENTRY_DSN, {
           collectWindowErrors: true
-        })
+        });
 
-        assert.isTrue(TK.collectWindowErrors)
-      })
+        assert.isTrue(TK.collectWindowErrors);
+      });
+
       it('should be false if set to false', function() {
         Raven.config(SENTRY_DSN, {
           collectWindowErrors: false
-        })
+        });
 
-        assert.isFalse(TK.collectWindowErrors)
-      })
-    })
+        assert.isFalse(TK.collectWindowErrors);
+      });
+    });
   });
 
   describe('.install', function() {
@@ -929,23 +931,27 @@ describe('Raven (public API)', function() {
       wrapped();
       assert.isTrue(spy.calledOnce);
     });
+
     it('should copy property when wrapping function', function() {
       var func = function() {};
       func.test = true;
       var wrapped = Raven.wrap(func);
       assert.isTrue(wrapped.test);
     });
+
     it('should not copy prototype property when wrapping function', function() {
       var func = function() {};
       func.prototype.test = true;
       var wrapped = Raven.wrap(func);
       assert.isUndefined(new wrapped().test);
     });
+
     it('should return the result of a wrapped function', function() {
       var func = function() { return 'foo' };
       var wrapped = Raven.wrap(func);
       assert.equal(wrapped(), 'foo');
     });
+
     it('should not wrap a non-function', function() {
       assert.equal(Raven.wrap('lol'), 'lol');
       assert.equal(Raven.wrap({}, 'lol'), 'lol');
@@ -953,6 +959,7 @@ describe('Raven (public API)', function() {
       var a = [1, 2];
       assert.equal(Raven.wrap(a), a);
     });
+
     it('should wrap function arguments', function() {
       var spy = this.sinon.spy();
       var wrapped = Raven.wrap(function(f) {
@@ -962,6 +969,7 @@ describe('Raven (public API)', function() {
       wrapped(spy);
       assert.isTrue(spy.calledOnce);
     });
+
     it('should maintain the correct scope', function() {
       var foo = {};
       var bar = function() {
@@ -969,7 +977,8 @@ describe('Raven (public API)', function() {
       };
       bar.apply(foo, []);
       Raven.wrap(bar).apply(foo, []);
-    })
+    });
+
   });
 
   describe('.context', function() {
