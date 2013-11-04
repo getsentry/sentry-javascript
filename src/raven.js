@@ -629,8 +629,8 @@ function isSetup() {
 
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
+    // Be mad.
     var sources = [], i = patterns.length;
-    // lol, map
     while (i--) {
         if (isString(patterns[i])) {
             // If it's a string, we need to escape it
