@@ -592,27 +592,21 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img, src;
+    var img = new Image(),
+        src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
-    function success() {
+    img.onload = function success() {
         triggerEvent('success', {
             data: data,
             src: src
         });
-    }
-
-    function failure() {
+    };
+    img.onerror = img.onabort = function failure() {
         triggerEvent('failure', {
             data: data,
             src: src
         });
-    }
-
-    src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-    img = new Image();
-    img.onload = success;
-    img.onerror = failure;
-    img.onabort = failure;
+    };
     img.src = src;
 }
 
