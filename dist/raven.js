@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0-rc3 (067521d) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.0-rc4 (29fc232) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0-rc3',
+    VERSION: '1.1.0-rc4',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1281,15 +1281,14 @@ var Raven = {
             return func;
         }
 
-        var self = this;
-
         function wrapped() {
             var args = [], i = arguments.length;
             // Recursively wrap all of a function's arguments that are
             // functions themselves.
             while(i--) args[i] = Raven.wrap(options, arguments[i]);
             try {
-                return func.apply(self, args);
+                /*jshint -W040*/
+                return func.apply(this, args);
             } catch(e) {
                 Raven.captureException(e, options);
             }
