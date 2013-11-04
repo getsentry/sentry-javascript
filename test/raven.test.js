@@ -979,6 +979,16 @@ describe('Raven (public API)', function() {
       Raven.wrap(bar).apply(foo, []);
     });
 
+    it('should re-raise a thrown exception', function(done) {
+      var error = new Error('lol');
+      try {
+        Raven.wrap(function() { throw error; })();
+      } catch(e) {
+        assert.equal(e, error);
+        done();
+      }
+    });
+
   });
 
   describe('.context', function() {

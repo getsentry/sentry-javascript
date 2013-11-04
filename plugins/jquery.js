@@ -67,6 +67,7 @@ $.ajax = function ravenAjaxWrapper(url, options) {
         return _oldAjax.call(this, url, options);
     } catch (e) {
         Raven.captureException(e);
+        throw e;
     }
 };
 

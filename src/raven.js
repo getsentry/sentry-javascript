@@ -191,6 +191,7 @@ var Raven = {
                 return func.apply(this, args);
             } catch(e) {
                 Raven.captureException(e, options);
+                throw e;
             }
         }
 
