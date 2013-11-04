@@ -949,6 +949,7 @@ describe('Raven (public API)', function() {
     it('should not wrap a non-function', function() {
       assert.equal(Raven.wrap('lol'), 'lol');
       assert.equal(Raven.wrap({}, 'lol'), 'lol');
+      assert.equal(Raven.wrap(undefined, 'lol'), 'lol');
       var a = [1, 2];
       assert.equal(Raven.wrap(a), a);
     });
@@ -961,6 +962,14 @@ describe('Raven (public API)', function() {
       wrapped(spy);
       assert.isTrue(spy.calledOnce);
     });
+    it('should maintain the correct scope', function() {
+      var foo = {};
+      var bar = function() {
+        assert.equal(this, foo);
+      };
+      bar.apply(foo, []);
+      Raven.wrap(bar).apply(foo, []);
+    })
   });
 
   describe('.context', function() {
