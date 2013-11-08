@@ -830,6 +830,8 @@ describe('Raven (public API)', function() {
 
       assert.isTrue(window.isSetup.calledOnce);
       assert.isFalse(TK.report.subscribe.calledOnce);
+
+      delete window.RavenConfig;
     });
   });
 
