@@ -1,3 +1,6 @@
+# 0.5.5 - 11/8/2013
+  * Only record exceptions for 500 status codes from Connect middleware
+
 # 0.5.4 - 10/13/2013
   * Fix DSN parser when using Sentry at a non-root URL, thanks @rcoup [See #44]
 
