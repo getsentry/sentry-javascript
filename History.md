@@ -1,3 +1,8 @@
+# 0.6.0 - 11/9/2013
+  * Updated sentry protocol to version 4 (Requires Sentry 6.0+ now)
+  * Module names now include the full path
+  * Attach client IP address to env object
+
 # 0.5.6 - 11/8/2013
   * Include module and function name in stacktrace culprit
 
