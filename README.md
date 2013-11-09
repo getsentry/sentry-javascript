@@ -10,6 +10,8 @@ All processing and sending happens asynchronously to not slow things down if/whe
  * 0.8.x
  * 0.10.x
 
+Raven 0.6+ requires Sentry 6.0+
+
 ## Installation
 ```
 $ npm install raven
