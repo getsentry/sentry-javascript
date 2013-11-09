@@ -119,4 +119,22 @@ describe('raven.utils', function() {
       parseStack([{lol: 1}], callback);
     });
   });
+
+  describe('#getCulprit()', function(){
+    it('should handle empty', function(){
+      raven.utils.getCulprit({}).should.eql('<unknown>');
+    });
+
+    it('should handle missing module', function(){
+      raven.utils.getCulprit({'function': 'foo'}).should.eql('? at foo');
+    });
+
+    it('should handle missing function', function(){
+      raven.utils.getCulprit({module: 'foo'}).should.eql('foo at ?');
+    });
+
+    it('should work', function(){
+      raven.utils.getCulprit({module: 'foo', 'function': 'bar'}).should.eql('foo at bar');
+    });
+  });
 });
