@@ -77,7 +77,7 @@ The event error is augmented with the original Sentry response object as well as
 
 ```javascript
 client.on('error', function(e){
-  console.log(e.responseBody);  // raw response body, usually contains a message explaining the failure
+  console.log(e.reason);  // raw response body, usually contains a message explaining the failure
   console.log(e.statusCode);  // status code of the http request
   console.log(e.response);  // entire raw http response object
 });
