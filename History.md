@@ -1,3 +1,6 @@
+# 0.5.6 - 11/8/2013
+  * Include module and function name in stacktrace culprit
+
 # 0.5.5 - 11/8/2013
   * Only record exceptions for 500 status codes from Connect middleware
 
