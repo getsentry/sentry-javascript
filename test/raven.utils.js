@@ -101,10 +101,10 @@ describe('raven.utils', function() {
   describe('#parseAuthHeader()', function(){
     it('should parse all parameters', function(){
       var timestamp = 12345,
-        api_key = 'xyz',
-        project_id = 1;
-      var expected = 'Sentry sentry_version=2.0, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=xyz, project_id=1';
-      raven.utils.getAuthHeader(timestamp, api_key, project_id).should.equal(expected);
+        api_key = 'abc',
+        api_secret = 'xyz';
+      var expected = 'Sentry sentry_version=4, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=abc, sentry_secret=xyz';
+      raven.utils.getAuthHeader(timestamp, api_key, api_secret).should.equal(expected);
     });
   });
 
