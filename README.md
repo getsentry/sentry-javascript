@@ -25,15 +25,6 @@ var client = new raven.Client('{{ SENTRY_DSN }}');
 client.captureMessage('Hello, world!');
 ```
 
-## Disable Raven
-Pass `false` as the DSN (or any falsey value).
-
-```javascript
-client = new raven.Client(process.env.NODE_ENV === 'production' && '{{ SENTRY_DSN }}')
-```
-
-__Note__: We don't infer this from `NODE_ENV` automatically anymore. It's up to you to implement whatever logic you'd like.
-
 ## Logging an error
 ```javascript
 client.captureError(new Error('Broke!'));
@@ -179,6 +170,15 @@ var client = new raven.Client('{{ SENTRY_DSN }}', {
   stackFunction: Error.prepareStackTrace
 });
 ```
+
+## Disable Raven
+Pass `false` as the DSN (or any falsey value).
+
+```javascript
+client = new raven.Client(process.env.NODE_ENV === 'production' && '{{ SENTRY_DSN }}')
+```
+
+__Note__: We don't infer this from `NODE_ENV` automatically anymore. It's up to you to implement whatever logic you'd like.
 
 ## Support
 You can find me on IRC. I troll in `#sentry` on `freenode`.
