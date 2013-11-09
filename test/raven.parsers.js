@@ -40,12 +40,16 @@ describe('raven.parsers', function(){
         cookies: {},
         socket: {
           encrypted: true
+        },
+        connection: {
+          remoteAddress: '69.69.69.69'
         }
       };
       var parsed = raven.parsers.parseRequest(mockReq);
       parsed.should.have.property('sentry.interfaces.Http');
       parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
+      parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
   });
 
