@@ -137,4 +137,21 @@ describe('raven.utils', function() {
       raven.utils.getCulprit({module: 'foo', 'function': 'bar'}).should.eql('foo at bar');
     });
   });
+
+  describe('#getModule()', function(){
+    it('should identify a node_module', function(){
+      var filename = '/home/x/node_modules/foo/bar/baz.js';
+      raven.utils.getModule(filename).should.eql('foo.bar:baz');
+    });
+
+    it('should identify a main module', function(){
+      var filename = '/home/x/foo/bar/baz.js';
+      raven.utils.getModule(filename, '/home/x/').should.eql('foo.bar:baz');
+    });
+
+    it('should fallback to just filename', function(){
+      var filename = '/home/lol.js';
+      raven.utils.getModule(filename).should.eql('lol');
+    });
+  });
 });
