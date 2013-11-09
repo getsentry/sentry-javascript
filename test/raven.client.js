@@ -162,11 +162,11 @@ describe('raven.Client', function(){
             var scope = nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
                 .post('/api/store/', '*')
-                .reply(500, 'Oops!');
+                .reply(500, 'Oops!', {'x-sentry-error': 'Oops!'});
 
             client.on('error', function(e){
                 e.statusCode.should.eql(500);
-                e.responseBody.should.eql('Oops!');
+                e.reason.should.eql('Oops!');
                 e.response.should.be.ok;
                 scope.done();
                 done();
