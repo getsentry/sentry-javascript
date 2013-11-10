@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "node-uuid": "~1.4.1",
-    "raw-stacktrace": "1.0.0",
+    "stack-trace": "0.0.7",
     "lsmod": "0.0.2",
     "cookie": "0.1.0"
   },
