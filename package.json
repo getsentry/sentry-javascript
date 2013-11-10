@@ -8,7 +8,7 @@
   "license": "BSD",
   "main": "index",
   "scripts": {
-    "test": "NODE_ENV=test mocha --reporter dot"
+    "test": "NODE_ENV=test mocha --reporter dot && NODE_ENV=test coffee ./test/run.coffee"
   },
   "engines": {
     "node": ">= 0.6.0"
@@ -26,6 +26,7 @@
     "should": "~2.0.1",
     "nock": "*",
     "glob": "*",
-    "mock-udp": "*"
+    "mock-udp": "*",
+    "coffee-script": "~1.6.3"
   }
 }
