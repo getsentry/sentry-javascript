@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "node-uuid": "~1.4.1",
-    "raw-stacktrace": "~1.0.0"
+    "raw-stacktrace": "1.0.0"
   },
   "devDependencies": {
     "connect": "*",
