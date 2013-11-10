@@ -1,7 +1,8 @@
 var raven = require('../')
   , fs = require('fs')
   , nock = require('nock')
-  , mockudp = require('mock-udp');
+  , mockudp = require('mock-udp')
+  , zlib = require('zlib');
 
 var dsn = 'https://public:private@app.getsentry.com/269';
 
@@ -327,6 +328,29 @@ describe('raven.Client', function(){
             done();
         });
         client.captureMessage('Hey!');
+    });
+
+    it('should capture module information', function(done) {
+        var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/store/', '*')
+        .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+              var modules = msg.modules;
+
+              modules.should.have.property('lsmod');
+              modules.should.have.property('node-uuid');
+              done();
+            });
+            return 'OK';
+        });
+
+        client.on('logged', function(){
+            scope.done();
+        });
+        client.captureError(new Error('wtf?'));
     });
 });
 
