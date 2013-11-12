@@ -14,7 +14,9 @@ If your scripts are loaded from `cdn.mysite.com` and your site is `example.com` 
       /example\.com/
     ]
 
-Since this accepts a regular expression, that would catch anything *.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`
+Since this accepts a regular expression, that would catch anything *.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`.
+
+Next, checkout the list of :doc:`plugins </plugins/index>`_ we provide and see which are applicable to you.
 
 The community has compiled a list of common ignore rules for common things, like Facebook, Chrome extensions, etc. So it's recommended to at least check these out and see if they apply to you. `Check out the original gist <https://gist.github.com/impressiver/5092952>`_.
 

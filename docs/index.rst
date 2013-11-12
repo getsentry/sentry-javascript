@@ -13,6 +13,7 @@ Getting Started
    :maxdepth: 2
 
    install/index
+   plugins/index
    config/index
    usage/index
    tips/index
