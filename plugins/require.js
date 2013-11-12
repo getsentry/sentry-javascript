@@ -1,3 +1,8 @@
+/**
+ * require.js plugin
+ *
+ * Automatically wrap define/require callbacks. (Experimental)
+ */
 ;(function(window, Raven) {
     "use strict";
 

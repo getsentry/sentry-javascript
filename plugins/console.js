@@ -1,3 +1,9 @@
+/**
+ * console plugin
+ *
+ * Monkey patches console.* calls into Sentry messages with
+ * their appropriate log levels. (Experimental)
+ */
 ;(function(window, Raven, console) {
 'use strict';
 

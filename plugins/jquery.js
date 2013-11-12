@@ -1,6 +1,7 @@
 /**
- * Extended support for backtraces and global error handling for most
- * asynchronous jQuery functions.
+ * jQuery plugin
+ *
+ * Patches event handler callbacks and ajax callbacks.
  */
 ;(function(window, Raven, $) {
 'use strict';

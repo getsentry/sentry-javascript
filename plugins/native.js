@@ -1,4 +1,6 @@
 /**
+ * native plugin
+ *
  * Extends support for global error handling for asynchronous browser
  * functions. Adopted from Closure Library's errorhandler.js
  */
