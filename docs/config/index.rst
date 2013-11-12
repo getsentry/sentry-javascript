@@ -33,10 +33,23 @@ The name of the logger used by Sentry. Default: ``javascript``
       logger: 'javascript'
     }
 
+.. _config-whitelist-urls:
+
+whitelistUrls
+-------------
+
+The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern or an exact string.
+
+.. code-block:: javascript
+
+    {
+      whitelistUrls: [/getsentry\.com/, /cdn\.getsentry\.com/]
+    }
+
 ignoreErrors
 ------------
 
-Very often, you will come across specific errors that are a result of something other than your application, or errors that you're completely not interested in. `ignoreErrors` is a list of these messages to be fitlered out before being sent to Sentry.
+Very often, you will come across specific errors that are a result of something other than your application, or errors that you're completely not interested in. `ignoreErrors` is a list of these messages to be fitlered out before being sent to Sentry as either regular expressions or strings.
 
 .. code-block:: javascript
 
@@ -47,25 +60,12 @@ Very often, you will come across specific errors that are a result of something 
 ignoreUrls
 ----------
 
-Similar to ``ignoreErrors``, but will ignore errors from whole urls patching a regex pattern.
+The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignore errors from whole urls patching a regex pattern or an exact string.
 
 .. code-block:: javascript
 
     {
-      ignoreUrls: [/graph\.facebook\.com/i]
-    }
-
-.. _config-whitelist-urls:
-
-whitelistUrls
--------------
-
-The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern.
-
-.. code-block:: javascript
-
-    {
-      whitelistUrls: [/getsentry\.com/, /cdn\.getsentry\.com/]
+      ignoreUrls: [/graph\.facebook\.com/, 'http://example.com/script2.js']
     }
 
 includePaths
@@ -88,22 +88,21 @@ Putting it all together
     <html>
     <head>
         <title>Awesome stuff happening here</title>
-        <script src="//d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js"></script>
+        <script src="//cdn.ravenjs.com/1.1.0/jquery,native/raven.min.js"></script>
         <script>
             var options = {
                 logger: 'my-logger',
-                ignoreUrls: [
-                    /graph\.facebook\.com/i
+                whitelistUrls: [
+                    /disqus\.com/, /getsentry\.com/
                 ],
                 ignoreErrors: [
-                    'fb_xd_fragment'
+                    'fb_xd_fragment', /ReferenceError:.*/
                 ],
                 includePaths: [
-                    /https?:\/\/(www\.)?getsentry\.com/,
-                    /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
+                    /https?:\/\/(www\.)?getsentry\.com/
                 ]
             };
-            Raven.config('https://public@getsentry.com/1', options).install();
+            Raven.config('https://public@app.getsentry.com/1', options).install();
         </script>
     </head>
     <body>

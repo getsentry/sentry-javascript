@@ -1,11 +1,9 @@
 Raven.js
 ========
 
-Raven.js is an **under 5KB** standalone JavaScript client for `Sentry <http://www.getsentry.com/>`_.
+Raven.js is a tiny standalone JavaScript client for `Sentry <http://www.getsentry.com/>`_.
 
-**This version of Raven.js requires Sentry 5.3 or newer.**
-
-Read the `1.0 Announcement blog post <http://mattrobenolt.com/raven-js-1-0/>`_
+**This version of Raven.js requires Sentry 6.0 or newer.**
 
 
 Getting Started
@@ -28,6 +26,7 @@ Developers
 
 Resources
 ---------
+* `Download <http://ravenjs.com>`_
 * `Bug Tracker <https://github.com/getsentry/raven-js/issues>`_
 * `Code <https://github.com/getsentry/raven-js>`_
 * `IRC <irc://irc.freenode.net/sentry>`_ (irc.freenode.net, #sentry)

@@ -4,9 +4,19 @@ Pro Tips™
 Decluttering Sentry
 ~~~~~~~~~~~~~~~~~~~
 
-The community has compiled a list of common ignore rules for common things, like Facebook, Chrome extensions, etc. So it's recommended to at least check these out and see if they apply to you. `Check out the original gist <https://gist.github.com/impressiver/5092952>`_.
+The first thing to do is to consider constructing a whitelist of domains in which might raise acceptable exceptions.
 
-See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`
+If your scripts are loaded from `cdn.mysite.com` and your site is `example.com` it'd be reasonable to set `whitelistUrls` to:
+
+.. code-block:: javascript
+
+    whitelistUrls: [
+      /example\.com/
+    ]
+
+Since this accepts a regular expression, that would catch anything *.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`
+
+The community has compiled a list of common ignore rules for common things, like Facebook, Chrome extensions, etc. So it's recommended to at least check these out and see if they apply to you. `Check out the original gist <https://gist.github.com/impressiver/5092952>`_.
 
 .. code-block:: javascript
 
