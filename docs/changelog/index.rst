@@ -6,7 +6,7 @@ Changelog
 
 Plugins
 -------
-If you're upgrading from 1.0.x, 2 "plugins" were included with the package. These 2 plugins are not stripped out of core and included as the ``jquery`` and ``native`` plugins. If you'd like to start using 1.1.0 and maintain existing functionality, you'll want to use: http://cdn.ravenjs.com/1.1.0/jquery,native/raven.min.js For a list of other plugins, checkout http://ravenjs.com
+If you're upgrading from 1.0.x, 2 "plugins" were included with the package. These 2 plugins are now stripped out of core and included as the ``jquery`` and ``native`` plugins. If you'd like to start using 1.1.0 and maintain existing functionality, you'll want to use: http://cdn.ravenjs.com/1.1.0/jquery,native/raven.min.js For a list of other plugins, checkout http://ravenjs.com
 
 ravenjs.com
 -----------
