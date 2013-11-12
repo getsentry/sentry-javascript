@@ -793,7 +793,7 @@ describe('globals', function() {
     it('should work as advertised', function() {
       assert.equal(joinRegExp([
         'a', 'b', 'a.b', /d/, /[0-9]/
-      ]).source, '^a$|^b$|^a\\.b$|d|[0-9]');
+      ]).source, 'a|b|a\\.b|d|[0-9]');
     });
   });
 });
