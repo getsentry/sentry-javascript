@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0-rc4 (29fc232) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.0 (1142de6) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0-rc4',
+    VERSION: '1.1.0',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1169,7 +1169,7 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
-        var uri = parseUri(dsn),
+        var uri = parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
 
@@ -1180,15 +1180,16 @@ var Raven = {
             });
         }
 
-        // join regexp rules into one big rule
-        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
-        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
-        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
-
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         globalOptions.ignoreErrors.push('Script error.');
         globalOptions.ignoreErrors.push('Script error');
+
+        // join regexp rules into one big rule
+        globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
+        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
+        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
+        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         globalKey = uri.user;
         globalProject = ~~uri.path.substr(lastSlash + 1);
@@ -1291,6 +1292,7 @@ var Raven = {
                 return func.apply(this, args);
             } catch(e) {
                 Raven.captureException(e, options);
+                throw e;
             }
         }
 
@@ -1328,9 +1330,7 @@ var Raven = {
      */
     captureException: function(ex, options) {
         // If a string is passed through, recall as a message
-        if (typeof ex === 'string') {
-            return Raven.captureMessage(ex, options);
-        }
+        if (isString(ex)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
@@ -1394,6 +1394,8 @@ var Raven = {
 function triggerEvent(eventType, options) {
     var event, key;
 
+    options = options || {};
+
     eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
@@ -1402,10 +1404,6 @@ function triggerEvent(eventType, options) {
     } else {
         event = document.createEventObject();
         event.eventType = eventType;
-    }
-
-    if (typeof options !== 'object') {
-        options = {};
     }
 
     for (key in options) if (options.hasOwnProperty(key)) {
@@ -1424,18 +1422,18 @@ function triggerEvent(eventType, options) {
     }
 }
 
-var uriKeys = 'source protocol authority userInfo user password host port relative path directory file query anchor'.split(' '),
-    uriPattern = /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+var dsnKeys = 'source protocol user host port path'.split(' '),
+    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.]+)(?::(\d+))?(\/.*)/;
 
 /**** Private functions ****/
-function parseUri(str) {
-    var m = uriPattern.exec(str),
-        uri = {},
-        i = 14;
+function parseDSN(str) {
+    var m = dsnPattern.exec(str),
+        dsn = {},
+        i = 6;
 
-    while (i--) uri[uriKeys[i]] = m[i] || '';
+    while (i--) dsn[dsnKeys[i]] = m[i] || '';
 
-    return uri;
+    return dsn;
 }
 
 function isUndefined(what) {
@@ -1591,14 +1589,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // At this point, if the message is falsey, we bail since it's useless
     if (!message) return;
 
-    // IE8 really doesn't have Array.prototype.indexOf
-    // Filter out a message that matches our ignore list
-    i = globalOptions.ignoreErrors.length;
-    while (i--) {
-        if (message === globalOptions.ignoreErrors[i]) {
-            return;
-        }
-    }
+    if (globalOptions.ignoreErrors.test(message)) return;
 
     if (frames && frames.length) {
         stacktrace = {frames: frames};
@@ -1697,27 +1688,21 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img, src;
+    var img = new Image(),
+        src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
-    function success() {
+    img.onload = function success() {
         triggerEvent('success', {
             data: data,
             src: src
         });
-    }
-
-    function failure() {
+    };
+    img.onerror = img.onabort = function failure() {
         triggerEvent('failure', {
             data: data,
             src: src
         });
-    }
-
-    src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-    img = new Image();
-    img.onload = success;
-    img.onerror = failure;
-    img.onabort = failure;
+    };
     img.src = src;
 }
 
@@ -1734,17 +1719,15 @@ function isSetup() {
 
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
+    // Be mad.
     var sources = [], i = patterns.length;
-    // lol, map
     while (i--) {
-        if (isString(patterns[i])) {
+        sources[i] = isString(patterns[i]) ?
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            sources[i] = patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-        } else {
+            patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") :
             // If it's a regexp already, we want to extract the source
-            sources[i] = patterns[i].source;
-        }
+            patterns[i].source;
     }
     return new RegExp(sources.join('|'), 'i');
 }
