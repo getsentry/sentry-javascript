@@ -92,6 +92,6 @@ Dealing with minified source code
 
 Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.
 
-We have provided some instructions to creating Source Maps over at https://www.getsentry.com/docs/sourcemaps/.
+We have provided some instructions to creating Source Maps over at https://www.getsentry.com/docs/sourcemaps/. Also, checkout our `Gruntfile <https://github.com/getsentry/raven-js/blob/master/Gruntfile.js>`_ for a good example of what we're doing.
 
 I have also made a `Source Map Validator <http://sourcemap-validator.herokuapp.com/>`_ to help verify that things are correct.
