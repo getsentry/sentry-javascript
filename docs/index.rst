@@ -38,4 +38,4 @@ Resources
 * `Bug Tracker <https://github.com/getsentry/raven-js/issues>`_
 * `Code <https://github.com/getsentry/raven-js>`_
 * `IRC <irc://irc.freenode.net/sentry>`_ (irc.freenode.net, #sentry)
-* `Changelog </changelog/index>`
+* :doc:`Changelog </changelog/index>`
