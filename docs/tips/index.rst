@@ -6,7 +6,7 @@ Decluttering Sentry
 
 The first thing to do is to consider constructing a whitelist of domains in which might raise acceptable exceptions.
 
-If your scripts are loaded from ``cdn.mysite.com`` and your site is ``example.com`` it'd be reasonable to set ``whitelistUrls`` to:
+If your scripts are loaded from ``cdn.example.com`` and your site is ``example.com`` it'd be reasonable to set ``whitelistUrls`` to:
 
 .. code-block:: javascript
 
