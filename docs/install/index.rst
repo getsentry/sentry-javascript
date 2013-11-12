@@ -26,7 +26,7 @@ We also provide a way to deploy Raven via `bower
 
 .. code-block:: sh
 
-    bower install raven-js
+    $ bower install raven-js
 
 .. code-block:: html
 
