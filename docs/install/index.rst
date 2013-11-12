@@ -10,7 +10,7 @@ Using our CDN
 
 We serve our own builds off of `Fastly <http://www.fastly.com/>`_. They are accessible over both http and https, so we recommend leaving the protocol off.
 
-Our CDN distributes builds with and without :doc:`plugins </plugins/index>`_.
+Our CDN distributes builds with and without :doc:`plugins </plugins/index>`.
 
 .. code-block:: html
 
