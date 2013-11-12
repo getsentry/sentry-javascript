@@ -1,1157 +1,1157 @@
 function flushRavenState() {
-  cachedAuth = undefined;
-  hasJSON = !isUndefined(window.JSON);
-  lastCapturedException = undefined;
-  globalServer = undefined;
-  globalUser = undefined;
-  globalProject = undefined;
-  globalOptions = {
-    logger: 'javascript',
-    ignoreErrors: [],
-    ignoreUrls: [],
-    whitelistUrls: [],
-    includePaths: [],
-    collectWindowErrors: true,
-    tags: {},
-    extra: {}
-  };
-  Raven.uninstall();
+    cachedAuth = undefined;
+    hasJSON = !isUndefined(window.JSON);
+    lastCapturedException = undefined;
+    globalServer = undefined;
+    globalUser = undefined;
+    globalProject = undefined;
+    globalOptions = {
+        logger: 'javascript',
+        ignoreErrors: [],
+        ignoreUrls: [],
+        whitelistUrls: [],
+        includePaths: [],
+        collectWindowErrors: true,
+        tags: {},
+        extra: {}
+    };
+    Raven.uninstall();
 }
 
 var imageCache = [];
 window.Image = function Image() {
-  imageCache.push(this);
+    imageCache.push(this);
 };
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
-  console = {error: function(){}};
+    console = {error: function(){}};
 }
 
 var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
-  Raven.config(SENTRY_DSN);
+    Raven.config(SENTRY_DSN);
 }
 
 
 describe('globals', function() {
-  beforeEach(function() {
-    setupRaven();
-    globalOptions.fetchContext = true;
-  });
-
-  afterEach(function() {
-    flushRavenState();
-  });
-
-  it('should not have TraceKit on window', function() {
-    assert.isUndefined(window.TraceKit);
-  });
-
-  it('should have a local TK', function() {
-    assert.isObject(TK);
-  });
-
-  describe('getHttpData', function() {
-    var data = getHttpData();
-
-    it('should have a url', function() {
-        assert.equal(data.url, window.location.href);
+    beforeEach(function() {
+        setupRaven();
+        globalOptions.fetchContext = true;
     });
 
-    it('should have the user-agent header', function() {
-      assert.equal(data.headers['User-Agent'], navigator.userAgent);
+    afterEach(function() {
+        flushRavenState();
     });
 
-    it('should have referer header when available', function() {
-      // lol this test is awful
-      if (window.document.referrer) {
-        assert.equal(data.headers.Referer, window.document.referrer);
-      } else {
-        assert.isUndefined(data.headers.Referer);
-      }
+    it('should not have TraceKit on window', function() {
+        assert.isUndefined(window.TraceKit);
     });
 
-  });
-
-  describe('isUndefined', function() {
-    it('should do as advertised', function() {
-      assert.isTrue(isUndefined());
-      assert.isFalse(isUndefined({}));
-      assert.isFalse(isUndefined(''));
-      assert.isTrue(isUndefined(undefined));
-    });
-  });
-
-  describe('isFunction', function() {
-    it('should do as advertised', function() {
-      assert.isTrue(isFunction(function(){}));
-      assert.isFalse(isFunction({}));
-      assert.isFalse(isFunction(''));
-      assert.isFalse(isFunction(undefined));
-    });
-  });
-
-  describe('isString', function() {
-    it('should do as advertised', function() {
-      assert.isTrue(isString(''));
-      assert.isFalse(isString({}));
-      assert.isFalse(isString(undefined));
-      assert.isFalse(isString(function(){}))
-    });
-  });
-
-  describe('isSetup', function() {
-    it('should return false with no JSON support', function() {
-      globalServer = 'http://localhost/';
-      hasJSON = false;
-      assert.isFalse(isSetup());
+    it('should have a local TK', function() {
+        assert.isObject(TK);
     });
 
-    it('should return false when Raven is not configured and write to console.error', function() {
-      hasJSON = true;  // be explicit
-      globalServer = undefined;
-      this.sinon.stub(console, 'error');
-      assert.isFalse(isSetup());
-      assert.isTrue(console.error.calledOnce);
+    describe('getHttpData', function() {
+        var data = getHttpData();
+
+        it('should have a url', function() {
+                assert.equal(data.url, window.location.href);
+        });
+
+        it('should have the user-agent header', function() {
+            assert.equal(data.headers['User-Agent'], navigator.userAgent);
+        });
+
+        it('should have referer header when available', function() {
+            // lol this test is awful
+            if (window.document.referrer) {
+                assert.equal(data.headers.Referer, window.document.referrer);
+            } else {
+                assert.isUndefined(data.headers.Referer);
+            }
+        });
+
     });
 
-    it('should return true when everything is all gravy', function() {
-      hasJSON = true;
-      assert.isTrue(isSetup());
-    });
-  });
-
-  describe('getAuthQueryString', function() {
-    it('should return a properly formatted string and cache it', function() {
-      var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
-      assert.strictEqual(getAuthQueryString(), expected);
-      assert.strictEqual(cachedAuth, expected);
+    describe('isUndefined', function() {
+        it('should do as advertised', function() {
+            assert.isTrue(isUndefined());
+            assert.isFalse(isUndefined({}));
+            assert.isFalse(isUndefined(''));
+            assert.isTrue(isUndefined(undefined));
+        });
     });
 
-    it('should return cached value when it exists', function() {
-      cachedAuth = 'lol';
-      assert.strictEqual(getAuthQueryString(), 'lol');
-    });
-  });
-
-  describe('parseDSN', function() {
-    it('should do what it advertises', function() {
-      var pieces = parseDSN('http://abc@example.com:80/2');
-      assert.strictEqual(pieces.protocol, 'http');
-      assert.strictEqual(pieces.user, 'abc');
-      assert.strictEqual(pieces.port, '80');
-      assert.strictEqual(pieces.path, '/2');
-      assert.strictEqual(pieces.host, 'example.com');
+    describe('isFunction', function() {
+        it('should do as advertised', function() {
+            assert.isTrue(isFunction(function(){}));
+            assert.isFalse(isFunction({}));
+            assert.isFalse(isFunction(''));
+            assert.isFalse(isFunction(undefined));
+        });
     });
 
-    it('should parse protocol relative', function() {
-      var pieces = parseDSN('//user@mattrobenolt.com/');
-      assert.strictEqual(pieces.protocol, '');
-      assert.strictEqual(pieces.user, 'user');
-      assert.strictEqual(pieces.port, '');
-      assert.strictEqual(pieces.path, '/');
-      assert.strictEqual(pieces.host, 'mattrobenolt.com');
-    });
-  });
-
-  describe('normalizeFrame', function() {
-    it('should handle a normal frame', function() {
-      var context = [
-        ['line1'],  // pre
-        'line2',    // culprit
-        ['line3']   // post
-      ];
-      this.sinon.stub(window, 'extractContextFromFrame').returns(context);
-      var frame = {
-        url: 'http://example.com/path/file.js',
-        line: 10,
-        column: 11,
-        func: 'lol'
-        // context: []  context is stubbed
-      };
-
-      globalOptions.fetchContext = true;
-
-      assert.deepEqual(normalizeFrame(frame), {
-        filename: 'http://example.com/path/file.js',
-        lineno: 10,
-        colno: 11,
-        'function': 'lol',
-        pre_context: ['line1'],
-        context_line: 'line2',
-        post_context: ['line3'],
-        in_app: true
-      });
+    describe('isString', function() {
+        it('should do as advertised', function() {
+            assert.isTrue(isString(''));
+            assert.isFalse(isString({}));
+            assert.isFalse(isString(undefined));
+            assert.isFalse(isString(function(){}))
+        });
     });
 
-    it('should handle a frame without context', function() {
-      this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
-      var frame = {
-        url: 'http://example.com/path/file.js',
-        line: 10,
-        column: 11,
-        func: 'lol'
-        // context: []  context is stubbed
-      };
+    describe('isSetup', function() {
+        it('should return false with no JSON support', function() {
+            globalServer = 'http://localhost/';
+            hasJSON = false;
+            assert.isFalse(isSetup());
+        });
 
-      globalOptions.fetchContext = true;
+        it('should return false when Raven is not configured and write to console.error', function() {
+            hasJSON = true;    // be explicit
+            globalServer = undefined;
+            this.sinon.stub(console, 'error');
+            assert.isFalse(isSetup());
+            assert.isTrue(console.error.calledOnce);
+        });
 
-      assert.deepEqual(normalizeFrame(frame), {
-        filename: 'http://example.com/path/file.js',
-        lineno: 10,
-        colno: 11,
-        'function': 'lol',
-        in_app: true
-      });
+        it('should return true when everything is all gravy', function() {
+            hasJSON = true;
+            assert.isTrue(isSetup());
+        });
     });
 
-    it('should not mark `in_app` if rules match', function() {
-      this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
-      var frame = {
-        url: 'http://example.com/path/file.js',
-        line: 10,
-        column: 11,
-        func: 'lol'
-        // context: []  context is stubbed
-      };
+    describe('getAuthQueryString', function() {
+        it('should return a properly formatted string and cache it', function() {
+            var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
+            assert.strictEqual(getAuthQueryString(), expected);
+            assert.strictEqual(cachedAuth, expected);
+        });
 
-      globalOptions.fetchContext = true;
-      globalOptions.includePaths = /^http:\/\/example\.com/;
-
-      assert.deepEqual(normalizeFrame(frame), {
-        filename: 'http://example.com/path/file.js',
-        lineno: 10,
-        colno: 11,
-        'function': 'lol',
-        in_app: true
-      });
+        it('should return cached value when it exists', function() {
+            cachedAuth = 'lol';
+            assert.strictEqual(getAuthQueryString(), 'lol');
+        });
     });
 
-    it('should mark `in_app` if rules do not match', function() {
-      this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
-      var frame = {
-        url: 'http://lol.com/path/file.js',
-        line: 10,
-        column: 11,
-        func: 'lol'
-        // context: []  context is stubbed
-      };
+    describe('parseDSN', function() {
+        it('should do what it advertises', function() {
+            var pieces = parseDSN('http://abc@example.com:80/2');
+            assert.strictEqual(pieces.protocol, 'http');
+            assert.strictEqual(pieces.user, 'abc');
+            assert.strictEqual(pieces.port, '80');
+            assert.strictEqual(pieces.path, '/2');
+            assert.strictEqual(pieces.host, 'example.com');
+        });
 
-      globalOptions.fetchContext = true;
-      globalOptions.includePaths = /^http:\/\/example\.com/;
-
-      assert.deepEqual(normalizeFrame(frame), {
-        filename: 'http://lol.com/path/file.js',
-        lineno: 10,
-        colno: 11,
-        'function': 'lol',
-        in_app: false
-      });
-    });
-  });
-
-  describe('extractContextFromFrame', function() {
-    it('should handle a normal frame', function() {
-      var frame = {
-        column: 2,
-        context: [
-          'line1',
-          'line2',
-          'line3',
-          'line4',
-          'line5',
-          'culprit',
-          'line7',
-          'line8',
-          'line9',
-          'line10',
-          'line11'
-        ]
-      };
-      var context = extractContextFromFrame(frame);
-      assert.deepEqual(context, [
-        ['line1', 'line2', 'line3', 'line4', 'line5'],
-        'culprit',
-        ['line7', 'line8', 'line9', 'line10', 'line11']
-      ]);
+        it('should parse protocol relative', function() {
+            var pieces = parseDSN('//user@mattrobenolt.com/');
+            assert.strictEqual(pieces.protocol, '');
+            assert.strictEqual(pieces.user, 'user');
+            assert.strictEqual(pieces.port, '');
+            assert.strictEqual(pieces.path, '/');
+            assert.strictEqual(pieces.host, 'mattrobenolt.com');
+        });
     });
 
-    it('should return nothing if there is no context', function() {
-      var frame = {
-        column: 2
-      };
-      assert.isUndefined(extractContextFromFrame(frame));
+    describe('normalizeFrame', function() {
+        it('should handle a normal frame', function() {
+            var context = [
+                ['line1'],    // pre
+                'line2',        // culprit
+                ['line3']     // post
+            ];
+            this.sinon.stub(window, 'extractContextFromFrame').returns(context);
+            var frame = {
+                url: 'http://example.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            globalOptions.fetchContext = true;
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://example.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                pre_context: ['line1'],
+                context_line: 'line2',
+                post_context: ['line3'],
+                in_app: true
+            });
+        });
+
+        it('should handle a frame without context', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://example.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            globalOptions.fetchContext = true;
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://example.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                in_app: true
+            });
+        });
+
+        it('should not mark `in_app` if rules match', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://example.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            globalOptions.fetchContext = true;
+            globalOptions.includePaths = /^http:\/\/example\.com/;
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://example.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                in_app: true
+            });
+        });
+
+        it('should mark `in_app` if rules do not match', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            globalOptions.fetchContext = true;
+            globalOptions.includePaths = /^http:\/\/example\.com/;
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://lol.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                in_app: false
+            });
+        });
     });
 
-    it('should reject a context if a line is too long without a column', function() {
-      var frame = {
-        context: [
-          new Array(1000).join('f')  // generate a line that is 1000 chars long
-        ]
-      };
-      assert.isUndefined(extractContextFromFrame(frame));
+    describe('extractContextFromFrame', function() {
+        it('should handle a normal frame', function() {
+            var frame = {
+                column: 2,
+                context: [
+                    'line1',
+                    'line2',
+                    'line3',
+                    'line4',
+                    'line5',
+                    'culprit',
+                    'line7',
+                    'line8',
+                    'line9',
+                    'line10',
+                    'line11'
+                ]
+            };
+            var context = extractContextFromFrame(frame);
+            assert.deepEqual(context, [
+                ['line1', 'line2', 'line3', 'line4', 'line5'],
+                'culprit',
+                ['line7', 'line8', 'line9', 'line10', 'line11']
+            ]);
+        });
+
+        it('should return nothing if there is no context', function() {
+            var frame = {
+                column: 2
+            };
+            assert.isUndefined(extractContextFromFrame(frame));
+        });
+
+        it('should reject a context if a line is too long without a column', function() {
+            var frame = {
+                context: [
+                    new Array(1000).join('f')    // generate a line that is 1000 chars long
+                ]
+            };
+            assert.isUndefined(extractContextFromFrame(frame));
+        });
+
+        it('should reject a minified context with fetchContext disabled', function() {
+            var frame = {
+                column: 2,
+                context: [
+                    'line1',
+                    'line2',
+                    'line3',
+                    'line4',
+                    'line5',
+                    'culprit',
+                    'line7',
+                    'line8',
+                    'line9',
+                    'line10',
+                    'line11'
+                ]
+            };
+            globalOptions.fetchContext = false;
+            assert.isUndefined(extractContextFromFrame(frame));
+        });
+
+        it('should truncate the minified line if there is a column number without sourcemaps enabled', function() {
+            // Note to future self:
+            // Array(51).join('f').length === 50
+            var frame = {
+                column: 2,
+                context: [
+                    'aa' + (new Array(51).join('f')) + (new Array(500).join('z'))
+                ]
+            };
+            assert.deepEqual(extractContextFromFrame(frame), [[], new Array(51).join('f'), []]);
+        });
     });
 
-    it('should reject a minified context with fetchContext disabled', function() {
-      var frame = {
-        column: 2,
-        context: [
-          'line1',
-          'line2',
-          'line3',
-          'line4',
-          'line5',
-          'culprit',
-          'line7',
-          'line8',
-          'line9',
-          'line10',
-          'line11'
-        ]
-      };
-      globalOptions.fetchContext = false;
-      assert.isUndefined(extractContextFromFrame(frame));
+    describe('processException', function() {
+        it('should respect `ignoreErrors`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+            processException('Error', 'e1', 'http://example.com', []);
+            assert.isFalse(window.send.called);
+            processException('Error', 'e2', 'http://example.com', []);
+            assert.isFalse(window.send.called);
+            processException('Error', 'error', 'http://example.com', []);
+            assert.isTrue(window.send.calledOnce);
+        });
+
+        it('should respect `ignoreUrls`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+            processException('Error', 'error', 'http://host1/', []);
+            assert.isFalse(window.send.called);
+            processException('Error', 'error', 'http://host2/', []);
+            assert.isFalse(window.send.called);
+            processException('Error', 'error', 'http://host3/', []);
+            assert.isTrue(window.send.calledOnce);
+        });
+
+        it('should respect `whitelistUrls`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+            processException('Error', 'error', 'http://host1/', []);
+            assert.equal(window.send.callCount, 1);
+            processException('Error', 'error', 'http://host2/', []);
+            assert.equal(window.send.callCount, 2);
+            processException('Error', 'error', 'http://host3/', []);
+            assert.equal(window.send.callCount, 2);
+        });
+
+        it('should send a proper payload with frames', function() {
+            this.sinon.stub(window, 'send');
+
+            var frames = [
+                {
+                    filename: 'http://example.com/file1.js'
+                },
+                {
+                    filename: 'http://example.com/file2.js'
+                }
+            ];
+
+            processException('Error', 'lol', 'http://example.com/override.js', 10, frames, {});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: frames
+                },
+                culprit: 'http://example.com/override.js',
+                message: 'lol at 10'
+            }]);
+
+            processException('Error', 'lol', '', 10, frames, {});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: frames
+                },
+                culprit: 'http://example.com/file1.js',
+                message: 'lol at 10'
+            }]);
+
+            processException('Error', 'lol', '', 10, frames, {extra: 'awesome'});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: frames
+                },
+                culprit: 'http://example.com/file1.js',
+                message: 'lol at 10',
+                extra: 'awesome'
+            }]);
+        });
+
+        it('should send a proper payload without frames', function() {
+            this.sinon.stub(window, 'send');
+
+            processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com/override.js',
+                        lineno: 10
+                    }]
+                },
+                culprit: 'http://example.com/override.js',
+                message: 'lol at 10'
+            }]);
+
+            processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com/override.js',
+                        lineno: 10
+                    }]
+                },
+                culprit: 'http://example.com/override.js',
+                message: 'lol at 10'
+            }]);
+
+            processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
+            assert.deepEqual(window.send.lastCall.args, [{
+                exception: {
+                    type: 'Error',
+                    value: 'lol'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com/override.js',
+                        lineno: 10
+                    }]
+                },
+                culprit: 'http://example.com/override.js',
+                message: 'lol at 10',
+                extra: 'awesome'
+            }]);
+        });
+
+        it('should ignored falsey messages', function() {
+            this.sinon.stub(window, 'send');
+
+            processException('Error', '', 'http://example.com', []);
+            assert.isFalse(window.send.called);
+        });
     });
 
-    it('should truncate the minified line if there is a column number without sourcemaps enabled', function() {
-      // Note to future self:
-      // Array(51).join('f').length === 50
-      var frame = {
-        column: 2,
-        context: [
-          'aa' + (new Array(51).join('f')) + (new Array(500).join('z'))
-        ]
-      };
-      assert.deepEqual(extractContextFromFrame(frame), [[], new Array(51).join('f'), []]);
-    });
-  });
+    describe('send', function() {
+        it('should check `isSetup`', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(window, 'makeRequest');
 
-  describe('processException', function() {
-    it('should respect `ignoreErrors`', function() {
-      this.sinon.stub(window, 'send');
+            send();
+            assert.isTrue(window.isSetup.calledOnce);
+            assert.isFalse(window.makeRequest.calledOnce);
+        });
 
-      globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
-      processException('Error', 'e1', 'http://example.com', []);
-      assert.isFalse(window.send.called);
-      processException('Error', 'e2', 'http://example.com', []);
-      assert.isFalse(window.send.called);
-      processException('Error', 'error', 'http://example.com', []);
-      assert.isTrue(window.send.calledOnce);
-    });
+        it('should build a good data payload', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
 
-    it('should respect `ignoreUrls`', function() {
-      this.sinon.stub(window, 'send');
+            globalProject = 2;
+            globalOptions = {
+                logger: 'javascript',
+                site: 'THE BEST'
+            };
 
-      globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
-      processException('Error', 'error', 'http://host1/', []);
-      assert.isFalse(window.send.called);
-      processException('Error', 'error', 'http://host2/', []);
-      assert.isFalse(window.send.called);
-      processException('Error', 'error', 'http://host3/', []);
-      assert.isTrue(window.send.calledOnce);
-    });
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+                project: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                foo: 'bar'
+            });
+        });
 
-    it('should respect `whitelistUrls`', function() {
-      this.sinon.stub(window, 'send');
+        it('should build a good data payload with a User', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
 
-      globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
-      processException('Error', 'error', 'http://host1/', []);
-      assert.equal(window.send.callCount, 1);
-      processException('Error', 'error', 'http://host2/', []);
-      assert.equal(window.send.callCount, 2);
-      processException('Error', 'error', 'http://host3/', []);
-      assert.equal(window.send.callCount, 2);
-    });
+            globalProject = 2;
+            globalOptions = {
+                logger: 'javascript',
+                site: 'THE BEST'
+            };
 
-    it('should send a proper payload with frames', function() {
-      this.sinon.stub(window, 'send');
+            globalUser = {name: 'Matt'};
 
-      var frames = [
-        {
-          filename: 'http://example.com/file1.js'
-        },
-        {
-          filename: 'http://example.com/file2.js'
-        }
-      ];
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args, [{
+                project: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                user: {
+                    name: 'Matt'
+                },
+                foo: 'bar'
+            }]);
+        });
 
-      processException('Error', 'lol', 'http://example.com/override.js', 10, frames, {});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: frames
-        },
-        culprit: 'http://example.com/override.js',
-        message: 'lol at 10'
-      }]);
+        it('should merge in global tags', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
 
-      processException('Error', 'lol', '', 10, frames, {});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: frames
-        },
-        culprit: 'http://example.com/file1.js',
-        message: 'lol at 10'
-      }]);
+            globalProject = 2;
+            globalOptions = {
+                logger: 'javascript',
+                site: 'THE BEST',
+                tags: {tag1: 'value1'}
+            };
 
-      processException('Error', 'lol', '', 10, frames, {extra: 'awesome'});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: frames
-        },
-        culprit: 'http://example.com/file1.js',
-        message: 'lol at 10',
-        extra: 'awesome'
-      }]);
-    });
 
-    it('should send a proper payload without frames', function() {
-      this.sinon.stub(window, 'send');
+            send({tags: {tag2: 'value2'}});
+            assert.deepEqual(window.makeRequest.lastCall.args, [{
+                project: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                tags: {tag1: 'value1', tag2: 'value2'}
+            }]);
+        });
 
-      processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: [{
-            filename: 'http://example.com/override.js',
-            lineno: 10
-          }]
-        },
-        culprit: 'http://example.com/override.js',
-        message: 'lol at 10'
-      }]);
+        it('should merge in global extra', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
 
-      processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: [{
-            filename: 'http://example.com/override.js',
-            lineno: 10
-          }]
-        },
-        culprit: 'http://example.com/override.js',
-        message: 'lol at 10'
-      }]);
+            globalProject = 2;
+            globalOptions = {
+                logger: 'javascript',
+                site: 'THE BEST',
+                extra: {key1: 'value1'}
+            };
 
-      processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
-      assert.deepEqual(window.send.lastCall.args, [{
-        exception: {
-          type: 'Error',
-          value: 'lol'
-        },
-        stacktrace: {
-          frames: [{
-            filename: 'http://example.com/override.js',
-            lineno: 10
-          }]
-        },
-        culprit: 'http://example.com/override.js',
-        message: 'lol at 10',
-        extra: 'awesome'
-      }]);
-    });
 
-    it('should ignored falsey messages', function() {
-      this.sinon.stub(window, 'send');
+            send({extra: {key2: 'value2'}});
+            assert.deepEqual(window.makeRequest.lastCall.args, [{
+                project: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                extra: {key1: 'value1', key2: 'value2'}
+            }]);
+        });
 
-      processException('Error', '', 'http://example.com', []);
-      assert.isFalse(window.send.called);
-    });
-  });
+        it('should let dataCallback override everything', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
 
-  describe('send', function() {
-    it('should check `isSetup`', function() {
-      this.sinon.stub(window, 'isSetup').returns(false);
-      this.sinon.stub(window, 'makeRequest');
+            globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                dataCallback: function() {
+                    return {lol: 'ibrokeit'};
+                }
+            };
 
-      send();
-      assert.isTrue(window.isSetup.calledOnce);
-      assert.isFalse(window.makeRequest.calledOnce);
+            globalUser = {name: 'Matt'};
+
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args, [{
+                lol: 'ibrokeit'
+            }]);
+        });
     });
 
-    it('should build a good data payload', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(window, 'makeRequest');
-      this.sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
+    describe('makeRequest', function() {
+        it('should load an Image', function() {
+            imageCache = [];
+            this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
+            globalServer = 'http://localhost/';
 
-      globalProject = 2;
-      globalOptions = {
-        logger: 'javascript',
-        site: 'THE BEST'
-      };
-
-      send({foo: 'bar'});
-      assert.deepEqual(window.makeRequest.lastCall.args[0], {
-        project: 2,
-        logger: 'javascript',
-        site: 'THE BEST',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser'
-          }
-        },
-        foo: 'bar'
-      });
+            makeRequest({foo: 'bar'});
+            assert.equal(imageCache.length, 1);
+            assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
+        });
     });
 
-    it('should build a good data payload with a User', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(window, 'makeRequest');
-      this.sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
+    describe('handleStackInfo', function() {
+        it('should work as advertised', function() {
+            var frame = {url: 'http://example.com'};
+            this.sinon.stub(window, 'normalizeFrame').returns(frame);
+            this.sinon.stub(window, 'processException');
 
-      globalProject = 2;
-      globalOptions = {
-        logger: 'javascript',
-        site: 'THE BEST'
-      };
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10,
+                stack: [
+                    frame, frame
+                ]
+            };
 
-      globalUser = {name: 'Matt'};
+            handleStackInfo(stackInfo, {foo: 'bar'});
+            assert.deepEqual(window.processException.lastCall.args, [
+                'Matt', 'hey', 'http://example.com', 10, [frame, frame], {foo: 'bar'}
+            ]);
+        });
 
-      send({foo: 'bar'});
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
-        logger: 'javascript',
-        site: 'THE BEST',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser'
-          }
-        },
-        user: {
-          name: 'Matt'
-        },
-        foo: 'bar'
-      }]);
+        it('should work as advertised #integration', function() {
+            this.sinon.stub(window, 'makeRequest');
+            var stackInfo = {
+                name: 'Error',
+                message: 'crap',
+                url: 'http://example.com',
+                lineno: 10,
+                stack: [
+                    {
+                        url: 'http://example.com/file1.js',
+                        line: 10,
+                        column: 11,
+                        func: 'broken',
+                        context: [
+                            'line1',
+                            'line2',
+                            'line3'
+                        ]
+                    },
+                    {
+                        url: 'http://example.com/file2.js',
+                        line: 12,
+                        column: 13,
+                        func: 'lol',
+                        context: [
+                            'line4',
+                            'line5',
+                            'line6'
+                        ]
+                    }
+                ]
+            };
+
+            handleStackInfo(stackInfo, {foo: 'bar'});
+            assert.isTrue(window.makeRequest.calledOnce);
+            /* This is commented out because chai is broken.
+
+            assert.deepEqual(window.makeRequest.lastCall.args, [{
+                project: 2,
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: window.location.protocol + '//' + window.location.host + window.location.pathname,
+                    querystring: window.location.search.slice(1)
+                },
+                exception: {
+                    type: 'Error',
+                    value: 'crap'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com/file1.js',
+                        filename: 'file1.js',
+                        lineno: 10,
+                        colno: 11,
+                        'function': 'broken',
+                        post_context: ['line3'],
+                        context_line: 'line2',
+                        pre_context: ['line1']
+                    }, {
+                        filename: 'http://example.com/file2.js',
+                        filename: 'file2.js',
+                        lineno: 12,
+                        colno: 13,
+                        'function': 'lol',
+                        post_context: ['line6'],
+                        context_line: 'line5',
+                        pre_context: ['line4']
+                    }]
+                },
+                culprit: 'http://example.com',
+                message: 'crap at 10',
+                foo: 'bar'
+            }]);
+            */
+        });
+
+        it('should ignore frames that dont have a url', function() {
+            this.sinon.stub(window, 'normalizeFrame').returns(undefined);
+            this.sinon.stub(window, 'processException');
+
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10,
+                stack: new Array(2)
+            };
+
+            handleStackInfo(stackInfo, {foo: 'bar'});
+            assert.deepEqual(window.processException.lastCall.args, [
+                'Matt', 'hey', 'http://example.com', 10, [], {foo: 'bar'}
+            ]);
+        });
+
+        it('should not shit when there is no stack object from TK', function() {
+            this.sinon.stub(window, 'normalizeFrame').returns(undefined);
+            this.sinon.stub(window, 'processException');
+
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10
+                // stack: new Array(2)
+            };
+
+            handleStackInfo(stackInfo);
+            assert.isFalse(window.normalizeFrame.called);
+            assert.deepEqual(window.processException.lastCall.args, [
+                'Matt', 'hey', 'http://example.com', 10, [], undefined
+            ]);
+        });
     });
 
-    it('should merge in global tags', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(window, 'makeRequest');
-      this.sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
-
-      globalProject = 2;
-      globalOptions = {
-        logger: 'javascript',
-        site: 'THE BEST',
-        tags: {tag1: 'value1'}
-      };
-
-
-      send({tags: {tag2: 'value2'}});
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
-        logger: 'javascript',
-        site: 'THE BEST',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser'
-          }
-        },
-        tags: {tag1: 'value1', tag2: 'value2'}
-      }]);
+    describe('joinRegExp', function() {
+        it('should work as advertised', function() {
+            assert.equal(joinRegExp([
+                'a', 'b', 'a.b', /d/, /[0-9]/
+            ]).source, 'a|b|a\\.b|d|[0-9]');
+        });
     });
-
-    it('should merge in global extra', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(window, 'makeRequest');
-      this.sinon.stub(window, 'getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
-
-      globalProject = 2;
-      globalOptions = {
-        logger: 'javascript',
-        site: 'THE BEST',
-        extra: {key1: 'value1'}
-      };
-
-
-      send({extra: {key2: 'value2'}});
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
-        logger: 'javascript',
-        site: 'THE BEST',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser'
-          }
-        },
-        extra: {key1: 'value1', key2: 'value2'}
-      }]);
-    });
-
-    it('should let dataCallback override everything', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(window, 'makeRequest');
-
-      globalOptions = {
-        projectId: 2,
-        logger: 'javascript',
-        site: 'THE BEST',
-        dataCallback: function() {
-          return {lol: 'ibrokeit'};
-        }
-      };
-
-      globalUser = {name: 'Matt'};
-
-      send({foo: 'bar'});
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
-        lol: 'ibrokeit'
-      }]);
-    });
-  });
-
-  describe('makeRequest', function() {
-    it('should load an Image', function() {
-      imageCache = [];
-      this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
-      globalServer = 'http://localhost/';
-
-      makeRequest({foo: 'bar'});
-      assert.equal(imageCache.length, 1);
-      assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
-    });
-  });
-
-  describe('handleStackInfo', function() {
-    it('should work as advertised', function() {
-      var frame = {url: 'http://example.com'};
-      this.sinon.stub(window, 'normalizeFrame').returns(frame);
-      this.sinon.stub(window, 'processException');
-
-      var stackInfo = {
-        name: 'Matt',
-        message: 'hey',
-        url: 'http://example.com',
-        lineno: 10,
-        stack: [
-          frame, frame
-        ]
-      };
-
-      handleStackInfo(stackInfo, {foo: 'bar'});
-      assert.deepEqual(window.processException.lastCall.args, [
-        'Matt', 'hey', 'http://example.com', 10, [frame, frame], {foo: 'bar'}
-      ]);
-    });
-
-    it('should work as advertised #integration', function() {
-      this.sinon.stub(window, 'makeRequest');
-      var stackInfo = {
-        name: 'Error',
-        message: 'crap',
-        url: 'http://example.com',
-        lineno: 10,
-        stack: [
-          {
-            url: 'http://example.com/file1.js',
-            line: 10,
-            column: 11,
-            func: 'broken',
-            context: [
-              'line1',
-              'line2',
-              'line3'
-            ]
-          },
-          {
-            url: 'http://example.com/file2.js',
-            line: 12,
-            column: 13,
-            func: 'lol',
-            context: [
-              'line4',
-              'line5',
-              'line6'
-            ]
-          }
-        ]
-      };
-
-      handleStackInfo(stackInfo, {foo: 'bar'});
-      assert.isTrue(window.makeRequest.calledOnce);
-      /* This is commented out because chai is broken.
-
-      assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
-        logger: 'javascript',
-        platform: 'javascript',
-        request: {
-          url: window.location.protocol + '//' + window.location.host + window.location.pathname,
-          querystring: window.location.search.slice(1)
-        },
-        exception: {
-          type: 'Error',
-          value: 'crap'
-        },
-        stacktrace: {
-          frames: [{
-            filename: 'http://example.com/file1.js',
-            filename: 'file1.js',
-            lineno: 10,
-            colno: 11,
-            'function': 'broken',
-            post_context: ['line3'],
-            context_line: 'line2',
-            pre_context: ['line1']
-          }, {
-            filename: 'http://example.com/file2.js',
-            filename: 'file2.js',
-            lineno: 12,
-            colno: 13,
-            'function': 'lol',
-            post_context: ['line6'],
-            context_line: 'line5',
-            pre_context: ['line4']
-          }]
-        },
-        culprit: 'http://example.com',
-        message: 'crap at 10',
-        foo: 'bar'
-      }]);
-      */
-    });
-
-    it('should ignore frames that dont have a url', function() {
-      this.sinon.stub(window, 'normalizeFrame').returns(undefined);
-      this.sinon.stub(window, 'processException');
-
-      var stackInfo = {
-        name: 'Matt',
-        message: 'hey',
-        url: 'http://example.com',
-        lineno: 10,
-        stack: new Array(2)
-      };
-
-      handleStackInfo(stackInfo, {foo: 'bar'});
-      assert.deepEqual(window.processException.lastCall.args, [
-        'Matt', 'hey', 'http://example.com', 10, [], {foo: 'bar'}
-      ]);
-    });
-
-    it('should not shit when there is no stack object from TK', function() {
-      this.sinon.stub(window, 'normalizeFrame').returns(undefined);
-      this.sinon.stub(window, 'processException');
-
-      var stackInfo = {
-        name: 'Matt',
-        message: 'hey',
-        url: 'http://example.com',
-        lineno: 10
-        // stack: new Array(2)
-      };
-
-      handleStackInfo(stackInfo);
-      assert.isFalse(window.normalizeFrame.called);
-      assert.deepEqual(window.processException.lastCall.args, [
-        'Matt', 'hey', 'http://example.com', 10, [], undefined
-      ]);
-    });
-  });
-
-  describe('joinRegExp', function() {
-    it('should work as advertised', function() {
-      assert.equal(joinRegExp([
-        'a', 'b', 'a.b', /d/, /[0-9]/
-      ]).source, 'a|b|a\\.b|d|[0-9]');
-    });
-  });
 });
 
 describe('Raven (public API)', function() {
-  afterEach(function() {
-    flushRavenState();
-  });
-
-  describe('.VERSION', function() {
-    it('should have a version', function() {
-      assert.isString(Raven.VERSION);
-    });
-  });
-
-  describe('callback function', function() {
-    it('should callback a function if it is global', function() {
-      window.RavenConfig = {
-        dsn: "http://random@some.other.server:80/2",
-        config: {some: 'config'}
-      };
-
-      this.sinon.stub(window, 'isSetup').returns(false);
-      this.sinon.stub(TK.report, 'subscribe');
-
-      Raven.afterLoad();
-
-      assert.equal(globalKey, 'random');
-      assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
-      assert.equal(globalOptions.some, 'config');
-      assert.equal(globalProject, 2);
-
-      assert.isTrue(window.isSetup.calledOnce);
-      assert.isFalse(TK.report.subscribe.calledOnce);
-
-      delete window.RavenConfig;
-    });
-  });
-
-  describe('.config', function() {
-    it('should work with a DSN', function() {
-      assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
-      assert.equal(globalKey, 'abc');
-      assert.equal(globalServer, 'http://example.com:80/api/2/store/');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
-      assert.equal(globalOptions.foo, 'bar');
-      assert.equal(globalProject, 2);
+    afterEach(function() {
+        flushRavenState();
     });
 
-    it('should work with a protocol relative DSN', function() {
-      Raven.config('//abc@example.com/2');
-      assert.equal(globalKey, 'abc');
-      assert.equal(globalServer, '//example.com/api/2/store/');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
-      assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
-      assert.equal(globalProject, 2);
+    describe('.VERSION', function() {
+        it('should have a version', function() {
+            assert.isString(Raven.VERSION);
+        });
     });
 
-    it('should work should work at a non root path', function() {
-      Raven.config('//abc@example.com/sentry/2');
-      assert.equal(globalKey, 'abc');
-      assert.equal(globalServer, '//example.com/sentry/api/2/store/');
-      assert.equal(globalProject, 2);
+    describe('callback function', function() {
+        it('should callback a function if it is global', function() {
+            window.RavenConfig = {
+                dsn: "http://random@some.other.server:80/2",
+                config: {some: 'config'}
+            };
+
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(TK.report, 'subscribe');
+
+            Raven.afterLoad();
+
+            assert.equal(globalKey, 'random');
+            assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
+            assert.equal(globalOptions.some, 'config');
+            assert.equal(globalProject, 2);
+
+            assert.isTrue(window.isSetup.calledOnce);
+            assert.isFalse(TK.report.subscribe.calledOnce);
+
+            delete window.RavenConfig;
+        });
     });
 
-    describe('whitelistUrls', function() {
-      it('should be false if none are passed', function() {
-        Raven.config('//abc@example.com/2');
-        assert.equal(globalOptions.whitelistUrls, false);
-      });
-
-      it('should join into a single RegExp', function() {
-        Raven.config('//abc@example.com/2', {
-          whitelistUrls: [
-            /my.app/i,
-            /other.app/i
-          ]
+    describe('.config', function() {
+        it('should work with a DSN', function() {
+            assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
+            assert.equal(globalKey, 'abc');
+            assert.equal(globalServer, 'http://example.com:80/api/2/store/');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
+            assert.equal(globalOptions.foo, 'bar');
+            assert.equal(globalProject, 2);
         });
 
-        assert.match(globalOptions.whitelistUrls, /my.app|other.app/i);
-      });
-
-      it('should handle strings as well', function() {
-        Raven.config('//abc@example.com/2', {
-          whitelistUrls: [
-            /my.app/i,
-            "stringy.app"
-          ]
+        it('should work with a protocol relative DSN', function() {
+            Raven.config('//abc@example.com/2');
+            assert.equal(globalKey, 'abc');
+            assert.equal(globalServer, '//example.com/api/2/store/');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+            assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
+            assert.equal(globalProject, 2);
         });
 
-        assert.match(globalOptions.whitelistUrls, /my.app|stringy.app/i);
-      });
-    });
-
-    describe('collectWindowErrors', function() {
-      it('should be true by default', function() {
-        Raven.config(SENTRY_DSN);
-        assert.isTrue(TK.collectWindowErrors);
-      });
-
-      it('should be true if set to true', function() {
-        Raven.config(SENTRY_DSN, {
-          collectWindowErrors: true
+        it('should work should work at a non root path', function() {
+            Raven.config('//abc@example.com/sentry/2');
+            assert.equal(globalKey, 'abc');
+            assert.equal(globalServer, '//example.com/sentry/api/2/store/');
+            assert.equal(globalProject, 2);
         });
 
-        assert.isTrue(TK.collectWindowErrors);
-      });
+        describe('whitelistUrls', function() {
+            it('should be false if none are passed', function() {
+                Raven.config('//abc@example.com/2');
+                assert.equal(globalOptions.whitelistUrls, false);
+            });
 
-      it('should be false if set to false', function() {
-        Raven.config(SENTRY_DSN, {
-          collectWindowErrors: false
+            it('should join into a single RegExp', function() {
+                Raven.config('//abc@example.com/2', {
+                    whitelistUrls: [
+                        /my.app/i,
+                        /other.app/i
+                    ]
+                });
+
+                assert.match(globalOptions.whitelistUrls, /my.app|other.app/i);
+            });
+
+            it('should handle strings as well', function() {
+                Raven.config('//abc@example.com/2', {
+                    whitelistUrls: [
+                        /my.app/i,
+                        "stringy.app"
+                    ]
+                });
+
+                assert.match(globalOptions.whitelistUrls, /my.app|stringy.app/i);
+            });
         });
 
-        assert.isFalse(TK.collectWindowErrors);
-      });
-    });
-  });
+        describe('collectWindowErrors', function() {
+            it('should be true by default', function() {
+                Raven.config(SENTRY_DSN);
+                assert.isTrue(TK.collectWindowErrors);
+            });
 
-  describe('.install', function() {
-    it('should check `isSetup`', function() {
-      this.sinon.stub(window, 'isSetup').returns(false);
-      this.sinon.stub(TK.report, 'subscribe');
-      Raven.install();
-      assert.isTrue(window.isSetup.calledOnce);
-      assert.isFalse(TK.report.subscribe.calledOnce);
-    });
+            it('should be true if set to true', function() {
+                Raven.config(SENTRY_DSN, {
+                    collectWindowErrors: true
+                });
 
-    it('should register itself with TraceKit', function() {
-      this.sinon.stub(window, 'isSetup').returns(true);
-      this.sinon.stub(TK.report, 'subscribe');
-      assert.equal(Raven, Raven.install());
-      assert.isTrue(TK.report.subscribe.calledOnce);
-      assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
-    });
-  });
+                assert.isTrue(TK.collectWindowErrors);
+            });
 
-  describe('.wrap', function() {
-    it('should return a wrapped callback', function() {
-      var spy = this.sinon.spy();
-      var wrapped = Raven.wrap(spy);
-      assert.isFunction(wrapped);
-      assert.isTrue(wrapped.__raven__);
-      wrapped();
-      assert.isTrue(spy.calledOnce);
+            it('should be false if set to false', function() {
+                Raven.config(SENTRY_DSN, {
+                    collectWindowErrors: false
+                });
+
+                assert.isFalse(TK.collectWindowErrors);
+            });
+        });
     });
 
-    it('should copy property when wrapping function', function() {
-      var func = function() {};
-      func.test = true;
-      var wrapped = Raven.wrap(func);
-      assert.isTrue(wrapped.test);
+    describe('.install', function() {
+        it('should check `isSetup`', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(TK.report, 'subscribe');
+            Raven.install();
+            assert.isTrue(window.isSetup.calledOnce);
+            assert.isFalse(TK.report.subscribe.calledOnce);
+        });
+
+        it('should register itself with TraceKit', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(TK.report, 'subscribe');
+            assert.equal(Raven, Raven.install());
+            assert.isTrue(TK.report.subscribe.calledOnce);
+            assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
+        });
     });
 
-    it('should not copy prototype property when wrapping function', function() {
-      var func = function() {};
-      func.prototype.test = true;
-      var wrapped = Raven.wrap(func);
-      assert.isUndefined(new wrapped().test);
+    describe('.wrap', function() {
+        it('should return a wrapped callback', function() {
+            var spy = this.sinon.spy();
+            var wrapped = Raven.wrap(spy);
+            assert.isFunction(wrapped);
+            assert.isTrue(wrapped.__raven__);
+            wrapped();
+            assert.isTrue(spy.calledOnce);
+        });
+
+        it('should copy property when wrapping function', function() {
+            var func = function() {};
+            func.test = true;
+            var wrapped = Raven.wrap(func);
+            assert.isTrue(wrapped.test);
+        });
+
+        it('should not copy prototype property when wrapping function', function() {
+            var func = function() {};
+            func.prototype.test = true;
+            var wrapped = Raven.wrap(func);
+            assert.isUndefined(new wrapped().test);
+        });
+
+        it('should return the result of a wrapped function', function() {
+            var func = function() { return 'foo' };
+            var wrapped = Raven.wrap(func);
+            assert.equal(wrapped(), 'foo');
+        });
+
+        it('should not wrap a non-function', function() {
+            assert.equal(Raven.wrap('lol'), 'lol');
+            assert.equal(Raven.wrap({}, 'lol'), 'lol');
+            assert.equal(Raven.wrap(undefined, 'lol'), 'lol');
+            var a = [1, 2];
+            assert.equal(Raven.wrap(a), a);
+        });
+
+        it('should wrap function arguments', function() {
+            var spy = this.sinon.spy();
+            var wrapped = Raven.wrap(function(f) {
+                assert.isTrue(f.__raven__);
+                f();
+            });
+            wrapped(spy);
+            assert.isTrue(spy.calledOnce);
+        });
+
+        it('should maintain the correct scope', function() {
+            var foo = {};
+            var bar = function() {
+                assert.equal(this, foo);
+            };
+            bar.apply(foo, []);
+            Raven.wrap(bar).apply(foo, []);
+        });
+
+        it('should re-raise a thrown exception', function(done) {
+            var error = new Error('lol');
+            try {
+                Raven.wrap(function() { throw error; })();
+            } catch(e) {
+                assert.equal(e, error);
+                done();
+            }
+        });
+
     });
 
-    it('should return the result of a wrapped function', function() {
-      var func = function() { return 'foo' };
-      var wrapped = Raven.wrap(func);
-      assert.equal(wrapped(), 'foo');
+    describe('.context', function() {
+        it('should execute the callback with options', function() {
+            var spy = this.sinon.spy();
+            this.sinon.stub(Raven, 'captureException');
+            Raven.context({'foo': 'bar'}, spy);
+            assert.isTrue(spy.calledOnce);
+            assert.isFalse(Raven.captureException.called);
+        });
+
+        it('should execute the callback with arguments', function() {
+            var spy = this.sinon.spy();
+            var args = [1, 2];
+            Raven.context(spy, args);
+            assert.deepEqual(spy.lastCall.args, args);
+        });
+
+        it('should execute the callback without options', function() {
+            var spy = this.sinon.spy();
+            this.sinon.stub(Raven, 'captureException');
+            Raven.context(spy);
+            assert.isTrue(spy.calledOnce);
+            assert.isFalse(Raven.captureException.called);
+        });
+
+        it('should capture the exception with options', function() {
+            var error = new Error('crap');
+            var broken = function() { throw error; };
+            this.sinon.stub(Raven, 'captureException');
+            try {
+                Raven.context({'foo': 'bar'}, broken);
+            } catch(e) {
+                assert.equal(e, error);
+            }
+            assert.isTrue(Raven.captureException.called);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
+        });
+
+        it('should capture the exception without options', function() {
+            var error = new Error('crap');
+            var broken = function() { throw error; };
+            this.sinon.stub(Raven, 'captureException');
+            try {
+                Raven.context(broken);
+            } catch(e) {
+                assert.equal(e, error);
+            }
+            assert.isTrue(Raven.captureException.called);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
+        });
+
+        it('should execute the callback without arguments', function() {
+            // This is only reproducable in a browser that complains about passing
+            // undefined to Function.apply
+            var spy = this.sinon.spy();
+            Raven.context(spy);
+            assert.deepEqual(spy.lastCall.args, []);
+        });
+
+        it('should return the result of the wrapped function', function() {
+            var val = {};
+            var func = function() { return val; };
+            assert.equal(Raven.context(func), val);
+        });
     });
 
-    it('should not wrap a non-function', function() {
-      assert.equal(Raven.wrap('lol'), 'lol');
-      assert.equal(Raven.wrap({}, 'lol'), 'lol');
-      assert.equal(Raven.wrap(undefined, 'lol'), 'lol');
-      var a = [1, 2];
-      assert.equal(Raven.wrap(a), a);
+    describe('.uninstall', function() {
+        it('should unsubscribe from TraceKit', function() {
+            this.sinon.stub(TK.report, 'unsubscribe');
+            Raven.uninstall();
+            assert.isTrue(TK.report.unsubscribe.calledOnce);
+            assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
+        });
     });
 
-    it('should wrap function arguments', function() {
-      var spy = this.sinon.spy();
-      var wrapped = Raven.wrap(function(f) {
-        assert.isTrue(f.__raven__);
-        f();
-      });
-      wrapped(spy);
-      assert.isTrue(spy.calledOnce);
+    describe('.setUser', function() {
+        it('should set the globalUser object', function() {
+            Raven.setUser({name: 'Matt'});
+            assert.deepEqual(globalUser, {name: 'Matt'});
+        });
+
+        it('should clear the globalUser with no arguments', function() {
+            globalUser = {name: 'Matt'};
+            Raven.setUser();
+            assert.isUndefined(globalUser);
+        });
     });
 
-    it('should maintain the correct scope', function() {
-      var foo = {};
-      var bar = function() {
-        assert.equal(this, foo);
-      };
-      bar.apply(foo, []);
-      Raven.wrap(bar).apply(foo, []);
+    describe('.captureMessage', function() {
+        it('should work as advertised', function() {
+            this.sinon.stub(window, 'send');
+            Raven.captureMessage('lol', {foo: 'bar'});
+            assert.deepEqual(window.send.lastCall.args, [{
+                message: 'lol',
+                foo: 'bar'
+            }]);
+        });
+
+        it('should work as advertised #integration', function() {
+            imageCache = [];
+            setupRaven();
+            Raven.captureMessage('lol', {foo: 'bar'});
+            assert.equal(imageCache.length, 1);
+            // It'd be hard to assert the actual payload being sent
+            // since it includes the generated url, which is going to
+            // vary between users running the tests
+            // Unit tests should cover that the payload was constructed properly
+        });
     });
 
-    it('should re-raise a thrown exception', function(done) {
-      var error = new Error('lol');
-      try {
-        Raven.wrap(function() { throw error; })();
-      } catch(e) {
-        assert.equal(e, error);
-        done();
-      }
-    });
+    describe('.captureException', function() {
+        it('should call TK.report', function() {
+            var error = new Error('crap');
+            this.sinon.stub(TK, 'report');
+            Raven.captureException(error, {foo: 'bar'});
+            assert.isTrue(TK.report.calledOnce);
+            assert.deepEqual(TK.report.lastCall.args, [error, {foo: 'bar'}]);
+        });
 
-  });
+        it('should store the last exception', function() {
+            var error = new Error('crap');
+            this.sinon.stub(TK, 'report');
+            Raven.captureException(error);
+            assert.equal(Raven.lastException(), error);
+        });
 
-  describe('.context', function() {
-    it('should execute the callback with options', function() {
-      var spy = this.sinon.spy();
-      this.sinon.stub(Raven, 'captureException');
-      Raven.context({'foo': 'bar'}, spy);
-      assert.isTrue(spy.calledOnce);
-      assert.isFalse(Raven.captureException.called);
-    });
+        it('shouldn\'t reraise the if the error is the same error', function() {
+            var error = new Error('crap');
+            this.sinon.stub(TK, 'report').throws(error);
+            // this would raise if the errors didn't match
+            Raven.captureException(error, {foo: 'bar'});
+            assert.isTrue(TK.report.calledOnce);
+        });
 
-    it('should execute the callback with arguments', function() {
-      var spy = this.sinon.spy();
-      var args = [1, 2];
-      Raven.context(spy, args);
-      assert.deepEqual(spy.lastCall.args, args);
-    });
+        it('should reraise a different error', function(done) {
+            var error = new Error('crap1');
+            this.sinon.stub(TK, 'report').throws(error);
+            try {
+                Raven.captureException(new Error('crap2'));
+            } catch(e) {
+                assert.equal(e, error);
+                done();
+            }
+        });
 
-    it('should execute the callback without options', function() {
-      var spy = this.sinon.spy();
-      this.sinon.stub(Raven, 'captureException');
-      Raven.context(spy);
-      assert.isTrue(spy.calledOnce);
-      assert.isFalse(Raven.captureException.called);
+        it('should capture as a normal message if a string is passed', function() {
+            this.sinon.stub(Raven, 'captureMessage');
+            this.sinon.stub(TK, 'report');
+            Raven.captureException('derp');
+            assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
+            assert.isFalse(TK.report.called);
+        });
     });
-
-    it('should capture the exception with options', function() {
-      var error = new Error('crap');
-      var broken = function() { throw error; };
-      this.sinon.stub(Raven, 'captureException');
-      try {
-        Raven.context({'foo': 'bar'}, broken);
-      } catch(e) {
-        assert.equal(e, error);
-      }
-      assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
-    });
-
-    it('should capture the exception without options', function() {
-      var error = new Error('crap');
-      var broken = function() { throw error; };
-      this.sinon.stub(Raven, 'captureException');
-      try {
-        Raven.context(broken);
-      } catch(e) {
-        assert.equal(e, error);
-      }
-      assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
-    });
-
-    it('should execute the callback without arguments', function() {
-      // This is only reproducable in a browser that complains about passing
-      // undefined to Function.apply
-      var spy = this.sinon.spy();
-      Raven.context(spy);
-      assert.deepEqual(spy.lastCall.args, []);
-    });
-
-    it('should return the result of the wrapped function', function() {
-      var val = {};
-      var func = function() { return val; };
-      assert.equal(Raven.context(func), val);
-    });
-  });
-
-  describe('.uninstall', function() {
-    it('should unsubscribe from TraceKit', function() {
-      this.sinon.stub(TK.report, 'unsubscribe');
-      Raven.uninstall();
-      assert.isTrue(TK.report.unsubscribe.calledOnce);
-      assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
-    });
-  });
-
-  describe('.setUser', function() {
-    it('should set the globalUser object', function() {
-      Raven.setUser({name: 'Matt'});
-      assert.deepEqual(globalUser, {name: 'Matt'});
-    });
-
-    it('should clear the globalUser with no arguments', function() {
-      globalUser = {name: 'Matt'};
-      Raven.setUser();
-      assert.isUndefined(globalUser);
-    });
-  });
-
-  describe('.captureMessage', function() {
-    it('should work as advertised', function() {
-      this.sinon.stub(window, 'send');
-      Raven.captureMessage('lol', {foo: 'bar'});
-      assert.deepEqual(window.send.lastCall.args, [{
-        message: 'lol',
-        foo: 'bar'
-      }]);
-    });
-
-    it('should work as advertised #integration', function() {
-      imageCache = [];
-      setupRaven();
-      Raven.captureMessage('lol', {foo: 'bar'});
-      assert.equal(imageCache.length, 1);
-      // It'd be hard to assert the actual payload being sent
-      // since it includes the generated url, which is going to
-      // vary between users running the tests
-      // Unit tests should cover that the payload was constructed properly
-    });
-  });
-
-  describe('.captureException', function() {
-    it('should call TK.report', function() {
-      var error = new Error('crap');
-      this.sinon.stub(TK, 'report');
-      Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(TK.report.calledOnce);
-      assert.deepEqual(TK.report.lastCall.args, [error, {foo: 'bar'}]);
-    });
-
-    it('should store the last exception', function() {
-      var error = new Error('crap');
-      this.sinon.stub(TK, 'report');
-      Raven.captureException(error);
-      assert.equal(Raven.lastException(), error);
-    });
-
-    it('shouldn\'t reraise the if the error is the same error', function() {
-      var error = new Error('crap');
-      this.sinon.stub(TK, 'report').throws(error);
-      // this would raise if the errors didn't match
-      Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(TK.report.calledOnce);
-    });
-
-    it('should reraise a different error', function(done) {
-      var error = new Error('crap1');
-      this.sinon.stub(TK, 'report').throws(error);
-      try {
-        Raven.captureException(new Error('crap2'));
-      } catch(e) {
-        assert.equal(e, error);
-        done();
-      }
-    });
-
-    it('should capture as a normal message if a string is passed', function() {
-      this.sinon.stub(Raven, 'captureMessage');
-      this.sinon.stub(TK, 'report');
-      Raven.captureException('derp');
-      assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
-      assert.isFalse(TK.report.called);
-    });
-  });
 });
