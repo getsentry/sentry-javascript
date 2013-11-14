@@ -60,6 +60,7 @@ Contributing Back Code
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Please, send over suggestions and bug fixes in the form of pull requests on `GitHub <https://github.com/getsentry/raven-js>`_. Any nontrivial fixes/features should include tests.
+Do not include any changes to the ``dist/`` folder or bump version numbers yourself.
 
 Documentation
 -------------
@@ -77,3 +78,15 @@ Then viewing in your browser with:
 .. code-block:: sh
 
     $ grunt run:docs
+
+Releasing New Version
+~~~~~~~~~~~~~~~~~~~~~
+
+* Bump version numbers in both ``package.json`` and ``bower.json``.
+* ``$ grund dist`` This will compile a new version and update it in the ``dist/`` folder.
+* Confirm that build was fine, etc.
+* Commit new version, create a tag. Push to GitHub.
+* ``$ grunt publish`` to recompile all plugins and all permutations and upload to S3.
+* Confirm that the new version exists behind ``cdn.ravenjs.com``
+* Update version in the ``gh-pages`` branch specifically for http://ravenjs.com/.
+* glhf
