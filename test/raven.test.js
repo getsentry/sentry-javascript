@@ -154,6 +154,15 @@ describe('globals', function() {
             assert.strictEqual(pieces.path, '/');
             assert.strictEqual(pieces.host, 'mattrobenolt.com');
         });
+
+        it('should parse domain with hyphen', function() {
+            var pieces = parseDSN('http://user@matt-robenolt.com/1');
+            assert.strictEqual(pieces.protocol, 'http');
+            assert.strictEqual(pieces.user, 'user');
+            assert.strictEqual(pieces.port, '');
+            assert.strictEqual(pieces.path, '/1');
+            assert.strictEqual(pieces.host, 'matt-robenolt.com');
+        });
     });
 
     describe('normalizeFrame', function() {

@@ -323,7 +323,7 @@ function triggerEvent(eventType, options) {
 }
 
 var dsnKeys = 'source protocol user host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.]+)(?::(\d+))?(\/.*)/;
+    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.-]+)(?::(\d+))?(\/.*)/;
 
 /**** Private functions ****/
 function parseDSN(str) {
