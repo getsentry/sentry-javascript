@@ -1,9 +1,18 @@
 Installation
 ============
 
-Raven is distributed in a few different methods, but they all should be included inside the ``<head>`` of your page.
+Raven is distributed in a few different methods, and should get included after any other libraries are included, but before your own scripts.
 
-You should try and include Raven as high up on the page as possible. Ideally, you'd like to include Raven first, in order to potentially catch errors from other JavaScript files.
+So for example:
+
+.. code-block:: html
+
+    <script src="jquery.js"></script>
+    <script src="//cdn.ravenjs.com/1.1.0/jquery,native/raven.min.js"></script>
+    <script>Raven.config('...').install();</script>
+    <script src="app.js"></script>
+
+This allows the ability for Raven's plugins to instrument themselves. If included before something like jQuery, it'd be impossible to use for example, the jquery plugin.
 
 Using our CDN
 ~~~~~~~~~~~~~
