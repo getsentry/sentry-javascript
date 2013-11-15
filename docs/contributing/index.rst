@@ -83,7 +83,7 @@ Releasing New Version
 ~~~~~~~~~~~~~~~~~~~~~
 
 * Bump version numbers in both ``package.json`` and ``bower.json``.
-* ``$ grund dist`` This will compile a new version and update it in the ``dist/`` folder.
+* ``$ grunt dist`` This will compile a new version and update it in the ``dist/`` folder.
 * Confirm that build was fine, etc.
 * Commit new version, create a tag. Push to GitHub.
 * ``$ grunt publish`` to recompile all plugins and all permutations and upload to S3.
