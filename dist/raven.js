@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.0 (1142de6) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.1 (a46fb67) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.0',
+    VERSION: '1.1.1',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1423,7 +1423,7 @@ function triggerEvent(eventType, options) {
 }
 
 var dsnKeys = 'source protocol user host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.]+)(?::(\d+))?(\/.*)/;
+    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.-]+)(?::(\d+))?(\/.*)/;
 
 /**** Private functions ****/
 function parseDSN(str) {
