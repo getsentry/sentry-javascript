@@ -44,9 +44,9 @@
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 <script>
 $(function() {
-    var plugins = [], base = '//cdn.ravenjs.com/1.1.0/', $download = $('#download');
+    var plugins = [], base = '//cdn.ravenjs.com/1.1.1/', $download = $('#download');
     $('input[type="checkbox"]').on('click', function() {
-        var val = $(this).val();
+        var val = $(this).val(), url;
         if ($(this).prop('checked')) {
             plugins.push($(this).val());
         } else {
@@ -54,10 +54,11 @@ $(function() {
         }
         if (plugins.length) {
             plugins.sort();
-            $download.val(base + plugins.join(',') + '/raven.min.js');
+            url = base + plugins.join(',') + '/raven.min.js';
         } else {
-            $download.val(base + 'raven.min.js');
+            url = base + 'raven.min.js';
         }
+        $download.val(url);
     });
     var defaults = ['jquery', 'native'];
     for (var i=0; i<defaults.length; i++) {
