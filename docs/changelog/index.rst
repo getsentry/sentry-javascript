@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.1
+~~~~~
+* Fixed a bug in parsing some DSNs. See: https://github.com/getsentry/raven-js/issues/160
+
 1.1.0
 ~~~~~
 
