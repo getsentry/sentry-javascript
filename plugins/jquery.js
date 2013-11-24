@@ -15,7 +15,7 @@ var _oldEventAdd = $.event.add;
 $.event.add = function ravenEventAdd(elem, types, handler, data, selector) {
     var _handler;
 
-    if (handler.handler) {
+    if (handler && handler.handler) {
         _handler = handler.handler;
         handler.handler = Raven.wrap(handler.handler);
     } else {
