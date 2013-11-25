@@ -79,6 +79,33 @@ An array of regex patterns to indicate which urls are a part of your app. All ot
         includePaths: [/https?:\/\/getsentry\.com/, /https?:\/\/cdn\.getsentry\.com/]
     }
 
+dataCallback
+------------
+
+A function that allows mutation of the data payload right before being sent to Sentry.
+
+.. code-block:: javascript
+
+    {
+        dataCallback: function(data) {
+          // do somethign to data
+          return data;
+        }
+    }
+
+shouldSendCallback
+------------------
+
+A callback function that allows you to apply your own filters to determine if the message should be sent to Sentry.
+
+.. code-block:: javascript
+
+    {
+        shouldSendCallback: function(data) {
+          return false;
+        }
+    }
+
 Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
 
