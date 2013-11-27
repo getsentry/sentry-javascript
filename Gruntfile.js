@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
     "use strict";
 
-    var _ = grunt.util._;
+    var _ = require('lodash');
     var path = require('path');
 
     var coreFiles = [
