@@ -163,6 +163,17 @@ describe('globals', function() {
             assert.strictEqual(pieces.path, '/1');
             assert.strictEqual(pieces.host, 'matt-robenolt.com');
         });
+
+        it('should raise a RavenConfigError when setting a password', function(done) {
+            try {
+              parseDSN('http://user:pass@example.com/2');
+            } catch(e) {
+              assert.equal(e.name, 'RavenConfigError');
+              return done();
+            }
+            // shouldn't hit this
+            assert.isTrue(false);
+        });
     });
 
     describe('normalizeFrame', function() {
@@ -1005,8 +1016,10 @@ describe('Raven (public API)', function() {
                 Raven.wrap(function() { throw error; })();
             } catch(e) {
                 assert.equal(e, error);
-                done();
+                return done();
             }
+            // Shouldn't hit this
+            assert.isTrue(false);
         });
 
     });
@@ -1151,8 +1164,10 @@ describe('Raven (public API)', function() {
                 Raven.captureException(new Error('crap2'));
             } catch(e) {
                 assert.equal(e, error);
-                done();
+                return done();
             }
+            // shouldn't hit this
+            assert.isTrue(false);
         });
 
         it('should capture as a normal message if a string is passed', function() {
