@@ -166,22 +166,22 @@ describe('globals', function() {
 
         it('should raise a RavenConfigError when setting a password', function() {
             try {
-              parseDSN('http://user:pass@example.com/2');
+                parseDSN('http://user:pass@example.com/2');
             } catch(e) {
-              return assert.equal(e.name, 'RavenConfigError');
+                return assert.equal(e.name, 'RavenConfigError');
             }
             // shouldn't hit this
             assert.isTrue(false);
         });
 
         it('should raise a RavenConfigError with an invalid DSN', function() {
-          try {
-            parseDSN('lol');
-          } catch(e) {
-            return assert.equal(e.name, 'RavenConfigError');
-          }
-          // shouldn't hit this
-          assert.isTrue(false);
+            try {
+                parseDSN('lol');
+            } catch(e) {
+                return assert.equal(e.name, 'RavenConfigError');
+            }
+            // shouldn't hit this
+            assert.isTrue(false);
         });
     });
 
