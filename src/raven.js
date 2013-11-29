@@ -338,7 +338,11 @@ function parseDSN(str) {
         dsn = {},
         i = 7;
 
-    while (i--) dsn[dsnKeys[i]] = m[i] || '';
+    try {
+        while (i--) dsn[dsnKeys[i]] = m[i] || '';
+    } catch(e) {
+        throw new RavenConfigError('Invalid DSN');
+    }
 
     if (dsn.pass)
         throw new RavenConfigError('Do not specify your private key in the DSN.');

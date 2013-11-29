@@ -174,6 +174,16 @@ describe('globals', function() {
             // shouldn't hit this
             assert.isTrue(false);
         });
+
+        it('should raise a RavenConfigError with an invalid DSN', function() {
+          try {
+            parseDSN('lol');
+          } catch(e) {
+            return assert.equal(e.name, 'RavenConfigError');
+          }
+          // shouldn't hit this
+          assert.isTrue(false);
+        });
     });
 
     describe('normalizeFrame', function() {
