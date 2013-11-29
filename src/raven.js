@@ -341,11 +341,11 @@ function parseDSN(str) {
     try {
         while (i--) dsn[dsnKeys[i]] = m[i] || '';
     } catch(e) {
-        throw new RavenConfigError('Invalid DSN');
+        throw new RavenConfigError('Invalid DSN: ' + str);
     }
 
     if (dsn.pass)
-        throw new RavenConfigError('Do not specify your private key in the DSN.');
+        throw new RavenConfigError('Do not specify your private key in the DSN!');
 
     return dsn;
 }
