@@ -164,12 +164,11 @@ describe('globals', function() {
             assert.strictEqual(pieces.host, 'matt-robenolt.com');
         });
 
-        it('should raise a RavenConfigError when setting a password', function(done) {
+        it('should raise a RavenConfigError when setting a password', function() {
             try {
               parseDSN('http://user:pass@example.com/2');
             } catch(e) {
-              assert.equal(e.name, 'RavenConfigError');
-              return done();
+              return assert.equal(e.name, 'RavenConfigError');
             }
             // shouldn't hit this
             assert.isTrue(false);
@@ -1020,13 +1019,12 @@ describe('Raven (public API)', function() {
             Raven.wrap(bar).apply(foo, []);
         });
 
-        it('should re-raise a thrown exception', function(done) {
+        it('should re-raise a thrown exception', function() {
             var error = new Error('lol');
             try {
                 Raven.wrap(function() { throw error; })();
             } catch(e) {
-                assert.equal(e, error);
-                return done();
+                return assert.equal(e, error);
             }
             // Shouldn't hit this
             assert.isTrue(false);
@@ -1167,14 +1165,13 @@ describe('Raven (public API)', function() {
             assert.isTrue(TK.report.calledOnce);
         });
 
-        it('should reraise a different error', function(done) {
+        it('should reraise a different error', function() {
             var error = new Error('crap1');
             this.sinon.stub(TK, 'report').throws(error);
             try {
                 Raven.captureException(new Error('crap2'));
             } catch(e) {
-                assert.equal(e, error);
-                return done();
+                return assert.equal(e, error);
             }
             // shouldn't hit this
             assert.isTrue(false);
