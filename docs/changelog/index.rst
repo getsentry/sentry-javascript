@@ -3,7 +3,7 @@ Changelog
 
 1.1.2
 ~~~~~
-* And invalid DSN will now raise a RavenConfigError instead of some cryptic error
+* An invalid DSN will now raise a RavenConfigError instead of some cryptic error
 * Will raise a RavenConfigError when supplying the private key part of the DSN since this isn't applicable for raven.js and is harmful to include
 * https://github.com/getsentry/raven-js/issues/128
 
