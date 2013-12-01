@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.1 (a46fb67) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.2 (4c980fc) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.1',
+    VERSION: '1.1.2',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1422,16 +1422,30 @@ function triggerEvent(eventType, options) {
     }
 }
 
-var dsnKeys = 'source protocol user host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(\w+)@([\w\.-]+)(?::(\d+))?(\/.*)/;
+var dsnKeys = 'source protocol user pass host port path'.split(' '),
+    dsnPattern = /^(?:(\w+):)?\/\/(\w+)(:\w+)?@([\w\.-]+)(?::(\d+))?(\/.*)/;
+
+function RavenConfigError(message) {
+    this.name = 'RavenConfigError';
+    this.message = message;
+}
+RavenConfigError.prototype = new Error();
+RavenConfigError.prototype.constructor = RavenConfigError;
 
 /**** Private functions ****/
 function parseDSN(str) {
     var m = dsnPattern.exec(str),
         dsn = {},
-        i = 6;
+        i = 7;
 
-    while (i--) dsn[dsnKeys[i]] = m[i] || '';
+    try {
+        while (i--) dsn[dsnKeys[i]] = m[i] || '';
+    } catch(e) {
+        throw new RavenConfigError('Invalid DSN: ' + str);
+    }
+
+    if (dsn.pass)
+        throw new RavenConfigError('Do not specify your private key in the DSN!');
 
     return dsn;
 }
