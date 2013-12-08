@@ -33,11 +33,11 @@ Bower
 ~~~~~
 
 We also provide a way to deploy Raven via `bower
-<http://bower.io/>`_. Useful if you want serve your own scripts instead of depending on our CDN and mantain a ``bower.json`` with a list of dependencies and versions.
+<http://bower.io/>`_. Useful if you want serve your own scripts instead of depending on our CDN and mantain a ``bower.json`` with a list of dependencies and versions (adding the ```--save``` flag would automatically add it to ```bower.json```).
 
 .. code-block:: sh
 
-    $ bower install raven-js
+    $ bower install raven-js --save
 
 .. code-block:: html
 
