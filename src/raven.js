@@ -126,9 +126,9 @@ var Raven = {
      * @return {Raven}
      */
     install: function() {
-        if (!isSetup()) return;
-
-        TK.report.subscribe(handleStackInfo);
+        if (isSetup()) {
+            TK.report.subscribe(handleStackInfo);
+        }
 
         return Raven;
     },
