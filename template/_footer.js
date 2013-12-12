@@ -3,7 +3,7 @@ window.Raven = Raven;
 
 // AMD
 if (typeof define === 'function' && define.amd) {
-    define('raven', [], function() { return Raven.noConflict(); });
+    define('raven', [], function() { return Raven; });
 }
 
 })(window);
