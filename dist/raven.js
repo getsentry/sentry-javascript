@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.2 (4c980fc) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.3 (d81942a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.2',
+    VERSION: '1.1.3',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1226,9 +1226,9 @@ var Raven = {
      * @return {Raven}
      */
     install: function() {
-        if (!isSetup()) return;
-
-        TK.report.subscribe(handleStackInfo);
+        if (isSetup()) {
+            TK.report.subscribe(handleStackInfo);
+        }
 
         return Raven;
     },
@@ -1753,7 +1753,7 @@ window.Raven = Raven;
 
 // AMD
 if (typeof define === 'function' && define.amd) {
-    define('raven', [], function() { return Raven.noConflict(); });
+    define('raven', [], function() { return Raven; });
 }
 
 })(window);
