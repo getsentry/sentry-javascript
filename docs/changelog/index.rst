@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.1.3
+~~~~~
+* When loading with an AMD loader present, do not automatically call ``Raven.noConflict()``. This was causing issues with using plugins. See: https://github.com/getsentry/raven-js/pull/165
+* https://github.com/getsentry/raven-js/pull/168
+
 1.1.2
 ~~~~~
 * An invalid DSN will now raise a RavenConfigError instead of some cryptic error
