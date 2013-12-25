@@ -507,7 +507,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 
     if (frames && frames.length) {
         stacktrace = {frames: frames};
-        fileurl = fileurl || frames[0].filename;
+        fileurl = frames[0].filename || fileurl;
     } else if (fileurl) {
         stacktrace = {
             frames: [{
