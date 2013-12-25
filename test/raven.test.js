@@ -399,10 +399,10 @@ describe('globals', function() {
 
             var frames = [
                 {
-                    filename: 'http://example.com/file2.js'
+                    filename: 'http://example.com/file1.js'
                 },
                 {
-                    filename: 'http://example.com/file1.js'
+                    filename: 'http://example.com/file2.js'
                 }
             ], framesFlipped = frames.slice(0);
 
