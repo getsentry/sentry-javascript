@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.3 (d81942a) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.4 (a64f922) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1132,7 +1132,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.3',
+    VERSION: '1.1.4',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1607,7 +1607,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 
     if (frames && frames.length) {
         stacktrace = {frames: frames};
-        fileurl = fileurl || frames[0].filename;
+        fileurl = frames[0].filename || fileurl;
     } else if (fileurl) {
         stacktrace = {
             frames: [{
