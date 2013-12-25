@@ -506,6 +506,9 @@ function processException(type, message, fileurl, lineno, frames, options) {
     if (globalOptions.ignoreErrors.test(message)) return;
 
     if (frames && frames.length) {
+        // Sentry expects frames oldest to newest
+        // and JS sends them as newest to oldest
+        frames.reverse();
         stacktrace = {frames: frames};
         fileurl = frames[0].filename || fileurl;
     } else if (fileurl) {

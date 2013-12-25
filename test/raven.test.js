@@ -399,47 +399,49 @@ describe('globals', function() {
 
             var frames = [
                 {
-                    filename: 'http://example.com/file1.js'
+                    filename: 'http://example.com/file2.js'
                 },
                 {
-                    filename: 'http://example.com/file2.js'
+                    filename: 'http://example.com/file1.js'
                 }
-            ];
+            ], framesFlipped = frames.slice(0);
 
-            processException('Error', 'lol', 'http://example.com/override.js', 10, frames, {});
+            framesFlipped.reverse();
+
+            processException('Error', 'lol', 'http://example.com/override.js', 10, frames.slice(0), {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
                     type: 'Error',
                     value: 'lol'
                 },
                 stacktrace: {
-                    frames: frames
+                    frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'lol at 10'
             }]);
 
-            processException('Error', 'lol', '', 10, frames, {});
+            processException('Error', 'lol', '', 10, frames.slice(0), {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
                     type: 'Error',
                     value: 'lol'
                 },
                 stacktrace: {
-                    frames: frames
+                    frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'lol at 10'
             }]);
 
-            processException('Error', 'lol', '', 10, frames, {extra: 'awesome'});
+            processException('Error', 'lol', '', 10, frames.slice(0), {extra: 'awesome'});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
                     type: 'Error',
                     value: 'lol'
                 },
                 stacktrace: {
-                    frames: frames
+                    frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'lol at 10',
