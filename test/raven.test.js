@@ -415,7 +415,7 @@ describe('globals', function() {
                 stacktrace: {
                     frames: frames
                 },
-                culprit: 'http://example.com/override.js',
+                culprit: 'http://example.com/file1.js',
                 message: 'lol at 10'
             }]);
 
