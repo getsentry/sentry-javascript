@@ -1,7 +1,7 @@
 Usage
 =====
 
-By default, Raven makes a few efforts to try it's best to capture meaningful stack traces, but browsers make it pretty difficult.
+By default, Raven makes a few efforts to try its best to capture meaningful stack traces, but browsers make it pretty difficult.
 
 The easiest solution is to prevent an error from bubbling all of the way up the stack to ``window``.
 
@@ -94,4 +94,4 @@ Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorial
 
 We have provided some instructions to creating Source Maps over at https://www.getsentry.com/docs/sourcemaps/. Also, checkout our `Gruntfile <https://github.com/getsentry/raven-js/blob/master/Gruntfile.js>`_ for a good example of what we're doing.
 
-I have also made a `Source Map Validator <http://sourcemap-validator.herokuapp.com/>`_ to help verify that things are correct.
+You can use `Source Map Validator <http://sourcemap-validator.herokuapp.com/>`_ to help verify that things are correct.
