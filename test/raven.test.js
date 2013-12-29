@@ -109,11 +109,11 @@ describe('globals', function() {
         });
     });
 
-    describe('arrayMerge', function() {
+    describe('objectMerge', function() {
         it('should work as advertised', function() {
-            assert.deepEqual(arrayMerge({}, {}), {});
-            assert.deepEqual(arrayMerge({a:1}, {b:2}), {a:1, b:2});
-            assert.deepEqual(arrayMerge({a:1}), {a:1});
+            assert.deepEqual(objectMerge({}, {}), {});
+            assert.deepEqual(objectMerge({a:1}, {b:2}), {a:1, b:2});
+            assert.deepEqual(objectMerge({a:1}), {a:1});
         });
     });
 

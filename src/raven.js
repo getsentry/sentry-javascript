@@ -261,7 +261,7 @@ var Raven = {
     captureMessage: function(msg, options) {
         // Fire away!
         send(
-            arrayMerge({
+            objectMerge({
                 message: msg
             }, options)
         );
@@ -532,7 +532,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 
     // Fire away!
     send(
-        arrayMerge({
+        objectMerge({
             // sentry.interfaces.Exception
             exception: {
                 type: type,
@@ -546,14 +546,14 @@ function processException(type, message, fileurl, lineno, frames, options) {
     );
 }
 
-function arrayMerge(arr1, arr2) {
-    if (!arr2) {
-        return arr1;
+function objectMerge(obj1, obj2) {
+    if (!obj2) {
+        return obj1;
     }
-    each(arr2, function(key, value){
-        arr1[key] = value;
+    each(obj2, function(key, value){
+        obj1[key] = value;
     });
-    return arr1;
+    return obj1;
 }
 
 function getHttpData() {
@@ -574,7 +574,7 @@ function getHttpData() {
 function send(data) {
     if (!isSetup()) return;
 
-    data = arrayMerge({
+    data = objectMerge({
         project: globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
@@ -583,9 +583,9 @@ function send(data) {
         request: getHttpData()
     }, data);
 
-    // Merge in the tags and extra separately since arrayMerge doesn't handle a deep merge
-    data.tags = arrayMerge(globalOptions.tags, data.tags);
-    data.extra = arrayMerge(globalOptions.extra, data.extra);
+    // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
+    data.tags = objectMerge(globalOptions.tags, data.tags);
+    data.extra = objectMerge(globalOptions.extra, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
