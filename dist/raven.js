@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.6 (4e078a0) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.7 (1a6c054) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -14,7 +14,7 @@
  MIT license
 */
 
-;(function(window, undefined) {
+(function(window, undefined) {
 
 
 var TraceKit = {};
@@ -166,11 +166,20 @@ TraceKit.report = (function reportModuleWrapper() {
      * @param {string} url URL of script that generated the exception.
      * @param {(number|string)} lineNo The line number at which the error
      * occurred.
+     * @param {?(number|string)} colNo The column number at which the error
+     * occurred.
+     * @param {?Error} ex The actual Error object.
      */
-    function traceKitWindowOnError(message, url, lineNo) {
-        var stack = null;
+    function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
+        var stack = null, skipNotify = false;
 
-        if (lastExceptionStack) {
+        if (!_isUndefined(ex)) {
+            // New chrome and blink send along a real error object
+            // Let's just report that like a normal error.
+            // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
+            report(ex, false);
+            skipNotify = true;
+        } else if (lastExceptionStack) {
             TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
             stack = lastExceptionStack;
             lastExceptionStack = null;
@@ -178,7 +187,8 @@ TraceKit.report = (function reportModuleWrapper() {
         } else {
             var location = {
                 'url': url,
-                'line': lineNo
+                'line': lineNo,
+                'column': colNo
             };
             location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
@@ -191,7 +201,9 @@ TraceKit.report = (function reportModuleWrapper() {
             };
         }
 
-        notifyHandlers(stack, 'from window.onerror');
+        if (!skipNotify) {
+            notifyHandlers(stack, 'from window.onerror');
+        }
 
         if (_oldOnerrorHandler) {
             return _oldOnerrorHandler.apply(this, arguments);
@@ -213,8 +225,11 @@ TraceKit.report = (function reportModuleWrapper() {
     /**
      * Reports an unhandled Error to TraceKit.
      * @param {Error} ex
+     * @param {?boolean} rethrow If false, do not re-throw the exception.
+     * Only used for window.onerror to not cause an infinite loop of
+     * rethrowing.
      */
-    function report(ex) {
+    function report(ex, rethrow) {
         var args = _slice.call(arguments, 1);
         if (lastExceptionStack) {
             if (lastException === ex) {
@@ -243,7 +258,9 @@ TraceKit.report = (function reportModuleWrapper() {
             }
         }, (stack.incomplete ? 2000 : 0));
 
-        throw ex; // re-throw to propagate to the top level (and cause window.onerror)
+        if (rethrow !== false) {
+            throw ex; // re-throw to propagate to the top level (and cause window.onerror)
+        }
     }
 
     report.subscribe = subscribe;
@@ -333,14 +350,14 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return '';
         }
         try {
-            function getXHR() {
+            var getXHR = function() {
                 try {
                     return new window.XMLHttpRequest();
                 } catch (e) {
                     // explicitly bubble up the exception if not found
                     return new window.ActiveXObject('Microsoft.XMLHTTP');
                 }
-            }
+            };
 
             var request = getXHR();
             request.open('GET', url, false);
@@ -629,8 +646,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var chrome = /^\s*at (?:((?:\[object object\])?\S+) )?\(?((?:file|http|https):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|http|https).*?):(\d+)(?::(\d+))?\s*$/i,
+        var chrome = /^\s*at (?:((?:\[object object\])?\S+(?: \[as \S+\])?) )?\(?((?:file|https?):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+            gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|https?).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
@@ -773,8 +790,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|http|https)\S+)(?:: in function (\S+))?\s*$/i,
-            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|http|https)\S+)(?:: in function (\S+))?\s*$/i,
+        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
+            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
             lineRE3 = /^\s*Line (\d+) of function script\s*$/i,
             stack = [],
             scripts = document.getElementsByTagName('script'),
@@ -1064,8 +1081,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         } catch (ex) {
             return computeStackTrace(ex, depth + 1);
         }
-
-        return null;
     }
 
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
@@ -1132,7 +1147,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.6',
+    VERSION: '1.1.7',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1361,7 +1376,7 @@ var Raven = {
     captureMessage: function(msg, options) {
         // Fire away!
         send(
-            arrayMerge({
+            objectMerge({
                 message: msg
             }, options)
         );
@@ -1460,6 +1475,11 @@ function isFunction(what) {
 
 function isString(what) {
     return typeof what === 'string';
+}
+
+function isEmptyObject(what) {
+    for (var k in what) return false;
+    return true;
 }
 
 function each(obj, callback) {
@@ -1627,7 +1647,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
 
     // Fire away!
     send(
-        arrayMerge({
+        objectMerge({
             // sentry.interfaces.Exception
             exception: {
                 type: type,
@@ -1641,14 +1661,14 @@ function processException(type, message, fileurl, lineno, frames, options) {
     );
 }
 
-function arrayMerge(arr1, arr2) {
-    if (!arr2) {
-        return arr1;
+function objectMerge(obj1, obj2) {
+    if (!obj2) {
+        return obj1;
     }
-    each(arr2, function(key, value){
-        arr1[key] = value;
+    each(obj2, function(key, value){
+        obj1[key] = value;
     });
-    return arr1;
+    return obj1;
 }
 
 function getHttpData() {
@@ -1669,7 +1689,7 @@ function getHttpData() {
 function send(data) {
     if (!isSetup()) return;
 
-    data = arrayMerge({
+    data = objectMerge({
         project: globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
@@ -1678,13 +1698,13 @@ function send(data) {
         request: getHttpData()
     }, data);
 
-    // Merge in the tags and extra separately since arrayMerge doesn't handle a deep merge
-    data.tags = arrayMerge(globalOptions.tags, data.tags);
-    data.extra = arrayMerge(globalOptions.extra, data.extra);
+    // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
+    data.tags = objectMerge(globalOptions.tags, data.tags);
+    data.extra = objectMerge(globalOptions.extra, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
-    if (!data.tags) delete data.tags;
-    if (!data.extra) delete data.extra;
+    if (isEmptyObject(data.tags)) delete data.tags;
+    if (isEmptyObject(data.extra)) delete data.extra;
 
     if (globalUser) {
         // sentry.interfaces.User
