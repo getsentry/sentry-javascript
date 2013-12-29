@@ -362,6 +362,11 @@ function isString(what) {
     return typeof what === 'string';
 }
 
+function isEmptyObject(what) {
+    for (var k in what) return false;
+    return true;
+}
+
 function each(obj, callback) {
     var i, j;
 
@@ -583,8 +588,8 @@ function send(data) {
     data.extra = arrayMerge(globalOptions.extra, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
-    if (!data.tags) delete data.tags;
-    if (!data.extra) delete data.extra;
+    if (isEmptyObject(data.tags)) delete data.tags;
+    if (isEmptyObject(data.extra)) delete data.extra;
 
     if (globalUser) {
         // sentry.interfaces.User

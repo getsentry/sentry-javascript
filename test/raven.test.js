@@ -102,6 +102,13 @@ describe('globals', function() {
         });
     });
 
+    describe('isEmptyObject', function() {
+        it('should work as advertised', function() {
+            assert.isTrue(isEmptyObject({}));
+            assert.isFalse(isEmptyObject({foo: 1}));
+        });
+    });
+
     describe('isSetup', function() {
         it('should return false with no JSON support', function() {
             globalServer = 'http://localhost/';
@@ -668,6 +675,38 @@ describe('globals', function() {
             assert.deepEqual(window.makeRequest.lastCall.args, [{
                 lol: 'ibrokeit'
             }]);
+        });
+
+        it('should strip empty tags/extra', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                tags: {},
+                extra: {}
+            };
+
+            send({foo: 'bar', tags: {}, extra: {}});
+            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+                project: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                foo: 'bar'
+            });
         });
     });
 
