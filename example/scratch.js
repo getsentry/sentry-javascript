@@ -26,3 +26,7 @@ function foo3() {
 function somethingelse() {
     document.getElementById('somethingelse').value = 'this is some realy really long message just so our minification is largeeeeeeeeee!';
 }
+
+function derp() {
+    fdas[0];
+}

@@ -155,10 +155,18 @@ TraceKit.report = (function reportModuleWrapper() {
      * @param {string} url URL of script that generated the exception.
      * @param {(number|string)} lineNo The line number at which the error
      * occurred.
-     * @param {(number|string)} colNo The column number at which the error
+     * @param {?(number|string)} colNo The column number at which the error
      * occurred.
+     * @param {?Error} ex The actual Error object.
      */
-    function traceKitWindowOnError(message, url, lineNo, colNo) {
+    function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
+        // New chrome and blink send along a real error object
+        // Let's just report that like a normal error.
+        // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
+        if (!_isUndefined(ex)) {
+            return report(ex, false);
+        }
+
         var stack = null;
 
         if (lastExceptionStack) {
@@ -205,8 +213,11 @@ TraceKit.report = (function reportModuleWrapper() {
     /**
      * Reports an unhandled Error to TraceKit.
      * @param {Error} ex
+     * @param {?boolean} rethrow If false, do not re-throw the exception.
+     * Only used for window.onerror to not cause an infinite loop of
+     * rethrowing.
      */
-    function report(ex) {
+    function report(ex, rethrow) {
         var args = _slice.call(arguments, 1);
         if (lastExceptionStack) {
             if (lastException === ex) {
@@ -235,7 +246,9 @@ TraceKit.report = (function reportModuleWrapper() {
             }
         }, (stack.incomplete ? 2000 : 0));
 
-        throw ex; // re-throw to propagate to the top level (and cause window.onerror)
+        if (rethrow !== false) {
+            throw ex; // re-throw to propagate to the top level (and cause window.onerror)
+        }
     }
 
     report.subscribe = subscribe;
