@@ -160,16 +160,15 @@ TraceKit.report = (function reportModuleWrapper() {
      * @param {?Error} ex The actual Error object.
      */
     function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
-        // New chrome and blink send along a real error object
-        // Let's just report that like a normal error.
-        // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
+        var stack = null, skipNotify = false;
+
         if (!_isUndefined(ex)) {
-            return report(ex, false);
-        }
-
-        var stack = null;
-
-        if (lastExceptionStack) {
+            // New chrome and blink send along a real error object
+            // Let's just report that like a normal error.
+            // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
+            report(ex, false);
+            skipNotify = true;
+        } else if (lastExceptionStack) {
             TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
             stack = lastExceptionStack;
             lastExceptionStack = null;
@@ -191,7 +190,9 @@ TraceKit.report = (function reportModuleWrapper() {
             };
         }
 
-        notifyHandlers(stack, 'from window.onerror');
+        if (!skipNotify) {
+            notifyHandlers(stack, 'from window.onerror');
+        }
 
         if (_oldOnerrorHandler) {
             return _oldOnerrorHandler.apply(this, arguments);
