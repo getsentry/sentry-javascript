@@ -109,6 +109,14 @@ describe('globals', function() {
         });
     });
 
+    describe('arrayMerge', function() {
+        it('should work as advertised', function() {
+            assert.deepEqual(arrayMerge({}, {}), {});
+            assert.deepEqual(arrayMerge({a:1}, {b:2}), {a:1, b:2});
+            assert.deepEqual(arrayMerge({a:1}), {a:1});
+        });
+    });
+
     describe('isSetup', function() {
         it('should return false with no JSON support', function() {
             globalServer = 'http://localhost/';
