@@ -155,8 +155,10 @@ TraceKit.report = (function reportModuleWrapper() {
      * @param {string} url URL of script that generated the exception.
      * @param {(number|string)} lineNo The line number at which the error
      * occurred.
+     * @param {(number|string)} colNo The column number at which the error
+     * occurred.
      */
-    function traceKitWindowOnError(message, url, lineNo) {
+    function traceKitWindowOnError(message, url, lineNo, colNo) {
         var stack = null;
 
         if (lastExceptionStack) {
@@ -167,7 +169,8 @@ TraceKit.report = (function reportModuleWrapper() {
         } else {
             var location = {
                 'url': url,
-                'line': lineNo
+                'line': lineNo,
+                'column': colNo
             };
             location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
