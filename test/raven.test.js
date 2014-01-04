@@ -1,3 +1,16 @@
+var chai = require('chai');
+var sinon = require('sinon');
+
+var assert = chai.assert;
+
+beforeEach(function() {
+    this.sinon = sinon.sandbox.create();
+});
+
+afterEach(function() {
+    this.sinon.restore();
+});
+
 function flushRavenState() {
     cachedAuth = undefined;
     hasJSON = !isUndefined(window.JSON);

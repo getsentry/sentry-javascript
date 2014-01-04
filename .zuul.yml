@@ -1,0 +1,15 @@
+ui: mocha-bdd
+scripts:
+    - ./vendor/TraceKit/tracekit.js
+    - ./src/raven.js
+browsers:
+    - name: chrome
+      version: latest
+    - name: safari
+      version: oldest..latest
+    - name: ie
+      version: oldest..latest
+    - name: firefox
+      version: latest
+    - name: ipad
+      version: oldest..latest

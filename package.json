@@ -2,7 +2,8 @@
   "name": "raven",
   "version": "1.1.7",
   "scripts": {
-    "test": "./node_modules/.bin/grunt test"
+    "test": "grunt jshint && zuul -- test/raven.test.js",
+    "test-dev": "zuul --local -- test/raven.test.js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
     "grunt-contrib-connect": "~0.5.0",
     "grunt-contrib-copy": "~0.4.1",
     "sinon": "~1.7.3",
-    "lodash": "~2.4.0"
+    "lodash": "~2.4.0",
+    "zuul": "~1.2.0"
   },
   "private": true
 }
