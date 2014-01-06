@@ -74,7 +74,7 @@ Capturing a specific message
 
 Passing additional data
 ~~~~~~~~~~~~~~~~~~~~~~~
-``captureException``, ``context``, ``wrap``, and ``captureMessage`` functions all allow passing additional data to be tagged onto the error, such as ``tags``.
+``captureException``, ``context``, ``wrap``, and ``captureMessage`` functions all allow passing additional data to be tagged onto the error, such as ``tags`` or ``extra`` for additional context.
 
 .. code-block:: javascript
 
