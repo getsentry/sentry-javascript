@@ -117,9 +117,8 @@ describe('raven.Client', function(){
         it('should match', function(){
             var result = {
                 id: 'c988bf5cb7db4653825c92f6864e7206',
-                checksum: 'b8a6fbd29cc9113a149ad62cf7e0ddd5'
             };
-            client.getIdent(result).should.equal('c988bf5cb7db4653825c92f6864e7206$b8a6fbd29cc9113a149ad62cf7e0ddd5');
+            client.getIdent(result).should.equal('c988bf5cb7db4653825c92f6864e7206');
         });
     });
 

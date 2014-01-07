@@ -5,16 +5,6 @@ var raven = require('../')
   , should = require('should');
 
 describe('raven.utils', function() {
-  describe('#constructChecksum()', function(){
-    it('should md5 hash the message', function(){
-      var kwargs = {
-        'foo': 'bar',
-        'message': 'This is awesome!'
-      };
-      raven.utils.constructChecksum(kwargs).should.equal('caf30724990022cfec2532741d6b631e');
-    });
-  });
-
   describe('#parseDSN()', function(){
     it('should parse hosted Sentry DSN without path', function(){
       var dsn = raven.utils.parseDSN('https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@app.getsentry.com/269');
