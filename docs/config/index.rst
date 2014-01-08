@@ -38,7 +38,7 @@ The name of the logger used by Sentry. Default: ``javascript``
 whitelistUrls
 -------------
 
-The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern or an exact string. ``whitelistUrls`` should match the url of your actual JavaScript files. It should match the url of your site iff you are inlining code inside ``<script>`` tags.
+The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern or an exact string. ``whitelistUrls`` should match the url of your actual JavaScript files. It should match the url of your site if you are inlining code inside ``<script>`` tags.
 
 .. code-block:: javascript
 
