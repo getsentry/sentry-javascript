@@ -644,7 +644,7 @@ function joinRegExp(patterns) {
     // Be mad.
     var sources = [], i = patterns.length;
     while (i--) {
-        if (typeof patterns[i] != "undefined" && patterns[i]) {
+        if (!isUndefined(patterns[i]) && patterns[i]) {
             sources[i] = isString(patterns[i]) ?
                 // If it's a string, we need to escape it
                 // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
