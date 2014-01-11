@@ -642,8 +642,8 @@ function isSetup() {
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
     // Be mad.
-    var sources = [];
-    for (var i = 0; i < patterns.length; i++) {
+    var sources = [], len = patterns.length;
+    for (var i = 0; i < len; i++) {
         if (isString(patterns[i])) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
