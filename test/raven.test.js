@@ -873,6 +873,12 @@ describe('globals', function() {
                 'a', 'b', 'a.b', /d/, /[0-9]/
             ]).source, 'a|b|a\\.b|d|[0-9]');
         });
+        
+        it('should not process empty or undefined variables', function() {
+            assert.equal(joinRegExp([
+                'a', 'b', null, undefined
+            ]).source, 'a|b');
+        });
     });
 });
 
