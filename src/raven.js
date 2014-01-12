@@ -642,15 +642,19 @@ function isSetup() {
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
     // Be mad.
-    var sources = [], len = patterns.length;
-    for (var i = 0; i < len; i++) {
-        if (isString(patterns[i])) {
+    var sources = [],
+        i = 0, len = patterns.length,
+        pattern;
+
+    for (; i < len; i++) {
+        pattern = patterns[i];
+        if (isString(pattern)) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            sources.push(patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
-        } else if (patterns[i] && patterns[i].source) {
+            sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
+        } else if (pattern && pattern.source) {
             // If it's a regexp already, we want to extract the source
-            sources.push(patterns[i].source);
+            sources.push(pattern.source);
         }
         // Intentionally skip other cases
     }
