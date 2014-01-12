@@ -879,6 +879,12 @@ describe('globals', function() {
                 'a', 'b', null, undefined
             ]).source, 'a|b');
         });
+
+        it('should skip entries that are not strings or regular expressions in the passed array of patterns', function() {
+            assert.equal(joinRegExp([
+                'a', 'b', null, 'a.b', undefined, true, /d/, 123, {}, /[0-9]/, []
+            ]).source, 'a|b|a\\.b|d|[0-9]');
+        });
     });
 });
 
