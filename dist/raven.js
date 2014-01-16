@@ -1,10 +1,10 @@
-/*! Raven.js 1.1.7 (1a6c054) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.8 (b2a8e8c) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2013 Matt Robenolt and other contributors
+ * Copyright 2014 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -1147,7 +1147,7 @@ TK.remoteFetching = false;
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.7',
+    VERSION: '1.1.8',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TK,
@@ -1757,14 +1757,21 @@ function isSetup() {
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
     // Be mad.
-    var sources = [], i = patterns.length;
-    while (i--) {
-        sources[i] = isString(patterns[i]) ?
+    var sources = [],
+        i = 0, len = patterns.length,
+        pattern;
+
+    for (; i < len; i++) {
+        pattern = patterns[i];
+        if (isString(pattern)) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            patterns[i].replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") :
+            sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
+        } else if (pattern && pattern.source) {
             // If it's a regexp already, we want to extract the source
-            patterns[i].source;
+            sources.push(pattern.source);
+        }
+        // Intentionally skip other cases
     }
     return new RegExp(sources.join('|'), 'i');
 }
