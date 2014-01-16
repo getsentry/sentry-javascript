@@ -8,6 +8,7 @@ Changelog
 1.1.4-1.1.7
 ~~~~~~~~~~~
 These were a bunch of super small incremental updates trying to get better integration and better support inside Sentry itself.
+
 * Culprit determined from the src url of the offending script, not the url of the page.
 * Send Sentry the frames in the right order. They were being sent in reverse. Somehow nobody noticed this.
 * Support for Chrome's new window.onerror api. See: https://github.com/getsentry/raven-js/issues/172
