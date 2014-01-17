@@ -12,13 +12,14 @@ var originalConsole = console,
     level;
 
 var logForGivenLevel = function(level) {
+    var originalConsoleLevel = console[level];
     return function () {
         var args = [].slice.call(arguments);
         Raven.captureMessage('' + args, {level: level, logger: 'console'});
 
         // this fails for some browsers. :(
-        if (originalConsole[level]) {
-             originalConsole[level].apply(null, args);
+        if (originalConsoleLevel) {
+             originalConsoleLevel.apply(originalConsole, args);
         }
     };
 };
