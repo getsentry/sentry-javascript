@@ -21,11 +21,6 @@ var _Raven = window.Raven,
         extra: {}
     };
 
-var TK = TraceKit.noConflict();
-
-// Disable Tracekit's remote fetching by default
-TK.remoteFetching = false;
-
 /*
  * The core Raven singleton
  *
@@ -35,7 +30,7 @@ var Raven = {
     VERSION: '<%= pkg.version %>',
 
     // Expose TraceKit to the Raven namespace
-    TraceKit: TK,
+    TraceKit: TraceKit,
 
     /*
      * Allow Raven to be configured as soon as it is loaded
@@ -104,14 +99,14 @@ var Raven = {
         }
 
         if (globalOptions.fetchContext) {
-            TK.remoteFetching = true;
+            TraceKit.remoteFetching = true;
         }
 
         if (globalOptions.linesOfContext) {
-            TK.linesOfContext = globalOptions.linesOfContext;
+            TraceKit.linesOfContext = globalOptions.linesOfContext;
         }
 
-        TK.collectWindowErrors = !!globalOptions.collectWindowErrors;
+        TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
         return Raven;
@@ -127,7 +122,7 @@ var Raven = {
      */
     install: function() {
         if (isSetup()) {
-            TK.report.subscribe(handleStackInfo);
+            TraceKit.report.subscribe(handleStackInfo);
         }
 
         return Raven;
@@ -216,7 +211,7 @@ var Raven = {
      * @return {Raven}
      */
     uninstall: function() {
-        TK.report.unsubscribe(handleStackInfo);
+        TraceKit.report.unsubscribe(handleStackInfo);
 
         return Raven;
     },
@@ -241,7 +236,7 @@ var Raven = {
         // raises an exception different from the one we asked to
         // report on.
         try {
-            TK.report(ex, options);
+            TraceKit.report(ex, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
@@ -365,6 +360,17 @@ function isString(what) {
 function isEmptyObject(what) {
     for (var k in what) return false;
     return true;
+}
+
+/**
+ * hasKey, a better form of hasOwnProperty
+ * Example: hasKey(MainHostObject, property) === true/false
+ *
+ * @param {Object} host object to check property
+ * @param {string} key to check
+ */
+function hasKey(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
 }
 
 function each(obj, callback) {

@@ -3,40 +3,17 @@
  MIT license
 */
 
-(function(window, undefined) {
-
-
-var TraceKit = {};
-var _oldTraceKit = window.TraceKit;
+var TraceKit = {
+    remoteFetching: false,
+    collectWindowErrors: true,
+    // 3 lines before, the offending line, 3 lines after
+    linesOfContext: 7
+};
 
 // global reference to slice
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
-
-/**
- * _has, a better form of hasOwnProperty
- * Example: _has(MainHostObject, property) === true/false
- *
- * @param {Object} host object to check property
- * @param {string} key to check
- */
-function _has(object, key) {
-    return Object.prototype.hasOwnProperty.call(object, key);
-}
-
-function _isUndefined(what) {
-    return typeof what === 'undefined';
-}
-
-/**
- * TraceKit.noConflict: Export TraceKit out to another variable
- * Example: var TK = TraceKit.noConflict()
- */
-TraceKit.noConflict = function noConflict() {
-    window.TraceKit = _oldTraceKit;
-    return TraceKit;
-};
 
 /**
  * TraceKit.wrap: Wrap any function in a TraceKit reporter
@@ -132,7 +109,7 @@ TraceKit.report = (function reportModuleWrapper() {
           return;
         }
         for (var i in handlers) {
-            if (_has(handlers, i)) {
+            if (hasKey(handlers, i)) {
                 try {
                     handlers[i].apply(null, [stack].concat(_slice.call(arguments, 2)));
                 } catch (inner) {
@@ -162,7 +139,7 @@ TraceKit.report = (function reportModuleWrapper() {
     function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
         var stack = null, skipNotify = false;
 
-        if (!_isUndefined(ex)) {
+        if (!isUndefined(ex)) {
             // New chrome and blink send along a real error object
             // Let's just report that like a normal error.
             // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
@@ -363,7 +340,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * @return {Array.<string>} Source contents.
      */
     function getSource(url) {
-        if (!_has(sourceCache, url)) {
+        if (!hasKey(sourceCache, url)) {
             // URL needs to be able to fetched within the acceptable domain.  Otherwise,
             // cross-domain errors will be triggered.
             var source = '';
@@ -401,7 +378,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         for (var i = 0; i < maxLines; ++i) {
             line = source[lineNo - i] + line;
 
-            if (!_isUndefined(line)) {
+            if (!isUndefined(line)) {
                 if ((m = reGuessFunction.exec(line))) {
                     return m[1];
                 } else if ((m = reFunctionArgNames.exec(line))) {
@@ -440,7 +417,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         line -= 1; // convert to 0-based index
 
         for (var i = start; i < end; ++i) {
-            if (!_isUndefined(source[i])) {
+            if (!isUndefined(source[i])) {
                 context.push(source[i]);
             }
         }
@@ -791,7 +768,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             source;
 
         for (i in scripts) {
-            if (_has(scripts, i) && !scripts[i].src) {
+            if (hasKey(scripts, i) && !scripts[i].src) {
                 inlineScriptBlocks.push(scripts[i]);
             }
         }
@@ -1079,23 +1056,3 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
     return computeStackTrace;
 }());
-
-
-//Default options:
-if (!TraceKit.remoteFetching) {
-  TraceKit.remoteFetching = true;
-}
-if (!TraceKit.collectWindowErrors) {
-  TraceKit.collectWindowErrors = true;
-}
-if (!TraceKit.linesOfContext || TraceKit.linesOfContext < 1) {
-  // 3 lines before, the offending line, 3 lines after
-  TraceKit.linesOfContext = 7;
-}
-
-
-
-// Export to global object
-window.TraceKit = TraceKit;
-
-}(window));

@@ -45,14 +45,6 @@ describe('globals', function() {
         flushRavenState();
     });
 
-    it('should not have TraceKit on window', function() {
-        assert.isUndefined(window.TraceKit);
-    });
-
-    it('should have a local TK', function() {
-        assert.isObject(TK);
-    });
-
     describe('getHttpData', function() {
         var data = getHttpData();
 
@@ -873,7 +865,7 @@ describe('globals', function() {
                 'a', 'b', 'a.b', /d/, /[0-9]/
             ]).source, 'a|b|a\\.b|d|[0-9]');
         });
-        
+
         it('should not process empty or undefined variables', function() {
             assert.equal(joinRegExp([
                 'a', 'b', null, undefined
@@ -907,7 +899,7 @@ describe('Raven (public API)', function() {
             };
 
             this.sinon.stub(window, 'isSetup').returns(false);
-            this.sinon.stub(TK.report, 'subscribe');
+            this.sinon.stub(TraceKit.report, 'subscribe');
 
             Raven.afterLoad();
 
@@ -919,7 +911,7 @@ describe('Raven (public API)', function() {
             assert.equal(globalProject, 2);
 
             assert.isTrue(window.isSetup.calledOnce);
-            assert.isFalse(TK.report.subscribe.calledOnce);
+            assert.isFalse(TraceKit.report.subscribe.calledOnce);
 
             delete window.RavenConfig;
         });
@@ -984,7 +976,7 @@ describe('Raven (public API)', function() {
         describe('collectWindowErrors', function() {
             it('should be true by default', function() {
                 Raven.config(SENTRY_DSN);
-                assert.isTrue(TK.collectWindowErrors);
+                assert.isTrue(TraceKit.collectWindowErrors);
             });
 
             it('should be true if set to true', function() {
@@ -992,7 +984,7 @@ describe('Raven (public API)', function() {
                     collectWindowErrors: true
                 });
 
-                assert.isTrue(TK.collectWindowErrors);
+                assert.isTrue(TraceKit.collectWindowErrors);
             });
 
             it('should be false if set to false', function() {
@@ -1000,7 +992,7 @@ describe('Raven (public API)', function() {
                     collectWindowErrors: false
                 });
 
-                assert.isFalse(TK.collectWindowErrors);
+                assert.isFalse(TraceKit.collectWindowErrors);
             });
         });
     });
@@ -1008,18 +1000,18 @@ describe('Raven (public API)', function() {
     describe('.install', function() {
         it('should check `isSetup`', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
-            this.sinon.stub(TK.report, 'subscribe');
+            this.sinon.stub(TraceKit.report, 'subscribe');
             Raven.install();
             assert.isTrue(window.isSetup.calledOnce);
-            assert.isFalse(TK.report.subscribe.calledOnce);
+            assert.isFalse(TraceKit.report.subscribe.calledOnce);
         });
 
         it('should register itself with TraceKit', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(TK.report, 'subscribe');
+            this.sinon.stub(TraceKit.report, 'subscribe');
             assert.equal(Raven, Raven.install());
-            assert.isTrue(TK.report.subscribe.calledOnce);
-            assert.equal(TK.report.subscribe.lastCall.args[0], handleStackInfo);
+            assert.isTrue(TraceKit.report.subscribe.calledOnce);
+            assert.equal(TraceKit.report.subscribe.lastCall.args[0], handleStackInfo);
         });
     });
 
@@ -1160,10 +1152,10 @@ describe('Raven (public API)', function() {
 
     describe('.uninstall', function() {
         it('should unsubscribe from TraceKit', function() {
-            this.sinon.stub(TK.report, 'unsubscribe');
+            this.sinon.stub(TraceKit.report, 'unsubscribe');
             Raven.uninstall();
-            assert.isTrue(TK.report.unsubscribe.calledOnce);
-            assert.equal(TK.report.unsubscribe.lastCall.args[0], handleStackInfo);
+            assert.isTrue(TraceKit.report.unsubscribe.calledOnce);
+            assert.equal(TraceKit.report.unsubscribe.lastCall.args[0], handleStackInfo);
         });
     });
 
@@ -1203,32 +1195,32 @@ describe('Raven (public API)', function() {
     });
 
     describe('.captureException', function() {
-        it('should call TK.report', function() {
+        it('should call TraceKit.report', function() {
             var error = new Error('crap');
-            this.sinon.stub(TK, 'report');
+            this.sinon.stub(TraceKit, 'report');
             Raven.captureException(error, {foo: 'bar'});
-            assert.isTrue(TK.report.calledOnce);
-            assert.deepEqual(TK.report.lastCall.args, [error, {foo: 'bar'}]);
+            assert.isTrue(TraceKit.report.calledOnce);
+            assert.deepEqual(TraceKit.report.lastCall.args, [error, {foo: 'bar'}]);
         });
 
         it('should store the last exception', function() {
             var error = new Error('crap');
-            this.sinon.stub(TK, 'report');
+            this.sinon.stub(TraceKit, 'report');
             Raven.captureException(error);
             assert.equal(Raven.lastException(), error);
         });
 
         it('shouldn\'t reraise the if the error is the same error', function() {
             var error = new Error('crap');
-            this.sinon.stub(TK, 'report').throws(error);
+            this.sinon.stub(TraceKit, 'report').throws(error);
             // this would raise if the errors didn't match
             Raven.captureException(error, {foo: 'bar'});
-            assert.isTrue(TK.report.calledOnce);
+            assert.isTrue(TraceKit.report.calledOnce);
         });
 
         it('should reraise a different error', function() {
             var error = new Error('crap1');
-            this.sinon.stub(TK, 'report').throws(error);
+            this.sinon.stub(TraceKit, 'report').throws(error);
             try {
                 Raven.captureException(new Error('crap2'));
             } catch(e) {
@@ -1240,10 +1232,10 @@ describe('Raven (public API)', function() {
 
         it('should capture as a normal message if a string is passed', function() {
             this.sinon.stub(Raven, 'captureMessage');
-            this.sinon.stub(TK, 'report');
+            this.sinon.stub(TraceKit, 'report');
             Raven.captureException('derp');
             assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
-            assert.isFalse(TK.report.called);
+            assert.isFalse(TraceKit.report.called);
         });
     });
 });

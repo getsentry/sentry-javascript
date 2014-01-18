@@ -5,8 +5,8 @@ module.exports = function(grunt) {
     var path = require('path');
 
     var coreFiles = [
-        'vendor/**/*.js',
         'template/_header.js',
+        'vendor/**/*.js',
         'src/**/*.js',
         'template/_footer.js'
     ];
