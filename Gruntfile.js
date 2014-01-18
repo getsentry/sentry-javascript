@@ -140,7 +140,7 @@ module.exports = function(grunt) {
             all: {
                 upload: [{
                     src: 'build/**/*',
-                    dest: '<%= pkg.version %>/',
+                    dest: '<%= pkg.release %>/',
                     rel: 'build/'
                 }]
             }
@@ -175,6 +175,13 @@ module.exports = function(grunt) {
             }
         }
     };
+
+    if (grunt.option('dev')) {
+        gruntConfig.pkg.release = 'dev';
+        gruntConfig.pkg.version = gruntConfig.pkg.version + '-post';
+    } else {
+        gruntConfig.pkg.release = gruntConfig.pkg.version;
+    }
 
     grunt.initConfig(gruntConfig);
 
