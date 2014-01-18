@@ -181,7 +181,7 @@ var Raven = {
             var args = [], i = arguments.length;
             // Recursively wrap all of a function's arguments that are
             // functions themselves.
-            if (options.deep !== false) {
+            if (!options || options && options.deep !== false) {
                 while(i--) args[i] = Raven.wrap(options, arguments[i]);
             }
 
