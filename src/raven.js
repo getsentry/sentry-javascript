@@ -211,7 +211,7 @@ var Raven = {
      * @return {Raven}
      */
     uninstall: function() {
-        TraceKit.report.unsubscribe(handleStackInfo);
+        TraceKit.report.uninstall();
 
         return Raven;
     },

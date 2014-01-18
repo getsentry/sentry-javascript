@@ -100,6 +100,14 @@ TraceKit.report = (function reportModuleWrapper() {
     }
 
     /**
+     * Remove all crash handlers.
+     */
+    function unsubscribeAll() {
+        uninstallGlobalHandler();
+        handlers = [];
+    }
+
+    /**
      * Dispatch stack information to all handlers.
      * @param {Object.<string, *>} stack
      */
@@ -180,12 +188,22 @@ TraceKit.report = (function reportModuleWrapper() {
 
     function installGlobalHandler ()
     {
-        if (_onErrorHandlerInstalled === true) {
+        if (_onErrorHandlerInstalled) {
             return;
         }
         _oldOnerrorHandler = window.onerror;
         window.onerror = traceKitWindowOnError;
         _onErrorHandlerInstalled = true;
+    }
+
+    function uninstallGlobalHandler ()
+    {
+        if (!_onErrorHandlerInstalled) {
+            return;
+        }
+        window.onerror = _oldOnerrorHandler;
+        _onErrorHandlerInstalled = false;
+        _oldOnerrorHandler = undefined;
     }
 
     /**
@@ -231,6 +249,7 @@ TraceKit.report = (function reportModuleWrapper() {
 
     report.subscribe = subscribe;
     report.unsubscribe = unsubscribe;
+    report.uninstall = unsubscribeAll;
     return report;
 }());
 

@@ -1151,11 +1151,10 @@ describe('Raven (public API)', function() {
     });
 
     describe('.uninstall', function() {
-        it('should unsubscribe from TraceKit', function() {
-            this.sinon.stub(TraceKit.report, 'unsubscribe');
+        it('should uninstall from TraceKit', function() {
+            this.sinon.stub(TraceKit.report, 'uninstall');
             Raven.uninstall();
-            assert.isTrue(TraceKit.report.unsubscribe.calledOnce);
-            assert.equal(TraceKit.report.unsubscribe.lastCall.args[0], handleStackInfo);
+            assert.isTrue(TraceKit.report.uninstall.calledOnce);
         });
     });
 
