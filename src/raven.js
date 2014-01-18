@@ -181,7 +181,10 @@ var Raven = {
             var args = [], i = arguments.length;
             // Recursively wrap all of a function's arguments that are
             // functions themselves.
-            while(i--) args[i] = Raven.wrap(options, arguments[i]);
+            if (options.deep !== false) {
+                while(i--) args[i] = Raven.wrap(options, arguments[i]);
+            }
+
             try {
                 /*jshint -W040*/
                 return func.apply(this, args);
