@@ -1066,11 +1066,11 @@ describe('Raven (public API)', function() {
         it('should not wrap function arguments', function() {
             var spy = this.sinon.spy();
             var wrapped = Raven.wrap({ deep: false }, function(f) {
-                assert.isTrue(f.__raven__);
+                assert.isUndefined(f.__raven__);
                 f();
             });
             wrapped(spy);
-            assert.isFalse(spy.calledOnce);
+            assert.isTrue(spy.calledOnce);
         });
 
         it('should maintain the correct scope', function() {
