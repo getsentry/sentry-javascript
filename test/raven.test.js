@@ -1040,7 +1040,7 @@ describe('Raven (public API)', function() {
         });
 
         it('should return the result of a wrapped function', function() {
-            var func = function() { return 'foo' };
+            var func = function() { return 'foo'; };
             var wrapped = Raven.wrap(func);
             assert.equal(wrapped(), 'foo');
         });
@@ -1057,6 +1057,16 @@ describe('Raven (public API)', function() {
             var spy = this.sinon.spy();
             var wrapped = Raven.wrap(function(f) {
                 assert.isTrue(f.__raven__);
+                f();
+            });
+            wrapped(spy);
+            assert.isTrue(spy.calledOnce);
+        });
+
+        it('should not wrap function arguments', function() {
+            var spy = this.sinon.spy();
+            var wrapped = Raven.wrap({ deep: false }, function(f) {
+                assert.isUndefined(f.__raven__);
                 f();
             });
             wrapped(spy);
