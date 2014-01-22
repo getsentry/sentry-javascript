@@ -31,7 +31,7 @@ New methods of transports can be added to Raven using
         /*
          * Configure the transport protocol using the provided config
          */
-        setup: function(dsn){
+        setup: function(dsn, triggerEvent){
             // snip
         },
 
@@ -42,6 +42,26 @@ New methods of transports can be added to Raven using
             // snip
         }
     });
+
+
+A transport's `setup` method receives a `triggerEvent` parameter which
+can be used to trigger an event when the request had succeeded or failed,
+using:
+
+.. code-block:: javascript
+
+    img.onload = function success() {
+          triggerEvent('success', {
+              data: data,
+              src: src
+          });
+      };
+      img.onerror = img.onabort = function failure() {
+          triggerEvent('failure', {
+              data: data,
+              src: src
+          });
+      };
 
 
 
