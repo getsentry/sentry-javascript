@@ -11,12 +11,9 @@ var HTTPGetTransport = {
         this.triggerEvent = triggerEvent;
     },
     send: function(data, endpoint){
-        // TODO: A lot of these are module local, meaning we can't define additional
-        // transports in other files. Fix that.
         var img = new Image(),
             triggerEvent = this.triggerEvent,
             src = endpoint + this.getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-        // getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
         img.onload = function success() {
             triggerEvent('success', {
