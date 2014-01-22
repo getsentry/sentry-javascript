@@ -189,6 +189,14 @@ var Raven = {
 
 
 
+    /*
+     * Register a transport plugin for pushing data into Sentry.
+     * Transport plugins are chosen based upon the DSN passed into Raven.configure,
+     * e.g Raven.configure('http://...') will use the plugin registered for 'http'.
+     *
+     * @param {string} protocol A protocol identifier in the DSN, e.g http or https+post
+     * @param {object} transport An implementation of the transport. Must implement the `setup(dsn)` and `send(data, endpoint)` methods.
+     */
     registerTransport: function(protocol, transport){
         if(globalTransports[protocol]) throw new RavenConfigError('Protocol ' + protocol + ' already has a registered transport method');
 
