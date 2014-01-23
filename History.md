@@ -1,3 +1,8 @@
+# 0.6.1 - 01/23/2014
+  * Use lsmod for getting the list of installed modules [See #55]
+  * Parse cookies on the http request always [See #56]
+  * Use `stack-trace` to assist in capturing stacks. This should fix compat with the New Relic plugin [See #57]
+
 # 0.6.0 - 11/9/2013
   * Updated sentry protocol to version 4 (Requires Sentry 6.0+ now)
   * Module names now include the full path
