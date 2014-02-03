@@ -6,6 +6,7 @@
 var _Raven = window.Raven,
     hasJSON = !!(window.JSON && window.JSON.stringify),
     lastCapturedException,
+    lastEventId,
     globalServer,
     globalUser,
     globalKey,
@@ -286,6 +287,15 @@ var Raven = {
      */
     lastException: function() {
         return lastCapturedException;
+    },
+
+    /*
+     * Get the last event id
+     *
+     * @return {string}
+     */
+    lastEventId: function() {
+        return lastEventId;
     }
 };
 
@@ -589,8 +599,11 @@ function send(data) {
         site: globalOptions.site,
         platform: 'javascript',
         // sentry.interfaces.Http
-        request: getHttpData()
+        request: getHttpData(),
+        event_id: generateUUID4()
     }, data);
+
+    lastEventId = data.event_id;
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
     data.tags = objectMerge(globalOptions.tags, data.tags);
@@ -668,6 +681,15 @@ function joinRegExp(patterns) {
         // Intentionally skip other cases
     }
     return new RegExp(sources.join('|'), 'i');
+}
+
+// http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+function generateUUID4() {
+    return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0,
+            v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
 }
 
 Raven.afterLoad();

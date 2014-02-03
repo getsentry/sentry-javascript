@@ -2,6 +2,7 @@ function flushRavenState() {
     cachedAuth = undefined;
     hasJSON = !isUndefined(window.JSON);
     lastCapturedException = undefined;
+    lastEventId = undefined;
     globalServer = undefined;
     globalUser = undefined;
     globalProject = undefined;
@@ -32,6 +33,11 @@ var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
     Raven.config(SENTRY_DSN);
+}
+
+// patched to return a predictable result
+function generateUUID4() {
+    return 'abc123';
 }
 
 
@@ -553,6 +559,7 @@ describe('globals', function() {
                         'User-Agent': 'lolbrowser'
                     }
                 },
+                event_id: 'abc123',
                 foo: 'bar'
             });
         });
@@ -585,6 +592,7 @@ describe('globals', function() {
                         'User-Agent': 'lolbrowser'
                     }
                 },
+                event_id: 'abc123',
                 user: {
                     name: 'Matt'
                 },
@@ -620,6 +628,7 @@ describe('globals', function() {
                         'User-Agent': 'lolbrowser'
                     }
                 },
+                event_id: 'abc123',
                 tags: {tag1: 'value1', tag2: 'value2'}
             }]);
         });
@@ -652,6 +661,7 @@ describe('globals', function() {
                         'User-Agent': 'lolbrowser'
                     }
                 },
+                event_id: 'abc123',
                 extra: {key1: 'value1', key2: 'value2'}
             }]);
         });
@@ -705,6 +715,7 @@ describe('globals', function() {
                         'User-Agent': 'lolbrowser'
                     }
                 },
+                event_id: 'abc123',
                 foo: 'bar'
             });
         });
@@ -1200,6 +1211,12 @@ describe('Raven (public API)', function() {
             // since it includes the generated url, which is going to
             // vary between users running the tests
             // Unit tests should cover that the payload was constructed properly
+        });
+
+        it('should tag lastEventId #integration', function() {
+            setupRaven();
+            Raven.captureMessage('lol');
+            assert.equal(Raven.lastEventId(), 'abc123');
         });
     });
 
