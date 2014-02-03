@@ -74,6 +74,7 @@ Capturing a specific message
 
 Passing additional data
 ~~~~~~~~~~~~~~~~~~~~~~~
+
 ``captureException``, ``context``, ``wrap``, and ``captureMessage`` functions all allow passing additional data to be tagged onto the error, such as ``tags`` or ``extra`` for additional context.
 
 .. code-block:: javascript
@@ -86,6 +87,23 @@ Passing additional data
 
     Raven.wrap({logger: "my.module"}, function(){ ... })
 
+Getting back an event id
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+An event id is a globally unique id for the event that was just sent. This event id can be used to find the exact event from within Sentry.
+
+This is often used to display for the user and report an error to customer service.
+
+.. code-block:: javascript
+
+    Raven.lastEventId()
+
+``Raven.lastEventId()`` will be undefined until an event is sent. After an event is sent, it will contain the string id.
+
+.. code-block:: javascript
+
+    Raven.captureMessage('Broken!')
+    alert(Raven.lastEventId())
 
 Dealing with minified source code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
