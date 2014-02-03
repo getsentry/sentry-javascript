@@ -10,3 +10,4 @@ Raven.js is a tiny standalone JavaScript client for [Sentry](http://www.getsentr
  * [Documentation](http://raven-js.readthedocs.org)
  * [Bug Tracker](https://github.com/getsentry/raven-js/issues)
  * [IRC](irc://chat.freenode.net/sentry) (chat.freenode.net, #sentry)
+ * Follow [@mattrobenolt](https://twitter.com/mattrobenolt) on Twitter for updates
