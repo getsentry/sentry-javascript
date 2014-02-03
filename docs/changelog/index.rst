@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.1.9
+~~~~~
+* Added ``Raven.lastEventId()`` to get back the Sentry event id. See: http://raven-js.readthedocs.org/en/latest/usage/index.html#getting-back-an-event-id
+* Fixed a bug in the ``console`` plugin. See: https://github.com/getsentry/raven-js/pull/181
+* Provide a way out of deep wrapping arguments. See: https://github.com/getsentry/raven-js/pull/182
+* ``Raven.uninstall()`` actually removes the patched ``window.onerror``.
+* No more globally exposed ``TraceKit``!
+
 1.1.8
 ~~~~~
 * Fixed a bug in IE8. See: https://github.com/getsentry/raven-js/pull/179
