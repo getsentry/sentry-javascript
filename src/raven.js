@@ -599,11 +599,12 @@ function send(data) {
         site: globalOptions.site,
         platform: 'javascript',
         // sentry.interfaces.Http
-        request: getHttpData(),
-        event_id: generateUUID4()
+        request: getHttpData()
     }, data);
 
-    lastEventId = data.event_id;
+    // Send along an event_id if not explicitly passed.
+    // This event_id can be used to reference the error within Sentry itself.
+    lastEventId = data.event_id || (data.event_id = generateUUID4());
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
     data.tags = objectMerge(globalOptions.tags, data.tags);
