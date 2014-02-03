@@ -602,10 +602,6 @@ function send(data) {
         request: getHttpData()
     }, data);
 
-    // Send along an event_id if not explicitly passed.
-    // This event_id can be used to reference the error within Sentry itself.
-    data.event_id = data.event_id || generateUUID4();
-
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
     data.tags = objectMerge(globalOptions.tags, data.tags);
     data.extra = objectMerge(globalOptions.extra, data.extra);
@@ -628,8 +624,10 @@ function send(data) {
         return;
     }
 
+    // Send along an event_id if not explicitly passed.
+    // This event_id can be used to reference the error within Sentry itself.
     // Set lastEventId after we know the error should actually be sent
-    lastEventId = data.event_id;
+    lastEventId = data.event_id || (data.event_id = generateUUID4());
 
     makeRequest(data);
 }

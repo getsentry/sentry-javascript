@@ -683,7 +683,8 @@ describe('globals', function() {
 
             send({foo: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args, [{
-                lol: 'ibrokeit'
+                lol: 'ibrokeit',
+                event_id: 'abc123',
             }]);
         });
 
