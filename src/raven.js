@@ -604,7 +604,7 @@ function send(data) {
 
     // Send along an event_id if not explicitly passed.
     // This event_id can be used to reference the error within Sentry itself.
-    lastEventId = data.event_id || (data.event_id = generateUUID4());
+    data.event_id = data.event_id || generateUUID4();
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
     data.tags = objectMerge(globalOptions.tags, data.tags);
@@ -627,6 +627,9 @@ function send(data) {
     if (isFunction(globalOptions.shouldSendCallback) && !globalOptions.shouldSendCallback(data)) {
         return;
     }
+
+    // Set lastEventId after we know the error should actually be sent
+    lastEventId = data.event_id;
 
     makeRequest(data);
 }
