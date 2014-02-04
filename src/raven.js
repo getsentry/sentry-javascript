@@ -594,7 +594,7 @@ function send(data) {
     if (!isSetup()) return;
 
     data = objectMerge({
-        project: globalProject,
+        project: globalProject.toString(),
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
