@@ -430,7 +430,7 @@ function send(data) {
     if (!isSetup()) return;
 
     data = arrayMerge({
-        project: globalProject,
+        project: globalProject ? globalProject.toString() : globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',
