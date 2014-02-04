@@ -433,7 +433,7 @@ describe('globals', function() {
 
       send({foo: 'bar'});
       assert.deepEqual(window.makeRequest.lastCall.args[0], {
-        project: 2,
+        project: '2',
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
@@ -469,7 +469,7 @@ describe('globals', function() {
 
       send({foo: 'bar'});
       assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
+        project: '2',
         logger: 'javascript',
         site: 'THE BEST',
         platform: 'javascript',
@@ -590,7 +590,7 @@ describe('globals', function() {
       /* This is commented out because chai is broken.
 
       assert.deepEqual(window.makeRequest.lastCall.args, [{
-        project: 2,
+        project: '2',
         logger: 'javascript',
         platform: 'javascript',
         'sentry.interfaces.Http': {
