@@ -964,6 +964,10 @@ describe('Raven (public API)', function() {
             assert.isFalse(isSetup());
         });
 
+        it('should return Raven for a falsey dsn', function() {
+            assert.equal(Raven.config(''), Raven);
+        });
+
         describe('whitelistUrls', function() {
             it('should be false if none are passed', function() {
                 Raven.config('//abc@example.com/2');
