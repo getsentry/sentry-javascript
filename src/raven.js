@@ -90,7 +90,7 @@ var Raven = {
         globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         globalKey = uri.user;
-        globalProject = ~~uri.path.substr(lastSlash + 1);
+        globalProject = uri.path.substr(lastSlash + 1);
 
         // assemble the endpoint from the uri pieces
         globalServer = '//' + uri.host +
@@ -596,7 +596,7 @@ function send(data) {
     if (!isSetup()) return;
 
     data = objectMerge({
-        project: globalProject.toString(),
+        project: globalProject,
         logger: globalOptions.logger,
         site: globalOptions.site,
         platform: 'javascript',

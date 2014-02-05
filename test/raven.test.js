@@ -541,7 +541,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            globalProject = 2;
+            globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
                 site: 'THE BEST'
@@ -572,7 +572,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            globalProject = 2;
+            globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
                 site: 'THE BEST'
@@ -608,7 +608,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            globalProject = 2;
+            globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
                 site: 'THE BEST',
@@ -641,7 +641,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            globalProject = 2;
+            globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
                 site: 'THE BEST',
@@ -920,7 +920,7 @@ describe('Raven (public API)', function() {
             assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
             assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
             assert.equal(globalOptions.some, 'config');
-            assert.equal(globalProject, 2);
+            assert.equal(globalProject, '2');
 
             assert.isTrue(window.isSetup.calledOnce);
             assert.isFalse(TraceKit.report.subscribe.calledOnce);
@@ -937,7 +937,7 @@ describe('Raven (public API)', function() {
             assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
             assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
             assert.equal(globalOptions.foo, 'bar');
-            assert.equal(globalProject, 2);
+            assert.equal(globalProject, '2');
             assert.isTrue(isSetup());
         });
 
@@ -947,7 +947,7 @@ describe('Raven (public API)', function() {
             assert.equal(globalServer, '//example.com/api/2/store/');
             assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
             assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
-            assert.equal(globalProject, 2);
+            assert.equal(globalProject, '2');
             assert.isTrue(isSetup());
         });
 
@@ -955,7 +955,7 @@ describe('Raven (public API)', function() {
             Raven.config('//abc@example.com/sentry/2');
             assert.equal(globalKey, 'abc');
             assert.equal(globalServer, '//example.com/sentry/api/2/store/');
-            assert.equal(globalProject, 2);
+            assert.equal(globalProject, '2');
             assert.isTrue(isSetup());
         });
 
