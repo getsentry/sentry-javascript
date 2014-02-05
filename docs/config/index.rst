@@ -3,6 +3,8 @@ Configuration
 
 We must first configure Sentry to allow certain hosts to report errors. This prevents abuse so somebody else couldn't start sending errors to your account from their site.
 
+**Note**: Without setting this, all messages will be rejected!
+
 This can be found under the *Project Details* page in Sentry.
 
 .. image:: http://i.imgur.com/S09MeSM.png
