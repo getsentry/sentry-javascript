@@ -938,6 +938,7 @@ describe('Raven (public API)', function() {
             assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
             assert.equal(globalOptions.foo, 'bar');
             assert.equal(globalProject, 2);
+            assert.isTrue(isSetup());
         });
 
         it('should work with a protocol relative DSN', function() {
@@ -947,6 +948,7 @@ describe('Raven (public API)', function() {
             assert.isTrue(globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
             assert.isTrue(globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
             assert.equal(globalProject, 2);
+            assert.isTrue(isSetup());
         });
 
         it('should work should work at a non root path', function() {
@@ -954,6 +956,12 @@ describe('Raven (public API)', function() {
             assert.equal(globalKey, 'abc');
             assert.equal(globalServer, '//example.com/sentry/api/2/store/');
             assert.equal(globalProject, 2);
+            assert.isTrue(isSetup());
+        });
+
+        it('should noop a falsey dsn', function() {
+            Raven.config('');
+            assert.isFalse(isSetup());
         });
 
         describe('whitelistUrls', function() {
