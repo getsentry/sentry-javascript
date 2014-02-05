@@ -65,7 +65,7 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
-        if (!dsn) return;
+        if (!dsn) return Raven;
 
         var uri = parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
