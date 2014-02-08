@@ -117,7 +117,7 @@ Putting it all together
     <html>
     <head>
         <title>Awesome stuff happening here</title>
-        <script src="//cdn.ravenjs.com/1.1.9/jquery,native/raven.min.js"></script>
+        <script src="//cdn.ravenjs.com/1.1.10/jquery,native/raven.min.js"></script>
         <script>
             var options = {
                 logger: 'my-logger',
