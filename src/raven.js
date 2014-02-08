@@ -15,6 +15,7 @@ var _Raven = window.Raven,
         logger: 'javascript',
         ignoreErrors: [],
         ignoreUrls: [],
+        filterValues: [],
         whitelistUrls: [],
         includePaths: [],
         collectWindowErrors: true,
@@ -368,6 +369,10 @@ function isFunction(what) {
     return typeof what === 'function';
 }
 
+function isRegExp(what) {
+    return what instanceof RegExp;
+}
+
 function isString(what) {
     return typeof what === 'string';
 }
@@ -592,6 +597,60 @@ function getHttpData() {
     return http;
 }
 
+function filterString(string, filterValues) {
+    if (!isString(string)) {
+      return string;
+    }
+    filterValues = filterValues || globalOptions.filterValues;
+    
+    var FILTER_CHAR = '*';
+    var replaceWith = function(full, capture) {
+        return full.replace(capture, new Array(capture.length + 1).join(FILTER_CHAR));
+    };
+    
+    each(filterValues, function(index, filter) {
+        if (isRegExp(filter)) {
+            string = string.replace(filter, replaceWith);
+        } else if (isString(filter)) {
+            var filterRegExp = new RegExp('(' + filter.toLowerCase() + ')', 'gi');
+            string = string.replace(filterRegExp, replaceWith);
+        }
+    });
+    return string;
+}
+
+function filterData(data) {
+    var FILTER_THESE = ['exception', 'message'];
+    each(FILTER_THESE, function(index, name) {
+        if (isString(data[name])) {
+            data[name] = filterString(data[name]);
+        }
+    });
+    
+    if (data.request) {
+        if (data.request.url) {
+            var splitByQuery = data.request.url.split('?');
+            each(splitByQuery, function(index, value) {
+                if (index >= 0) {
+                    splitByQuery[index] = filterString(splitByQuery[index]);
+                }
+            });
+            data.request.url = splitByQuery.join('?');
+        }
+        
+        if (data.request.querystring) {
+            data.request.querystring = filterString(data.request.querystring);
+        }
+        
+        if (data.request.headers) {
+            each(data.request.headers, function(key, value) {
+                data.request.headers[key] = filterString(data.request.headers[key]);
+            });
+        }
+    }
+    return data;
+}
+
 function send(data) {
     if (!isSetup()) return;
 
@@ -616,12 +675,17 @@ function send(data) {
         // sentry.interfaces.User
         data.user = globalUser;
     }
-
+    
+    // Filter by case insensitive strings or regexes, using the filterValues option
+    if (globalOptions.filterValues && globalOptions.filterValues.length) {
+        data = filterData(data);
+    }
+    
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);
     }
 
-    // Check if the request should be filtered or not
+    // Check if the request should be aborted or not
     if (isFunction(globalOptions.shouldSendCallback) && !globalOptions.shouldSendCallback(data)) {
         return;
     }
@@ -678,7 +742,7 @@ function joinRegExp(patterns) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
             sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
-        } else if (pattern && pattern.source) {
+        } else if (isRegExp(pattern)) {
             // If it's a regexp already, we want to extract the source
             sources.push(pattern.source);
         }
