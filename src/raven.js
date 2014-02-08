@@ -631,7 +631,7 @@ function filterData(data) {
         if (data.request.url) {
             var splitByQuery = data.request.url.split('?');
             each(splitByQuery, function(index, value) {
-                if (index >= 0) {
+                if (index !== 0) {
                     splitByQuery[index] = filterString(splitByQuery[index]);
                 }
             });
