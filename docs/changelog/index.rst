@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.10
+~~~~~~
+* A falsey DSN value disables Raven without yelling about an invalid DSN.
+
 1.1.9
 ~~~~~
 * Added ``Raven.lastEventId()`` to get back the Sentry event id. See: http://raven-js.readthedocs.org/en/latest/usage/index.html#getting-back-an-event-id
