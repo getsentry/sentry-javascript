@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.9 (e221499) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.10 (e96d774) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1120,7 +1120,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.9',
+    VERSION: '1.1.10',
 
     // Expose TraceKit to the Raven namespace
     TraceKit: TraceKit,
@@ -1157,6 +1157,8 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
+        if (!dsn) return Raven;
+
         var uri = parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
@@ -1180,7 +1182,7 @@ var Raven = {
         globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
 
         globalKey = uri.user;
-        globalProject = ~~uri.path.substr(lastSlash + 1);
+        globalProject = uri.path.substr(lastSlash + 1);
 
         // assemble the endpoint from the uri pieces
         globalServer = '//' + uri.host +
