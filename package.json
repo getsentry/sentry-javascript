@@ -7,6 +7,9 @@
   "author": "Matt Robenolt <matt@ydekproductions.com>",
   "license": "BSD",
   "main": "index",
+  "bin": {
+    "raven": "./bin/raven"
+  },
   "scripts": {
     "test": "NODE_ENV=test mocha --reporter dot && NODE_ENV=test coffee ./test/run.coffee"
   },
