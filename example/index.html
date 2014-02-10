@@ -19,6 +19,11 @@ Raven.setUser({
     id: 5
 })
 
+function testOptions() {
+	Raven.context({tags: {foo: 'bar'}}, function() {
+	    throw new Error('foo');
+	});
+}
 
 </script>
 <body>
@@ -27,5 +32,7 @@ Raven.setUser({
 
 <button onclick="divide(1, 0)">Sourcemap breakage</button>
 <button onclick="derp()">window.onerror</button>
+<button onclick="testOptions()">test options</button>
+
 </body>
 </html>
