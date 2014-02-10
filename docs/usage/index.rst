@@ -87,6 +87,8 @@ Passing additional data
 
     Raven.wrap({logger: "my.module"}, function(){ ... })
 
+    Raven.captureException(e, {extra: { foo: "bar" }})
+
 Getting back an event id
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
