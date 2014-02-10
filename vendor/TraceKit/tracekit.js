@@ -148,14 +148,15 @@ TraceKit.report = (function reportModuleWrapper() {
     function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
         var stack = null;
 
-        if (!isUndefined(ex)) {
+        if (lastExceptionStack) {
+            TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
+            processLastException();
+        } else if (ex) {
             // New chrome and blink send along a real error object
             // Let's just report that like a normal error.
             // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
-            report(ex, false);
-        } else if (lastExceptionStack) {
-            TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
-            processLastException();
+            stack = TraceKit.computeStackTrace(ex);
+            notifyHandlers(stack, true);
         } else {
             var location = {
                 'url': url,
