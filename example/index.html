@@ -19,12 +19,6 @@ Raven.setUser({
     id: 5
 })
 
-function testOptions() {
-	Raven.context({tags: {foo: 'bar'}}, function() {
-	    throw new Error('foo');
-	});
-}
-
 </script>
 <body>
 <button id="test">Break me</button>

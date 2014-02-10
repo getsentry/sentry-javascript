@@ -30,3 +30,9 @@ function somethingelse() {
 function derp() {
     fdas[0];
 }
+
+function testOptions() {
+    Raven.context({tags: {foo: 'bar'}}, function() {
+        throw new Error('foo');
+    });
+}
