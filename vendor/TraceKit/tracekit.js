@@ -165,11 +165,9 @@ TraceKit.report = (function reportModuleWrapper() {
             location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
             stack = {
-                'mode': 'onerror',
                 'message': message,
                 'url': document.location.href,
-                'stack': [location],
-                'useragent': navigator.userAgent
+                'stack': [location]
             };
             notifyHandlers(stack, true);
         }
@@ -268,7 +266,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *   s.stack[i].line     - line number, if known
  *   s.stack[i].column   - column number, if known
  *   s.stack[i].context  - an array of source code lines; the middle element corresponds to the correct line#
- *   s.mode              - 'stack', 'stacktrace', 'multiline', 'callers', 'onerror', or 'failed' -- method used to collect the stack trace
  *
  * Supports:
  *   - Firefox:  full stack trace with line numbers and unreliable column
@@ -685,12 +682,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
 
         return {
-            'mode': 'stack',
             'name': ex.name,
             'message': ex.message,
             'url': document.location.href,
-            'stack': stack,
-            'useragent': navigator.userAgent
+            'stack': stack
         };
     }
 
@@ -743,12 +738,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
 
         return {
-            'mode': 'stacktrace',
             'name': ex.name,
             'message': ex.message,
             'url': document.location.href,
-            'stack': stack,
-            'useragent': navigator.userAgent
+            'stack': stack
         };
     }
 
@@ -855,12 +848,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
 
         return {
-            'mode': 'multiline',
             'name': ex.name,
             'message': lines[0],
             'url': document.location.href,
-            'stack': stack,
-            'useragent': navigator.userAgent
+            'stack': stack
         };
     }
 
@@ -988,12 +979,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
 
         var result = {
-            'mode': 'callers',
             'name': ex.name,
             'message': ex.message,
             'url': document.location.href,
-            'stack': stack,
-            'useragent': navigator.userAgent
+            'stack': stack
         };
         augmentStackTraceWithInitialElement(result, ex.sourceURL || ex.fileName, ex.line || ex.lineNumber, ex.message || ex.description);
         return result;
@@ -1055,9 +1044,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             }
         }
 
-        return {
-            'mode': 'failed'
-        };
+        return {};
     }
 
     /**
