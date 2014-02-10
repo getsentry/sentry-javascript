@@ -176,16 +176,20 @@ module.exports = function(grunt) {
         }
     };
 
-    if (grunt.option('dev')) {
-        gruntConfig.pkg.release = 'dev';
-        gruntConfig.pkg.version = gruntConfig.pkg.version + '-post';
-    } else {
-        gruntConfig.pkg.release = gruntConfig.pkg.version;
-    }
-
     grunt.initConfig(gruntConfig);
 
     // Custom Grunt tasks
+    grunt.registerTask('version', function() {
+        var pkg = grunt.config.get('pkg');
+        if (grunt.option('dev')) {
+            pkg.release = 'dev';
+            pkg.version = grunt.config.get('gitinfo').local.branch.current.shortSHA;
+        } else {
+            pkg.release = pkg.version;
+        }
+        grunt.config.set('pkg', pkg);
+    });
+
     grunt.registerMultiTask('fixSourceMaps', function () {
         this.files.forEach(function (f) {
             var result;
@@ -224,8 +228,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-gitinfo');
 
     // Build tasks
-    grunt.registerTask('build.core', ['clean', 'gitinfo', 'concat:core', 'uglify', 'fixSourceMaps']);
-    grunt.registerTask('build.all', ['clean', 'gitinfo', 'concat:all', 'uglify', 'fixSourceMaps']);
+    grunt.registerTask('build.core', ['clean', 'gitinfo', 'version', 'concat:core', 'uglify', 'fixSourceMaps']);
+    grunt.registerTask('build.all', ['clean', 'gitinfo', 'version', 'concat:all', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
