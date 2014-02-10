@@ -677,7 +677,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         if (stack[0].line && !stack[0].column && reference) {
             stack[0].column = findSourceInLine(reference[1], stack[0].url, stack[0].line);
-        } else if (!stack[0].column && ex.columnNumber) {
+        } else if (!stack[0].column && !isUndefined(ex.columnNumber)) {
             // FireFox uses this awesome columnNumber property for its top frame
             // Also note, Firefox's column number is 0-based and everything else expects 1-based,
             // so adding 1
