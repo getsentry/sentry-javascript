@@ -40,6 +40,91 @@ function generateUUID4() {
     return 'abc123';
 }
 
+describe('TraceKit', function(){
+    describe('error notifications', function(){
+        var testMessage = "__mocha_ignore__";
+        var subscriptionHandler;
+        // TraceKit waits 2000ms for window.onerror to fire, so give the tests
+        // some extra time.
+        this.timeout(3000);
+
+        before(function() {
+            // Prevent the onerror call that's part of our tests from getting to
+            // mocha's handler, which would treat it as a test failure.
+            //
+            // We set this up here and don't ever restore the old handler, because
+            // we can't do that without clobbering TraceKit's handler, which can only
+            // be installed once.
+            var oldOnError = window.onerror;
+            window.onerror = function(message) {
+                if (message == testMessage) {
+                    return true;
+                }
+                return oldOnError.apply(this, arguments);
+            };
+        });
+
+        afterEach(function() {
+            if (subscriptionHandler) {
+                TraceKit.report.unsubscribe(subscriptionHandler);
+                subscriptionHandler = null;
+            }
+        });
+
+        function testErrorNotification(collectWindowErrors, callOnError, numReports, done) {
+            var extraVal = "foo";
+            var numDone = 0;
+            // TraceKit's collectWindowErrors flag shouldn't affect direct calls
+            // to TraceKit.report, so we parameterize it for the tests.
+            TraceKit.collectWindowErrors = collectWindowErrors;
+
+            subscriptionHandler = function(stackInfo, extra) {
+                assert.equal(extra, extraVal);
+                numDone++;
+                if (numDone == numReports) {
+                    done();
+                }
+            }
+            TraceKit.report.subscribe(subscriptionHandler);
+
+            // TraceKit.report always throws an exception in order to trigger
+            // window.onerror so it can gather more stack data. Mocha treats
+            // uncaught exceptions as errors, so we catch it via assert.throws
+            // here (and manually call window.onerror later if appropriate).
+            //
+            // We test multiple reports because TraceKit has special logic for when
+            // report() is called a second time before either a timeout elapses or
+            // window.onerror is called (which is why we always call window.onerror
+            // only once below, after all calls to report()).
+            for (var i=0; i < numReports; i++) {
+                var e = new Error('testing');
+                assert.throws(function() {
+                    TraceKit.report(e, extraVal);
+                }, e);
+            }
+            // The call to report should work whether or not window.onerror is
+            // triggered, so we parameterize it for the tests. We only call it
+            // once, regardless of numReports, because the case we want to test for
+            // multiple reports is when window.onerror is *not* called between them.
+            if (callOnError) {
+                window.onerror(testMessage);
+            }
+        }
+
+        Mocha.utils.forEach([false, true], function(collectWindowErrors) {
+            Mocha.utils.forEach([false, true], function(callOnError) {
+                Mocha.utils.forEach([1, 2], function(numReports) {
+                    it('it should receive arguments from report() when' +
+                       ' collectWindowErrors is ' + collectWindowErrors +
+                       ' and callOnError is ' + callOnError +
+                       ' and numReports is ' + numReports, function(done) {
+                        testErrorNotification(collectWindowErrors, callOnError, numReports, done);
+                    });
+                });
+            });
+        });
+    });
+});
 
 describe('globals', function() {
     beforeEach(function() {
