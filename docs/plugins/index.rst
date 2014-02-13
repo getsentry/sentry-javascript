@@ -13,6 +13,57 @@ Why are plugins needed at all?
 
 JavaScript is pretty restrictive when it comes to exception handling, and there are a lot of things that make it difficult to get relevent information, so it's important that we inject code and wrap things magically so we can extract what we need. See :doc:`/usage/index` for tips regarding that.
 
+Transport plugins
+~~~~~~~~~~~~~~~~~
+Transport plugins allow you to override how Raven sends the data into Sentry.
+A transport is added based on the dsn passed into config, e.g `Raven.config('http://abc@example.com:80/2')` will use the transport registered for `http`.
+
+The default transport plugin uses inserts an image thus generating a `GET` request to Sentry.
+There is also a transport plugin available for `CORS XHR` in situations where the `Origin` and `Referer` headers won't get set properly for `GET` requests (e.g when the browser is executing from a `file://` URI).
+
+Registering new transport plugins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+New methods of transports can be added to Raven using
+
+.. code-block:: javascript
+
+    Raven.registerTransport('https+post', {
+        /*
+         * Configure the transport protocol using the provided config
+         */
+        setup: function(dsn, triggerEvent){
+            // snip
+        },
+
+        /*
+         * Send the data to Sentry.
+         */
+        send: function(data, endpoint){
+            // snip
+        }
+    });
+
+
+A transport's `setup` method receives a `triggerEvent` parameter which
+can be used to trigger an event when the request had succeeded or failed,
+using:
+
+.. code-block:: javascript
+
+    img.onload = function success() {
+          triggerEvent('success', {
+              data: data,
+              src: src
+          });
+      };
+      img.onerror = img.onabort = function failure() {
+          triggerEvent('failure', {
+              data: data,
+              src: src
+          });
+      };
+
+
 
 All Plugins
 ~~~~~~~~~~~

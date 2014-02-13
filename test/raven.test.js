@@ -6,6 +6,8 @@ function flushRavenState() {
     globalServer = undefined;
     globalUser = undefined;
     globalProject = undefined;
+    globalTransports = { default: HTTPGetTransport };
+    globalTransport = undefined;
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -19,6 +21,7 @@ function flushRavenState() {
     Raven.uninstall();
 }
 
+var noop = function(){};
 var imageCache = [];
 window.Image = function Image() {
     imageCache.push(this);
@@ -30,6 +33,8 @@ if (typeof window.console === 'undefined') {
 }
 
 var SENTRY_DSN = 'http://abc@example.com:80/2';
+var PLUGIN_DSN = 'foo+bar://abc@example.com:80/2';
+var V8_DSN = 'https+post://abc:pwd@example.com:80/2';
 
 function setupRaven() {
     Raven.config(SENTRY_DSN);
@@ -213,24 +218,12 @@ describe('globals', function() {
             this.sinon.stub(console, 'error');
             assert.isFalse(isSetup());
             assert.isTrue(console.error.calledOnce);
+            console.error.restore();
         });
 
         it('should return true when everything is all gravy', function() {
             hasJSON = true;
             assert.isTrue(isSetup());
-        });
-    });
-
-    describe('getAuthQueryString', function() {
-        it('should return a properly formatted string and cache it', function() {
-            var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
-            assert.strictEqual(getAuthQueryString(), expected);
-            assert.strictEqual(cachedAuth, expected);
-        });
-
-        it('should return cached value when it exists', function() {
-            cachedAuth = 'lol';
-            assert.strictEqual(getAuthQueryString(), 'lol');
         });
     });
 
@@ -262,16 +255,6 @@ describe('globals', function() {
             assert.strictEqual(pieces.host, 'matt-robenolt.com');
         });
 
-        it('should raise a RavenConfigError when setting a password', function() {
-            try {
-                parseDSN('http://user:pass@example.com/2');
-            } catch(e) {
-                return assert.equal(e.name, 'RavenConfigError');
-            }
-            // shouldn't hit this
-            assert.isTrue(false);
-        });
-
         it('should raise a RavenConfigError with an invalid DSN', function() {
             try {
                 parseDSN('lol');
@@ -281,6 +264,7 @@ describe('globals', function() {
             // shouldn't hit this
             assert.isTrue(false);
         });
+
     });
 
     describe('normalizeFrame', function() {
@@ -810,7 +794,7 @@ describe('globals', function() {
     describe('makeRequest', function() {
         it('should load an Image', function() {
             imageCache = [];
-            this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
+            this.sinon.stub(globalTransport, 'getAuthQueryString').returns('?lol');
             globalServer = 'http://localhost/';
 
             makeRequest({foo: 'bar'});
@@ -1362,4 +1346,185 @@ describe('Raven (public API)', function() {
             assert.isFalse(TraceKit.report.called);
         });
     });
+
+    describe('The transport plugin API', function(){
+        beforeEach(function() {
+            setupRaven();
+            globalOptions.fetchContext = true;
+        });
+
+        afterEach(function() {
+            flushRavenState();
+        });
+
+        it('should be able to register new transport plugins', function(){
+            // Flush raven so we can run .config on it again.
+            flushRavenState();
+
+            var setupSpy = this.sinon.spy();
+            Raven.registerTransport('foo+bar', {
+                setup: setupSpy,
+                send: function(){}
+            });
+
+            Raven.config('foo+bar://abc@example.com:80/2');
+
+            assert.isTrue(setupSpy.calledOnce);
+        });
+
+        it('should use the correct plugin, without plugin name when making a request', function(){
+            // Flush raven so we can run .config on it again.
+            flushRavenState();
+
+            var sendSpy = this.sinon.spy();
+            Raven.registerTransport('foo+bar', {
+                setup: function(dsn){
+                    return this;
+                },
+                send: sendSpy
+            });
+
+            Raven.config('foo+bar://abc@example.com:80/2');
+            makeRequest({ foo: 'bar' })
+
+            assert.deepEqual(sendSpy.args[0][0], { foo: 'bar' });
+            assert.strictEqual(sendSpy.args[0][1], 'foo://example.com:80/api/2/store/');
+        });
+
+        it('should run the plugins\' setup method and provide the dsn and triggerEvent function', function(){
+            // Flush raven so we can run .config on it again.
+            flushRavenState();
+
+            var setupSpy = this.sinon.spy();
+            Raven.registerTransport('foo+bar', {
+                setup: setupSpy,
+                send: function(){}
+            });
+
+            Raven.config(PLUGIN_DSN);
+            var dsn = parseDSN('foo+bar://abc@example.com:80/2');
+
+            assert.deepEqual(setupSpy.args[0][0], dsn);
+            assert.strictEqual(setupSpy.args[0][1], triggerEvent);
+        }),
+
+        it('should throw an error if a transport plugin is already registerd for a protocol', function(){
+            Raven.registerTransport('foo+bar', {
+                setup: noop,
+                send: noop
+            });
+            try {
+                Raven.registerTransport('foo+bar', {
+                    setup: noop,
+                    send: noop
+                });
+            } catch(e){
+                return assert.equal(e.name, 'RavenConfigError');
+                return assert.equal(e.name, 'Protocol foo+bar already has a registered transport method');
+            }
+
+        });
+
+        it('should allow a plugin to use a fallback (e.g is support is missing)', function(){
+            // Flush raven so we can run .config on it again.
+            flushRavenState();
+
+            var pluginA = {
+                setup: noop,
+                send: noop
+            };
+            var pluginB = {
+                setup: function(){
+                    return pluginA;
+                },
+                send: noop
+            };
+
+            Raven.registerTransport('foo+bar', pluginB);
+            Raven.config(PLUGIN_DSN);
+
+            assert.deepEqual(globalTransport, pluginA);
+        });
+        describe('the default transport plugin', function(){
+
+            it('should set a default transport plugin', function(){
+                assert.deepEqual(globalTransport, HTTPGetTransport);
+            });
+
+            it('should raise a RavenConfigError when setting a password', function() {
+                try {
+                    HTTPGetTransport.setup(parseDSN('http://user:pass@example.com/2'));
+                } catch(e) {
+                    return assert.equal(e.name, 'RavenConfigError');
+                }
+                // shouldn't hit this
+                assert.isTrue(false);
+            });
+
+            describe('getAuthQueryString', function() {
+                it('should return a properly formatted string and cache it', function() {
+                    var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
+                    assert.strictEqual(globalTransport.getAuthQueryString(), expected);
+                    assert.strictEqual(globalTransport.cachedAuth, expected);
+                });
+
+                it('should return cached value when it exists', function() {
+                    globalTransport.cachedAuth = 'lol';
+                    assert.strictEqual(globalTransport.getAuthQueryString(), 'lol');
+                });
+            });
+
+        });
+
+        describe('the v8 transport plugin', function(){
+            it('should throw an RavenConfigError if the password is missing', function(){
+                flushRavenState();
+                Raven.registerTransport('https+post', V8Transport);
+                try {
+                    Raven.config('https+post://abc@example.com:80/2');
+                } catch(e){
+                    return assert.strictEqual(e.name, 'RavenConfigError');
+                    return assert.strictEqual(e.name, 'The https+post V8 transport needs the private key to be set in the DSN.');
+                }
+                // We should never hit this
+                assert.isTrue(false);
+            });
+
+            it('should fall back to the GET plugin if CORS isn\'t supported', function(){
+                flushRavenState();
+                Raven.registerTransport('https+post', V8Transport);
+
+                var stub = this.sinon.stub(V8Transport, 'hasCORS');
+                this.sinon.stub(console, 'error');
+                stub.returns(false);
+
+                Raven.config(V8_DSN);
+
+                assert.deepEqual(globalTransport, HTTPGetTransport);
+                assert.isTrue(console.error.calledOnce);
+
+                console.error.restore();
+            });
+
+            it('should send requests using xhr post', function(){
+                flushRavenState();
+                Raven.registerTransport('https+post', V8Transport);
+                Raven.config(V8_DSN);
+
+                var xhr = this.sinon.useFakeXMLHttpRequest();
+
+                makeRequest({ foo: 'bar' });
+
+                assert.strictEqual(xhr.requests[0].url, 'https://example.com:80/api/2/store/');
+                assert.deepEqual(xhr.requests[0].requestHeaders, {
+                    'X-Sentry-Auth': "Sentry sentry_version=4,sentry_client=raven-js/<%= pkg.version %>,sentry_key=abc,sentry_secret=pwd",
+                    'Content-Type': "application/json;charset=utf-8"
+                });
+                assert.strictEqual(xhr.requests[0].requestBody, JSON.stringify({ foo: 'bar' }));
+
+                xhr.restore();
+            });
+        });
+    });
+
 });
