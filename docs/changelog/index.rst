@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.1.11
+~~~~~~
+* Capture column number from FireFox
+* Fix propagation of extra options through ``captureException``, see: https://github.com/getsentry/raven-js/pull/189
+* Fix a minor bug that causes TraceKit to blow up of someone passes something dumb through ``window.onerror``
+
 1.1.10
 ~~~~~~
 * A falsey DSN value disables Raven without yelling about an invalid DSN.
