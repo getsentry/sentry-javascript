@@ -357,6 +357,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * @return {Array.<string>} Source contents.
      */
     function getSource(url) {
+        if (!isString(url)) return [];
         if (!hasKey(sourceCache, url)) {
             // URL needs to be able to fetched within the acceptable domain.  Otherwise,
             // cross-domain errors will be triggered.
