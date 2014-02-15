@@ -1,3 +1,8 @@
+# 0.6.2 - 02/14/2014
+ * Allow overriding the logger name for an individual event
+ * Update lsmod to not break when running Raven from the REPL
+ * Added a `raven` bin so you can run `raven test [DSN]`
+
 # 0.6.1 - 01/23/2014
   * Use lsmod for getting the list of installed modules [See #55]
   * Parse cookies on the http request always [See #56]
