@@ -33,7 +33,7 @@ It's impossible to retrieve a stack trace from a string. If this happens, Raven 
 context/wrap
 ------------
 
-``Raven.context`` allows you to wrap any function to be immediately executed. Behind the scenes, Raven is just wrapping your code in a ``try...catch`` block.
+``Raven.context`` allows you to wrap any function to be immediately executed. Behind the scenes, Raven is just wrapping your code in a ``try...catch`` block to record the exception before re-throwing it.
 
 .. code-block:: javascript
 
