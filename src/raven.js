@@ -207,6 +207,7 @@ var Raven = {
         // Signal that this function has been wrapped already
         // for both debugging and to prevent it to being wrapped twice
         wrapped.__raven__ = true;
+        wrapped.__inner__ = func;
 
         return wrapped;
     },
