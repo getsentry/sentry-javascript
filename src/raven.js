@@ -614,7 +614,7 @@ function send(data) {
     // Send along an event_id if not explicitly passed.
     // This event_id can be used to reference the error within Sentry itself.
     // Set lastEventId after we know the error should actually be sent
-    lastEventId = data.event_id || (data.event_id = generateUUID4());
+    lastEventId = data.event_id || (data.event_id = uuid4());
 
     makeRequest(data);
 }
@@ -673,7 +673,7 @@ function joinRegExp(patterns) {
 }
 
 // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-function generateUUID4() {
+function uuid4() {
     return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random()*16|0,
             v = c == 'x' ? r : (r&0x3|0x8);
@@ -681,8 +681,11 @@ function generateUUID4() {
     });
 }
 
-// Attempt to initialize Raven on load
-var RavenConfig = window.RavenConfig;
-if (RavenConfig) {
-    Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+function afterLoad() {
+    // Attempt to initialize Raven on load
+    var RavenConfig = window.RavenConfig;
+    if (RavenConfig) {
+        Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+    }
 }
+afterLoad();

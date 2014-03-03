@@ -36,7 +36,7 @@ function setupRaven() {
 }
 
 // patched to return a predictable result
-function generateUUID4() {
+function uuid4() {
     return 'abc123';
 }
 
@@ -998,7 +998,7 @@ describe('Raven (public API)', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
             this.sinon.stub(TraceKit.report, 'subscribe');
 
-            Raven.afterLoad();
+            afterLoad();
 
             assert.equal(globalKey, 'random');
             assert.equal(globalServer, 'http://some.other.server:80/api/2/store/');
