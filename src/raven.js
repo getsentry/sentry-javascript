@@ -31,19 +31,6 @@ var Raven = {
     VERSION: '<%= pkg.version %>',
 
     /*
-     * Allow Raven to be configured as soon as it is loaded
-     * It uses a global RavenConfig = {dsn: '...', config: {}}
-     *
-     * @return undefined
-     */
-    afterLoad: function() {
-        var RavenConfig = window.RavenConfig;
-        if (RavenConfig) {
-            Raven.config(RavenConfig.dsn, RavenConfig.config).install();
-        }
-    },
-
-    /*
      * Allow multiple versions of Raven to be installed.
      * Strip Raven from the global context and returns the instance.
      *
@@ -694,4 +681,8 @@ function generateUUID4() {
     });
 }
 
-Raven.afterLoad();
+// Attempt to initialize Raven on load
+var RavenConfig = window.RavenConfig;
+if (RavenConfig) {
+    Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+}
