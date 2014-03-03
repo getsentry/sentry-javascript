@@ -1,5 +1,5 @@
 function flushRavenState() {
-    cachedAuth = undefined;
+    authQueryString = undefined;
     hasJSON = !isUndefined(window.JSON);
     lastCapturedException = undefined;
     lastEventId = undefined;
@@ -221,16 +221,11 @@ describe('globals', function() {
         });
     });
 
-    describe('getAuthQueryString', function() {
+    describe('setAuthQueryString', function() {
         it('should return a properly formatted string and cache it', function() {
             var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
-            assert.strictEqual(getAuthQueryString(), expected);
-            assert.strictEqual(cachedAuth, expected);
-        });
-
-        it('should return cached value when it exists', function() {
-            cachedAuth = 'lol';
-            assert.strictEqual(getAuthQueryString(), 'lol');
+            setAuthQueryString();
+            assert.strictEqual(authQueryString, expected);
         });
     });
 
@@ -810,7 +805,7 @@ describe('globals', function() {
     describe('makeRequest', function() {
         it('should load an Image', function() {
             imageCache = [];
-            this.sinon.stub(window, 'getAuthQueryString').returns('?lol');
+            authQueryString = '?lol';
             globalServer = 'http://localhost/';
 
             makeRequest({foo: 'bar'});

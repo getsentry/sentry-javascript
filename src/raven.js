@@ -20,7 +20,8 @@ var _Raven = window.Raven,
         collectWindowErrors: true,
         tags: {},
         extra: {}
-    };
+    },
+    authQueryString;
 
 /*
  * The core Raven singleton
@@ -94,6 +95,8 @@ var Raven = {
         }
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
+
+        setAuthQueryString();
 
         // return for chaining
         return Raven;
@@ -392,22 +395,14 @@ function each(obj, callback) {
     }
 }
 
-var cachedAuth;
 
-function getAuthQueryString() {
-    if (cachedAuth) return cachedAuth;
-
-    var qs = [
-        'sentry_version=4',
-        'sentry_client=raven-js/' + Raven.VERSION
-    ];
-    if (globalKey) {
-        qs.push('sentry_key=' + globalKey);
-    }
-
-    cachedAuth = '?' + qs.join('&');
-    return cachedAuth;
+function setAuthQueryString() {
+    authQueryString =
+        '?sentry_version=4' +
+        '&sentry_client=raven-js/' + Raven.VERSION +
+        '&sentry_key=' + globalKey;
 }
+
 
 function handleStackInfo(stackInfo, options) {
     var frames = [];
@@ -622,7 +617,7 @@ function send(data) {
 
 function makeRequest(data) {
     var img = new Image(),
-        src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.onload = function success() {
         triggerEvent('success', {
