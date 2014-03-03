@@ -22,11 +22,7 @@ function ngRavenExceptionHandler(RavenConfig, $delegate) {
     if (!RavenConfig)
         throw new Error('RavenConfig must be set before using this');
 
-    // Pop off DSN
-    var DSN = RavenConfig.DSN;
-    delete RavenConfig.DSN;
-
-    Raven.config(DSN, RavenConfig).install();
+    Raven.config(RavenConfig.dsn, RavenConfig.config).install();
     return function angularExceptionHandler(ex, cause) {
         $delegate(ex, cause);
         Raven.captureException(ex, {extra: {cause: cause}});

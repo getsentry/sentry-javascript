@@ -37,9 +37,9 @@ var Raven = {
      * @return undefined
      */
     afterLoad: function() {
-        var globalConfig = window.RavenConfig;
-        if (globalConfig) {
-            this.config(globalConfig.dsn, globalConfig.config).install();
+        var RavenConfig = window.RavenConfig;
+        if (RavenConfig) {
+            Raven.config(RavenConfig.dsn, RavenConfig.config).install();
         }
     },
 
