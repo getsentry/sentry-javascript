@@ -228,8 +228,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-gitinfo');
 
     // Build tasks
-    grunt.registerTask('concat.core', ['clean', 'gitinfo', 'version', 'concat:core']);
-    grunt.registerTask('concat.all', ['clean', 'gitinfo', 'version', 'concat:all']);
+    grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
+    grunt.registerTask('concat.core', ['_prep', 'concat:core']);
+    grunt.registerTask('concat.all', ['_prep', 'concat:all']);
     grunt.registerTask('build.core', ['concat.core', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build.all', ['concat.all', 'uglify', 'fixSourceMaps']);
     grunt.registerTask('build', ['build.all']);
