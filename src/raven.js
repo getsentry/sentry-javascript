@@ -30,9 +30,6 @@ var _Raven = window.Raven,
 var Raven = {
     VERSION: '<%= pkg.version %>',
 
-    // Expose TraceKit to the Raven namespace
-    TraceKit: TraceKit,
-
     /*
      * Allow Raven to be configured as soon as it is loaded
      * It uses a global RavenConfig = {dsn: '...', config: {}}
