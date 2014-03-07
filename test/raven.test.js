@@ -1188,13 +1188,9 @@ describe('Raven (public API)', function() {
 
         it('should re-raise a thrown exception', function() {
             var error = new Error('lol');
-            try {
+            assert.throws(function() {
                 Raven.wrap(function() { throw error; })();
-            } catch(e) {
-                return assert.equal(e, error);
-            }
-            // Shouldn't hit this
-            assert.isTrue(false);
+            }, error);
         });
 
     });
@@ -1227,11 +1223,9 @@ describe('Raven (public API)', function() {
             var error = new Error('crap');
             var broken = function() { throw error; };
             this.sinon.stub(Raven, 'captureException');
-            try {
-                Raven.context({'foo': 'bar'}, broken);
-            } catch(e) {
-                assert.equal(e, error);
-            }
+            assert.throws(function() {
+                Raven.context({foo: 'bar'}, broken);
+            }, error);
             assert.isTrue(Raven.captureException.called);
             assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
         });
@@ -1240,11 +1234,9 @@ describe('Raven (public API)', function() {
             var error = new Error('crap');
             var broken = function() { throw error; };
             this.sinon.stub(Raven, 'captureException');
-            try {
+            assert.throws(function() {
                 Raven.context(broken);
-            } catch(e) {
-                assert.equal(e, error);
-            }
+            }, error);
             assert.isTrue(Raven.captureException.called);
             assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
         });
@@ -1340,13 +1332,9 @@ describe('Raven (public API)', function() {
         it('should reraise a different error', function() {
             var error = new Error('crap1');
             this.sinon.stub(TraceKit, 'report').throws(error);
-            try {
+            assert.throws(function() {
                 Raven.captureException(new Error('crap2'));
-            } catch(e) {
-                return assert.equal(e, error);
-            }
-            // shouldn't hit this
-            assert.isTrue(false);
+            }, error);
         });
 
         it('should capture as a normal message if a string is passed', function() {
