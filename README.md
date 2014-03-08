@@ -127,7 +127,7 @@ It is recommended that you don't leave the process running after receiving an `u
 
 ```javascript
 client.patchGlobal(function() {
-  console.log('Bye, bye, world.')
+  console.log('Bye, bye, world.');
   process.exit(1);
 });
 ```
