@@ -13,7 +13,7 @@ if (!angular) {
 
 function ngRavenProvider($provide) {
     $provide.decorator('$exceptionHandler', [
-        'RavenConfig, $delegate',
+        'RavenConfig', '$delegate',
         ngRavenExceptionHandler
     ]);
 }
