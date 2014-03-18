@@ -23,7 +23,7 @@ $ npm install raven
 new raven.Client(String dsn[, Object options])
 client.captureMessage(String message[[, Object options], Function callback])
 client.captureError(Error error[[, Object options], Function callback])
-client.captureQuery(String query[[, String type], function callback])
+client.captureQuery(String query[[, String type], Function callback])
 ```
 
 ## Basic Usage
