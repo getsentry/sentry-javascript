@@ -18,6 +18,14 @@ Raven 0.6+ requires Sentry 6.0+
 $ npm install raven
 ```
 
+## Methods
+```javascript
+new raven.Client(dsn[, options])
+client.captureMessage(string[,callback])
+client.captureError(Error[,callback])
+client.captureQuery(string, string[,callback])
+```
+
 ## Basic Usage
 ```javascript
 var raven = require('raven');
@@ -133,14 +141,6 @@ client.patchGlobal(function() {
 ```
 
 The callback is called **after** the event has been sent to the Sentry server.
-
-## Methods
-```javascript
-new raven.Client(dsn[, options])
-client.captureMessage(string[,callback])
-client.captureError(Error[,callback])
-client.captureQuery(string, string[,callback])
-```
 
 ## Integrations
 ### Connect/Express middleware
