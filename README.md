@@ -32,7 +32,6 @@ var raven = require('raven');
 var client = new raven.Client('{{ SENTRY_DSN }}');
 
 client.captureMessage('Hello, world!');
-
 ```
 You can specify a level in the second optional parameter. Default level is `error`
 
