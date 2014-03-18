@@ -20,10 +20,10 @@ $ npm install raven
 
 ## Methods
 ```javascript
-new raven.Client(dsn[, options])
-client.captureMessage(string[,callback])
-client.captureError(Error[,callback])
-client.captureQuery(string, string[,callback])
+new raven.Client(String dsn[, Object options])
+client.captureMessage(String message[[, Object options], Function callback])
+client.captureError(Error error[[, Object options], Function callback])
+client.captureQuery(String query[[, String type], function callback])
 ```
 
 ## Basic Usage
