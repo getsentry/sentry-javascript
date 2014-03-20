@@ -51,7 +51,7 @@ The inverse of ``ignoreUrls``. Only report errors from whole urls matching a reg
 ignoreErrors
 ------------
 
-Very often, you will come across specific errors that are a result of something other than your application, or errors that you're completely not interested in. `ignoreErrors` is a list of these messages to be fitlered out before being sent to Sentry as either regular expressions or strings.
+Very often, you will come across specific errors that are a result of something other than your application, or errors that you're completely not interested in. `ignoreErrors` is a list of these messages to be filtered out before being sent to Sentry as either regular expressions or strings.
 
 .. code-block:: javascript
 
