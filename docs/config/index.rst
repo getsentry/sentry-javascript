@@ -37,6 +37,17 @@ The name of the logger used by Sentry. Default: ``javascript``
 
 .. _config-whitelist-urls:
 
+tags
+----
+
+Additional `tags <https://www.getsentry.com/docs/tags/>`__ to assign to each event.
+
+.. code-block:: javascript
+
+    {
+      tags: {git_commit: 'c0deb10c4'}
+    }
+
 whitelistUrls
 -------------
 
