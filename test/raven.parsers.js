@@ -1,3 +1,4 @@
+var assert = require('assert');
 var raven = require('../');
 var client = new raven.Client()
 raven.parsers = require('../lib/parsers');
@@ -129,6 +130,26 @@ describe('raven.parsers', function(){
           parsed['sentry.interfaces.Exception']['value'].should.equal('Cannot call method \'Derp\' of undefined');
           parsed.should.have.property('sentry.interfaces.Stacktrace');
           parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          done();
+        });
+      }
+    });
+
+    it('should parse an error with additional information', function(done){
+      try {
+        assert.strictEqual(1, 2);
+      } catch(e) {
+        raven.parsers.parseError(e, {}, function(parsed){
+          parsed.should.have.property('sentry.interfaces.Stacktrace');
+          parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          parsed.should.have.property('extra');
+          parsed['extra'].should.have.property('AssertionError');
+          parsed['extra']['AssertionError'].should.have.property('actual');
+          parsed['extra']['AssertionError']['actual'].should.equal(1);
+          parsed['extra']['AssertionError'].should.have.property('expected');
+          parsed['extra']['AssertionError']['expected'].should.equal(2);
+          parsed['extra']['AssertionError'].should.have.property('operator');
+          parsed['extra']['AssertionError']['operator'].should.equal('===');
           done();
         });
       }
