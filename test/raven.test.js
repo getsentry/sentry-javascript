@@ -204,6 +204,7 @@ describe('globals', function() {
         it('should work as advertised', function() {
             assert.equal(truncate('lolol', 3), 'lol…');
             assert.equal(truncate('lolol', 10), 'lolol');
+            assert.equal(truncate('lol', 3), 'lol');
         });
     });
 

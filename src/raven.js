@@ -561,8 +561,9 @@ function objectMerge(obj1, obj2) {
 }
 
 function truncate(str, max) {
+    var before = str.length;
     str = str.substr(0, max);
-    if (str.length === max) {
+    if (str.length !== before) {
         str += '…';
     }
     return str;
