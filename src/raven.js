@@ -526,6 +526,9 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
+    // Truncate the message to a max of characters
+    message = truncate(message, 100);
+
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
     if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
 
@@ -555,6 +558,14 @@ function objectMerge(obj1, obj2) {
         obj1[key] = value;
     });
     return obj1;
+}
+
+function truncate(str, max) {
+    str = str.substr(0, max);
+    if (str.length === max) {
+        str += '…';
+    }
+    return str;
 }
 
 function getHttpData() {

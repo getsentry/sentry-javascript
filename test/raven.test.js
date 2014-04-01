@@ -200,6 +200,13 @@ describe('globals', function() {
         });
     });
 
+    describe('truncate', function() {
+        it('should work as advertised', function() {
+            assert.equal(truncate('lolol', 3), 'lol…');
+            assert.equal(truncate('lolol', 10), 'lolol');
+        });
+    });
+
     describe('isSetup', function() {
         it('should return false with no JSON support', function() {
             globalServer = 'http://localhost/';
