@@ -1,3 +1,7 @@
+# 0.6.3 - 04/02/2014
+ * Fix another issue that was breaking when running Raven from the REPL [See #66]
+ * Add additional meta data on the error callbacks [See #67 #73]
+
 # 0.6.2 - 02/14/2014
  * Allow overriding the logger name for an individual event
  * Update lsmod to not break when running Raven from the REPL
