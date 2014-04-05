@@ -202,7 +202,7 @@ describe('globals', function() {
 
     describe('truncate', function() {
         it('should work as advertised', function() {
-            assert.equal(truncate('lolol', 3), 'lol…');
+            assert.equal(truncate('lolol', 3), 'lol\u2026');
             assert.equal(truncate('lolol', 10), 'lolol');
             assert.equal(truncate('lol', 3), 'lol');
         });
