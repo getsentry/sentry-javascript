@@ -135,7 +135,11 @@ module.exports = function(grunt) {
                 key: '<%= aws.key %>',
                 secret: '<%= aws.secret %>',
                 bucket: '<%= aws.bucket %>',
-                access: 'public-read'
+                access: 'public-read',
+                headers: {
+                    // Surrogate-Key header for Fastly to purge by release
+                    'x-amz-meta-surrogate-key': '<%= pkg.release %>'
+                }
             },
             all: {
                 upload: [{
