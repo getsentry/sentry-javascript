@@ -38,13 +38,25 @@
         console (experimental) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/console.js">View Source</a>
       </label>
     </div>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" value="ember">
+        ember.js (experimental) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/ember.js">View Source</a>
+      </label>
+    </div>
+    <div class="checkbox">
+      <label>
+        <input type="checkbox" value="angular">
+        angular.js (experimental) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/angular.js">View Source</a>
+      </label>
+    </div>
     <input id="download" class="form-control input-lg" type="text" />
 </div>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 <script>
 $(function() {
-    var plugins = [], base = '//cdn.ravenjs.com/1.1.11/', $download = $('#download');
+    var plugins = [], base = '//cdn.ravenjs.com/1.1.12/', $download = $('#download');
     $('input[type="checkbox"]').on('click', function() {
         var val = $(this).val(), url;
         if ($(this).prop('checked')) {
