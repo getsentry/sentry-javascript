@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.11 (11645a0) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.12 (b41f706) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1107,7 +1107,8 @@ var _Raven = window.Raven,
         collectWindowErrors: true,
         tags: {},
         extra: {}
-    };
+    },
+    authQueryString;
 
 /*
  * The core Raven singleton
@@ -1115,23 +1116,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.11',
-
-    // Expose TraceKit to the Raven namespace
-    TraceKit: TraceKit,
-
-    /*
-     * Allow Raven to be configured as soon as it is loaded
-     * It uses a global RavenConfig = {dsn: '...', config: {}}
-     *
-     * @return undefined
-     */
-    afterLoad: function() {
-        var globalConfig = window.RavenConfig;
-        if (globalConfig) {
-            this.config(globalConfig.dsn, globalConfig.config).install();
-        }
-    },
+    VERSION: '1.1.12',
 
     /*
      * Allow multiple versions of Raven to be installed.
@@ -1197,6 +1182,8 @@ var Raven = {
         }
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
+
+        setAuthQueryString();
 
         // return for chaining
         return Raven;
@@ -1294,6 +1281,7 @@ var Raven = {
         // Signal that this function has been wrapped already
         // for both debugging and to prevent it to being wrapped twice
         wrapped.__raven__ = true;
+        wrapped.__inner__ = func;
 
         return wrapped;
     },
@@ -1494,22 +1482,14 @@ function each(obj, callback) {
     }
 }
 
-var cachedAuth;
 
-function getAuthQueryString() {
-    if (cachedAuth) return cachedAuth;
-
-    var qs = [
-        'sentry_version=4',
-        'sentry_client=raven-js/' + Raven.VERSION
-    ];
-    if (globalKey) {
-        qs.push('sentry_key=' + globalKey);
-    }
-
-    cachedAuth = '?' + qs.join('&');
-    return cachedAuth;
+function setAuthQueryString() {
+    authQueryString =
+        '?sentry_version=4' +
+        '&sentry_client=raven-js/' + Raven.VERSION +
+        '&sentry_key=' + globalKey;
 }
+
 
 function handleStackInfo(stackInfo, options) {
     var frames = [];
@@ -1633,6 +1613,9 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
+    // Truncate the message to a max of characters
+    message = truncate(message, 100);
+
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
     if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
 
@@ -1662,6 +1645,10 @@ function objectMerge(obj1, obj2) {
         obj1[key] = value;
     });
     return obj1;
+}
+
+function truncate(str, max) {
+    return str.length <= max ? str : str.substr(0, max) + '…';
 }
 
 function getHttpData() {
@@ -1716,7 +1703,7 @@ function send(data) {
     // Send along an event_id if not explicitly passed.
     // This event_id can be used to reference the error within Sentry itself.
     // Set lastEventId after we know the error should actually be sent
-    lastEventId = data.event_id || (data.event_id = generateUUID4());
+    lastEventId = data.event_id || (data.event_id = uuid4());
 
     makeRequest(data);
 }
@@ -1724,7 +1711,7 @@ function send(data) {
 
 function makeRequest(data) {
     var img = new Image(),
-        src = globalServer + getAuthQueryString() + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.onload = function success() {
         triggerEvent('success', {
@@ -1775,7 +1762,7 @@ function joinRegExp(patterns) {
 }
 
 // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-function generateUUID4() {
+function uuid4() {
     return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random()*16|0,
             v = c == 'x' ? r : (r&0x3|0x8);
@@ -1783,7 +1770,14 @@ function generateUUID4() {
     });
 }
 
-Raven.afterLoad();
+function afterLoad() {
+    // Attempt to initialize Raven on load
+    var RavenConfig = window.RavenConfig;
+    if (RavenConfig) {
+        Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+    }
+}
+afterLoad();
 
 // Expose Raven to the world
 window.Raven = Raven;
@@ -1793,4 +1787,4 @@ if (typeof define === 'function' && define.amd) {
     define('raven', [], function() { return Raven; });
 }
 
-})(window);
+})(this);

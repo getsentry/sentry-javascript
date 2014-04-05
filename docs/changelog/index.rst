@@ -1,6 +1,16 @@
 Changelog
 =========
 
+1.1.12
+~~~~~~
+* Fix a bug using the ``console`` plugin with older IE. See: https://github.com/getsentry/raven-js/pull/192
+* Added initial ``ember.js`` plugin for early testing and feedback.
+* Added initial ``angular.js`` plugin for early testing and feedback.
+* Fixed an issue with the ``require.js`` plugin basically not working at all. See: https://github.com/getsentry/raven-js/commit/c2a2e2672a2a61a5a07e88f24a9c885f6dba57ae
+* Got rid of ``Raven.afterLoad`` and made it internal only.
+* ``Raven.TraceKit`` is now internal only.
+* Truncate message length to a max of 100 characters becasue angular.js sucks and generates stupidly large error messages.
+
 1.1.11
 ~~~~~~
 * Capture column number from FireFox
