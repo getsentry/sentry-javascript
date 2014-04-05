@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.12 (b41f706) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.13 (1e2864f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1116,7 +1116,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.12',
+    VERSION: '1.1.13',
 
     /*
      * Allow multiple versions of Raven to be installed.
@@ -1648,7 +1648,7 @@ function objectMerge(obj1, obj2) {
 }
 
 function truncate(str, max) {
-    return str.length <= max ? str : str.substr(0, max) + '…';
+    return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
 function getHttpData() {

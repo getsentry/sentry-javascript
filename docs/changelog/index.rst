@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.13
+~~~~~~
+* Fixed a unicode issue in the previous release.
+
 1.1.12
 ~~~~~~
 * Fix a bug using the ``console`` plugin with older IE. See: https://github.com/getsentry/raven-js/pull/192
