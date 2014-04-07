@@ -136,6 +136,8 @@ module.exports = function(grunt) {
                 secret: '<%= aws.secret %>',
                 bucket: '<%= aws.bucket %>',
                 access: 'public-read',
+                // Limit concurrency
+                maxOperations: 20,
                 headers: {
                     // Surrogate-Key header for Fastly to purge by release
                     'x-amz-meta-surrogate-key': '<%= pkg.release %>'
