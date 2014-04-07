@@ -45,3 +45,8 @@ We also provide a way to deploy Raven via `bower
 
 Also note that the file is uncompresed but is ready to pass to any decent JavaScript compressor like `uglify <https://github.com/mishoo/UglifyJS2>`_.
 
+Requirements
+~~~~~~~~~~~~
+
+Raven expects the browser to provide `window.JSON` and `window.JSON.stringify`. In Internet Explorer 8+ these are available in `standards mode <http://msdn.microsoft.com/en-us/library/cc288325(VS.85).aspx>`_.
+You can also use `json2.js <https://github.com/douglascrockford/JSON-js>`_ to provide the JSON implementation in browsers/modes which doesn't support native JSON
