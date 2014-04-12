@@ -521,7 +521,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         stacktrace = {
             frames: [{
                 filename: fileurl,
-                lineno: lineno
+                lineno: lineno,
+                in_app: true
             }]
         };
     }

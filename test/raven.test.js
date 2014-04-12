@@ -562,7 +562,8 @@ describe('globals', function() {
                 stacktrace: {
                     frames: [{
                         filename: 'http://example.com/override.js',
-                        lineno: 10
+                        lineno: 10,
+                        in_app: true
                     }]
                 },
                 culprit: 'http://example.com/override.js',
@@ -578,7 +579,8 @@ describe('globals', function() {
                 stacktrace: {
                     frames: [{
                         filename: 'http://example.com/override.js',
-                        lineno: 10
+                        lineno: 10,
+                        in_app: true
                     }]
                 },
                 culprit: 'http://example.com/override.js',
@@ -594,7 +596,8 @@ describe('globals', function() {
                 stacktrace: {
                     frames: [{
                         filename: 'http://example.com/override.js',
-                        lineno: 10
+                        lineno: 10,
+                        in_app: true
                     }]
                 },
                 culprit: 'http://example.com/override.js',
