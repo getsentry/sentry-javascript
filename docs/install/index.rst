@@ -8,7 +8,7 @@ So for example:
 .. code-block:: html
 
     <script src="jquery.js"></script>
-    <script src="//cdn.ravenjs.com/1.1.11/jquery,native/raven.min.js"></script>
+    <script src="//cdn.ravenjs.com/1.1.13/jquery,native/raven.min.js"></script>
     <script>Raven.config('...').install();</script>
     <script src="app.js"></script>
 
@@ -23,7 +23,7 @@ Our CDN distributes builds with and without :doc:`plugins </plugins/index>`.
 
 .. code-block:: html
 
-    <script src="//cdn.ravenjs.com/1.1.11/raven.min.js"></script>
+    <script src="//cdn.ravenjs.com/1.1.13/raven.min.js"></script>
 
 **We highly recommend trying out a plugin or two since it'll greatly improve the chances that we can collect good information.**
 
