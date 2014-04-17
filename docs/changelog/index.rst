@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.14
+~~~~~~
+* Only filter normal Error objects without a message, not all of them. Turns out, people throw errors like this. Ahem, Underscore.js. See: https://github.com/jashkenas/underscore/pull/1589/files
+
 1.1.13
 ~~~~~~
 * Fixed a unicode issue in the previous release.

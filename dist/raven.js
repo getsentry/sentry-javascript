@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.13 (1e2864f) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.14 (737cda4) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1116,7 +1116,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.13',
+    VERSION: '1.1.14',
 
     /*
      * Allow multiple versions of Raven to be installed.
@@ -1594,7 +1594,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // This can only mean that the message was falsey since this value
     // is hardcoded into Sentry itself.
     // At this point, if the message is falsey, we bail since it's useless
-    if (!message) return;
+    if (type === 'Error' && !message) return;
 
     if (globalOptions.ignoreErrors.test(message)) return;
 
@@ -1608,7 +1608,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         stacktrace = {
             frames: [{
                 filename: fileurl,
-                lineno: lineno
+                lineno: lineno,
+                in_app: true
             }]
         };
     }
