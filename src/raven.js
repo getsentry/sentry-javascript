@@ -507,7 +507,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     // This can only mean that the message was falsey since this value
     // is hardcoded into Sentry itself.
     // At this point, if the message is falsey, we bail since it's useless
-    if (!type && !message) return;
+    if (type === 'Error' && !message) return;
 
     if (globalOptions.ignoreErrors.test(message)) return;
 

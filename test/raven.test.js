@@ -609,8 +609,11 @@ describe('globals', function() {
         it('should ignored falsey messages', function() {
             this.sinon.stub(window, 'send');
 
-            processException('', '', 'http://example.com', []);
+            processException('Error', '', 'http://example.com', []);
             assert.isFalse(window.send.called);
+
+            processException('TypeError', '', 'http://example.com', []);
+            assert.isTrue(window.send.called);
         });
     });
 
