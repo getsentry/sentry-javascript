@@ -609,7 +609,7 @@ describe('globals', function() {
         it('should ignored falsey messages', function() {
             this.sinon.stub(window, 'send');
 
-            processException('Error', '', 'http://example.com', []);
+            processException('', '', 'http://example.com', []);
             assert.isFalse(window.send.called);
         });
     });
