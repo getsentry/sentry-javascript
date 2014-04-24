@@ -122,13 +122,13 @@ A callback function that allows you to apply your own filters to determine if th
 Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: html
+.. parsed-literal::
 
     <!DOCTYPE html>
     <html>
     <head>
         <title>Awesome stuff happening here</title>
-        <script src="//cdn.ravenjs.com/1.1.11/jquery,native/raven.min.js"></script>
+        <script src="//cdn.ravenjs.com/|release|/jquery,native/raven.min.js"></script>
         <script>
             var options = {
                 logger: 'my-logger',

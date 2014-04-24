@@ -5,10 +5,10 @@ Raven is distributed in a few different methods, and should get included after a
 
 So for example:
 
-.. code-block:: html
+.. parsed-literal::
 
     <script src="jquery.js"></script>
-    <script src="//cdn.ravenjs.com/1.1.14/jquery,native/raven.min.js"></script>
+    <script src="//cdn.ravenjs.com/|release|/jquery,native/raven.min.js"></script>
     <script>Raven.config('...').install();</script>
     <script src="app.js"></script>
 
@@ -21,9 +21,9 @@ We serve our own builds off of `Fastly <http://www.fastly.com/>`_. They are acce
 
 Our CDN distributes builds with and without :doc:`plugins </plugins/index>`.
 
-.. code-block:: html
+.. parsed-literal::
 
-    <script src="//cdn.ravenjs.com/1.1.14/raven.min.js"></script>
+    <script src="//cdn.ravenjs.com/|release|/raven.min.js"></script>
 
 **We highly recommend trying out a plugin or two since it'll greatly improve the chances that we can collect good information.**
 
