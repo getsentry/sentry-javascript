@@ -14,7 +14,7 @@ If your scripts are loaded from ``cdn.example.com`` and your site is ``example.c
       /example\.com/
     ]
 
-Since this accepts a regular expression, that would catch anything *.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`.
+Since this accepts a regular expression, that would catch anything \*.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`.
 
 Next, checkout the list of :doc:`plugins </plugins/index>` we provide and see which are applicable to you.
 
