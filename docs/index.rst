@@ -16,6 +16,7 @@ Getting Started
    plugins/index
    config/index
    usage/index
+   usage/jquery
    tips/index
 
 Developers
