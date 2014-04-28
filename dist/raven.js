@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.14 (737cda4) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.14 (b7a825a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1091,7 +1091,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
-    hasJSON = !!(window.JSON && window.JSON.stringify),
+    hasJSON = !!(JSON && JSON.stringify),
     lastCapturedException,
     lastEventId,
     globalServer,
@@ -1780,12 +1780,16 @@ function afterLoad() {
 }
 afterLoad();
 
-// Expose Raven to the world
-window.Raven = Raven;
 
 // AMD
 if (typeof define === 'function' && define.amd) {
     define('raven', [], function() { return Raven; });
 }
-
+else if (typeof module == 'object') {
+    module.exports = Raven;
+}
+else {
+    // Expose Raven to the world
+    window.Raven = Raven;  
+}
 })(this);
