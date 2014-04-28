@@ -4,7 +4,7 @@
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
-    hasJSON = !!(JSON && JSON.stringify),
+    hasJSON = !!(window.JSON && window.JSON.stringify),
     lastCapturedException,
     lastEventId,
     globalServer,
