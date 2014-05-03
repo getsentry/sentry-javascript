@@ -502,6 +502,10 @@ function extractContextFromFrame(frame) {
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, label, i;
 
+    // In some instances message is not actually a string, no idea why,
+    // so we want to always coerce it to one.
+    message += '';
+
     // Sometimes an exception is getting logged in Sentry as
     // <no message value>
     // This can only mean that the message was falsey since this value
