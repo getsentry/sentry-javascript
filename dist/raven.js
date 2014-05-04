@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.14 (737cda4) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.15 (bc060ae) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1116,7 +1116,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.14',
+    VERSION: '1.1.15',
 
     /*
      * Allow multiple versions of Raven to be installed.
@@ -1305,8 +1305,8 @@ var Raven = {
      * @return {Raven}
      */
     captureException: function(ex, options) {
-        // If a string is passed through, recall as a message
-        if (isString(ex)) return Raven.captureMessage(ex, options);
+        // If not an Error is passed through, recall as a message instead
+        if (!(ex instanceof Error)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
@@ -1338,7 +1338,7 @@ var Raven = {
         // Fire away!
         send(
             objectMerge({
-                message: msg
+                message: msg + ''  // Make sure it's actually a string
             }, options)
         );
 
@@ -1588,6 +1588,10 @@ function extractContextFromFrame(frame) {
 
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, label, i;
+
+    // In some instances message is not actually a string, no idea why,
+    // so we want to always coerce it to one.
+    message += '';
 
     // Sometimes an exception is getting logged in Sentry as
     // <no message value>
