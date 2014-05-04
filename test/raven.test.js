@@ -1301,6 +1301,14 @@ describe('Raven (public API)', function() {
             }]);
         });
 
+        it('should coerce message to a string', function() {
+            this.sinon.stub(window, 'send');
+            Raven.captureMessage({});
+            assert.deepEqual(window.send.lastCall.args, [{
+                message: '[object Object]'
+            }]);
+        });
+
         it('should work as advertised #integration', function() {
             imageCache = [];
             setupRaven();
@@ -1351,11 +1359,14 @@ describe('Raven (public API)', function() {
             }, error);
         });
 
-        it('should capture as a normal message if a string is passed', function() {
+        it('should capture as a normal message if a non-Error is passed', function() {
             this.sinon.stub(Raven, 'captureMessage');
             this.sinon.stub(TraceKit, 'report');
             Raven.captureException('derp');
             assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
+            assert.isFalse(TraceKit.report.called);
+            Raven.captureException(true);
+            assert.equal(Raven.captureMessage.lastCall.args[0], true);
             assert.isFalse(TraceKit.report.called);
         });
     });

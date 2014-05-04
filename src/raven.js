@@ -218,8 +218,8 @@ var Raven = {
      * @return {Raven}
      */
     captureException: function(ex, options) {
-        // If a string is passed through, recall as a message
-        if (isString(ex)) return Raven.captureMessage(ex, options);
+        // If not an Error is passed through, recall as a message instead
+        if (!(ex instanceof Error)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
@@ -251,7 +251,7 @@ var Raven = {
         // Fire away!
         send(
             objectMerge({
-                message: msg
+                message: msg + ''  // Make sure it's actually a string
             }, options)
         );
 
