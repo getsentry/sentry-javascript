@@ -3,7 +3,7 @@ Changelog
 
 1.1.15
 ~~~~~~
-* Fix issues if a non-string were passed to `Raven.captureMessage` and non-Error objects were passed to `Raven.captureException`.
+* Fix issues if a non-string were passed to ``Raven.captureMessage`` and non-Error objects were passed to ``Raven.captureException``.
 
 1.1.14
 ~~~~~~
