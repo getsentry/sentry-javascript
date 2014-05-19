@@ -28,7 +28,7 @@
     "nock": "*",
     "glob": "*",
     "mock-udp": "*",
-    "coffee-script": "~1.6.3"
+    "coffee-script": "~1.7.1"
   },
   "optionalDependencies": {
     "connect": "*",
