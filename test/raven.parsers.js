@@ -128,7 +128,7 @@ describe('raven.parsers', function(){
           parsed['message'].should.containEql('Derp');
           parsed.should.have.property('sentry.interfaces.Exception');
           parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
-          parsed['sentry.interfaces.Exception']['value'].should.equal('Cannot call method \'Derp\' of undefined');
+          parsed['sentry.interfaces.Exception']['value'].should.containEql('Derp');
           parsed.should.have.property('sentry.interfaces.Stacktrace');
           parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
           done();
