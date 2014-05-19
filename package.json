@@ -26,7 +26,7 @@
     "connect": "*",
     "express": "*",
     "mocha": "*",
-    "should": "~2.0.1",
+    "should": "~3.3.1",
     "nock": "*",
     "glob": "*",
     "mock-udp": "*",

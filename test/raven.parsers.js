@@ -124,7 +124,8 @@ describe('raven.parsers', function(){
         o['...']['Derp']();
       } catch(e) {
         raven.parsers.parseError(e, {}, function(parsed){
-          parsed['message'].should.equal('TypeError: Cannot call method \'Derp\' of undefined');
+          parsed['message'].should.containEql('TypeError');
+          parsed['message'].should.containEql('Derp');
           parsed.should.have.property('sentry.interfaces.Exception');
           parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
           parsed['sentry.interfaces.Exception']['value'].should.equal('Cannot call method \'Derp\' of undefined');
