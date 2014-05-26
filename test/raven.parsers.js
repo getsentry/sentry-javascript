@@ -52,6 +52,27 @@ describe('raven.parsers', function(){
       parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
       parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
+
+    it('should detect https via `x-forwarded-proto`', function(){
+      var mockReq = {
+        method: 'GET',
+        url: '/some/path?key=value',
+        headers: {
+          host: 'mattrobenolt.com',
+          'x-forwarded-proto': 'https'
+        },
+        body: '',
+        cookies: {},
+        socket: {
+          encrypted: false
+        },
+        connection: {
+          remoteAddress: '69.69.69.69'
+        }
+      };
+      var parsed = raven.parsers.parseRequest(mockReq);
+      parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+    });
   });
 
   describe('#parseError()', function(){
