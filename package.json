@@ -1,7 +1,14 @@
 {
   "name": "raven",
   "description": "A standalone (Node.js) client for Sentry",
-  "keywords": ["raven", "sentry", "python", "errors", "debugging", "exceptions"],
+  "keywords": [
+    "raven",
+    "sentry",
+    "python",
+    "errors",
+    "debugging",
+    "exceptions"
+  ],
   "version": "0.6.3",
   "repository": "git://github.com/getsentry/raven-node.git",
   "author": "Matt Robenolt <matt@ydekproductions.com>",
@@ -17,10 +24,11 @@
     "node": ">= 0.6.0"
   },
   "dependencies": {
-    "node-uuid": "~1.4.1",
-    "stack-trace": "0.0.7",
+    "cookie": "0.1.0",
+    "lodash._shimisplainobject": "^2.4.1",
     "lsmod": "~0.0.3",
-    "cookie": "0.1.0"
+    "node-uuid": "~1.4.1",
+    "stack-trace": "0.0.7"
   },
   "devDependencies": {
     "mocha": "*",
