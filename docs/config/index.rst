@@ -128,6 +128,10 @@ Putting it all together
     <html>
     <head>
         <title>Awesome stuff happening here</title>
+    </head>
+    <body>
+        ...
+        <script src="jquery.min.js"></script>
         <script src="//cdn.ravenjs.com/|release|/jquery,native/raven.min.js"></script>
         <script>
             var options = {
@@ -144,10 +148,6 @@ Putting it all together
             };
             Raven.config('https://public@app.getsentry.com/1', options).install();
         </script>
-    </head>
-    <body>
-        ...
-        <script src="jquery.min.js"></script>
         <script src="myapp.js"></script>
     </body>
     </html>
