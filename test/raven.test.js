@@ -380,6 +380,82 @@ describe('globals', function() {
                 in_app: false
             });
         });
+
+        it('should mark `in_app` for raven.js', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/raven.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://lol.com/path/raven.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                in_app: false
+            });
+        });
+
+        it('should mark `in_app` for raven.min.js', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/raven.min.js',
+                line: 10,
+                column: 11,
+                func: 'lol'
+                // context: []    context is stubbed
+            };
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://lol.com/path/raven.min.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'lol',
+                in_app: false
+            });
+        });
+
+        it('should mark `in_app` for Raven', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'Raven.wrap'
+                // context: []    context is stubbed
+            };
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://lol.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'Raven.wrap',
+                in_app: false
+            });
+        });
+
+        it('should mark `in_app` for TraceKit', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'TraceKit.lol'
+                // context: []    context is stubbed
+            };
+
+            assert.deepEqual(normalizeFrame(frame), {
+                filename: 'http://lol.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'TraceKit.lol',
+                in_app: false
+            });
+        });
     });
 
     describe('extractContextFromFrame', function() {
