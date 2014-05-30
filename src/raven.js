@@ -186,7 +186,7 @@ var Raven = {
 
         // copy over properties of the old function
         for (var property in func) {
-            if (func.hasOwnProperty(property)) {
+            if (hasKey(func, property)) {
                 wrapped[property] = func[property];
             }
         }
@@ -304,7 +304,7 @@ function triggerEvent(eventType, options) {
         event.eventType = eventType;
     }
 
-    for (key in options) if (options.hasOwnProperty(key)) {
+    for (key in options) if (hasKey(options, key)) {
         event[key] = options[key];
     }
 
@@ -381,7 +381,7 @@ function each(obj, callback) {
 
     if (isUndefined(obj.length)) {
         for (i in obj) {
-            if (obj.hasOwnProperty(i)) {
+            if (hasKey(obj, i)) {
                 callback.call(null, i, obj[i]);
             }
         }
