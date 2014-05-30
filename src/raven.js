@@ -454,7 +454,7 @@ function normalizeFrame(frame) {
         // Now we check for fun, if the function name is Raven or TraceKit
         /(Raven|TraceKit)\./.test(normalized['function']) ||
         // finally, we do a last ditch effort and check for raven.min.js
-        /raven\.(min\.)js$/.test(normalized.filename)
+        /raven\.(min\.)?js$/.test(normalized.filename)
     );
 
     return normalized;
