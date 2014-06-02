@@ -19,7 +19,11 @@ var logForGivenLevel = function(level) {
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
-             originalConsoleLevel.apply(originalConsole, args);
+            // IE9 doesn't allow calling apply on console functions directly
+            // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
+             Function.prototype.bind
+                 .call(originalConsoleLevel, originalConsole)
+                 .apply(originalConsole, args);
         }
     };
 };
