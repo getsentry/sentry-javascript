@@ -54,6 +54,38 @@ describe('raven.parsers', function(){
       parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
 
+    describe('`headers` detection', function() {
+      it('should detect headers via `req.headers`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          headers: {
+            foo: 'bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+      });
+
+      it('should detect headers via `req.header`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          header: {
+            foo: 'bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+      });
+    });
+
     describe('`method` detection', function() {
       it('should detect method via `req.method`', function(){
         var mockReq = {
