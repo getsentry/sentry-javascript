@@ -387,6 +387,34 @@ describe('raven.parsers', function(){
       });
     });
 
+    describe('`url` detection', function() {
+      it('should detect url via `req.originalUrl`', function(){
+        var mockReq = {
+          method: 'GET',
+          protocol: 'https',
+          host: 'mattrobenolt.com',
+          originalUrl: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect url via `req.url`', function(){
+        var mockReq = {
+          method: 'GET',
+          protocol: 'https',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+    });
+
     describe('`body` detection', function() {
       it('should detect body via `req.body`', function(){
         var mockReq = {
