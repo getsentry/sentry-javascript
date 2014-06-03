@@ -25,21 +25,21 @@
   },
   "dependencies": {
     "cookie": "0.1.0",
-    "lodash._shimisplainobject": "^2.4.1",
     "lsmod": "~0.0.3",
     "node-uuid": "~1.4.1",
     "stack-trace": "0.0.7"
   },
   "devDependencies": {
-    "mocha": "*",
-    "should": "~3.3.1",
-    "nock": "*",
+    "coffee-script": "~1.7.1",
     "glob": "*",
+    "mocha": "*",
     "mock-udp": "*",
-    "coffee-script": "~1.7.1"
+    "nock": "*",
+    "should": "~3.3.1"
   },
   "optionalDependencies": {
     "connect": "*",
-    "express": "*"
+    "express": "*",
+    "koa": "*"
   }
 }

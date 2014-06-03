@@ -1,6 +1,7 @@
 var assert = require('assert');
 var raven = require('../');
-var client = new raven.Client()
+var client = new raven.Client();
+
 raven.parsers = require('../lib/parsers');
 
 describe('raven.parsers', function(){
@@ -176,22 +177,6 @@ describe('raven.parsers', function(){
     });
 
     describe('`cookie` detection', function() {
-      it('should parse `req.cookies`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-          },
-          cookies: {
-            foo: 'bar'
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
-      });
-
       it('should parse `req.headers.cookie`', function(){
         var mockReq = {
           method: 'GET',
@@ -206,29 +191,13 @@ describe('raven.parsers', function(){
         parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
       });
 
-      it('should parse `req.headers.cookies`', function(){
+      it('should parse `req.header.cookie`', function(){
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
-          headers: {
+          header: {
             host: 'mattrobenolt.com',
-            cookies: 'qux=foo'
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['sentry.interfaces.Http'].cookies.should.eql({ qux: 'foo' });
-      });
-
-      it('should parse `req.cookies`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-          },
-          cookies: {
-            foo: 'bar'
+            cookie: 'foo=bar'
           }
         };
 
@@ -236,29 +205,6 @@ describe('raven.parsers', function(){
         parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
       });
 
-      it('should fallback to `req.headers.cookies` if `req.cookies` is not a plain object', function(){
-        var cookie = function Cookie(name, value) {
-          this.name = name;
-          this.value = value;
-        };
-
-        var cookies = function Cookies() {
-          this.cookies = [new Cookie('foo', 'bar')];
-        };
-
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-            cookie: 'qux=baz'
-          },
-          cookies: cookies
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['sentry.interfaces.Http'].cookies.should.eql({ qux: 'baz' });
-      });
     });
 
     describe('`query` detection', function() {
