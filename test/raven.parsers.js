@@ -120,26 +120,8 @@ describe('raven.parsers', function(){
       });
     });
 
-    describe('`https` detection', function() {
-      it('should detect https via `req.secure`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-          },
-          secure: true,
-          socket: {
-            encrypted: false
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      });
-
-      it('should detect https via `req.protocol`', function(){
+    describe('`protocol` detection', function() {
+      it('should detect protocol via `req.protocol`', function(){
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -157,7 +139,25 @@ describe('raven.parsers', function(){
         parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect https via `req.socket.encrypted`', function(){
+      it('should detect protocol via `req.secure`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          secure: true,
+          socket: {
+            encrypted: false
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect protocol via `req.socket.encrypted`', function(){
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -171,41 +171,6 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      });
-
-      it('should detect https via `x-forwarded-proto`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-            'x-forwarded-proto': 'https'
-          },
-          socket: {
-            encrypted: false
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      });
-
-      it('should detect https via `x-forwarded-port`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-            'x-forwarded-port': '443'
-          },
-          socket: {
-            encrypted: false
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
         parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
     });
@@ -337,36 +302,6 @@ describe('raven.parsers', function(){
         var parsed = raven.parsers.parseRequest(mockReq);
 
         parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
-      });
-
-      it('should detect ip via single hop `x-forwarded-for`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-            'x-forwarded-for': '69.69.69.69'
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-
-        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
-      });
-
-      it('should detect ip via multiple hops `x-forwarded-for`', function(){
-        var mockReq = {
-          method: 'GET',
-          url: '/some/path?key=value',
-          headers: {
-            host: 'mattrobenolt.com',
-            'x-forwarded-for': '1.2.3.4, 5.6.7.8, 69.69.69.69'
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq);
-
-        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('1.2.3.4');
       });
 
       it('should detect ip via `req.connection.remoteAddress`', function(){
