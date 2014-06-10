@@ -691,6 +691,13 @@ describe('globals', function() {
             processException('TypeError', '', 'http://example.com', []);
             assert.isTrue(window.send.called);
         });
+
+        it('should not blow up with `undefined` message', function() {
+            this.sinon.stub(window, 'send');
+
+            processException('TypeError', undefined, 'http://example.com', []);
+            assert.isTrue(window.send.called);
+        });
     });
 
     describe('send', function() {
