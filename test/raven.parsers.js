@@ -1,6 +1,7 @@
 var assert = require('assert');
 var raven = require('../');
-var client = new raven.Client()
+var client = new raven.Client();
+
 raven.parsers = require('../lib/parsers');
 
 describe('raven.parsers', function(){
@@ -53,25 +54,306 @@ describe('raven.parsers', function(){
       parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
 
-    it('should detect https via `x-forwarded-proto`', function(){
-      var mockReq = {
-        method: 'GET',
-        url: '/some/path?key=value',
-        headers: {
+    describe('`headers` detection', function() {
+      it('should detect headers via `req.headers`', function(){
+        var mockReq = {
+          method: 'GET',
           host: 'mattrobenolt.com',
-          'x-forwarded-proto': 'https'
-        },
-        body: '',
-        cookies: {},
-        socket: {
-          encrypted: false
-        },
-        connection: {
-          remoteAddress: '69.69.69.69'
-        }
-      };
-      var parsed = raven.parsers.parseRequest(mockReq);
-      parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+          url: '/some/path?key=value',
+          headers: {
+            foo: 'bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+      });
+
+      it('should detect headers via `req.header`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          header: {
+            foo: 'bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+      });
+    });
+
+    describe('`method` detection', function() {
+      it('should detect method via `req.method`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].method.should.equal('GET');
+      });
+    });
+
+    describe('`host` detection', function() {
+      it('should detect host via `req.host`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect host via `req.header.host`', function(){
+        var mockReq = {
+          method: 'GET',
+          header: {
+            host: 'mattrobenolt.com',
+          },
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect host via `req.headers.host`', function(){
+        var mockReq = {
+          method: 'GET',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should fallback to <no host> if host is not available', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('http://<no host>/some/path?key=value');
+      });
+    });
+
+    describe('`protocol` detection', function() {
+      it('should detect protocol via `req.protocol`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          protocol: 'https',
+          socket: {
+            encrypted: false
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect protocol via `req.secure`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          secure: true,
+          socket: {
+            encrypted: false
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect protocol via `req.socket.encrypted`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          socket: {
+            encrypted: true
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+    });
+
+    describe('`cookie` detection', function() {
+      it('should parse `req.headers.cookie`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+            cookie: 'foo=bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+        parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
+      });
+
+      it('should parse `req.header.cookie`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          header: {
+            host: 'mattrobenolt.com',
+            cookie: 'foo=bar'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+        parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
+      });
+
+    });
+
+    describe('`query` detection', function() {
+      it('should detect query via `req.query`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          query: { some: 'key' }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].query_string.should.eql({ some: 'key' });
+      });
+
+      it('should detect query via `req.url`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?foo=bar',
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].query_string.should.eql({ foo: 'bar' });
+      });
+    });
+
+    describe('`ip` detection', function() {
+      it('should detect ip via `req.ip`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          ip: '69.69.69.69'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+      });
+
+      it('should detect ip via `req.connection.remoteAddress`', function(){
+        var mockReq = {
+          method: 'GET',
+          url: '/some/path?key=value',
+          headers: {
+            host: 'mattrobenolt.com',
+          },
+          connection: {
+            remoteAddress: '69.69.69.69'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+      });
+    });
+
+    describe('`url` detection', function() {
+      it('should detect url via `req.originalUrl`', function(){
+        var mockReq = {
+          method: 'GET',
+          protocol: 'https',
+          host: 'mattrobenolt.com',
+          originalUrl: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+
+      it('should detect url via `req.url`', function(){
+        var mockReq = {
+          method: 'GET',
+          protocol: 'https',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      });
+    });
+
+    describe('`body` detection', function() {
+      it('should detect body via `req.body`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          body: 'foo=bar'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].data.should.equal('foo=bar');
+      });
+
+      it('should fallback to <unavailable> if body is not available', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          body: ''
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['sentry.interfaces.Http'].data.should.equal('<unavailable>');
+      });
     });
   });
 
