@@ -1,3 +1,9 @@
+# 0.7.0 - 06/24/2014
+ * Moved from mattrobenolt/raven-node into getsentry/raven-node
+ * Bumped to sentry protocol version 5
+ * Capture all properties off of an Error object and send them along as as `extra` [See #72]
+ * Better feature detection support for capturing request parameters. Adds support for use in Koa. [See #78 #79]
+
 # 0.6.3 - 04/02/2014
  * Fix another issue that was breaking when running Raven from the REPL [See #66]
  * Add additional meta data on the error callbacks [See #67 #73]
