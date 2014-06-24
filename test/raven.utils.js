@@ -93,7 +93,7 @@ describe('raven.utils', function() {
       var timestamp = 12345,
         api_key = 'abc',
         api_secret = 'xyz';
-      var expected = 'Sentry sentry_version=4, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=abc, sentry_secret=xyz';
+      var expected = 'Sentry sentry_version=5, sentry_timestamp=12345, sentry_client=raven-node/'+raven.version+', sentry_key=abc, sentry_secret=xyz';
       raven.utils.getAuthHeader(timestamp, api_key, api_secret).should.equal(expected);
     });
   });
