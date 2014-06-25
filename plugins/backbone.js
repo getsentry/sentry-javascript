@@ -11,6 +11,15 @@ if (!Backbone) {
     return;
 }
 
+function makeBackboneEventsOn(oldOn) {
+  return function BackboneEventsOn(name, callback, context) {
+    var _callback = Raven.wrap(callback._callback || callback);
+    callback._callback = _callback;
+
+    return oldOn.call(this, name, callback, context);
+  };
+}
+
 // We're too late to catch all of these by simply patching Backbone.Events.on
 var affectedObjects = [
   Backbone.Events,
@@ -20,26 +29,11 @@ var affectedObjects = [
   Backbone.View.prototype,
   Backbone.Router.prototype,
   Backbone.History.prototype
-];
+], i = 0, l = affectedObjects.length;
 
-for (var i = 0; i < affectedObjects.length; i++) {
+for (; i < l; i++) {
   var affected = affectedObjects[i];
-
-  var _oldOn = affected.on;
-  affected.on = function BackboneEventsOn(name, callback, context) {
-      var _callback;
-      if (callback._callback) {
-        _callback = callback._callback;
-      } else {
-        _callback = callback;
-      }
-
-      callback = Raven.wrap(callback);
-      callback._callback = _callback;
-
-      return _oldOn.call(this, name, callback, context);
-  };
-
+  affected.on = makeBackboneEventsOn(affected.on);
   affected.bind = affected.on;
 }
 
