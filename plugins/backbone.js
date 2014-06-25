@@ -13,9 +13,7 @@ if (!Backbone) {
 
 function makeBackboneEventsOn(oldOn) {
   return function BackboneEventsOn(name, callback, context) {
-    var _callback = Raven.wrap(callback._callback || callback);
-    callback._callback = _callback;
-
+    callback._callback = Raven.wrap(callback._callback || callback);
     return oldOn.call(this, name, callback, context);
   };
 }
