@@ -1361,16 +1361,42 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('.setUser', function() {
+    describe('.setUserContext', function() {
         it('should set the globalUser object', function() {
-            Raven.setUser({name: 'Matt'});
+            Raven.setUserContext({name: 'Matt'});
             assert.deepEqual(globalUser, {name: 'Matt'});
         });
 
         it('should clear the globalUser with no arguments', function() {
             globalUser = {name: 'Matt'};
-            Raven.setUser();
+            Raven.setUserContext();
             assert.isUndefined(globalUser);
+        });
+    });
+
+    describe('.setExtraContext', function() {
+        it('should set the globalOptions.extra object', function() {
+            Raven.setExtraContext({name: 'Matt'});
+            assert.deepEqual(globalOptions.extra, {name: 'Matt'});
+        });
+
+        it('should clear globalOptions.extra with no arguments', function() {
+            globalOptions = {name: 'Matt'};
+            Raven.setExtraContext();
+            assert.deepEqual(globalOptions.extra, {});
+        });
+    });
+
+    describe('.setTagsContext', function() {
+        it('should set the globalOptions.tags object', function() {
+            Raven.setTagsContext({name: 'Matt'});
+            assert.deepEqual(globalOptions.tags, {name: 'Matt'});
+        });
+
+        it('should clear globalOptions.tags with no arguments', function() {
+            globalOptions = {name: 'Matt'};
+            Raven.setTagsContext();
+            assert.deepEqual(globalOptions.tags, {});
         });
     });
 

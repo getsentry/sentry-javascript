@@ -264,8 +264,32 @@ var Raven = {
      * @param {object} user An object representing user data [optional]
      * @return {Raven}
      */
-    setUser: function(user) {
+    setUserContext: function(user) {
        globalUser = user;
+
+       return Raven;
+    },
+
+    /*
+     * Set extra attributes to be sent along with the payload.
+     *
+     * @param {object} extra An object representing extra data [optional]
+     * @return {Raven}
+     */
+    setExtraContext: function(extra) {
+       globalOptions.extra = extra || {};
+
+       return Raven;
+    },
+
+    /*
+     * Set tags to be sent along with the payload.
+     *
+     * @param {object} tags An object representing tags [optional]
+     * @return {Raven}
+     */
+    setTagsContext: function(tags) {
+       globalOptions.tags = tags || {};
 
        return Raven;
     },
@@ -288,6 +312,8 @@ var Raven = {
         return lastEventId;
     }
 };
+
+Raven.setUser = Raven.setUserContext; // To be deprecated
 
 function triggerEvent(eventType, options) {
     var event, key;

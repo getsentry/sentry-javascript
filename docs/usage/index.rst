@@ -58,12 +58,12 @@ While a user is logged in, you can tell Sentry to associate errors with user dat
 
 .. code-block:: javascript
 
-    Raven.setUser({
+    Raven.setUserContext({
         email: 'matt@example.com',
         id: '123'
     })
 
-If at any point, the user becomes unauthenticated, you can call ``Raven.setUser()`` with no arguments to remove their data. *This would only really be useful in a large web app where the user logs in/out without a page reload.*
+If at any point, the user becomes unauthenticated, you can call ``Raven.setUserContext()`` with no arguments to remove their data. *This would only really be useful in a large web app where the user logs in/out without a page reload.*
 
 Capturing a specific message
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
