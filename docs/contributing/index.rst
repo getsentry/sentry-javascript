@@ -65,19 +65,25 @@ Do not include any changes to the ``dist/`` folder or bump version numbers yours
 Documentation
 -------------
 
-The documentation is written using `reStructuredText <http://en.wikipedia.org/wiki/ReStructuredText>`_, and compiled using `Sphinx <http://sphinx-doc.org/>`_
+The documentation is written using `reStructuredText <http://en.wikipedia.org/wiki/ReStructuredText>`_, and compiled using `Sphinx <http://sphinx-doc.org/>`_. If you don't have Sphinx installed, you can do it using following command (assuming you have Python already installed in your system):
 
-Documentation can be compiled by running:
+.. code-block:: sh
+
+    $ pip install sphinx
+
+Documentation can be then compiled by running:
 
 .. code-block:: sh
 
     $ make docs
 
-Then viewing in your browser with:
+Afterwards you can view it in your browser by running following command and than pointing your browser to http://127.0.0.1:8000/:
 
 .. code-block:: sh
 
     $ grunt run:docs
+
+
 
 Releasing New Version
 ~~~~~~~~~~~~~~~~~~~~~
