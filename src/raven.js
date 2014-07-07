@@ -68,6 +68,10 @@ var Raven = {
         globalOptions.ignoreErrors.push('Script error.');
         globalOptions.ignoreErrors.push('Script error');
 
+        // Other variants of external script errors:
+        globalOptions.ignoreErrors.push('Javascript error: Script error on line 0');
+        globalOptions.ignoreErrors.push('Javascript error: Script error. on line 0');
+
         // join regexp rules into one big rule
         globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
         globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
