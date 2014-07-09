@@ -187,13 +187,13 @@ Error.prepareStackTrace you might run into the exception "Traceback does not sup
 In order to not have raven-node (and the underlying raw-stacktrace library) require
 Traceback you can pass your own stackFunction in the options. For example:
 
-```javascript
-var client = new raven.Client('{{ SENTRY_DSN }}', { stackFunction: {{ Your stack function }}});
+```coffeescript
+client = new raven.Client('{{ SENTRY_DSN }}', { stackFunction: {{ Your stack function }}});
 ```
 
 So for example:
-```javascript
-var client = new raven.Client('{{ SENTRY_DSN }}', {
+```coffeescript
+client = new raven.Client('{{ SENTRY_DSN }}', {
   stackFunction: Error.prepareStackTrace
 });
 ```
