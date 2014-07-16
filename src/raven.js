@@ -31,6 +31,8 @@ var _Raven = window.Raven,
 var Raven = {
     VERSION: '<%= pkg.version %>',
 
+    debug: true,
+
     /*
      * Allow multiple versions of Raven to be installed.
      * Strip Raven from the global context and returns the instance.
@@ -679,7 +681,7 @@ function makeRequest(data) {
 function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
-        if (window.console && console.error) {
+        if (window.console && console.error && Raven.debug) {
             console.error("Error: Raven has not been configured.");
         }
         return false;

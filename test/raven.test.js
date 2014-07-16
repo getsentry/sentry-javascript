@@ -215,11 +215,27 @@ describe('globals', function() {
             assert.isFalse(isSetup());
         });
 
-        it('should return false when Raven is not configured and write to console.error', function() {
+        it('should return false when Raven is not configured', function() {
             hasJSON = true;    // be explicit
             globalServer = undefined;
             this.sinon.stub(console, 'error');
             assert.isFalse(isSetup());
+        });
+
+        it('should not write to console.error when Raven is not configured and Raven.debug is false', function() {
+            hasJSON = true;    // be explicit
+            globalServer = undefined;
+            Raven.debug = false;
+            this.sinon.stub(console, 'error');
+            isSetup();
+            assert.isFalse(console.error.calledOnce);
+        });
+
+        it('should write to console.error when Raven is not configured and Raven.debug is true', function() {
+            hasJSON = true;    // be explicit
+            globalServer = undefined;
+            this.sinon.stub(console, 'error');
+            isSetup();
             assert.isTrue(console.error.calledOnce);
         });
 
