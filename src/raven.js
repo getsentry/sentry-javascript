@@ -31,7 +31,7 @@ var _Raven = window.Raven,
 var Raven = {
     VERSION: '<%= pkg.version %>',
 
-    debug: false,
+    debug: true,
 
     /*
      * Allow multiple versions of Raven to be installed.

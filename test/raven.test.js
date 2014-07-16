@@ -225,6 +225,7 @@ describe('globals', function() {
         it('should not write to console.error when Raven is not configured and Raven.debug is false', function() {
             hasJSON = true;    // be explicit
             globalServer = undefined;
+            Raven.debug = false;
             this.sinon.stub(console, 'error');
             isSetup();
             assert.isFalse(console.error.calledOnce);
@@ -232,7 +233,6 @@ describe('globals', function() {
 
         it('should write to console.error when Raven is not configured and Raven.debug is true', function() {
             hasJSON = true;    // be explicit
-            Raven.debug = true;
             globalServer = undefined;
             this.sinon.stub(console, 'error');
             isSetup();
