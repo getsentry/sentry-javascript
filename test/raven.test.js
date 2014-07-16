@@ -234,6 +234,7 @@ describe('globals', function() {
         it('should write to console.error when Raven is not configured and Raven.debug is true', function() {
             hasJSON = true;    // be explicit
             globalServer = undefined;
+            Raven.debug = true;
             this.sinon.stub(console, 'error');
             isSetup();
             assert.isTrue(console.error.calledOnce);
