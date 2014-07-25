@@ -22,7 +22,12 @@ function ngRavenExceptionHandler(RavenConfig, $delegate) {
     if (!RavenConfig)
         throw new Error('RavenConfig must be set before using this');
 
-    Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+    if (!RavenConfig.notConfig)
+        Raven.config(RavenConfig.dsn, RavenConfig.config);
+
+    if (!RavenConfig.notInstall)
+        Raven.install();
+
     return function angularExceptionHandler(ex, cause) {
         $delegate(ex, cause);
         Raven.captureException(ex, {extra: {cause: cause}});
