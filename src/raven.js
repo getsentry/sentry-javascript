@@ -681,9 +681,7 @@ function makeRequest(data) {
 function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
-        if (window.console && console.error && Raven.debug) {
-            console.error("Error: Raven has not been configured.");
-        }
+        logDebug('error', 'Error: Raven has not been configured.');
         return false;
     }
     return true;
@@ -718,6 +716,12 @@ function uuid4() {
             v = c == 'x' ? r : (r&0x3|0x8);
         return v.toString(16);
     });
+}
+
+function logDebug(level, message) {
+    if (window.console && console[level] && Raven.debug) {
+        console[level](message);
+    }
 }
 
 function afterLoad() {
