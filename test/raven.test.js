@@ -1247,6 +1247,14 @@ describe('Raven (public API)', function() {
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
             assert.equal(TraceKit.report.subscribe.lastCall.args[0], handleStackInfo);
         });
+
+        it('should not register itself more than once', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+            Raven.install();
+            Raven.install();
+            assert.isTrue(TraceKit.report.subscribe.calledOnce);
+        });
     });
 
     describe('.wrap', function() {
@@ -1391,6 +1399,13 @@ describe('Raven (public API)', function() {
             this.sinon.stub(TraceKit.report, 'uninstall');
             Raven.uninstall();
             assert.isTrue(TraceKit.report.uninstall.calledOnce);
+        });
+
+        it('should set isRavenInstalled flag to false', function() {
+            isRavenInstalled = true;
+            this.sinon.stub(TraceKit.report, 'uninstall');
+            Raven.uninstall();
+            assert.isFalse(isRavenInstalled);
         });
     });
 

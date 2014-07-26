@@ -21,7 +21,8 @@ var _Raven = window.Raven,
         tags: {},
         extra: {}
     },
-    authQueryString;
+    authQueryString,
+    isRavenInstalled = false;
 
 /*
  * The core Raven singleton
@@ -121,8 +122,9 @@ var Raven = {
      * @return {Raven}
      */
     install: function() {
-        if (isSetup()) {
+        if (isSetup() && !isRavenInstalled) {
             TraceKit.report.subscribe(handleStackInfo);
+            isRavenInstalled = true;
         }
 
         return Raven;
@@ -216,6 +218,7 @@ var Raven = {
      */
     uninstall: function() {
         TraceKit.report.uninstall();
+        isRavenInstalled = false;
 
         return Raven;
     },
