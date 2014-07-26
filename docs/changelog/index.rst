@@ -1,6 +1,19 @@
 Changelog
 =========
 
+1.1.16
+~~~~~~
+* Fixed a bug that was preventing stack frames from ``raven.js`` from being hidden correctly. See: https://github.com/getsentry/raven-js/pull/216
+* Fixed an IE bug with the ``console`` plugin. See: https://github.com/getsentry/raven-js/issues/217
+* Added support for ``chrome-extension://`` protocol in Chrome in stack traces.
+* Added ``setExtraContext`` and ``setTagsContext``.  See: https://github.com/getsentry/raven-js/pull/219
+* Renamed ``setUser`` to ``setUserContext`` to match. ``setUser`` still exists, but will be deprecated in a future release.
+* New ``backbone.js`` plugin. See: https://github.com/getsentry/raven-js/pull/220
+* Added support for ``chrome://`` protocol in Firefox in stack traces. See: https://github.com/getsentry/raven-js/pull/225
+* Ignore more garbage from IE cross origin errors. See: https://github.com/getsentry/raven-js/pull/224
+* Added ``Raven.debug`` to prevent logging to ``console`` when ``false``. Defaults to ``true`` for backwards compatability. See: https://github.com/getsentry/raven-js/pull/229
+* Prevent calling ``Raven.config()`` or ``Raven.install()`` twice. See: https://github.com/getsentry/raven-js/pull/233
+
 1.1.15
 ~~~~~~
 * Fix issues if a non-string were passed to ``Raven.captureMessage`` and non-Error objects were passed to ``Raven.captureException``.

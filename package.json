@@ -1,6 +1,6 @@
 {
   "name": "raven",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "scripts": {
     "test": "./node_modules/.bin/grunt test"
   },
