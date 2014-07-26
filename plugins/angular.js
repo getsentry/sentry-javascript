@@ -11,6 +11,8 @@ if (!angular) {
     return;
 }
 
+var isRavenInstalled = false;
+
 function ngRavenProvider($provide) {
     $provide.decorator('$exceptionHandler', [
         'RavenConfig', '$delegate',
@@ -22,7 +24,10 @@ function ngRavenExceptionHandler(RavenConfig, $delegate) {
     if (!RavenConfig)
         throw new Error('RavenConfig must be set before using this');
 
-    Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+    if (!isRavenInstalled) {
+        Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+        isRavenInstalled = true;
+    }
     return function angularExceptionHandler(ex, cause) {
         $delegate(ex, cause);
         Raven.captureException(ex, {extra: {cause: cause}});
