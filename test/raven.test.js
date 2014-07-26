@@ -1169,6 +1169,15 @@ describe('Raven (public API)', function() {
             assert.equal(Raven.config(''), Raven);
         });
 
+        it('should not set global options more than once', function() {
+            this.sinon.spy(window, 'parseDSN');
+            this.sinon.stub(window, 'logDebug');
+            setupRaven();
+            setupRaven();
+            assert.isTrue(parseDSN.calledOnce);
+            assert.isTrue(logDebug.called);
+        });
+
         describe('whitelistUrls', function() {
             it('should be false if none are passed', function() {
                 Raven.config('//abc@example.com/2');

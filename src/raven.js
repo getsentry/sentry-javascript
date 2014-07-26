@@ -52,6 +52,10 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
+        if (globalServer) {
+            logDebug('error', 'Error: Raven has already been configured');
+            return Raven;
+        }
         if (!dsn) return Raven;
 
         var uri = parseDSN(dsn),
