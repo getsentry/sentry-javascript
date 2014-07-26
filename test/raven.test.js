@@ -218,31 +218,32 @@ describe('globals', function() {
         it('should return false when Raven is not configured', function() {
             hasJSON = true;    // be explicit
             globalServer = undefined;
-            this.sinon.stub(console, 'error');
+            this.sinon.stub(window, 'logDebug');
             assert.isFalse(isSetup());
-        });
-
-        it('should not write to console.error when Raven is not configured and Raven.debug is false', function() {
-            hasJSON = true;    // be explicit
-            globalServer = undefined;
-            Raven.debug = false;
-            this.sinon.stub(console, 'error');
-            isSetup();
-            assert.isFalse(console.error.calledOnce);
-        });
-
-        it('should write to console.error when Raven is not configured and Raven.debug is true', function() {
-            hasJSON = true;    // be explicit
-            globalServer = undefined;
-            Raven.debug = true;
-            this.sinon.stub(console, 'error');
-            isSetup();
-            assert.isTrue(console.error.calledOnce);
         });
 
         it('should return true when everything is all gravy', function() {
             hasJSON = true;
             assert.isTrue(isSetup());
+        });
+    });
+
+    describe('logDebug', function() {
+        var level = 'error',
+            message = 'foobar';
+
+        it('should not write to console when Raven.debug is false', function() {
+            Raven.debug = false;
+            this.sinon.stub(console, level);
+            logDebug(level, message);
+            assert.isFalse(console[level].called);
+        });
+
+        it('should write to console when Raven.debug is true', function() {
+            Raven.debug = true;
+            this.sinon.stub(console, level);
+            logDebug(level, message);
+            assert.isTrue(console[level].calledOnce);
         });
     });
 
@@ -1168,6 +1169,15 @@ describe('Raven (public API)', function() {
             assert.equal(Raven.config(''), Raven);
         });
 
+        it('should not set global options more than once', function() {
+            this.sinon.spy(window, 'parseDSN');
+            this.sinon.stub(window, 'logDebug');
+            setupRaven();
+            setupRaven();
+            assert.isTrue(parseDSN.calledOnce);
+            assert.isTrue(logDebug.called);
+        });
+
         describe('whitelistUrls', function() {
             it('should be false if none are passed', function() {
                 Raven.config('//abc@example.com/2');
@@ -1236,6 +1246,14 @@ describe('Raven (public API)', function() {
             assert.equal(Raven, Raven.install());
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
             assert.equal(TraceKit.report.subscribe.lastCall.args[0], handleStackInfo);
+        });
+
+        it('should not register itself more than once', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+            Raven.install();
+            Raven.install();
+            assert.isTrue(TraceKit.report.subscribe.calledOnce);
         });
     });
 
@@ -1381,6 +1399,13 @@ describe('Raven (public API)', function() {
             this.sinon.stub(TraceKit.report, 'uninstall');
             Raven.uninstall();
             assert.isTrue(TraceKit.report.uninstall.calledOnce);
+        });
+
+        it('should set isRavenInstalled flag to false', function() {
+            isRavenInstalled = true;
+            this.sinon.stub(TraceKit.report, 'uninstall');
+            Raven.uninstall();
+            assert.isFalse(isRavenInstalled);
         });
     });
 

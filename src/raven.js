@@ -21,7 +21,8 @@ var _Raven = window.Raven,
         tags: {},
         extra: {}
     },
-    authQueryString;
+    authQueryString,
+    isRavenInstalled = false;
 
 /*
  * The core Raven singleton
@@ -52,6 +53,10 @@ var Raven = {
      * @return {Raven}
      */
     config: function(dsn, options) {
+        if (globalServer) {
+            logDebug('error', 'Error: Raven has already been configured');
+            return Raven;
+        }
         if (!dsn) return Raven;
 
         var uri = parseDSN(dsn),
@@ -117,8 +122,9 @@ var Raven = {
      * @return {Raven}
      */
     install: function() {
-        if (isSetup()) {
+        if (isSetup() && !isRavenInstalled) {
             TraceKit.report.subscribe(handleStackInfo);
+            isRavenInstalled = true;
         }
 
         return Raven;
@@ -212,6 +218,7 @@ var Raven = {
      */
     uninstall: function() {
         TraceKit.report.uninstall();
+        isRavenInstalled = false;
 
         return Raven;
     },
@@ -681,9 +688,7 @@ function makeRequest(data) {
 function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
-        if (window.console && console.error && Raven.debug) {
-            console.error("Error: Raven has not been configured.");
-        }
+        logDebug('error', 'Error: Raven has not been configured.');
         return false;
     }
     return true;
@@ -718,6 +723,12 @@ function uuid4() {
             v = c == 'x' ? r : (r&0x3|0x8);
         return v.toString(16);
     });
+}
+
+function logDebug(level, message) {
+    if (window.console && console[level] && Raven.debug) {
+        console[level](message);
+    }
 }
 
 function afterLoad() {
