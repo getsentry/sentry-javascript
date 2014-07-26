@@ -218,31 +218,32 @@ describe('globals', function() {
         it('should return false when Raven is not configured', function() {
             hasJSON = true;    // be explicit
             globalServer = undefined;
-            this.sinon.stub(console, 'error');
+            this.sinon.stub(window, 'logDebug');
             assert.isFalse(isSetup());
-        });
-
-        it('should not write to console.error when Raven is not configured and Raven.debug is false', function() {
-            hasJSON = true;    // be explicit
-            globalServer = undefined;
-            Raven.debug = false;
-            this.sinon.stub(console, 'error');
-            isSetup();
-            assert.isFalse(console.error.calledOnce);
-        });
-
-        it('should write to console.error when Raven is not configured and Raven.debug is true', function() {
-            hasJSON = true;    // be explicit
-            globalServer = undefined;
-            Raven.debug = true;
-            this.sinon.stub(console, 'error');
-            isSetup();
-            assert.isTrue(console.error.calledOnce);
         });
 
         it('should return true when everything is all gravy', function() {
             hasJSON = true;
             assert.isTrue(isSetup());
+        });
+    });
+
+    describe('logDebug', function() {
+        var level = 'error',
+            message = 'foobar';
+
+        it('should not write to console when Raven.debug is false', function() {
+            Raven.debug = false;
+            this.sinon.stub(console, level);
+            logDebug(level, message);
+            assert.isFalse(console[level].called);
+        });
+
+        it('should write to console when Raven.debug is true', function() {
+            Raven.debug = true;
+            this.sinon.stub(console, level);
+            logDebug(level, message);
+            assert.isTrue(console[level].calledOnce);
         });
     });
 
