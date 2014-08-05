@@ -190,14 +190,16 @@ describe('raven.Client', function(){
             client.captureError(new Error('wtf?'));
         });
 
-        it('should send a plain text "error" as a Message instead', function(done){
-            // See: https://github.com/mattrobenolt/raven-node/issues/18
-            var old = client.captureMessage;
-            client.captureMessage = function(message) {
-                // I'm also appending "Error: " to the beginning to help hint
-                message.should.equal('Error: wtf?');
+        it('should send a plain text "error" with a synthesized stack', function(done){
+            var old = client.send;
+            client.send = function(kwargs) {
+                client.send = old;
+
+                kwargs['message'].should.equal("Error: wtf?");
+                kwargs.should.have.property('sentry.interfaces.Stacktrace');
+                var stack = kwargs['sentry.interfaces.Stacktrace'];
+                stack.frames[0]['function'].should.equal('captureError');
                 done();
-                client.captureMessage = old;
             };
             client.captureError('wtf?');
         });
