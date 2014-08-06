@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.16 (2cf8531) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.16 (463f68f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -645,7 +645,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var chrome = /^\s*at (.+?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (?:((?:\[object object\])?\S+(?: \[as \S+\])?) )?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
