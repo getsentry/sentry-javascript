@@ -1064,6 +1064,25 @@ describe('globals', function() {
                 'Matt', 'hey', 'http://example.com', 10, [], undefined
             ]);
         });
+
+        it('should detect 2-words patterns (angularjs frequent case)', function() {
+            this.sinon.stub(window, 'normalizeFrame').returns(undefined);
+            this.sinon.stub(window, 'processException');
+
+            var stackInfo = {
+                name: 'new <anonymous>',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10
+                // stack: new Array(2)
+            };
+
+            handleStackInfo(stackInfo);
+            assert.isFalse(window.normalizeFrame.called);
+            assert.deepEqual(window.processException.lastCall.args, [
+                'new <anonymous>', 'hey', 'http://example.com', 10, [], undefined
+            ]);
+        });
     });
 
     describe('joinRegExp', function() {
