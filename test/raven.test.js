@@ -185,10 +185,29 @@ describe('globals', function() {
         });
     });
 
+    describe('isObject', function() {
+        it('should do as advertised', function() {
+            assert.isTrue(isObject({}));
+            assert.isTrue(isObject(new Error()))
+            assert.isFalse(isObject(''));
+        });
+    });
+
     describe('isEmptyObject', function() {
         it('should work as advertised', function() {
             assert.isTrue(isEmptyObject({}));
             assert.isFalse(isEmptyObject({foo: 1}));
+        });
+    });
+
+    describe('isError', function() {
+        it('should work as advertised', function() {
+            assert.isTrue(isError(new Error()));
+            assert.isTrue(isError(new ReferenceError()));
+            assert.isTrue(isError(new RavenConfigError()));
+            assert.isFalse(isError({}));
+            assert.isFalse(isError(''));
+            assert.isFalse(isError(true));
         });
     });
 

@@ -22,7 +22,9 @@ var _Raven = window.Raven,
         extra: {}
     },
     authQueryString,
-    isRavenInstalled = false;
+    isRavenInstalled = false,
+
+    objectPrototype = Object.prototype;
 
 /*
  * The core Raven singleton
@@ -232,7 +234,7 @@ var Raven = {
      */
     captureException: function(ex, options) {
         // If not an Error is passed through, recall as a message instead
-        if (!(ex instanceof Error)) return Raven.captureMessage(ex, options);
+        if (!isError(ex)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
@@ -399,9 +401,22 @@ function isString(what) {
     return typeof what === 'string';
 }
 
+function isObject(what) {
+    return typeof what === 'object' && what !== null;
+}
+
 function isEmptyObject(what) {
+    if (!isObject(what)) return false;
     for (var k in what) return false;
     return true;
+}
+
+// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
+// with some tiny modifications
+function isError(what) {
+    return isObject(what) &&
+        objectPrototype.toString.call(what) === '[object Error]' ||
+        what instanceof Error;
 }
 
 /**
@@ -412,7 +427,7 @@ function isEmptyObject(what) {
  * @param {string} key to check
  */
 function hasKey(object, key) {
-    return Object.prototype.hasOwnProperty.call(object, key);
+    return objectPrototype.hasOwnProperty.call(object, key);
 }
 
 function each(obj, callback) {
