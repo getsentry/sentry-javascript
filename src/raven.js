@@ -406,7 +406,6 @@ function isObject(what) {
 }
 
 function isEmptyObject(what) {
-    if (!isObject(what)) return false;
     for (var k in what) return false;
     return true;
 }
