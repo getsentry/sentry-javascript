@@ -157,3 +157,41 @@ Putting it all together
         <script src="myapp.js"></script>
     </body>
     </html>
+
+TraceKit specific optional settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Usually there is no need to touch these settings, but they exist in case you need to tweak something.
+
+fetchContext
+------------
+
+Enable TraceKit to attempt to fetch source files to look up anonymous function names, this can be useful to enable if you don't get the context for some entries in the stack trace. Default value is ``false``.
+
+.. code-block:: javascript
+
+    {
+        fetchContext: true
+    }
+
+linesOfContext
+--------------
+
+The count of lines surrounding the error line that should be used as context in the stack trace, default value is ``11``. Only applicable when ``fetchContext` is enabled.
+
+.. code-block:: javascript
+
+    {
+        linesOfContext: 11
+    }
+
+collectWindowErrors
+-------------------
+
+Enable or disable the TraceKit ``window.onerror`` handler, default value is ``true``.
+
+.. code-block:: javascript
+
+    {
+        collectWindowErrors: true
+    }
