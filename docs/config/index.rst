@@ -53,6 +53,8 @@ whitelistUrls
 
 The inverse of ``ignoreUrls``. Only report errors from whole urls matching a regex pattern or an exact string. ``whitelistUrls`` should match the url of your actual JavaScript files. It should match the url of your site if and only if you are inlining code inside ``<script>`` tags.
 
+Does not affect captureMessage or when non-error object is passed in as argument to captureException.
+
 .. code-block:: javascript
 
     {
@@ -63,6 +65,8 @@ ignoreErrors
 ------------
 
 Very often, you will come across specific errors that are a result of something other than your application, or errors that you're completely not interested in. `ignoreErrors` is a list of these messages to be filtered out before being sent to Sentry as either regular expressions or strings.
+
+Does not affect captureMessage or when non-error object is passed in as argument to captureException.
 
 .. code-block:: javascript
 
@@ -81,10 +85,12 @@ The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignor
       ignoreUrls: [/graph\.facebook\.com/, 'http://example.com/script2.js']
     }
 
+Does not affect captureMessage or when non-error object is passed in as argument to captureException.
+
 includePaths
 ------------
 
-An array of regex patterns to indicate which urls are a part of your app. All other frames will appear collapsed inside Sentry to make it easier to discern between frames that happened in your code vs other code. It'd be suggested to add the current page url, and the host for your CDN.
+An array of regex patterns to indicate which urls are a part of your app in the stack trace. All other frames will appear collapsed inside Sentry to make it easier to discern between frames that happened in your code vs other code. It'd be suggested to add the current page url, and the host for your CDN.
 
 .. code-block:: javascript
 
