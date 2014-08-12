@@ -192,13 +192,13 @@ describe('raven.Client', function(){
 
         it('should send a plain text "error" with a synthesized stack', function(done){
             var old = client.send;
-            client.send = function(kwargs) {
+            client.send = function mockSend(kwargs) {
                 client.send = old;
 
                 kwargs['message'].should.equal("Error: wtf?");
                 kwargs.should.have.property('sentry.interfaces.Stacktrace');
                 var stack = kwargs['sentry.interfaces.Stacktrace'];
-                stack.frames[0]['function'].should.equal('captureError');
+                stack.frames[stack.frames.length-1]['function'].should.equal('Client.captureError');
                 done();
             };
             client.captureError('wtf?');
