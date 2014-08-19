@@ -123,3 +123,25 @@ Raven and Sentry now support `Source Maps <http://www.html5rocks.com/en/tutorial
 We have provided some instructions to creating Source Maps over at https://www.getsentry.com/docs/sourcemaps/. Also, checkout our `Gruntfile <https://github.com/getsentry/raven-js/blob/master/Gruntfile.js>`_ for a good example of what we're doing.
 
 You can use `Source Map Validator <http://sourcemap-validator.herokuapp.com/>`_ to help verify that things are correct.
+
+CORS
+~~~~
+
+If you're hosting your scripts on another domain and things don't get caught by Raven, it's likely that the error will bubble up to ``window.onerror``. If this happens, the error will report some ugly ``Script error`` and Raven will drop it on the floor
+since this is a useless error for everybody.
+
+To help mitigate this, we can tell the browser that these scripts are safe and we're allowing them to expose their errors to us.
+
+In your ``<script>`` tag, specify the ``crossorigin`` attribute:
+
+.. code-block:: html
+
+    <script src="//cdn.example.com/script.js" crossorigin="anonymous"></script>
+
+And set an ``Access-Control-Allow-Origin`` HTTP header on that file.
+
+.. code-block:: console
+
+  Access-Control-Allow-Origin: *
+
+**Note: both of these steps need to be done or your scripts might not even get executed**
