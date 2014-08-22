@@ -19,6 +19,7 @@ var _Raven = window.Raven,
         includePaths: [],
         collectWindowErrors: true,
         tags: {},
+        maxMessageLength: 100,
         extra: {}
     },
     authQueryString,
@@ -585,7 +586,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     }
 
     // Truncate the message to a max of characters
-    message = truncate(message, 100);
+    message = truncate(message, globalOptions.maxMessageLength);
 
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
     if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
