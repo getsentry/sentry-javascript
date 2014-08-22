@@ -13,6 +13,7 @@ function flushRavenState() {
         whitelistUrls: [],
         includePaths: [],
         collectWindowErrors: true,
+        maxMessageLength: 100,
         tags: {},
         extra: {}
     };
@@ -734,6 +735,46 @@ describe('globals', function() {
 
             processException('TypeError', undefined, 'http://example.com', []);
             assert.isTrue(window.send.called);
+        });
+
+        it('should truncate messages to the specified length', function() {
+            this.sinon.stub(window, 'send');
+
+            processException('TypeError', new Array(500).join('a'), 'http://example.com', []);
+            assert.deepEqual(window.send.lastCall.args, [{
+                message: new Array(101).join('a')+'\u2026 at ',
+                exception: {
+                    type: 'TypeError',
+                    value: new Array(101).join('a')+'\u2026'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com',
+                        lineno: [],
+                        in_app: true
+                    }]
+                },
+                culprit: 'http://example.com',
+            }]);
+
+            globalOptions.maxMessageLength = 150;
+
+            processException('TypeError', new Array(500).join('a'), 'http://example.com', []);
+            assert.deepEqual(window.send.lastCall.args, [{
+                message: new Array(151).join('a')+'\u2026 at ',
+                exception: {
+                    type: 'TypeError',
+                    value: new Array(151).join('a')+'\u2026'
+                },
+                stacktrace: {
+                    frames: [{
+                        filename: 'http://example.com',
+                        lineno: [],
+                        in_app: true
+                    }]
+                },
+                culprit: 'http://example.com',
+            }]);
         });
     });
 

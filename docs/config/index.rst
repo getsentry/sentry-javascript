@@ -125,6 +125,12 @@ A callback function that allows you to apply your own filters to determine if th
         }
     }
 
+maxMessageLength
+------------------
+
+By default, raven truncates messages to a max length of 100 characters. You can customize the max length with this parameter.
+
+
 Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
 
