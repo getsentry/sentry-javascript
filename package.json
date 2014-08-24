@@ -35,9 +35,7 @@
     "mocha": "*",
     "mock-udp": "*",
     "nock": "~0.28.2",
-    "should": "~3.3.1"
-  },
-  "optionalDependencies": {
+    "should": "~3.3.1",
     "connect": "*",
     "express": "*",
     "koa": "*"
