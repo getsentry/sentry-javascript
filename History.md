@@ -1,3 +1,6 @@
+# 0.7.1 - 08/24/2014
+ * Fixed package.json to not install junk from `optionalDependencies`. TIL `optionalDependencies` are still installed. [See #89]
+
 # 0.7.0 - 06/24/2014
  * Moved from mattrobenolt/raven-node into getsentry/raven-node
  * Bumped to sentry protocol version 5
