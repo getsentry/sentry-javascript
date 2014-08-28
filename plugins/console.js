@@ -9,13 +9,10 @@
 
 var originalConsole = console,
     logLevels = ['debug', 'info', 'warn', 'error'],
-    ignoredLevels = [],
-    consoleOptions = (Raven.pluginOptions && Raven.pluginOptions.console) ? Raven.pluginOptions.console : [],
+    consoleOptions = (Raven.pluginOptions && Raven.pluginOptions.console) ? Raven.pluginOptions.console : {},
+    ignoredLevels = consoleOptions.ignoredLevels || [],
     level;
 
-for (var i = 0; i < consoleOptions.length; i++) {
-    ignoredLevels.push(consoleOptions[i]);
-}
 
 var logForGivenLevel = function(level) {
     var originalConsoleLevel = console[level];
