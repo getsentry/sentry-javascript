@@ -1310,6 +1310,35 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.getGlobalOptions', function() {
+        it('should return null if JSON is not supported', function() {
+            Raven.config(SENTRY_DSN);
+            hasJSON = false;
+            assert.isNull(Raven.getGlobalOptions());
+        });
+
+        it('should return an empty object if Raven has not been configured', function() {
+            hasJSON=true;
+            assert.deepEqual(Raven.getGlobalOptions(), {});
+        });
+
+        it('should return the global options of a configured Raven object', function() {
+            Raven.config(SENTRY_DSN);
+            assert.deepEqual(Raven.getGlobalOptions(), {
+                "collectWindowErrors": true,
+                "extra": {},
+                "ignoreErrors": {},
+                "ignoreUrls": false,
+                "includePaths": {},
+                "logger": "javascript",
+                "maxMessageLength": 100,
+                "tags": {},
+                "whitelistUrls": false
+            });
+        })
+
+    });
+
     describe('.install', function() {
         it('should check `isSetup`', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
