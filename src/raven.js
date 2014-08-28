@@ -134,6 +134,21 @@ var Raven = {
     },
 
     /*
+     * Get a copy of the global options.
+     *
+     * This allows plugins to be configurable by reading options from Raven
+     *
+     * @return Copy of Raven's global options. If JSON is not supported, returns null
+     */
+
+
+    getGlobalOptions: function() {
+        if (!hasJSON) return null;
+        
+        return isSetup() ? JSON.parse(JSON.stringify(globalOptions)) : {};
+    },
+
+    /*
      * Wrap code within a context so Raven can capture errors
      * reliably across domains that is executed immediately.
      *
