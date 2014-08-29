@@ -20,4 +20,4 @@ Ember.onerror = function EmberOnError(error) {
 };
 
 
-}(this, Raven, window.Ember));
+}(window, window.Raven, window.Ember));

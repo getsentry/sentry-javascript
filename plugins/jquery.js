@@ -72,4 +72,4 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     }
 };
 
-}(this, Raven, window.jQuery));
+}(window, window.Raven, window.jQuery));

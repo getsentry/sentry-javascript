@@ -30,4 +30,4 @@ var _helper = function _helper(fnName) {
 _helper('setTimeout');
 _helper('setInterval');
 
-}(this, Raven));
+}(window, window.Raven));
