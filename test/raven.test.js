@@ -1521,9 +1521,33 @@ describe('Raven (public API)', function() {
         });
 
         it('should clear globalOptions.tags with no arguments', function() {
-            globalOptions = {name: 'Matt'};
+            globalOptions.tags = {name: 'Matt'};
             Raven.setTagsContext();
             assert.deepEqual(globalOptions.tags, {});
+        });
+    });
+
+    describe('.addUserContext', function() {
+        it('should add additional attributes to the globalUser object', function() {
+            globalUser = {name: "Jake"};
+            Raven.addUserContext({id: 1234});
+            assert.deepEqual(globalUser, {name: "Jake", id: 1234});
+        });
+    });
+
+    describe('.addExtraContext', function() {
+        it('should add additional attributes to the globalOptions.extra object', function() {
+            globalOptions.extra = {name: "Jake"};
+            Raven.addExtraContext({id: 1234});
+            assert.deepEqual(globalOptions.extra, {name: "Jake", id: 1234});
+        });
+    });
+
+    describe('.addTagsContext', function() {
+        it('should add additional attributes to the globalOptions.tags object', function() {
+            globalOptions.tags = {name: "Jake"};
+            Raven.addTagsContext({id: 1234});
+            assert.deepEqual(globalOptions.tags, {name: "Jake", id: 1234});
         });
     });
 
