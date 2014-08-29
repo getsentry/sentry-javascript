@@ -19,8 +19,13 @@ function ngRavenProvider($provide) {
 }
 
 function ngRavenExceptionHandler(RavenConfig, $delegate) {
-    if (!RavenConfig)
+    if (!RavenConfig) {
         throw new Error('RavenConfig must be set before using this');
+    }
+
+    if (RavenConfig.dsn) {
+        Raven.config(RavenConfig.dsn, RavenConfig.config).install();
+    }
 
     Raven.config(RavenConfig.dsn, RavenConfig.config).install();
     return function angularExceptionHandler(ex, cause) {
