@@ -274,6 +274,20 @@ var Raven = {
         return Raven;
     },
 
+    /**
+     * Add additional user information to be sent with the payload.
+     *
+     * @param {object} opts Attributes object
+     * @returns {Raven}
+     */
+    addUserContext: function(opts) {
+        if (isObject(globalUser) && isObject(opts)) {
+            globalUser = objectMerge(globalUser, opts);    
+        }
+        
+        return Raven;
+    },
+
     /*
      * Set/clear a user to be sent along with the payload.
      *
@@ -286,6 +300,20 @@ var Raven = {
        return Raven;
     },
 
+    /**
+     * Add additional attributes to extra data to be sent with payload
+     *
+     * @param {object} opts Attributes object
+     * @returns {Raven}
+     */
+    addExtraContext: function(opts) {
+        if (isObject(opts)) {
+            globalOptions.extra = objectMerge(globalOptions.extra, opts);    
+        }
+        
+        return Raven;
+    },
+
     /*
      * Set extra attributes to be sent along with the payload.
      *
@@ -296,6 +324,20 @@ var Raven = {
        globalOptions.extra = extra || {};
 
        return Raven;
+    },
+
+    /**
+     * Add additional attributes to tags data to be sent with payload
+     *
+     * @param {object} opts Attributes object
+     * @returns {Raven}
+     */
+    addTagsContext: function(opts) {
+        if (isObject(opts)) {
+            globalOptions.tags = objectMerge(globalOptions.tags, opts);    
+        }
+        
+        return Raven;
     },
 
     /*
