@@ -632,7 +632,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
 
         var chrome = /^\s*at (.+?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
