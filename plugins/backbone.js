@@ -37,4 +37,4 @@ for (; i < l; i++) {
   affected.bind = affected.on;
 }
 
-}(this, Raven, window.Backbone));
+}(window, window.Raven, window.Backbone));
