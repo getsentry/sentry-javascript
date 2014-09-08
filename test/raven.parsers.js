@@ -48,10 +48,10 @@ describe('raven.parsers', function(){
         }
       };
       var parsed = raven.parsers.parseRequest(mockReq);
-      parsed.should.have.property('http');
-      parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      parsed['http'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
-      parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+      parsed.should.have.property('request');
+      parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      parsed['request'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
+      parsed['request'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
 
     describe('`headers` detection', function() {
@@ -67,7 +67,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].headers.should.eql({ foo: 'bar' });
+        parsed['request'].headers.should.eql({ foo: 'bar' });
       });
 
       it('should detect headers via `req.header`', function(){
@@ -82,7 +82,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].headers.should.eql({ foo: 'bar' });
+        parsed['request'].headers.should.eql({ foo: 'bar' });
       });
     });
 
@@ -96,7 +96,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].method.should.equal('GET');
+        parsed['request'].method.should.equal('GET');
       });
     });
 
@@ -110,7 +110,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect host via `req.header.host`', function(){
@@ -124,7 +124,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect host via `req.headers.host`', function(){
@@ -138,7 +138,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should fallback to <no host> if host is not available', function(){
@@ -149,7 +149,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('http://<no host>/some/path?key=value');
+        parsed['request'].url.should.equal('http://<no host>/some/path?key=value');
       });
     });
 
@@ -169,7 +169,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect protocol via `req.secure`', function(){
@@ -187,7 +187,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect protocol via `req.socket.encrypted`', function(){
@@ -204,7 +204,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
     });
 
@@ -220,7 +220,7 @@ describe('raven.parsers', function(){
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['http'].cookies.should.eql({ foo: 'bar' });
+        parsed['request'].cookies.should.eql({ foo: 'bar' });
       });
 
       it('should parse `req.header.cookie`', function(){
@@ -234,7 +234,7 @@ describe('raven.parsers', function(){
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['http'].cookies.should.eql({ foo: 'bar' });
+        parsed['request'].cookies.should.eql({ foo: 'bar' });
       });
 
     });
@@ -250,7 +250,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].query_string.should.eql({ some: 'key' });
+        parsed['request'].query_string.should.eql({ some: 'key' });
       });
 
       it('should detect query via `req.url`', function(){
@@ -262,7 +262,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].query_string.should.eql({ foo: 'bar' });
+        parsed['request'].query_string.should.eql({ foo: 'bar' });
       });
     });
 
@@ -279,7 +279,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed['request'].env.REMOTE_ADDR.should.equal('69.69.69.69');
       });
 
       it('should detect ip via `req.connection.remoteAddress`', function(){
@@ -296,7 +296,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed['request'].env.REMOTE_ADDR.should.equal('69.69.69.69');
       });
     });
 
@@ -311,7 +311,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect url via `req.url`', function(){
@@ -324,7 +324,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['request'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
     });
 
@@ -339,7 +339,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].data.should.equal('foo=bar');
+        parsed['request'].data.should.equal('foo=bar');
       });
 
       it('should fallback to <unavailable> if body is not available', function(){
@@ -352,7 +352,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['http'].data.should.equal('<unavailable>');
+        parsed['request'].data.should.equal('<unavailable>');
       });
     });
   });
