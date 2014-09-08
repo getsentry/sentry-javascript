@@ -39,17 +39,21 @@ client.on('error', function(err) {
     throw err;
 });
 
-client.captureMessage(
-    'This is a test message generated using ``raven test``', {
-    level: 'info',
-    logger: 'sentry.test',
-    culprit: 'bin:raven at main',
-    request: {
-        method: 'GET',
-        url: 'http://example.com'
-    },
-    extra: {
-        user: process.getuid && process.getuid(),
-        loadavg: os.loadavg()
-    }
-});
+try {
+    test
+} catch (ex) {
+    client.captureException(ex, {
+        message: 'This is a test message generated using ``raven test``',
+        level: 'info',
+        logger: 'sentry.test',
+        culprit: 'bin:raven at main',
+        request: {
+            method: 'GET',
+            url: 'http://example.com'
+        },
+        extra: {
+            user: process.getuid && process.getuid(),
+            loadavg: os.loadavg()
+        }
+    });
+}
