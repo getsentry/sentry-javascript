@@ -198,6 +198,18 @@ client = new raven.Client('{{ SENTRY_DSN }}', {
 });
 ```
 
+## Pre-processing data
+Pass the `dataCallback` configuration value:
+
+```javascript
+client = new raven.Client('{{ SENTRY_DSN }}', {
+  dataCallback: function(data) {
+    delete data.request.env;
+    return data;
+  }
+});
+```
+
 ## Disable Raven
 Pass `false` as the DSN (or any falsey value).
 

@@ -297,6 +297,40 @@ describe('raven.Client', function(){
         });
     });
 
+    describe('#process()', function(){
+        it('should respect dataCallback', function(){
+            var scope = nock('https://app.getsentry.com')
+                .filteringRequestBody(/.*/, '*')
+                .post('/api/store/', '*')
+                .reply(200, function(uri, body) {
+                    zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+                      if (err) return done(err);
+                      var msg = JSON.parse(dec.toString());
+                      var extra = msg.extra;
+
+                      extra.should.not.have.property('foo');
+                    });
+                    return 'OK';
+                });
+
+            var client = new raven.Client(dsn, {
+                dataCallback: function(data){
+                    delete data.extra.foo;
+                    return data;
+                }
+            });
+
+            client.process({
+                message: 'test',
+                extra: {foo: 'bar'}
+            });
+
+            client.on('logged', function(){
+                scope.done();
+            });
+        });
+    });
+
     it('should use a custom transport', function(){
         var expected = {
             protocol: 'udp',
