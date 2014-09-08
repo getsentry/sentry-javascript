@@ -24,9 +24,9 @@ describe('raven.parsers', function(){
       var engine = 'mysql';
       var parsed = raven.parsers.parseQuery(query, engine);
       parsed['message'].should.equal('SELECT * FROM `something`');
-      parsed.should.have.property('sentry.interfaces.Query');
-      parsed['sentry.interfaces.Query'].query.should.equal('SELECT * FROM `something`');
-      parsed['sentry.interfaces.Query'].engine.should.equal('mysql');
+      parsed.should.have.property('query');
+      parsed['query'].query.should.equal('SELECT * FROM `something`');
+      parsed['query'].engine.should.equal('mysql');
     });
   });
 
@@ -48,10 +48,10 @@ describe('raven.parsers', function(){
         }
       };
       var parsed = raven.parsers.parseRequest(mockReq);
-      parsed.should.have.property('sentry.interfaces.Http');
-      parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      parsed['sentry.interfaces.Http'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
-      parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+      parsed.should.have.property('http');
+      parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+      parsed['http'].env.NODE_ENV.should.equal(process.env.NODE_ENV);
+      parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
     });
 
     describe('`headers` detection', function() {
@@ -67,7 +67,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+        parsed['http'].headers.should.eql({ foo: 'bar' });
       });
 
       it('should detect headers via `req.header`', function(){
@@ -82,7 +82,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].headers.should.eql({ foo: 'bar' });
+        parsed['http'].headers.should.eql({ foo: 'bar' });
       });
     });
 
@@ -96,7 +96,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].method.should.equal('GET');
+        parsed['http'].method.should.equal('GET');
       });
     });
 
@@ -110,7 +110,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect host via `req.header.host`', function(){
@@ -124,7 +124,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect host via `req.headers.host`', function(){
@@ -138,7 +138,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
       it('should fallback to <no host> if host is not available', function(){
@@ -149,7 +149,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('http://<no host>/some/path?key=value');
+        parsed['http'].url.should.equal('http://<no host>/some/path?key=value');
       });
     });
 
@@ -169,7 +169,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect protocol via `req.secure`', function(){
@@ -187,7 +187,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect protocol via `req.socket.encrypted`', function(){
@@ -204,7 +204,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
     });
 
@@ -220,7 +220,7 @@ describe('raven.parsers', function(){
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
+        parsed['http'].cookies.should.eql({ foo: 'bar' });
       });
 
       it('should parse `req.header.cookie`', function(){
@@ -234,7 +234,7 @@ describe('raven.parsers', function(){
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
-        parsed['sentry.interfaces.Http'].cookies.should.eql({ foo: 'bar' });
+        parsed['http'].cookies.should.eql({ foo: 'bar' });
       });
 
     });
@@ -250,7 +250,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].query_string.should.eql({ some: 'key' });
+        parsed['http'].query_string.should.eql({ some: 'key' });
       });
 
       it('should detect query via `req.url`', function(){
@@ -262,7 +262,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].query_string.should.eql({ foo: 'bar' });
+        parsed['http'].query_string.should.eql({ foo: 'bar' });
       });
     });
 
@@ -279,7 +279,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
       });
 
       it('should detect ip via `req.connection.remoteAddress`', function(){
@@ -296,7 +296,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed['http'].env.REMOTE_ADDR.should.equal('69.69.69.69');
       });
     });
 
@@ -311,7 +311,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
       it('should detect url via `req.url`', function(){
@@ -324,7 +324,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
+        parsed['http'].url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
     });
 
@@ -339,7 +339,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].data.should.equal('foo=bar');
+        parsed['http'].data.should.equal('foo=bar');
       });
 
       it('should fallback to <unavailable> if body is not available', function(){
@@ -352,7 +352,7 @@ describe('raven.parsers', function(){
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed['sentry.interfaces.Http'].data.should.equal('<unavailable>');
+        parsed['http'].data.should.equal('<unavailable>');
       });
     });
   });
@@ -361,11 +361,10 @@ describe('raven.parsers', function(){
     it('should parse plain Error object', function(done){
       raven.parsers.parseError(new Error(), {}, function(parsed){
         parsed['message'].should.equal('Error: <no message>');
-        parsed.should.have.property('sentry.interfaces.Exception');
-        parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
-        parsed['sentry.interfaces.Exception']['value'].should.equal('');
-        parsed.should.have.property('sentry.interfaces.Stacktrace');
-        parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+        parsed.should.have.property('exception');
+        parsed['exception'][0]['type'].should.equal('Error');
+        parsed['exception'][0]['value'].should.equal('');
+        parsed['exception'][0]['stacktrace'].should.have.property('frames');
         done();
       });
     });
@@ -373,11 +372,10 @@ describe('raven.parsers', function(){
     it('should parse Error with message', function(done){
       raven.parsers.parseError(new Error('Crap'), {}, function(parsed){
         parsed['message'].should.equal('Error: Crap');
-        parsed.should.have.property('sentry.interfaces.Exception');
-        parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
-        parsed['sentry.interfaces.Exception']['value'].should.equal('Crap');
-        parsed.should.have.property('sentry.interfaces.Stacktrace');
-        parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+        parsed.should.have.property('exception');
+        parsed['exception'][0]['type'].should.equal('Error');
+        parsed['exception'][0]['value'].should.equal('Crap');
+        parsed['exception'][0]['stacktrace'].should.have.property('frames');
         done();
       });
     });
@@ -385,11 +383,10 @@ describe('raven.parsers', function(){
     it('should parse TypeError with message', function(done){
       raven.parsers.parseError(new TypeError('Crap'), {}, function(parsed){
         parsed['message'].should.equal('TypeError: Crap');
-        parsed.should.have.property('sentry.interfaces.Exception');
-        parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
-        parsed['sentry.interfaces.Exception']['value'].should.equal('Crap');
-        parsed.should.have.property('sentry.interfaces.Stacktrace');
-        parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+        parsed.should.have.property('exception');
+        parsed['exception'][0]['type'].should.equal('TypeError');
+        parsed['exception'][0]['value'].should.equal('Crap');
+        parsed['exception'][0]['stacktrace'].should.have.property('frames');
         done();
       });
     });
@@ -400,11 +397,10 @@ describe('raven.parsers', function(){
       } catch(e) {
         raven.parsers.parseError(e, {}, function(parsed){
           parsed['message'].should.equal('Error: Derp');
-          parsed.should.have.property('sentry.interfaces.Exception');
-          parsed['sentry.interfaces.Exception']['type'].should.equal('Error');
-          parsed['sentry.interfaces.Exception']['value'].should.equal('Derp');
-          parsed.should.have.property('sentry.interfaces.Stacktrace');
-          parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          parsed.should.have.property('exception');
+          parsed['exception'][0]['type'].should.equal('Error');
+          parsed['exception'][0]['value'].should.equal('Derp');
+          parsed['exception'][0]['stacktrace'].should.have.property('frames');
           done();
         });
       }
@@ -429,11 +425,10 @@ describe('raven.parsers', function(){
         raven.parsers.parseError(e, {}, function(parsed){
           parsed['message'].should.containEql('TypeError');
           parsed['message'].should.containEql('Derp');
-          parsed.should.have.property('sentry.interfaces.Exception');
-          parsed['sentry.interfaces.Exception']['type'].should.equal('TypeError');
-          parsed['sentry.interfaces.Exception']['value'].should.containEql('Derp');
-          parsed.should.have.property('sentry.interfaces.Stacktrace');
-          parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          parsed.should.have.property('exception');
+          parsed['exception'][0]['type'].should.equal('TypeError');
+          parsed['exception'][0]['value'].should.containEql('Derp');
+          parsed['exception'][0]['stacktrace'].should.have.property('frames');
           done();
         });
       }
@@ -444,8 +439,8 @@ describe('raven.parsers', function(){
         assert.strictEqual(1, 2);
       } catch(e) {
         raven.parsers.parseError(e, {}, function(parsed){
-          parsed.should.have.property('sentry.interfaces.Stacktrace');
-          parsed['sentry.interfaces.Stacktrace'].should.have.property('frames');
+          parsed.should.have.property('exception');
+          parsed['exception'][0]['stacktrace'].should.have.property('frames');
           parsed.should.have.property('extra');
           parsed['extra'].should.have.property('AssertionError');
           parsed['extra']['AssertionError'].should.have.property('actual');
