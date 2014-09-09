@@ -297,6 +297,33 @@ describe('raven.Client', function(){
             });
             process.emit('uncaughtException', new Error('derp'));
         });
+
+        it('should not enter in recursion when an error is thrown on client request', function(done){
+            // remove existing uncaughtException handlers
+            var uncaughtBefore = process._events.uncaughtException;
+            process.removeAllListeners('uncaughtException');
+
+            var transportBefore = client.transport.send;
+
+            client.transport.send = function() {
+                throw new Error('foo');
+            };
+
+            client.patchGlobal(function(success, err){
+                success.should.eql(false);
+                err.should.be.instanceOf(Error);
+                err.message.should.equal('foo');
+
+                // restore things to how they were
+                process._events.uncaughtException = uncaughtBefore;
+                client.transport.send = transportBefore;
+
+                done();
+            });
+
+
+            process.emit('uncaughtException', new Error('derp'));
+        });
     });
 
     describe('#process()', function(){
