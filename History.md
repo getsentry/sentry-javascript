@@ -1,3 +1,6 @@
+# 0.7.2 - 09/09/2014
+ * Added `dataCallback` option to Client configuration. See: https://github.com/getsentry/raven-node#pre-processing-data
+
 # 0.7.1 - 08/24/2014
  * Fixed package.json to not install junk from `optionalDependencies`. TIL `optionalDependencies` are still installed. [See #89]
 
