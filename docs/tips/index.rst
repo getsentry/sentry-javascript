@@ -62,3 +62,18 @@ The community has compiled a list of common ignore rules for common things, like
           /metrics\.itunes\.apple\.com\.edgesuite\.net\//i
         ]
     };
+
+External / CDN Scripts
+~~~~~~~~~~~~~~~~~~~~~~
+
+In many browsers, Raven.js will be prevented from reporting errors in scripts that are loaded from a different domain, e.g.: scripts loaded from a CDN or subdomain. This is for security reasons: to stop any information leaking across domain boundaries.
+
+One basic workaround to this is to either not host your javascript files on an external domain, or to proxy externally hosted scripts through your domain. However, this rather negates the value of using a CDN.
+
+The "real" solution is to enable `Cross Origin Resource Sharing <https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS>`_ (CORS) on your CDN / static file server and to add the ``crossorigin="anonymous"`` attribute to your script tags, e.g.::
+
+    <script type="text/javascript" crossorigin="anonymous"
+        src="my-cors-enabled-bucket.s3.com/foo.js">
+    </script>
+
+For more info, see `enable-cors.org <http://enable-cors.org>`_ and Amazon S3's `CORS documentation <http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html>`_.
