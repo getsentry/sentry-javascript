@@ -2,7 +2,7 @@
 if (typeof define === 'function' && define.amd) {
     // AMD
     define('raven', [], function() { return Raven; });
-} else if (typeof module === 'object') {
+} else if (isObject(module)) {
     // CommonJS
     module.exports = Raven;
 } else {
