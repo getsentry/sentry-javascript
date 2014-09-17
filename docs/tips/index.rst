@@ -1,6 +1,7 @@
 Pro Tips™
 =========
 
+
 Decluttering Sentry
 ~~~~~~~~~~~~~~~~~~~
 
@@ -62,3 +63,17 @@ The community has compiled a list of common ignore rules for common things, like
           /metrics\.itunes\.apple\.com\.edgesuite\.net\//i
         ]
     };
+
+
+Sampling Data
+~~~~~~~~~~~~~
+
+It happens frequently that errors sent from your frontend can be overwhelming. One solution here is to only send a sample of the events that happen. You can do this via the ``shouldSendCallback`` setting:
+
+.. code-block:: javascript
+
+    shouldSendCallback: function(data) {
+        // only send 10% of errors
+        var sampleRate = 10;
+        return (Math.random() * 100 <= sampleRate);
+    }
