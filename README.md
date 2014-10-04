@@ -11,7 +11,7 @@ All processing and sending happens asynchronously to not slow things down if/whe
  * 0.10.x
  * 0.11.x
 
-Raven 0.6+ requires Sentry 6.0+
+Raven 0.7+ requires Sentry 6.4+
 
 ## Installation
 ```
