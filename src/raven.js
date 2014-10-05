@@ -656,8 +656,8 @@ function send(data) {
     }, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-    data.tags = objectMerge(globalOptions.tags, data.tags);
-    data.extra = objectMerge(globalOptions.extra, data.extra);
+    data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
+    data.extra = objectMerge(objectMerge({}, globalOptions.extra), data.extra);
 
     // Send along our own collected metadata with extra
     data.extra = objectMerge({

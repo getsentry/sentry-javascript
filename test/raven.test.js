@@ -897,6 +897,11 @@ describe('globals', function() {
                 tags: {tag1: 'value1', tag2: 'value2'},
                 extra: {'session:duration': 100}
             }]);
+            assert.deepEqual(globalOptions, {
+                logger: 'javascript',
+                site: 'THE BEST',
+                tags: {tag1: 'value1'}
+            });
         });
 
         it('should merge in global extra', function() {
@@ -930,6 +935,11 @@ describe('globals', function() {
                 event_id: 'abc123',
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
             }]);
+            assert.deepEqual(globalOptions, {
+                logger: 'javascript',
+                site: 'THE BEST',
+                extra: {key1: 'value1'}
+            });
         });
 
         it('should let dataCallback override everything', function() {
