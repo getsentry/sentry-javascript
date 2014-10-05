@@ -16,7 +16,10 @@ function flushRavenState() {
         maxMessageLength: 100,
         tags: {},
         extra: {}
-    };
+    },
+    startTime = 0
+    ;
+
     Raven.uninstall();
 }
 
@@ -39,6 +42,11 @@ function setupRaven() {
 // patched to return a predictable result
 function uuid4() {
     return 'abc123';
+}
+
+// patched to be predictable
+function now() {
+    return 100;
 }
 
 describe('TraceKit', function(){
@@ -815,7 +823,8 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar'
+                foo: 'bar',
+                extra: {'session:duration': 100}
             });
         });
 
@@ -851,7 +860,8 @@ describe('globals', function() {
                 user: {
                     name: 'Matt'
                 },
-                foo: 'bar'
+                foo: 'bar',
+                extra: {'session:duration': 100}
             }]);
         });
 
@@ -884,7 +894,8 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                tags: {tag1: 'value1', tag2: 'value2'}
+                tags: {tag1: 'value1', tag2: 'value2'},
+                extra: {'session:duration': 100}
             }]);
         });
 
@@ -917,7 +928,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                extra: {key1: 'value1', key2: 'value2'}
+                extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
             }]);
         });
 
@@ -943,7 +954,7 @@ describe('globals', function() {
             }]);
         });
 
-        it('should strip empty tags/extra', function() {
+        it('should strip empty tags', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
@@ -955,8 +966,7 @@ describe('globals', function() {
                 projectId: 2,
                 logger: 'javascript',
                 site: 'THE BEST',
-                tags: {},
-                extra: {}
+                tags: {}
             };
 
             send({foo: 'bar', tags: {}, extra: {}});
@@ -972,7 +982,8 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar'
+                foo: 'bar',
+                extra: {'session:duration': 100}
             });
         });
     });
