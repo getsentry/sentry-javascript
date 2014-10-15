@@ -44,7 +44,19 @@ $.fn.ready = function ravenjQueryReadyWrapper(fn) {
 
 var _oldAjax = $.ajax;
 $.ajax = function ravenAjaxWrapper(url, options) {
-    var keys = ['complete', 'error', 'success'], key;
+    var jqXHR;
+
+    function wrapObjectKeys(obj, keys) {
+        var key;
+
+        /*jshint -W084*/
+        while (key = keys.pop()) {
+            if ($.isFunction(obj[key])) {
+                obj[key] = Raven.wrap(obj[key]);
+            }
+        }
+        /*jshint +W084*/
+    }
 
     // Taken from https://github.com/jquery/jquery/blob/eee2eaf1d7a189d99106423a4206c224ebd5b848/src/ajax.js#L311-L318
     // If url is an object, simulate pre-1.5 signature
@@ -56,16 +68,16 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     // Force options to be an object
     options = options || {};
 
-    /*jshint -W084*/
-    while(key = keys.pop()) {
-        if ($.isFunction(options[key])) {
-            options[key] = Raven.wrap(options[key]);
-        }
-    }
-    /*jshint +W084*/
+    // wrap options callbacks
+    wrapObjectKeys(options, ['complete', 'error', 'success']);
 
     try {
-        return _oldAjax.call(this, url, options);
+        // call _oldAjax and store jqXHR
+        jqXHR = _oldAjax.call(this, url, options);
+        // wrap jqXHR promise handlers
+        wrapObjectKeys(jqXHR, ['done', 'success', 'fail', 'error', 'always', 'then', 'complete']);
+        // return jqXHR
+        return jqXHR;
     } catch (e) {
         Raven.captureException(e);
         throw e;
