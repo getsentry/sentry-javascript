@@ -2,7 +2,7 @@
  * native plugin
  *
  * Extends support for global error handling for asynchronous browser
- * functions. Adopted from Closure Library's errorhandler.js
+ * functions. Adopted from Closure Library's errorhandler.js.
  */
 ;(function extendToAsynchronousCallbacks(window, Raven) {
 "use strict";
@@ -16,8 +16,8 @@ var _helper = function _helper(fnName) {
         if (typeof (originalCallback) === 'function') {
             args[0] = Raven.wrap(originalCallback);
         }
-        // IE < 9 doesn't support .call/.apply on setInterval/etTimeout, but it
-        // also only supports 2 argument and doesn't care what this" is, so we
+        // IE < 9 doesn't support .call/.apply on setInterval/setTimeout, but it
+        // also supports only two arguments and doesn't care what this is, so we
         // can just call the original function directly.
         if (originalFn.apply) {
             return originalFn.apply(this, args);
