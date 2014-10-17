@@ -72,4 +72,19 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     }
 };
 
+var _oldDeferred = $.Deferred;
+$.Deferred = function ravenDeferredWrapper(func) {
+    return _oldDeferred(function beforeStartWrapper(deferred) {
+        // no need to wrap deferred[ resolve | reject | notify ]
+        // as they are calling deferred[ resolveWith | rejectWith | notifyWith ] internally.
+        deferred.resolveWith = Raven.wrap(deferred.resolveWith);
+        deferred.rejectWith = Raven.wrap(deferred.rejectWith);
+        deferred.notifyWith = Raven.wrap(deferred.notifyWith);
+        // Call given func if any
+        if (func) {
+            func.call(deferred, deferred);
+        }
+    });
+};
+
 }(window, window.Raven, window.jQuery));
