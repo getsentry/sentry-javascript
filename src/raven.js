@@ -694,6 +694,7 @@ function makeRequest(data) {
     var img = new Image(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
+    img.crossOrigin = 'anonymous';
     img.onload = function success() {
         triggerEvent('success', {
             data: data,
