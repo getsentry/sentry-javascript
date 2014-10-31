@@ -5,28 +5,18 @@
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
     hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
+    isRavenInstalled = false,
+    objectPrototype = Object.prototype,
+    // Initialize inside initializeGlobals()
     lastCapturedException,
     lastEventId,
     globalServer,
     globalUser,
     globalKey,
     globalProject,
-    globalOptions = {
-        logger: 'javascript',
-        ignoreErrors: [],
-        ignoreUrls: [],
-        whitelistUrls: [],
-        includePaths: [],
-        collectWindowErrors: true,
-        tags: {},
-        maxMessageLength: 100,
-        extra: {}
-    },
+    globalOptions,
     authQueryString,
-    isRavenInstalled = false,
-
-    objectPrototype = Object.prototype,
-    startTime = now();
+    startTime;
 
 /*
  * The core Raven singleton
@@ -219,6 +209,18 @@ var Raven = {
     uninstall: function() {
         TraceKit.report.uninstall();
         isRavenInstalled = false;
+
+        return Raven;
+    },
+
+    /*
+     * Resets the global variables.
+     *
+     * @return {Raven}
+     */
+    reset: function() {
+        Raven.uninstall();
+        initializeGlobals();
 
         return Raven;
     },
@@ -767,8 +769,32 @@ function logDebug(level, message) {
     }
 }
 
+function initializeGlobals() {
+    lastCapturedException = undefined;
+    lastEventId = undefined;
+    globalServer = undefined;
+    globalUser = undefined;
+    globalKey = undefined;
+    globalProject = undefined;
+    globalOptions = {
+        logger: 'javascript',
+        ignoreErrors: [],
+        ignoreUrls: [],
+        whitelistUrls: [],
+        includePaths: [],
+        collectWindowErrors: true,
+        tags: {},
+        maxMessageLength: 100,
+        extra: {}
+    };
+    authQueryString = undefined;
+
+    startTime = now();
+}
+
 function afterLoad() {
     // Attempt to initialize Raven on load
+    initializeGlobals();
     var RavenConfig = window.RavenConfig;
     if (RavenConfig) {
         Raven.config(RavenConfig.dsn, RavenConfig.config).install();
