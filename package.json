@@ -1,5 +1,5 @@
 {
-  "name": "raven-js",
+  "name": "raven",
   "version": "1.1.16",
   "scripts": {
     "pretest": "npm install",
@@ -25,6 +25,5 @@
     "grunt-contrib-copy": "~0.4.1",
     "sinon": "~1.7.3",
     "lodash": "~2.4.0"
-  },
-  "private": true
+  }
 }
