@@ -70,7 +70,7 @@ module.exports = function(grunt) {
             },
             core: {
                 src: coreFiles.concat(plugins),
-                dest: 'build/<%= pkg.name %>.js'
+                dest: 'build/raven.js'
             },
             all: {
                 files: pluginConcatFiles
