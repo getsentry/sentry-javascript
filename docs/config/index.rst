@@ -77,7 +77,7 @@ Does not affect captureMessage or when non-error object is passed in as argument
 ignoreUrls
 ----------
 
-The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignore errors from whole urls patching a regex pattern or an exact string.
+The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignore errors from whole urls matching a regex pattern or an exact string.
 
 .. code-block:: javascript
 
