@@ -7,7 +7,7 @@ We must first configure Sentry to allow certain hosts to report errors. This pre
 
 This can be found under the *Project Details* page in Sentry.
 
-.. image:: //i.imgur.com/S09MeSM.png
+.. image:: https://i.imgur.com/S09MeSM.png
 
 Now need to set up Raven.js to use your Sentry DSN.
 
