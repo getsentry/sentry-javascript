@@ -16,9 +16,8 @@ function flushRavenState() {
         maxMessageLength: 100,
         tags: {},
         extra: {}
-    },
-    startTime = 0
-    ;
+    };
+    startTime = 0;
 
     Raven.uninstall();
 }
@@ -1522,6 +1521,13 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.getUserContext', function() {
+        it('should get the globalUser object', function() {
+            Raven.setUserContext({name: 'Matt'});
+            assert.deepEqual(Raven.getUserContext(), {name: 'Matt'});
+        });
+    });
+
     describe('.setExtraContext', function() {
         it('should set the globalOptions.extra object', function() {
             Raven.setExtraContext({name: 'Matt'});
@@ -1535,6 +1541,13 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.getExtraContext', function() {
+        it('should get the globalOptions.extra object', function() {
+            Raven.setExtraContext({name: 'Matt'});
+            assert.deepEqual(Raven.getExtraContext(), {name: 'Matt'});
+        });
+    });
+
     describe('.setTagsContext', function() {
         it('should set the globalOptions.tags object', function() {
             Raven.setTagsContext({name: 'Matt'});
@@ -1545,6 +1558,13 @@ describe('Raven (public API)', function() {
             globalOptions = {name: 'Matt'};
             Raven.setTagsContext();
             assert.deepEqual(globalOptions.tags, {});
+        });
+    });
+
+    describe('.getTagsContext', function() {
+        it('should get the globalOptions.tags object', function() {
+            Raven.setTagsContext({name: 'Matt'});
+            assert.deepEqual(Raven.getTagsContext(), {name: 'Matt'});
         });
     });
 

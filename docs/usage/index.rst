@@ -63,6 +63,12 @@ While a user is logged in, you can tell Sentry to associate errors with user dat
         id: '123'
     })
 
+You can get the current UserContext with ``getUserContext``.
+
+.. code-block:: javascript
+
+    Raven.getUserContext()
+
 If at any point, the user becomes unauthenticated, you can call ``Raven.setUserContext()`` with no arguments to remove their data. *This would only really be useful in a large web app where the user logs in/out without a page reload.*
 
 Capturing a specific message
@@ -96,6 +102,12 @@ You can also set context variables globally to be merged in with future exceptio
     Raven.setExtraContext({ foo: "bar" })
     Raven.setTagsContext({ key: "value" })
 
+You can get current context variables with ``getExtraContext`` and ``getTagsContext``.
+
+.. code-block:: javascript
+
+    Raven.getExtraContext()
+    Raven.getTagsContext()
 
 Getting back an event id
 ~~~~~~~~~~~~~~~~~~~~~~~~
