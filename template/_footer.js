@@ -4,10 +4,10 @@ if (typeof define === 'function' && define.amd) {
     define('raven', function(Raven) {
       return (window.Raven = Raven);
     });
-} else if (isObject(module)) {
+} else if (typeof module === 'object') {
     // browserify
     module.exports = Raven;
-} else if (isObject(exports)) {
+} else if (typeof exports === 'object') {
     // CommonJS
     exports = Raven;
 } else {
