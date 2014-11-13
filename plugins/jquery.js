@@ -57,7 +57,7 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     options = options || {};
 
     /*jshint -W084*/
-    while(key = keys.pop()) {
+    while (key = keys.pop()) {
         if ($.isFunction(options[key])) {
             options[key] = Raven.wrap(options[key]);
         }
@@ -65,7 +65,11 @@ $.ajax = function ravenAjaxWrapper(url, options) {
     /*jshint +W084*/
 
     try {
-        return _oldAjax.call(this, url, options);
+        var jqXHR = _oldAjax.call(this, url, options);
+        // jqXHR.complete is not a regular deferred callback
+        if ($.isFunction(jqXHR.complete))
+            jqXHR.complete = Raven.wrap(jqXHR.complete);
+        return jqXHR;
     } catch (e) {
         Raven.captureException(e);
         throw e;
@@ -74,12 +78,21 @@ $.ajax = function ravenAjaxWrapper(url, options) {
 
 var _oldDeferred = $.Deferred;
 $.Deferred = function ravenDeferredWrapper(func) {
-    return _oldDeferred(function beforeStartWrapper(deferred) {
-        // no need to wrap deferred[ resolve | reject | notify ]
-        // as they are calling deferred[ resolveWith | rejectWith | notifyWith ] internally.
-        deferred.resolveWith = Raven.wrap(deferred.resolveWith);
-        deferred.rejectWith = Raven.wrap(deferred.rejectWith);
-        deferred.notifyWith = Raven.wrap(deferred.notifyWith);
+    return !_oldDeferred ? null : _oldDeferred(function beforeStartWrapper(deferred) {
+        var methods = ['resolve', 'reject', 'notify', 'resolveWith', 'rejectWith', 'notifyWith'], method;
+
+        // since jQuery 1.9, deferred[resolve | reject | notify] are calling internally
+        // deferred[resolveWith | rejectWith | notifyWith] but we need to wrap them as well
+        // to support all previous versions.
+
+        /*jshint -W084*/
+        while (method = methods.pop()) {
+            if ($.isFunction(deferred[method])) {
+                deferred[method] = Raven.wrap(deferred[method]);
+            }
+        }
+        /*jshint +W084*/
+
         // Call given func if any
         if (func) {
             func.call(deferred, deferred);
