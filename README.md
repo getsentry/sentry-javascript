@@ -51,13 +51,22 @@ var client = new raven.Client('{{ SENTRY_DSN }}');
 client.captureMessage("Another message")
 ```
 
-**Adding extra info to messages**
+**Adding extra info an event**
 ```javascript
 var raven = require('raven');
 
 var client = new raven.Client('{{ SENTRY_DSN }}');
 
 client.captureMessage("Another message", {extra: {'key': 'value'}})
+```
+
+**Adding tags to an event**
+```javascript
+var raven = require('raven');
+
+var client = new raven.Client('{{ SENTRY_DSN }}');
+
+client.captureMessage("Another message", {tags: {'key': 'value'}})
 ```
 
 ## Logging an error
