@@ -829,15 +829,13 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript',
-                site: 'THE BEST'
+                logger: 'javascript'
             };
 
             send({foo: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
-                site: 'THE BEST',
                 platform: 'javascript',
                 request: {
                     url: 'http://localhost/?a=b',
@@ -861,8 +859,7 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript',
-                site: 'THE BEST'
+                logger: 'javascript'
             };
 
             globalUser = {name: 'Matt'};
@@ -871,7 +868,6 @@ describe('globals', function() {
             assert.deepEqual(window.makeRequest.lastCall.args, [{
                 project: '2',
                 logger: 'javascript',
-                site: 'THE BEST',
                 platform: 'javascript',
                 request: {
                     url: 'http://localhost/?a=b',
@@ -899,7 +895,6 @@ describe('globals', function() {
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
-                site: 'THE BEST',
                 tags: {tag1: 'value1'}
             };
 
@@ -908,7 +903,6 @@ describe('globals', function() {
             assert.deepEqual(window.makeRequest.lastCall.args, [{
                 project: '2',
                 logger: 'javascript',
-                site: 'THE BEST',
                 platform: 'javascript',
                 request: {
                     url: 'http://localhost/?a=b',
@@ -922,7 +916,6 @@ describe('globals', function() {
             }]);
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
-                site: 'THE BEST',
                 tags: {tag1: 'value1'}
             });
         });
@@ -938,7 +931,6 @@ describe('globals', function() {
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
-                site: 'THE BEST',
                 extra: {key1: 'value1'}
             };
 
@@ -947,7 +939,6 @@ describe('globals', function() {
             assert.deepEqual(window.makeRequest.lastCall.args, [{
                 project: '2',
                 logger: 'javascript',
-                site: 'THE BEST',
                 platform: 'javascript',
                 request: {
                     url: 'http://localhost/?a=b',
@@ -960,7 +951,6 @@ describe('globals', function() {
             }]);
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
-                site: 'THE BEST',
                 extra: {key1: 'value1'}
             });
         });
@@ -972,7 +962,6 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
-                site: 'THE BEST',
                 dataCallback: function() {
                     return {lol: 'ibrokeit'};
                 }
@@ -998,7 +987,6 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
-                site: 'THE BEST',
                 tags: {}
             };
 
@@ -1006,7 +994,6 @@ describe('globals', function() {
             assert.deepEqual(window.makeRequest.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
-                site: 'THE BEST',
                 platform: 'javascript',
                 request: {
                     url: 'http://localhost/?a=b',
