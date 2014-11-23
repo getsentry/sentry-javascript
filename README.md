@@ -48,7 +48,7 @@ var raven = require('raven');
 
 var client = new raven.Client('{{ SENTRY_DSN }}');
 
-client.captureMessage("Another message", {level: 'info'})
+client.captureMessage("Another message")
 ```
 
 **Adding extra info to messages**
@@ -57,7 +57,7 @@ var raven = require('raven');
 
 var client = new raven.Client('{{ SENTRY_DSN }}');
 
-client.captureMessage("Another message", {level: 'info', extra: {'key': 'value'}})
+client.captureMessage("Another message", {extra: {'key': 'value'}})
 ```
 
 ## Logging an error
