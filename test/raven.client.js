@@ -414,5 +414,29 @@ describe('raven.Client', function(){
         });
         client.captureError(new Error('wtf?'));
     });
+
+    it('should capture extra data', function(done) {
+        var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/store/', '*')
+        .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+              var extra = msg.extra;
+
+              extra.should.have.property('key');
+              extra['key'].should.equal('value');
+
+              done();
+            });
+            return 'OK';
+        });
+
+        client.on('logged', function(){
+            scope.done();
+        });
+        client.process({message: 'test', extra: {key: 'value'}});
+    });
 });
 
