@@ -44,10 +44,9 @@ describe('raven.Client', function(){
             project_id: 269,
             port: 443
         };
-        var client = new raven.Client(dsn, {name: 'YAY!', site:'Googlez'});
+        var client = new raven.Client(dsn, {name: 'YAY!'});
         client.dsn.should.eql(expected);
         client.name.should.equal('YAY!');
-        client.site.should.equal('Googlez');
     });
 
     it('should pull SENTRY_DSN from environment', function(){
@@ -101,7 +100,6 @@ describe('raven.Client', function(){
     it('should pull SENTRY_SITE from environment', function(){
         process.env.SENTRY_SITE='Googlez';
         var client = new raven.Client(dsn);
-        client.site.should.eql('Googlez');
         delete process.env.SENTRY_SITE;
     });
 
