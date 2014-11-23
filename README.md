@@ -36,7 +36,7 @@ client.captureMessage('Hello, world!');
 You can specify a level in the second optional parameter. Default level is `error`
 
 
-**There are 5 logging levels (in order):**
+**Sentry is aware of five different levels:**
  * debug (the least serious)
  * info
  * warning
@@ -46,7 +46,7 @@ You can specify a level in the second optional parameter. Default level is `erro
 ```javascript
 var raven = require('raven');
 
-var client = new raven.Client('{{ SENTRY_DSN }}');
+var client = new raven.Client('{{ SENTRY_DSN }}', {level: 'warning'});
 
 client.captureMessage("Another message")
 ```
