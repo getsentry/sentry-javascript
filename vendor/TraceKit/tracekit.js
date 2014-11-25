@@ -637,7 +637,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             stack = [],
             parts,
             element,
-            func,
             reference = /^(.*) is undefined$/.exec(ex.message);
 
         for (var i = 0, j = lines.length; i < j; ++i) {
