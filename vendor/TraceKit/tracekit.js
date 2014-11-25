@@ -631,7 +631,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var chrome = /^\s*at ([^\(]+)? ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
@@ -652,7 +652,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             } else if ((parts = chrome.exec(lines[i]))) {
                 element = {
                     'url': parts[2],
-                    'func': (parts[1] || UNKNOWN_FUNCTION).trim(),
+                    'func': (parts[1] || UNKNOWN_FUNCTION),
                     'line': +parts[3],
                     'column': parts[4] ? +parts[4] : null
                 };
