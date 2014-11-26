@@ -651,7 +651,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             } else if ((parts = chrome.exec(lines[i]))) {
                 element = {
                     'url': parts[2],
-                    'func': (parts[1] || UNKNOWN_FUNCTION),
+                    'func': parts[1] || UNKNOWN_FUNCTION,
                     'line': +parts[3],
                     'column': parts[4] ? +parts[4] : null
                 };
