@@ -1497,35 +1497,6 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('.reset', function() {
-        it('should reset global variables to default values', function() {
-            Raven.reset();
-            assert.isUndefined(globalServer);
-            assert.isUndefined(globalUser);
-            assert.isUndefined(globalKey);
-            assert.isUndefined(globalProject);
-            assert.isUndefined(authQueryString);
-            assert.isUndefined(lastCapturedException);
-            assert.isUndefined(lastEventId);
-            assert.deepEqual(globalOptions, {
-                logger: 'javascript',
-                ignoreErrors: [],
-                ignoreUrls: [],
-                whitelistUrls: [],
-                includePaths: [],
-                collectWindowErrors: true,
-                tags: {},
-                maxMessageLength: 100,
-                extra: {}
-            });
-        });
-
-        it('should uninstall Raven', function() {
-            Raven.reset();
-            assert.isFalse(isRavenInstalled);
-        });
-    });
-
     describe('.setUserContext', function() {
         it('should set the globalUser object', function() {
             Raven.setUserContext({name: 'Matt'});
