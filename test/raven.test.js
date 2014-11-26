@@ -56,21 +56,23 @@ describe('TraceKit', function(){
             // named functions and anonymous functions
             var stack_str = "" +
                 "  Error: \n" +
-                "    at namedFunc0 (http://example.com/js/script.js:10)\n" +   // stack[0]
-                "    at http://example.com/js/test.js:65\n" +                  // stack[1]
-                "    at namedFunc2 (http://example.com/js/script.js:20)\n" +   // stack[2]
-                "    at http://example.com/js/test.js:67\n" +                  // stack[3]
-                "    at namedFunc4 (http://example.com/js/script.js:100001)";  // stack[4]
+                "    at new <anonymous> (http://example.com/js/test.js:63)\n" + // stack[0]
+                "    at namedFunc0 (http://example.com/js/script.js:10)\n" +    // stack[1]
+                "    at http://example.com/js/test.js:65\n" +                   // stack[2]
+                "    at namedFunc2 (http://example.com/js/script.js:20)\n" +    // stack[3]
+                "    at http://example.com/js/test.js:67\n" +                   // stack[4]
+                "    at namedFunc4 (http://example.com/js/script.js:100001)";   // stack[5]
             var mock_err = { stack: stack_str };
             var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
 
             // Make sure TraceKit didn't remove the anonymous functions
             // from the stack like it used to :)
-            assert.equal(trace.stack[0].func, 'namedFunc0');
-            assert.equal(trace.stack[1].func, '?');
-            assert.equal(trace.stack[2].func, 'namedFunc2');
-            assert.equal(trace.stack[3].func, '?');
-            assert.equal(trace.stack[4].func, 'namedFunc4');
+            assert.equal(trace.stack[0].func, 'new <anonymous>');
+            assert.equal(trace.stack[1].func, 'namedFunc0');
+            assert.equal(trace.stack[2].func, '?');
+            assert.equal(trace.stack[3].func, 'namedFunc2');
+            assert.equal(trace.stack[4].func, '?');
+            assert.equal(trace.stack[5].func, 'namedFunc4');
         });
     });
     describe('error notifications', function(){
