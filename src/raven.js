@@ -4,10 +4,10 @@
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
-    hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
     // Initialize inside initializeGlobals()
+    hasJSON,
     lastCapturedException,
     lastEventId,
     globalServer,
@@ -770,6 +770,7 @@ function logDebug(level, message) {
 }
 
 function initializeGlobals() {
+    hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
     lastCapturedException = undefined;
     lastEventId = undefined;
     globalServer = undefined;
