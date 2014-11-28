@@ -178,12 +178,11 @@ connect(
 #### Express
 ```javascript
 var app = require('express')();
-app.use(app.router);
-app.use(raven.middleware.express('{{ SENTRY_DSN }}'));
-app.use(onError); // optional error handler if you want to display the error id to a user
 app.get('/', function mainHandler(req, res) {
   throw new Error('Broke!');
 });
+app.use(raven.middleware.express('{{ SENTRY_DSN }}'));
+app.use(onError); // optional error handler if you want to display the error id to a user
 app.listen(3000);
 ```
 
