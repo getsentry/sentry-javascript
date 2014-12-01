@@ -12,7 +12,7 @@ If your scripts are loaded from ``cdn.example.com`` and your site is ``example.c
 .. code-block:: javascript
 
     whitelistUrls: [
-      /example\.com/
+      /https?:\/\/((cdn|www)\.)?example\.com/
     ]
 
 Since this accepts a regular expression, that would catch anything \*.example.com or example.com exactly. See also: :ref:`Config: whitelistUrls<config-whitelist-urls>`.
