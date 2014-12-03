@@ -113,6 +113,18 @@ describe('raven.parsers', function(){
         parsed['request'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
+      it('should detect host via deprecated `req.host`', function(){
+        var mockReq = {
+          method: 'GET',
+          host: 'mattrobenolt.com',
+          url: '/some/path?key=value'
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        parsed['request'].url.should.equal('http://mattrobenolt.com/some/path?key=value');
+      });
+
       it('should detect host via `req.header.host`', function(){
         var mockReq = {
           method: 'GET',
