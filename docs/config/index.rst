@@ -107,7 +107,7 @@ A function that allows mutation of the data payload right before being sent to S
 
     {
         dataCallback: function(data) {
-          // do somethign to data
+          // do something to data
           return data;
         }
     }
