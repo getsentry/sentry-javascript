@@ -115,6 +115,15 @@ This is often used to display for the user and report an error to customer servi
     Raven.captureMessage('Broken!')
     alert(Raven.lastEventId())
 
+
+Check if Raven is setup and ready to go
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: javascript
+
+    Raven.isSetup()
+
+
 Dealing with minified source code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

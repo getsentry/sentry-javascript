@@ -1639,4 +1639,14 @@ describe('Raven (public API)', function() {
             assert.isFalse(TraceKit.report.called);
         });
     });
+
+    describe('.isSetup', function() {
+        it('should work as advertised', function() {
+            var isSetup = this.sinon.stub(window, 'isSetup');
+            isSetup.returns(true);
+            assert.isTrue(Raven.isSetup());
+            isSetup.returns(false);
+            assert.isFalse(Raven.isSetup());
+        });
+    });
 });
