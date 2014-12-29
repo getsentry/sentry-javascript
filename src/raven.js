@@ -323,6 +323,15 @@ var Raven = {
      */
     lastEventId: function() {
         return lastEventId;
+    },
+
+    /*
+     * Determine if Raven is setup and ready to go.
+     *
+     * @return {boolean}
+     */
+    isSetup: function() {
+        return isSetup();
     }
 };
 
