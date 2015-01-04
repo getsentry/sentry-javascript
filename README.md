@@ -128,6 +128,10 @@ Optionally set the name for the client to use. [What is name?](http://raven.read
 ### SENTRY_SITE
 Optionally set the site for the client to use. [What is site?](http://raven.readthedocs.org/en/latest/config/index.html#site)
 
+### RELEASE
+Optionally set the application release version for the client to use, this is usually a Git SHA hash. Raven will also check to see whether
+the VERSION environment variable is set if it cannot find RELEASE.
+
 ## Catching global errors
 For those times when you don't catch all errors in your application. ;)
 
