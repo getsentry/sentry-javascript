@@ -13,9 +13,24 @@ if (!Backbone) {
 
 function makeBackboneEventsOn(oldOn) {
   return function BackboneEventsOn(name, callback, context) {
-    var _callback = callback._callback || callback;
-    callback = Raven.wrap(callback);
-    callback._callback = _callback;
+    var wrapCallback = function (cb) {
+      if (Object.prototype.toString.call(cb) === '[object Function]') {
+        var _callback = cb._callback || cb;
+        cb = Raven.wrap(cb);
+        cb._callback = _callback;
+      }
+      return cb;
+    };
+    if (Object.prototype.toString.call(name) === '[object Object]') {
+      // Handle event maps.
+      for (var key in name) {
+        if (name.hasOwnProperty(key)) {
+          name[key] = wrapCallback(name[key]);
+        }
+      }
+    } else {
+      callback = wrapCallback(callback);
+    }
     return oldOn.call(this, name, callback, context);
   };
 }
