@@ -406,6 +406,17 @@ describe('raven.parsers', function(){
       }
     });
 
+    it('should allow specifying a custom `culprit`', function(done){
+      try {
+        throw new Error('Foobar');
+      } catch(e) {
+        raven.parsers.parseError(e, { culprit:'foobar' }, function(parsed){
+          parsed.culprit.should.equal('foobar');
+          done();
+        });
+      }
+    });
+
     it('should have a string stack after parsing', function(done){
       try {
         throw new Error('Derp');
