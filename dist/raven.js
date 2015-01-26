@@ -1,10 +1,10 @@
-/*! Raven.js 1.1.16 (463f68f) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.16 (c7c2d2f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2014 Matt Robenolt and other contributors
+ * Copyright 2015 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -645,8 +645,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var chrome = /^\s*at (?:((?:\[object object\])?\S+(?: \[as \S+\])?) )?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
@@ -1078,6 +1078,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     }
 
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
+    computeStackTrace.computeStackTraceFromStackProp = computeStackTraceFromStackProp;
     computeStackTrace.guessFunctionName = guessFunctionName;
     computeStackTrace.gatherContext = gatherContext;
     computeStackTrace.ofCaller = computeStackTraceOfCaller;
@@ -1091,7 +1092,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
-    hasJSON = !!(window.JSON && window.JSON.stringify),
+    hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
     lastCapturedException,
     lastEventId,
     globalServer,
@@ -1106,10 +1107,14 @@ var _Raven = window.Raven,
         includePaths: [],
         collectWindowErrors: true,
         tags: {},
+        maxMessageLength: 100,
         extra: {}
     },
     authQueryString,
-    isRavenInstalled = false;
+    isRavenInstalled = false,
+
+    objectPrototype = Object.prototype,
+    startTime = now();
 
 /*
  * The core Raven singleton
@@ -1159,12 +1164,8 @@ var Raven = {
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
-        globalOptions.ignoreErrors.push('Script error.');
-        globalOptions.ignoreErrors.push('Script error');
-
-        // Other variants of external script errors:
-        globalOptions.ignoreErrors.push('Javascript error: Script error on line 0');
-        globalOptions.ignoreErrors.push('Javascript error: Script error. on line 0');
+        globalOptions.ignoreErrors.push(/^Script error\.?$/);
+        globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
 
         // join regexp rules into one big rule
         globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
@@ -1319,7 +1320,7 @@ var Raven = {
      */
     captureException: function(ex, options) {
         // If not an Error is passed through, recall as a message instead
-        if (!(ex instanceof Error)) return Raven.captureMessage(ex, options);
+        if (!isError(ex)) return Raven.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
         lastCapturedException = ex;
@@ -1410,6 +1411,15 @@ var Raven = {
      */
     lastEventId: function() {
         return lastEventId;
+    },
+
+    /*
+     * Determine if Raven is setup and ready to go.
+     *
+     * @return {boolean}
+     */
+    isSetup: function() {
+        return isSetup();
     }
 };
 
@@ -1486,9 +1496,21 @@ function isString(what) {
     return typeof what === 'string';
 }
 
+function isObject(what) {
+    return typeof what === 'object' && what !== null;
+}
+
 function isEmptyObject(what) {
     for (var k in what) return false;
     return true;
+}
+
+// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
+// with some tiny modifications
+function isError(what) {
+    return isObject(what) &&
+        objectPrototype.toString.call(what) === '[object Error]' ||
+        what instanceof Error;
 }
 
 /**
@@ -1499,7 +1521,7 @@ function isEmptyObject(what) {
  * @param {string} key to check
  */
 function hasKey(object, key) {
-    return Object.prototype.hasOwnProperty.call(object, key);
+    return objectPrototype.hasOwnProperty.call(object, key);
 }
 
 function each(obj, callback) {
@@ -1658,7 +1680,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     }
 
     // Truncate the message to a max of characters
-    message = truncate(message, 100);
+    message = truncate(message, globalOptions.maxMessageLength);
 
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
     if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
@@ -1695,6 +1717,10 @@ function truncate(str, max) {
     return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
+function now() {
+    return +new Date();
+}
+
 function getHttpData() {
     var http = {
         url: document.location.href,
@@ -1711,24 +1737,25 @@ function getHttpData() {
 }
 
 function send(data) {
-    if (!isSetup()) return;
-
     data = objectMerge({
         project: globalProject,
         logger: globalOptions.logger,
-        site: globalOptions.site,
         platform: 'javascript',
         // sentry.interfaces.Http
         request: getHttpData()
     }, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-    data.tags = objectMerge(globalOptions.tags, data.tags);
-    data.extra = objectMerge(globalOptions.extra, data.extra);
+    data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
+    data.extra = objectMerge(objectMerge({}, globalOptions.extra), data.extra);
+
+    // Send along our own collected metadata with extra
+    data.extra = objectMerge({
+        'session:duration': now() - startTime,
+    }, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
-    if (isEmptyObject(data.extra)) delete data.extra;
 
     if (globalUser) {
         // sentry.interfaces.User
@@ -1749,7 +1776,12 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    makeRequest(data);
+    if (isSetup()) {
+      makeRequest(data);
+    }
+    else {
+      console.log("If configured, raven.js would send: ", data);
+    }
 }
 
 
@@ -1757,6 +1789,7 @@ function makeRequest(data) {
     var img = new Image(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
+    img.crossOrigin = 'anonymous';
     img.onload = function success() {
         triggerEvent('success', {
             data: data,
@@ -1828,11 +1861,21 @@ function afterLoad() {
 afterLoad();
 
 // Expose Raven to the world
-window.Raven = Raven;
-
-// AMD
 if (typeof define === 'function' && define.amd) {
-    define('raven', [], function() { return Raven; });
+    // AMD
+    window.Raven = Raven;
+    define('raven', function() {
+      return Raven;
+    });
+} else if (typeof module === 'object') {
+    // browserify
+    module.exports = Raven;
+} else if (typeof exports === 'object') {
+    // CommonJS
+    exports = Raven;
+} else {
+    // Everything else
+    window.Raven = Raven;
 }
 
-})(this);
+})(window);
