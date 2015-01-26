@@ -649,8 +649,6 @@ function getHttpData() {
 }
 
 function send(data) {
-    if (!isSetup()) return;
-
     data = objectMerge({
         project: globalProject,
         logger: globalOptions.logger,
@@ -690,7 +688,12 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    makeRequest(data);
+    if (isSetup()) {
+      makeRequest(data);
+    }
+    else {
+      console.log("If configured, raven.js would send: ", data);
+    }
 }
 
 
