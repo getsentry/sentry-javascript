@@ -1086,6 +1086,20 @@ describe('globals', function() {
                 extra: {'session:duration': 100}
             });
         });
+        
+        it('should log to console if not configured', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(console, 'log');
+            send({foo: 'bar'});
+            assert.isTrue(console.log.called);
+        });
+        
+        it('should NOT log to console if configured', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(console, 'log');
+            send({foo: 'bar'});
+            assert.isFalse(console.log.called);
+        });
     });
 
     describe('makeRequest', function() {
@@ -1772,8 +1786,9 @@ describe('Raven (public API)', function() {
         it('should not throw an error if not configured', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
             this.sinon.stub(window, 'send')
-            Raven.captureMessage('foo');
-            assert.isFalse(window.send.called);
+            assert.doesNotThrow(function() {
+                Raven.captureMessage('foo');
+            });
         });
 
     });
@@ -1830,8 +1845,9 @@ describe('Raven (public API)', function() {
         it('should not throw an error if not configured', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
             this.sinon.stub(window, 'handleStackInfo')
-            Raven.captureException(new Error('err'));
-            assert.isFalse(window.handleStackInfo.called);
+            assert.doesNotThrow(function() {
+                Raven.captureException(new Error('err'));
+            });
         });
     });
 
