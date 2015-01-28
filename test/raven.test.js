@@ -1594,6 +1594,18 @@ describe('Raven (public API)', function() {
             Raven.captureMessage('lol');
             assert.equal(Raven.lastEventId(), 'abc123');
         });
+
+        it('should respect `ignoreErrors`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+            Raven.captureMessage('e1');
+            assert.isFalse(window.send.called);
+            Raven.captureMessage('e2');
+            assert.isFalse(window.send.called);
+            Raven.captureMessage('Non-ignored error');
+            assert.isTrue(window.send.calledOnce);
+        });
     });
 
     describe('.captureException', function() {
