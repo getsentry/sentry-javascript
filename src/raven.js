@@ -261,6 +261,13 @@ var Raven = {
      * @return {Raven}
      */
     captureMessage: function(msg, options) {
+        // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
+        // early call; we'll error on the side of logging anything called before configuration since it's
+        // probably something you should see:
+        if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(msg)) {
+            return;
+        }
+
         // Fire away!
         send(
             objectMerge({
