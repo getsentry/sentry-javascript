@@ -2,7 +2,7 @@
 if (typeof define === 'function' && define.amd) {
     // AMD
     window.Raven = Raven;
-    define('raven', function(Raven) {
+    define('raven', function() {
       return Raven;
     });
 } else if (typeof module === 'object') {
