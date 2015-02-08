@@ -212,11 +212,9 @@ TraceKit.report = (function reportModuleWrapper() {
     /**
      * Reports an unhandled Error to TraceKit.
      * @param {Error} ex
-     * @param {?boolean} rethrow If false, do not re-throw the exception.
-     * Only used for window.onerror to not cause an infinite loop of
-     * rethrowing.
+     * @param {...*} extraArgs Any arguments to pass to the registered handlers.
      */
-    function report(ex, rethrow) {
+    function report(ex, extraArgs) {
         var args = _slice.call(arguments, 1);
         if (lastExceptionStack) {
             if (lastException === ex) {
@@ -240,10 +238,6 @@ TraceKit.report = (function reportModuleWrapper() {
                 processLastException();
             }
         }, (stack.incomplete ? 2000 : 0));
-
-        if (rethrow !== false) {
-            throw ex; // re-throw to propagate to the top level (and cause window.onerror)
-        }
     }
 
     report.subscribe = subscribe;
