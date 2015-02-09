@@ -126,7 +126,8 @@ module.exports = function(grunt) {
         release: {
             options: {
                 npm:           false,
-                commitMessage: 'Release <%= version %>'
+                commitMessage: 'Release <%= version %>',
+                additionalFiles: ['bower.json']
             }
         },
 
