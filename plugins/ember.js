@@ -18,6 +18,8 @@ Ember.onerror = function EmberOnError(error) {
         _oldOnError.call(this, error);
     }
 };
-
+Ember.RSVP.on('error', function (err) {
+  Raven.captureException(err);
+});
 
 }(window, window.Raven, window.Ember));
