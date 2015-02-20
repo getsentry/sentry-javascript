@@ -1,28 +1,3 @@
-function flushRavenState() {
-    authQueryString = undefined;
-    hasJSON = !isUndefined(window.JSON);
-    lastCapturedException = undefined;
-    lastEventId = undefined;
-    globalServer = undefined;
-    globalUser = undefined;
-    globalProject = undefined;
-    globalOptions = {
-        logger: 'javascript',
-        ignoreErrors: [],
-        ignoreUrls: [],
-        whitelistUrls: [],
-        includePaths: [],
-        collectWindowErrors: true,
-        maxMessageLength: 100,
-        tags: {},
-        extra: {}
-    },
-    startTime = 0
-    ;
-
-    Raven.uninstall();
-}
-
 var imageCache = [];
 window.Image = function Image() {
     imageCache.push(this);
@@ -46,6 +21,7 @@ function uuid4() {
 
 // patched to be predictable
 function now() {
+    startTime = 0;
     return 100;
 }
 
@@ -167,7 +143,7 @@ describe('globals', function() {
     });
 
     afterEach(function() {
-        flushRavenState();
+        Raven.reset();
     });
 
     describe('getHttpData', function() {
@@ -1201,7 +1177,7 @@ describe('globals', function() {
 
 describe('Raven (public API)', function() {
     afterEach(function() {
-        flushRavenState();
+        Raven.reset();
     });
 
     describe('.VERSION', function() {
