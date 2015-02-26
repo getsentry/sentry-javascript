@@ -210,6 +210,16 @@ describe('globals', function() {
         });
     });
 
+    describe('isRegExp', function() {
+        it('should do as advertised', function() {
+            assert.isTrue(isRegExp(new RegExp("asdf")));
+            assert.isTrue(isRegExp(/(somethingcool)/gi));
+            assert.isFalse(isRegExp({}));
+            assert.isFalse(isRegExp(undefined));
+            assert.isFalse(isRegExp(function(){}));
+        });
+    });
+
     describe('isString', function() {
         it('should do as advertised', function() {
             assert.isTrue(isString(''));
@@ -355,6 +365,23 @@ describe('globals', function() {
             // shouldn't hit this
             assert.isTrue(false);
         });
+    });
+    
+    describe('filterString', function() {
+      it('should filter correctly', function() {
+          var filters = [/(\w+\@\w+)\.com/, /(\d{3}-?\d{2}-?\d{4})/, 'SECRET'];
+          
+          assert.strictEqual(filterString('secret', filters), '******');
+          assert.strictEqual(filterString('123-45-6789', filters), '***********');
+          assert.strictEqual(
+              filterString('my email is 1234@5678.com', filters),
+              'my email is *********.com');
+          assert.strictEqual(
+              filterString('some SECRET sentence with multiple SEcREts inside', filters),
+              'some ****** sentence with multiple ******s inside');
+          assert.deepEqual(filterString({'ignore': 'anything that isnt a string (secret)'}, filters),
+              {'ignore': 'anything that isnt a string (secret)'});
+      });
     });
 
     describe('normalizeFrame', function() {
@@ -955,6 +982,39 @@ describe('globals', function() {
                 logger: 'javascript',
                 extra: {key1: 'value1'}
             });
+        });
+        
+        it('should filter data sent', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?email=jeanluc@picard.com&myssn=123-45-6789&another=true',
+                headers: {'User-Agent': 'lolbrowser', 'Extra': 'secret-goes-here'}
+            });
+        
+            globalOptions = {
+                filterValues: [/(\w+\@\w+)\.com/, /(\d{3}-?\d{2}-?\d{4})/, 'SECRET'],
+                projectId: 2,
+                logger: 'javascript',
+                site: 'THE BEST',
+                request: {
+                    url: 'http://localhost/?email=jeanluc@picard.com&myssn=123-45-6789',
+                    headers: {
+                        'User-Agent': 'Chrome'
+                    }
+                }
+            };
+        
+            send({
+                exception: 'some secret exception',
+                message: 'my SSN is 123-45-6789'
+            });
+            var sendObj = window.makeRequest.lastCall.args[0];
+
+            assert.equal(sendObj.request.headers['Extra'], "******-goes-here");
+            assert.equal(sendObj.exception, "some ****** exception");
+            assert.equal(sendObj.message, "my SSN is ***********");
+            assert.equal(sendObj.request.url, "http://localhost/?email=**************.com&myssn=***********&another=true");
         });
 
         it('should let dataCallback override everything', function() {
