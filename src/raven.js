@@ -285,9 +285,9 @@ var Raven = {
      * @return {Raven}
      */
     setUserContext: function(user) {
-       globalUser = user;
+        globalUser = user;
 
-       return Raven;
+        return Raven;
     },
 
     /*
@@ -297,9 +297,9 @@ var Raven = {
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-       globalOptions.extra = extra || {};
+        globalOptions.extra = extra || {};
 
-       return Raven;
+        return Raven;
     },
 
     /*
@@ -309,9 +309,9 @@ var Raven = {
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-       globalOptions.tags = tags || {};
+        globalOptions.tags = tags || {};
 
-       return Raven;
+        return Raven;
     },
 
     /*
