@@ -315,6 +315,18 @@ var Raven = {
     },
 
     /*
+     * Set release version of application
+     *
+     * @param {string} release Typically something like a git SHA to identify version
+     * @return {Raven}
+     */
+    setReleaseContext: function(release) {
+        globalOptions.release = release;
+
+        return Raven;
+    },
+
+    /*
      * Get the latest raw exception that was captured by Raven.
      *
      * @return {error}
@@ -682,6 +694,9 @@ function send(data) {
         // sentry.interfaces.User
         data.user = globalUser;
     }
+
+    // Include the release iff it's defined in globalOptions
+    if (globalOptions.release) data.release = globalOptions.release;
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);

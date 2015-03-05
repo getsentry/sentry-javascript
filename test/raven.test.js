@@ -8,6 +8,7 @@ function flushRavenState() {
     globalProject = undefined;
     globalOptions = {
         logger: 'javascript',
+        release: undefined,
         ignoreErrors: [],
         ignoreUrls: [],
         whitelistUrls: [],
@@ -1008,6 +1009,38 @@ describe('globals', function() {
                 extra: {'session:duration': 100}
             });
         });
+
+        it('should attach release if available', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                release: 'abc123',
+            };
+
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+                project: '2',
+                release: 'abc123',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                foo: 'bar',
+                extra: {'session:duration': 100}
+            });
+        });
     });
 
     describe('makeRequest', function() {
@@ -1557,6 +1590,19 @@ describe('Raven (public API)', function() {
             globalOptions = {name: 'Matt'};
             Raven.setTagsContext();
             assert.deepEqual(globalOptions.tags, {});
+        });
+    });
+
+    describe('.setReleaseContext', function() {
+        it('should set the globalOptions.release attribute', function() {
+            Raven.setReleaseContext('abc123');
+            assert.equal(globalOptions.release, 'abc123');
+        });
+
+        it('should clear globalOptions.release with no arguments', function() {
+            globalOptions.release = 'abc123';
+            Raven.setReleaseContext();
+            assert.isUndefined(globalOptions.release);
         });
     });
 
