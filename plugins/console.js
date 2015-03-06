@@ -9,13 +9,18 @@
 
 var originalConsole = console,
     logLevels = ['debug', 'info', 'warn', 'error'],
+    consoleOptions = (Raven.pluginOptions && Raven.pluginOptions.console) ? Raven.pluginOptions.console : {},
+    ignoredLevels = consoleOptions.ignoredLevels || [],
     level;
+
 
 var logForGivenLevel = function(level) {
     var originalConsoleLevel = console[level];
     return function () {
         var args = [].slice.call(arguments);
-        Raven.captureMessage('' + args, {level: level, logger: 'console'});
+        if(ignoreLevels.indexOf(level) === -1) {
+            Raven.captureMessage('' + args, {level: level, logger: 'console'});
+        }
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
@@ -27,6 +32,8 @@ var logForGivenLevel = function(level) {
         }
     };
 };
+
+
 
 
 level = logLevels.pop();
