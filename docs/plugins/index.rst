@@ -4,7 +4,7 @@ Plugins
 What are plugins?
 ~~~~~~~~~~~~~~~~~
 
-In Raven.js, plugins are little snippets of code to augment functionity for a specific application/framework. It is highly recommended to checkout the list of plugins and use what apply to your project.
+In Raven.js, plugins are little snippets of code to augment functionality for a specific application/framework. It is highly recommended to checkout the list of plugins and use what apply to your project.
 
 In order to keep the core small, we have opted to only include the most basic functionality by default, and you can pick and choose which plugins are applicable for you.
 

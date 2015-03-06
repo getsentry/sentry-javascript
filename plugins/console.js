@@ -44,4 +44,4 @@ while(level) {
 // export
 window.console = console;
 
-}(this, Raven, window.console || {}));
+}(window, window.Raven, window.console || {}));

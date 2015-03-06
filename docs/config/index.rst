@@ -7,7 +7,7 @@ We must first configure Sentry to allow certain hosts to report errors. This pre
 
 This can be found under the *Project Details* page in Sentry.
 
-.. image:: http://i.imgur.com/S09MeSM.png
+.. image:: https://i.imgur.com/S09MeSM.png
 
 Now need to set up Raven.js to use your Sentry DSN.
 
@@ -34,6 +34,19 @@ The name of the logger used by Sentry. Default: ``javascript``
     {
       logger: 'javascript'
     }
+
+release
+-------
+
+Track the version of your application in Sentry.
+
+.. code-block:: javascript
+
+    {
+      release: '721e41770371db95eee98ca2707686226b993eda'
+    }
+
+Can also be defined with ``Raven.setReleaseContext('721e41770371db95eee98ca2707686226b993eda')``.
 
 .. _config-whitelist-urls:
 
@@ -77,7 +90,7 @@ Does not affect captureMessage or when non-error object is passed in as argument
 ignoreUrls
 ----------
 
-The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignore errors from whole urls patching a regex pattern or an exact string.
+The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but will ignore errors from whole urls matching a regex pattern or an exact string.
 
 .. code-block:: javascript
 
@@ -107,7 +120,7 @@ A function that allows mutation of the data payload right before being sent to S
 
     {
         dataCallback: function(data) {
-          // do somethign to data
+          // do something to data
           return data;
         }
     }

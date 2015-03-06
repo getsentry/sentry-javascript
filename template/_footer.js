@@ -1,9 +1,19 @@
 // Expose Raven to the world
-window.Raven = Raven;
-
-// AMD
 if (typeof define === 'function' && define.amd) {
-    define('raven', [], function() { return Raven; });
+    // AMD
+    window.Raven = Raven;
+    define('raven', [], function() {
+      return Raven;
+    });
+} else if (typeof module === 'object') {
+    // browserify
+    module.exports = Raven;
+} else if (typeof exports === 'object') {
+    // CommonJS
+    exports = Raven;
+} else {
+    // Everything else
+    window.Raven = Raven;
 }
 
-})(this);
+})(window);

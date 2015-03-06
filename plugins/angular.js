@@ -33,4 +33,4 @@ angular.module('ngRaven', [])
     .config(['$provide', ngRavenProvider])
     .value('Raven', Raven);
 
-})(Raven, window.angular);
+})(window.Raven, window.angular);

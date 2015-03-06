@@ -256,7 +256,6 @@ TraceKit.report = (function reportModuleWrapper() {
  * TraceKit.computeStackTrace: cross-browser stack traces in JavaScript
  *
  * Syntax:
- *   s = TraceKit.computeStackTrace.ofCaller([depth])
  *   s = TraceKit.computeStackTrace(exception) // consider using TraceKit.report instead (see below)
  * Returns:
  *   s.name              - exception name
@@ -304,19 +303,6 @@ TraceKit.report = (function reportModuleWrapper() {
  * exceptions (because your catch block will likely be far away from the
  * inner function that actually caused the exception).
  *
- * Tracing example:
- *     function trace(message) {
- *         var stackInfo = TraceKit.computeStackTrace.ofCaller();
- *         var data = message + "\n";
- *         for(var i in stackInfo.stack) {
- *             var item = stackInfo.stack[i];
- *             data += (item.func || '[anonymous]') + "() in " + item.url + ":" + (item.line || '0') + "\n";
- *         }
- *         if (window.console)
- *             console.info(data);
- *         else
- *             alert(data);
- *     }
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     var debug = false,
@@ -631,8 +617,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var chrome = /^\s*at (.+?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(\S*)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
@@ -1049,24 +1035,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {};
     }
 
-    /**
-     * Logs a stacktrace starting from the previous call and working down.
-     * @param {(number|string)=} depth How many frames deep to trace.
-     * @return {Object.<string, *>} Stack trace information.
-     */
-    function computeStackTraceOfCaller(depth) {
-        depth = (depth == null ? 0 : +depth) + 1; // "+ 1" because "ofCaller" should drop one frame
-        try {
-            throw new Error();
-        } catch (ex) {
-            return computeStackTrace(ex, depth + 1);
-        }
-    }
-
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
+    computeStackTrace.computeStackTraceFromStackProp = computeStackTraceFromStackProp;
     computeStackTrace.guessFunctionName = guessFunctionName;
     computeStackTrace.gatherContext = gatherContext;
-    computeStackTrace.ofCaller = computeStackTraceOfCaller;
 
     return computeStackTrace;
 }());

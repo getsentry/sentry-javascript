@@ -4,7 +4,7 @@
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
-    hasJSON = !!(window.JSON && window.JSON.stringify),
+    hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
     lastCapturedException,
     lastEventId,
     globalServer,
@@ -25,7 +25,8 @@ var _Raven = window.Raven,
     authQueryString,
     isRavenInstalled = false,
 
-    objectPrototype = Object.prototype;
+    objectPrototype = Object.prototype,
+    startTime = now();
 
 /*
  * The core Raven singleton
@@ -75,12 +76,8 @@ var Raven = {
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
-        globalOptions.ignoreErrors.push('Script error.');
-        globalOptions.ignoreErrors.push('Script error');
-
-        // Other variants of external script errors:
-        globalOptions.ignoreErrors.push('Javascript error: Script error on line 0');
-        globalOptions.ignoreErrors.push('Javascript error: Script error. on line 0');
+        globalOptions.ignoreErrors.push(/^Script error\.?$/);
+        globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
 
         // join regexp rules into one big rule
         globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
@@ -264,6 +261,13 @@ var Raven = {
      * @return {Raven}
      */
     captureMessage: function(msg, options) {
+        // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
+        // early call; we'll error on the side of logging anything called before configuration since it's
+        // probably something you should see:
+        if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(msg)) {
+            return;
+        }
+
         // Fire away!
         send(
             objectMerge({
@@ -281,9 +285,9 @@ var Raven = {
      * @return {Raven}
      */
     setUserContext: function(user) {
-       globalUser = user;
+        globalUser = user;
 
-       return Raven;
+        return Raven;
     },
 
     /*
@@ -293,9 +297,9 @@ var Raven = {
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-       globalOptions.extra = extra || {};
+        globalOptions.extra = extra || {};
 
-       return Raven;
+        return Raven;
     },
 
     /*
@@ -305,9 +309,21 @@ var Raven = {
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-       globalOptions.tags = tags || {};
+        globalOptions.tags = tags || {};
 
-       return Raven;
+        return Raven;
+    },
+
+    /*
+     * Set release version of application
+     *
+     * @param {string} release Typically something like a git SHA to identify version
+     * @return {Raven}
+     */
+    setReleaseContext: function(release) {
+        globalOptions.release = release;
+
+        return Raven;
     },
 
     /*
@@ -326,6 +342,15 @@ var Raven = {
      */
     lastEventId: function() {
         return lastEventId;
+    },
+
+    /*
+     * Determine if Raven is setup and ready to go.
+     *
+     * @return {boolean}
+     */
+    isSetup: function() {
+        return isSetup();
     }
 };
 
@@ -623,6 +648,10 @@ function truncate(str, max) {
     return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
+function now() {
+    return +new Date();
+}
+
 function getHttpData() {
     var http = {
         url: document.location.href,
@@ -644,24 +673,30 @@ function send(data) {
     data = objectMerge({
         project: globalProject,
         logger: globalOptions.logger,
-        site: globalOptions.site,
         platform: 'javascript',
         // sentry.interfaces.Http
         request: getHttpData()
     }, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-    data.tags = objectMerge(globalOptions.tags, data.tags);
-    data.extra = objectMerge(globalOptions.extra, data.extra);
+    data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
+    data.extra = objectMerge(objectMerge({}, globalOptions.extra), data.extra);
+
+    // Send along our own collected metadata with extra
+    data.extra = objectMerge({
+        'session:duration': now() - startTime,
+    }, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
-    if (isEmptyObject(data.extra)) delete data.extra;
 
     if (globalUser) {
         // sentry.interfaces.User
         data.user = globalUser;
     }
+
+    // Include the release iff it's defined in globalOptions
+    if (globalOptions.release) data.release = globalOptions.release;
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data);
@@ -685,6 +720,7 @@ function makeRequest(data) {
     var img = new Image(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
+    img.crossOrigin = 'anonymous';
     img.onload = function success() {
         triggerEvent('success', {
             data: data,

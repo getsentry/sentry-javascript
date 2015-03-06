@@ -11,4 +11,4 @@ if (typeof define === 'function' && define.amd) {
     window.require = Raven.wrap({deep: false}, require);
 }
 
-}(this, Raven));
+}(window, window.Raven));
