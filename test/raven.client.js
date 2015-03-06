@@ -97,12 +97,6 @@ describe('raven.Client', function(){
         delete process.env.SENTRY_NAME;
     });
 
-    it('should pull SENTRY_SITE from environment', function(){
-        process.env.SENTRY_SITE='Googlez';
-        var client = new raven.Client(dsn);
-        delete process.env.SENTRY_SITE;
-    });
-
     it('should be disabled for a falsey DSN', function(){
         mockConsoleWarn();
         var client = new raven.Client(false);
