@@ -1,5 +1,5 @@
 # Raven [![Build Status](https://secure.travis-ci.org/getsentry/raven-node.png?branch=master)](http://travis-ci.org/getsentry/raven-node)
-**Node v0.11 compatible**
+**Node v0.12/iojs compatible**
 
 Log errors and stack traces in [Sentry](http://getsentry.com/) from within your Node.js applications. Includes middleware support for [Connect](http://www.senchalabs.org/connect/)/[Express](http://expressjs.com/).
 
@@ -9,7 +9,8 @@ All processing and sending happens asynchronously to not slow things down if/whe
  * 0.6.x
  * 0.8.x
  * 0.10.x
- * 0.11.x
+ * 0.12.x
+ * iojs
 
 Raven 0.7+ requires Sentry 6.4+
 
