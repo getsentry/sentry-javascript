@@ -1,3 +1,12 @@
+# 0.7.3 - 03/05/2015
+ * When calling `captureError` without an Error, generate a fake `Error` object to pull stacktrace from. [See #87]
+ * Prevent `patchGlobal` from causing recursion [See #84]
+ * Fixed issues arond capturing tags.
+ * Removed deprecated `site` parameter.
+ * Allow explicitly declaring the `culprit` [See #107]
+ * Publicly export out the various parsers [See #111]
+ * Support for iojs and node 0.12
+
 # 0.7.2 - 09/09/2014
  * Added `dataCallback` option to Client configuration. See: https://github.com/getsentry/raven-node#pre-processing-data
 
