@@ -1,6 +1,23 @@
 Changelog
 =========
 
+1.1.17
+~~~~~~
+* Better support for Angular errors. See: https://github.com/getsentry/raven-js/pull/238
+* Allow setting truncate length through ``globalOptions.maxMessageLength``. See: https://github.com/getsentry/raven-js/pull/246
+* Fixed the pattern for parsing gecko stacktraces. See: https://github.com/getsentry/raven-js/pull/252
+* Browserify support. See: https://github.com/getsentry/raven-js/pull/253, https://github.com/getsentry/raven-js/pull/260, https://github.com/getsentry/raven-js/pull/261
+* Start tracking ``session:duration`` automatically as metadata.
+* Fix globalOptions overwrite. See: https://github.com/getsentry/raven-js/pull/264
+* Better cross origin support. See: https://github.com/getsentry/raven-js/pull/276
+* Better anonymous function support in Chrome stack trace parsing. See: https://github.com/getsentry/raven-js/pull/290, https://github.com/getsentry/raven-js/pull/294
+* Remove deprecated ``site`` param.
+* New ``Raven.isSetup()``. See: https://github.com/getsentry/raven-js/pull/309
+* Better backbone.js support. See: https://github.com/getsentry/raven-js/pull/307
+* ``ignoreErrors`` now also is applied to ``captureMessage()``. See: https://github.com/getsentry/raven-js/pull/312
+* Capture unhandled errors from promises in Ember. See: https://github.com/getsentry/raven-js/pull/319
+* Add new support for ``releases``. See: https://github.com/getsentry/raven-js/issues/325
+
 1.1.16
 ~~~~~~
 * Fixed a bug that was preventing stack frames from ``raven.js`` from being hidden correctly. See: https://github.com/getsentry/raven-js/pull/216
