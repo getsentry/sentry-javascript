@@ -51,7 +51,7 @@ module.exports = function(grunt) {
         });
         key.sort();
 
-        var dest = path.join('build/', key.join(','), '/<%= pkg.name %>.js');
+        var dest = path.join('build/', key.join(','), '/raven.js');
         dict[dest] = coreFiles.concat(comb);
 
         return dict;
