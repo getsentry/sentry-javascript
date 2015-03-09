@@ -18,8 +18,16 @@ Ember.onerror = function EmberOnError(error) {
         _oldOnError.call(this, error);
     }
 };
-Ember.RSVP.on('error', function (err) {
-  Raven.captureException(err);
+Ember.RSVP.on('error', function (reason) {
+    if (reason instanceof Error) {
+        Raven.captureException(reason);
+    } else {
+        try {
+            throw new Error('Unhandled Promise error detected');
+        } catch (err) {
+            Raven.captureException(err, {extra: {reason: reason}});
+        }
+    }
 });
 
 }(window, window.Raven, window.Ember));
