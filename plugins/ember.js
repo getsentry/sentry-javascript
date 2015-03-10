@@ -22,11 +22,7 @@ Ember.RSVP.on('error', function (reason) {
     if (reason instanceof Error) {
         Raven.captureException(reason, {extra: {context: 'Unhandled RSVP error'}});
     } else {
-        try {
-            throw new Error('Unhandled Promise error detected');
-        } catch (err) {
-            Raven.captureException(err, {extra: {reason: reason}});
-        }
+        Raven.captureMessage('Unhandled Promise error detected', {extra: {reason: reason}});
     }
 });
 
