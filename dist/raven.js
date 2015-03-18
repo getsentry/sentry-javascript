@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.17 (aa35178) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.18 (8ad15bc) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1093,7 +1093,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.17',
+    VERSION: '1.1.18',
 
     debug: true,
 
@@ -1743,7 +1743,7 @@ function send(data) {
 
     // Send along our own collected metadata with extra
     data.extra = objectMerge({
-        'session:duration': now() - startTime,
+        'session:duration': now() - startTime
     }, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
