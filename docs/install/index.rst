@@ -45,6 +45,15 @@ We also provide a way to deploy Raven via `bower
 
 Also note that the file is uncompresed but is ready to pass to any decent JavaScript compressor like `uglify <https://github.com/mishoo/UglifyJS2>`_.
 
+npm
+~~~
+
+Raven is published to npm as well. https://www.npmjs.com/package/raven-js
+
+.. code-block:: sh
+
+    $ npm install raven-js --save
+
 Requirements
 ~~~~~~~~~~~~
 
