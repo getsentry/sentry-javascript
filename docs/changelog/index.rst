@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.18
+~~~~~~
+* Fixed a trailing comma which would make IE8 cry. This affects the uncompressed builds only. Compressed builds were unaffected. See: https://github.com/getsentry/raven-js/pull/333
+
 1.1.17
 ~~~~~~
 * Better support for Angular errors. See: https://github.com/getsentry/raven-js/pull/238
