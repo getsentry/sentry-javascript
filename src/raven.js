@@ -684,7 +684,7 @@ function send(data) {
 
     // Send along our own collected metadata with extra
     data.extra = objectMerge({
-        'session:duration': now() - startTime,
+        'session:duration': now() - startTime
     }, data.extra);
 
     // If there are no tags/extra, strip the key from the payload alltogther.
