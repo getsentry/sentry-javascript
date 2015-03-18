@@ -93,6 +93,7 @@ Releasing New Version
 * Confirm that build was fine, etc.
 * Commit new version, create a tag. Push to GitHub.
 * ``$ grunt publish`` to recompile all plugins and all permutations and upload to S3.
+* ``$ npm publish`` to push to npm.
 * Confirm that the new version exists behind ``cdn.ravenjs.com``
 * Update version in the ``gh-pages`` branch specifically for http://ravenjs.com/.
 * glhf
