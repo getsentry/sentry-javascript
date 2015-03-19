@@ -24,11 +24,6 @@ function flushRavenState() {
     Raven.uninstall();
 }
 
-var imageCache = [];
-window.Image = function Image() {
-    imageCache.push(this);
-};
-
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
     console = {error: function(){}};
@@ -1045,9 +1040,10 @@ describe('globals', function() {
 
     describe('makeRequest', function() {
         it('should load an Image', function() {
-            imageCache = [];
             authQueryString = '?lol';
             globalServer = 'http://localhost/';
+            var imageCache = [];
+            this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
 
             makeRequest({foo: 'bar'});
             assert.equal(imageCache.length, 1);
@@ -1625,7 +1621,9 @@ describe('Raven (public API)', function() {
         });
 
         it('should work as advertised #integration', function() {
-            imageCache = [];
+            var imageCache = [];
+            this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
+
             setupRaven();
             Raven.captureMessage('lol', {foo: 'bar'});
             assert.equal(imageCache.length, 1);

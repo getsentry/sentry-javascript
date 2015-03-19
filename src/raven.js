@@ -717,7 +717,7 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = document.createElement('img'),
+    var img = newImage(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.crossOrigin = 'anonymous';
@@ -734,6 +734,13 @@ function makeRequest(data) {
         });
     };
     img.src = src;
+}
+
+// Note: this is shitty, but I can't figure out how to get
+// sinon to stub document.createElement without breaking everything
+// so this wrapper is just so I can stub it for tests.
+function newImage() {
+    return document.createElement('img');
 }
 
 function isSetup() {
