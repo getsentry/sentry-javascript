@@ -717,7 +717,7 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = new Image(),
+    var img = document.createElement('img'),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.crossOrigin = 'anonymous';
