@@ -416,7 +416,7 @@ function parseDSN(str) {
 }
 
 function isUndefined(what) {
-    return typeof what === 'undefined';
+    return what === void 0;
 }
 
 function isFunction(what) {
