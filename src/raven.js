@@ -20,6 +20,7 @@ var _Raven = window.Raven,
         collectWindowErrors: true,
         tags: {},
         maxMessageLength: 100,
+        transportMechanism: makeRequest,
         extra: {}
     },
     authQueryString,
@@ -66,6 +67,8 @@ var Raven = {
         var uri = parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
+
+        globalOptions.transportMechanism = makeRequest;
 
         // merge in options
         if (options) {
@@ -351,6 +354,10 @@ var Raven = {
      */
     isSetup: function() {
         return isSetup();
+    },
+
+    setTransportMethod: function(transport) {
+        globalOptions.transportMechanism = transport;
     }
 };
 
@@ -712,13 +719,13 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    makeRequest(data);
+    globalOptions.transportMechanism(data, globalServer, authQueryString);
 }
 
 
-function makeRequest(data) {
+function makeRequest(data, server, authQueryString) {
     var img = newImage(),
-        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+        src = server + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.crossOrigin = 'anonymous';
     img.onload = function success() {
