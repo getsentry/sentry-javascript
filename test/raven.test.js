@@ -209,6 +209,8 @@ describe('globals', function() {
     describe('isString', function() {
         it('should do as advertised', function() {
             assert.isTrue(isString(''));
+            assert.isTrue(isString(String('')));
+            assert.isTrue(isString(new String('')));
             assert.isFalse(isString({}));
             assert.isFalse(isString(undefined));
             assert.isFalse(isString(function(){}));

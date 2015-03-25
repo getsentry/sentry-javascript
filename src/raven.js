@@ -424,7 +424,7 @@ function isFunction(what) {
 }
 
 function isString(what) {
-    return typeof what === 'string';
+    return objectPrototype.toString.call(what) === '[object String]';
 }
 
 function isObject(what) {
