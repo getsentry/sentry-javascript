@@ -10,3 +10,4 @@ before_install:
 matrix:
   allow_failures:
     - node_js: "0.6"
+    - node_js: "iojs"
