@@ -976,6 +976,39 @@ describe('globals', function() {
             }]);
         });
 
+        it('should ignore dataCallback if it does not return anything', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalProject = '2';
+            globalOptions = {
+                logger: 'javascript',
+                dataCallback: function() {
+                    return;
+                }
+            };
+
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                foo: 'bar',
+                extra: {'session:duration': 100}
+            });
+        });
+
         it('should strip empty tags', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'makeRequest');

@@ -725,7 +725,12 @@ function send(data) {
     if (globalOptions.release) data.release = globalOptions.release;
 
     if (isFunction(globalOptions.dataCallback)) {
-        data = globalOptions.dataCallback(data);
+        data = globalOptions.dataCallback(data) || data;
+    }
+
+    // Why??????????
+    if (!data || isEmptyObject(data)) {
+        return;
     }
 
     // Check if the request should be filtered or not
