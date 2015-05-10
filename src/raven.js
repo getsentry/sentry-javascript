@@ -327,6 +327,32 @@ var Raven = {
     },
 
     /*
+     * Set the dataCallback option
+     *
+     * @param {function} callback The callback to run which allows the
+     *                            data blob to be mutated before sending
+     * @return {Raven}
+     */
+    setDataCallback: function(callback) {
+        globalOptions.dataCallback = callback;
+
+        return Raven;
+    },
+
+    /*
+     * Set the shouldSendCallback option
+     *
+     * @param {function} callback The callback to run which allows
+     *                            introspecting the blob before sending
+     * @return {Raven}
+     */
+    setShouldSendCallback: function(callback) {
+        globalOptions.shouldSendCallback = callback;
+
+        return Raven;
+    },
+
+    /*
      * Get the latest raw exception that was captured by Raven.
      *
      * @return {error}

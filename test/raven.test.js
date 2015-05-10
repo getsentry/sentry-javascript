@@ -1604,6 +1604,36 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.setDataCallback', function() {
+        it('should set the globalOptions.dataCallback attribute', function() {
+            var foo = function(){};
+            Raven.setDataCallback(foo);
+            assert.equal(globalOptions.dataCallback, foo);
+        });
+
+        it('should clear globalOptions.dataCallback with no arguments', function() {
+            var foo = function(){};
+            globalOptions.dataCallback = foo;
+            Raven.setDataCallback();
+            assert.isUndefined(globalOptions.dataCallback);
+        });
+    });
+
+    describe('.setShouldSendCallback', function() {
+        it('should set the globalOptions.shouldSendCallback attribute', function() {
+            var foo = function(){};
+            Raven.setShouldSendCallback(foo);
+            assert.equal(globalOptions.shouldSendCallback, foo);
+        });
+
+        it('should clear globalOptions.shouldSendCallback with no arguments', function() {
+            var foo = function(){};
+            globalOptions.shouldSendCallback = foo;
+            Raven.setShouldSendCallback();
+            assert.isUndefined(globalOptions.shouldSendCallback);
+        });
+    });
+
     describe('.captureMessage', function() {
         it('should work as advertised', function() {
             this.sinon.stub(window, 'send');
