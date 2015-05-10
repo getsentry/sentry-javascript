@@ -12,7 +12,15 @@
 //cool
 //really cool
 //awesome
-Raven.config('http://50dbe04cd1224d439e9c49bf1d0464df@localhost:8000/1').install();
+Raven.config('http://50dbe04cd1224d439e9c49bf1d0464df@localhost:8000/1', {
+    whitelistUrls: [
+        /localhost/
+    ],
+    dataCallback: function(data) {
+        console.log(data);
+        return data;
+    }
+}).install();
 
 Raven.setUserContext({
     email: 'matt@ydekproductions.com',
@@ -27,6 +35,7 @@ Raven.setUserContext({
 <button onclick="divide(1, 0)">Sourcemap breakage</button>
 <button onclick="derp()">window.onerror</button>
 <button onclick="testOptions()">test options</button>
+<button onclick="throwString()">throw string</button>
 
 </body>
 </html>

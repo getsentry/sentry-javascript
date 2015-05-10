@@ -36,3 +36,7 @@ function testOptions() {
         throw new Error('foo');
     });
 }
+
+function throwString() {
+    throw 'oops';
+}
