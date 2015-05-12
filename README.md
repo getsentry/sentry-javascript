@@ -153,9 +153,9 @@ The callback is called **after** the event has been sent to the Sentry server.
 
 ## Integrations
 ### Connect/Express middleware
-The Raven middleware can be used as-is with either Connect or Express in the same way. Take note that in your middlewares, Raven must appear _after_ your main handler to pick up any errors that may result from handling a request.
+The Raven middleware can be used as-is with either Connect or Express in the same way.
 
-#### Connect
+#### Connect and Express
 ```javascript
 var connect = require('connect');
 function mainHandler(req, res) {
@@ -168,10 +168,15 @@ function onError(err, req, res, next) {
   res.end(res.sentry+'\n');
 }
 connect(
+  // Should be the first item listed
+  raven.middleware.connect.requestHandler('{{ SENTRY_DSN }}'),
+
   connect.bodyParser(),
   connect.cookieParser(),
   mainHandler,
-  raven.middleware.connect('{{ SENTRY_DSN }}'),
+
+  // Should come before any other error middleware
+  raven.middleware.connect.errorHandler('{{ SENTRY_DSN }}'),
   onError, // optional error handler if you want to display the error id to a user
 ).listen(3000);
 ```
@@ -179,11 +184,18 @@ connect(
 #### Express
 ```javascript
 var app = require('express')();
+
 app.get('/', function mainHandler(req, res) {
   throw new Error('Broke!');
 });
-app.use(raven.middleware.express('{{ SENTRY_DSN }}'));
+
+// Should be the first item listed
+app.use(raven.middleware.express.requestHandler('{{ SENTRY_DSN }}'));
+
+// Should come before any other error middleware
+app.use(raven.middleware.express.errorHandler('{{ SENTRY_DSN }}'));
 app.use(onError); // optional error handler if you want to display the error id to a user
+
 app.listen(3000);
 ```
 
