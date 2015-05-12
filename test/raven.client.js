@@ -105,6 +105,18 @@ describe('raven.Client', function(){
         restoreConsoleWarn();
     });
 
+    it('should pull release from options if present', function(){
+        var client = new raven.Client(dsn, { release: 'version1' });
+        client.release.should.eql('version1');
+    });
+
+    it('should pull SENTRY_RELEASE from environment', function(){
+        process.env.SENTRY_RELEASE='version1';
+        var client = new raven.Client(dsn);
+        client.release.should.eql('version1');
+        delete process.env.SENTRY_RELEASE;
+    });
+
     describe('#getIdent()', function(){
         it('should match', function(){
             var result = {
