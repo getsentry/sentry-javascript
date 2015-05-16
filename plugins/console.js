@@ -9,10 +9,14 @@
 
 var originalConsole = console,
     logLevels = ['debug', 'info', 'warn', 'error'],
-    level;
+    level = logLevels.pop();
 
 var logForGivenLevel = function(level) {
     var originalConsoleLevel = console[level];
+
+    // warning level is the only level that doesn't map up
+    // correctly with what Sentry expects.
+    if (level === 'warn') level = 'warning';
     return function () {
         var args = [].slice.call(arguments);
         Raven.captureMessage('' + args, {level: level, logger: 'console'});
@@ -29,7 +33,6 @@ var logForGivenLevel = function(level) {
 };
 
 
-level = logLevels.pop();
 while(level) {
     console[level] = logForGivenLevel(level);
     level = logLevels.pop();
