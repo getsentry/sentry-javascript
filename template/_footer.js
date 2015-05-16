@@ -16,4 +16,12 @@ if (typeof define === 'function' && define.amd) {
     window.Raven = Raven;
 }
 
-})(window);
+})(
+  (function() {
+    if (typeof window !== 'undefined') {
+      return window;
+    } else {
+      return this;
+    }
+  })()
+);
