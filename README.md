@@ -6,7 +6,6 @@ Log errors and stack traces in [Sentry](http://getsentry.com/) from within your 
 All processing and sending happens asynchronously to not slow things down if/when Sentry is down or slow.
 
 ## Compatibility
- * 0.6.x
  * 0.8.x
  * 0.10.x
  * 0.12.x
