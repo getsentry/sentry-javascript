@@ -1,3 +1,6 @@
+# 0.8.1 - 06/15/2015
+ * Fixed a missing `domain` import in the Express/Connect middleware [See #120]
+
 # 0.8.0 - 06/15/2015
  * Drop support for node 0.6
  * Remove `SENTRY_SITE` environment variable usage
