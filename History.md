@@ -1,3 +1,12 @@
+# 0.8.0 - 06/15/2015
+ * Drop support for node 0.6
+ * Remove `SENTRY_SITE` environment variable usage
+ * Fixed `express deprecated req.host: Use req.hostname instead` warning [See #101]
+ * Allow passing custom `ca` options for an https request [See #110 #108]
+ * Use newer API endpoint [See #105]
+ * Added support for Sentry's new Releases feature
+ * Update Express/Connect middleware to support domains [See #116]
+
 # 0.7.3 - 03/05/2015
  * When calling `captureError` without an Error, generate a fake `Error` object to pull stacktrace from. [See #87]
  * Prevent `patchGlobal` from causing recursion [See #84]
