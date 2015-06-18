@@ -808,7 +808,7 @@ function joinRegExp(patterns) {
 function uuid4() {
     var crypto = window.crypto || window.msCrypto;
 
-    if (typeof(crypto) !== 'undefined' && crypto.getRandomValues) {
+    if (!isUndefined(crypto) && crypto.getRandomValues) {
         // Use window.crypto API if available
         var arr = new Uint16Array(8);
         crypto.getRandomValues(arr);
