@@ -125,6 +125,8 @@ A function that allows mutation of the data payload right before being sent to S
         }
     }
 
+Can also be set at runtime with `Raven.setDataCallback(function(data) { ... })`.
+
 shouldSendCallback
 ------------------
 
@@ -137,6 +139,8 @@ A callback function that allows you to apply your own filters to determine if th
           return false;
         }
     }
+
+Can also be set at runtime with `Raven.setShouldSendCallback(function(data) { ... })`.
 
 maxMessageLength
 ------------------

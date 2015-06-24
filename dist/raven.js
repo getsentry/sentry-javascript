@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.18 (8ad15bc) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.19 (b51bc89) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1093,7 +1093,7 @@ var _Raven = window.Raven,
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.18',
+    VERSION: '1.1.19',
 
     debug: true,
 
@@ -1386,6 +1386,32 @@ var Raven = {
     },
 
     /*
+     * Set the dataCallback option
+     *
+     * @param {function} callback The callback to run which allows the
+     *                            data blob to be mutated before sending
+     * @return {Raven}
+     */
+    setDataCallback: function(callback) {
+        globalOptions.dataCallback = callback;
+
+        return Raven;
+    },
+
+    /*
+     * Set the shouldSendCallback option
+     *
+     * @param {function} callback The callback to run which allows
+     *                            introspecting the blob before sending
+     * @return {Raven}
+     */
+    setShouldSendCallback: function(callback) {
+        globalOptions.shouldSendCallback = callback;
+
+        return Raven;
+    },
+
+    /*
      * Get the latest raw exception that was captured by Raven.
      *
      * @return {error}
@@ -1475,7 +1501,7 @@ function parseDSN(str) {
 }
 
 function isUndefined(what) {
-    return typeof what === 'undefined';
+    return what === void 0;
 }
 
 function isFunction(what) {
@@ -1483,7 +1509,7 @@ function isFunction(what) {
 }
 
 function isString(what) {
-    return typeof what === 'string';
+    return objectPrototype.toString.call(what) === '[object String]';
 }
 
 function isObject(what) {
@@ -1758,7 +1784,12 @@ function send(data) {
     if (globalOptions.release) data.release = globalOptions.release;
 
     if (isFunction(globalOptions.dataCallback)) {
-        data = globalOptions.dataCallback(data);
+        data = globalOptions.dataCallback(data) || data;
+    }
+
+    // Why??????????
+    if (!data || isEmptyObject(data)) {
+        return;
     }
 
     // Check if the request should be filtered or not
@@ -1776,7 +1807,7 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = new Image(),
+    var img = newImage(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
     img.crossOrigin = 'anonymous';
@@ -1793,6 +1824,13 @@ function makeRequest(data) {
         });
     };
     img.src = src;
+}
+
+// Note: this is shitty, but I can't figure out how to get
+// sinon to stub document.createElement without breaking everything
+// so this wrapper is just so I can stub it for tests.
+function newImage() {
+    return document.createElement('img');
 }
 
 function isSetup() {
@@ -1868,4 +1906,4 @@ if (typeof define === 'function' && define.amd) {
     window.Raven = Raven;
 }
 
-})(window);
+})(typeof window !== 'undefined' ? window : this);

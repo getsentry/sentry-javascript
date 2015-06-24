@@ -1,6 +1,16 @@
 Changelog
 =========
 
+1.1.19
+~~~~~~
+* Use more compliant way of creating an Image in the dom. See: https://github.com/getsentry/raven-js/pull/334
+* `String` objects weren't getting identified as a string. See: https://github.com/getsentry/raven-js/pull/336
+* Expose getter/setter for dataCallback and shouldSendCallback
+* Better handle if/when the dataCallback returns garbage
+* Fix support for nodeunit. See: https://github.com/getsentry/raven-js/pull/338
+* Fix `console.warn` sending as a `warning` level to server. See: https://github.com/getsentry/raven-js/issues/342
+* Improve the capture of unhandled errors from promises in Ember plugin. See: https://github.com/getsentry/raven-js/pull/330
+
 1.1.18
 ~~~~~~
 * Fixed a trailing comma which would make IE8 cry. This affects the uncompressed builds only. Compressed builds were unaffected. See: https://github.com/getsentry/raven-js/pull/333
