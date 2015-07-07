@@ -821,19 +821,20 @@ describe('globals', function() {
 
         it('should build a good data payload', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
                 url: 'http://localhost/?a=b',
                 headers: {'User-Agent': 'lolbrowser'}
             });
+            var transportMechanism = this.sinon.stub();
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                transportMechanism: transportMechanism
             };
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -851,21 +852,22 @@ describe('globals', function() {
 
         it('should build a good data payload with a User', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
                 url: 'http://localhost/?a=b',
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
+            var transportMechanism = this.sinon.stub();
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                transportMechanism: transportMechanism
             };
 
             globalUser = {name: 'Matt'};
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -881,7 +883,7 @@ describe('globals', function() {
                 },
                 foo: 'bar',
                 extra: {'session:duration': 100}
-            }]);
+            });
         });
 
         it('should merge in global tags', function() {
@@ -892,15 +894,18 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
+            var transportMechanism = this.sinon.stub();
+
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
-                tags: {tag1: 'value1'}
+                tags: {tag1: 'value1'},
+                transportMechanism: transportMechanism
             };
 
 
             send({tags: {tag2: 'value2'}});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -913,30 +918,33 @@ describe('globals', function() {
                 event_id: 'abc123',
                 tags: {tag1: 'value1', tag2: 'value2'},
                 extra: {'session:duration': 100}
-            }]);
+            });
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
-                tags: {tag1: 'value1'}
+                tags: {tag1: 'value1'},
+                transportMechanism: transportMechanism
             });
         });
 
         it('should merge in global extra', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
                 url: 'http://localhost/?a=b',
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
+            var transportMechanism = this.sinon.stub();
+
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
-                extra: {key1: 'value1'}
+                extra: {key1: 'value1'},
+                transportMechanism: transportMechanism
             };
 
 
             send({extra: {key2: 'value2'}});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -948,32 +956,35 @@ describe('globals', function() {
                 },
                 event_id: 'abc123',
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
-            }]);
+            });
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
-                extra: {key1: 'value1'}
+                extra: {key1: 'value1'},
+                transportMechanism: transportMechanism
             });
         });
 
         it('should let dataCallback override everything', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
+            var transportMechanism = this.sinon.stub();
+
 
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 dataCallback: function() {
                     return {lol: 'ibrokeit'};
-                }
+                },
+                transportMechanism: transportMechanism
             };
 
             globalUser = {name: 'Matt'};
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 lol: 'ibrokeit',
                 event_id: 'abc123',
-            }]);
+            });
         });
 
         it('should ignore dataCallback if it does not return anything', function() {
@@ -1011,20 +1022,22 @@ describe('globals', function() {
 
         it('should strip empty tags', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
                 url: 'http://localhost/?a=b',
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
+            var transportMechanism = this.sinon.stub();
+
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
-                tags: {}
+                tags: {},
+                transportMechanism: transportMechanism
             };
 
             send({foo: 'bar', tags: {}, extra: {}});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(transportMechanism.lastCall.args[0], {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1042,20 +1055,22 @@ describe('globals', function() {
 
         it('should attach release if available', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'makeRequest');
             this.sinon.stub(window, 'getHttpData').returns({
                 url: 'http://localhost/?a=b',
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
+            var makeRequestStub =  this.sinon.stub();
+
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 release: 'abc123',
+                transportMechanism: makeRequestStub
             };
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(makeRequestStub.lastCall.args[0], {
                 project: '2',
                 release: 'abc123',
                 logger: 'javascript',
@@ -1075,12 +1090,12 @@ describe('globals', function() {
 
     describe('makeRequest', function() {
         it('should load an Image', function() {
-            authQueryString = '?lol';
-            globalServer = 'http://localhost/';
+            var authQueryString = '?lol';
+            var globalServer = 'http://localhost/';
             var imageCache = [];
             this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
 
-            makeRequest({foo: 'bar'});
+            makeRequest({foo: 'bar'}, globalServer, authQueryString);
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
         });
@@ -1109,7 +1124,8 @@ describe('globals', function() {
         });
 
         it('should work as advertised #integration', function() {
-            this.sinon.stub(window, 'makeRequest');
+            globalOptions.transportMechanism = this.sinon.stub();
+
             var stackInfo = {
                 name: 'Error',
                 message: 'crap',
@@ -1142,7 +1158,7 @@ describe('globals', function() {
             };
 
             handleStackInfo(stackInfo, {foo: 'bar'});
-            assert.isTrue(window.makeRequest.calledOnce);
+            assert.isTrue(globalOptions.transportMechanism.calledOnce);
             /* This is commented out because chai is broken.
 
             assert.deepEqual(window.makeRequest.lastCall.args, [{

@@ -147,6 +147,22 @@ maxMessageLength
 
 By default, raven truncates messages to a max length of 100 characters. You can customize the max length with this parameter.
 
+transportMechanism
+------------------
+
+A function that accepts the data, and the endpoint details that allow you to
+customise when and how errors are sent over the network.
+
+.. code-block:: javascript
+
+    {
+        transportMechanism: function(data, server, authQueryString) {
+            var endpoint = server + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+            yourFetchMethod(endpoint);
+        }
+    }
+
+
 
 Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
