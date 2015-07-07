@@ -304,6 +304,12 @@ describe('globals', function() {
             setAuthQueryString();
             assert.strictEqual(authQueryString, expected);
         });
+
+        it('should set sentry_dsn if set', function() {
+            var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_dsn=http%3A%2F%2Fexample.com%2F2';
+            setAuthQueryString('http://example.com/2');
+            assert.strictEqual(authQueryString, expected);
+        });
     });
 
     describe('parseDSN', function() {
@@ -1343,6 +1349,12 @@ describe('Raven (public API)', function() {
 
         it('should return Raven for a falsey dsn', function() {
             assert.equal(Raven.config(''), Raven);
+        });
+
+        it('should accept via as a proxy', function() {
+            Raven.config('http://a@example.com/2', {via: 'http://example.com/via'});
+            assert.equal(globalServer, 'http://example.com/via');
+            assert.equal(authQueryString, '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_dsn=http%3A%2F%2Fa%40example.com%2F2')
         });
 
         it('should not set global options more than once', function() {
