@@ -1,42 +1,43 @@
-Raven.js
-========
+.. sentry:edition:: self
 
-Raven.js is a tiny standalone JavaScript client for `Sentry <http://www.getsentry.com/>`_.
+    Raven.js
+    ========
 
-**This version of Raven.js requires Sentry 6.0 or newer.**
+.. sentry:edition:: hosted, on-premise
 
+    .. class:: platform-js
 
-Getting Started
----------------
+    JavaScript
+    ==========
+
+Raven.js is a tiny standalone JavaScript client for Sentry.  It can be
+used to report errors from browser and node environments.  The quality
+of reporting will heavily depend on the environment the data is submitted
+from.
 
 .. toctree::
    :maxdepth: 2
+   :titlesonly:
 
-   install/index
-   plugins/index
-   config/index
-   usage/index
-   tips/index
+   install
+   plugins
+   config
+   usage
+   sourcemaps
+   tips
 
-Developers
-----------
-.. toctree::
-   :maxdepth: 2
+.. sentry:edition:: self
 
-   contributing/index
+   Development info:
 
-What's New?
------------
-.. toctree::
-   :maxdepth: 2
+    .. toctree::
+       :maxdepth: 2
+       :titlesonly:
 
-   changelog/index
+       contributing
 
-Resources
----------
-* `Download <http://ravenjs.com>`_
-* `Bug Tracker <https://github.com/getsentry/raven-js/issues>`_
-* `Code <https://github.com/getsentry/raven-js>`_
-* `IRC <irc://irc.freenode.net/sentry>`_ (irc.freenode.net, #sentry)
-* :doc:`Changelog </changelog/index>`
-* Follow `@mattrobenolt <https://twitter.com/mattrobenolt>`_ on Twitter for updates!
+Resources:
+
+* `Downloads and CDN <http://ravenjs.com/>`_
+* `Bug Tracker <http://github.com/getsentry/raven-js/issues>`_
+* `Github Project <http://github.com/getsentry/raven-js>`_
