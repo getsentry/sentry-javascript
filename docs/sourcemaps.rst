@@ -129,4 +129,4 @@ Additional information can be found in the `Releases API documentation <https://
     -------------------------
 
     While the recommended solution is to upload your source artifacts to Sentry, sometimes its nescessary to allow communication from Sentry's internal IPs. To
-    work around this you can whitelist our `:doc:`IP Ranges <../../ip-ranges>`.
+    work around this you can whitelist our :doc:`IP Ranges <../../ip-ranges>`.
