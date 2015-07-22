@@ -7,6 +7,8 @@ meaningful stack traces, but browsers make it pretty difficult.
 The easiest solution is to prevent an error from bubbling all of the way
 up the stack to ``window``.
 
+.. _raven-js-reporting-errors:
+
 Reporting Errors Correctly
 --------------------------
 
@@ -82,6 +84,9 @@ If at any point, the user becomes unauthenticated, you can call
 would only really be useful in a large web app where the user logs in/out
 without a page reload.*
 
+This data is generally submitted with each error or message and allows you
+to figure out which errors are affected by problems.
+
 Capturing Messages
 ------------------
 
@@ -151,10 +156,12 @@ is already initialized:
     Raven.isSetup()
 
 
-Dealing with minified source code
+.. _raven-js-source-maps:
+
+Dealing with Minified Source Code
 ---------------------------------
 
-Raven and Sentry now support `Source Maps
+Raven and Sentry support `Source Maps
 <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.
 
 We have provided some instructions to creating Source Maps over at

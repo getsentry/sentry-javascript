@@ -1,9 +1,9 @@
 Configuration
 =============
 
-We must first configure Sentry to allow certain hosts to report errors.
-This prevents abuse so somebody else couldn't start sending errors to your
-account from their site.
+We must first configure the client to allow certain hosts to report
+errors.  This prevents abuse so somebody else couldn't start sending
+errors to your account from their site.
 
 **Note**: Without setting this, all messages will be rejected!
 

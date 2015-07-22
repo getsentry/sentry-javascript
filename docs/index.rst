@@ -15,6 +15,88 @@ used to report errors from browser and node environments.  The quality
 of reporting will heavily depend on the environment the data is submitted
 from.
 
+Installation
+------------
+
+Raven.js is distributed in a few different methods, and should get
+included after any other libraries are included, but before your own
+scripts.  For all details see :doc:`install`.  For just getting started,
+you can use our CDN:
+
+.. sourcecode:: html
+
+    <script src="//cdn.ravenjs.com/1.1.19/raven.min.js"></script>
+
+Configuring the Client
+----------------------
+
+We must first configure Sentry to allow certain hosts to report errors.
+This prevents abuse so somebody else couldn't start sending errors to your
+account from their site.  This can be found under the *Project Details*
+page in Sentry.
+
+Now need to set up Raven.js to use your Sentry DSN:
+
+.. code-block:: javascript
+
+    Raven.config('___PUBLIC_DSN___').install()
+
+At this point, Raven is ready to capture any uncaught exception.
+
+Although, this technically works, this is not going to yield the greatest
+results.  It's highly recommended to next check out :doc:`config` and
+:doc:`usage` after you have it up and running to improve your results.
+
+Reporting Errors
+----------------
+
+The simplest way, is to try and explicitly capture and report potentially
+problematic code with a ``try...catch`` block and
+``Raven.captureException``.
+
+.. code-block:: javascript
+
+    try {
+        doSomething(a[0])
+    } catch(e) {
+        Raven.captureException(e)
+    }
+
+There are more ways to report errors.  For a complete guide on this see
+:ref:`raven-js-reporting-errors`.
+
+Tracking Users
+--------------
+
+While a user is logged in, you can tell Sentry to associate errors with
+user data.  This data is then submitted with each error which allows you
+to figure out which users are affected.
+
+.. code-block:: javascript
+
+    Raven.setUserContext({
+        email: 'matt@example.com',
+        id: '123'
+    })
+
+If at any point, the user becomes unauthenticated, you can call
+``Raven.setUserContext()`` with no arguments to remove their data.
+
+Dealing with Minified Source Code
+---------------------------------
+
+Raven and Sentry support `Source Maps
+<http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.  If
+you provide source maps in addition to your minified files that data
+becomes available in Sentry.  For more information see
+:ref:`raven-js-sourcemaps`.
+
+Deep Dive
+---------
+
+For more detailed information about how to get most out of Raven.js there
+is additional documentation available that covers all the rest:
+
 .. toctree::
    :maxdepth: 2
    :titlesonly:
