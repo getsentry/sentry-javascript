@@ -65,7 +65,7 @@ problematic code with a ``try...catch`` block and
 There are more ways to report errors.  For a complete guide on this see
 :ref:`raven-js-reporting-errors`.
 
-Tracking Users
+Adding Context
 --------------
 
 While a user is logged in, you can tell Sentry to associate errors with
@@ -81,6 +81,10 @@ to figure out which users are affected.
 
 If at any point, the user becomes unauthenticated, you can call
 ``Raven.setUserContext()`` with no arguments to remove their data.
+
+Other similar methods are ``Raven.setExtraContext`` and
+``Raven.setTagsContext`` as well as ``Raven.context``.  See
+:ref:`raven-js-additional-context` for more info.
 
 Dealing with Minified Source Code
 ---------------------------------

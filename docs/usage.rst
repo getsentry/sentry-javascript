@@ -94,6 +94,8 @@ Capturing Messages
 
     Raven.captureMessage('Broken!')
 
+.. _raven-js-additional-context:
+
 Passing Additional Data
 -----------------------
 
