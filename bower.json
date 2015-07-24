@@ -3,5 +3,15 @@
   "version": "1.1.19",
   "dependencies": {},
   "main": "dist/raven.js",
-  "ignore": {}
+  "ignore": [
+    "**/.*",
+    "AUTHORS",
+    "Gruntfile.js",
+    "Makefile",
+    "README.md",
+    "docs",
+    "package.json",
+    "example",
+    "test"
+  ]
 }
