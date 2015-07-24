@@ -680,11 +680,14 @@ function now() {
 
 function getHttpData() {
     var http = {
-        url: document.location.href,
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
+
+    if (document.location && document.location.href) {
+        http.url = document.location.href;
+    }
 
     if (document.referrer) {
         http.headers.Referer = document.referrer;

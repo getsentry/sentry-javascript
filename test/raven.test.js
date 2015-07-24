@@ -170,7 +170,7 @@ describe('globals', function() {
         var data = getHttpData();
 
         it('should have a url', function() {
-                assert.equal(data.url, window.location.href);
+            assert.equal(data.url, window.location.href);
         });
 
         it('should have the user-agent header', function() {
@@ -185,7 +185,6 @@ describe('globals', function() {
                 assert.isUndefined(data.headers.Referer);
             }
         });
-
     });
 
     describe('isUndefined', function() {
