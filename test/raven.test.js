@@ -1680,8 +1680,10 @@ describe('Raven (public API)', function() {
 
     describe('.captureMessage', function() {
         it('should work as advertised', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'send');
             Raven.captureMessage('lol', {foo: 'bar'});
+            assert.isTrue(window.send.called);
             assert.deepEqual(window.send.lastCall.args, [{
                 message: 'lol',
                 foo: 'bar'
@@ -1689,8 +1691,10 @@ describe('Raven (public API)', function() {
         });
 
         it('should coerce message to a string', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'send');
             Raven.captureMessage({});
+            assert.isTrue(window.send.called);
             assert.deepEqual(window.send.lastCall.args, [{
                 message: '[object Object]'
             }]);
@@ -1716,6 +1720,7 @@ describe('Raven (public API)', function() {
         });
 
         it('should respect `ignoreErrors`', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'send');
 
             globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
@@ -1726,11 +1731,20 @@ describe('Raven (public API)', function() {
             Raven.captureMessage('Non-ignored error');
             assert.isTrue(window.send.calledOnce);
         });
+
+        it('should not throw an error if not configured', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(false);
+            this.sinon.stub(window, 'send')
+            Raven.captureMessage('foo');
+            assert.isFalse(window.send.called);
+        });
+
     });
 
     describe('.captureException', function() {
         it('should call handleStackInfo', function() {
             var error = new Error('crap');
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'handleStackInfo');
             Raven.captureException(error, {foo: 'bar'});
             assert.isTrue(window.handleStackInfo.calledOnce);
@@ -1738,13 +1752,15 @@ describe('Raven (public API)', function() {
 
         it('should store the last exception', function() {
             var error = new Error('crap');
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'handleStackInfo');
             Raven.captureException(error);
             assert.equal(Raven.lastException(), error);
         });
 
-        it('shouldn\'t reraise the if the error is the same error', function() {
+        it('shouldn\'t reraise the if error is the same error', function() {
             var error = new Error('crap');
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'handleStackInfo').throws(error);
             // this would raise if the errors didn't match
             Raven.captureException(error, {foo: 'bar'});
@@ -1753,6 +1769,7 @@ describe('Raven (public API)', function() {
 
         it('should reraise a different error', function() {
             var error = new Error('crap1');
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'handleStackInfo').throws(error);
             assert.throws(function() {
                 Raven.captureException(new Error('crap2'));
@@ -1760,13 +1777,23 @@ describe('Raven (public API)', function() {
         });
 
         it('should capture as a normal message if a non-Error is passed', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(Raven, 'captureMessage');
             this.sinon.stub(window, 'handleStackInfo')
             Raven.captureException('derp');
+            assert.isTrue(Raven.captureMessage.called);
             assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
             assert.isFalse(window.handleStackInfo.called);
             Raven.captureException(true);
+            assert.isTrue(Raven.captureMessage.called);
             assert.equal(Raven.captureMessage.lastCall.args[0], true);
+            assert.isFalse(window.handleStackInfo.called);
+        });
+
+        it('should not throw an error if not configured', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(false);
+            this.sinon.stub(window, 'handleStackInfo')
+            Raven.captureException(new Error('err'));
             assert.isFalse(window.handleStackInfo.called);
         });
     });
