@@ -1512,6 +1512,7 @@ describe('Raven (public API)', function() {
 
         it('should re-raise a thrown exception', function() {
             var error = new Error('lol');
+            this.sinon.stub(Raven, 'captureException');
             assert.throws(function() {
                 Raven.wrap(function() { throw error; })();
             }, error);
@@ -1728,32 +1729,31 @@ describe('Raven (public API)', function() {
     });
 
     describe('.captureException', function() {
-        it('should call TraceKit.report', function() {
+        it('should call handleStackInfo', function() {
             var error = new Error('crap');
-            this.sinon.stub(TraceKit, 'report');
+            this.sinon.stub(window, 'handleStackInfo');
             Raven.captureException(error, {foo: 'bar'});
-            assert.isTrue(TraceKit.report.calledOnce);
-            assert.deepEqual(TraceKit.report.lastCall.args, [error, {foo: 'bar'}]);
+            assert.isTrue(window.handleStackInfo.calledOnce);
         });
 
         it('should store the last exception', function() {
             var error = new Error('crap');
-            this.sinon.stub(TraceKit, 'report');
+            this.sinon.stub(window, 'handleStackInfo');
             Raven.captureException(error);
             assert.equal(Raven.lastException(), error);
         });
 
         it('shouldn\'t reraise the if the error is the same error', function() {
             var error = new Error('crap');
-            this.sinon.stub(TraceKit, 'report').throws(error);
+            this.sinon.stub(window, 'handleStackInfo').throws(error);
             // this would raise if the errors didn't match
             Raven.captureException(error, {foo: 'bar'});
-            assert.isTrue(TraceKit.report.calledOnce);
+            assert.isTrue(window.handleStackInfo.calledOnce);
         });
 
         it('should reraise a different error', function() {
             var error = new Error('crap1');
-            this.sinon.stub(TraceKit, 'report').throws(error);
+            this.sinon.stub(window, 'handleStackInfo').throws(error);
             assert.throws(function() {
                 Raven.captureException(new Error('crap2'));
             }, error);
@@ -1761,13 +1761,13 @@ describe('Raven (public API)', function() {
 
         it('should capture as a normal message if a non-Error is passed', function() {
             this.sinon.stub(Raven, 'captureMessage');
-            this.sinon.stub(TraceKit, 'report');
+            this.sinon.stub(window, 'handleStackInfo')
             Raven.captureException('derp');
             assert.equal(Raven.captureMessage.lastCall.args[0], 'derp');
-            assert.isFalse(TraceKit.report.called);
+            assert.isFalse(window.handleStackInfo.called);
             Raven.captureException(true);
             assert.equal(Raven.captureMessage.lastCall.args[0], true);
-            assert.isFalse(TraceKit.report.called);
+            assert.isFalse(window.handleStackInfo.called);
         });
     });
 

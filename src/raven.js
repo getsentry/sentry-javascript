@@ -243,7 +243,8 @@ var Raven = {
         // raises an exception different from the one we asked to
         // report on.
         try {
-            TraceKit.report(ex, options);
+            var stack = TraceKit.computeStackTrace(ex);
+            handleStackInfo(stack, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
