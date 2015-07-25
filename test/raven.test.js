@@ -71,6 +71,16 @@ describe('TraceKit', function(){
             assert.equal(trace.stack[5].func, 'namedFunc4');
         });
     });
+
+    describe('.computeStackTrace', function() {
+        it('should handle a native error object', function() {
+            var ex = new Error('test');
+            var stack = TraceKit.computeStackTrace(ex);
+            assert.deepEqual(stack.name, 'Error');
+            assert.deepEqual(stack.message, 'test');
+        });
+    });
+
     describe('error notifications', function(){
         var testMessage = "__mocha_ignore__";
         var subscriptionHandler;
