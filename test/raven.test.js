@@ -689,7 +689,7 @@ describe('globals', function() {
                     frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
-                message: 'lol at 10'
+                message: 'Error: lol'
             }]);
 
             processException('Error', 'lol', '', 10, frames.slice(0), {});
@@ -702,7 +702,7 @@ describe('globals', function() {
                     frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
-                message: 'lol at 10'
+                message: 'Error: lol'
             }]);
 
             processException('Error', 'lol', '', 10, frames.slice(0), {extra: 'awesome'});
@@ -715,7 +715,7 @@ describe('globals', function() {
                     frames: framesFlipped
                 },
                 culprit: 'http://example.com/file1.js',
-                message: 'lol at 10',
+                message: 'Error: lol',
                 extra: 'awesome'
             }]);
         });
@@ -737,7 +737,7 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com/override.js',
-                message: 'lol at 10'
+                message: 'Error: lol'
             }]);
 
             processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
@@ -754,7 +754,7 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com/override.js',
-                message: 'lol at 10'
+                message: 'Error: lol',
             }]);
 
             processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
@@ -771,19 +771,9 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com/override.js',
-                message: 'lol at 10',
+                message: 'Error: lol',
                 extra: 'awesome'
             }]);
-        });
-
-        it('should ignored falsey messages', function() {
-            this.sinon.stub(window, 'send');
-
-            processException('Error', '', 'http://example.com', []);
-            assert.isFalse(window.send.called);
-
-            processException('TypeError', '', 'http://example.com', []);
-            assert.isTrue(window.send.called);
         });
 
         it('should not blow up with `undefined` message', function() {
@@ -796,28 +786,11 @@ describe('globals', function() {
         it('should truncate messages to the specified length', function() {
             this.sinon.stub(window, 'send');
 
-            processException('TypeError', new Array(500).join('a'), 'http://example.com', []);
-            assert.deepEqual(window.send.lastCall.args, [{
-                message: new Array(101).join('a')+'\u2026 at ',
-                exception: {
-                    type: 'TypeError',
-                    value: new Array(101).join('a')+'\u2026'
-                },
-                stacktrace: {
-                    frames: [{
-                        filename: 'http://example.com',
-                        lineno: [],
-                        in_app: true
-                    }]
-                },
-                culprit: 'http://example.com',
-            }]);
-
             globalOptions.maxMessageLength = 150;
 
-            processException('TypeError', new Array(500).join('a'), 'http://example.com', []);
+            processException('TypeError', new Array(500).join('a'), 'http://example.com', 34);
             assert.deepEqual(window.send.lastCall.args, [{
-                message: new Array(151).join('a')+'\u2026 at ',
+                message: 'TypeError: ' + new Array(140).join('a')+'\u2026',
                 exception: {
                     type: 'TypeError',
                     value: new Array(151).join('a')+'\u2026'
@@ -825,7 +798,7 @@ describe('globals', function() {
                 stacktrace: {
                     frames: [{
                         filename: 'http://example.com',
-                        lineno: [],
+                        lineno: 34,
                         in_app: true
                     }]
                 },
@@ -1204,7 +1177,7 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com',
-                message: 'crap at 10',
+                message: 'Error: crap',
                 foo: 'bar'
             }]);
             */

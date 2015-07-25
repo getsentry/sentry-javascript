@@ -614,20 +614,15 @@ function extractContextFromFrame(frame) {
 }
 
 function processException(type, message, fileurl, lineno, frames, options) {
-    var stacktrace, label, i;
-
-    // In some instances message is not actually a string, no idea why,
-    // so we want to always coerce it to one.
-    message += '';
-
-    // Sometimes an exception is getting logged in Sentry as
-    // <no message value>
-    // This can only mean that the message was falsey since this value
-    // is hardcoded into Sentry itself.
-    // At this point, if the message is falsey, we bail since it's useless
-    if (type === 'Error' && !message) return;
+    var stacktrace, i, fullMessage;
 
     if (globalOptions.ignoreErrors.test(message)) return;
+
+    message += '';
+    message = truncate(message, globalOptions.maxMessageLength);
+
+    fullMessage = type + ': ' + message;
+    fullMessage = truncate(fullMessage, globalOptions.maxMessageLength);
 
     if (frames && frames.length) {
         fileurl = frames[0].filename || fileurl;
@@ -645,13 +640,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
-    // Truncate the message to a max of characters
-    message = truncate(message, globalOptions.maxMessageLength);
-
     if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
     if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
-
-    label = lineno ? message + ' at ' + lineno : message;
 
     // Fire away!
     send(
@@ -664,7 +654,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
             // sentry.interfaces.Stacktrace
             stacktrace: stacktrace,
             culprit: fileurl,
-            message: label
+            message: fullMessage
         }, options)
     );
 }
@@ -713,12 +703,11 @@ function send(data) {
     var baseData = {
         project: globalProject,
         logger: globalOptions.logger,
-        platform: 'javascript',
-        // sentry.interfaces.Http
+        platform: 'javascript'
     };
     var http = getHttpData();
     if (http) {
-        baseData.http = http;
+        baseData.request = http;
     }
 
     data = objectMerge(baseData, data);
