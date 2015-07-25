@@ -7,7 +7,8 @@ var TraceKit = {
     remoteFetching: false,
     collectWindowErrors: true,
     // 3 lines before, the offending line, 3 lines after
-    linesOfContext: 7
+    linesOfContext: 7,
+    debug: false
 };
 
 // global reference to slice
@@ -305,8 +306,7 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    var debug = false,
-        sourceCache = {};
+    var sourceCache = {};
 
     /**
      * Attempts to retrieve source code via XMLHttpRequest, which is used
@@ -615,11 +615,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * @return {?Object.<string, *>} Stack trace information.
      */
     function computeStackTraceFromStackProp(ex) {
-        if (!ex.stack) {
-            return null;
-        }
+        if (isUndefined(ex.stack) || !ex.stack) return;
 
-        var chrome = /^\s*at (.*?) ?\(?((?:file|https?|chrome-extension):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(?((?:(?:file|https?|chrome-extension):.*?)|<anonymous>):(\d+)(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|http|https):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
@@ -645,12 +643,12 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                     'column': parts[4] ? +parts[4] : null
                 };
             } else if ((parts = winjs.exec(lines[i]))) {
-              element = {
-                'url': parts[2],
-                'func': parts[1] || UNKNOWN_FUNCTION,
-                'line': +parts[3],
-                'column': parts[4] ? +parts[4] : null
-              };
+                element = {
+                    'url': parts[2],
+                    'func': parts[1] || UNKNOWN_FUNCTION,
+                    'line': +parts[3],
+                    'column': parts[4] ? +parts[4] : null
+                };
             } else {
                 continue;
             }
@@ -698,6 +696,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         // else to it because Opera is not very good at providing it
         // reliably in other circumstances.
         var stacktrace = ex.stacktrace;
+        if (isUndefined(ex.stacktrace) || !ex.stacktrace) return;
 
         var testRE = / line (\d+), column (\d+) in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\) in (.*):\s*$/i,
             lines = stacktrace.split('\n'),
@@ -1010,7 +1009,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 return stack;
             }
         } catch (e) {
-            if (debug) {
+            if (TraceKit.debug) {
                 throw e;
             }
         }
@@ -1021,7 +1020,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 return stack;
             }
         } catch (e) {
-            if (debug) {
+            if (TraceKit.debug) {
                 throw e;
             }
         }
@@ -1032,7 +1031,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 return stack;
             }
         } catch (e) {
-            if (debug) {
+            if (TraceKit.debug) {
                 throw e;
             }
         }
@@ -1043,12 +1042,16 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 return stack;
             }
         } catch (e) {
-            if (debug) {
+            if (TraceKit.debug) {
                 throw e;
             }
         }
 
-        return {};
+        return {
+            'name': ex.name,
+            'message': lines[0],
+            'url': document.location.href,
+        };
     }
 
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;

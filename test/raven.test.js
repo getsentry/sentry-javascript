@@ -79,6 +79,22 @@ describe('TraceKit', function(){
             assert.deepEqual(stack.name, 'Error');
             assert.deepEqual(stack.message, 'test');
         });
+
+        it('should handle a native error object stack from Chrome', function() {
+            var stackStr = "" +
+            "Error: foo\n" +
+            "    at <anonymous>:2:11\n" +
+            "    at Object.InjectedScript._evaluateOn (<anonymous>:904:140)\n" +
+            "    at Object.InjectedScript._evaluateAndWrap (<anonymous>:837:34)\n" +
+            "    at Object.InjectedScript.evaluate (<anonymous>:693:21)";
+            var mockErr = {
+                name: 'Error',
+                message: 'foo',
+                stack: stackStr
+            };
+            var trace = TraceKit.computeStackTrace(mockErr);
+            assert.deepEqual(trace.stack[0].url, '<anonymous>');
+        });
     });
 
     describe('error notifications', function(){
