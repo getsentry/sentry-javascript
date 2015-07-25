@@ -28,12 +28,17 @@
     });
     </script>
 
+    <!-- Deps -->
+    <script src="../node_modules/jquery/dist/jquery.js"></script>
+
     <!-- Raven -->
     <script src="../vendor/TraceKit/tracekit.js"></script>
     <script src="../src/raven.js"></script>
+    <script src="../plugins/jquery.js"></script>
 
     <!-- Tests -->
     <script src="raven.test.js"></script>
+    <script src="plugins/jquery.test.js"></script>
 
     <script>
         if (!window.PHANTOMJS) {
@@ -53,7 +58,9 @@
 
               runner.on('end', function(){
                 runner.stats.failed = failed;
-                global.mochaResults = runner.stats;
+                if (typeof global !== "undefined") {
+                  global.mochaResults = runner.stats;
+                }
               });
             })(mocha.run());
         }
