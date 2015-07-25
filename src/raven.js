@@ -679,15 +679,17 @@ function now() {
 }
 
 function getHttpData() {
+    if (!document.location || !document.location.href) {
+        return;
+    }
+
     var http = {
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
 
-    if (document.location && document.location.href) {
-        http.url = document.location.href;
-    }
+    http.url = document.location.href;
 
     if (document.referrer) {
         http.headers.Referer = document.referrer;
@@ -699,13 +701,18 @@ function getHttpData() {
 function send(data) {
     if (!isSetup()) return;
 
-    data = objectMerge({
+    var baseData = {
         project: globalProject,
         logger: globalOptions.logger,
         platform: 'javascript',
         // sentry.interfaces.Http
-        request: getHttpData()
-    }, data);
+    };
+    var http = getHttpData();
+    if (http) {
+        baseData.http = http;
+    }
+
+    data = objectMerge(baseData, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
     data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
