@@ -201,3 +201,24 @@ And set an ``Access-Control-Allow-Origin`` HTTP header on that file.
 
 .. note:: both of these steps need to be done or your scripts might not
    even get executed
+
+Custom Grouping Behavior
+------------------------
+
+In some cases you may see issues where Sentry groups multiple events together
+when they should be separate entities. In other cases, Sentry simply doesn't
+group events together because they're so sporadic that they never look the same.
+
+Both of these problems can be addressed by specifying the ``fingerprint``
+attribute.
+
+For example, if you have HTTP 404 (page not found) errors, and you'd prefer they
+deduplicate by taking into account the URL:
+
+.. code-block:: javascript
+
+    Raven.captureException(ex, {fingerprint: ['{{ default }}', 'http://my-url/']});
+
+.. sentry:edition:: hosted, on-premise
+
+    For more information, see :ref:`custom-grouping`.
