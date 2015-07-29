@@ -64,8 +64,8 @@ Validating a Source Map
 We maintain an online validation tool that can be used to test your source
 (and sourcemaps) against: `sourcemaps.io <http://sourcemaps.io>`_.
 
-Uploading SourceMaps to Sentry
-------------------------------
+Uploading Source Maps to Sentry
+-------------------------------
 
 In many cases your application may sit behind firewalls or you simply
 can't expose source code to the public. Sentry provides an abstraction
@@ -153,5 +153,4 @@ Additional information can be found in the `Releases API documentation
 
     While the recommended solution is to upload your source artifacts to
     Sentry, sometimes its nescessary to allow communication from Sentry's
-    internal IPs. To work around this you can whitelist our :doc:`IP
-    Ranges <../../ip-ranges>`.
+    internal IPs. For more information on Sentry's public IPs, see :ref:`ip-ranges`.
