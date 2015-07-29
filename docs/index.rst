@@ -27,13 +27,20 @@ you can use our CDN:
 
     <script src="//cdn.ravenjs.com/1.1.19/raven.min.js"></script>
 
-Configuring the Client
-----------------------
+Configuring the Project
+-----------------------
 
 We must first configure Sentry to allow certain hosts to report errors.
 This prevents abuse so somebody else couldn't start sending errors to your
-account from their site.  This can be found under the *Project Details*
-page in Sentry.
+account from their site.
+
+This can be found under the **Project Settings** page in Sentry. You'll need
+to add each domain that you plan to report from into the **Allowed Domains**
+box. Alternatively if you're not worried about CORS security, you can simply
+enter ``*`` to whitelist all domains.
+
+Configuring the Client
+----------------------
 
 Now need to set up Raven.js to use your Sentry DSN:
 
