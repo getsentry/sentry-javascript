@@ -45,13 +45,18 @@ You can specify a level in the second optional parameter. Default level is `erro
 
 ```javascript
 var raven = require('raven');
-
 var client = new raven.Client('{{ SENTRY_DSN }}', {level: 'warning'});
 
-client.captureMessage("Another message")
+client.captureMessage('Another message')
 ```
 
-**Adding extra info an event**
+**Passing extra HTTP transport options**
+```javascript
+var raven = require('raven');
+var client = new raven.Client('{{ SENTRY_DSN }}', {transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})});
+```
+
+**Adding extra info to an event**
 ```javascript
 var raven = require('raven');
 
