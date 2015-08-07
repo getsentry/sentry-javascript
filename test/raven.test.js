@@ -359,6 +359,15 @@ describe('globals', function() {
             assert.strictEqual(pieces.host, 'matt-robenolt.com');
         });
 
+        it('should parse domain without user', function() {
+            var pieces = parseDSN('http://matt-robenolt.com/1');
+            assert.strictEqual(pieces.protocol, 'http');
+            assert.strictEqual(pieces.user, '');
+            assert.strictEqual(pieces.port, '');
+            assert.strictEqual(pieces.path, '/1');
+            assert.strictEqual(pieces.host, 'matt-robenolt.com');
+        });
+
         it('should raise a RavenConfigError when setting a password', function() {
             try {
                 parseDSN('http://user:pass@example.com/2');

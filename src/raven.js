@@ -423,7 +423,7 @@ function triggerEvent(eventType, options) {
 }
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(\w+)(:\w+)?@([\w\.-]+)(?::(\d+))?(\/.*)/;
+    dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
 
 function RavenConfigError(message) {
     this.name = 'RavenConfigError';
