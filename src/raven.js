@@ -17,6 +17,7 @@ var _Raven = window.Raven,
         ignoreUrls: [],
         whitelistUrls: [],
         includePaths: [],
+        crossOrigin: 'anonymous',
         collectWindowErrors: true,
         tags: {},
         maxMessageLength: 100,
@@ -759,7 +760,10 @@ function makeRequest(data) {
     var img = newImage(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
-    img.crossOrigin = 'anonymous';
+    if (globalOptions.crossOrigin) {
+        img.crossOrigin = globalOptions.crossOrigin;
+    }
+
     img.onload = function success() {
         triggerEvent('success', {
             data: data,

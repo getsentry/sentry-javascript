@@ -1081,15 +1081,38 @@ describe('globals', function() {
     });
 
     describe('makeRequest', function() {
+        var imageCache;
+
+        beforeEach(function () {
+            imageCache = [];
+            this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
+        })
+
         it('should load an Image', function() {
             authQueryString = '?lol';
             globalServer = 'http://localhost/';
-            var imageCache = [];
-            this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
 
             makeRequest({foo: 'bar'});
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
+        });
+
+        it('should populate crossOrigin based on globalOptions', function() {
+            globalOptions = {
+                crossOrigin: 'something'
+            };
+            makeRequest({foo: 'bar'});
+            assert.equal(imageCache.length, 1);
+            assert.equal(imageCache[0].crossOrigin, 'something');
+        });
+
+        it('should not populate crossOrigin if falsey', function() {
+            globalOptions = {
+                crossOrigin: false
+            };
+            makeRequest({foo: 'bar'});
+            assert.equal(imageCache.length, 1);
+            assert.isUndefined(imageCache[0].crossOrigin);
         });
     });
 
