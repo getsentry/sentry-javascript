@@ -13,6 +13,7 @@ function flushRavenState() {
         ignoreUrls: [],
         whitelistUrls: [],
         includePaths: [],
+        crossOrigin: 'anonymous',
         collectWindowErrors: true,
         maxMessageLength: 100,
         tags: {},
