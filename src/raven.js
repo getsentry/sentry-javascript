@@ -760,7 +760,7 @@ function makeRequest(data) {
     var img = newImage(),
         src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
 
-    if (globalOptions.crossOrigin) {
+    if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
         img.crossOrigin = globalOptions.crossOrigin;
     }
 

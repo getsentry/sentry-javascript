@@ -1106,6 +1106,15 @@ describe('globals', function() {
             assert.equal(imageCache[0].crossOrigin, 'something');
         });
 
+        it('should populate crossOrigin if empty string', function() {
+            globalOptions = {
+                crossOrigin: ''
+            };
+            makeRequest({foo: 'bar'});
+            assert.equal(imageCache.length, 1);
+            assert.equal(imageCache[0].crossOrigin, '');
+        });
+
         it('should not populate crossOrigin if falsey', function() {
             globalOptions = {
                 crossOrigin: false
