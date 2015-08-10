@@ -118,7 +118,7 @@ sourcemaps point to.
         "Content-Type": "application/octet-stream"
       },
       "id": "1",
-      "name": "README.rst",
+      "name": "http://example.com/readme.rst",
       "sha1": "22591348ed129fe016c535654f6493737f0f9df6",
       "size": 452
     }
@@ -130,8 +130,7 @@ sourcemaps point to.
       -u [api_key]: \
       -X DELETE
 
-Additionally, you'll need to configure
-[raven-js](https://github.com/getsentry/raven-js) to send the ``release``:
+Additionally, you'll need to configure the client to send the ``release``:
 
 .. code-block:: javascript
 
