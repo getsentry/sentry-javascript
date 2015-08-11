@@ -4,6 +4,7 @@
     "browser": true,
     "predef": [
         "TraceKit",
-        "console"
+        "console",
+        "_slice"
     ]
 }

@@ -322,6 +322,13 @@ describe('globals', function() {
             logDebug(level, message);
             assert.isTrue(console[level].calledOnce);
         });
+
+        it('should handle variadic arguments', function() {
+            Raven.debug = true;
+            this.sinon.stub(console, level);
+            logDebug(level, message, {}, 'foo');
+            assert.isTrue(console[level].calledOnce);
+        });
     });
 
     describe('setAuthQueryString', function() {

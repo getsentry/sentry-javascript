@@ -850,9 +850,11 @@ function uuid4() {
     }
 }
 
-function logDebug(level, message) {
+function logDebug(level) {
     if (window.console && console[level] && Raven.debug) {
-        console[level](message);
+        // _slice is coming from vendor/TraceKit/tracekit.js
+        // so it's accessible globally
+        console[level].apply(console, _slice.call(arguments, 1));
     }
 }
 
