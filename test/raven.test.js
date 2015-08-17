@@ -327,7 +327,6 @@ describe('globals', function() {
             Raven.debug = true;
             this.sinon.stub(console, level);
             logDebug(level, message, {}, 'foo');
-            assert.isTrue(console[level].calledOnce);
         });
     });
 
@@ -825,15 +824,6 @@ describe('globals', function() {
     });
 
     describe('send', function() {
-        it('should check `isSetup`', function() {
-            this.sinon.stub(window, 'isSetup').returns(false);
-            this.sinon.stub(window, 'makeRequest');
-
-            send();
-            assert.isTrue(window.isSetup.calledOnce);
-            assert.isFalse(window.makeRequest.calledOnce);
-        });
-
         it('should build a good data payload', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'makeRequest');
@@ -1086,20 +1076,6 @@ describe('globals', function() {
                 extra: {'session:duration': 100}
             });
         });
-        
-        it('should log to console if not configured', function() {
-            this.sinon.stub(window, 'isSetup').returns(false);
-            this.sinon.stub(console, 'log');
-            send({foo: 'bar'});
-            assert.isTrue(console.log.called);
-        });
-        
-        it('should NOT log to console if configured', function() {
-            this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(console, 'log');
-            send({foo: 'bar'});
-            assert.isFalse(console.log.called);
-        });
     });
 
     describe('makeRequest', function() {
@@ -1109,6 +1085,25 @@ describe('globals', function() {
             imageCache = [];
             this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
         })
+
+        it('should check `isSetup`', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            makeRequest({foo: 'bar'});
+            assert.isTrue(window.isSetup.called);
+        });
+
+        it('should not create the image if `isSetup` is false', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            makeRequest({foo: 'bar'});
+            assert.isFalse(window.newImage.called);
+        });
+
+        it('should log to console', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'logDebug');
+            makeRequest({foo: 'bar'});
+            assert.isTrue(window.logDebug.called);
+        });
 
         it('should load an Image', function() {
             authQueryString = '?lol';

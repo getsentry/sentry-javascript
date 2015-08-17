@@ -742,23 +742,31 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    if (isSetup()) {
-      makeRequest(data);
-    }
-    else {
-      console.log("If configured, raven.js would send: ", data);
-    }
+    makeRequest(data);
 }
 
 
 function makeRequest(data) {
-    var img = newImage(),
-        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var img,
+        src;
 
+    if (isSetup()) {
+        logDebug('debug', 'Raven about to send:', data);
+    }
+    else {
+        var ravenDebugOriginal = Raven.debug;
+        //Ugly, but now that logDebug supports variadic arguments, there is little other choice
+        //except duplicating the logDebug function.
+        Raven.debug = true;
+        logDebug('log', 'If configured, Raven would send:', data);
+        Raven.debug = ravenDebugOriginal;
+        return;
+    }
+    img = newImage();
+    src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
     if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
         img.crossOrigin = globalOptions.crossOrigin;
     }
-
     img.onload = function success() {
         triggerEvent('success', {
             data: data,
