@@ -232,10 +232,6 @@ var Raven = {
      * @return {Raven}
      */
     captureException: function(ex, options) {
-        if (!isSetup()) {
-            return Raven;
-        }
-
         // If not an Error is passed through, recall as a message instead
         if (!isError(ex)) return Raven.captureMessage(ex, options);
 
@@ -267,10 +263,6 @@ var Raven = {
      * @return {Raven}
      */
     captureMessage: function(msg, options) {
-        if (!isSetup()) {
-            return Raven;
-        }
-
         // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
         // early call; we'll error on the side of logging anything called before configuration since it's
         // probably something you should see:
@@ -699,8 +691,6 @@ function getHttpData() {
 }
 
 function send(data) {
-    if (!isSetup()) return;
-
     var baseData = {
         project: globalProject,
         logger: globalOptions.logger,
@@ -757,13 +747,26 @@ function send(data) {
 
 
 function makeRequest(data) {
-    var img = newImage(),
-        src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
+    var img,
+        src;
 
+    if (isSetup()) {
+        logDebug('debug', 'Raven about to send:', data);
+    }
+    else {
+        var ravenDebugOriginal = Raven.debug;
+        //Ugly, but now that logDebug supports variadic arguments, there is little other choice
+        //except duplicating the logDebug function.
+        Raven.debug = true;
+        logDebug('log', 'If configured, Raven would send:', data);
+        Raven.debug = ravenDebugOriginal;
+        return;
+    }
+    img = newImage();
+    src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
     if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
         img.crossOrigin = globalOptions.crossOrigin;
     }
-
     img.onload = function success() {
         triggerEvent('success', {
             data: data,
