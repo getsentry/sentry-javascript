@@ -66,6 +66,12 @@ Raven is published to npm as well. https://www.npmjs.com/package/raven-js
 .. code-block:: sh
 
     $ npm install raven-js --save
+    
+In order to use it, just require the module:
+
+.. code-block:: javascript
+
+    var Raven = require('ravenjs');
 
 Requirements
 ~~~~~~~~~~~~
