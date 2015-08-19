@@ -789,7 +789,7 @@ function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
         if (!ravenNotConfiguredError)
-          logDebug('error', 'Error: Raven has not been configured.');
+          logDebug('warn', 'Warning: Raven has not been configured.');
         ravenNotConfiguredError = true;
         return false;
     }
