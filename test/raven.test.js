@@ -19,8 +19,8 @@ function flushRavenState() {
         tags: {},
         extra: {}
     },
-    startTime = 0
-    ;
+    startTime = 0;
+    ravenNotConfiguredError = undefined;
 
     Raven.uninstall();
 }
@@ -286,17 +286,31 @@ describe('globals', function() {
     });
 
     describe('isSetup', function() {
+        beforeEach(function () {
+          this.sinon.stub(window, 'logDebug');
+        });
+
         it('should return false with no JSON support', function() {
             globalServer = 'http://localhost/';
             hasJSON = false;
             assert.isFalse(isSetup());
         });
 
-        it('should return false when Raven is not configured', function() {
-            hasJSON = true;    // be explicit
+        describe('when Raven is not configured', function () {
+          it('should return false when Raven is not configured', function() {
+              hasJSON = true;    // be explicit
+              globalServer = undefined;
+              assert.isFalse(isSetup());
+          });
+
+          it('should log an error message, the first time it is called', function () {
+            hasJSON = true;
             globalServer = undefined;
-            this.sinon.stub(window, 'logDebug');
-            assert.isFalse(isSetup());
+            isSetup();
+            isSetup();
+            assert.isTrue(window.logDebug.calledWith('error', 'Error: Raven has not been configured.'))
+            assert.isTrue(window.logDebug.calledOnce);
+          });
         });
 
         it('should return true when everything is all gravy', function() {

@@ -750,18 +750,10 @@ function makeRequest(data) {
     var img,
         src;
 
-    if (isSetup()) {
-        logDebug('debug', 'Raven about to send:', data);
-    }
-    else {
-        var ravenDebugOriginal = Raven.debug;
-        //Ugly, but now that logDebug supports variadic arguments, there is little other choice
-        //except duplicating the logDebug function.
-        Raven.debug = true;
-        logDebug('log', 'If configured, Raven would send:', data);
-        Raven.debug = ravenDebugOriginal;
-        return;
-    }
+    logDebug('debug', 'Raven about to send:', data);
+
+    if (!isSetup()) return;
+
     img = newImage();
     src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
     if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
@@ -789,10 +781,14 @@ function newImage() {
     return document.createElement('img');
 }
 
+var ravenNotConfiguredError;
+
 function isSetup() {
     if (!hasJSON) return false;  // needs JSON support
     if (!globalServer) {
-        logDebug('error', 'Error: Raven has not been configured.');
+        if (!ravenNotConfiguredError)
+          logDebug('error', 'Error: Raven has not been configured.');
+        ravenNotConfiguredError = true;
         return false;
     }
     return true;
