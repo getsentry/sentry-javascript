@@ -25,8 +25,10 @@ var _Raven = window.Raven,
     },
     authQueryString,
     isRavenInstalled = false,
-
     objectPrototype = Object.prototype,
+    // capture a reference to window.console first before
+    // the console plugin has a chance to monkey patch
+    originalConsole = window.console || {},
     startTime = now();
 
 /*
@@ -850,10 +852,10 @@ function uuid4() {
 }
 
 function logDebug(level) {
-    if (window.console && console[level] && Raven.debug) {
+    if (originalConsole[level] && Raven.debug) {
         // _slice is coming from vendor/TraceKit/tracekit.js
         // so it's accessible globally
-        console[level].apply(console, _slice.call(arguments, 1));
+        originalConsole[level].apply(originalConsole, _slice.call(arguments, 1));
     }
 }
 

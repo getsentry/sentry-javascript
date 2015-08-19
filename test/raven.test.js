@@ -21,6 +21,7 @@ function flushRavenState() {
     },
     startTime = 0;
     ravenNotConfiguredError = undefined;
+    originalConsole = window.console || {};
 
     Raven.uninstall();
 }
@@ -325,21 +326,21 @@ describe('globals', function() {
 
         it('should not write to console when Raven.debug is false', function() {
             Raven.debug = false;
-            this.sinon.stub(console, level);
+            this.sinon.stub(originalConsole, level);
             logDebug(level, message);
-            assert.isFalse(console[level].called);
+            assert.isFalse(originalConsole[level].called);
         });
 
         it('should write to console when Raven.debug is true', function() {
             Raven.debug = true;
-            this.sinon.stub(console, level);
+            this.sinon.stub(originalConsole, level);
             logDebug(level, message);
-            assert.isTrue(console[level].calledOnce);
+            assert.isTrue(originalConsole[level].calledOnce);
         });
 
         it('should handle variadic arguments', function() {
             Raven.debug = true;
-            this.sinon.stub(console, level);
+            this.sinon.stub(originalConsole, level);
             logDebug(level, message, {}, 'foo');
         });
     });
