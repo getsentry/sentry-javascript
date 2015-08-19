@@ -308,7 +308,7 @@ describe('globals', function() {
             globalServer = undefined;
             isSetup();
             isSetup();
-            assert.isTrue(window.logDebug.calledWith('error', 'Error: Raven has not been configured.'))
+            assert.isTrue(window.logDebug.calledWith('warn', 'Warning: Raven has not been configured.'))
             assert.isTrue(window.logDebug.calledOnce);
           });
         });
