@@ -19,8 +19,8 @@ function flushRavenState() {
         tags: {},
         extra: {}
     },
-    startTime = 0
-    ;
+    startTime = 0;
+    ravenNotConfiguredError = undefined;
 
     Raven.uninstall();
 }
@@ -286,17 +286,31 @@ describe('globals', function() {
     });
 
     describe('isSetup', function() {
+        beforeEach(function () {
+          this.sinon.stub(window, 'logDebug');
+        });
+
         it('should return false with no JSON support', function() {
             globalServer = 'http://localhost/';
             hasJSON = false;
             assert.isFalse(isSetup());
         });
 
-        it('should return false when Raven is not configured', function() {
-            hasJSON = true;    // be explicit
+        describe('when Raven is not configured', function () {
+          it('should return false when Raven is not configured', function() {
+              hasJSON = true;    // be explicit
+              globalServer = undefined;
+              assert.isFalse(isSetup());
+          });
+
+          it('should log an error message, the first time it is called', function () {
+            hasJSON = true;
             globalServer = undefined;
-            this.sinon.stub(window, 'logDebug');
-            assert.isFalse(isSetup());
+            isSetup();
+            isSetup();
+            assert.isTrue(window.logDebug.calledWith('error', 'Error: Raven has not been configured.'))
+            assert.isTrue(window.logDebug.calledOnce);
+          });
         });
 
         it('should return true when everything is all gravy', function() {
@@ -327,7 +341,6 @@ describe('globals', function() {
             Raven.debug = true;
             this.sinon.stub(console, level);
             logDebug(level, message, {}, 'foo');
-            assert.isTrue(console[level].calledOnce);
         });
     });
 
@@ -825,15 +838,6 @@ describe('globals', function() {
     });
 
     describe('send', function() {
-        it('should check `isSetup`', function() {
-            this.sinon.stub(window, 'isSetup').returns(false);
-            this.sinon.stub(window, 'makeRequest');
-
-            send();
-            assert.isTrue(window.isSetup.calledOnce);
-            assert.isFalse(window.makeRequest.calledOnce);
-        });
-
         it('should build a good data payload', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'makeRequest');
@@ -1095,6 +1099,25 @@ describe('globals', function() {
             imageCache = [];
             this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
         })
+
+        it('should check `isSetup`', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            makeRequest({foo: 'bar'});
+            assert.isTrue(window.isSetup.called);
+        });
+
+        it('should not create the image if `isSetup` is false', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            makeRequest({foo: 'bar'});
+            assert.isFalse(window.newImage.called);
+        });
+
+        it('should log to console', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'logDebug');
+            makeRequest({foo: 'bar'});
+            assert.isTrue(window.logDebug.called);
+        });
 
         it('should load an Image', function() {
             authQueryString = '?lol';
@@ -1772,8 +1795,9 @@ describe('Raven (public API)', function() {
         it('should not throw an error if not configured', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
             this.sinon.stub(window, 'send')
-            Raven.captureMessage('foo');
-            assert.isFalse(window.send.called);
+            assert.doesNotThrow(function() {
+                Raven.captureMessage('foo');
+            });
         });
 
     });
@@ -1830,8 +1854,9 @@ describe('Raven (public API)', function() {
         it('should not throw an error if not configured', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
             this.sinon.stub(window, 'handleStackInfo')
-            Raven.captureException(new Error('err'));
-            assert.isFalse(window.handleStackInfo.called);
+            assert.doesNotThrow(function() {
+                Raven.captureException(new Error('err'));
+            });
         });
     });
 
