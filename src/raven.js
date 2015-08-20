@@ -722,7 +722,7 @@ function send(data) {
         data.user = globalUser;
     }
 
-    // Include the release iff it's defined in globalOptions
+    // Include the release if it's defined in globalOptions
     if (globalOptions.release) data.release = globalOptions.release;
 
     if (isFunction(globalOptions.dataCallback)) {
