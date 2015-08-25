@@ -26,11 +26,15 @@ var _Raven = window.Raven,
     authQueryString,
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
-    // capture a reference to window.console first before
-    // the console plugin has a chance to monkey patch
+    // capture references to window.console *and* all its methods first
+    // before the console plugin has a chance to monkey patch
     originalConsole = window.console || {},
+    originalConsoleMethods = {},
     startTime = now();
 
+for (var method in originalConsole) {
+  originalConsoleMethods[method] = originalConsole[method];
+}
 /*
  * The core Raven singleton
  *
@@ -852,10 +856,10 @@ function uuid4() {
 }
 
 function logDebug(level) {
-    if (originalConsole[level] && Raven.debug) {
+    if (originalConsoleMethods[level] && Raven.debug) {
         // _slice is coming from vendor/TraceKit/tracekit.js
         // so it's accessible globally
-        originalConsole[level].apply(originalConsole, _slice.call(arguments, 1));
+        originalConsoleMethods[level].apply(originalConsole, _slice.call(arguments, 1));
     }
 }
 
