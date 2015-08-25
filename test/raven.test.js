@@ -327,15 +327,21 @@ describe('globals', function() {
         it('should not write to console when Raven.debug is false', function() {
             Raven.debug = false;
             this.sinon.stub(originalConsole, level);
+            this.sinon.stub(originalConsole, 'log');
             logDebug(level, message);
-            assert.isFalse(originalConsole[level].called);
+            //Temporary fix, see https://github.com/getsentry/raven-js/issues/373
+            //assert.isFalse(originalConsole[level].called);
+            assert.isFalse(originalConsole.log.called);
         });
 
         it('should write to console when Raven.debug is true', function() {
             Raven.debug = true;
             this.sinon.stub(originalConsole, level);
+            this.sinon.stub(originalConsole, 'log');
             logDebug(level, message);
-            assert.isTrue(originalConsole[level].calledOnce);
+            //Temporary fix, see https://github.com/getsentry/raven-js/issues/373
+            //assert.isTrue(originalConsole[level].calledOnce);
+            assert.isTrue(originalConsole.log.calledOnce);
         });
 
         it('should handle variadic arguments', function() {
