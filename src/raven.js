@@ -855,7 +855,12 @@ function logDebug(level) {
     if (originalConsole[level] && Raven.debug) {
         // _slice is coming from vendor/TraceKit/tracekit.js
         // so it's accessible globally
-        originalConsole[level].apply(originalConsole, _slice.call(arguments, 1));
+        //The console plugin cause infinite recursion if logDebug is called
+        //See https://github.com/getsentry/raven-js/issues/373
+        //originalConsole[level].apply(originalConsole, _slice.call(arguments, 1));
+        //As a temporary workaround, we ignore the level and call 'log', which
+        //is ignored by the console plugin
+        originalConsole.log.apply(originalConsole, _slice.call(arguments, 1));
     }
 }
 
