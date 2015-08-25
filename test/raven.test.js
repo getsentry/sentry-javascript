@@ -22,6 +22,11 @@ function flushRavenState() {
     startTime = 0;
     ravenNotConfiguredError = undefined;
     originalConsole = window.console || {};
+    originalConsoleMethods = {};
+
+    for (var method in originalConsole) {
+      originalConsoleMethods[method] = originalConsole[method];
+    }
 
     Raven.uninstall();
 }
@@ -326,22 +331,32 @@ describe('globals', function() {
 
         it('should not write to console when Raven.debug is false', function() {
             Raven.debug = false;
-            this.sinon.stub(originalConsole, level);
+            this.sinon.stub(originalConsoleMethods, level);
             logDebug(level, message);
-            assert.isFalse(originalConsole[level].called);
+            assert.isFalse(originalConsoleMethods[level].called);
         });
 
         it('should write to console when Raven.debug is true', function() {
             Raven.debug = true;
-            this.sinon.stub(originalConsole, level);
+            this.sinon.stub(originalConsoleMethods, level);
             logDebug(level, message);
-            assert.isTrue(originalConsole[level].calledOnce);
+            assert.isTrue(originalConsoleMethods[level].calledOnce);
         });
 
         it('should handle variadic arguments', function() {
             Raven.debug = true;
-            this.sinon.stub(originalConsole, level);
+            this.sinon.stub(originalConsoleMethods, level);
             logDebug(level, message, {}, 'foo');
+        });
+
+        it('should be unaffected by monkeypatches to the console built-in', function() {
+            Raven.debug = true;
+            this.sinon.stub(console, level).throws("can't touch this");
+            this.sinon.stub(originalConsoleMethods, level);
+            logDebug(level, message);
+            assert.isTrue(originalConsoleMethods[level].calledOnce);
+            assert.isFalse(console[level].called);
+            console[level].restore();
         });
     });
 
