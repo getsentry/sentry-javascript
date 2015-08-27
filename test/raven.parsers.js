@@ -366,6 +366,18 @@ describe('raven.parsers', function(){
 
         parsed['request'].data.should.equal('<unavailable>');
       });
+
+      it('should make sure that body is a string', function(){
+        var mockReq = {
+          method: 'GET',
+          hostname: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+          body: {'foo': true}
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+        parsed['request'].data.should.equal('{\"foo\":true}');
+      });
     });
   });
 
