@@ -7,7 +7,7 @@
 .Spotlight-V100
 .Trashes
 
-docs/html
+docs/_build
 docs/doctrees
 
 build
