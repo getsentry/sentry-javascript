@@ -6,6 +6,8 @@
   "ignore": [
     "**/.*",
     "AUTHORS",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
     "Gruntfile.js",
     "Makefile",
     "README.md",
