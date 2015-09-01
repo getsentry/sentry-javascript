@@ -11,6 +11,9 @@ pids
 logs
 results
 
+docs/_build
+docs/doctrees
+
 node_modules
 npm-debug.log
 
