@@ -24,43 +24,59 @@ Configuring the HTTP Transport
         transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})
     });
 
-Adding Context
---------------
+Optional Attributes
+-------------------
 
-You can use the ``extra`` key for basic context:
+All optional attributes are passed as part of the options to ``captureError`` and ``captureMessage``.
 
-.. code-block:: javascript
+.. describe:: extra
 
-    client.captureError(new Error('Uh oh!'), {
-        extra: {'key': 'value'}
-    });
+    Additional context for this event. Must be a mapping. Children can be any native JSON type.
 
-And the ``tags`` key for indexed tagging:
+    .. code-block:: javascript
 
-.. code-block:: javascript
+        {
+            extra: {'key': 'value'}
+        }
 
-    client.captureError(new Error('Uh oh!'), {
-        tags: {'key': 'value'}
-    });
+.. describe:: tags
 
-Specifying Levels
------------------
+    Tags to index with this event. Must be a mapping of strings.
 
-You can specify a level in the second optional parameter. The default level is `error`.
+    .. code-block:: javascript
 
-Sentry is aware of five different levels:
+        {
+            tags: {'key': 'value'}
+        }
 
-* debug (the least serious)
-* info
-* warning
-* error
-* fatal (the most serious)
+.. describe:: fingerprint
 
-.. code-block:: javascript
+    The fingerprint for grouping this event.
 
-    var client = new raven.Client('___DSN___', {level: 'warning'});
+    .. code-block:: javascript
 
-    client.captureError(new Error('Uh oh!'));
+        {
+            // dont group events from the same NODE_ENV together
+            fingerprint: ['{{ default }}', process.env.NODE_ENV]
+        }
+
+.. describe:: level
+
+    The level of the event. Defaults to ``error``.
+
+    .. code-block:: javascript
+
+        {
+            level: 'warning'
+        }
+
+    Sentry is aware of the following levels:
+
+    * debug (the least serious)
+    * info
+    * warning
+    * error
+    * fatal (the most serious)
 
 Event IDs
 ---------
