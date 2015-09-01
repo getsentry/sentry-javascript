@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.20
+
+* Wrap jquery's deferred[ resolveWith | rejectWith | notifyWith ] See: https://github.com/getsentry/raven-js/pull/268
+* Use window.crypto for uuid4 if present. See: https://github.com/getsentry/raven-js/pull/349
+* Add winjs support. See: https://github.com/getsentry/raven-js/commit/b9a1292cbc9275fc9f9f1108ff3698cbd5ce2180
+* Fix calling `Raven.captureException` from browser console. See: https://github.com/getsentry/raven-js/issues/358
+* guard against document.location being null or undefined. See: https://github.com/getsentry/raven-js/pull/357
+* Change error message format to match other clients. See: https://github.com/getsentry/raven-js/commit/64ca528b1b066ec7cdb5ef38e755c445f16ebef7
+* Don't require a user in the DSN. See: https://github.com/getsentry/raven-js/pull/361
+* Add `crossOrigin` option. See: https://github.com/getsentry/raven-js/pull/362
+* Avoid recursing when using the `console` plugin. See: https://github.com/getsentry/raven-js/commit/f92ff9de538f331a291af4a7d302202e587aaae5
+
 ## 1.1.19
 
 * Use more compliant way of creating an Image in the dom. See: https://github.com/getsentry/raven-js/pull/334
