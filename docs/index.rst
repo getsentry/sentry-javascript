@@ -5,7 +5,7 @@
 
 .. sentry:edition:: hosted, on-premise
 
-    .. class:: platform-js
+    .. class:: platform-node
 
     Node.js
     =======
