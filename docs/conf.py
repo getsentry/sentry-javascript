@@ -215,7 +215,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'raven-js', u'raven-js Documentation',
+    ('index', 'raven-node', u'raven-node Documentation',
      [u'Sentry'], 1)
 ]
 
