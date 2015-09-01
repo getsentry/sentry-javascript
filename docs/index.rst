@@ -14,6 +14,8 @@ Raven.js is a tiny standalone JavaScript client for Sentry. It can be
 used to report errors from a web browser. The quality of reporting will
 heavily depend on the environment the data is submitted from.
 
+**Note**: If you're using Node on the server, you'll need `raven-node <https://github.com/getsentry/raven-node>`_.
+
 Installation
 ------------
 
