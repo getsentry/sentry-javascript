@@ -32,8 +32,6 @@ Optional settings
           release: '721e41770371db95eee98ca2707686226b993eda'
         }
 
-    Can also be defined with ``Raven.setReleaseContext('721e41770371db95eee98ca2707686226b993eda')``.
-
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
