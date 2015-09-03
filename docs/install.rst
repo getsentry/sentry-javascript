@@ -17,7 +17,7 @@ Likely you'll want to add it to your ``package.json``:
 Compatibility
 -------------
 
- * 0.8.x
- * 0.10.x
- * 0.12.x
- * iojs
+* 0.8.x
+* 0.10.x
+* 0.12.x
+* iojs
