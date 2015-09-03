@@ -66,7 +66,7 @@ is additional documentation available that covers all the rest:
    plugins
    config
    usage
-   integrations
+   integrations/index
    coffeescript
 
 Resources:
