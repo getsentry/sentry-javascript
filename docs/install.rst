@@ -3,13 +3,13 @@ Installation
 
 Raven is distributed via ``npm``:
 
-.. code-block:: bash
+.. sourcecode:: bash
 
     $ npm install raven
 
-Likely you'll want to add it to your ``package.json``::
+Likely you'll want to add it to your ``package.json``:
 
-.. code-block:: bash
+.. sourcecode:: bash
 
     $ npm install raven --save
 
