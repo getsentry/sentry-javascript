@@ -95,13 +95,20 @@ var Raven = {
         globalKey = uri.user;
         globalProject = uri.path.substr(lastSlash + 1);
 
-        // assemble the endpoint from the uri pieces
-        globalServer = '//' + uri.host +
-                      (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + globalProject + '/store/';
+        if (globalOptions.via) {
+            // Support proxying through another endpoint
+            globalServer = globalOptions.via;
+            setAuthQueryString(dsn);
+        } else {
+            // assemble the endpoint from the uri pieces
+            globalServer = '//' + uri.host +
+                          (uri.port ? ':' + uri.port : '') +
+                          '/' + path + 'api/' + globalProject + '/store/';
 
-        if (uri.protocol) {
-            globalServer = uri.protocol + ':' + globalServer;
+            if (uri.protocol) {
+                globalServer = uri.protocol + ':' + globalServer;
+            }
+            setAuthQueryString();
         }
 
         if (globalOptions.fetchContext) {
@@ -113,8 +120,6 @@ var Raven = {
         }
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
-
-        setAuthQueryString();
 
         // return for chaining
         return Raven;
@@ -509,11 +514,12 @@ function each(obj, callback) {
 }
 
 
-function setAuthQueryString() {
+function setAuthQueryString(dsn) {
+    // If we pass a DSN, we want to send sentry_dsn, else send sentry_key
     authQueryString =
         '?sentry_version=4' +
         '&sentry_client=raven-js/' + Raven.VERSION +
-        '&sentry_key=' + globalKey;
+        (isUndefined(dsn) ? '&sentry_key=' + globalKey : '&sentry_dsn=' + encodeURIComponent(dsn));
 }
 
 
