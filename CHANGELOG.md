@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.21
+
+* Fix a bug where calling `captureException` before calling `Raven.config()` would trigger it's own exception. See: https://github.com/getsentry/raven-js/issues/377
+
 ## 1.1.20
 
 * Wrap jquery's deferred[ resolveWith | rejectWith | notifyWith ] See: https://github.com/getsentry/raven-js/pull/268

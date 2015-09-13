@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.20 (f4760ed) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.21 (8995c6d) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1119,7 +1119,7 @@ for (var method in originalConsole) {
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.20',
+    VERSION: '1.1.21',
 
     debug: true,
 
@@ -1641,7 +1641,7 @@ function normalizeFrame(frame) {
 
     normalized.in_app = !( // determine if an exception came from outside of our app
         // first we check the global includePaths list.
-        !globalOptions.includePaths.test(normalized.filename) ||
+        (!!globalOptions.includePaths.test && !globalOptions.includePaths.test(normalized.filename)) ||
         // Now we check for fun, if the function name is Raven or TraceKit
         /(Raven|TraceKit)\./.test(normalized['function']) ||
         // finally, we do a last ditch effort and check for raven.min.js
