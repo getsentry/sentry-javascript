@@ -596,6 +596,19 @@ describe('globals', function() {
                 in_app: false
             });
         });
+
+        it('should not blow up if includePaths is empty, regression for #377', function() {
+            this.sinon.stub(window, 'extractContextFromFrame').returns(undefined);
+            var frame = {
+                url: 'http://lol.com/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'TraceKit.lol'
+                // context: []    context is stubbed
+            };
+            globalOptions.includePaths = [];
+            normalizeFrame(frame);
+        });
     });
 
     describe('extractContextFromFrame', function() {
