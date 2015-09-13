@@ -67,6 +67,8 @@ Raven is published to npm as well. https://www.npmjs.com/package/raven-js
 
     $ npm install raven-js --save
 
+Note that if you intend to use Raven with Node, `raven-node <https://github.com/getsentry/raven-node>`_ is the client to use
+
 Requirements
 ~~~~~~~~~~~~
 
