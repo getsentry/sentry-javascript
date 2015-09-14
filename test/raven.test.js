@@ -1,5 +1,4 @@
 function flushRavenState() {
-    authQueryString = undefined;
     hasJSON = !isUndefined(window.JSON);
     lastCapturedException = undefined;
     lastEventId = undefined;
@@ -357,14 +356,6 @@ describe('globals', function() {
             assert.isTrue(originalConsoleMethods[level].calledOnce);
             assert.isFalse(console[level].called);
             console[level].restore();
-        });
-    });
-
-    describe('setAuthQueryString', function() {
-        it('should return a properly formatted string and cache it', function() {
-            var expected = '?sentry_version=4&sentry_client=raven-js/<%= pkg.version %>&sentry_key=abc';
-            setAuthQueryString();
-            assert.strictEqual(authQueryString, expected);
         });
     });
 
@@ -1129,7 +1120,6 @@ describe('globals', function() {
             });
 
             globalServer = 'http://localhost/store/';
-            authQueryString = '?lol'
 
             globalOptions = {
                 projectId: 2,
@@ -1141,7 +1131,7 @@ describe('globals', function() {
             var args = window.makeRequest.lastCall.args;
             assert.equal(args.length, 1);
             var opts = args[0];
-            assert.equal(opts.url, 'http://localhost/store/?lol');
+            assert.equal(opts.url, 'http://localhost/store/');
             assert.deepEqual(opts.data, {
                 project: '2',
                 release: 'abc123',
@@ -1156,6 +1146,11 @@ describe('globals', function() {
                 event_id: 'abc123',
                 foo: 'bar',
                 extra: {'session:duration': 100},
+            });
+            assert.deepEqual(opts.auth, {
+                sentry_client: 'raven-js/<%= pkg.version %>',
+                sentry_key: 'abc',
+                sentry_version: '4'
             });
             assert.deepEqual(opts.options, globalOptions);
             assert.isFunction(opts.onSuccess);
@@ -1195,12 +1190,13 @@ describe('globals', function() {
 
         it('should load an Image', function() {
             makeRequest({
-                url: 'http://localhost/?lol',
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
                 options: globalOptions
             });
             assert.equal(imageCache.length, 1);
-            assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
+            assert.equal(imageCache[0].src, 'http://localhost/?a=1&b=2&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
         });
 
         it('should populate crossOrigin based on globalOptions', function() {
@@ -1209,6 +1205,7 @@ describe('globals', function() {
             };
             makeRequest({
                 url: globalServer,
+                auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: globalOptions
             });
@@ -1222,6 +1219,7 @@ describe('globals', function() {
             };
             makeRequest({
                 url: globalServer,
+                auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: globalOptions
             });
@@ -1235,6 +1233,7 @@ describe('globals', function() {
             };
             makeRequest({
                 url: globalServer,
+                auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: globalOptions
             });
@@ -1416,6 +1415,13 @@ describe('globals', function() {
             assert.equal(joinRegExp([
                 'a', 'b', null, 'a.b', undefined, true, /d/, 123, {}, /[0-9]/, []
             ]).source, 'a|b|a\\.b|d|[0-9]');
+        });
+    });
+
+    describe('urlencode', function() {
+        it('should work', function() {
+            assert.equal(urlencode({}), '');
+            assert.equal(urlencode({'foo': 'bar', 'baz': '1 2'}), 'foo=bar&baz=1%202');
         });
     });
 });

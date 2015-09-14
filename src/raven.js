@@ -23,7 +23,6 @@ var _Raven = window.Raven,
         maxMessageLength: 100,
         extra: {}
     },
-    authQueryString,
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
     // capture references to window.console *and* all its methods first
@@ -113,8 +112,6 @@ var Raven = {
         }
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
-
-        setAuthQueryString();
 
         // return for chaining
         return Raven;
@@ -508,15 +505,6 @@ function each(obj, callback) {
     }
 }
 
-
-function setAuthQueryString() {
-    authQueryString =
-        '?sentry_version=4' +
-        '&sentry_client=raven-js/' + Raven.VERSION +
-        '&sentry_key=' + globalKey;
-}
-
-
 function handleStackInfo(stackInfo, options) {
     var frames = [];
 
@@ -752,31 +740,36 @@ function send(data) {
 
     if (!isSetup()) return;
 
-    var url = globalServer + authQueryString;
-
     makeRequest({
-        url: url,
+        url: globalServer,
+        auth: {
+            sentry_version: '4',
+            sentry_client: 'raven-js/' + Raven.VERSION,
+            sentry_key: globalKey
+        },
         data: data,
         options: globalOptions,
         onSuccess: function success() {
             triggerEvent('success', {
                 data: data,
-                src: url
+                src: globalServer
             });
         },
         onError: function failure() {
             triggerEvent('failure', {
                 data: data,
-                src: url
+                src: globalServer
             });
         }
     });
 }
 
-
 function makeRequest(opts) {
+    // Tack on sentry_data to auth options, which get urlencoded
+    opts.auth.sentry_data = JSON.stringify(opts.data);
+
     var img = newImage(),
-        src = opts.url + '&sentry_data=' + encodeURIComponent(JSON.stringify(opts.data));
+        src = opts.url + '?' + urlencode(opts.auth);
 
     if (opts.options.crossOrigin || opts.options.crossOrigin === '') {
         img.crossOrigin = opts.options.crossOrigin;
@@ -876,4 +869,13 @@ function afterLoad() {
         Raven.config(RavenConfig.dsn, RavenConfig.config).install();
     }
 }
+
+function urlencode(o) {
+    var pairs = [];
+    each(o, function(key, value) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+    });
+    return pairs.join('&');
+}
+
 afterLoad();
