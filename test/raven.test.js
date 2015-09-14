@@ -881,7 +881,7 @@ describe('globals', function() {
             };
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -913,7 +913,7 @@ describe('globals', function() {
             globalUser = {name: 'Matt'};
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -929,7 +929,7 @@ describe('globals', function() {
                 },
                 foo: 'bar',
                 extra: {'session:duration': 100}
-            }]);
+            });
         });
 
         it('should merge in global tags', function() {
@@ -948,7 +948,7 @@ describe('globals', function() {
 
 
             send({tags: {tag2: 'value2'}});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -961,7 +961,7 @@ describe('globals', function() {
                 event_id: 'abc123',
                 tags: {tag1: 'value1', tag2: 'value2'},
                 extra: {'session:duration': 100}
-            }]);
+            });
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
                 tags: {tag1: 'value1'}
@@ -984,7 +984,7 @@ describe('globals', function() {
 
 
             send({extra: {key2: 'value2'}});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -996,7 +996,7 @@ describe('globals', function() {
                 },
                 event_id: 'abc123',
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
-            }]);
+            });
             assert.deepEqual(globalOptions, {
                 logger: 'javascript',
                 extra: {key1: 'value1'}
@@ -1018,10 +1018,10 @@ describe('globals', function() {
             globalUser = {name: 'Matt'};
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args, [{
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 lol: 'ibrokeit',
                 event_id: 'abc123',
-            }]);
+            });
         });
 
         it('should ignore dataCallback if it does not return anything', function() {
@@ -1041,7 +1041,7 @@ describe('globals', function() {
             };
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1072,7 +1072,7 @@ describe('globals', function() {
             };
 
             send({foo: 'bar', tags: {}, extra: {}});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1103,7 +1103,7 @@ describe('globals', function() {
             };
 
             send({foo: 'bar'});
-            assert.deepEqual(window.makeRequest.lastCall.args[0], {
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 release: 'abc123',
                 logger: 'javascript',
@@ -1119,6 +1119,70 @@ describe('globals', function() {
                 extra: {'session:duration': 100}
             });
         });
+
+        it('should pass correct opts to makeRequest', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalServer = 'http://localhost/store/';
+            authQueryString = '?lol'
+
+            globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                release: 'abc123',
+            };
+
+            send({foo: 'bar'});
+            var args = window.makeRequest.lastCall.args;
+            assert.equal(args.length, 1);
+            var opts = args[0];
+            assert.equal(opts.url, 'http://localhost/store/?lol');
+            assert.deepEqual(opts.data, {
+                project: '2',
+                release: 'abc123',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                foo: 'bar',
+                extra: {'session:duration': 100},
+            });
+            assert.deepEqual(opts.options, globalOptions);
+            assert.isFunction(opts.onSuccess);
+            assert.isFunction(opts.onError);
+        });
+
+        it('should check `isSetup`', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(window, 'makeRequest');
+            send({foo: 'bar'});
+            assert.isTrue(window.isSetup.called);
+        });
+
+        it('should not makeRequest if `isSetup` is false', function() {
+            this.sinon.stub(window, 'isSetup').returns(false);
+            this.sinon.stub(window, 'makeRequest');
+            send({foo: 'bar'});
+            assert.isFalse(window.makeRequest.called);
+        });
+
+        it('should log to console', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'logDebug');
+            this.sinon.stub(window, 'makeRequest');
+            send({foo: 'bar'});
+            assert.isTrue(window.logDebug.called);
+        });
     });
 
     describe('makeRequest', function() {
@@ -1129,30 +1193,12 @@ describe('globals', function() {
             this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
         })
 
-        it('should check `isSetup`', function() {
-            this.sinon.stub(window, 'isSetup').returns(false);
-            makeRequest({foo: 'bar'});
-            assert.isTrue(window.isSetup.called);
-        });
-
-        it('should not create the image if `isSetup` is false', function() {
-            this.sinon.stub(window, 'isSetup').returns(false);
-            makeRequest({foo: 'bar'});
-            assert.isFalse(window.newImage.called);
-        });
-
-        it('should log to console', function() {
-            this.sinon.stub(window, 'isSetup').returns(true);
-            this.sinon.stub(window, 'logDebug');
-            makeRequest({foo: 'bar'});
-            assert.isTrue(window.logDebug.called);
-        });
-
         it('should load an Image', function() {
-            authQueryString = '?lol';
-            globalServer = 'http://localhost/';
-
-            makeRequest({foo: 'bar'});
+            makeRequest({
+                url: 'http://localhost/?lol',
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].src, 'http://localhost/?lol&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
         });
@@ -1161,7 +1207,11 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: 'something'
             };
-            makeRequest({foo: 'bar'});
+            makeRequest({
+                url: globalServer,
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].crossOrigin, 'something');
         });
@@ -1170,7 +1220,11 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: ''
             };
-            makeRequest({foo: 'bar'});
+            makeRequest({
+                url: globalServer,
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].crossOrigin, '');
         });
@@ -1179,7 +1233,11 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: false
             };
-            makeRequest({foo: 'bar'});
+            makeRequest({
+                url: globalServer,
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
             assert.equal(imageCache.length, 1);
             assert.isUndefined(imageCache[0].crossOrigin);
         });

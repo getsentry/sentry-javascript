@@ -748,35 +748,41 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    makeRequest(data);
-}
-
-
-function makeRequest(data) {
-    var img,
-        src;
-
     logDebug('debug', 'Raven about to send:', data);
 
     if (!isSetup()) return;
 
-    img = newImage();
-    src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-    if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
-        img.crossOrigin = globalOptions.crossOrigin;
+    var url = globalServer + authQueryString;
+
+    makeRequest({
+        url: url,
+        data: data,
+        options: globalOptions,
+        onSuccess: function success() {
+            triggerEvent('success', {
+                data: data,
+                src: url
+            });
+        },
+        onError: function failure() {
+            triggerEvent('failure', {
+                data: data,
+                src: url
+            });
+        }
+    });
+}
+
+
+function makeRequest(opts) {
+    var img = newImage(),
+        src = opts.url + '&sentry_data=' + encodeURIComponent(JSON.stringify(opts.data));
+
+    if (opts.options.crossOrigin || opts.options.crossOrigin === '') {
+        img.crossOrigin = opts.options.crossOrigin;
     }
-    img.onload = function success() {
-        triggerEvent('success', {
-            data: data,
-            src: src
-        });
-    };
-    img.onerror = img.onabort = function failure() {
-        triggerEvent('failure', {
-            data: data,
-            src: src
-        });
-    };
+    img.onload = opts.onSuccess;
+    img.onerror = img.onabort = opts.onError;
     img.src = src;
 }
 
