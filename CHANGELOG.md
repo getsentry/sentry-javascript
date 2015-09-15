@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.22
+
+* Fix another outstanding bug related to https://github.com/getsentry/raven-js/issues/377 that wasn't fully resolved with 1.1.21
+* Laid groundwork for pluggable transports, but not ready for public consumption yet
+
 ## 1.1.21
 
 * Fix a bug where calling `captureException` before calling `Raven.config()` would trigger it's own exception. See: https://github.com/getsentry/raven-js/issues/377

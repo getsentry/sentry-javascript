@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.21 (8995c6d) | github.com/getsentry/raven-js */
+/*! Raven.js 1.1.22 (6278810) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1101,7 +1101,6 @@ var _Raven = window.Raven,
         maxMessageLength: 100,
         extra: {}
     },
-    authQueryString,
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
     // capture references to window.console *and* all its methods first
@@ -1119,7 +1118,7 @@ for (var method in originalConsole) {
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.21',
+    VERSION: '1.1.22',
 
     debug: true,
 
@@ -1191,8 +1190,6 @@ var Raven = {
         }
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
-
-        setAuthQueryString();
 
         // return for chaining
         return Raven;
@@ -1586,15 +1583,6 @@ function each(obj, callback) {
     }
 }
 
-
-function setAuthQueryString() {
-    authQueryString =
-        '?sentry_version=4' +
-        '&sentry_client=raven-js/' + Raven.VERSION +
-        '&sentry_key=' + globalKey;
-}
-
-
 function handleStackInfo(stackInfo, options) {
     var frames = [];
 
@@ -1693,7 +1681,7 @@ function extractContextFromFrame(frame) {
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, i, fullMessage;
 
-    if (globalOptions.ignoreErrors.test(message)) return;
+    if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(message)) return;
 
     message += '';
     message = truncate(message, globalOptions.maxMessageLength);
@@ -1717,8 +1705,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
-    if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
-    if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
+    if (!!globalOptions.ignoreUrls.test && globalOptions.ignoreUrls.test(fileurl)) return;
+    if (!!globalOptions.whitelistUrls.test && !globalOptions.whitelistUrls.test(fileurl)) return;
 
     // Fire away!
     send(
@@ -1826,35 +1814,46 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
-    makeRequest(data);
-}
-
-
-function makeRequest(data) {
-    var img,
-        src;
-
     logDebug('debug', 'Raven about to send:', data);
 
     if (!isSetup()) return;
 
-    img = newImage();
-    src = globalServer + authQueryString + '&sentry_data=' + encodeURIComponent(JSON.stringify(data));
-    if (globalOptions.crossOrigin || globalOptions.crossOrigin === '') {
-        img.crossOrigin = globalOptions.crossOrigin;
+    (globalOptions.transport || makeRequest)({
+        url: globalServer,
+        auth: {
+            sentry_version: '4',
+            sentry_client: 'raven-js/' + Raven.VERSION,
+            sentry_key: globalKey
+        },
+        data: data,
+        options: globalOptions,
+        onSuccess: function success() {
+            triggerEvent('success', {
+                data: data,
+                src: globalServer
+            });
+        },
+        onError: function failure() {
+            triggerEvent('failure', {
+                data: data,
+                src: globalServer
+            });
+        }
+    });
+}
+
+function makeRequest(opts) {
+    // Tack on sentry_data to auth options, which get urlencoded
+    opts.auth.sentry_data = JSON.stringify(opts.data);
+
+    var img = newImage(),
+        src = opts.url + '?' + urlencode(opts.auth);
+
+    if (opts.options.crossOrigin || opts.options.crossOrigin === '') {
+        img.crossOrigin = opts.options.crossOrigin;
     }
-    img.onload = function success() {
-        triggerEvent('success', {
-            data: data,
-            src: src
-        });
-    };
-    img.onerror = img.onabort = function failure() {
-        triggerEvent('failure', {
-            data: data,
-            src: src
-        });
-    };
+    img.onload = opts.onSuccess;
+    img.onerror = img.onabort = opts.onError;
     img.src = src;
 }
 
@@ -1948,6 +1947,15 @@ function afterLoad() {
         Raven.config(RavenConfig.dsn, RavenConfig.config).install();
     }
 }
+
+function urlencode(o) {
+    var pairs = [];
+    each(o, function(key, value) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+    });
+    return pairs.join('&');
+}
+
 afterLoad();
 
 // Expose Raven to the world
