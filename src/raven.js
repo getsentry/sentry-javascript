@@ -603,7 +603,7 @@ function extractContextFromFrame(frame) {
 function processException(type, message, fileurl, lineno, frames, options) {
     var stacktrace, i, fullMessage;
 
-    if (globalOptions.ignoreErrors.test(message)) return;
+    if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(message)) return;
 
     message += '';
     message = truncate(message, globalOptions.maxMessageLength);
@@ -627,8 +627,8 @@ function processException(type, message, fileurl, lineno, frames, options) {
         };
     }
 
-    if (globalOptions.ignoreUrls && globalOptions.ignoreUrls.test(fileurl)) return;
-    if (globalOptions.whitelistUrls && !globalOptions.whitelistUrls.test(fileurl)) return;
+    if (!!globalOptions.ignoreUrls.test && globalOptions.ignoreUrls.test(fileurl)) return;
+    if (!!globalOptions.whitelistUrls.test && !globalOptions.whitelistUrls.test(fileurl)) return;
 
     // Fire away!
     send(

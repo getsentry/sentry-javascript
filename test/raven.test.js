@@ -691,6 +691,14 @@ describe('globals', function() {
             assert.isTrue(window.send.calledOnce);
         });
 
+        it('should handle empty `ignoreErrors`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.ignoreErrors = [];
+            processException('Error', 'e1', 'http://example.com', []);
+            assert.isTrue(window.send.calledOnce);
+        });
+
         it('should respect `ignoreUrls`', function() {
             this.sinon.stub(window, 'send');
 
@@ -700,6 +708,14 @@ describe('globals', function() {
             processException('Error', 'error', 'http://host2/', []);
             assert.isFalse(window.send.called);
             processException('Error', 'error', 'http://host3/', []);
+            assert.isTrue(window.send.calledOnce);
+        });
+
+        it('should handle empty `ignoreUrls`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.ignoreUrls = [];
+            processException('Error', 'e1', 'http://example.com', []);
             assert.isTrue(window.send.calledOnce);
         });
 
@@ -713,6 +729,14 @@ describe('globals', function() {
             assert.equal(window.send.callCount, 2);
             processException('Error', 'error', 'http://host3/', []);
             assert.equal(window.send.callCount, 2);
+        });
+
+        it('should handle empty `whitelistUrls`', function() {
+            this.sinon.stub(window, 'send');
+
+            globalOptions.whitelistUrls = [];
+            processException('Error', 'e1', 'http://example.com', []);
+            assert.isTrue(window.send.calledOnce);
         });
 
         it('should send a proper payload with frames', function() {
