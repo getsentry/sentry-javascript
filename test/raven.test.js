@@ -1157,6 +1157,36 @@ describe('globals', function() {
             assert.isFunction(opts.onError);
         });
 
+        it('should call globalOptions.transport if specified', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalProject = '2';
+            globalOptions = {
+                logger: 'javascript',
+                transport: sinon.stub()
+            };
+
+            send({foo: 'bar'});
+            assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                foo: 'bar',
+                extra: {'session:duration': 100}
+            });
+        });
+
         it('should check `isSetup`', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
             this.sinon.stub(window, 'makeRequest');

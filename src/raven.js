@@ -740,7 +740,7 @@ function send(data) {
 
     if (!isSetup()) return;
 
-    makeRequest({
+    (globalOptions.transport || makeRequest)({
         url: globalServer,
         auth: {
             sentry_version: '4',
