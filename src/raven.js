@@ -5,6 +5,8 @@
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
     hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
+    // Raven can run in contexts where there's no document (react-native)
+    hasDocument = !isUndefined(document),
     lastCapturedException,
     lastEventId,
     globalServer,
@@ -390,6 +392,9 @@ Raven.setUser = Raven.setUserContext; // To be deprecated
 function triggerEvent(eventType, options) {
     var event, key;
 
+    if (!hasDocument)
+        return;
+
     options = options || {};
 
     eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
@@ -665,7 +670,7 @@ function now() {
 }
 
 function getHttpData() {
-    if (!document.location || !document.location.href) {
+    if (!hasDocument || !document.location || !document.location.href) {
         return;
     }
 

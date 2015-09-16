@@ -15,7 +15,6 @@ var TraceKit = {
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
-
 /**
  * TraceKit.wrap: Wrap any function in a TraceKit reporter
  * Example: func = TraceKit.wrap(func);
@@ -33,6 +32,13 @@ TraceKit.wrap = function traceKitWrapper(func) {
         }
     }
     return wrapped;
+};
+
+function getLocationHref() {
+    if (typeof document === 'undefined')
+        return '';
+
+    return document.location.href;
 };
 
 /**
@@ -168,7 +174,7 @@ TraceKit.report = (function reportModuleWrapper() {
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
             stack = {
                 'message': message,
-                'url': document.location.href,
+                'url': getLocationHref(),
                 'stack': [location]
             };
             notifyHandlers(stack, true);
@@ -512,6 +518,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * the url, line, and column number of the defined function.
      */
     function findSourceByFunctionBody(func) {
+        if (typeof document === 'undefined')
+            return;
+
         var urls = [window.location.href],
             scripts = document.getElementsByTagName('script'),
             body,
@@ -680,7 +689,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -737,7 +746,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -847,7 +856,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': lines[0],
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -984,7 +993,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         var result = {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
         augmentStackTraceWithInitialElement(result, ex.sourceURL || ex.fileName, ex.line || ex.lineNumber, ex.message || ex.description);
@@ -1050,7 +1059,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
         };
     }
 
