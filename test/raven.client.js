@@ -466,6 +466,49 @@ describe('raven.Client', function(){
         });
         client.process({message: 'test', tags: {key: 'value'}});
     });
+    it('should capture fingerprint', function(done) {
+        var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
 
+              msg.fingerprint.length.should.equal(1);
+              msg.fingerprint[0].should.equal('foo');
+
+              done();
+            });
+            return 'OK';
+        });
+
+        client.on('logged', function(){
+            scope.done();
+        });
+        client.process({message: 'test', fingerprint: ['foo']});
+    });
+    it('should capture release', function(done) {
+        var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+
+              msg.release.should.equal('version1');
+
+              done();
+            });
+            return 'OK';
+        });
+
+        var client = new raven.Client(dsn, { release: 'version1' });
+        client.on('logged', function(){
+            scope.done();
+        });
+        client.process({message: 'test'});
+    });
 });
 
