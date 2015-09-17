@@ -25,7 +25,7 @@ browsers.
 One thing to note is that Sentry will attempt to process the source map
 before storing (or grouping) an event. This ensures that if we are able to
 deminify the source, we'll be able to more effectively group similar
-events over time.</p>
+events over time.
 
 Browser Support
 ---------------
@@ -34,7 +34,7 @@ In our experiences, the only browser that routinely delivers usable error
 reports is **Google Chrome**.
 
 For additional information, see this more up-to-date `wiki page
-<https://github.com/ryanseddon/source-map/wiki/Source-maps:-languages,-tools-and-other-inf>`_.
+<https://github.com/ryanseddon/source-map/wiki/Source-maps:-languages,-tools-and-other-info>`_.
 
 Generating a Source Map
 -----------------------
