@@ -151,5 +151,5 @@ Additional information can be found in the `Releases API documentation
     -------------------------
 
     While the recommended solution is to upload your source artifacts to
-    Sentry, sometimes its necessary to allow communication from Sentry's
+    Sentry, sometimes it's necessary to allow communication from Sentry's
     internal IPs. For more information on Sentry's public IPs, see :ref:`ip-ranges`.
