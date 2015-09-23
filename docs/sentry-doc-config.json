@@ -4,7 +4,7 @@
       "name": "JavaScript",
       "client_lib": "raven-js",
       "is_framework": false,
-      "doc_link": "install/",
+      "doc_link": "",
       "snippets": [
         "index#installation",
         "index#configuring-the-client",
