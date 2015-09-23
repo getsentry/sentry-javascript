@@ -12,7 +12,7 @@
       ]
     },
     "node-express": {
-      "name": "Node.js",
+      "name": "Express",
       "client_lib": "raven-node",
       "is_framework": true,
       "doc_link": "integrations/express/",
@@ -22,7 +22,7 @@
       ]
     },
     "node-koa": {
-      "name": "Node.js",
+      "name": "Koa",
       "client_lib": "raven-node",
       "is_framework": true,
       "doc_link": "integrations/koa/",
@@ -32,7 +32,7 @@
       ]
     },
     "node-connect": {
-      "name": "Node.js",
+      "name": "Connect",
       "client_lib": "raven-node",
       "is_framework": true,
       "doc_link": "integrations/connect/",
