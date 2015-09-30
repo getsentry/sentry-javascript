@@ -63,7 +63,6 @@ is additional documentation available that covers all the rest:
    :titlesonly:
 
    install
-   plugins
    config
    usage
    integrations/index
