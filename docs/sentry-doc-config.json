@@ -1,15 +1,13 @@
 {
-  "wizards": {
+  "platforms": {
     "javascript": {
       "name": "JavaScript",
-      "client_lib": "raven-js",
-      "is_framework": false,
-      "doc_link": "",
-      "snippets": [
+      "type": "language",
+      "doc_link": "install/",
+      "wizard": [
         "index#installation",
         "index#configuring-the-client",
-        "index#reporting-errors"
+        "usage#reporting-errors"
       ]
     }
-  }
 }
