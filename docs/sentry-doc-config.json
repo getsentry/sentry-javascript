@@ -7,7 +7,7 @@
       "wizard": [
         "index#installation",
         "index#configuring-the-client",
-        "usage#reporting-errors"
+        "index#reporting-errors"
       ]
     }
   }
