@@ -35,7 +35,7 @@ Now need to configure your application:
 
 At this point you'll likely need to integrate it into your application via
 middleware or another integration mechanism. Take a look at our documentation
-on :doc:`integrations` and :doc:`usage`.
+on :doc:`integrations/index` and :doc:`usage`.
 
 Reporting Errors
 ----------------
