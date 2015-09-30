@@ -1,42 +1,38 @@
 {
-  "wizards": {
+  "platforms": {
     "node": {
       "name": "Node.js",
-      "client_lib": "raven-node",
-      "is_framework": false,
+      "type": "language",
       "doc_link": "",
-      "snippets": [
+      "wizard": [
         "index#installation",
         "index#configuring-the-client",
         "index#reporting-errors"
       ]
     },
-    "node-express": {
+    "node.express": {
       "name": "Express",
-      "client_lib": "raven-node",
-      "is_framework": true,
+      "type": "framework",
       "doc_link": "integrations/express/",
-      "snippets": [
+      "wizard": [
         "index#installation",
         "integrations/express#express"
       ]
     },
-    "node-koa": {
+    "node.koa": {
       "name": "Koa",
-      "client_lib": "raven-node",
-      "is_framework": true,
+      "type": "framework",
       "doc_link": "integrations/koa/",
-      "snippets": [
+      "wizard": [
         "index#installation",
         "integrations/koa#koa"
       ]
     },
-    "node-connect": {
+    "node.connect": {
       "name": "Connect",
-      "client_lib": "raven-node",
-      "is_framework": true,
+      "type": "framework",
       "doc_link": "integrations/connect/",
-      "snippets": [
+      "wizard": [
         "index#installation",
         "integrations/connect#connect"
       ]
