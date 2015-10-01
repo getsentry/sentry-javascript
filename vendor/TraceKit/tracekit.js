@@ -1059,7 +1059,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': getLocationHref(),
+            'url': getLocationHref()
         };
     }
 
