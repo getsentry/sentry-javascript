@@ -167,7 +167,7 @@ Putting it all together
     <body>
         ...
         <script src="jquery.min.js"></script>
-        <script src="//cdn.ravenjs.com/1.1.18/jquery,native/raven.min.js"></script>
+        <script src="https://cdn.ravenjs.com/1.1.22/jquery,native/raven.min.js"></script>
         <script>
             Raven.config('___PUBLIC_DSN___', {
                 logger: 'my-logger',

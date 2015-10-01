@@ -27,7 +27,7 @@ you can use our CDN:
 
 .. sourcecode:: html
 
-    <script src="//cdn.ravenjs.com/1.1.22/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/1.1.22/raven.min.js"></script>
 
 Configuring the Project
 -----------------------
