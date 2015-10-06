@@ -23,7 +23,7 @@ Since this accepts a regular expression, that would catch anything
 \*.example.com or example.com exactly. See also: :ref:`Config:
 whitelistUrls<config-whitelist-urls>`.
 
-Next, checkout the list of :doc:`plugins <plugins>` we provide and see
+Next, checkout the list of :doc:`integrations <integrations/index>` we provide and see
 which are applicable to you.
 
 The community has compiled a list of common ignore rules for common

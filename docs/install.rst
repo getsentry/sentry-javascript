@@ -13,7 +13,7 @@ So for example:
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
     <script src="app.js"></script>
 
-This allows the ability for Raven's plugins to instrument themselves. If
+This allows the ability for Raven's integrations to instrument themselves. If
 included before something like jQuery, it'd be impossible to use for
 example, the jquery plugin.
 
@@ -24,7 +24,7 @@ We serve our own builds off of `Fastly <http://www.fastly.com/>`_. They
 are accessible over both http and https, so we recommend leaving the
 protocol off.
 
-Our CDN distributes builds with and without :doc:`plugins <plugins>`.
+Our CDN distributes builds with and without :doc:`integrations <integrations/index>`.
 
 .. sourcecode:: html
 
