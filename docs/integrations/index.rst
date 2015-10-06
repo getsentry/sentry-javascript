@@ -1,8 +1,8 @@
-Plugins
-=======
+Integrations
+============
 
-Plugins extend the functionality of Raven.js to cover common libraries and
-environments automatically.
+Integrations extend the functionality of Raven.js to cover common libraries and
+environments automatically using simple plugins.
 
 What are plugins?
 ~~~~~~~~~~~~~~~~~
@@ -24,8 +24,9 @@ information, so it's important that we inject code and wrap things
 magically so we can extract what we need. See :doc:`usage` for tips
 regarding that.
 
+.. toctree::
+   :maxdepth: 1
 
-All Plugins
-~~~~~~~~~~~
-* https://github.com/getsentry/raven-js/tree/master/plugins
-* `Download <http://ravenjs.com>`_
+   backbone
+   ember
+   react

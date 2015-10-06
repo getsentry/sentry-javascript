@@ -9,6 +9,33 @@
         "index#configuring-the-client",
         "index#reporting-errors"
       ]
+    },
+    "backbone": {
+      "name": "Backbone",
+      "type": "framework",
+      "doc_link": "integrations/backbone/",
+      "wizard": [
+        "integrations/backbone#installation",
+        "integrations/backbone#configuring-the-client"
+      ]
+    },
+    "ember": {
+      "name": "Ember",
+      "type": "framework",
+      "doc_link": "integrations/ember/",
+      "wizard": [
+        "integrations/ember#installation",
+        "integrations/ember#configuring-the-client"
+      ]
+    },
+    "react": {
+      "name": "React",
+      "type": "framework",
+      "doc_link": "integrations/react/",
+      "wizard": [
+        "integrations/react#installation",
+        "integrations/react#configuring-the-client"
+      ]
     }
   }
 }

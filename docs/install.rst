@@ -28,7 +28,7 @@ Our CDN distributes builds with and without :doc:`plugins <plugins>`.
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/1.1.22/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/1.1.22/jquery,native/raven.min.js
 
 **We highly recommend trying out a plugin or two since it'll greatly
 improve the chances that we can collect good information.**

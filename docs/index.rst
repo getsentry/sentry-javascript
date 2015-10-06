@@ -22,12 +22,11 @@ Installation
 
 Raven.js is distributed in a few different methods, and should get
 included after any other libraries are included, but before your own
-scripts.  For all details see :doc:`install`.  For just getting started,
-you can use our CDN:
+scripts.  For all details see :doc:`install`.
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/1.1.22/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/1.1.22/jquery,native/raven.min.js
 
 Configuring the Project
 -----------------------
@@ -115,9 +114,9 @@ is additional documentation available that covers all the rest:
    :titlesonly:
 
    install
-   plugins
    config
    usage
+   integrations
    sourcemaps
    tips
 
