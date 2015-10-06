@@ -1,8 +1,8 @@
 Backbone
---------
+========
 
 Installation
-============
+------------
 
 Start by adding the ``raven.js`` script tag to our page. You'll want to position it
 after you load all other external libraries (like jQuery), but before your code.

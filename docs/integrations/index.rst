@@ -5,7 +5,7 @@ Integrations extend the functionality of Raven.js to cover common libraries and
 environments automatically using simple plugins.
 
 What are plugins?
-~~~~~~~~~~~~~~~~~
+-----------------
 
 In Raven.js, plugins are little snippets of code to augment functionality
 for a specific application/framework. It is highly recommended to checkout
@@ -16,7 +16,7 @@ basic functionality by default, and you can pick and choose which plugins
 are applicable for you.
 
 Why are plugins needed at all?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 JavaScript is pretty restrictive when it comes to exception handling, and
 there are a lot of things that make it difficult to get relevent
