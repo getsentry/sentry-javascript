@@ -116,7 +116,7 @@ is additional documentation available that covers all the rest:
    install
    config
    usage
-   integrations
+   integrations/index
    sourcemaps
    tips
 
