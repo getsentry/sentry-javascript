@@ -21,7 +21,7 @@ Why are plugins needed at all?
 JavaScript is pretty restrictive when it comes to exception handling, and
 there are a lot of things that make it difficult to get relevent
 information, so it's important that we inject code and wrap things
-magically so we can extract what we need. See :doc:`usage` for tips
+magically so we can extract what we need. See :doc:`../usage` for tips
 regarding that.
 
 .. toctree::
