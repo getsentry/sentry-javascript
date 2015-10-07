@@ -10,7 +10,7 @@
         "index#reporting-errors"
       ]
     },
-    "backbone": {
+    "javascript.backbone": {
       "name": "Backbone",
       "type": "framework",
       "doc_link": "integrations/backbone/",
@@ -19,7 +19,7 @@
         "integrations/backbone#configuring-the-client"
       ]
     },
-    "ember": {
+    "javascript.ember": {
       "name": "Ember",
       "type": "framework",
       "doc_link": "integrations/ember/",
@@ -28,7 +28,7 @@
         "integrations/ember#configuring-the-client"
       ]
     },
-    "react": {
+    "javascript.react": {
       "name": "React",
       "type": "framework",
       "doc_link": "integrations/react/",
