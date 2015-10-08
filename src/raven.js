@@ -6,7 +6,7 @@
 var _Raven = window.Raven,
     hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
     // Raven can run in contexts where there's no document (react-native)
-    hasDocument = !isUndefined(document),
+    hasDocument = typeof document !== 'undefined',
     lastCapturedException,
     lastEventId,
     globalServer,
