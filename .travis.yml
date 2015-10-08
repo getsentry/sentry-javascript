@@ -1,4 +1,4 @@
-# language doesn't matter, we're only using phantom.js
+sudo: false
 language: node_js
 node_js:
     - "0.10"
