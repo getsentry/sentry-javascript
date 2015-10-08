@@ -30,3 +30,4 @@ regarding that.
    backbone
    ember
    react
+   react-native
