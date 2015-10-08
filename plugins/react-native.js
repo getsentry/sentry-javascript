@@ -30,7 +30,7 @@ module.exports = function (Raven) {
 
             if (request.status === 200) {
                 if (options.onSuccess) {
-                    options.onSuccess;
+                    options.onSuccess();
                 }
             } else {
                 if (options.onError) {
