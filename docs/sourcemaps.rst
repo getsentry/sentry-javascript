@@ -143,7 +143,7 @@ but without them the grouping algorithm will not be as strong, and the UI
 will not show any contextual source.
 
 Additional information can be found in the `Releases API documentation
-<https://app.getsentry.com/docs/api/releases/>`_.
+<https://docs.getsentry.com/hosted/api/releases/>`_.
 
 .. sentry:edition:: hosted
 
