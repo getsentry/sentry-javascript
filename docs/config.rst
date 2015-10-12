@@ -154,6 +154,54 @@ Optional settings
     By default, raven truncates messages to a max length of 100
     characters. You can customize the max length with this parameter.
 
+.. describe:: transport
+
+    Override the default HTTP data transport handler.
+
+    Alternatively, can be specified using ``Raven.setTransport(myTransportFunction)``.
+
+    .. code-block:: javascript
+
+        {
+            transport: function (options) {
+                // send data
+            }
+        }
+
+    The provided function receives a single argument, ``options``, with the following properties:
+
+    url
+        The target url where the data is sent.
+
+    data
+        The outbound exception data.
+
+        For POST requests, this should be JSON-encoded and set as the
+        HTTP body (and transferred as Content-type: application/json).
+
+        For GET requests, this should be JSON-encoded and passed over the
+        query string with key ``sentry_data``.
+
+    auth
+        An object representing authentication data. This should be converted to urlencoded key/value pairs
+        and passed as part of the query string, for both GET and POST requests.
+
+        The auth object has the following properties:
+
+        sentry_version
+            The API version of the Sentry server.
+        sentry_client
+            The name and version of the Sentry client of the form ``client/version``.
+            In this case, ``raven-js/${Raven.VERSION}``.
+        sentry_key
+            Your public client key (DSN).
+
+    onSuccess
+        Callback to be invoked upon a successful request.
+
+    onFailure
+        Callback to be invoked upon a failed request.
+
 Putting it all together
 -----------------------
 
