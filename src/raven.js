@@ -359,6 +359,21 @@ var Raven = {
         return Raven;
     },
 
+    /**
+     * Override the default HTTP transport mechanism that transmits data
+     * to the Sentry server.
+     *
+     * @param {function} transport Function invoked instead of the default
+     *                             `makeRequest` handler.
+     *
+     * @return {Raven}
+     */
+    setTransport: function(transport) {
+        globalOptions.transport = transport;
+
+        return Raven;
+    },
+
     /*
      * Get the latest raw exception that was captured by Raven.
      *
