@@ -153,7 +153,7 @@ response headers to allow a cross domain call:
 
 .. code-block:: yaml
 
-    Access-Control-Allow-Origin: http://domain1.com, http://domain2.com
+    Access-Control-Allow-Origin: *
 
 Script tags have now got a new non-standard attribute called
 ``crossorigin`` (`read more
