@@ -327,7 +327,7 @@ var Raven = {
      * @param {string} release Typically something like a git SHA to identify version
      * @return {Raven}
      */
-    setReleaseContext: function(release) {
+    setRelease: function(release) {
         globalOptions.release = release;
 
         return Raven;
@@ -402,7 +402,9 @@ var Raven = {
     }
 };
 
-Raven.setUser = Raven.setUserContext; // To be deprecated
+// Deprecations
+Raven.setUser = Raven.setUserContext;
+Raven.setReleaseContext = Raven.setRelease;
 
 function triggerEvent(eventType, options) {
     var event, key;

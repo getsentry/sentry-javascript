@@ -1857,15 +1857,15 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('.setReleaseContext', function() {
+    describe('.setRelease', function() {
         it('should set the globalOptions.release attribute', function() {
-            Raven.setReleaseContext('abc123');
+            Raven.setRelease('abc123');
             assert.equal(globalOptions.release, 'abc123');
         });
 
         it('should clear globalOptions.release with no arguments', function() {
             globalOptions.release = 'abc123';
-            Raven.setReleaseContext();
+            Raven.setRelease();
             assert.isUndefined(globalOptions.release);
         });
     });
