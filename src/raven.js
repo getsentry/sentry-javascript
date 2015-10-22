@@ -295,31 +295,40 @@ var Raven = {
      * @return {Raven}
      */
     setUserContext: function(user) {
+        // Intentionally do not merge here since that's an unexpected behavior.
         globalContext.user = user;
 
         return Raven;
     },
 
     /*
-     * Set extra attributes to be sent along with the payload.
+     * Merge extra attributes to be sent along with the payload.
      *
      * @param {object} extra An object representing extra data [optional]
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-        globalContext.extra = extra || {};
+        if (isUndefined(extra)) {
+            delete globalContext.extra;
+        } else {
+            globalContext.extra = objectMerge(globalContext.extra || {}, extra);
+        }
 
         return Raven;
     },
 
     /*
-     * Set tags to be sent along with the payload.
+     * Merge tags to be sent along with the payload.
      *
      * @param {object} tags An object representing tags [optional]
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-        globalContext.tags = tags || {};
+        if (isUndefined(tags)) {
+            delete globalContext.tags;
+        } else {
+            globalContext.tags = objectMerge(globalContext.tags || {}, tags);
+        }
 
         return Raven;
     },

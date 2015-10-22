@@ -1843,7 +1843,13 @@ describe('Raven (public API)', function() {
         it('should clear globalContext.extra with no arguments', function() {
             globalOptions.extra = {name: 'Matt'};
             Raven.setExtraContext();
-            assert.deepEqual(globalContext.extra, {});
+            assert.isUndefined(globalContext.extra);
+        });
+
+        it('should merge globalContext.extra with subsequent calls', function() {
+            Raven.setExtraContext({a: 1});
+            Raven.setExtraContext({b: 2});
+            assert.deepEqual(globalContext.extra, {a: 1, b: 2});
         });
     });
 
@@ -1856,7 +1862,13 @@ describe('Raven (public API)', function() {
         it('should clear globalContext.tags with no arguments', function() {
             globalContext.tags = {name: 'Matt'};
             Raven.setTagsContext();
-            assert.deepEqual(globalContext.tags, {});
+            assert.isUndefined(globalContext.tags);
+        });
+
+        it('should merge globalContext.tags with subsequent calls', function() {
+            Raven.setTagsContext({a: 1});
+            Raven.setTagsContext({b: 2});
+            assert.deepEqual(globalContext.tags, {a: 1, b: 2});
         });
     });
 

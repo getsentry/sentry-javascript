@@ -8,6 +8,7 @@
 * DEPRECATED: Replace `Raven.setReleaseContext` with `Raven.setRelease`.
 * NEW: Add `Raven.clearContext()` to empty all of the context.
 * NEW: Add `Raven.getContext()` to get a copy of the current context.
+* NEW: `Raven.set{Extra,Tags}Context(ctx)` now merges with existing values instead of overwriting.
 
 ## 1.1.22
 
