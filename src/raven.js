@@ -10,9 +10,9 @@ var _Raven = window.Raven,
     lastCapturedException,
     lastEventId,
     globalServer,
-    globalUser,
     globalKey,
     globalProject,
+    globalContext = {},
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -21,9 +21,7 @@ var _Raven = window.Raven,
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
-        tags: {},
-        maxMessageLength: 100,
-        extra: {}
+        maxMessageLength: 100
     },
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
@@ -78,7 +76,12 @@ var Raven = {
         // merge in options
         if (options) {
             each(options, function(key, value){
-                globalOptions[key] = value;
+                // tags and extra are special and need to be put into context
+                if (key == 'tags' || key == 'extra') {
+                    globalContext[key] = value;
+                } else {
+                    globalOptions[key] = value;
+                }
             });
         }
 
@@ -292,7 +295,7 @@ var Raven = {
      * @return {Raven}
      */
     setUserContext: function(user) {
-        globalUser = user;
+        globalContext.user = user;
 
         return Raven;
     },
@@ -304,7 +307,7 @@ var Raven = {
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-        globalOptions.extra = extra || {};
+        globalContext.extra = extra || {};
 
         return Raven;
     },
@@ -316,7 +319,7 @@ var Raven = {
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-        globalOptions.tags = tags || {};
+        globalContext.tags = tags || {};
 
         return Raven;
     },
@@ -720,8 +723,8 @@ function send(data) {
     data = objectMerge(baseData, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-    data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
-    data.extra = objectMerge(objectMerge({}, globalOptions.extra), data.extra);
+    data.tags = objectMerge(objectMerge({}, globalContext.tags), data.tags);
+    data.extra = objectMerge(objectMerge({}, globalContext.extra), data.extra);
 
     // Send along our own collected metadata with extra
     data.extra = objectMerge({
@@ -731,9 +734,9 @@ function send(data) {
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
 
-    if (globalUser) {
+    if (globalContext.user) {
         // sentry.interfaces.User
-        data.user = globalUser;
+        data.user = globalContext.user;
     }
 
     // Include the release if it's defined in globalOptions

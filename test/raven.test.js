@@ -4,8 +4,8 @@ function flushRavenState() {
     lastCapturedException = undefined;
     lastEventId = undefined;
     globalServer = undefined;
-    globalUser = undefined;
     globalProject = undefined;
+    globalContext = {};
     globalOptions = {
         logger: 'javascript',
         release: undefined,
@@ -15,9 +15,7 @@ function flushRavenState() {
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
-        maxMessageLength: 100,
-        tags: {},
-        extra: {}
+        maxMessageLength: 100
     },
     startTime = 0;
     ravenNotConfiguredError = undefined;
@@ -940,7 +938,7 @@ describe('globals', function() {
                 logger: 'javascript'
             };
 
-            globalUser = {name: 'Matt'};
+            globalContext.user = {name: 'Matt'};
 
             send({foo: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
@@ -972,9 +970,9 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript',
-                tags: {tag1: 'value1'}
+                logger: 'javascript'
             };
+            globalContext = {tags: {tag1: 'value1'}};
 
 
             send({tags: {tag2: 'value2'}});
@@ -993,7 +991,9 @@ describe('globals', function() {
                 extra: {'session:duration': 100}
             });
             assert.deepEqual(globalOptions, {
-                logger: 'javascript',
+                logger: 'javascript'
+            });
+            assert.deepEqual(globalContext, {
                 tags: {tag1: 'value1'}
             });
         });
@@ -1008,9 +1008,10 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript',
-                extra: {key1: 'value1'}
+                logger: 'javascript'
             };
+            globalContext = {extra: {key1: 'value1'}};
+
 
 
             send({extra: {key2: 'value2'}});
@@ -1028,7 +1029,9 @@ describe('globals', function() {
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
             });
             assert.deepEqual(globalOptions, {
-                logger: 'javascript',
+                logger: 'javascript'
+            });
+            assert.deepEqual(globalContext, {
                 extra: {key1: 'value1'}
             });
         });
@@ -1045,7 +1048,7 @@ describe('globals', function() {
                 }
             };
 
-            globalUser = {name: 'Matt'};
+            globalContext.user = {name: 'Matt'};
 
             send({foo: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
@@ -1819,41 +1822,41 @@ describe('Raven (public API)', function() {
     });
 
     describe('.setUserContext', function() {
-        it('should set the globalUser object', function() {
+        it('should set the globalContext.user object', function() {
             Raven.setUserContext({name: 'Matt'});
-            assert.deepEqual(globalUser, {name: 'Matt'});
+            assert.deepEqual(globalContext.user, {name: 'Matt'});
         });
 
-        it('should clear the globalUser with no arguments', function() {
-            globalUser = {name: 'Matt'};
+        it('should clear the globalContext.user with no arguments', function() {
+            globalContext.user = {name: 'Matt'};
             Raven.setUserContext();
-            assert.isUndefined(globalUser);
+            assert.isUndefined(globalContext.user);
         });
     });
 
     describe('.setExtraContext', function() {
-        it('should set the globalOptions.extra object', function() {
+        it('should set the globalContext.extra object', function() {
             Raven.setExtraContext({name: 'Matt'});
-            assert.deepEqual(globalOptions.extra, {name: 'Matt'});
+            assert.deepEqual(globalContext.extra, {name: 'Matt'});
         });
 
-        it('should clear globalOptions.extra with no arguments', function() {
-            globalOptions = {name: 'Matt'};
+        it('should clear globalContext.extra with no arguments', function() {
+            globalOptions.extra = {name: 'Matt'};
             Raven.setExtraContext();
-            assert.deepEqual(globalOptions.extra, {});
+            assert.deepEqual(globalContext.extra, {});
         });
     });
 
     describe('.setTagsContext', function() {
-        it('should set the globalOptions.tags object', function() {
+        it('should set the globalContext.tags object', function() {
             Raven.setTagsContext({name: 'Matt'});
-            assert.deepEqual(globalOptions.tags, {name: 'Matt'});
+            assert.deepEqual(globalContext.tags, {name: 'Matt'});
         });
 
-        it('should clear globalOptions.tags with no arguments', function() {
-            globalOptions = {name: 'Matt'};
+        it('should clear globalContext.tags with no arguments', function() {
+            globalContext.tags = {name: 'Matt'};
             Raven.setTagsContext();
-            assert.deepEqual(globalOptions.tags, {});
+            assert.deepEqual(globalContext.tags, {});
         });
     });
 
