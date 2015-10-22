@@ -3,13 +3,17 @@
  *
  * Provides an $exceptionHandler for Angular.js
  */
-;(function(Raven, angular) {
+;(function(window) {
 'use strict';
 
+var angular = window.angular,
+    Raven = window.Raven;
+
 // quit if angular isn't on the page
-if (!angular) {
-    return;
-}
+if (!(angular && Raven)) return;
+
+// Angular plugin doesn't go through the normal `Raven.addPlugin`
+// since this bootstraps the `install()` automatically.
 
 function ngRavenProvider($provide) {
     $provide.decorator('$exceptionHandler', [
@@ -37,4 +41,4 @@ angular.module('ngRaven', [])
     .config(['$provide', ngRavenProvider])
     .value('Raven', Raven);
 
-})(window.Raven, window.angular);
+}(typeof window !== 'undefined' ? window : this));

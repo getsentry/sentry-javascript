@@ -3,13 +3,15 @@
  *
  * Patches Backbone.Events callbacks.
  */
-;(function(window, Raven, Backbone) {
+;(function(window) {
 'use strict';
 
+if (window.Raven) Raven.addPlugin(function backbonePlugin() {
+
+var Backbone = window.Backbone;
+
 // quit if Backbone isn't on the page
-if (!Backbone) {
-    return;
-}
+if (!Backbone) return;
 
 function makeBackboneEventsOn(oldOn) {
   return function BackboneEventsOn(name, callback, context) {
@@ -52,4 +54,6 @@ for (; i < l; i++) {
   affected.bind = affected.on;
 }
 
-}(window, window.Raven, window.Backbone));
+});
+
+}(typeof window !== 'undefined' ? window : this));

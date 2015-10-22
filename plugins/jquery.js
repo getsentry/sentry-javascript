@@ -3,13 +3,15 @@
  *
  * Patches event handler callbacks and ajax callbacks.
  */
-;(function(window, Raven, $) {
+;(function(window) {
 'use strict';
 
+if (window.Raven) Raven.addPlugin(function jQueryPlugin() {
+
+var $ = window.jQuery;
+
 // quit if jQuery isn't on the page
-if (!$) {
-    return;
-}
+if (!$) return;
 
 var _oldEventAdd = $.event.add;
 $.event.add = function ravenEventAdd(elem, types, handler, data, selector) {
@@ -100,4 +102,7 @@ $.Deferred = function ravenDeferredWrapper(func) {
     });
 };
 
-}(window, window.Raven, window.jQuery));
+// End of plugin factory
+});
+
+}(typeof window !== 'undefined' ? window : this));

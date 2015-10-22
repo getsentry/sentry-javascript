@@ -4,8 +4,12 @@
  * Monkey patches console.* calls into Sentry messages with
  * their appropriate log levels. (Experimental)
  */
-;(function(window, Raven, console) {
+;(function(window) {
 'use strict';
+
+if (window.Raven) Raven.addPlugin(function ConsolePlugin() {
+
+var console = window.console || {};
 
 var originalConsole = console,
     logLevels = ['debug', 'info', 'warn', 'error'],
@@ -37,7 +41,12 @@ while(level) {
     console[level] = logForGivenLevel(level);
     level = logLevels.pop();
 }
+
 // export
 window.console = console;
 
-}(window, window.Raven, window.console || {}));
+// End of plugin factory
+});
+
+// console would require `window`, so we don't allow it to be optional
+}(window));
