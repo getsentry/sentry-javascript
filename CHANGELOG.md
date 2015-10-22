@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2 (unreleased)
+* BUGFIX: Error in cases where a `document` context doesn't exist. See: https://github.com/getsentry/raven-js/pull/383
+* BUGFIX: Trailing comma when using unminified dist which affects IE9. See: https://github.com/getsentry/raven-js/pull/385
+* NEW: Add ability to swap in a custom transport. Adds `Raven.setTransport`, and `transport` option to config. Docs: https://docs.getsentry.com/hosted/clients/javascript/config/
+* CHANGE: Always expose `Raven` to `window`. Please call `Raven.noConflict()` if you want it restored to what it was. See: https://github.com/getsentry/raven-js/pull/393
+* DEPRECATED: Replace `Raven.setReleaseContext` with `Raven.setRelease`.
+
 ## 1.1.22
 
 * Fix another outstanding bug related to https://github.com/getsentry/raven-js/issues/377 that wasn't fully resolved with 1.1.21
