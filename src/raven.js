@@ -325,6 +325,27 @@ var Raven = {
     },
 
     /*
+     * Clear all of the context.
+     *
+     * @return {Raven}
+     */
+    clearContext: function() {
+        globalContext = {};
+
+        return Raven;
+    },
+
+    /*
+     * Get a copy of the current context. This cannot be mutated.
+     *
+     * @return {object} copy of context
+     */
+    getContext: function() {
+        // lol javascript
+        return JSON.parse(JSON.stringify(globalContext));
+    },
+
+    /*
      * Set release version of application
      *
      * @param {string} release Typically something like a git SHA to identify version

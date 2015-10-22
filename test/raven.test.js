@@ -1860,6 +1860,25 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.clearContext', function() {
+        it('should clear the globalContext object', function() {
+            globalContext = {tags: {}, extra: {}, user: {}};
+            Raven.clearContext();
+            assert.deepEqual(globalContext, {});
+        });
+    });
+
+    describe('.getContext', function() {
+        it('should retrieve a copy of the current context', function() {
+            globalContext = {tags: {a: 1}};
+            var context = Raven.getContext();
+            assert.deepEqual(globalContext, context);
+            context.tags.a = 2;
+            // It shouldn't have mutated the original
+            assert.equal(globalContext.tags.a, 1);
+        });
+    });
+
     describe('.setRelease', function() {
         it('should set the globalOptions.release attribute', function() {
             Raven.setRelease('abc123');
