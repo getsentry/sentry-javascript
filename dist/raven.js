@@ -1,4 +1,4 @@
-/*! Raven.js 1.1.22 (6278810) | github.com/getsentry/raven-js */
+/*! Raven.js 1.2.0 (17e3431) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -29,7 +29,6 @@ var TraceKit = {
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
-
 /**
  * TraceKit.wrap: Wrap any function in a TraceKit reporter
  * Example: func = TraceKit.wrap(func);
@@ -47,6 +46,13 @@ TraceKit.wrap = function traceKitWrapper(func) {
         }
     }
     return wrapped;
+};
+
+function getLocationHref() {
+    if (typeof document === 'undefined')
+        return '';
+
+    return document.location.href;
 };
 
 /**
@@ -182,7 +188,7 @@ TraceKit.report = (function reportModuleWrapper() {
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
             stack = {
                 'message': message,
-                'url': document.location.href,
+                'url': getLocationHref(),
                 'stack': [location]
             };
             notifyHandlers(stack, true);
@@ -526,6 +532,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * the url, line, and column number of the defined function.
      */
     function findSourceByFunctionBody(func) {
+        if (typeof document === 'undefined')
+            return;
+
         var urls = [window.location.href],
             scripts = document.getElementsByTagName('script'),
             body,
@@ -694,7 +703,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -751,7 +760,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -861,7 +870,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': lines[0],
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
     }
@@ -998,7 +1007,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         var result = {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref(),
             'stack': stack
         };
         augmentStackTraceWithInitialElement(result, ex.sourceURL || ex.fileName, ex.line || ex.lineNumber, ex.message || ex.description);
@@ -1064,7 +1073,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         return {
             'name': ex.name,
             'message': ex.message,
-            'url': document.location.href,
+            'url': getLocationHref()
         };
     }
 
@@ -1083,12 +1092,14 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 // since JSON is required to encode the payload
 var _Raven = window.Raven,
     hasJSON = !!(typeof JSON === 'object' && JSON.stringify),
+    // Raven can run in contexts where there's no document (react-native)
+    hasDocument = typeof document !== 'undefined',
     lastCapturedException,
     lastEventId,
     globalServer,
-    globalUser,
     globalKey,
     globalProject,
+    globalContext = {},
     globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
@@ -1097,9 +1108,7 @@ var _Raven = window.Raven,
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
-        tags: {},
-        maxMessageLength: 100,
-        extra: {}
+        maxMessageLength: 100
     },
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
@@ -1107,6 +1116,7 @@ var _Raven = window.Raven,
     // before the console plugin has a chance to monkey patch
     originalConsole = window.console || {},
     originalConsoleMethods = {},
+    plugins = [],
     startTime = now();
 
 for (var method in originalConsole) {
@@ -1118,7 +1128,7 @@ for (var method in originalConsole) {
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.1.22',
+    VERSION: '1.2.0',
 
     debug: true,
 
@@ -1154,7 +1164,12 @@ var Raven = {
         // merge in options
         if (options) {
             each(options, function(key, value){
-                globalOptions[key] = value;
+                // tags and extra are special and need to be put into context
+                if (key == 'tags' || key == 'extra') {
+                    globalContext[key] = value;
+                } else {
+                    globalOptions[key] = value;
+                }
             });
         }
 
@@ -1206,6 +1221,12 @@ var Raven = {
     install: function() {
         if (isSetup() && !isRavenInstalled) {
             TraceKit.report.subscribe(handleStackInfo);
+
+            // Install all of the plugins
+            each(plugins, function(_, plugin) {
+                plugin();
+            });
+
             isRavenInstalled = true;
         }
 
@@ -1361,6 +1382,12 @@ var Raven = {
         return Raven;
     },
 
+    addPlugin: function(plugin) {
+        plugins.push(plugin);
+        if (isRavenInstalled) plugin();
+        return Raven;
+    },
+
     /*
      * Set/clear a user to be sent along with the payload.
      *
@@ -1368,33 +1395,55 @@ var Raven = {
      * @return {Raven}
      */
     setUserContext: function(user) {
-        globalUser = user;
+        // Intentionally do not merge here since that's an unexpected behavior.
+        globalContext.user = user;
 
         return Raven;
     },
 
     /*
-     * Set extra attributes to be sent along with the payload.
+     * Merge extra attributes to be sent along with the payload.
      *
      * @param {object} extra An object representing extra data [optional]
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-        globalOptions.extra = extra || {};
+        mergeContext('extra', extra);
 
         return Raven;
     },
 
     /*
-     * Set tags to be sent along with the payload.
+     * Merge tags to be sent along with the payload.
      *
      * @param {object} tags An object representing tags [optional]
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-        globalOptions.tags = tags || {};
+        mergeContext('tags', tags);
 
         return Raven;
+    },
+
+    /*
+     * Clear all of the context.
+     *
+     * @return {Raven}
+     */
+    clearContext: function() {
+        globalContext = {};
+
+        return Raven;
+    },
+
+    /*
+     * Get a copy of the current context. This cannot be mutated.
+     *
+     * @return {object} copy of context
+     */
+    getContext: function() {
+        // lol javascript
+        return JSON.parse(JSON.stringify(globalContext));
     },
 
     /*
@@ -1403,7 +1452,7 @@ var Raven = {
      * @param {string} release Typically something like a git SHA to identify version
      * @return {Raven}
      */
-    setReleaseContext: function(release) {
+    setRelease: function(release) {
         globalOptions.release = release;
 
         return Raven;
@@ -1431,6 +1480,21 @@ var Raven = {
      */
     setShouldSendCallback: function(callback) {
         globalOptions.shouldSendCallback = callback;
+
+        return Raven;
+    },
+
+    /**
+     * Override the default HTTP transport mechanism that transmits data
+     * to the Sentry server.
+     *
+     * @param {function} transport Function invoked instead of the default
+     *                             `makeRequest` handler.
+     *
+     * @return {Raven}
+     */
+    setTransport: function(transport) {
+        globalOptions.transport = transport;
 
         return Raven;
     },
@@ -1463,35 +1527,41 @@ var Raven = {
     }
 };
 
-Raven.setUser = Raven.setUserContext; // To be deprecated
+// Deprecations
+Raven.setUser = Raven.setUserContext;
+Raven.setReleaseContext = Raven.setRelease;
 
 function triggerEvent(eventType, options) {
-    var event, key;
+    // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
+    var evt, key;
+
+    if (!hasDocument)
+        return;
 
     options = options || {};
 
     eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
-        event = document.createEvent('HTMLEvents');
-        event.initEvent(eventType, true, true);
+        evt = document.createEvent('HTMLEvents');
+        evt.initEvent(eventType, true, true);
     } else {
-        event = document.createEventObject();
-        event.eventType = eventType;
+        evt = document.createEventObject();
+        evt.eventType = eventType;
     }
 
     for (key in options) if (hasKey(options, key)) {
-        event[key] = options[key];
+        evt[key] = options[key];
     }
 
     if (document.createEvent) {
         // IE9 if standards
-        document.dispatchEvent(event);
+        document.dispatchEvent(evt);
     } else {
         // IE8 regardless of Quirks or Standards
         // IE9 if quirks
         try {
-            document.fireEvent('on' + event.eventType.toLowerCase(), event);
+            document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
         } catch(e) {}
     }
 }
@@ -1743,7 +1813,7 @@ function now() {
 }
 
 function getHttpData() {
-    if (!document.location || !document.location.href) {
+    if (!hasDocument || !document.location || !document.location.href) {
         return;
     }
 
@@ -1776,8 +1846,8 @@ function send(data) {
     data = objectMerge(baseData, data);
 
     // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-    data.tags = objectMerge(objectMerge({}, globalOptions.tags), data.tags);
-    data.extra = objectMerge(objectMerge({}, globalOptions.extra), data.extra);
+    data.tags = objectMerge(objectMerge({}, globalContext.tags), data.tags);
+    data.extra = objectMerge(objectMerge({}, globalContext.extra), data.extra);
 
     // Send along our own collected metadata with extra
     data.extra = objectMerge({
@@ -1787,9 +1857,9 @@ function send(data) {
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
 
-    if (globalUser) {
+    if (globalContext.user) {
         // sentry.interfaces.User
-        data.user = globalUser;
+        data.user = globalContext.user;
     }
 
     // Include the release if it's defined in globalOptions
@@ -1956,12 +2026,23 @@ function urlencode(o) {
     return pairs.join('&');
 }
 
+function mergeContext(key, context) {
+    if (isUndefined(context)) {
+        delete globalContext[key];
+    } else {
+        globalContext[key] = objectMerge(globalContext[key] || {}, context);
+    }
+}
+
 afterLoad();
+
+// This is being exposed no matter what because there are too many weird
+// usecases for how people use Raven. If this is really a problem, I'm sorry.
+window.Raven = Raven;
 
 // Expose Raven to the world
 if (typeof define === 'function' && define.amd) {
     // AMD
-    window.Raven = Raven;
     define('raven', [], function() {
       return Raven;
     });
@@ -1971,9 +2052,6 @@ if (typeof define === 'function' && define.amd) {
 } else if (typeof exports === 'object') {
     // CommonJS
     exports = Raven;
-} else {
-    // Everything else
-    window.Raven = Raven;
 }
 
 })(typeof window !== 'undefined' ? window : this);
