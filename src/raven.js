@@ -29,6 +29,7 @@ var _Raven = window.Raven,
     // before the console plugin has a chance to monkey patch
     originalConsole = window.console || {},
     originalConsoleMethods = {},
+    plugins = [],
     startTime = now();
 
 for (var method in originalConsole) {
@@ -133,6 +134,12 @@ var Raven = {
     install: function() {
         if (isSetup() && !isRavenInstalled) {
             TraceKit.report.subscribe(handleStackInfo);
+
+            // Install all of the plugins
+            each(plugins, function(_, plugin) {
+                plugin();
+            });
+
             isRavenInstalled = true;
         }
 
@@ -285,6 +292,12 @@ var Raven = {
             }, options)
         );
 
+        return Raven;
+    },
+
+    addPlugin: function(plugin) {
+        plugins.push(plugin);
+        if (isRavenInstalled) plugin();
         return Raven;
     },
 

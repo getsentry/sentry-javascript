@@ -4,8 +4,10 @@
  * Extends support for global error handling for asynchronous browser
  * functions. Adopted from Closure Library's errorhandler.js.
  */
-;(function extendToAsynchronousCallbacks(window, Raven) {
-"use strict";
+;(function(window) {
+'use strict';
+
+if (window.Raven) Raven.addPlugin(function nativePlugin() {
 
 var _helper = function _helper(fnName) {
     var originalFn = window[fnName];
@@ -30,4 +32,7 @@ var _helper = function _helper(fnName) {
 _helper('setTimeout');
 _helper('setInterval');
 
-}(window, window.Raven));
+// End of plugin factory
+});
+
+}(typeof window !== 'undefined' ? window : this));

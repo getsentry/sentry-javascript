@@ -9,6 +9,8 @@
 * NEW: Add `Raven.clearContext()` to empty all of the context.
 * NEW: Add `Raven.getContext()` to get a copy of the current context.
 * NEW: `Raven.set{Extra,Tags}Context(ctx)` now merges with existing values instead of overwriting.
+* NEW: Add `Raven.addPlugin()` to register a plugin to be initialized when installed.
+* NEW: Plugins are now initialized and loaded when calling `Raven.install()`. This avoid some race conditions with load order.
 
 ## 1.1.22
 
