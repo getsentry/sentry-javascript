@@ -308,11 +308,7 @@ var Raven = {
      * @return {Raven}
      */
     setExtraContext: function(extra) {
-        if (isUndefined(extra)) {
-            delete globalContext.extra;
-        } else {
-            globalContext.extra = objectMerge(globalContext.extra || {}, extra);
-        }
+        mergeContext('extra', extra);
 
         return Raven;
     },
@@ -324,11 +320,7 @@ var Raven = {
      * @return {Raven}
      */
     setTagsContext: function(tags) {
-        if (isUndefined(tags)) {
-            delete globalContext.tags;
-        } else {
-            globalContext.tags = objectMerge(globalContext.tags || {}, tags);
-        }
+        mergeContext('tags', tags);
 
         return Raven;
     },
@@ -931,6 +923,14 @@ function urlencode(o) {
         pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
     });
     return pairs.join('&');
+}
+
+function mergeContext(key, context) {
+    if (isUndefined(context)) {
+        delete globalContext[key];
+    } else {
+        globalContext[key] = objectMerge(globalContext[key] || {}, context);
+    }
 }
 
 afterLoad();
