@@ -432,7 +432,8 @@ Raven.setUser = Raven.setUserContext;
 Raven.setReleaseContext = Raven.setRelease;
 
 function triggerEvent(eventType, options) {
-    var event, key;
+    // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
+    var evt, key;
 
     if (!hasDocument)
         return;
@@ -442,25 +443,25 @@ function triggerEvent(eventType, options) {
     eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
     if (document.createEvent) {
-        event = document.createEvent('HTMLEvents');
-        event.initEvent(eventType, true, true);
+        evt = document.createEvent('HTMLEvents');
+        evt.initEvent(eventType, true, true);
     } else {
-        event = document.createEventObject();
-        event.eventType = eventType;
+        evt = document.createEventObject();
+        evt.eventType = eventType;
     }
 
     for (key in options) if (hasKey(options, key)) {
-        event[key] = options[key];
+        evt[key] = options[key];
     }
 
     if (document.createEvent) {
         // IE9 if standards
-        document.dispatchEvent(event);
+        document.dispatchEvent(evt);
     } else {
         // IE8 regardless of Quirks or Standards
         // IE9 if quirks
         try {
-            document.fireEvent('on' + event.eventType.toLowerCase(), event);
+            document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
         } catch(e) {}
     }
 }
