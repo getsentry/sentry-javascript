@@ -11,8 +11,12 @@ module.exports = function(grunt) {
         'template/_footer.js'
     ];
 
+    var excludedPlugins = [
+        'react-native'
+    ];
+
     var plugins = grunt.option('plugins');
-    // Create plugin paths and verify hey exist
+    // Create plugin paths and verify they exist
     plugins = _.map(plugins ? plugins.split(',') : [], function (plugin) {
         var path = 'plugins/' + plugin + '.js';
 
@@ -34,6 +38,15 @@ module.exports = function(grunt) {
                 fn(n - 1, src.slice(j + 1), got.concat([src[j]]), all);
             }
         };
+
+        var excluded = _.map(excludedPlugins, function(plugin) {
+            return 'plugins/' + plugin + '.js';
+        });
+
+        // Remove the plugins that we don't want to build
+        a = _.filter(a, function(n) {
+            return excluded.indexOf(n) === -1;
+        });
 
         var all = [a];
 
