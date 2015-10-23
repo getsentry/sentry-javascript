@@ -29,5 +29,13 @@
     "jquery": "^2.1.4",
     "lodash": "~2.4.0",
     "sinon": "~1.7.3"
-  }
+  },
+  "keywords": [
+    "exceptions",
+    "debugging",
+    "logging",
+    "errors",
+    "sentry",
+    "raven"
+  ]
 }
