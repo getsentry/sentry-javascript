@@ -830,10 +830,11 @@ function makeRequest(opts) {
     opts.auth.sentry_data = JSON.stringify(opts.data);
 
     var img = newImage(),
-        src = opts.url + '?' + urlencode(opts.auth);
+        src = opts.url + '?' + urlencode(opts.auth),
+        crossOrigin = opts.options.crossOrigin;
 
-    if (opts.options.crossOrigin || opts.options.crossOrigin === '') {
-        img.crossOrigin = opts.options.crossOrigin;
+    if (crossOrigin || crossOrigin === '') {
+        img.crossOrigin = crossOrigin;
     }
     img.onload = opts.onSuccess;
     img.onerror = img.onabort = opts.onError;
