@@ -30,17 +30,27 @@ Now we need to set up Raven.js to use your Sentry DSN:
       .config('https://___PUBLIC_DSN___', { release: RELEASE_ID })
       .install();
 
-RELEASE_ID is a string representing the “version” of the build you are about to distribute. This can be the SHA of your Git repository’s HEAD. It can also be a semantic version number (e.g. “1.1.2”), pulled from your project’s package.json file. More below.
+RELEASE_ID is a string representing the “version” of the build you are
+about to distribute. This can be the SHA of your Git repository’s HEAD. It
+can also be a semantic version number (e.g. “1.1.2”), pulled from your
+project’s package.json file. More below.
 
 About Releases
 --------------
 
-Every time you build and distribute a new version of your React Native app, you’ll want to create a new release inside Sentry.  This is for two important reasons:
+Every time you build and distribute a new version of your React Native
+app, you’ll want to create a new release inside Sentry.  This is for two
+important reasons:
 
 - You can associate errors tracked by Sentry with a particular build
 - You can store your source maps generated for each build inside Sentry
 
-Unlike a normal web application where your JavaScript files (and source maps) are served and hosted from a web server, your React Native code is being served from the target device’s filesystem. So you’ll need to upload both your **source code** AND **source maps** directly to Sentry, so that we can generate handy stack traces for you to browse when examining exceptions trigged by your application.
+Unlike a normal web application where your JavaScript files (and source
+maps) are served and hosted from a web server, your React Native code is
+being served from the target device’s filesystem. So you’ll need to upload
+both your **source code** AND **source maps** directly to Sentry, so that
+we can generate handy stack traces for you to browse when examining
+exceptions trigged by your application.
 
 
 Generating source maps
@@ -62,9 +72,8 @@ Then, in another tab, curl the packager service for your source map:
 
 This will write a file index.ios.map to the current directory.
 
-Lastly, you'll need to `create a new release and upload your source code files and source maps as release artifacts`_.
-
-.. _create a new release and upload your source map as a release artifact: https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry
+Lastly, you'll need to `create a new release and upload your source code files and source maps as release artifact
+<https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry>`__.
 
 Expanded Usage
 --------------
