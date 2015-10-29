@@ -7,6 +7,16 @@
  *   var Raven = require('raven-js');
  *   require('raven-js/plugins/react-native')(Raven);
  */
+
+var DEVICE_PATH_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
+function normalizeUrl(url) {
+    "use strict";
+
+    return url
+        .replace(/file\:\/\//, '')
+        .replace(DEVICE_PATH_RE, '');
+}
+
 module.exports = function (Raven) {
     "use strict";
 
@@ -46,6 +56,20 @@ module.exports = function (Raven) {
     // react-native doesn't have a document, so can't use default Image
     // transport - use XMLHttpRequest instead
     Raven.setTransport(xhrTransport);
+
+
+    // Use data callback to strip device-specific paths from stack traces
+    Raven.setDataCallback(function (data) {
+        if (data.culprit) {
+          data.culprit = normalizeUrl(data.culprit);
+        }
+
+        if (data.stacktrace && data.stacktrace.frames && data.stacktrace.frames.length) {
+          data.stacktrace.frames.forEach(function (frame) {
+            frame.filename = normalizeUrl(frame.filename);
+          });
+        }
+    });
 
     ErrorUtils.setGlobalHandler(Raven.captureException);
 };
