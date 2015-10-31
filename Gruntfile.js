@@ -192,6 +192,23 @@ module.exports = function(grunt) {
                 src: '**',
                 dest: 'dist/'
             }
+        },
+
+        sri: {
+            dist: {
+                src: ['dist/*.js'],
+                options: {
+                    dest: 'dist/sri.json',
+                    pretty: true
+                }
+            },
+            build: {
+                src: ['build/**/*.js'],
+                options: {
+                    dest: 'build/sri.json',
+                    pretty: true
+                }
+            }
         }
     };
 
@@ -245,13 +262,14 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-release');
     grunt.loadNpmTasks('grunt-s3');
     grunt.loadNpmTasks('grunt-gitinfo');
+    grunt.loadNpmTasks('grunt-sri');
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
     grunt.registerTask('concat.core', ['_prep', 'concat:core']);
     grunt.registerTask('concat.all', ['_prep', 'concat:all']);
-    grunt.registerTask('build.core', ['concat.core', 'uglify', 'fixSourceMaps']);
-    grunt.registerTask('build.all', ['concat.all', 'uglify', 'fixSourceMaps']);
+    grunt.registerTask('build.core', ['concat.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.all', ['concat.all', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 

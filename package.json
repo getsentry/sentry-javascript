@@ -14,7 +14,7 @@
   "main": "dist/raven.js",
   "devDependencies": {
     "chai": "~1.8.1",
-    "grunt": "~0.4.1",
+    "grunt": "^0.4.5",
     "grunt-cli": "~0.1.9",
     "grunt-contrib-clean": "~0.4.0",
     "grunt-contrib-concat": "~0.3.0",
@@ -26,6 +26,7 @@
     "grunt-mocha": "~0.4.1",
     "grunt-release": "~0.6.0",
     "grunt-s3": "~0.2.0-alpha.3",
+    "grunt-sri": "mattrobenolt/grunt-sri#pretty",
     "jquery": "^2.1.4",
     "lodash": "~2.4.0",
     "sinon": "~1.7.3"

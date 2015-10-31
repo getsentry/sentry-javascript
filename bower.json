@@ -14,6 +14,7 @@
     "docs",
     "package.json",
     "example",
-    "test"
+    "test",
+    "dist/sri.json"
   ]
 }
