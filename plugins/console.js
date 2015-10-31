@@ -23,7 +23,7 @@ var logForGivenLevel = function(level) {
     if (level === 'warn') level = 'warning';
     return function () {
         var args = [].slice.call(arguments);
-        Raven.captureMessage('' + args, {level: level, logger: 'console'});
+        Raven.captureMessage('' + args[0], {level: level, logger: 'console', extra: { arguments: args }});
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
