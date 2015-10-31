@@ -218,6 +218,7 @@ var Raven = {
                 wrapped[property] = func[property];
             }
         }
+        wrapped.prototype = func.prototype;
 
         // Signal that this function has been wrapped already
         // for both debugging and to prevent it to being wrapped twice
