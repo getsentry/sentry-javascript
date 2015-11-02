@@ -45,7 +45,18 @@ Optional settings
           release: '721e41770371db95eee98ca2707686226b993eda'
         }
 
-    Can also be defined with ``Raven.setReleaseContext('721e41770371db95eee98ca2707686226b993eda')``.
+    Can also be defined with ``Raven.setRelease('721e41770371db95eee98ca2707686226b993eda')``.
+
+.. describe:: serverName
+
+    Use this value to define a unique value per client. Typically this would be a device id, if used within a mobile app.
+
+    .. code-block:: javascript
+
+        {
+          serverName: device.uuid
+        }
+
 
 .. describe:: tags
 
