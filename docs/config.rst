@@ -49,7 +49,9 @@ Optional settings
 
 .. describe:: serverName
 
-    Use this value to define a unique value per client. Typically this would be a device id, if used within a mobile app.
+    Typically this would be the server name, but that doesn’t exist on
+    all platforms. Instead you may use something like the device ID, as it
+    indicates the host which the client is running on.
 
     .. code-block:: javascript
 
