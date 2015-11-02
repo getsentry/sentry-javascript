@@ -40,9 +40,15 @@ on :doc:`integrations/index` and :doc:`usage`.
 Reporting Errors
 ----------------
 
-The simplest way, is to try and explicitly capture and report potentially
-problematic code with a ``try...catch`` block and
-``Raven.captureException``.
+You'll want to start by injecting a global error handler, which will catch any
+exceptions which would bubble up to the Node runtime:
+
+.. code-block:: javascript
+
+  client.patchGlobal();
+
+Beyond that, the simplest way is to explicitly capture and report potentially
+problematic code with a ``try...catch`` block and ``Raven.captureException``:
 
 .. code-block:: javascript
 
