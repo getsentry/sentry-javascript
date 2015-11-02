@@ -1685,11 +1685,11 @@ describe('Raven (public API)', function() {
             assert.isTrue(wrapped.test);
         });
 
-        it('should not copy prototype property when wrapping function', function() {
+        it('should copy prototype property when wrapping function', function() {
             var func = function() {};
-            func.prototype.test = true;
+            func.prototype.test = 'foo';
             var wrapped = Raven.wrap(func);
-            assert.isUndefined(new wrapped().test);
+            assert.equal(new wrapped().test, 'foo');
         });
 
         it('should return the result of a wrapped function', function() {
