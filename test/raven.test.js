@@ -1153,6 +1153,38 @@ describe('globals', function() {
             });
         });
 
+        it('should attach server_name if available', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+            this.sinon.stub(window, 'getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                serverName: 'abc123',
+            };
+
+            send({foo: 'bar'});
+            assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
+                project: '2',
+                server_name: 'abc123',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                foo: 'bar',
+                extra: {'session:duration': 100}
+            });
+        });
+
         it('should pass correct opts to makeRequest', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'makeRequest');
