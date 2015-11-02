@@ -697,11 +697,12 @@ function processException(type, message, fileurl, lineno, frames, options) {
         objectMerge({
             // sentry.interfaces.Exception
             exception: {
-                type: type,
-                value: message
+                values: [{
+                    type: type,
+                    value: message,
+                    stacktrace: stacktrace
+                }]
             },
-            // sentry.interfaces.Stacktrace
-            stacktrace: stacktrace,
             culprit: fileurl,
             message: fullMessage
         }, options)
@@ -805,7 +806,7 @@ function send(data) {
     (globalOptions.transport || makeRequest)({
         url: globalServer,
         auth: {
-            sentry_version: '4',
+            sentry_version: '7',
             sentry_client: 'raven-js/' + Raven.VERSION,
             sentry_key: globalKey
         },
