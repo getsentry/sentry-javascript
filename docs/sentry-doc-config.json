@@ -10,6 +10,15 @@
         "index#reporting-errors"
       ]
     },
+    "javascript.angular": {
+      "name": "Angular",
+      "type": "framework",
+      "doc_link": "integrations/angular/",
+      "wizard": [
+        "integrations/angular#installation",
+        "integrations/angular#configuring-the-client"
+      ]
+    },
     "javascript.backbone": {
       "name": "Backbone",
       "type": "framework",
