@@ -5,8 +5,10 @@ node_js:
   - "0.10"
   - "0.12"
   - "4.0"
+  - "5.0"
 before_install:
   - "npm install --upgrade npm -g"
 matrix:
   allow_failures:
     - node_js: "4.0"
+    - node_js: "5.0"
