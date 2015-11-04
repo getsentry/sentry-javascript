@@ -1,8 +1,10 @@
+
 module.exports = function(grunt) {
     "use strict";
 
     var _ = require('lodash');
     var path = require('path');
+    var through = require('through2');
 
     var excludedPlugins = [
         'react-native'
@@ -58,7 +60,7 @@ module.exports = function(grunt) {
         key.sort();
 
         var dest = path.join('build/', key.join(','), '/raven.js');
-        dict[dest] = ['build/raven.js'].concat(comb);
+        dict[dest] = ['src/raven.js'].concat(comb);
 
         return dict;
     }, {});
@@ -68,26 +70,38 @@ module.exports = function(grunt) {
         aws: grunt.file.exists('aws.json') ? grunt.file.readJSON('aws.json'): {},
 
         clean: ['build'],
-        concat: {
-            options: {
-                separator: '\n',
-                process: true
-            },
-            plugins: {
-                files: pluginConcatFiles
-            }
-        },
 
         browserify: {
+            options: {
+                browserifyOptions: {
+                    banner: grunt.file.read('template/_copyright.js'),
+                    standalone: 'Raven', // umd
+                },
+                transform: [
+                    [
+                        // custom transformer to re-write plugins to self-register
+                        // with Raven
+                        new function () {
+                            return function (file, options) {
+                                return through(function (buf, enc, next) {
+                                    var buf = buf.toString('utf8');
+                                    if (/plugins/.test(file)) {
+                                        buf += "\nRaven.addPlugin(module.exports.install);";
+                                    }
+                                    this.push(buf);
+                                    next();
+                                });
+                            }
+                        }
+                    ]
+                ]
+            },
             core: {
                 src: 'src/raven.js',
                 dest: 'build/raven.js',
-                options: {
-                    banner: grunt.file.read('template/_copyright.js'),
-                    browserifyOptions: {
-                        standalone: 'Raven' // umd
-                    }
-                }
+            },
+            plugins: {
+                files: pluginConcatFiles
             }
         },
 
@@ -252,7 +266,6 @@ module.exports = function(grunt) {
 
     // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
@@ -260,7 +273,6 @@ module.exports = function(grunt) {
 
     // 3rd party Grunt tasks
     grunt.loadNpmTasks('grunt-browserify');
-    grunt.loadNpmTasks('grunt-exorcise');
     grunt.loadNpmTasks('grunt-mocha');
     grunt.loadNpmTasks('grunt-release');
     grunt.loadNpmTasks('grunt-s3');
@@ -269,10 +281,10 @@ module.exports = function(grunt) {
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-    grunt.registerTask('concat.core', ['browserify', 'exorcise']);
-    grunt.registerTask('concat.plugins', ['concat:plugins']);
-    grunt.registerTask('build.core', ['_prep', 'concat.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.all', ['_prep', 'concat.core', 'concat.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
+    grunt.registerTask('browserify.plugins', ['_prep', 'browserify:plugins']);
+    grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.all', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
