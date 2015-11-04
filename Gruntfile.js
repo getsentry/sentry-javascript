@@ -4,13 +4,6 @@ module.exports = function(grunt) {
     var _ = require('lodash');
     var path = require('path');
 
-    var coreFiles = [
-        'template/_header.js',
-        'vendor/**/*.js',
-        'src/**/*.js',
-        'template/_footer.js'
-    ];
-
     var excludedPlugins = [
         'react-native'
     ];
@@ -65,7 +58,7 @@ module.exports = function(grunt) {
         key.sort();
 
         var dest = path.join('build/', key.join(','), '/raven.js');
-        dict[dest] = coreFiles.concat(comb);
+        dict[dest] = ['build/raven.js'].concat(comb);
 
         return dict;
     }, {});
@@ -78,15 +71,23 @@ module.exports = function(grunt) {
         concat: {
             options: {
                 separator: '\n',
-                banner: grunt.file.read('template/_copyright.js'),
                 process: true
             },
-            core: {
-                src: coreFiles.concat(plugins),
-                dest: 'build/raven.js'
-            },
-            all: {
+            plugins: {
                 files: pluginConcatFiles
+            }
+        },
+
+        browserify: {
+            core: {
+                src: 'src/raven.js',
+                dest: 'build/raven.js',
+                options: {
+                    banner: grunt.file.read('template/_copyright.js'),
+                    browserifyOptions: {
+                        standalone: 'Raven' // umd
+                    }
+                }
             }
         },
 
@@ -258,6 +259,8 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
 
     // 3rd party Grunt tasks
+    grunt.loadNpmTasks('grunt-browserify');
+    grunt.loadNpmTasks('grunt-exorcise');
     grunt.loadNpmTasks('grunt-mocha');
     grunt.loadNpmTasks('grunt-release');
     grunt.loadNpmTasks('grunt-s3');
@@ -266,10 +269,10 @@ module.exports = function(grunt) {
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-    grunt.registerTask('concat.core', ['_prep', 'concat:core']);
-    grunt.registerTask('concat.all', ['_prep', 'concat:all']);
-    grunt.registerTask('build.core', ['concat.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.all', ['concat.all', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('concat.core', ['browserify', 'exorcise']);
+    grunt.registerTask('concat.plugins', ['concat:plugins']);
+    grunt.registerTask('build.core', ['_prep', 'concat.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.all', ['_prep', 'concat.core', 'concat.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 

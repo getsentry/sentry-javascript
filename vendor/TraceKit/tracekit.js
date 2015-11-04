@@ -1052,3 +1052,5 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
     return computeStackTrace;
 }());
+
+module.exports = TraceKit;
