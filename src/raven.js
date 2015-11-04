@@ -732,19 +732,19 @@ function getHttpData() {
         return;
     }
 
-    var http = {
+    var httpData = {
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
 
-    http.url = document.location.href;
+    httpData.url = document.location.href;
 
     if (document.referrer) {
-        http.headers.Referer = document.referrer;
+        httpData.headers.Referer = document.referrer;
     }
 
-    return http;
+    return httpData;
 }
 
 function send(data) {
@@ -752,10 +752,10 @@ function send(data) {
         project: globalProject,
         logger: globalOptions.logger,
         platform: 'javascript'
-    };
-    var http = getHttpData();
-    if (http) {
-        baseData.request = http;
+    }, httpData = getHttpData();
+
+    if (httpData) {
+        baseData.request = httpData;
     }
 
     data = objectMerge(baseData, data);
@@ -765,9 +765,7 @@ function send(data) {
     data.extra = objectMerge(objectMerge({}, globalContext.extra), data.extra);
 
     // Send along our own collected metadata with extra
-    data.extra = objectMerge({
-        'session:duration': now() - startTime
-    }, data.extra);
+    data.extra['session:duration'] = now() - startTime;
 
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
