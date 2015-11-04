@@ -64,8 +64,9 @@ module.exports = function (Raven) {
           data.culprit = normalizeUrl(data.culprit);
         }
 
-        if (data.stacktrace && data.stacktrace.frames && data.stacktrace.frames.length) {
-          data.stacktrace.frames.forEach(function (frame) {
+        if (data.exception) {
+          // if data.exception exists, all of the other keys are guaranteed to exist
+          data.exception.values[0].stacktrace.frames.forEach(function (frame) {
             frame.filename = normalizeUrl(frame.filename);
           });
         }

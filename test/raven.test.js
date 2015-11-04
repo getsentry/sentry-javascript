@@ -769,11 +769,13 @@ describe('globals', function() {
             processException('Error', 'lol', 'http://example.com/override.js', 10, frames.slice(0), {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: framesFlipped
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: framesFlipped
+                        }
+                    }]
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'Error: lol'
@@ -782,11 +784,13 @@ describe('globals', function() {
             processException('Error', 'lol', '', 10, frames.slice(0), {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: framesFlipped
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: framesFlipped
+                        }
+                    }]
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'Error: lol'
@@ -795,11 +799,13 @@ describe('globals', function() {
             processException('Error', 'lol', '', 10, frames.slice(0), {extra: 'awesome'});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: framesFlipped
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: framesFlipped
+                        }
+                    }]
                 },
                 culprit: 'http://example.com/file1.js',
                 message: 'Error: lol',
@@ -813,14 +819,16 @@ describe('globals', function() {
             processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: [{
-                        filename: 'http://example.com/override.js',
-                        lineno: 10,
-                        in_app: true
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: [{
+                                filename: 'http://example.com/override.js',
+                                lineno: 10,
+                                in_app: true
+                            }]
+                        }
                     }]
                 },
                 culprit: 'http://example.com/override.js',
@@ -830,14 +838,16 @@ describe('globals', function() {
             processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: [{
-                        filename: 'http://example.com/override.js',
-                        lineno: 10,
-                        in_app: true
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: [{
+                                filename: 'http://example.com/override.js',
+                                lineno: 10,
+                                in_app: true
+                            }]
+                        }
                     }]
                 },
                 culprit: 'http://example.com/override.js',
@@ -847,14 +857,16 @@ describe('globals', function() {
             processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
             assert.deepEqual(window.send.lastCall.args, [{
                 exception: {
-                    type: 'Error',
-                    value: 'lol'
-                },
-                stacktrace: {
-                    frames: [{
-                        filename: 'http://example.com/override.js',
-                        lineno: 10,
-                        in_app: true
+                    values: [{
+                        type: 'Error',
+                        value: 'lol',
+                        stacktrace: {
+                            frames: [{
+                                filename: 'http://example.com/override.js',
+                                lineno: 10,
+                                in_app: true
+                            }]
+                        }
                     }]
                 },
                 culprit: 'http://example.com/override.js',
@@ -879,14 +891,16 @@ describe('globals', function() {
             assert.deepEqual(window.send.lastCall.args, [{
                 message: 'TypeError: ' + new Array(140).join('a')+'\u2026',
                 exception: {
-                    type: 'TypeError',
-                    value: new Array(151).join('a')+'\u2026'
-                },
-                stacktrace: {
-                    frames: [{
-                        filename: 'http://example.com',
-                        lineno: 34,
-                        in_app: true
+                    values: [{
+                        type: 'TypeError',
+                        value: new Array(151).join('a')+'\u2026',
+                        stacktrace: {
+                            frames: [{
+                                filename: 'http://example.com',
+                                lineno: 34,
+                                in_app: true
+                            }]
+                        }
                     }]
                 },
                 culprit: 'http://example.com',
@@ -1192,7 +1206,7 @@ describe('globals', function() {
             assert.deepEqual(opts.auth, {
                 sentry_client: 'raven-js/<%= pkg.version %>',
                 sentry_key: 'abc',
-                sentry_version: '4'
+                sentry_version: '7'
             });
             assert.deepEqual(opts.options, globalOptions);
             assert.isFunction(opts.onSuccess);
