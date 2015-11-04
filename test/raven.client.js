@@ -254,11 +254,28 @@ describe('raven.Client', function(){
     });
 
     describe('#patchGlobal()', function(){
+        beforeEach(function () {
+            // remove existing uncaughtException handlers
+            this.uncaughtBefore = process.listeners('uncaughtException');
+            process.removeAllListeners('uncaughtException');
+        });
+
+        afterEach(function () {
+            var uncaughtBefore = this.uncaughtBefore;
+            // restore things to how they were
+            for (var i = 0; i < uncaughtBefore.length; i++) {
+                process.addListener('uncaughtException', uncaughtBefore[i]);
+            }
+        });
+
         it('should add itself to the uncaughtException event list', function(){
-            var before = process._events.uncaughtException.length;
+            var listeners = process.listeners('uncaughtException');
+            listeners.length.should.equal(0);
+
             client.patchGlobal();
-            process._events.uncaughtException.length.should.equal(before+1);
-            process._events.uncaughtException.pop(); // patch it back to what it was
+
+            listeners = process.listeners('uncaughtException');
+            listeners.length.should.equal(1);
         });
 
         it('should send an uncaughtException to Sentry server', function(done){
@@ -267,14 +284,7 @@ describe('raven.Client', function(){
                 .post('/api/269/store/', '*')
                 .reply(200, 'OK');
 
-            // remove existing uncaughtException handlers
-            var before = process._events.uncaughtException;
-            process.removeAllListeners('uncaughtException');
-
             client.on('logged', function(){
-                // restore things to how they were
-                process._events.uncaughtException = before;
-
                 scope.done();
                 done();
             });
@@ -288,14 +298,7 @@ describe('raven.Client', function(){
                 .post('/api/269/store/', '*')
                 .reply(200, 'OK');
 
-            // remove existing uncaughtException handlers
-            var before = process._events.uncaughtException;
-            process.removeAllListeners('uncaughtException');
-
             client.patchGlobal(function(){
-                // restore things to how they were
-                process._events.uncaughtException = before;
-
                 scope.done();
                 done();
             });
@@ -303,10 +306,6 @@ describe('raven.Client', function(){
         });
 
         it('should not enter in recursion when an error is thrown on client request', function(done){
-            // remove existing uncaughtException handlers
-            var uncaughtBefore = process._events.uncaughtException;
-            process.removeAllListeners('uncaughtException');
-
             var transportBefore = client.transport.send;
 
             client.transport.send = function() {
@@ -318,8 +317,6 @@ describe('raven.Client', function(){
                 err.should.be.instanceOf(Error);
                 err.message.should.equal('foo');
 
-                // restore things to how they were
-                process._events.uncaughtException = uncaughtBefore;
                 client.transport.send = transportBefore;
 
                 done();
