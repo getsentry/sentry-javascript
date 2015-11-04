@@ -303,6 +303,28 @@ describe('globals', function() {
         });
     });
 
+    describe('trimPacket', function() {
+        it('should work as advertised', function() {
+            globalOptions.maxMessageLength = 3;
+            assert.deepEqual(
+                trimPacket({message: 'lol'}),
+                {message: 'lol'}
+            );
+            assert.deepEqual(
+                trimPacket({message: 'lolol'}),
+                {message: 'lol\u2026'}
+            );
+            assert.deepEqual(
+                trimPacket({message: 'lol', exception: {values: [{value: 'lol'}]}}),
+                {message: 'lol', exception: {values: [{value: 'lol'}]}}
+            );
+            assert.deepEqual(
+                trimPacket({message: 'lolol', exception: {values: [{value: 'lolol'}]}}),
+                {message: 'lol\u2026', exception: {values: [{value: 'lol\u2026'}]}}
+            );
+        });
+    });
+
     describe('isSetup', function() {
         beforeEach(function () {
           this.sinon.stub(window, 'logDebug');
@@ -881,31 +903,6 @@ describe('globals', function() {
             processException('TypeError', undefined, 'http://example.com', []);
             assert.isTrue(window.send.called);
         });
-
-        it('should truncate messages to the specified length', function() {
-            this.sinon.stub(window, 'send');
-
-            globalOptions.maxMessageLength = 150;
-
-            processException('TypeError', new Array(500).join('a'), 'http://example.com', 34);
-            assert.deepEqual(window.send.lastCall.args, [{
-                message: 'TypeError: ' + new Array(140).join('a')+'\u2026',
-                exception: {
-                    values: [{
-                        type: 'TypeError',
-                        value: new Array(151).join('a')+'\u2026',
-                        stacktrace: {
-                            frames: [{
-                                filename: 'http://example.com',
-                                lineno: 34,
-                                in_app: true
-                            }]
-                        }
-                    }]
-                },
-                culprit: 'http://example.com',
-            }]);
-        });
     });
 
     describe('send', function() {
@@ -919,10 +916,11 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -934,7 +932,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -949,12 +947,13 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             };
 
             globalContext.user = {name: 'Matt'};
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -969,7 +968,7 @@ describe('globals', function() {
                 user: {
                     name: 'Matt'
                 },
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -984,12 +983,13 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             };
             globalContext = {tags: {tag1: 'value1'}};
 
 
-            send({tags: {tag2: 'value2'}});
+            send({message: 'bar', tags: {tag2: 'value2'}});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -1001,11 +1001,13 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
+                message: 'bar',
                 tags: {tag1: 'value1', tag2: 'value2'},
                 extra: {'session:duration': 100}
             });
             assert.deepEqual(globalOptions, {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             });
             assert.deepEqual(globalContext, {
                 tags: {tag1: 'value1'}
@@ -1022,13 +1024,14 @@ describe('globals', function() {
 
             globalProject = '2';
             globalOptions = {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             };
             globalContext = {extra: {key1: 'value1'}};
 
 
 
-            send({extra: {key2: 'value2'}});
+            send({message: 'bar', extra: {key2: 'value2'}});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -1040,10 +1043,12 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
+                message: 'bar',
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
             });
             assert.deepEqual(globalOptions, {
-                logger: 'javascript'
+                logger: 'javascript',
+                maxMessageLength: 100
             });
             assert.deepEqual(globalContext, {
                 extra: {key1: 'value1'}
@@ -1057,16 +1062,17 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
+                maxMessageLength: 100,
                 dataCallback: function() {
-                    return {lol: 'ibrokeit'};
+                    return {message: 'ibrokeit'};
                 }
             };
 
             globalContext.user = {name: 'Matt'};
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
-                lol: 'ibrokeit',
+                message: 'ibrokeit',
                 event_id: 'abc123',
             });
         });
@@ -1082,12 +1088,13 @@ describe('globals', function() {
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
+                maxMessageLength: 100,
                 dataCallback: function() {
                     return;
                 }
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -1099,7 +1106,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -1115,10 +1122,11 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
+                maxMessageLength: 100,
                 tags: {}
             };
 
-            send({foo: 'bar', tags: {}, extra: {}});
+            send({message: 'bar', tags: {}, extra: {}});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -1130,7 +1138,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -1146,10 +1154,11 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
+                maxMessageLength: 100,
                 release: 'abc123',
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 release: 'abc123',
@@ -1162,7 +1171,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -1180,10 +1189,11 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
+                maxMessageLength: 100,
                 release: 'abc123',
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             var args = window.makeRequest.lastCall.args;
             assert.equal(args.length, 1);
             var opts = args[0];
@@ -1200,7 +1210,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100},
             });
             assert.deepEqual(opts.auth, {
@@ -1223,10 +1233,11 @@ describe('globals', function() {
             globalProject = '2';
             globalOptions = {
                 logger: 'javascript',
+                maxMessageLength: 100,
                 transport: sinon.stub()
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
                 project: '2',
                 logger: 'javascript',
@@ -1238,7 +1249,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
@@ -1246,14 +1257,14 @@ describe('globals', function() {
         it('should check `isSetup`', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
             this.sinon.stub(window, 'makeRequest');
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.isTrue(window.isSetup.called);
         });
 
         it('should not makeRequest if `isSetup` is false', function() {
             this.sinon.stub(window, 'isSetup').returns(false);
             this.sinon.stub(window, 'makeRequest');
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.isFalse(window.makeRequest.called);
         });
 
@@ -1261,8 +1272,33 @@ describe('globals', function() {
             this.sinon.stub(window, 'isSetup').returns(true);
             this.sinon.stub(window, 'logDebug');
             this.sinon.stub(window, 'makeRequest');
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.isTrue(window.logDebug.called);
+        });
+
+        it('should truncate messages to the specified length', function() {
+            this.sinon.stub(window, 'isSetup').returns(true);
+            this.sinon.stub(window, 'makeRequest');
+
+            globalOptions.maxMessageLength = 150;
+
+            var message = new Array(500).join('a');
+            var shortMessage = new Array(151).join('a')+'\u2026';
+
+            send({
+                message: message,
+                exception: {
+                    values: [{
+                        value: message
+                    }]
+                }
+            });
+
+            var args = window.makeRequest.lastCall.args;
+            assert.equal(args.length, 1);
+            var data = args[0].data;
+            assert.equal(data.message, shortMessage);
+            assert.equal(data.exception.values[0].value, shortMessage);
         });
     });
 
@@ -1287,7 +1323,7 @@ describe('globals', function() {
 
         it('should populate crossOrigin based on globalOptions', function() {
             globalOptions = {
-                crossOrigin: 'something'
+                crossOrigin: 'something',
             };
             makeRequest({
                 url: globalServer,

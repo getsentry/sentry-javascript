@@ -668,10 +668,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(message)) return;
 
     message += '';
-    message = truncate(message, globalOptions.maxMessageLength);
-
     fullMessage = type + ': ' + message;
-    fullMessage = truncate(fullMessage, globalOptions.maxMessageLength);
 
     if (frames && frames.length) {
         fileurl = frames[0].filename || fileurl;
@@ -721,6 +718,19 @@ function objectMerge(obj1, obj2) {
 
 function truncate(str, max) {
     return str.length <= max ? str : str.substr(0, max) + '\u2026';
+}
+
+function trimPacket(data) {
+    // For now, we only want to truncate the two different messages
+    // but this could/should be expanded to just trim everything
+    var max = globalOptions.maxMessageLength;
+    data.message = truncate(data.message, max);
+    if (data.exception) {
+        var exception = data.exception.values[0];
+        exception.value = truncate(exception.value, max);
+    }
+
+    return data;
 }
 
 function now() {
@@ -798,6 +808,9 @@ function send(data) {
     // This event_id can be used to reference the error within Sentry itself.
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
+
+    // Try and clean up the packet before sending by truncating long values
+    data = trimPacket(data);
 
     logDebug('debug', 'Raven about to send:', data);
 
