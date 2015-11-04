@@ -1553,28 +1553,6 @@ describe('globals', function() {
                 'new <anonymous>', 'hey', 'http://example.com', 10, [], undefined
             ]);
         });
-
-        it('should extract angularjs specific error messages', function() {
-            this.sinon.stub(window, 'normalizeFrame').returns(undefined);
-            this.sinon.stub(window, 'processException');
-
-            var stackInfo = {
-                name: 'Error',
-                message: '[$foo:bar] thing happened\nhttp://errors.angularjs.org/cool/story',
-                url: 'http://example.com',
-                lineno: 10
-            };
-
-            handleStackInfo(stackInfo);
-            assert.deepEqual(window.processException.lastCall.args, [
-                '$foo:bar',
-                'thing happened',
-                'http://example.com',
-                10,
-                [],
-                {extra: {ref: 'http://errors.angularjs.org/cool/story'}}
-            ]);
-        });
     });
 
     describe('joinRegExp', function() {

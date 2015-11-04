@@ -481,8 +481,7 @@ function triggerEvent(eventType, options) {
 }
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/,
-    angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
+    dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
 
 function RavenConfigError(message) {
     this.name = 'RavenConfigError';
@@ -569,19 +568,7 @@ function each(obj, callback) {
 }
 
 function handleStackInfo(stackInfo, options) {
-    var frames = [],
-        matches = angularPattern.exec(stackInfo.message);
-
-    if (matches) {
-        stackInfo.name = matches[1];
-        stackInfo.message = matches[2];
-        // auto set a new tag specifically for the angular error url
-        options = options || {};
-        options.extra = objectMerge({
-            // Truncate this message pretty short since it can be insane.
-            ref: truncate(matches[3], 250)
-        }, options.extra);
-    }
+    var frames = [];
 
     if (stackInfo.stack && stackInfo.stack.length) {
         each(stackInfo.stack, function(i, stack) {
