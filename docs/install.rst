@@ -69,6 +69,12 @@ Raven is published to npm as well. https://www.npmjs.com/package/raven-js
 
 Note that if you intend to use Raven with Node, `raven-node <https://github.com/getsentry/raven-node>`_ is the client to use
 
+CommonJS
+~~~~~~~~
+
+If you load and install Raven using commonJS you should be aware that multiple require's will overwrite the `window.Raven` instance and thus give you a Raven instance that is not configured.
+
+
 Requirements
 ~~~~~~~~~~~~
 
