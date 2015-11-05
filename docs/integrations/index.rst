@@ -24,6 +24,12 @@ information, so it's important that we inject code and wrap things
 magically so we can extract what we need. See :doc:`../usage` for tips
 regarding that.
 
+Installation
+------------
+
+To install a plugin just include the plugin **after** Raven has been loaded and the Raven global variable is registered. This happens automatically if you install from a CDN with the required plugins in the URL.
+
+
 .. toctree::
    :maxdepth: 1
 
