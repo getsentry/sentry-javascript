@@ -356,10 +356,9 @@ describe('raven.parsers', function(){
 
       it('should fallback to <unavailable> if body is not available', function(){
         var mockReq = {
-          method: 'GET',
+          method: 'POST',
           hostname: 'mattrobenolt.com',
           url: '/some/path?key=value',
-          body: ''
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
@@ -367,9 +366,21 @@ describe('raven.parsers', function(){
         parsed['request'].data.should.equal('<unavailable>');
       });
 
-      it('should make sure that body is a string', function(){
+      it('should not fallback to <unavailable> if GET', function(){
         var mockReq = {
           method: 'GET',
+          hostname: 'mattrobenolt.com',
+          url: '/some/path?key=value',
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+
+        (typeof parsed['request'].data === 'undefined').should.be.ok;
+      });
+
+      it('should make sure that body is a string', function(){
+        var mockReq = {
+          method: 'POST',
           hostname: 'mattrobenolt.com',
           url: '/some/path?key=value',
           body: {'foo': true}
