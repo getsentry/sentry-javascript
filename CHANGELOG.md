@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+* CHANGE: `console` plugin will now send all arguments as an `extra` value. See: https://github.com/getsentry/raven-js/pull/398
+* CHANGE: Bump to v7 of the Sentry API spec. This now requires a Sentry 7.7.0+ https://github.com/getsentry/raven-js/pull/403
+* CHANGE: Revamp of AngularJS plugin. Please see documentation. See: https://github.com/getsentry/raven-js/pull/405
+* CHANGE: `Raven.debug` now defaults to `false`. https://github.com/getsentry/raven-js/commit/dc142b88f0c4953f54cb3754f9015d95ada55ba0
+* BUGFIX: `Raven.wrap` now correctly preserves `prototype`. See: https://github.com/getsentry/raven-js/issues/401 and https://github.com/getsentry/raven-js/pull/402
+* NEW: `serverName` config option. https://github.com/getsentry/raven-js/pull/404
+* NEW: Experimental support for React Native added.
+
 ## 1.2.0
 * BUGFIX: Error in cases where a `document` context doesn't exist. See: https://github.com/getsentry/raven-js/pull/383
 * BUGFIX: Trailing comma when using unminified dist which affects IE9. See: https://github.com/getsentry/raven-js/pull/385

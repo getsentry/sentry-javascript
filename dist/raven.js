@@ -1,4 +1,4 @@
-/*! Raven.js 1.2.0 (17e3431) | github.com/getsentry/raven-js */
+/*! Raven.js 1.3.0 (768fdca) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -29,24 +29,6 @@ var TraceKit = {
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
-/**
- * TraceKit.wrap: Wrap any function in a TraceKit reporter
- * Example: func = TraceKit.wrap(func);
- *
- * @param {Function} func Function to be wrapped
- * @return {Function} The wrapped func
- */
-TraceKit.wrap = function traceKitWrapper(func) {
-    function wrapped() {
-        try {
-            return func.apply(this, arguments);
-        } catch (e) {
-            TraceKit.report(e);
-            throw e;
-        }
-    }
-    return wrapped;
-};
 
 function getLocationHref() {
     if (typeof document === 'undefined')
@@ -1128,9 +1110,9 @@ for (var method in originalConsole) {
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.2.0',
+    VERSION: '1.3.0',
 
-    debug: true,
+    debug: false,
 
     /*
      * Allow multiple versions of Raven to be installed.
@@ -1305,6 +1287,7 @@ var Raven = {
                 wrapped[property] = func[property];
             }
         }
+        wrapped.prototype = func.prototype;
 
         // Signal that this function has been wrapped already
         // for both debugging and to prevent it to being wrapped twice
@@ -1754,10 +1737,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(message)) return;
 
     message += '';
-    message = truncate(message, globalOptions.maxMessageLength);
-
     fullMessage = type + ': ' + message;
-    fullMessage = truncate(fullMessage, globalOptions.maxMessageLength);
 
     if (frames && frames.length) {
         fileurl = frames[0].filename || fileurl;
@@ -1783,11 +1763,12 @@ function processException(type, message, fileurl, lineno, frames, options) {
         objectMerge({
             // sentry.interfaces.Exception
             exception: {
-                type: type,
-                value: message
+                values: [{
+                    type: type,
+                    value: message,
+                    stacktrace: stacktrace
+                }]
             },
-            // sentry.interfaces.Stacktrace
-            stacktrace: stacktrace,
             culprit: fileurl,
             message: fullMessage
         }, options)
@@ -1808,6 +1789,19 @@ function truncate(str, max) {
     return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
+function trimPacket(data) {
+    // For now, we only want to truncate the two different messages
+    // but this could/should be expanded to just trim everything
+    var max = globalOptions.maxMessageLength;
+    data.message = truncate(data.message, max);
+    if (data.exception) {
+        var exception = data.exception.values[0];
+        exception.value = truncate(exception.value, max);
+    }
+
+    return data;
+}
+
 function now() {
     return +new Date();
 }
@@ -1817,19 +1811,19 @@ function getHttpData() {
         return;
     }
 
-    var http = {
+    var httpData = {
         headers: {
             'User-Agent': navigator.userAgent
         }
     };
 
-    http.url = document.location.href;
+    httpData.url = document.location.href;
 
     if (document.referrer) {
-        http.headers.Referer = document.referrer;
+        httpData.headers.Referer = document.referrer;
     }
 
-    return http;
+    return httpData;
 }
 
 function send(data) {
@@ -1837,10 +1831,10 @@ function send(data) {
         project: globalProject,
         logger: globalOptions.logger,
         platform: 'javascript'
-    };
-    var http = getHttpData();
-    if (http) {
-        baseData.request = http;
+    }, httpData = getHttpData();
+
+    if (httpData) {
+        baseData.request = httpData;
     }
 
     data = objectMerge(baseData, data);
@@ -1850,9 +1844,7 @@ function send(data) {
     data.extra = objectMerge(objectMerge({}, globalContext.extra), data.extra);
 
     // Send along our own collected metadata with extra
-    data.extra = objectMerge({
-        'session:duration': now() - startTime
-    }, data.extra);
+    data.extra['session:duration'] = now() - startTime;
 
     // If there are no tags/extra, strip the key from the payload alltogther.
     if (isEmptyObject(data.tags)) delete data.tags;
@@ -1864,6 +1856,8 @@ function send(data) {
 
     // Include the release if it's defined in globalOptions
     if (globalOptions.release) data.release = globalOptions.release;
+    // Include server_name if it's defined in globalOptions
+    if (globalOptions.serverName) data.server_name = globalOptions.serverName;
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data) || data;
@@ -1884,6 +1878,9 @@ function send(data) {
     // Set lastEventId after we know the error should actually be sent
     lastEventId = data.event_id || (data.event_id = uuid4());
 
+    // Try and clean up the packet before sending by truncating long values
+    data = trimPacket(data);
+
     logDebug('debug', 'Raven about to send:', data);
 
     if (!isSetup()) return;
@@ -1891,7 +1888,7 @@ function send(data) {
     (globalOptions.transport || makeRequest)({
         url: globalServer,
         auth: {
-            sentry_version: '4',
+            sentry_version: '7',
             sentry_client: 'raven-js/' + Raven.VERSION,
             sentry_key: globalKey
         },
@@ -1917,10 +1914,11 @@ function makeRequest(opts) {
     opts.auth.sentry_data = JSON.stringify(opts.data);
 
     var img = newImage(),
-        src = opts.url + '?' + urlencode(opts.auth);
+        src = opts.url + '?' + urlencode(opts.auth),
+        crossOrigin = opts.options.crossOrigin;
 
-    if (opts.options.crossOrigin || opts.options.crossOrigin === '') {
-        img.crossOrigin = opts.options.crossOrigin;
+    if (crossOrigin || crossOrigin === '') {
+        img.crossOrigin = crossOrigin;
     }
     img.onload = opts.onSuccess;
     img.onerror = img.onabort = opts.onError;
