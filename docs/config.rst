@@ -49,6 +49,8 @@ Optional settings
 
 .. describe:: serverName
 
+    .. versionadded:: 1.3.0
+
     Typically this would be the server name, but that doesn’t exist on
     all platforms. Instead you may use something like the device ID, as it
     indicates the host which the client is running on.

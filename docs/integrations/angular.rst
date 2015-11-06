@@ -1,6 +1,9 @@
 AngularJS
 =========
 
+.. versionadded:: 1.3.0
+   Prior to 1.3.0, we had an Angular plugin, but was undocumented. 1.3.0 comes with a rewritten version with better support.
+
 Installation
 ------------
 
@@ -10,7 +13,7 @@ Example:
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/1.2.0/angular,native/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/1.3.0/angular,native/raven.min.js"></script>
 
     <!-- your application code below -->
     <script src="static/app.js"></script>
@@ -35,7 +38,7 @@ your raven.js script include:
 
 .. code-block:: html
 
-    <script src="https://cdn.ravenjs.com/1.2.0/angular,native/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/1.3.0/angular,native/raven.min.js"></script>
     <script>
       Raven.config('___PUBLIC_DSN___').install();
     </script>
