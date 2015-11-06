@@ -54,7 +54,7 @@ Raven.setDataCallback(function(data) {
             exception.value = matches[2];
             data.message = exception.type + ': ' + exception.value;
             // auto set a new tag specifically for the angular error url
-            data.extra.angularDocs = matches[3];
+            data.extra.angularDocs = matches[3].substr(0, 250);
         }
     }
 });
