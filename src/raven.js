@@ -43,7 +43,7 @@ for (var method in originalConsole) {
 var Raven = {
     VERSION: '<%= pkg.version %>',
 
-    debug: true,
+    debug: false,
 
     /*
      * Allow multiple versions of Raven to be installed.
