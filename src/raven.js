@@ -787,6 +787,8 @@ function send(data) {
 
     // Include the release if it's defined in globalOptions
     if (globalOptions.release) data.release = globalOptions.release;
+    // Include server_name if it's defined in globalOptions
+    if (globalOptions.serverName) data.server_name = globalOptions.serverName;
 
     if (isFunction(globalOptions.dataCallback)) {
         data = globalOptions.dataCallback(data) || data;

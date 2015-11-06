@@ -45,7 +45,20 @@ Optional settings
           release: '721e41770371db95eee98ca2707686226b993eda'
         }
 
-    Can also be defined with ``Raven.setReleaseContext('721e41770371db95eee98ca2707686226b993eda')``.
+    Can also be defined with ``Raven.setRelease('721e41770371db95eee98ca2707686226b993eda')``.
+
+.. describe:: serverName
+
+    Typically this would be the server name, but that doesn’t exist on
+    all platforms. Instead you may use something like the device ID, as it
+    indicates the host which the client is running on.
+
+    .. code-block:: javascript
+
+        {
+          serverName: device.uuid
+        }
+
 
 .. describe:: tags
 
