@@ -34,8 +34,7 @@ Configuring the Client
 ----------------------
 
 While adding ``ngRaven`` to your app will capture enable integration support, you'll still need
-to wire up the SDK just as if you weren't using Angular. This should happen immediately **after**
-your the JS SDK script tag:
+to wire up the SDK just as if you weren't using Angular. This should happen immediately **after** the JS SDK script tag:
 
 .. code-block:: html
 
