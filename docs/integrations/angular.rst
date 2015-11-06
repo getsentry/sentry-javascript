@@ -33,8 +33,9 @@ module dependency:
 Configuring the Client
 ----------------------
 
-You need to configure raven.js to use your Sentry DSN. This should happen immediately after
-your raven.js script include:
+While adding ``ngRaven`` to your app will capture enable integration support, you'll still need
+to wire up the SDK just as if you weren't using Angular. This should happen immediately **after**
+your the JS SDK script tag:
 
 .. code-block:: html
 
@@ -43,5 +44,5 @@ your raven.js script include:
       Raven.config('___PUBLIC_DSN___').install();
     </script>
 
-At this point, Raven is ready to capture any uncaught exception via standard hooks
-in addition to Backbone specific hooks.
+At this point the SDK will capture Angular-specific errors, as well as general JavaScript
+issues that may happen outside of the scope of the framework.
