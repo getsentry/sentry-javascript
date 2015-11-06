@@ -1187,10 +1187,11 @@ describe('globals', function() {
             globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
+                maxMessageLength: 100,
                 serverName: 'abc123',
             };
 
-            send({foo: 'bar'});
+            send({message: 'bar'});
             assert.deepEqual(window.makeRequest.lastCall.args[0].data, {
                 project: '2',
                 server_name: 'abc123',
@@ -1203,7 +1204,7 @@ describe('globals', function() {
                     }
                 },
                 event_id: 'abc123',
-                foo: 'bar',
+                message: 'bar',
                 extra: {'session:duration': 100}
             });
         });
