@@ -76,7 +76,14 @@ module.exports = function(grunt) {
                 browserifyOptions: {
                     banner: grunt.file.read('template/_copyright.js'),
                     standalone: 'Raven', // umd
-                },
+                }
+            },
+            core: {
+                src: 'src/raven.js',
+                dest: 'build/raven.js',
+            },
+            plugins: {
+                files: pluginConcatFiles,
                 transform: [
                     [
                         // custom transformer to re-write plugins to self-register
@@ -96,12 +103,14 @@ module.exports = function(grunt) {
                     ]
                 ]
             },
-            core: {
-                src: 'src/raven.js',
-                dest: 'build/raven.js',
-            },
-            plugins: {
-                files: pluginConcatFiles
+            test: {
+                src: 'test/**/*.test.js',
+                dest: 'build/raven.test.js',
+                options: {
+                    browserifyOptions: {
+                        debug: true // source maps
+                    }
+                }
             }
         },
 
@@ -283,13 +292,14 @@ module.exports = function(grunt) {
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
     grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
     grunt.registerTask('browserify.plugins', ['_prep', 'browserify:plugins']);
+    grunt.registerTask('build.test', ['_prep', 'browserify:test']);
     grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
     grunt.registerTask('build.all', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
-    grunt.registerTask('test', ['jshint', 'mocha']);
+    grunt.registerTask('test', ['jshint', 'mocha', 'browserify.core', 'browserify:test']);
 
     // Webserver tasks
     grunt.registerTask('run:test', ['connect:test']);

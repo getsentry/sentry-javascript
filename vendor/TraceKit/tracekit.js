@@ -1,3 +1,11 @@
+'use strict';
+
+var utils = require('../../src/utils');
+
+var hasKey = utils.hasKey;
+var isString = utils.isString;
+var isUndefined = utils.isUndefined;
+
 /*
  TraceKit - Cross brower stack traces - github.com/occ/TraceKit
  MIT license
@@ -15,13 +23,12 @@ var TraceKit = {
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
-
 function getLocationHref() {
     if (typeof document === 'undefined')
         return '';
 
     return document.location.href;
-};
+}
 
 /**
  * TraceKit.report: cross-browser processing of unhandled exceptions

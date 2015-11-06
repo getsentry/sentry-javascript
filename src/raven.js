@@ -2,6 +2,17 @@
 'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+var utils = require('./utils');
+
+var isFunction = utils.isFunction;
+var isUndefined = utils.isUndefined;
+var isError = utils.isError;
+var isString = utils.isString;
+var isEmptyObject = utils.isEmptyObject;
+var hasKey = utils.hasKey;
+var each = utils.each;
+var objectMerge = utils.objectMerge;
+var truncate = utils.truncate;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
@@ -27,7 +38,6 @@ var _Raven = window.Raven,
         maxMessageLength: 100
     },
     isRavenInstalled = false,
-    objectPrototype = Object.prototype,
     // capture references to window.console *and* all its methods first
     // before the console plugin has a chance to monkey patch
     originalConsole = window.console || {},
@@ -70,12 +80,12 @@ var Raven = {
      */
     config: function(dsn, options) {
         if (globalServer) {
-            logDebug('error', 'Error: Raven has already been configured');
+            Raven._logDebug('error', 'Error: Raven has already been configured');
             return Raven;
         }
         if (!dsn) return Raven;
 
-        var uri = parseDSN(dsn),
+        var uri = Raven._parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
 
@@ -139,8 +149,8 @@ var Raven = {
      * @return {Raven}
      */
     install: function() {
-        if (isSetup() && !isRavenInstalled) {
-            TraceKit.report.subscribe(handleStackInfo);
+        if (Raven.isSetup() && !isRavenInstalled) {
+            TraceKit.report.subscribe(Raven._handleStackInfo);
 
             // Install all of the plugins
             each(plugins, function(_, plugin) {
@@ -268,7 +278,7 @@ var Raven = {
         // report on.
         try {
             var stack = TraceKit.computeStackTrace(ex);
-            handleStackInfo(stack, options);
+            Raven._handleStackInfo(stack, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
@@ -294,7 +304,7 @@ var Raven = {
         }
 
         // Fire away!
-        send(
+        Raven._send(
             objectMerge({
                 message: msg + ''  // Make sure it's actually a string
             }, options)
@@ -444,7 +454,14 @@ var Raven = {
      * @return {boolean}
      */
     isSetup: function() {
-        return isSetup();
+        if (!hasJSON) return false;  // needs JSON support
+        if (!globalServer) {
+            if (!ravenNotConfiguredError)
+              Raven._logDebug('error', 'Error: Raven has not been configured.');
+            ravenNotConfiguredError = true;
+            return false;
+        }
+        return true;
     }
 };
 
@@ -498,7 +515,7 @@ RavenConfigError.prototype = new Error();
 RavenConfigError.prototype.constructor = RavenConfigError;
 
 /**** Private functions ****/
-function parseDSN(str) {
+Raven._parseDSN = function(str) {
     var m = dsnPattern.exec(str),
         dsn = {},
         i = 7;
@@ -513,73 +530,14 @@ function parseDSN(str) {
         throw new RavenConfigError('Do not specify your private key in the DSN!');
 
     return dsn;
-}
+};
 
-function isUndefined(what) {
-    return what === void 0;
-}
-
-function isFunction(what) {
-    return typeof what === 'function';
-}
-
-function isString(what) {
-    return objectPrototype.toString.call(what) === '[object String]';
-}
-
-function isObject(what) {
-    return typeof what === 'object' && what !== null;
-}
-
-function isEmptyObject(what) {
-    for (var k in what) return false;
-    return true;
-}
-
-// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
-// with some tiny modifications
-function isError(what) {
-    return isObject(what) &&
-        objectPrototype.toString.call(what) === '[object Error]' ||
-        what instanceof Error;
-}
-
-/**
- * hasKey, a better form of hasOwnProperty
- * Example: hasKey(MainHostObject, property) === true/false
- *
- * @param {Object} host object to check property
- * @param {string} key to check
- */
-function hasKey(object, key) {
-    return objectPrototype.hasOwnProperty.call(object, key);
-}
-
-function each(obj, callback) {
-    var i, j;
-
-    if (isUndefined(obj.length)) {
-        for (i in obj) {
-            if (hasKey(obj, i)) {
-                callback.call(null, i, obj[i]);
-            }
-        }
-    } else {
-        j = obj.length;
-        if (j) {
-            for (i = 0; i < j; i++) {
-                callback.call(null, i, obj[i]);
-            }
-        }
-    }
-}
-
-function handleStackInfo(stackInfo, options) {
+Raven._handleStackInfo = function(stackInfo, options) {
     var frames = [];
 
     if (stackInfo.stack && stackInfo.stack.length) {
         each(stackInfo.stack, function(i, stack) {
-            var frame = normalizeFrame(stack);
+            var frame = Raven._normalizeFrame(stack);
             if (frame) {
                 frames.push(frame);
             }
@@ -591,7 +549,7 @@ function handleStackInfo(stackInfo, options) {
         options: options
     });
 
-    processException(
+    Raven._processException(
         stackInfo.name,
         stackInfo.message,
         stackInfo.url,
@@ -599,9 +557,9 @@ function handleStackInfo(stackInfo, options) {
         frames,
         options
     );
-}
+};
 
-function normalizeFrame(frame) {
+Raven._normalizeFrame = function(frame) {
     if (!frame.url) return;
 
     // normalize the frames data
@@ -610,7 +568,7 @@ function normalizeFrame(frame) {
         lineno:     frame.line,
         colno:      frame.column,
         'function': frame.func || '?'
-    }, context = extractContextFromFrame(frame), i;
+    }, context = Raven._extractContextFromFrame(frame), i;
 
     if (context) {
         var keys = ['pre_context', 'context_line', 'post_context'];
@@ -628,9 +586,9 @@ function normalizeFrame(frame) {
     );
 
     return normalized;
-}
+};
 
-function extractContextFromFrame(frame) {
+Raven._extractContextFromFrame = function(frame) {
     // immediately check if we should even attempt to parse a context
     if (!frame.context || !globalOptions.fetchContext) return;
 
@@ -667,9 +625,9 @@ function extractContextFromFrame(frame) {
         context[pivot],             // context_line
         context.slice(pivot + 1)    // post_context
     ];
-}
+};
 
-function processException(type, message, fileurl, lineno, frames, options) {
+Raven._processException = function(type, message, fileurl, lineno, frames, options) {
     var stacktrace, i, fullMessage;
 
     if (!!globalOptions.ignoreErrors.test && globalOptions.ignoreErrors.test(message)) return;
@@ -697,7 +655,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
     if (!!globalOptions.whitelistUrls.test && !globalOptions.whitelistUrls.test(fileurl)) return;
 
     // Fire away!
-    send(
+    Raven._send(
         objectMerge({
             // sentry.interfaces.Exception
             exception: {
@@ -711,21 +669,7 @@ function processException(type, message, fileurl, lineno, frames, options) {
             message: fullMessage
         }, options)
     );
-}
-
-function objectMerge(obj1, obj2) {
-    if (!obj2) {
-        return obj1;
-    }
-    each(obj2, function(key, value){
-        obj1[key] = value;
-    });
-    return obj1;
-}
-
-function truncate(str, max) {
-    return str.length <= max ? str : str.substr(0, max) + '\u2026';
-}
+};
 
 function trimPacket(data) {
     // For now, we only want to truncate the two different messages
@@ -744,7 +688,7 @@ function now() {
     return +new Date();
 }
 
-function getHttpData() {
+Raven._getHttpData = function() {
     if (!hasDocument || !document.location || !document.location.href) {
         return;
     }
@@ -762,14 +706,14 @@ function getHttpData() {
     }
 
     return httpData;
-}
+};
 
-function send(data) {
+Raven._send = function(data) {
     var baseData = {
         project: globalProject,
         logger: globalOptions.logger,
         platform: 'javascript'
-    }, httpData = getHttpData();
+    }, httpData = Raven._getHttpData();
 
     if (httpData) {
         baseData.request = httpData;
@@ -814,16 +758,16 @@ function send(data) {
     // Send along an event_id if not explicitly passed.
     // This event_id can be used to reference the error within Sentry itself.
     // Set lastEventId after we know the error should actually be sent
-    lastEventId = data.event_id || (data.event_id = uuid4());
+    lastEventId = data.event_id || (data.event_id = Raven._uuid4());
 
     // Try and clean up the packet before sending by truncating long values
     data = trimPacket(data);
 
-    logDebug('debug', 'Raven about to send:', data);
+    Raven._logDebug('debug', 'Raven about to send:', data);
 
-    if (!isSetup()) return;
+    if (!Raven.isSetup()) return;
 
-    (globalOptions.transport || makeRequest)({
+    (globalOptions.transport || Raven._makeRequest)({
         url: globalServer,
         auth: {
             sentry_version: '7',
@@ -845,13 +789,13 @@ function send(data) {
             });
         }
     });
-}
+};
 
-function makeImageRequest(opts) {
+Raven._makeImageRequest = function(opts) {
     // Tack on sentry_data to auth options, which get urlencoded
     opts.auth.sentry_data = JSON.stringify(opts.data);
 
-    var img = newImage(),
+    var img = Raven._newImage(),
         src = opts.url + '?' + urlencode(opts.auth),
         crossOrigin = opts.options.crossOrigin;
 
@@ -861,9 +805,9 @@ function makeImageRequest(opts) {
     img.onload = opts.onSuccess;
     img.onerror = img.onabort = opts.onError;
     img.src = src;
-}
+};
 
-function makeXhrRequest(opts) {
+Raven._makeXhrRequest = function(opts) {
     var request;
 
     function handler() {
@@ -896,33 +840,22 @@ function makeXhrRequest(opts) {
     request.send(JSON.stringify(opts.data));
 }
 
-function makeRequest(opts) {
+Raven._makeRequest = function(opts) {
     var hasCORS =
         'withCredentials' in new XMLHttpRequest() ||
         typeof XDomainRequest !== 'undefined';
 
-    return (hasCORS ? makeXhrRequest : makeImageRequest)(opts);
+    return (hasCORS ? Raven._makeXhrRequest : Raven._makeImageRequest)(opts);
 }
 
 // Note: this is shitty, but I can't figure out how to get
 // sinon to stub document.createElement without breaking everything
 // so this wrapper is just so I can stub it for tests.
-function newImage() {
+Raven._newImage = function() {
     return document.createElement('img');
-}
+};
 
 var ravenNotConfiguredError;
-
-function isSetup() {
-    if (!hasJSON) return false;  // needs JSON support
-    if (!globalServer) {
-        if (!ravenNotConfiguredError)
-          logDebug('error', 'Error: Raven has not been configured.');
-        ravenNotConfiguredError = true;
-        return false;
-    }
-    return true;
-}
 
 function joinRegExp(patterns) {
     // Combine an array of regular expressions and strings into one large regexp
@@ -946,7 +879,7 @@ function joinRegExp(patterns) {
     return new RegExp(sources.join('|'), 'i');
 }
 
-function uuid4() {
+Raven._uuid4 = function() {
     var crypto = window.crypto || window.msCrypto;
 
     if (!isUndefined(crypto) && crypto.getRandomValues) {
@@ -979,11 +912,11 @@ function uuid4() {
     }
 }
 
-function logDebug(level) {
+Raven._logDebug = function(level) {
     if (originalConsoleMethods[level] && Raven.debug) {
         originalConsoleMethods[level].apply(originalConsole, [].slice.call(arguments, 1));
     }
-}
+};
 
 function afterLoad() {
     // Attempt to initialize Raven on load
@@ -1012,3 +945,77 @@ function mergeContext(key, context) {
 afterLoad();
 
 module.exports = Raven;
+
+if (typeof TEST !== 'undefined' && TEST) {
+    Raven._test = {
+        // methods
+        afterLoad: afterLoad,
+        joinRegExp: joinRegExp,
+        urlencode: urlencode,
+
+        // objects / primitives
+        globalOptions: globalOptions,
+        originalConsoleMethods: originalConsoleMethods,
+
+        // classes
+        RavenConfigError: RavenConfigError,
+
+        setGlobalState: function (state) {
+            if ('isRavenInstalled' in state)
+                isRavenInstalled = state.isRavenInstalled;
+            if ('hasJSON' in state)
+                hasJSON = state.hasJSON;
+            if ('globalProject' in state)
+                globalProject = state.globalProject;
+            if ('globalOptions' in state)
+                globalOptions = state.globalOptions;
+            if ('globalServer' in state)
+                globalServer = state.globalServer;
+            if ('globalContext' in state)
+                globalContext = state.globalContext;
+        },
+
+        getGlobalState: function () {
+            return {
+                isRavenInstalled: isRavenInstalled,
+                globalProject: globalProject,
+                globalOptions: globalOptions,
+                globalServer: globalServer,
+                globalContext: globalContext,
+                globalKey: globalKey,
+                originalConsoleMethods: originalConsoleMethods
+            };
+        },
+
+        flushState: function () {
+            hasJSON = !isUndefined(window.JSON);
+            hasDocument = !isUndefined(document);
+            lastCapturedException = undefined;
+            lastEventId = undefined;
+            globalServer = undefined;
+            globalProject = undefined;
+            globalContext = {};
+            globalOptions = {
+                logger: 'javascript',
+                release: undefined,
+                ignoreErrors: [],
+                ignoreUrls: [],
+                whitelistUrls: [],
+                includePaths: [],
+                crossOrigin: 'anonymous',
+                collectWindowErrors: true,
+                maxMessageLength: 100
+            };
+            startTime = 0;
+            ravenNotConfiguredError = undefined;
+            originalConsole = window.console || {};
+            originalConsoleMethods = {};
+
+            for (var method in originalConsole) {
+              originalConsoleMethods[method] = originalConsole[method];
+            }
+
+            Raven.uninstall();
+        }
+    };
+}

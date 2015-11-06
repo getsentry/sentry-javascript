@@ -1,5 +1,6 @@
 // TODO(dcramer): need some kind of clean setup state and dynamic
 // loading of the jquery plugin
+
 describe('jQuery', function(){
     describe('.fn.ready', function(){
         it('captures exceptions #integration', function(){
