@@ -27,6 +27,8 @@ function flushRavenState() {
     }
 
     Raven.uninstall();
+
+    Raven.debug = false;
 }
 
 // window.console must be stubbed in for browsers that don't have it
