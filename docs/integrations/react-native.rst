@@ -1,6 +1,12 @@
 React Native
 ============
 
+.. sentry:support-warning::
+
+    The React Native plugin is experimental, and not ready for production use.
+
+ .. versionadded:: 1.3.0
+
 Installation
 ------------
 
