@@ -13,7 +13,7 @@ function normalizeUrl(url) {
     "use strict";
 
     return url
-        .replace(/file\:\/\//, '')
+        .replace(/^file\:\/\//, '')
         .replace(DEVICE_PATH_RE, '');
 }
 
