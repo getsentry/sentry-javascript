@@ -13,6 +13,9 @@ var angular = window.angular,
 if (!(angular && Raven)) return;
 
 function RavenProvider() {
+    this.config = function (configuration) {
+      Raven.config(configuration).install();
+    };
     this.$get = ['$window', function($window, $log) {
         return $window.Raven;
     }];
