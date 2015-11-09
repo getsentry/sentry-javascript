@@ -1,7 +1,20 @@
+'use strict';
+/*jshint mocha:true*/
+/*global assert:false, console:true*/
+
 // TODO(dcramer): need some kind of clean setup state and dynamic
 // loading of the jquery plugin
 
+var Raven = require('../../src/raven');
+var RavenjQueryPlugin = require('../../plugins/jquery');
+var jQuery = require('jquery');
+
 describe('jQuery', function(){
+    before(function () {
+        Raven._test.setGlobalState({ isRavenInstalled: true });
+        Raven.addPlugin(RavenjQueryPlugin, jQuery);
+    });
+
     describe('.fn.ready', function(){
         it('captures exceptions #integration', function(){
             var err = new Error('foo');
@@ -72,7 +85,7 @@ describe('jQuery', function(){
             it('captures errors from ' + key + ' with context', function(key){
                 return function(){
                     assertErrorRecorded(function(){
-                        var dfd = $.Deferred();
+                        var dfd = jQuery.Deferred();
                         dfd.promise()[key](function() {
                             throw err;
                         });

@@ -313,9 +313,11 @@ var Raven = {
         return Raven;
     },
 
-    addPlugin: function(plugin) {
+    addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
         plugins.push(plugin);
-        if (isRavenInstalled) plugin();
+        if (isRavenInstalled) {
+            plugin.install.apply(this, Array.prototype.slice.call(arguments, 1));
+        }
         return Raven;
     },
 
@@ -910,7 +912,7 @@ Raven._uuid4 = function() {
             return v.toString(16);
         });
     }
-}
+};
 
 Raven._logDebug = function(level) {
     if (originalConsoleMethods[level] && Raven.debug) {
@@ -1010,6 +1012,7 @@ if (typeof TEST !== 'undefined' && TEST) {
             ravenNotConfiguredError = undefined;
             originalConsole = window.console || {};
             originalConsoleMethods = {};
+            plugins = [];
 
             for (var method in originalConsole) {
               originalConsoleMethods[method] = originalConsole[method];

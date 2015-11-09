@@ -21,6 +21,21 @@ module.exports = function(grunt) {
         return path;
     });
 
+    // custom browserify transformer to re-write plugins to 
+    // self-register with Raven via addPlugin
+    function AddPluginBrowserifyTransformer() {
+        return function (file, options) {
+            return through(function (buf, enc, next) {
+                buf = buf.toString('utf8');
+                if (/plugins/.test(file)) {
+                    buf += "\nRaven.addPlugin(module.exports);";
+                }
+                this.push(buf);
+                next();
+            });
+        };
+    }
+
     // Taken from http://dzone.com/snippets/calculate-all-combinations
     var combine = function (a) {
         var fn = function (n, src, got, all) {
@@ -75,32 +90,17 @@ module.exports = function(grunt) {
             options: {
                 browserifyOptions: {
                     banner: grunt.file.read('template/_copyright.js'),
-                    standalone: 'Raven', // umd
+                    standalone: 'Raven' // umd
                 }
             },
             core: {
                 src: 'src/raven.js',
-                dest: 'build/raven.js',
+                dest: 'build/raven.js'
             },
             plugins: {
                 files: pluginConcatFiles,
                 transform: [
-                    [
-                        // custom transformer to re-write plugins to self-register
-                        // with Raven
-                        new function () {
-                            return function (file, options) {
-                                return through(function (buf, enc, next) {
-                                    var buf = buf.toString('utf8');
-                                    if (/plugins/.test(file)) {
-                                        buf += "\nRaven.addPlugin(module.exports.install);";
-                                    }
-                                    this.push(buf);
-                                    next();
-                                });
-                            }
-                        }
-                    ]
+                    [ new AddPluginBrowserifyTransformer() ]
                 ]
             },
             test: {
