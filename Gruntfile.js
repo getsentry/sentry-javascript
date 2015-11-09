@@ -21,7 +21,7 @@ module.exports = function(grunt) {
         return path;
     });
 
-    // custom browserify transformer to re-write plugins to 
+    // custom browserify transformer to re-write plugins to
     // self-register with Raven via addPlugin
     function AddPluginBrowserifyTransformer() {
         return function (file, options) {
@@ -124,7 +124,13 @@ module.exports = function(grunt) {
                 sourceMappingURL: function (dest) {
                     return path.basename(dest, '.js') + '.map';
                 },
-                preserveComments: 'some'
+                preserveComments: 'some',
+                compress: {
+                    dead_code: true,
+                    global_defs: {
+                        "TEST": false
+                    }
+                }
             },
             dist: {
                 src: ['build/**/*.js'],
