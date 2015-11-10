@@ -1,6 +1,6 @@
 # raven-node [![Build Status](https://travis-ci.org/getsentry/raven-node.svg?branch=master)](https://travis-ci.org/getsentry/raven-node)
 
-raven-node is a Node.js client for [Sentry](https://www.getsentry.com/).
+raven-node is a Node.js client for [Sentry](https://getsentry.com/).
 
 ## Resources
 
