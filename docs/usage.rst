@@ -167,7 +167,7 @@ Raven and Sentry support `Source Maps
 <http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.
 
 We have provided some instructions to creating Source Maps over at
-https://www.getsentry.com/docs/sourcemaps/. Also, checkout our `Gruntfile
+https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/. Also, checkout our `Gruntfile
 <https://github.com/getsentry/raven-js/blob/master/Gruntfile.js>`_ for a
 good example of what we're doing.
 
