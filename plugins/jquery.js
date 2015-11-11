@@ -5,9 +5,8 @@
  */
 'use strict';
 
-var Raven = require('../src/raven');
-
 function install(jQuery) {
+    var Raven = this;
     var $ = jQuery || window.jQuery;
 
     // quit if jQuery isn't on the page

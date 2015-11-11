@@ -6,32 +6,31 @@
  * Provides an $exceptionHandler for Angular.js
  */
 
-var Raven = require('../src/raven');
-
-function RavenProvider() {
-    this.$get = ['$window', function($window, $log) {
-        return $window.Raven;
-    }];
-}
-
-function ExceptionHandlerProvider($provide) {
-    $provide.decorator('$exceptionHandler',
-        ['Raven', '$delegate', exceptionHandler]);
-}
-
-function exceptionHandler(Raven, $delegate) {
-    return function (ex, cause) {
-        Raven.captureException(ex, {
-            extra: { cause: cause }
-        });
-        $delegate(ex, cause);
-    };
-}
-
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
 
 function install() {
+    var Raven = this;
+    function RavenProvider() {
+        this.$get = ['$window', function($window, $log) {
+            return Raven;
+        }];
+    }
+
+    function ExceptionHandlerProvider($provide) {
+        $provide.decorator('$exceptionHandler',
+            ['Raven', '$delegate', exceptionHandler]);
+    }
+
+    function exceptionHandler(Raven, $delegate) {
+        return function (ex, cause) {
+            Raven.captureException(ex, {
+                extra: { cause: cause }
+            });
+            $delegate(ex, cause);
+        };
+    }
+
     var angular = window.angular;
     if (!angular) return;
 

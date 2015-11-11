@@ -75,6 +75,69 @@ function hasKey(object, key) {
     return objectPrototype.hasOwnProperty.call(object, key);
 }
 
+function joinRegExp(patterns) {
+    // Combine an array of regular expressions and strings into one large regexp
+    // Be mad.
+    var sources = [],
+        i = 0, len = patterns.length,
+        pattern;
+
+    for (; i < len; i++) {
+        pattern = patterns[i];
+        if (isString(pattern)) {
+            // If it's a string, we need to escape it
+            // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+            sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
+        } else if (pattern && pattern.source) {
+            // If it's a regexp already, we want to extract the source
+            sources.push(pattern.source);
+        }
+        // Intentionally skip other cases
+    }
+    return new RegExp(sources.join('|'), 'i');
+}
+
+function urlencode(o) {
+    var pairs = [];
+    each(o, function(key, value) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+    });
+    return pairs.join('&');
+}
+
+function uuid4() {
+    var crypto = window.crypto || window.msCrypto;
+
+    if (!isUndefined(crypto) && crypto.getRandomValues) {
+        // Use window.crypto API if available
+        var arr = new Uint16Array(8);
+        crypto.getRandomValues(arr);
+
+        // set 4 in byte 7
+        arr[3] = arr[3] & 0xFFF | 0x4000;
+        // set 2 most significant bits of byte 9 to '10'
+        arr[4] = arr[4] & 0x3FFF | 0x8000;
+
+        var pad = function(num) {
+            var v = num.toString(16);
+            while (v.length < 4) {
+                v = '0' + v;
+            }
+            return v;
+        };
+
+        return (pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) +
+        pad(arr[5]) + pad(arr[6]) + pad(arr[7]));
+    } else {
+        // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+        return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random()*16|0,
+                v = c == 'x' ? r : (r&0x3|0x8);
+            return v.toString(16);
+        });
+    }
+}
+
 module.exports = {
 	isUndefined: isUndefined,
 	isFunction: isFunction,
@@ -85,5 +148,8 @@ module.exports = {
     each: each,
     objectMerge: objectMerge,
     truncate: truncate,
-	hasKey: hasKey
+	hasKey: hasKey,
+    joinRegExp: joinRegExp,
+    urlencode: urlencode,
+    uuid4: uuid4
 };

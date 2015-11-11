@@ -75,7 +75,7 @@ module.exports = function(grunt) {
         key.sort();
 
         var dest = path.join('build/', key.join(','), '/raven.js');
-        dict[dest] = ['src/raven.js'].concat(comb);
+        dict[dest] = ['src/singleton.js'].concat(comb);
 
         return dict;
     }, {});
@@ -94,7 +94,7 @@ module.exports = function(grunt) {
                 }
             },
             core: {
-                src: 'src/raven.js',
+                src: 'src/singleton.js',
                 dest: 'build/raven.js'
             },
             plugins: {
