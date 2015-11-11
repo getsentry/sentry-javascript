@@ -1338,6 +1338,84 @@ describe('globals', function() {
     });
 
     describe('makeRequest', function() {
+        beforeEach(function() {
+            // use fake xml http request so we can muck w/ its prototype
+            this.xhr = sinon.useFakeXMLHttpRequest();
+            this.sinon.stub(window, 'makeImageRequest');
+            this.sinon.stub(window, 'makeXhrRequest');
+        });
+
+        afterEach(function() {
+            this.xhr.restore();
+        });
+
+        it('should call makeXhrRequest if CORS is supported', function () {
+            XMLHttpRequest.prototype.withCredentials = true;
+
+            makeRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
+
+            assert.isTrue(makeImageRequest.notCalled);
+            assert.isTrue(makeXhrRequest.calledOnce);
+        });
+
+        it('should call makeImageRequest if CORS is NOT supported', function () {
+            delete XMLHttpRequest.prototype.withCredentials;
+
+            var oldXDR = window.XDomainRequest;
+            window.XDomainRequest = undefined;
+
+            makeRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
+
+            assert.isTrue(makeImageRequest.calledOnce);
+            assert.isTrue(makeXhrRequest.notCalled);
+
+            window.XDomainRequest = oldXDR;
+        });
+    });
+
+    describe('makeXhrRequest', function() {
+        beforeEach(function() {
+            // NOTE: can't seem to call useFakeXMLHttpRequest via sandbox; must
+            //       restore manually
+            this.xhr = sinon.useFakeXMLHttpRequest();
+            var requests = this.requests = [];
+
+            this.xhr.onCreate = function (xhr) {
+                requests.push(xhr);
+            };
+        });
+
+        afterEach(function() {
+            this.xhr.restore();
+        });
+
+        it('should create an XMLHttpRequest object with body as JSON payload', function() {
+            XMLHttpRequest.prototype.withCredentials = true;
+
+            makeXhrRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: globalOptions
+            });
+
+            var lastXhr = this.requests[this.requests.length - 1];
+            assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
+            assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
+        });
+    });
+
+    describe('makeImageRequest', function() {
         var imageCache;
 
         beforeEach(function () {
@@ -1346,7 +1424,7 @@ describe('globals', function() {
         })
 
         it('should load an Image', function() {
-            makeRequest({
+            makeImageRequest({
                 url: 'http://localhost/',
                 auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
@@ -1360,7 +1438,7 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: 'something',
             };
-            makeRequest({
+            makeImageRequest({
                 url: globalServer,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
@@ -1374,7 +1452,7 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: ''
             };
-            makeRequest({
+            makeImageRequest({
                 url: globalServer,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
@@ -1388,7 +1466,7 @@ describe('globals', function() {
             globalOptions = {
                 crossOrigin: false
             };
-            makeRequest({
+            makeImageRequest({
                 url: globalServer,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
@@ -2043,11 +2121,11 @@ describe('Raven (public API)', function() {
 
         it('should work as advertised #integration', function() {
             var imageCache = [];
-            this.sinon.stub(window, 'newImage', function(){ var img = {}; imageCache.push(img); return img; });
+            this.sinon.stub(window, 'makeRequest');
 
             setupRaven();
             Raven.captureMessage('lol', {foo: 'bar'});
-            assert.equal(imageCache.length, 1);
+            assert.equal(window.makeRequest.callCount, 1);
             // It'd be hard to assert the actual payload being sent
             // since it includes the generated url, which is going to
             // vary between users running the tests

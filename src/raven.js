@@ -1,3 +1,4 @@
+/*global XDomainRequest:false*/
 'use strict';
 
 // First, check for JSON support
@@ -840,7 +841,7 @@ function send(data) {
     });
 }
 
-function makeRequest(opts) {
+function makeImageRequest(opts) {
     // Tack on sentry_data to auth options, which get urlencoded
     opts.auth.sentry_data = JSON.stringify(opts.data);
 
@@ -854,6 +855,47 @@ function makeRequest(opts) {
     img.onload = opts.onSuccess;
     img.onerror = img.onabort = opts.onError;
     img.src = src;
+}
+
+function makeXhrRequest(opts) {
+    var request;
+
+    function handler() {
+        if (request.status === 200) {
+            if (opts.onSuccess) {
+                opts.onSuccess();
+            }
+        } else if (opts.onError) {
+            opts.onError();
+        }
+    }
+
+    request = new XMLHttpRequest();
+    if ('withCredentials' in request) {
+        request.onreadystatechange = function () {
+            if (request.readyState !== 4) {
+                return;
+            }
+            handler();
+        };
+    } else {
+        request = new XDomainRequest();
+        // onreadystatechange not supported by XDomainRequest
+        request.onload = handler;
+    }
+
+    // NOTE: auth is intentionally sent as part of query string (NOT as custom
+    //       HTTP header) so as to avoid preflight CORS requests
+    request.open('POST', opts.url + '?' + urlencode(opts.auth));
+    request.send(JSON.stringify(opts.data));
+}
+
+function makeRequest(opts) {
+    var hasCORS =
+        'withCredentials' in new XMLHttpRequest() ||
+        typeof XDomainRequest !== 'undefined';
+
+    return (hasCORS ? makeXhrRequest : makeImageRequest)(opts);
 }
 
 // Note: this is shitty, but I can't figure out how to get
