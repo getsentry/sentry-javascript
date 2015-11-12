@@ -106,7 +106,9 @@ var Raven = {
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + globalProject + '/store/';
 
-        if (uri.protocol) {
+        // can safely use protocol relative (//) if target host is
+        // app.getsentry.com; otherwise use protocol from DSN
+        if (uri.protocol && uri.host !== 'app.getsentry.com') {
             globalServer = uri.protocol + ':' + globalServer;
         }
 
