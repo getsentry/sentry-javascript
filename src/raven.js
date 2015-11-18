@@ -21,7 +21,8 @@ var _Raven = window.Raven,
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
-        maxMessageLength: 100
+        maxMessageLength: 100,
+        sentryToken: null
     },
     isRavenInstalled = false,
     objectPrototype = Object.prototype,
@@ -752,6 +753,10 @@ function getHttpData() {
 
     if (document.referrer) {
         httpData.headers.Referer = document.referrer;
+    }
+
+    if (globalOptions.sentryToken) {
+      httpData.headers['X-Sentry-Token'] = globalOptions.sentryToken;
     }
 
     return httpData;
