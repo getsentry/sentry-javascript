@@ -3,32 +3,32 @@
  *
  * Patches event handler callbacks and ajax callbacks.
  */
-;(function(window) {
 'use strict';
 
-if (window.Raven) Raven.addPlugin(function EmberPlugin() {
+function install(Ember) {
+    /*jshint validthis:true*/
+    var Raven = this;
+    Ember = Ember || window.Ember;
 
-var Ember = window.Ember;
+    // quit if Ember isn't on the page
+    if (!Ember) return;
 
-// quit if Ember isn't on the page
-if (!Ember) return;
+    var _oldOnError = Ember.onerror;
+    Ember.onerror = function EmberOnError(error) {
+        Raven.captureException(error);
+        if (typeof _oldOnError === 'function') {
+            _oldOnError.call(this, error);
+        }
+    };
+    Ember.RSVP.on('error', function (reason) {
+        if (reason instanceof Error) {
+            Raven.captureException(reason, {extra: {context: 'Unhandled Promise error detected'}});
+        } else {
+            Raven.captureMessage('Unhandled Promise error detected', {extra: {reason: reason}});
+        }
+    });
+}
 
-var _oldOnError = Ember.onerror;
-Ember.onerror = function EmberOnError(error) {
-    Raven.captureException(error);
-    if (typeof _oldOnError === 'function') {
-        _oldOnError.call(this, error);
-    }
+module.exports = {
+    install: install
 };
-Ember.RSVP.on('error', function (reason) {
-    if (reason instanceof Error) {
-        Raven.captureException(reason, {extra: {context: 'Unhandled Promise error detected'}});
-    } else {
-        Raven.captureMessage('Unhandled Promise error detected', {extra: {reason: reason}});
-    }
-});
-
-// End of plugin factory
-});
-
-}(typeof window !== 'undefined' ? window : this));

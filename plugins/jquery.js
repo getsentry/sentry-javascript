@@ -6,6 +6,7 @@
 'use strict';
 
 function install(jQuery) {
+    /*jshint validthis:true*/
     var Raven = this;
     var $ = jQuery || window.jQuery;
 

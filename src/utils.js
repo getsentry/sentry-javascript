@@ -139,16 +139,16 @@ function uuid4() {
 }
 
 module.exports = {
-	isUndefined: isUndefined,
-	isFunction: isFunction,
-	isString: isString,
-	isObject: isObject,
-	isEmptyObject: isEmptyObject,
-	isError: isError,
+    isUndefined: isUndefined,
+    isFunction: isFunction,
+    isString: isString,
+    isObject: isObject,
+    isEmptyObject: isEmptyObject,
+    isError: isError,
     each: each,
     objectMerge: objectMerge,
     truncate: truncate,
-	hasKey: hasKey,
+    hasKey: hasKey,
     joinRegExp: joinRegExp,
     urlencode: urlencode,
     uuid4: uuid4

@@ -17,6 +17,13 @@ var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 
+var dsnKeys = 'source protocol user pass host port path'.split(' '),
+    dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
+
+function now() {
+    return +new Date();
+}
+
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
@@ -62,20 +69,7 @@ function Raven() {
 Raven.prototype = {
     VERSION: '<%= pkg.version %>',
 
-    TraceKit: TraceKit, // temporarily exported for tests
-
     debug: true,
-
-    /*
-     * Allow multiple versions of Raven to be installed.
-     * Strip Raven from the global context and returns the instance.
-     *
-     * @return {Raven}
-     */
-    // noConflict: function() {
-    //     window.Raven = _Raven;
-    //     return this;
-    // },
 
     /*
      * Configure Raven with a DSN and extra options
@@ -886,12 +880,5 @@ Raven.prototype = {
 // Deprecations
 Raven.prototype.setUser = Raven.prototype.setUserContext;
 Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
-
-var dsnKeys = 'source protocol user pass host port path'.split(' '),
-    dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
-
-function now() {
-    return +new Date();
-}
 
 module.exports = Raven;

@@ -10,6 +10,7 @@
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
 
 function install() {
+    /*jshint validthis:true*/
     var Raven = this;
     function RavenProvider() {
         this.$get = ['$window', function($window, $log) {
