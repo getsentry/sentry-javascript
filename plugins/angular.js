@@ -35,6 +35,10 @@ function exceptionHandler(Raven, $delegate) {
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
 
+// Strip out root path (before '/www') to make the payload smaller.
+// This prevents "414 (Request-URI Too Large)" errors
+var appJsPattern = /^.*(\/www.*\.js)$/;
+
 Raven.addPlugin(function () {
     angular.module('ngRaven', [])
         .provider('Raven',  RavenProvider)
@@ -56,7 +60,25 @@ Raven.setDataCallback(function(data) {
             // auto set a new tag specifically for the angular error url
             data.extra.angularDocs = matches[3].substr(0, 250);
         }
+
+        if(exception.stacktrace && exception.stacktrace.frames) {
+            exception.stacktrace.frames.forEach(function(f) {
+                var matches = appJsPattern.exec(f.filename);
+                if(matches) {
+                    f.filename = matches[1];
+                }
+            });
+        }
+    }
+
+    var culprit = data.culprit;
+    if(culprit) {
+        var matches = appJsPattern.exec(culprit);
+        if(matches) {
+            culprit = matches[1];
+        }
     }
 });
+
 
 }(typeof window !== 'undefined' ? window : this));
