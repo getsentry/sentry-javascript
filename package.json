@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git://github.com/getsentry/raven-js.git"
   },
-  "main": "dist/raven.js",
+  "main": "src/singleton.js",
   "devDependencies": {
     "chai": "~1.8.1",
     "grunt": "^0.4.5",

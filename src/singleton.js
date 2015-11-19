@@ -1,3 +1,9 @@
+/**
+ * Enforces a single instance of the Raven client, and the
+ * main entry point for Raven. If you are a consumer of the
+ * Raven library, you SHOULD load this file (vs raven.js).
+ **/
+
 'use strict';
 
 var RavenConstructor = require('./raven');
