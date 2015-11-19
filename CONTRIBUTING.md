@@ -85,6 +85,7 @@ $ grunt run:docs
 * `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
 * Confirm that build was fine, etc.
 * Commit new version, create a tag. Push to GitHub.
+* Copy CHANGELOG entry into a new GH Release: https://github.com/getsentry/raven-js/releases
 * `$ grunt publish` to recompile all plugins and all permutations and upload to S3.
 * `$ npm publish` to push to npm.
 * Confirm that the new version exists behind `cdn.ravenjs.com`
