@@ -30,7 +30,7 @@ var SENTRY_DSN = 'http://abc@example.com:80/2';
 function setupRaven() {
     Raven.config(SENTRY_DSN);
 
-    Raven.globalOptions.fetchContext = true;
+    Raven._globalOptions.fetchContext = true;
 }
 
 
@@ -87,7 +87,7 @@ describe('globals', function() {
 
     describe('trimPacket', function() {
         it('should work as advertised', function() {
-            Raven.globalOptions.maxMessageLength = 3;
+            Raven._globalOptions.maxMessageLength = 3;
             assert.deepEqual(
                 Raven._trimPacket({message: 'lol'}),
                 {message: 'lol'}
@@ -113,23 +113,23 @@ describe('globals', function() {
         });
 
         it('should return false with no JSON support', function() {
-            Raven.globalServer = 'http://localhost/';
-            Raven.hasJSON = false;
+            Raven._globalServer = 'http://localhost/';
+            Raven._hasJSON = false;
 
             assert.isFalse(Raven.isSetup());
         });
 
         describe('when Raven is not configured', function () {
             it('should return false when Raven is not configured', function() {
-                Raven.hasJSON = true;    // be explicit
-                Raven.globalServer = undefined;
+                Raven._hasJSON = true;    // be explicit
+                Raven._globalServer = undefined;
 
                 assert.isFalse(Raven.isSetup());
             });
 
             it('should log an error message, the first time it is called', function () {
-                Raven.hasJSON = true;
-                Raven.globalServer = undefined;
+                Raven._hasJSON = true;
+                Raven._globalServer = undefined;
 
                 Raven.isSetup();
                 Raven.isSetup();
@@ -139,7 +139,7 @@ describe('globals', function() {
         });
 
         it('should return true when everything is all gravy', function() {
-            Raven.hasJSON = true;
+            Raven._hasJSON = true;
 
             assert.isTrue(Raven.isSetup());
         });
@@ -151,7 +151,7 @@ describe('globals', function() {
             originalConsoleMethods;
 
         beforeEach(function () {
-            originalConsoleMethods = Raven.originalConsoleMethods;
+            originalConsoleMethods = Raven._originalConsoleMethods;
         });
 
         it('should not write to console when Raven.debug is false', function() {
@@ -259,7 +259,7 @@ describe('globals', function() {
                 // context: []    context is stubbed
             };
 
-            Raven.globalOptions.fetchContext = true;
+            Raven._globalOptions.fetchContext = true;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://example.com/path/file.js',
@@ -283,7 +283,7 @@ describe('globals', function() {
                 // context: []    context is stubbed
             };
 
-            Raven.globalOptions.fetchContext = true;
+            Raven._globalOptions.fetchContext = true;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://example.com/path/file.js',
@@ -304,8 +304,8 @@ describe('globals', function() {
                 // context: []    context is stubbed
             };
 
-            Raven.globalOptions.fetchContext = true;
-            Raven.globalOptions.includePaths = /^http:\/\/example\.com/;
+            Raven._globalOptions.fetchContext = true;
+            Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://example.com/path/file.js',
@@ -326,8 +326,8 @@ describe('globals', function() {
                 // context: []    context is stubbed
             };
 
-            Raven.globalOptions.fetchContext = true;
-            Raven.globalOptions.includePaths = /^http:\/\/example\.com/;
+            Raven._globalOptions.fetchContext = true;
+            Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://lol.com/path/file.js',
@@ -423,7 +423,7 @@ describe('globals', function() {
                 func: 'TraceKit.lol'
                 // context: []    context is stubbed
             };
-            Raven.globalOptions.includePaths = [];
+            Raven._globalOptions.includePaths = [];
             Raven._normalizeFrame(frame);
         });
     });
@@ -487,7 +487,7 @@ describe('globals', function() {
                     'line11'
                 ]
             };
-            Raven.globalOptions.fetchContext = false;
+            Raven._globalOptions.fetchContext = false;
             assert.isUndefined(Raven._extractContextFromFrame(frame));
         });
 
@@ -508,7 +508,7 @@ describe('globals', function() {
         it('should respect `ignoreErrors`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+            Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
             Raven._processException('Error', 'e1', 'http://example.com', []);
             assert.isFalse(Raven._send.called);
             Raven._processException('Error', 'e2', 'http://example.com', []);
@@ -520,7 +520,7 @@ describe('globals', function() {
         it('should handle empty `ignoreErrors`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.ignoreErrors = [];
+            Raven._globalOptions.ignoreErrors = [];
             Raven._processException('Error', 'e1', 'http://example.com', []);
             assert.isTrue(Raven._send.calledOnce);
         });
@@ -528,7 +528,7 @@ describe('globals', function() {
         it('should respect `ignoreUrls`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+            Raven._globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
             Raven._processException('Error', 'error', 'http://host1/', []);
             assert.isFalse(Raven._send.called);
             Raven._processException('Error', 'error', 'http://host2/', []);
@@ -540,7 +540,7 @@ describe('globals', function() {
         it('should handle empty `ignoreUrls`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.ignoreUrls = [];
+            Raven._globalOptions.ignoreUrls = [];
             Raven._processException('Error', 'e1', 'http://example.com', []);
             assert.isTrue(Raven._send.calledOnce);
         });
@@ -548,7 +548,7 @@ describe('globals', function() {
         it('should respect `whitelistUrls`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+            Raven._globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
             Raven._processException('Error', 'error', 'http://host1/', []);
             assert.equal(Raven._send.callCount, 1);
             Raven._processException('Error', 'error', 'http://host2/', []);
@@ -560,7 +560,7 @@ describe('globals', function() {
         it('should handle empty `whitelistUrls`', function() {
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.whitelistUrls = [];
+            Raven._globalOptions.whitelistUrls = [];
             Raven._processException('Error', 'e1', 'http://example.com', []);
             assert.isTrue(Raven._send.calledOnce);
         });
@@ -705,8 +705,8 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = {
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
@@ -736,12 +736,12 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = {
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
-            Raven.globalContext = {user: {name: 'Matt'}};
+            Raven._globalContext = {user: {name: 'Matt'}};
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -771,12 +771,12 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = {
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
-            Raven.globalContext = {tags: {tag1: 'value1'}};
+            Raven._globalContext = {tags: {tag1: 'value1'}};
 
             Raven._send({message: 'bar', tags: {tag2: 'value2'}});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -796,11 +796,11 @@ describe('globals', function() {
             });
 
 
-            assert.deepEqual(Raven.globalOptions, {
+            assert.deepEqual(Raven._globalOptions, {
                 logger: 'javascript',
                 maxMessageLength: 100
             });
-            assert.deepEqual(Raven.globalContext, {
+            assert.deepEqual(Raven._globalContext, {
                 tags: {tag1: 'value1'}
             });
         });
@@ -813,12 +813,12 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = {
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
-            Raven.globalContext = {extra: {key1: 'value1'}};
+            Raven._globalContext = {extra: {key1: 'value1'}};
 
             Raven._send({message: 'bar', extra: {key2: 'value2'}});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -837,11 +837,11 @@ describe('globals', function() {
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
             });
 
-            assert.deepEqual(Raven.globalOptions, {
+            assert.deepEqual(Raven._globalOptions, {
                 logger: 'javascript',
                 maxMessageLength: 100
             });
-            assert.deepEqual(Raven.globalContext, {
+            assert.deepEqual(Raven._globalContext, {
                 extra: {key1: 'value1'}
             });
         });
@@ -850,7 +850,7 @@ describe('globals', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
 
-            Raven.globalOptions = {
+            Raven._globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
@@ -858,7 +858,7 @@ describe('globals', function() {
                     return {message: 'ibrokeit'};
                 }
             };
-            Raven.globalContext = {user: {name: 'Matt'}};
+            Raven._globalContext = {user: {name: 'Matt'}};
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -875,8 +875,8 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = {
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100,
                 dataCallback: function() {
@@ -909,7 +909,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalOptions = {
+            Raven._globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
@@ -941,7 +941,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalOptions = {
+            Raven._globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
@@ -974,7 +974,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven.globalOptions = {
+            Raven._globalOptions = {
                 projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
@@ -1013,8 +1013,8 @@ describe('globals', function() {
                 maxMessageLength: 100,
                 release: 'abc123',
             };
-            Raven.globalServer = 'http://localhost/store/';
-            Raven.globalOptions = globalOptions;
+            Raven._globalServer = 'http://localhost/store/';
+            Raven._globalOptions = globalOptions;
 
             Raven._send({message: 'bar'});
             var args = Raven._makeRequest.lastCall.args;
@@ -1059,8 +1059,8 @@ describe('globals', function() {
                 transport: sinon.stub()
             };
 
-            Raven.globalProject = '2';
-            Raven.globalOptions = globalOptions;
+            Raven._globalProject = '2';
+            Raven._globalOptions = globalOptions;
 
             Raven._send({message: 'bar'});
             assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
@@ -1105,7 +1105,7 @@ describe('globals', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
 
-            Raven.globalOptions.maxMessageLength = 150;
+            Raven._globalOptions.maxMessageLength = 150;
 
             var message = new Array(500).join('a');
             var shortMessage = new Array(151).join('a')+'\u2026';
@@ -1218,7 +1218,7 @@ describe('globals', function() {
                 url: 'http://localhost/',
                 auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
-                options: Raven.globalOptions
+                options: Raven._globalOptions
             });
             assert.equal(imageCache.length, 1);
             assert.equal(imageCache[0].src, 'http://localhost/?a=1&b=2&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
@@ -1229,9 +1229,9 @@ describe('globals', function() {
                 crossOrigin: 'something'
             };
 
-            Raven.globalOptions = globalOptions;
+            Raven._globalOptions = globalOptions;
 
-            var globalServer = getGlobalState().globalServer;
+            var globalServer = Raven._globalServer;
             Raven._makeImageRequest({
                 url: globalServer,
                 auth: {lol: '1'},
@@ -1246,9 +1246,9 @@ describe('globals', function() {
             var globalOptions = {
                 crossOrigin: ''
             };
-            Raven.globalOptions = globalOptions;
+            Raven._globalOptions = globalOptions;
 
-            var globalServer = getGlobalState().globalServer;
+            var globalServer = Raven._globalServer;
             Raven._makeRequest({
                 url: globalServer,
                 auth: {lol: '1'},
@@ -1264,8 +1264,8 @@ describe('globals', function() {
                 crossOrigin: false
             };
 
-            setGlobalState({ globalOptions: globalOptions });
-            var globalServer = getGlobalState().globalServer;
+            Raven._globalOptions = globalOptions;
+            var globalServer = Raven._globalServer;
             Raven._makeRequest({
                 url: globalServer,
                 auth: {lol: '1'},
@@ -1450,10 +1450,10 @@ describe('Raven (public API)', function() {
         it('should install default ignore errors', function() {
             Raven.config('//abc@example.com/2');
 
-            assert.isTrue(Raven.globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
-            assert.isTrue(Raven.globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
-            assert.isTrue(Raven.globalOptions.ignoreErrors.test('Javascript error: Script error on line 0'), 'it should install "Javascript error: Script error on line 0" by default');
-            assert.isTrue(Raven.globalOptions.ignoreErrors.test('Javascript error: Script error. on line 0'), 'it should install "Javascript error: Script error. on line 0" by default');
+            assert.isTrue(Raven._globalOptions.ignoreErrors.test('Script error'), 'it should install "Script error" by default');
+            assert.isTrue(Raven._globalOptions.ignoreErrors.test('Script error.'), 'it should install "Script error." by default');
+            assert.isTrue(Raven._globalOptions.ignoreErrors.test('Javascript error: Script error on line 0'), 'it should install "Javascript error: Script error on line 0" by default');
+            assert.isTrue(Raven._globalOptions.ignoreErrors.test('Javascript error: Script error. on line 0'), 'it should install "Javascript error: Script error. on line 0" by default');
         });
     });
 
@@ -1469,11 +1469,11 @@ describe('Raven (public API)', function() {
 
             Raven.afterLoad();
 
-            assert.equal(Raven.globalKey, 'random');
-            assert.equal(Raven.globalServer, 'http://some.other.server:80/api/2/store/');
+            assert.equal(Raven._globalKey, 'random');
+            assert.equal(Raven._globalServer, 'http://some.other.server:80/api/2/store/');
 
-            assert.equal(Raven.globalOptions.some, 'config');
-            assert.equal(Raven.globalProject, '2');
+            assert.equal(Raven._globalOptions.some, 'config');
+            assert.equal(Raven._globalProject, '2');
 
             assert.isTrue(Raven.isSetup.calledOnce);
             assert.isFalse(TraceKit.report.subscribe.calledOnce);
@@ -1486,27 +1486,27 @@ describe('Raven (public API)', function() {
         it('should work with a DSN', function() {
             assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
 
-            assert.equal(Raven.globalKey, 'abc');
-            assert.equal(Raven.globalServer, 'http://example.com:80/api/2/store/');
-            assert.equal(Raven.globalOptions.foo, 'bar');
-            assert.equal(Raven.globalProject, '2');
+            assert.equal(Raven._globalKey, 'abc');
+            assert.equal(Raven._globalServer, 'http://example.com:80/api/2/store/');
+            assert.equal(Raven._globalOptions.foo, 'bar');
+            assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
 
         it('should work with a protocol relative DSN', function() {
             Raven.config('//abc@example.com/2');
 
-            assert.equal(Raven.globalKey, 'abc');
-            assert.equal(Raven.globalServer, '//example.com/api/2/store/');
-            assert.equal(Raven.globalProject, '2');
+            assert.equal(Raven._globalKey, 'abc');
+            assert.equal(Raven._globalServer, '//example.com/api/2/store/');
+            assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
 
         it('should work should work at a non root path', function() {
             Raven.config('//abc@example.com/sentry/2');
-            assert.equal(Raven.globalKey, 'abc');
-            assert.equal(Raven.globalServer, '//example.com/sentry/api/2/store/');
-            assert.equal(Raven.globalProject, '2');
+            assert.equal(Raven._globalKey, 'abc');
+            assert.equal(Raven._globalServer, '//example.com/sentry/api/2/store/');
+            assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
 
@@ -1531,7 +1531,7 @@ describe('Raven (public API)', function() {
         describe('whitelistUrls', function() {
             it('should be false if none are passed', function() {
                 Raven.config('//abc@example.com/2');
-                assert.equal(Raven.globalOptions.whitelistUrls, false);
+                assert.equal(Raven._globalOptions.whitelistUrls, false);
             });
 
             it('should join into a single RegExp', function() {
@@ -1542,7 +1542,7 @@ describe('Raven (public API)', function() {
                     ]
                 });
 
-                assert.match(Raven.globalOptions.whitelistUrls, /my.app|other.app/i);
+                assert.match(Raven._globalOptions.whitelistUrls, /my.app|other.app/i);
             });
 
             it('should handle strings as well', function() {
@@ -1553,7 +1553,7 @@ describe('Raven (public API)', function() {
                     ]
                 });
 
-                assert.match(Raven.globalOptions.whitelistUrls, /my.app|stringy.app/i);
+                assert.match(Raven._globalOptions.whitelistUrls, /my.app|stringy.app/i);
             });
         });
 
@@ -1753,77 +1753,77 @@ describe('Raven (public API)', function() {
         });
 
         it('should set isRavenInstalled flag to false', function() {
-            Raven.isRavenInstalled = true;
+            Raven._isRavenInstalled = true;
             this.sinon.stub(TraceKit.report, 'uninstall');
             Raven.uninstall();
-            assert.isFalse(Raven.isRavenInstalled);
+            assert.isFalse(Raven._isRavenInstalled);
         });
     });
 
     describe('.setUserContext', function() {
         it('should set the globalContext.user object', function() {
             Raven.setUserContext({name: 'Matt'});
-            assert.deepEqual(Raven.globalContext.user, {name: 'Matt'});
+            assert.deepEqual(Raven._globalContext.user, {name: 'Matt'});
         });
 
         it('should clear the globalContext.user with no arguments', function() {
-            Raven.globalContext.user = {name: 'Matt'};
+            Raven._globalContext.user = {name: 'Matt'};
             Raven.setUserContext();
-            assert.isUndefined(Raven.globalContext.user);
+            assert.isUndefined(Raven._globalContext.user);
         });
     });
 
     describe('.setExtraContext', function() {
         it('should set the globalContext.extra object', function() {
             Raven.setExtraContext({name: 'Matt'});
-            assert.deepEqual(Raven.globalContext.extra, {name: 'Matt'});
+            assert.deepEqual(Raven._globalContext.extra, {name: 'Matt'});
         });
 
         it('should clear globalContext.extra with no arguments', function() {
             Raven.extra = {name: 'Matt'};
             Raven.setExtraContext();
-            assert.isUndefined(Raven.globalContext.extra);
+            assert.isUndefined(Raven._globalContext.extra);
         });
 
         it('should merge globalContext.extra with subsequent calls', function() {
             Raven.setExtraContext({a: 1});
             Raven.setExtraContext({b: 2});
-            assert.deepEqual(Raven.globalContext.extra, {a: 1, b: 2});
+            assert.deepEqual(Raven._globalContext.extra, {a: 1, b: 2});
         });
     });
 
     describe('.setTagsContext', function() {
         it('should set the globalContext.tags object', function() {
             Raven.setTagsContext({name: 'Matt'});
-            assert.deepEqual(Raven.globalContext.tags, {name: 'Matt'});
+            assert.deepEqual(Raven._globalContext.tags, {name: 'Matt'});
         });
 
         it('should clear globalContext.tags with no arguments', function() {
-            Raven.globalContext.tags = {name: 'Matt'};
+            Raven._globalContext.tags = {name: 'Matt'};
             Raven.setTagsContext();
-            assert.isUndefined(Raven.globalContext.tags);
+            assert.isUndefined(Raven._globalContext.tags);
         });
 
         it('should merge globalContext.tags with subsequent calls', function() {
             Raven.setTagsContext({a: 1});
             Raven.setTagsContext({b: 2});
-            assert.deepEqual(Raven.globalContext.tags, {a: 1, b: 2});
+            assert.deepEqual(Raven._globalContext.tags, {a: 1, b: 2});
         });
     });
 
     describe('.clearContext', function() {
         it('should clear the globalContext object', function() {
-            Raven.globalState = {globalContext: {tags: {}, extra: {}, user: {}}};
+            Raven._globalState = {globalContext: {tags: {}, extra: {}, user: {}}};
             Raven.clearContext();
-            assert.deepEqual(Raven.globalContext, {});
+            assert.deepEqual(Raven._globalContext, {});
         });
     });
 
     describe('.getContext', function() {
         it('should retrieve a copy of the current context', function() {
-            Raven.globalContext = {tags: {a: 1}};
+            Raven._globalContext = {tags: {a: 1}};
             var context = Raven.getContext();
-            var globalContext = Raven.globalContext;
+            var globalContext = Raven._globalContext;
             assert.deepEqual(globalContext, context);
             context.tags.a = 2;
             // It shouldn't have mutated the original
@@ -1834,13 +1834,13 @@ describe('Raven (public API)', function() {
     describe('.setRelease', function() {
         it('should set the globalOptions.release attribute', function() {
             Raven.setRelease('abc123');
-            assert.equal(Raven.globalOptions.release, 'abc123');
+            assert.equal(Raven._globalOptions.release, 'abc123');
         });
 
         it('should clear globalOptions.release with no arguments', function() {
-            Raven.globalOptions.release = 'abc123';
+            Raven._globalOptions.release = 'abc123';
             Raven.setRelease();
-            assert.isUndefined(Raven.globalOptions.release);
+            assert.isUndefined(Raven._globalOptions.release);
         });
     });
 
@@ -1848,14 +1848,14 @@ describe('Raven (public API)', function() {
         it('should set the globalOptions.dataCallback attribute', function() {
             var foo = function(){};
             Raven.setDataCallback(foo);
-            assert.equal(Raven.globalOptions.dataCallback, foo);
+            assert.equal(Raven._globalOptions.dataCallback, foo);
         });
 
         it('should clear globalOptions.dataCallback with no arguments', function() {
             var foo = function(){};
-            Raven.globalOptions.dataCallback = foo;
+            Raven._globalOptions.dataCallback = foo;
             Raven.setDataCallback();
-            assert.isUndefined(Raven.globalOptions.dataCallback);
+            assert.isUndefined(Raven._globalOptions.dataCallback);
         });
     });
 
@@ -1863,14 +1863,14 @@ describe('Raven (public API)', function() {
         it('should set the globalOptions.shouldSendCallback attribute', function() {
             var foo = function(){};
             Raven.setShouldSendCallback(foo);
-            assert.equal(Raven.globalOptions.shouldSendCallback, foo);
+            assert.equal(Raven._globalOptions.shouldSendCallback, foo);
         });
 
         it('should clear globalOptions.shouldSendCallback with no arguments', function() {
             var foo = function(){};
-            Raven.globalOptions.shouldSendCallback = foo;
+            Raven._globalOptions.shouldSendCallback = foo;
             Raven.setShouldSendCallback();
-            assert.isUndefined(Raven.globalOptions.shouldSendCallback);
+            assert.isUndefined(Raven._globalOptions.shouldSendCallback);
         });
     });
 
@@ -1919,7 +1919,7 @@ describe('Raven (public API)', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_send');
 
-            Raven.globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+            Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
             Raven.captureMessage('e1');
             assert.isFalse(Raven._send.called);
             Raven.captureMessage('e2');

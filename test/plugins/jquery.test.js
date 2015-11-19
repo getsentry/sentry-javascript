@@ -13,7 +13,7 @@ var Raven;
 describe('jQuery', function(){
     before(function () {
         Raven = new _Raven();
-        Raven.isRavenInstalled = true;
+        Raven._isRavenInstalled = true;
         Raven.addPlugin(RavenjQueryPlugin, jQuery);
     });
 

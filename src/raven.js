@@ -28,16 +28,16 @@ function now() {
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
 function Raven() {
-    this.hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
+    this._hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
     // Raven can run in contexts where there's no document (react-native)
-    this.hasDocument = typeof document !== 'undefined';
-    this.lastCapturedException = null;
+    this._hasDocument = typeof document !== 'undefined';
+    this._lastCapturedException = null;
     this._lastEventId = null;
-    this.globalServer = null;
-    this.globalKey = null;
-    this.globalProject = null;
-    this.globalContext = {};
-    this.globalOptions = {
+    this._globalServer = null;
+    this._globalKey = null;
+    this._globalProject = null;
+    this._globalContext = {};
+    this._globalOptions = {
         logger: 'javascript',
         ignoreErrors: [],
         ignoreUrls: [],
@@ -47,16 +47,16 @@ function Raven() {
         collectWindowErrors: true,
         maxMessageLength: 100
     };
-    this.isRavenInstalled = false;
+    this._isRavenInstalled = false;
     // capture references to window.console *and* all its methods first
     // before the console plugin has a chance to monkey patch
-    this.originalConsole = window.console || {};
-    this.originalConsoleMethods = {};
-    this.plugins = [];
-    this.startTime = now();
+    this._originalConsole = window.console || {};
+    this._originalConsoleMethods = {};
+    this._plugins = [];
+    this._startTime = now();
 
-    for (var method in this.originalConsole) {
-      this.originalConsoleMethods[method] = this.originalConsole[method];
+    for (var method in this._originalConsole) {
+      this._originalConsoleMethods[method] = this._originalConsole[method];
     }
 }
 
@@ -81,7 +81,7 @@ Raven.prototype = {
     config: function(dsn, options) {
         var self = this;
 
-        if (this.globalServer) {
+        if (this._globalServer) {
                 this._logDebug('error', 'Error: Raven has already been configured');
             return this;
         }
@@ -96,47 +96,45 @@ Raven.prototype = {
             each(options, function(key, value){
                 // tags and extra are special and need to be put into context
                 if (key == 'tags' || key == 'extra') {
-                    self.globalContext[key] = value;
+                    self._globalContext[key] = value;
                 } else {
-                    self.globalOptions[key] = value;
+                    self._globalOptions[key] = value;
                 }
             });
         }
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
-        this.globalOptions.ignoreErrors.push(/^Script error\.?$/);
-        this.globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
+        this._globalOptions.ignoreErrors.push(/^Script error\.?$/);
+        this._globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
 
         // join regexp rules into one big rule
-        this.globalOptions.ignoreErrors = joinRegExp(this.globalOptions.ignoreErrors);
-        this.globalOptions.ignoreUrls = this.globalOptions.ignoreUrls.length ? joinRegExp(this.globalOptions.ignoreUrls) : false;
-        this.globalOptions.whitelistUrls = this.globalOptions.whitelistUrls.length ? joinRegExp(this.globalOptions.whitelistUrls) : false;
-        this.globalOptions.includePaths = joinRegExp(this.globalOptions.includePaths);
+        this._globalOptions.ignoreErrors = joinRegExp(this._globalOptions.ignoreErrors);
+        this._globalOptions.ignoreUrls = this._globalOptions.ignoreUrls.length ? joinRegExp(this._globalOptions.ignoreUrls) : false;
+        this._globalOptions.whitelistUrls = this._globalOptions.whitelistUrls.length ? joinRegExp(this._globalOptions.whitelistUrls) : false;
+        this._globalOptions.includePaths = joinRegExp(this._globalOptions.includePaths);
 
-        this.globalKey = uri.user;
-        this.globalProject = uri.path.substr(lastSlash + 1);
+        this._globalKey = uri.user;
+        this._globalProject = uri.path.substr(lastSlash + 1);
 
         // assemble the endpoint from the uri pieces
-        this.globalServer = '//' + uri.host +
+        this._globalServer = '//' + uri.host +
                       (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + this.globalProject + '/store/';
+                      '/' + path + 'api/' + this._globalProject + '/store/';
 
-        // can safely use protocol relative (//) if target host is
-        // app.getsentry.com; otherwise use protocol from DSN
         if (uri.protocol && uri.host !== 'app.getsentry.com') {
-            this.globalServer = uri.protocol + ':' + this.globalServer;
+            this._globalServer = uri.protocol + ':' + this._globalServer;
         }
 
-        if (this.globalOptions.fetchContext) {
+        if (this._globalOptions.fetchContext) {
             TraceKit.remoteFetching = true;
         }
 
-        if (this.globalOptions.linesOfContext) {
-            TraceKit.linesOfContext = this.globalOptions.linesOfContext;
+        if (this._globalOptions.linesOfContext) {
+            TraceKit.linesOfContext = this._globalOptions.linesOfContext;
         }
 
-        TraceKit.collectWindowErrors = !!this.globalOptions.collectWindowErrors;
+        TraceKit.collectWindowErrors = !!this._globalOptions.collectWindowErrors;
 
         // return for chaining
         return this;
@@ -151,15 +149,15 @@ Raven.prototype = {
      * @return {Raven}
      */
     install: function() {
-        if (this.isSetup() && !this.isRavenInstalled) {
+        if (this.isSetup() && !this._isRavenInstalled) {
             TraceKit.report.subscribe(this._handleStackInfo);
 
             // Install all of the plugins
-            each(this.plugins, function(_, plugin) {
+            each(this._plugins, function(_, plugin) {
                 plugin();
             });
 
-            this.isRavenInstalled = true;
+            this._isRavenInstalled = true;
         }
 
         return this;
@@ -256,7 +254,7 @@ Raven.prototype = {
      */
     uninstall: function() {
         TraceKit.report.uninstall();
-        this.isRavenInstalled = false;
+        this._isRavenInstalled = false;
 
         return this;
     },
@@ -273,7 +271,7 @@ Raven.prototype = {
         if (!isError(ex)) return this.captureMessage(ex, options);
 
         // Store the raw exception object for potential debugging and introspection
-        this.lastCapturedException = ex;
+        this._lastCapturedException = ex;
 
         // TraceKit.report will re-raise any exception passed to it,
         // which means you have to wrap it in try/catch. Instead, we
@@ -303,7 +301,7 @@ Raven.prototype = {
         // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
         // early call; we'll error on the side of logging anything called before configuration since it's
         // probably something you should see:
-        if (!!this.globalOptions.ignoreErrors.test && this.globalOptions.ignoreErrors.test(msg)) {
+        if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(msg)) {
             return;
         }
 
@@ -318,8 +316,8 @@ Raven.prototype = {
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
-        this.plugins.push(plugin);
-        if (this.isRavenInstalled) {
+        this._plugins.push(plugin);
+        if (this._isRavenInstalled) {
             plugin.install.apply(this, Array.prototype.slice.call(arguments, 1));
         }
         return this;
@@ -333,7 +331,7 @@ Raven.prototype = {
      */
     setUserContext: function(user) {
         // Intentionally do not merge here since that's an unexpected behavior.
-        this.globalContext.user = user;
+        this._globalContext.user = user;
 
         return this;
     },
@@ -368,7 +366,7 @@ Raven.prototype = {
      * @return {Raven}
      */
     clearContext: function() {
-        this.globalContext = {};
+        this._globalContext = {};
 
         return this;
     },
@@ -380,7 +378,7 @@ Raven.prototype = {
      */
     getContext: function() {
         // lol javascript
-        return JSON.parse(JSON.stringify(this.globalContext));
+        return JSON.parse(JSON.stringify(this._globalContext));
     },
 
     /*
@@ -390,7 +388,7 @@ Raven.prototype = {
      * @return {Raven}
      */
     setRelease: function(release) {
-        this.globalOptions.release = release;
+        this._globalOptions.release = release;
 
         return this;
     },
@@ -403,7 +401,7 @@ Raven.prototype = {
      * @return {Raven}
      */
     setDataCallback: function(callback) {
-        this.globalOptions.dataCallback = callback;
+        this._globalOptions.dataCallback = callback;
 
         return this;
     },
@@ -416,7 +414,7 @@ Raven.prototype = {
      * @return {Raven}
      */
     setShouldSendCallback: function(callback) {
-        this.globalOptions.shouldSendCallback = callback;
+        this._globalOptions.shouldSendCallback = callback;
 
         return this;
     },
@@ -431,7 +429,7 @@ Raven.prototype = {
      * @return {Raven}
      */
     setTransport: function(transport) {
-        this.globalOptions.transport = transport;
+        this._globalOptions.transport = transport;
 
         return this;
     },
@@ -442,7 +440,7 @@ Raven.prototype = {
      * @return {error}
      */
     lastException: function() {
-        return this.lastCapturedException;
+        return this._lastCapturedException;
     },
 
     /*
@@ -460,8 +458,8 @@ Raven.prototype = {
      * @return {boolean}
      */
     isSetup: function() {
-        if (!this.hasJSON) return false;  // needs JSON support
-        if (!this.globalServer) {
+        if (!this._hasJSON) return false;  // needs JSON support
+        if (!this._globalServer) {
             if (!this.ravenNotConfiguredError)
               this._logDebug('error', 'Error: Raven has not been configured.');
             this.ravenNotConfiguredError = true;
@@ -485,7 +483,7 @@ Raven.prototype = {
         // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
         var evt, key;
 
-        if (!this.hasDocument)
+        if (!this._hasDocument)
             return;
 
         options = options || {};
@@ -580,7 +578,7 @@ Raven.prototype = {
 
         normalized.in_app = !( // determine if an exception came from outside of our app
             // first we check the global includePaths list.
-            (!!this.globalOptions.includePaths.test && !this.globalOptions.includePaths.test(normalized.filename)) ||
+            (!!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename)) ||
             // Now we check for fun, if the function name is Raven or TraceKit
             /(Raven|TraceKit)\./.test(normalized['function']) ||
             // finally, we do a last ditch effort and check for raven.min.js
@@ -592,7 +590,7 @@ Raven.prototype = {
 
     _extractContextFromFrame: function(frame) {
         // immediately check if we should even attempt to parse a context
-        if (!frame.context || !this.globalOptions.fetchContext) return;
+        if (!frame.context || !this._globalOptions.fetchContext) return;
 
         var context = frame.context,
             pivot = ~~(context.length / 2),
@@ -632,13 +630,13 @@ Raven.prototype = {
     _processException: function(type, message, fileurl, lineno, frames, options) {
         var stacktrace, i, fullMessage;
 
-        if (!!this.globalOptions.ignoreErrors.test && this.globalOptions.ignoreErrors.test(message)) return;
+        if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
-        message = truncate(message, this.globalOptions.maxMessageLength);
+        message = truncate(message, this._globalOptions.maxMessageLength);
 
         fullMessage = type + ': ' + message;
-        fullMessage = truncate(fullMessage, this.globalOptions.maxMessageLength);
+        fullMessage = truncate(fullMessage, this._globalOptions.maxMessageLength);
 
         if (frames && frames.length) {
             fileurl = frames[0].filename || fileurl;
@@ -656,8 +654,8 @@ Raven.prototype = {
             };
         }
 
-        if (!!this.globalOptions.ignoreUrls.test && this.globalOptions.ignoreUrls.test(fileurl)) return;
-        if (!!this.globalOptions.whitelistUrls.test && !this.globalOptions.whitelistUrls.test(fileurl)) return;
+        if (!!this._globalOptions.ignoreUrls.test && this._globalOptions.ignoreUrls.test(fileurl)) return;
+        if (!!this._globalOptions.whitelistUrls.test && !this._globalOptions.whitelistUrls.test(fileurl)) return;
 
         // Fire away!
         this._send(
@@ -679,7 +677,7 @@ Raven.prototype = {
     _trimPacket: function(data) {
         // For now, we only want to truncate the two different messages
         // but this could/should be expanded to just trim everything
-        var max = this.globalOptions.maxMessageLength;
+        var max = this._globalOptions.maxMessageLength;
         data.message = truncate(data.message, max);
         if (data.exception) {
             var exception = data.exception.values[0];
@@ -690,7 +688,7 @@ Raven.prototype = {
     },
 
     _getHttpData: function() {
-        if (!this.hasDocument || !document.location || !document.location.href) {
+        if (!this._hasDocument || !document.location || !document.location.href) {
             return;
         }
 
@@ -711,10 +709,10 @@ Raven.prototype = {
 
 
     _send: function(data) {
-        var globalOptions = this.globalOptions;
+        var globalOptions = this._globalOptions;
 
         var baseData = {
-            project: this.globalProject,
+            project: this._globalProject,
             logger: globalOptions.logger,
             platform: 'javascript'
         }, httpData = this._getHttpData();
@@ -726,18 +724,18 @@ Raven.prototype = {
         data = objectMerge(baseData, data);
 
         // Merge in the tags and extra separately since objectMerge doesn't handle a deep merge
-        data.tags = objectMerge(objectMerge({}, this.globalContext.tags), data.tags);
-        data.extra = objectMerge(objectMerge({}, this.globalContext.extra), data.extra);
+        data.tags = objectMerge(objectMerge({}, this._globalContext.tags), data.tags);
+        data.extra = objectMerge(objectMerge({}, this._globalContext.extra), data.extra);
 
         // Send along our own collected metadata with extra
-        data.extra['session:duration'] = now() - this.startTime;
+        data.extra['session:duration'] = now() - this._startTime;
 
         // If there are no tags/extra, strip the key from the payload alltogther.
         if (isEmptyObject(data.tags)) delete data.tags;
 
-        if (this.globalContext.user) {
+        if (this._globalContext.user) {
             // sentry.interfaces.User
-            data.user = this.globalContext.user;
+            data.user = this._globalContext.user;
         }
 
         // Include the release if it's defined in globalOptions
@@ -775,24 +773,24 @@ Raven.prototype = {
         if (!this.isSetup()) return;
 
         (globalOptions.transport || this._makeRequest).call(this, {
-            url: this.globalServer,
+            url: this._globalServer,
             auth: {
                 sentry_version: '7',
                 sentry_client: 'raven-js/' + this.VERSION,
-                sentry_key: this.globalKey
+                sentry_key: this._globalKey
             },
             data: data,
             options: globalOptions,
             onSuccess: function success() {
                 this._triggerEvent('success', {
                     data: data,
-                    src: this.globalServer
+                    src: this._globalServer
                 });
             },
             onError: function failure() {
                 this._triggerEvent('failure', {
                     data: data,
-                    src: this.globalServer
+                    src: this._globalServer
                 });
             }
         });
@@ -863,16 +861,16 @@ Raven.prototype = {
     },
 
     _logDebug: function(level) {
-        if (this.originalConsoleMethods[level] && this.debug) {
-            this.originalConsoleMethods[level].apply(this.originalConsole, [].slice.call(arguments, 1));
+        if (this._originalConsoleMethods[level] && this.debug) {
+            this._originalConsoleMethods[level].apply(this._originalConsole, [].slice.call(arguments, 1));
         }
     },
 
     _mergeContext: function(key, context) {
         if (isUndefined(context)) {
-            delete this.globalContext[key];
+            delete this._globalContext[key];
         } else {
-            this.globalContext[key] = objectMerge(this.globalContext[key] || {}, context);
+            this._globalContext[key] = objectMerge(this._globalContext[key] || {}, context);
         }
     }
 };
