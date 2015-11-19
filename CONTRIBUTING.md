@@ -80,11 +80,17 @@ $ grunt run:docs
 ## Releasing New Version
 
 * Bump version numbers in both `package.json` and `bower.json`.
+* Bump version across all docs under `docs/`
+* Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
 * `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
 * Confirm that build was fine, etc.
 * Commit new version, create a tag. Push to GitHub.
 * `$ grunt publish` to recompile all plugins and all permutations and upload to S3.
 * `$ npm publish` to push to npm.
 * Confirm that the new version exists behind `cdn.ravenjs.com`
-* Update version in the `gh-pages` branch specifically for http://ravenjs.com/.
+* Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.
+* Bump marketing pages on getsentry.com, e.g. https://getsentry.com/for/javascript/
+* Bump getsentry.com `<script>` tag of raven.js
+* Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/master/package.json
+* Bump version for Segment integration since they don't: https://github.com/segment-integrations/analytics.js-integration-sentry
 * glhf
