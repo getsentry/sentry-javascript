@@ -1,3 +1,4 @@
+var proxyquire = require('proxyquireify');
 
 module.exports = function(grunt) {
     "use strict";
@@ -109,7 +110,8 @@ module.exports = function(grunt) {
                 options: {
                     browserifyOptions: {
                         debug: true // source maps
-                    }
+                    },
+                    plugin: [proxyquire.plugin]
                 }
             }
         },
@@ -305,7 +307,7 @@ module.exports = function(grunt) {
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
-    grunt.registerTask('test', ['jshint', 'mocha', 'browserify.core', 'browserify:test']);
+    grunt.registerTask('test', ['jshint', 'browserify.core', 'browserify:test', 'mocha']);
 
     // Webserver tasks
     grunt.registerTask('run:test', ['connect:test']);

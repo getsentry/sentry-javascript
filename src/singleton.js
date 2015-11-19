@@ -1,10 +1,10 @@
 'use strict';
 
-var Raven = require('./raven');
+var RavenConstructor = require('./raven');
 
 var _Raven = window.Raven;
 
-var raven = new Raven();
+var Raven = new RavenConstructor();
 
 /*
  * Allow multiple versions of Raven to be installed.
@@ -12,11 +12,11 @@ var raven = new Raven();
  *
  * @return {Raven}
  */
-raven.noConflict = function () {
+Raven.noConflict = function () {
 	window.Raven = _Raven;
-	return raven;
+	return Raven;
 };
 
-raven.afterLoad();
+Raven.afterLoad();
 
-module.exports = raven;
+module.exports = Raven;
