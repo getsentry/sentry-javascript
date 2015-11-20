@@ -709,6 +709,8 @@ Raven.prototype = {
 
 
     _send: function(data) {
+        var self = this;
+
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -782,15 +784,15 @@ Raven.prototype = {
             data: data,
             options: globalOptions,
             onSuccess: function success() {
-                this._triggerEvent('success', {
+                self._triggerEvent('success', {
                     data: data,
-                    src: this._globalServer
+                    src: self._globalServer
                 });
             },
             onError: function failure() {
-                this._triggerEvent('failure', {
+                self._triggerEvent('failure', {
                     data: data,
-                    src: this._globalServer
+                    src: self._globalServer
                 });
             }
         });
@@ -850,7 +852,7 @@ Raven.prototype = {
             'withCredentials' in new XMLHttpRequest() ||
             typeof XDomainRequest !== 'undefined';
 
-        return (hasCORS ? Raven._makeXhrRequest : Raven._makeImageRequest)(opts);
+        return (hasCORS ? this._makeXhrRequest : this._makeImageRequest)(opts);
     },
 
     // Note: this is shitty, but I can't figure out how to get
