@@ -13,7 +13,7 @@ function install() {
     /*jshint validthis:true*/
     var Raven = this;
     function RavenProvider() {
-        this.$get = ['$window', function($window, $log) {
+        this.$get = ['$window', function($window) {
             return Raven;
         }];
     }
@@ -58,6 +58,4 @@ function install() {
     });
 }
 
-module.exports = {
-    install: install
-};
+module.exports = install;

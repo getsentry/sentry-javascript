@@ -149,12 +149,18 @@ Raven.prototype = {
      * @return {Raven}
      */
     install: function() {
+        var self = this;
         if (this.isSetup() && !this._isRavenInstalled) {
-            TraceKit.report.subscribe(this._handleStackInfo);
+            TraceKit.report.subscribe(function () {
+                // maintain 'self'
+                self._handleStackInfo.apply(self, arguments);
+            });
 
             // Install all of the plugins
             each(this._plugins, function(_, plugin) {
-                plugin();
+                var args = plugin.slice(1);
+                plugin = plugin[0];
+                plugin.apply(self, args);
             });
 
             this._isRavenInstalled = true;
@@ -316,9 +322,11 @@ Raven.prototype = {
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
-        this._plugins.push(plugin);
+        var rest = Array.prototype.slice.call(arguments, 1);
         if (this._isRavenInstalled) {
-            plugin.install.apply(this, Array.prototype.slice.call(arguments, 1));
+            plugin.install.apply(this, rest);
+        } else {
+            this._plugins.push([plugin].concat(rest));
         }
         return this;
     },

@@ -25,11 +25,11 @@ module.exports = function(grunt) {
     // custom browserify transformer to re-write plugins to
     // self-register with Raven via addPlugin
     function AddPluginBrowserifyTransformer() {
-        return function (file, options) {
+        return function (file) {
             return through(function (buf, enc, next) {
                 buf = buf.toString('utf8');
                 if (/plugins/.test(file)) {
-                    buf += "\nRaven.addPlugin(module.exports);";
+                    buf += "\nrequire('../src/singleton').addPlugin(module.exports);";
                 }
                 this.push(buf);
                 next();
@@ -100,9 +100,11 @@ module.exports = function(grunt) {
             },
             plugins: {
                 files: pluginConcatFiles,
-                transform: [
-                    [ new AddPluginBrowserifyTransformer() ]
-                ]
+                options: {
+                    transform: [
+                        [ new AddPluginBrowserifyTransformer() ]
+                    ]
+                }
             },
             test: {
                 src: 'test/**/*.test.js',

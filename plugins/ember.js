@@ -29,6 +29,4 @@ function install(Ember) {
     });
 }
 
-module.exports = {
-    install: install
-};
+module.exports = install;
