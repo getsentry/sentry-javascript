@@ -7,9 +7,10 @@ Koa
     var raven = require('raven');
 
     var app = koa();
+    var sentry = new raven.Client('___DSN___');
 
     app.on('error', function(err) {
-        raven.captureException(err);
+        sentry.captureException(err);
     });
 
     app.listen(3000);
