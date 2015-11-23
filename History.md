@@ -1,3 +1,9 @@
+# 0.9.0 - 11/23/2015
+ * Always coerce req.body to string. [See 2061d4efbf269c5e2096f2b7b55f5af2249c4aa7]
+ * Allow passing options to HTTP transports. [See #123]
+ * Fixed tests for node 4.0/5.0
+ * Don't send a body for GET/HEAD requests unless one has been passed. [See 0476a6e9818135b8b258b0be0724c369fe30e3c7]
+
 # 0.8.1 - 06/15/2015
  * Fixed a missing `domain` import in the Express/Connect middleware [See #120]
 
