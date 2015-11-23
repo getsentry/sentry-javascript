@@ -5,9 +5,8 @@
  */
 'use strict';
 
-function install(Ember) {
+function emberPlugin(Raven, Ember) {
     /*jshint validthis:true*/
-    var Raven = this;
     Ember = Ember || window.Ember;
 
     // quit if Ember isn't on the page
@@ -29,4 +28,4 @@ function install(Ember) {
     });
 }
 
-module.exports = install;
+module.exports = emberPlugin;

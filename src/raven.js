@@ -157,11 +157,7 @@ Raven.prototype = {
             });
 
             // Install all of the plugins
-            each(this._plugins, function(_, plugin) {
-                var args = plugin.slice(1);
-                plugin = plugin[0];
-                plugin.apply(self, args);
-            });
+            this._drainPlugins();
 
             this._isRavenInstalled = true;
         }
@@ -322,12 +318,13 @@ Raven.prototype = {
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
-        var rest = Array.prototype.slice.call(arguments, 1);
+        var pluginArgs = Array.prototype.slice.call(arguments, 1);
+
+        this._plugins.push([plugin, pluginArgs]);
         if (this._isRavenInstalled) {
-            plugin.install.apply(this, rest);
-        } else {
-            this._plugins.push([plugin].concat(rest));
+            this._drainPlugins();
         }
+
         return this;
     },
 
@@ -520,6 +517,20 @@ Raven.prototype = {
                 document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
             } catch(e) {}
         }
+    },
+
+    /**
+     * Install any queued plugins
+     */
+    _drainPlugins: function() {
+        var self = this;
+
+        // FIX ME TODO
+        each(this._plugins, function(_, plugin) {
+            var installer = plugin[0];
+            var args = plugin[1];
+            installer.apply(self, [self].concat(args));
+        });
     },
 
     _parseDSN: function(str) {

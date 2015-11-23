@@ -5,12 +5,12 @@
  */
 'use strict';
 
-function install(jQuery) {
+function jQueryPlugin(Raven, jQuery) {
     /*jshint validthis:true*/
-    var Raven = this;
     var $ = jQuery || window.jQuery;
 
     // quit if jQuery isn't on the page
+    if (!$) return;
 
     var _oldEventAdd = $.event.add;
     $.event.add = function ravenEventAdd(elem, types, handler, data, selector) {
@@ -102,6 +102,4 @@ function install(jQuery) {
     };
 }
 
-module.exports = {
-    install: install
-};
+module.exports = jQueryPlugin;

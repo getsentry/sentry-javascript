@@ -1,17 +1,17 @@
-'use strict';
-
 /**
  * Angular.js plugin
  *
  * Provides an $exceptionHandler for Angular.js
  */
+'use strict';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
 
-function install() {
+function angularPlugin(Raven, angular) {
     /*jshint validthis:true*/
-    var Raven = this;
+    var angular = angular || window.angular;
+
     function RavenProvider() {
         this.$get = ['$window', function($window) {
             return Raven;
@@ -58,4 +58,4 @@ function install() {
     });
 }
 
-module.exports = install;
+module.exports = angularPlugin;
