@@ -1580,9 +1580,15 @@ describe('Raven (public API)', function() {
         it('should register itself with TraceKit', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(TraceKit.report, 'subscribe');
+            this.sinon.stub(Raven, '_handleStackInfo');
             assert.equal(Raven, Raven.install());
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
-            assert.equal(TraceKit.report.subscribe.lastCall.args[0], Raven._handleStackInfo);
+
+            // `install` subscribes to TraceKit w/ an anonymous function that
+            // wraps _handleStackInfo to preserve `this`. Invoke the anonymous
+            // function and verify that `_handleStackInfo` is called.
+            TraceKit.report.subscribe.lastCall.args[0]();
+            assert.isTrue(Raven._handleStackInfo.calledOnce);
         });
 
         it('should not register itself more than once', function() {

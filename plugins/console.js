@@ -7,7 +7,7 @@
 'use strict';
 
 function consolePlugin(Raven, console) {
-    var console = console || window.console || {};
+    console = console || window.console || {};
 
     var originalConsole = console,
         logLevels = ['debug', 'info', 'warn', 'error'],

@@ -4,6 +4,8 @@
  * Extends support for global error handling for asynchronous browser
  * functions. Adopted from Closure Library's errorhandler.js.
  */
+'use strict';
+
 function nativePlugin(Raven) {
     var _helper = function _helper(fnName) {
         var originalFn = window[fnName];

@@ -10,7 +10,9 @@ var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/
 
 function angularPlugin(Raven, angular) {
     /*jshint validthis:true*/
-    var angular = angular || window.angular;
+    angular = angular || window.angular;
+
+    if (!angular) return;
 
     function RavenProvider() {
         this.$get = ['$window', function($window) {
@@ -31,9 +33,6 @@ function angularPlugin(Raven, angular) {
             $delegate(ex, cause);
         };
     }
-
-    var angular = window.angular;
-    if (!angular) return;
 
     angular.module('ngRaven', [])
         .provider('Raven',  RavenProvider)

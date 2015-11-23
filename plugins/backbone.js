@@ -3,9 +3,10 @@
  *
  * Patches Backbone.Events callbacks.
  */
+'use strict';
 
 function backbonePlugin(Raven, Backbone) {
-  var Backbone = Backbone || window.Backbone;
+  Backbone = Backbone || window.Backbone;
 
   // quit if Backbone isn't on the page
   if (!Backbone) return;
