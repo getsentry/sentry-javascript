@@ -7,19 +7,16 @@
  *   var Raven = require('raven-js');
  *   require('raven-js/plugins/react-native')(Raven);
  */
+'use strict';
 
 var DEVICE_PATH_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
 function normalizeUrl(url) {
-    "use strict";
-
     return url
         .replace(/^file\:\/\//, '')
         .replace(DEVICE_PATH_RE, '');
 }
 
-module.exports = function (Raven) {
-    "use strict";
-
+function reactNativePlugin(Raven) {
     function urlencode(obj) {
         var pairs = [];
         for (var key in obj) {
@@ -73,4 +70,6 @@ module.exports = function (Raven) {
     });
 
     ErrorUtils.setGlobalHandler(Raven.captureException);
-};
+}
+
+module.exports = reactNativePlugin;

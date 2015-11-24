@@ -3,8 +3,8 @@
     "globalstrict": true,
     "browser": true,
     "predef": [
-        "TraceKit",
         "console",
-        "_slice"
+        "module",
+        "require"
     ]
 }
