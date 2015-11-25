@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JS Bin</title>
+  <script src="../../dist/raven.js"></script>
+  <script>
+    Raven._makeRequest = function () {};
+
+    Raven.config('https://public@example.com/1', {
+      dataCallback: function (data) {
+        window.ravenData = data;
+      }
+    }).install();
+
+    function foo() {
+      derp();
+    }
+  </script>
+</head>
+<body>
