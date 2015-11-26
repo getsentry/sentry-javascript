@@ -8,7 +8,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
             done(e);
         }
     }
-    iframe.contentWindow.eval('(' + execute.toString() + ')();');
+    iframe.contentWindow.eval('setTimeout(' + execute.toString() + ');');
 }
 
 describe('integration', function () {
@@ -26,12 +26,49 @@ describe('integration', function () {
         document.body.removeChild(this.iframe);
     });
 
+    describe('API', function () {
+        it('should capture Raven.captureMessage', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    Raven.captureMessage('Hello');
+                    done();
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData;
+                    assert.equal(ravenData.message, 'Hello');
+                }
+            );
+        });
+
+        it('should capture Raven.captureException', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    try {
+                        foo();
+                    } catch (e) {
+                        Raven.captureException(e);
+                    }
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData;
+                    assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 1);
+                }
+            );
+        });
+    });
     describe('native', function () {
         it('should capture exceptions from event listeners', function (done) {
             var iframe = this.iframe;
 
             iframeExecute(iframe, done,
                 function () {
+                    setTimeout(done);
+
                     var div = document.createElement('div');
                     document.body.appendChild(div);
                     div.addEventListener('click', function () {
@@ -39,22 +76,18 @@ describe('integration', function () {
                     }, false);
 
                     // use setTimeout to "normalize" stack origin
-                    setTimeout(function () {
-                        var evt;
-                        if (document.createEvent) {
-                            evt = document.createEvent('MouseEvents');
-                            evt.initEvent('click', true, false);
-                            div.dispatchEvent(evt);
-                        } else if(document.createEventObject) {
-                            div.fireEvent('onclick');
-                        }
-                    });
-
-                    setTimeout(done);
+                    var evt;
+                    if (document.createEvent) {
+                        evt = document.createEvent('MouseEvents');
+                        evt.initEvent('click', true, false);
+                        div.dispatchEvent(evt);
+                    } else if(document.createEventObject) {
+                        div.fireEvent('onclick');
+                    }
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 4);
                 }
             );
         });
@@ -71,7 +104,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 2);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
                 }
             );
         });
@@ -89,7 +122,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 2);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
                 }
             );
         });
@@ -108,7 +141,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 2);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
                 }
             );
         });

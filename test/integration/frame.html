@@ -13,8 +13,12 @@
       }
     }).install();
 
+    function bar() {
+      baz();
+    }
+
     function foo() {
-      derp();
+      bar();
     }
   </script>
 </head>
