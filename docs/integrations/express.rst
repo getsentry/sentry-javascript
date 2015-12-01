@@ -17,7 +17,7 @@ Express
         throw new Error('Broke!');
     });
 
-    // The request handler be the first item
+    // The request handler must be the first item
     app.use(raven.middleware.express.requestHandler('{{ SENTRY_DSN }}'));
 
     // The error handler must be before any other error middleware
