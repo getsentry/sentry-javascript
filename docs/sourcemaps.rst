@@ -93,7 +93,7 @@ sourcemaps point to.
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/ \
       -u [api_key]: \
       -X POST \
-      -d '{"version": "abcdef"}' \
+      -d '{"version": "2da95dfb052f477380608d59d32b4ab9"}' \
       -H 'Content-Type: application/json'
 
     {
@@ -109,8 +109,8 @@ sourcemaps point to.
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/2da95dfb052f477380608d59d32b4ab9/files/ \
       -u [api_key]: \
       -X POST \
-      -F file=@README.rst \
-      -F name="http://example.com/readme.rst"
+      -F file=@app.js.map \
+      -F name="http://example.com/app.js.map"
 
     {
       "dateCreated": "2015-03-06T04:53:00.308Z",
@@ -118,7 +118,7 @@ sourcemaps point to.
         "Content-Type": "application/octet-stream"
       },
       "id": "1",
-      "name": "http://example.com/readme.rst",
+      "name": "http://example.com/app.js.map",
       "sha1": "22591348ed129fe016c535654f6493737f0f9df6",
       "size": 452
     }
