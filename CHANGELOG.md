@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+
+* CHANGE: Default HTTP transport changed from `Image` GET to `XMLHttpRequest` POST (w/ CORS)
+
 ## 1.3.0
 * CHANGE: `console` plugin will now send all arguments as an `extra` value. See: https://github.com/getsentry/raven-js/pull/398
 * CHANGE: Bump to v7 of the Sentry API spec. This now requires a Sentry 7.7.0+ https://github.com/getsentry/raven-js/pull/403

@@ -1,4 +1,4 @@
-/*! Raven.js 1.3.0 (768fdca) | github.com/getsentry/raven-js */
+/*! Raven.js 2.0.0-rc1 (4de0c94) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1067,6 +1067,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     return computeStackTrace;
 }());
 
+/*global XDomainRequest:false*/
 'use strict';
 
 // First, check for JSON support
@@ -1110,7 +1111,7 @@ for (var method in originalConsole) {
  * @this {Raven}
  */
 var Raven = {
-    VERSION: '1.3.0',
+    VERSION: '2.0.0-rc1',
 
     debug: false,
 
@@ -1174,7 +1175,9 @@ var Raven = {
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + globalProject + '/store/';
 
-        if (uri.protocol) {
+        // can safely use protocol relative (//) if target host is
+        // app.getsentry.com; otherwise use protocol from DSN
+        if (uri.protocol && uri.host !== 'app.getsentry.com') {
             globalServer = uri.protocol + ':' + globalServer;
         }
 
@@ -1909,7 +1912,7 @@ function send(data) {
     });
 }
 
-function makeRequest(opts) {
+function makeImageRequest(opts) {
     // Tack on sentry_data to auth options, which get urlencoded
     opts.auth.sentry_data = JSON.stringify(opts.data);
 
@@ -1923,6 +1926,47 @@ function makeRequest(opts) {
     img.onload = opts.onSuccess;
     img.onerror = img.onabort = opts.onError;
     img.src = src;
+}
+
+function makeXhrRequest(opts) {
+    var request;
+
+    function handler() {
+        if (request.status === 200) {
+            if (opts.onSuccess) {
+                opts.onSuccess();
+            }
+        } else if (opts.onError) {
+            opts.onError();
+        }
+    }
+
+    request = new XMLHttpRequest();
+    if ('withCredentials' in request) {
+        request.onreadystatechange = function () {
+            if (request.readyState !== 4) {
+                return;
+            }
+            handler();
+        };
+    } else {
+        request = new XDomainRequest();
+        // onreadystatechange not supported by XDomainRequest
+        request.onload = handler;
+    }
+
+    // NOTE: auth is intentionally sent as part of query string (NOT as custom
+    //       HTTP header) so as to avoid preflight CORS requests
+    request.open('POST', opts.url + '?' + urlencode(opts.auth));
+    request.send(JSON.stringify(opts.data));
+}
+
+function makeRequest(opts) {
+    var hasCORS =
+        'withCredentials' in new XMLHttpRequest() ||
+        typeof XDomainRequest !== 'undefined';
+
+    return (hasCORS ? makeXhrRequest : makeImageRequest)(opts);
 }
 
 // Note: this is shitty, but I can't figure out how to get
