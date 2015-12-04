@@ -101,11 +101,16 @@ sourcemaps point to.
       "version": "2da95dfb052f477380608d59d32b4ab9"
     }
 
+When uploading the file, you'll need to reference it just as it would be referenced
+if a browser (or filesystem) had to resolve its path. So for example, if your sourcemap
+reference is just a relative path, it's relative to the location of the referencing file.
+
+So for example, if you have ``http://example.com/app.min.js``, and the file contains the
+reference to ``app.map.js``, the name of the uploaded file should be ``http://example.com/app.map.js``.
+
 .. code-block:: bash
 
     # Upload a file for the given release
-    # Note: The filename should be the *full* url that this
-    # would be referenced as in production.
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/2da95dfb052f477380608d59d32b4ab9/files/ \
       -u [api_key]: \
       -X POST \
