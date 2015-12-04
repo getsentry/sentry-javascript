@@ -863,6 +863,7 @@ Raven.prototype = {
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', opts.url + '?' + urlencode(opts.auth));
+        request.setRequestHeader("Content-type", "application/json");
         request.send(JSON.stringify(opts.data));
     },
 
