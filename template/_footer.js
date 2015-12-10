@@ -8,12 +8,9 @@ if (typeof define === 'function' && define.amd) {
     define('raven', [], function() {
       return Raven;
     });
-} else if (typeof module === 'object') {
+} else if (typeof module === 'object' && module.exports) {
     // browserify
     module.exports = Raven;
-} else if (typeof exports === 'object') {
-    // CommonJS
-    exports = Raven;
 }
 
 })(typeof window !== 'undefined' ? window : this);
