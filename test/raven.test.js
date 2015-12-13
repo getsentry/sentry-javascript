@@ -193,6 +193,7 @@ describe('globals', function() {
     beforeEach(function() {
         setupRaven();
         globalOptions.fetchContext = true;
+        globalOptions.sentryToken = '1234';
     });
 
     afterEach(function() {
@@ -213,6 +214,10 @@ describe('globals', function() {
 
             it('should have the user-agent header', function() {
                 assert.equal(data.headers['User-Agent'], navigator.userAgent);
+            });
+
+            it('should have the user-agent header', function() {
+                assert.equal(data.headers['X-Sentry-Token'], '1234');
             });
 
             it('should have referer header when available', function() {

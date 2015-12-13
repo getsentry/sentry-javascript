@@ -161,6 +161,10 @@ Script tags have now got a new non-standard attribute called
 The most secure value for this would be ``anonymous``. So, you'll have to
 modify your script tags to look like the following:
 
+Another option is to set the globalSettings.sentryToken to the Security token value from Sentry
+project client security section. This way, raven-js will be able to successfully post information
+in Sentry from outside origins.
+
 .. code-block:: html
 
     <script src="http://sub.domain.com/script.js" crossorigin="anonymous"></script>
