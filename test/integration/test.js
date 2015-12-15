@@ -8,18 +8,45 @@ function iframeExecute(iframe, done, execute, assertCallback) {
             done(e);
         }
     }
-    iframe.contentWindow.eval('(' + execute.toString() + ')();');
+    // use setTimeout so stack trace doesn't go all the way back to mocha test runner
+    iframe.contentWindow.eval('setTimeout(' + execute.toString() + ');');
+}
+
+function createIframe(done) {
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = './frame.html';
+    iframe.onload = function () {
+        done();
+    };
+    document.body.appendChild(iframe);
+    return iframe;
 }
 
 describe('integration', function () {
+    var defaultStackSize = 0;
+
+    before(function (done) {
+        // Before running any tests, throw/catch a known error
+        // inside setTimeout to get a baseline expected stack
+        // depth for future errors (this is different in every
+        // browser).
+        var iframe = createIframe(function () {
+            iframe.contentWindow.setTimeout(function () {
+                try {
+                    iframe.contentWindow.foo();
+                } catch (e) {
+                    var trace = Raven.TraceKit.computeStackTrace(e);
+                    defaultStackSize = trace.stack.length;
+                    document.body.removeChild(iframe);
+                    done();
+                }
+            });
+        });
+    });
+
     beforeEach(function (done) {
-        var iframe = this.iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = './frame.html';
-        iframe.onload = function () {
-            done();
-        };
-        document.body.appendChild(iframe);
+        var iframe = this.iframe = createIframe(done);
     });
 
     afterEach(function () {
@@ -87,7 +114,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 4);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize + 1);
                 }
             );
         });
@@ -104,7 +131,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
                 }
             );
         });
@@ -122,7 +149,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
                 }
             );
         });
@@ -141,7 +168,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 3);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
                 }
             );
         });

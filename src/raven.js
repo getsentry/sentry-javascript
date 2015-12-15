@@ -72,6 +72,8 @@ Raven.prototype = {
 
     debug: true,
 
+    TraceKit: TraceKit, // alias to TraceKit
+
     /*
      * Configure Raven with a DSN and extra options
      *
