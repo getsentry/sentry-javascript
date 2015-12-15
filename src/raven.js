@@ -125,7 +125,7 @@ Raven.prototype = {
                       (uri.port ? ':' + uri.port : '') +
                       '/' + path + 'api/' + this._globalProject + '/store/';
 
-        if (uri.protocol && uri.host !== 'app.getsentry.com') {
+        if (uri.protocol) {
             this._globalServer = uri.protocol + ':' + this._globalServer;
         }
 
