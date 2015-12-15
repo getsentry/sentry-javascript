@@ -24,7 +24,8 @@ function createIframe(done) {
 }
 
 describe('integration', function () {
-    var defaultStackSize = 0;
+    var timeoutStackDepth = 0;
+    var eventHandlerStackDepth = 0;
 
     before(function (done) {
         // Before running any tests, throw/catch a known error
@@ -37,10 +38,32 @@ describe('integration', function () {
                     iframe.contentWindow.foo();
                 } catch (e) {
                     var trace = Raven.TraceKit.computeStackTrace(e);
-                    defaultStackSize = trace.stack.length;
-                    document.body.removeChild(iframe);
-                    done();
+                    timeoutStackDepth = trace.stack.length;
                 }
+
+                var doc = iframe.contentWindow.document;
+                var div = doc.createElement('div');
+                doc.body.appendChild(div);
+                div.addEventListener('click', function () {
+                    try {
+                        foo();
+                    } catch (e) {
+                        var trace = Raven.TraceKit.computeStackTrace(e);
+                        eventHandlerStackDepth = trace.stack.length;
+                    }
+                }, false);
+
+                var evt;
+                if (doc.createEvent) {
+                    evt = doc.createEvent('MouseEvents');
+                    evt.initEvent('click', true, false);
+                    div.dispatchEvent(evt);
+                } else if(doc.createEventObject) {
+                    div.fireEvent('onclick');
+                }
+
+                document.body.removeChild(iframe);
+                done();
             });
         });
     });
@@ -114,7 +137,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize + 1);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, eventHandlerStackDepth + 2);
                 }
             );
         });
@@ -131,7 +154,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, timeoutStackDepth);
                 }
             );
         });
@@ -149,7 +172,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, timeoutStackDepth);
                 }
             );
         });
@@ -168,7 +191,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, defaultStackSize);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, timeoutStackDepth);
                 }
             );
         });

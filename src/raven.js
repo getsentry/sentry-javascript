@@ -540,9 +540,13 @@ Raven.prototype = {
     _wrapBuiltIns: function() {
         var self = this;
 
-        var _helper = function _helper(fnName) {
-            var originalFn = window[fnName];
-            window[fnName] = function ravenAsyncExtension() {
+        function fill(obj, name, replacement) {
+            var orig = obj[name];
+            obj[name] = replacement(orig);
+        }
+
+        function wrapTimeFn(orig) {
+            return function (fn, t) { // preserve arity
                 // Make a copy of the arguments
                 var args = [].slice.call(arguments);
                 var originalCallback = args[0];
@@ -553,19 +557,42 @@ Raven.prototype = {
                 // IE < 9 doesn't support .call/.apply on setInterval/setTimeout, but it
                 // also supports only two arguments and doesn't care what this is, so we
                 // can just call the original function directly.
-                if (originalFn.apply) {
-                    return originalFn.apply(this, args);
+                if (orig.apply) {
+                    return orig.apply(this, args);
                 } else {
-                    return originalFn(args[0], args[1]);
+                    return orig(args[0], args[1]);
                 }
             };
         };
 
-        _helper('setTimeout');
-        _helper('setInterval');
+        fill(window, 'setTimeout', wrapTimeFn);
+        fill(window, 'setInterval', wrapTimeFn);
         if (window.requestAnimationFrame) {
-            _helper('requestAnimationFrame');
+            fill(window, 'requestAnimationFrame', function (orig) {
+                return function (cb) {
+                    orig(self.wrap(cb));
+                }
+            });
         }
+
+        // event targets borrowed from bugsnag-js:
+        // https://github.com/bugsnag/bugsnag-js/blob/master/src/bugsnag.js#L666
+        'EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload'.replace(/\w+/g, function (global) {
+            var proto = window[global] && window[global].prototype;
+            if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
+                fill(proto, 'addEventListener', function(orig) {
+                    return function (evt, fn, capture, secure) { // preserve arity
+                        try {
+                            if (fn && fn.handleEvent) {
+                                fn.handleEvent = self.wrap(fn.handleEvent, {eventHandler: true});
+                            }
+                        } catch (err) {} // can sometimes get 'Permission denied to access property "handle Event'
+                        return orig.call(this, evt, self.wrap(fn, {eventHandler: true}), capture, secure);
+                    }
+                });
+            }
+        });
+
     },
 
     _drainPlugins: function() {
