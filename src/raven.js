@@ -563,7 +563,7 @@ Raven.prototype = {
                     return orig(args[0], args[1]);
                 }
             };
-        };
+        }
 
         fill(window, 'setTimeout', wrapTimeFn);
         fill(window, 'setInterval', wrapTimeFn);
@@ -571,7 +571,7 @@ Raven.prototype = {
             fill(window, 'requestAnimationFrame', function (orig) {
                 return function (cb) {
                     orig(self.wrap(cb));
-                }
+                };
             });
         }
 
@@ -588,7 +588,7 @@ Raven.prototype = {
                             }
                         } catch (err) {} // can sometimes get 'Permission denied to access property "handle Event'
                         return orig.call(this, evt, self.wrap(fn, {eventHandler: true}), capture, secure);
-                    }
+                    };
                 });
             }
         });
