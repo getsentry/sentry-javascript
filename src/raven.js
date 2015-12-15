@@ -222,6 +222,11 @@ Raven.prototype = {
             return func;
         }
 
+        // If this has already been wrapped in the past, return that
+        if (func.__wrapper__){
+            return func.__wrapper__;
+        }
+
         function wrapped() {
             var args = [], i = arguments.length,
                 deep = !options || options && options.deep !== false;
@@ -246,6 +251,8 @@ Raven.prototype = {
                 wrapped[property] = func[property];
             }
         }
+        func.__wrapper__ = wrapped;
+
         wrapped.prototype = func.prototype;
 
         // Signal that this function has been wrapped already
@@ -584,10 +591,16 @@ Raven.prototype = {
                     return function (evt, fn, capture, secure) { // preserve arity
                         try {
                             if (fn && fn.handleEvent) {
-                                fn.handleEvent = self.wrap(fn.handleEvent, {eventHandler: true});
+                                fn.handleEvent = self.wrap(fn.handleEvent);
                             }
                         } catch (err) {} // can sometimes get 'Permission denied to access property "handle Event'
-                        return orig.call(this, evt, self.wrap(fn, {eventHandler: true}), capture, secure);
+                        return orig.call(this, evt, self.wrap(fn), capture, secure);
+                    };
+                });
+                fill(proto, 'removeEventListener', function (orig) {
+                    return function (evt, fn, capture, secure) {
+                        fn = fn && (fn.__wrapper__ ? fn.__wrapper__ : fn);
+                        return orig.call(this, evt, fn, capture, secure);
                     };
                 });
             }

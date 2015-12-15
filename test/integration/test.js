@@ -125,7 +125,6 @@ describe('integration', function () {
                         foo();
                     }, false);
 
-                    // use setTimeout to "normalize" stack origin
                     var evt;
                     if (document.createEvent) {
                         evt = document.createEvent('MouseEvents');
@@ -139,6 +138,35 @@ describe('integration', function () {
                     var ravenData = iframe.contentWindow.ravenData;
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, eventHandlerStackDepth + 2);
                 }
+            );
+        });
+
+        it('should transparently remove event listeners from wrapped functions', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+              function () {
+                  setTimeout(done);
+
+                  var div = document.createElement('div');
+                  document.body.appendChild(div);
+                  var fooFn = function () { foo(); };
+                  div.addEventListener('click', fooFn, false);
+                  div.removeEventListener('click', fooFn);
+
+                  var evt;
+                  if (document.createEvent) {
+                      evt = document.createEvent('MouseEvents');
+                      evt.initEvent('click', true, false);
+                      div.dispatchEvent(evt);
+                  } else if(document.createEventObject) {
+                      div.fireEvent('onclick');
+                  }
+              },
+              function () {
+                  var ravenData = iframe.contentWindow.ravenData;
+                  assert.equal(ravenData, null); // should never trigger error
+              }
             );
         });
 
