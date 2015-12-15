@@ -47,6 +47,7 @@ function Raven() {
         collectWindowErrors: true,
         maxMessageLength: 100
     };
+    this._ignoreOnError = 0;
     this._isRavenInstalled = false;
     // capture references to window.console *and* all its methods first
     // before the console plugin has a chance to monkey patch
@@ -153,8 +154,11 @@ Raven.prototype = {
         if (this.isSetup() && !this._isRavenInstalled) {
             TraceKit.report.subscribe(function () {
                 // maintain 'self'
-                self._handleStackInfo.apply(self, arguments);
+                if (!self._ignoreOnError) {
+                    self._handleStackInfo.apply(self, arguments);
+                }
             });
+            this._wrapBuiltIns();
 
             // Install all of the plugins
             this._drainPlugins();
@@ -228,6 +232,7 @@ Raven.prototype = {
                 /*jshint -W040*/
                 return func.apply(this, args);
             } catch(e) {
+                self._ignoreNextOnError();
                 self.captureException(e, options);
                 throw e;
             }
@@ -484,6 +489,14 @@ Raven.prototype = {
     },
 
     /**** Private functions ****/
+    _ignoreNextOnError: function () {
+        this._ignoreOnError += 1;
+        setTimeout(function () {
+            // onerror should trigger before setTimeout
+            this._ignoreOnError -= 1;
+        });
+    },
+
     _triggerEvent: function(eventType, options) {
         // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
         var evt, key;
@@ -522,6 +535,37 @@ Raven.prototype = {
     /**
      * Install any queued plugins
      */
+    _wrapBuiltIns: function() {
+        var self = this;
+
+        var _helper = function _helper(fnName) {
+            var originalFn = window[fnName];
+            window[fnName] = function ravenAsyncExtension() {
+                // Make a copy of the arguments
+                var args = [].slice.call(arguments);
+                var originalCallback = args[0];
+                if (typeof (originalCallback) === 'function') {
+                    args[0] = self.wrap(originalCallback);
+                }
+
+                // IE < 9 doesn't support .call/.apply on setInterval/setTimeout, but it
+                // also supports only two arguments and doesn't care what this is, so we
+                // can just call the original function directly.
+                if (originalFn.apply) {
+                    return originalFn.apply(this, args);
+                } else {
+                    return originalFn(args[0], args[1]);
+                }
+            };
+        };
+
+        _helper('setTimeout');
+        _helper('setInterval');
+        if (window.requestAnimationFrame) {
+            _helper('requestAnimationFrame');
+        }
+    },
+
     _drainPlugins: function() {
         var self = this;
 
@@ -676,21 +720,21 @@ Raven.prototype = {
         if (!!this._globalOptions.ignoreUrls.test && this._globalOptions.ignoreUrls.test(fileurl)) return;
         if (!!this._globalOptions.whitelistUrls.test && !this._globalOptions.whitelistUrls.test(fileurl)) return;
 
+        var data = objectMerge({
+            // sentry.interfaces.Exception
+            exception: {
+                values: [{
+                    type: type,
+                    value: message,
+                    stacktrace: stacktrace
+                }]
+            },
+            culprit: fileurl,
+            message: fullMessage
+        }, options);
+
         // Fire away!
-        this._send(
-            objectMerge({
-                // sentry.interfaces.Exception
-                exception: {
-                    values: [{
-                        type: type,
-                        value: message,
-                        stacktrace: stacktrace
-                    }]
-                },
-                culprit: fileurl,
-                message: fullMessage
-            }, options)
-        );
+        this._send(data);
     },
 
     _trimPacket: function(data) {

@@ -8,7 +8,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
             done(e);
         }
     }
-    iframe.contentWindow.eval('setTimeout(' + execute.toString() + ');');
+    iframe.contentWindow.eval('(' + execute.toString() + ')();');
 }
 
 describe('integration', function () {
