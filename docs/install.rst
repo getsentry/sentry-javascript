@@ -9,7 +9,7 @@ So for example:
 .. sourcecode:: html
 
     <script src="jquery.js"></script>
-    <script src="https://cdn.ravenjs.com/1.3.0/jquery,native/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.0.0/jquery/raven.min.js"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
     <script src="app.js"></script>
 
@@ -28,7 +28,7 @@ Our CDN distributes builds with and without :doc:`integrations <integrations/ind
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/1.3.0/jquery,native/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.0.0/jquery/raven.min.js"></script>
 
 **We highly recommend trying out a plugin or two since it'll greatly
 improve the chances that we can collect good information.**
