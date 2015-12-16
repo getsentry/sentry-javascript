@@ -606,10 +606,10 @@ Raven.prototype = {
             }
         });
 
-        var origSend;
+        var origOpen;
         if ('XMLHttpRequest' in window) {
-            origSend = XMLHttpRequest.prototype.send;
-            XMLHttpRequest.prototype.send = function (data) { // preserve arity
+            origOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function (data) { // preserve arity
                 var xhr = this;
                 'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
                     if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
@@ -618,7 +618,7 @@ Raven.prototype = {
                         });
                     }
                 });
-                origSend.apply(this, arguments);
+                origOpen.apply(this, arguments);
             };
         }
 

@@ -9,7 +9,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
         }
     }
     // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-    iframe.contentWindow.eval('setTimeout(' + execute.toString() + ');');
+    iframe.contentWindow.eval('origSetTimeout(' + execute.toString() + ');');
 }
 
 function createIframe(done) {
@@ -136,7 +136,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData;
-                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, eventHandlerStackDepth + 2);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, eventHandlerStackDepth + 1);
                 }
             );
         });
@@ -221,6 +221,28 @@ describe('integration', function () {
                     var ravenData = iframe.contentWindow.ravenData;
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, timeoutStackDepth);
                 }
+            );
+        });
+
+        it('should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+              function () {
+                  setTimeout(done);
+                  var xhr = new XMLHttpRequest();
+                  xhr.onreadystatechange = function () {
+                      foo();
+                  }
+                  xhr.open('GET', 'example.json');
+                  xhr.send();
+              },
+              function () {
+                  var ravenData = iframe.contentWindow.ravenData;
+                  console.log(ravenData);
+                  // # of frames alter significantly between chrome/firefox & safari
+                  assert.isTrue(ravenData.exception.values[0].stacktrace.frames.length >= 4);
+              }
             );
         });
     });

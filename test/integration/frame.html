@@ -7,6 +7,7 @@
   <script>
     Raven._makeRequest = function () {};
 
+    window.origSetTimeout = setTimeout;
     Raven.config('https://public@example.com/1', {
       dataCallback: function (data) {
         window.ravenData = data;
