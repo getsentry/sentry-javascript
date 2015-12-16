@@ -223,8 +223,8 @@ Raven.prototype = {
         }
 
         // If this has already been wrapped in the past, return that
-        if (func.__wrapper__){
-            return func.__wrapper__;
+        if (func.__raven_wrapper__ ){
+            return func.__raven_wrapper__ ;
         }
 
         function wrapped() {
@@ -251,7 +251,7 @@ Raven.prototype = {
                 wrapped[property] = func[property];
             }
         }
-        func.__wrapper__ = wrapped;
+        func.__raven_wrapper__ = wrapped;
 
         wrapped.prototype = func.prototype;
 
@@ -599,7 +599,7 @@ Raven.prototype = {
                 });
                 fill(proto, 'removeEventListener', function (orig) {
                     return function (evt, fn, capture, secure) {
-                        fn = fn && (fn.__wrapper__ ? fn.__wrapper__ : fn);
+                        fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
                         return orig.call(this, evt, fn, capture, secure);
                     };
                 });
