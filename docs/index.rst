@@ -26,7 +26,7 @@ scripts.  For all details see :doc:`install`.
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/2.0.0/jquery/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.0.0/raven.min.js"></script>
 
 Configuring the Project
 -----------------------

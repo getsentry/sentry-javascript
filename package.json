@@ -28,7 +28,6 @@
     "grunt-release": "~0.6.0",
     "grunt-s3": "~0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
-    "jquery": "^2.1.4",
     "lodash": "~2.4.0",
     "proxyquireify": "^3.0.0",
     "sinon": "~1.7.3",

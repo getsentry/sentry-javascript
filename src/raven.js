@@ -619,9 +619,17 @@ Raven.prototype = {
                     }
                 });
                 origSend.apply(this, arguments);
-            }
+            };
         }
 
+        var $ = window.jQuery || window.$;
+        var origReady;
+        if ($ && $.fn && $.fn.ready) {
+            origReady = $.fn.ready;
+            $.fn.ready = function ravenjQueryReadyWrapper(fn) {
+                return origReady.call(this, self.wrap(fn));
+            };
+        }
     },
 
     _drainPlugins: function() {
