@@ -606,6 +606,22 @@ Raven.prototype = {
             }
         });
 
+        var origSend;
+        if ('XMLHttpRequest' in window) {
+            origSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = function (data) { // preserve arity
+                var xhr = this;
+                'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
+                    if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
+                        fill(xhr, prop, function (orig) {
+                            return self.wrap(orig);
+                        });
+                    }
+                });
+                origSend.apply(this, arguments);
+            }
+        }
+
     },
 
     _drainPlugins: function() {
