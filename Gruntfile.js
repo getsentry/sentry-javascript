@@ -1,4 +1,5 @@
 var proxyquire = require('proxyquireify');
+var versionify = require('browserify-versionify');
 
 module.exports = function(grunt) {
     "use strict";
@@ -92,7 +93,9 @@ module.exports = function(grunt) {
                 browserifyOptions: {
                     banner: grunt.file.read('template/_copyright.js'),
                     standalone: 'Raven' // umd
-                }
+
+                },
+                transform: [versionify]
             },
             core: {
                 src: 'src/singleton.js',
@@ -102,6 +105,7 @@ module.exports = function(grunt) {
                 files: pluginConcatFiles,
                 options: {
                     transform: [
+                        [ versionify ],
                         [ new AddPluginBrowserifyTransformer() ]
                     ]
                 }

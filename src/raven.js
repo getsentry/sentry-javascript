@@ -68,7 +68,7 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '<%= pkg.version %>',
+    VERSION: '__VERSION__',
 
     debug: true,
 
