@@ -81,9 +81,9 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '<%= pkg.version %>',
+    VERSION: '2.0.0-rc2',
 
-    debug: true,
+    debug: false,
 
     TraceKit: TraceKit, // alias to TraceKit
 
