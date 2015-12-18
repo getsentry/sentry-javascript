@@ -196,7 +196,6 @@ describe('integration', function () {
               },
               function () {
                   var ravenData = iframe.contentWindow.ravenData;
-                  console.log(ravenData);
                   // # of frames alter significantly between chrome/firefox & safari
                   assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
               }

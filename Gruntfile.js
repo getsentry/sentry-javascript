@@ -159,17 +159,21 @@ module.exports = function(grunt) {
         },
 
         mocha: {
-            all: {
-                options: {
-                    mocha: {
-                        ignoreLeaks: true,
-                        grep:        grunt.option('grep')
-                    },
-                    log:      true,
-                    reporter: 'Dot',
-                    run:      true
+            options: {
+                mocha: {
+                    ignoreLeaks: true,
+                    grep:        grunt.option('grep')
                 },
+                log:      true,
+                reporter: 'Dot',
+                run:      true
+            },
+            unit: {
                 src: ['test/index.html'],
+                nonull: true
+            },
+            integration: {
+                src: ['test/integration/index.html'],
                 nonull: true
             }
         },
