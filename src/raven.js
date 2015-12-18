@@ -70,7 +70,7 @@ function Raven() {
 Raven.prototype = {
     VERSION: '__VERSION__',
 
-    debug: true,
+    debug: false,
 
     TraceKit: TraceKit, // alias to TraceKit
 
