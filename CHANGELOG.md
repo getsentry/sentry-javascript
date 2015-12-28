@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0
+
+* CHANGE: Raven.js now wraps functions passed to timer functions, event listeners, and XMLHttpRequest handlers
+* CHANGE: Removed jQuery, Backbone, and native plugins (now handled inside raven.js)
+* CHANGE: Default HTTP transport changed from `Image` GET to `XMLHttpRequest` POST (w/ CORS)
+* CHANGE: When using CommonJS, plugins are initialized via `Raven.addPlugin(require('raven-js/plugins/ember'))`
+* CHANGE: Raven builds are generated using Browserify
+* NEW: Integration tests (/test/integration/index.html)
+
 ## 1.3.0
 * CHANGE: `console` plugin will now send all arguments as an `extra` value. See: https://github.com/getsentry/raven-js/pull/398
 * CHANGE: Bump to v7 of the Sentry API spec. This now requires a Sentry 7.7.0+ https://github.com/getsentry/raven-js/pull/403

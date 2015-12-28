@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "1.3.0",
+  "version": "2.0.0-rc2",
   "license": "BSD-2-Clause",
   "homepage": "https://getsentry.com",
   "scripts": {
@@ -11,10 +11,12 @@
     "type": "git",
     "url": "git://github.com/getsentry/raven-js.git"
   },
-  "main": "dist/raven.js",
+  "main": "src/singleton.js",
   "devDependencies": {
-    "chai": "~1.8.1",
+    "browserify-versionify": "^1.0.6",
+    "chai": "2.3.0",
     "grunt": "^0.4.5",
+    "grunt-browserify": "^4.0.1",
     "grunt-cli": "~0.1.9",
     "grunt-contrib-clean": "~0.4.0",
     "grunt-contrib-concat": "~0.3.0",
@@ -27,9 +29,10 @@
     "grunt-release": "~0.6.0",
     "grunt-s3": "~0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
-    "jquery": "^2.1.4",
     "lodash": "~2.4.0",
-    "sinon": "~1.7.3"
+    "proxyquireify": "^3.0.0",
+    "sinon": "~1.7.3",
+    "through2": "^2.0.0"
   },
   "keywords": [
     "exceptions",

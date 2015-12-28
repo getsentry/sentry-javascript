@@ -1,15 +1,12 @@
+var proxyquire = require('proxyquireify');
+var versionify = require('browserify-versionify');
+
 module.exports = function(grunt) {
     "use strict";
 
     var _ = require('lodash');
     var path = require('path');
-
-    var coreFiles = [
-        'template/_header.js',
-        'vendor/**/*.js',
-        'src/**/*.js',
-        'template/_footer.js'
-    ];
+    var through = require('through2');
 
     var excludedPlugins = [
         'react-native'
@@ -25,6 +22,21 @@ module.exports = function(grunt) {
 
         return path;
     });
+
+    // custom browserify transformer to re-write plugins to
+    // self-register with Raven via addPlugin
+    function AddPluginBrowserifyTransformer() {
+        return function (file) {
+            return through(function (buf, enc, next) {
+                buf = buf.toString('utf8');
+                if (/plugins/.test(file)) {
+                    buf += "\nrequire('../src/singleton').addPlugin(module.exports);";
+                }
+                this.push(buf);
+                next();
+            });
+        };
+    }
 
     // Taken from http://dzone.com/snippets/calculate-all-combinations
     var combine = function (a) {
@@ -65,7 +77,7 @@ module.exports = function(grunt) {
         key.sort();
 
         var dest = path.join('build/', key.join(','), '/raven.js');
-        dict[dest] = coreFiles.concat(comb);
+        dict[dest] = ['src/singleton.js'].concat(comb);
 
         return dict;
     }, {});
@@ -75,18 +87,38 @@ module.exports = function(grunt) {
         aws: grunt.file.exists('aws.json') ? grunt.file.readJSON('aws.json'): {},
 
         clean: ['build'],
-        concat: {
+
+        browserify: {
             options: {
-                separator: '\n',
-                banner: grunt.file.read('template/_copyright.js'),
-                process: true
+                browserifyOptions: {
+                    banner: grunt.file.read('template/_copyright.js'),
+                    standalone: 'Raven' // umd
+
+                },
+                transform: [versionify]
             },
             core: {
-                src: coreFiles.concat(plugins),
+                src: 'src/singleton.js',
                 dest: 'build/raven.js'
             },
-            all: {
-                files: pluginConcatFiles
+            plugins: {
+                files: pluginConcatFiles,
+                options: {
+                    transform: [
+                        [ versionify ],
+                        [ new AddPluginBrowserifyTransformer() ]
+                    ]
+                }
+            },
+            test: {
+                src: 'test/**/*.test.js',
+                dest: 'build/raven.test.js',
+                options: {
+                    browserifyOptions: {
+                        debug: true // source maps
+                    },
+                    plugin: [proxyquire.plugin]
+                }
             }
         },
 
@@ -100,7 +132,13 @@ module.exports = function(grunt) {
                 sourceMappingURL: function (dest) {
                     return path.basename(dest, '.js') + '.map';
                 },
-                preserveComments: 'some'
+                preserveComments: 'some',
+                compress: {
+                    dead_code: true,
+                    global_defs: {
+                        "TEST": false
+                    }
+                }
             },
             dist: {
                 src: ['build/**/*.js'],
@@ -121,17 +159,21 @@ module.exports = function(grunt) {
         },
 
         mocha: {
-            all: {
-                options: {
-                    mocha: {
-                        ignoreLeaks: true,
-                        grep:        grunt.option('grep')
-                    },
-                    log:      true,
-                    reporter: 'Dot',
-                    run:      true
+            options: {
+                mocha: {
+                    ignoreLeaks: true,
+                    grep:        grunt.option('grep')
                 },
+                log:      true,
+                reporter: 'Dot',
+                run:      true
+            },
+            unit: {
                 src: ['test/index.html'],
+                nonull: true
+            },
+            integration: {
+                src: ['test/integration/index.html'],
                 nonull: true
             }
         },
@@ -251,13 +293,13 @@ module.exports = function(grunt) {
 
     // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-contrib-copy');
 
     // 3rd party Grunt tasks
+    grunt.loadNpmTasks('grunt-browserify');
     grunt.loadNpmTasks('grunt-mocha');
     grunt.loadNpmTasks('grunt-release');
     grunt.loadNpmTasks('grunt-s3');
@@ -266,15 +308,16 @@ module.exports = function(grunt) {
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-    grunt.registerTask('concat.core', ['_prep', 'concat:core']);
-    grunt.registerTask('concat.all', ['_prep', 'concat:all']);
-    grunt.registerTask('build.core', ['concat.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.all', ['concat.all', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
+    grunt.registerTask('browserify.plugins', ['_prep', 'browserify:plugins']);
+    grunt.registerTask('build.test', ['_prep', 'browserify:test']);
+    grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.all', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.all']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
-    grunt.registerTask('test', ['jshint', 'mocha']);
+    grunt.registerTask('test', ['jshint', 'browserify.core', 'browserify:test', 'mocha']);
 
     // Webserver tasks
     grunt.registerTask('run:test', ['connect:test']);

@@ -2,7 +2,7 @@
 
 Raven.js is a tiny standalone JavaScript client for [Sentry](https://getsentry.com/).
 
-**Raven.js v1.3 requires Sentry v7.7.0 or later.**
+**Raven.js v2.0 requires Sentry v8.0.0 or later.**
 
 ## Resources
 
