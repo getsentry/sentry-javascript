@@ -99,29 +99,66 @@ Capturing Messages
 Passing Additional Data
 -----------------------
 
-``captureException``, ``context``, ``wrap``, and ``captureMessage``
-functions all allow passing additional data to be tagged onto the error,
-such as ``tags`` or ``extra`` for additional context.
+The ``captureMessage``, ``captureException``, ``context``, and ``wrap``
+functions all allow passing additional data to be tagged onto the error.
 
-.. code-block:: javascript
+.. describe:: level
 
-    Raven.captureException(e, {tags: { key: "value" }})
+    The log level associated with this event. Default: ``error``
 
-    Raven.captureMessage('Broken!', {tags: { key: "value" }})
+    .. code-block:: javascript
 
-    Raven.context({tags: { key: "value" }}, function(){ ... })
+        Raven.captureMessage('Something happened', {
+          level: 'info' // one of 'info', 'warning', or 'error'
+        });
 
-    Raven.wrap({logger: "my.module"}, function(){ ... })
+.. describe:: logger
 
-    Raven.captureException(e, {extra: { foo: "bar" }})
+    The name of the logger used to record this event. Default: ``javascript``
 
-You can also set context variables globally to be merged in with future
-exceptions with ``setExtraContext`` and ``setTagsContext``.
+    .. code-block:: javascript
 
-.. code-block:: javascript
+        Raven.captureException(new Error('Oops!'), {
+          logger: 'my.module'
+        });
 
-    Raven.setExtraContext({ foo: "bar" })
-    Raven.setTagsContext({ key: "value" })
+    Note that logger can also be set globally via ``Raven.config``.
+
+.. describe:: tags
+
+    `Tags <https://www.getsentry.com/docs/tags/>`__ to assign to the event.
+
+    .. code-block:: javascript
+
+        Raven.wrap({
+          tags: {git_commit: 'c0deb10c4'}
+        }, function () { /* ... */ });
+
+        // NOTE: Raven.wrap and Raven.context accept options as first argument
+
+    You can also set tags globally to be merged in with future exceptions events via ``Raven.config``, or ``Raven.setTagsContext``:
+
+    .. code-block:: javascript
+
+        Raven.setTagsContext({ key: "value" });
+
+.. describe:: extra
+
+    Arbitrary data to associate with the event.
+
+    .. code-block:: javascript
+
+        Raven.context({
+          extra: {planet: {name: 'Earth'}}}
+        }, function () { /* ... */ });
+
+        // NOTE: Raven.wrap and Raven.context accept options as first argument
+
+    You can also set extra data globally to be merged in with future events with ``setExtraContext``:
+
+    .. code-block:: javascript
+
+        Raven.setExtraContext({ foo: "bar" })
 
 
 Getting Back an Event ID
