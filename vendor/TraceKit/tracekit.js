@@ -615,9 +615,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     function computeStackTraceFromStackProp(ex) {
         if (isUndefined(ex.stack) || !ex.stack) return;
 
-        var chrome = /^\s*at (.*?) ?\(?((?:(?:file|https?|chrome-extension):.*?)|<anonymous>):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
-            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|http|https):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\((((?:file|https?|blob|chrome-extension|native|eval).*?)|<anonymous>)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|\[).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
+            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|https?|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
@@ -625,27 +625,30 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             reference = /^(.*) is undefined$/.exec(ex.message);
 
         for (var i = 0, j = lines.length; i < j; ++i) {
-            if ((parts = gecko.exec(lines[i]))) {
+            if ((parts = chrome.exec(lines[i]))) {
+                var isNative = parts[2] && parts[2].indexOf('native') !== -1;
+                element = {
+                    'url': !isNative ? parts[2] : null,
+                    'func': parts[1] || UNKNOWN_FUNCTION,
+                    'args': isNative ? [parts[2]] : [],
+                    'line': parts[3] ? +parts[3] : null,
+                    'column': parts[4] ? +parts[4] : null
+                };
+            } else if ( parts = winjs.exec(lines[i]) ) {
+                element = {
+                    'url': parts[2],
+                    'func': parts[1] || UNKNOWN_FUNCTION,
+                    'args': [],
+                    'line': +parts[3],
+                    'column': parts[4] ? +parts[4] : null
+                };
+            } else if ((parts = gecko.exec(lines[i]))) {
                 element = {
                     'url': parts[3],
                     'func': parts[1] || UNKNOWN_FUNCTION,
-                    'args': parts[2] ? parts[2].split(',') : '',
-                    'line': +parts[4],
+                    'args': parts[2] ? parts[2].split(',') : [],
+                    'line': parts[4] ? +parts[4] : null,
                     'column': parts[5] ? +parts[5] : null
-                };
-            } else if ((parts = chrome.exec(lines[i]))) {
-                element = {
-                    'url': parts[2],
-                    'func': parts[1] || UNKNOWN_FUNCTION,
-                    'line': +parts[3],
-                    'column': parts[4] ? +parts[4] : null
-                };
-            } else if ((parts = winjs.exec(lines[i]))) {
-                element = {
-                    'url': parts[2],
-                    'func': parts[1] || UNKNOWN_FUNCTION,
-                    'line': +parts[3],
-                    'column': parts[4] ? +parts[4] : null
                 };
             } else {
                 continue;
@@ -696,21 +699,33 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         var stacktrace = ex.stacktrace;
         if (isUndefined(ex.stacktrace) || !ex.stacktrace) return;
 
-        var testRE = / line (\d+), column (\d+) in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\) in (.*):\s*$/i,
-            lines = stacktrace.split('\n'),
-            stack = [],
-            parts;
+        var opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i,
+          opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i,
+          lines = stacktrace.split('\n'),
+          stack = [],
+          parts;
 
-        for (var i = 0, j = lines.length; i < j; i += 2) {
-            if ((parts = testRE.exec(lines[i]))) {
-                var element = {
+        for (var line = 0; line < lines.length; line += 2) {
+            var element = null;
+            if ((parts = opera10Regex.exec(lines[line]))) {
+                element = {
+                    'url': parts[2],
+                    'line': +parts[1],
+                    'column': null,
+                    'func': parts[3],
+                    'args':[]
+                };
+            } else if ((parts = opera11Regex.exec(lines[line]))) {
+                element = {
+                    'url': parts[6],
                     'line': +parts[1],
                     'column': +parts[2],
                     'func': parts[3] || parts[4],
-                    'args': parts[5] ? parts[5].split(',') : [],
-                    'url': parts[6]
+                    'args': parts[5] ? parts[5].split(',') : []
                 };
+            }
 
+            if (element) {
                 if (!element.func && element.line) {
                     element.func = guessFunctionName(element.url, element.line);
                 }
@@ -721,7 +736,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 }
 
                 if (!element.context) {
-                    element.context = [lines[i + 1]];
+                    element.context = [lines[line + 1]];
                 }
 
                 stack.push(element);
@@ -769,40 +784,42 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
-            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
+        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
+            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
             lineRE3 = /^\s*Line (\d+) of function script\s*$/i,
             stack = [],
             scripts = document.getElementsByTagName('script'),
             inlineScriptBlocks = [],
-            parts,
-            i,
-            len,
-            source;
+            parts;
 
-        for (i in scripts) {
-            if (hasKey(scripts, i) && !scripts[i].src) {
-                inlineScriptBlocks.push(scripts[i]);
+        for (var s in scripts) {
+            if (hasKey(scripts, s) && !scripts[s].src) {
+                inlineScriptBlocks.push(scripts[s]);
             }
         }
 
-        for (i = 2, len = lines.length; i < len; i += 2) {
+        for (var line = 2; line < lines.length; line += 2) {
             var item = null;
-            if ((parts = lineRE1.exec(lines[i]))) {
+            if ((parts = lineRE1.exec(lines[line]))) {
                 item = {
                     'url': parts[2],
                     'func': parts[3],
-                    'line': +parts[1]
+                    'args': [],
+                    'line': +parts[1],
+                    'column': null
                 };
-            } else if ((parts = lineRE2.exec(lines[i]))) {
+            } else if ((parts = lineRE2.exec(lines[line]))) {
                 item = {
                     'url': parts[3],
-                    'func': parts[4]
+                    'func': parts[4],
+                    'args': [],
+                    'line': +parts[1],
+                    'column': null // TODO: Check to see if inline#1 (+parts[2]) points to the script number or column number.
                 };
                 var relativeLine = (+parts[1]); // relative to the start of the <SCRIPT> block
                 var script = inlineScriptBlocks[parts[2] - 1];
                 if (script) {
-                    source = getSource(item.url);
+                    var source = getSource(item.url);
                     if (source) {
                         source = source.join('\n');
                         var pos = source.indexOf(script.innerText);
@@ -811,15 +828,16 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                         }
                     }
                 }
-            } else if ((parts = lineRE3.exec(lines[i]))) {
-                var url = window.location.href.replace(/#.*$/, ''),
-                    line = parts[1];
-                var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[i + 1]));
-                source = findSourceInUrls(re, [url]);
+            } else if ((parts = lineRE3.exec(lines[line]))) {
+                var url = window.location.href.replace(/#.*$/, '');
+                var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]));
+                var src = findSourceInUrls(re, [url]);
                 item = {
                     'url': url,
-                    'line': source ? source.line : line,
-                    'func': ''
+                    'func': '',
+                    'args': [],
+                    'line': src ? src.line : parts[1],
+                    'column': null
                 };
             }
 
@@ -829,15 +847,16 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 }
                 var context = gatherContext(item.url, item.line);
                 var midline = (context ? context[Math.floor(context.length / 2)] : null);
-                if (context && midline.replace(/^\s*/, '') === lines[i + 1].replace(/^\s*/, '')) {
+                if (context && midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')) {
                     item.context = context;
                 } else {
                     // if (context) alert("Context mismatch. Correct midline:\n" + lines[i+1] + "\n\nMidline:\n" + midline + "\n\nContext:\n" + context.join("\n") + "\n\nURL:\n" + item.url);
-                    item.context = [lines[i + 1]];
+                    item.context = [lines[line + 1]];
                 }
                 stack.push(item);
             }
         }
+
         if (!stack.length) {
             return null; // could not parse multiline exception message as Opera stack trace
         }
