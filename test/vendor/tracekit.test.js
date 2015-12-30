@@ -29,6 +29,20 @@ describe('TraceKit', function(){
             assert.equal(trace.stack[4].func, '?');
             assert.equal(trace.stack[5].func, 'namedFunc4');
         });
+
+        it('should handle eval/anonymous strings in Chrome 46', function () {
+            var stack_str = "" +
+                "ReferenceError: baz is not defined\n" +
+                "   at bar (http://example.com/js/test.js:19:7)\n" +
+                "   at foo (http://example.com/js/test.js:23:7)\n" +
+                "   at eval (eval at <anonymous> (http://example.com/js/test.js:26:5), <anonymous>:1:26)\n";
+
+            var mock_err = { stack: stack_str };
+            var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
+            assert.equal(trace.stack[0].func, 'bar');
+            assert.equal(trace.stack[1].func, 'foo');
+            assert.equal(trace.stack[2].func, 'eval');
+        });
     });
 
     describe('.computeStackTrace', function() {
