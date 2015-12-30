@@ -1,6 +1,6 @@
 # Raven.js [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js)
 
-Raven.js is a tiny standalone JavaScript client for [Sentry](https://getsentry.com/).
+Raven.js is the official browser JavaScript client for [Sentry](https://getsentry.com/).
 
 **Raven.js v2.0 requires Sentry v8.0.0 or later.**
 
