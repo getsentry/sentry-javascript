@@ -86,6 +86,7 @@ describe('utils', function () {
             assert.equal(truncate('lolol', 3), 'lol\u2026');
             assert.equal(truncate('lolol', 10), 'lolol');
             assert.equal(truncate('lol', 3), 'lol');
+            assert.equal(truncate(new Array(1000).join('f'), 0), new Array(1000).join('f'));
         });
     });
 

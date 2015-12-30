@@ -61,7 +61,7 @@ function objectMerge(obj1, obj2) {
 }
 
 function truncate(str, max) {
-    return str.length <= max ? str : str.substr(0, max) + '\u2026';
+    return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
 /**
