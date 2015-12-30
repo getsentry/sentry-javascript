@@ -239,6 +239,36 @@ And set an ``Access-Control-Allow-Origin`` HTTP header on that file.
 .. note:: both of these steps need to be done or your scripts might not
    even get executed
 
+Promises
+--------
+
+By default, Raven.js does not capture unhandled promise rejections.
+
+Most Promise libraries have a global hook for capturing unhandled errors. You will need to
+manually hook into such an event handler and call ``Raven.captureException`` or ``Raven.captureMessage``
+directly.
+
+For example, the `RSVP.js library
+<https://github.com/tildeio/rsvp.js/>`_ allows you to bind an event handler to a `global error event
+<https://github.com/tildeio/rsvp.js#error-handling>`_:
+
+.. code-block:: javascript
+
+    RSVP.on('error', function(reason) {
+        Raven.captureMessage(reason); // NOTE: "reason" is a string
+    });
+
+`Bluebird
+<http://bluebirdjs.com/>`_ and other promise libraries report unhandled rejections to a global DOM event, ``unhandledrejection``:
+
+.. code-block:: javascript
+
+    window.addEventListener('unhandledrejection', function(err) {
+        Raven.captureException(err);
+    });
+
+Please consult your promise library documentation on how to hook into its global unhandled rejection handler, if it exposes one.
+
 Custom Grouping Behavior
 ------------------------
 
