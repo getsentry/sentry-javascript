@@ -166,7 +166,7 @@ Optional settings
 
 .. describe:: maxMessageLength
 
-    By default, raven truncates messages to a max length of 100
+    By default, raven truncates messages to a max length of 1000
     characters. You can customize the max length with this parameter.
 
 .. describe:: transport
