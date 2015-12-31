@@ -46,7 +46,7 @@
 $(function() {
     var plugins = [], base = 'https://cdn.ravenjs.com/2.0.0/', $download = $('#download');
 
-    $('#download').val(base); // default to base value
+    $('#download').val(base + 'raven.min.js'); // default to base value
 
     $('input[type="checkbox"]').on('click', function() {
         var val = $(this).val(), url;
