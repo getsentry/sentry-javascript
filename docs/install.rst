@@ -14,8 +14,8 @@ So for example:
     <script src="app.js"></script>
 
 This allows the ability for Raven's integrations to instrument themselves. If
-included before something like jQuery, it'd be impossible to use for
-example, the jQuery plugin.
+included before something like Angular, it'd be impossible to use for
+example, the Angular plugin.
 
 Using our CDN
 ~~~~~~~~~~~~~
@@ -29,9 +29,6 @@ Our CDN distributes builds with and without :doc:`integrations <integrations/ind
 .. sourcecode:: html
 
     <script src="https://cdn.ravenjs.com/2.0.0/raven.min.js"></script>
-
-**We highly recommend trying out a plugin or two since it'll greatly
-improve the chances that we can collect good information.**
 
 This version does not include any plugins. See `ravenjs.com
 <http://ravenjs.com/>`_ for more information about plugins and getting
@@ -55,19 +52,49 @@ add it to ``bower.json``).
     <script src="/bower_components/raven-js/dist/raven.js"></script>
 
 Also note that the file is uncompresed but is ready to pass to any decent
-JavaScript compressor like `uglify
+JavaScript compressor like `UglifyJS
 <https://github.com/mishoo/UglifyJS2>`_.
 
 npm
 ~~~
 
-Raven is published to npm as well. https://www.npmjs.com/package/raven-js
+Raven is also available as an npm package, `raven-js
+<https://www.npmjs.com/package/raven-js>`_.
 
 .. code-block:: sh
 
     $ npm install raven-js --save
 
-Note that if you intend to use Raven with Node, `raven-node <https://github.com/getsentry/raven-node>`_ is the client to use
+.. code-block:: html
+
+	<script src="/node_modules/raven-js/dist/raven.js"></script>
+
+Note that if you intend to use Raven with Node, `raven-node <https://github.com/getsentry/raven-node>`_ is the client to use.
+
+
+CommonJS
+~~~~~~~~
+
+To use Raven with CommonJS imports:
+
+.. code-block:: javascript
+
+	var Raven = require('raven-js')	;
+	Raven
+	    .config('___PUBLIC_DSN___')
+	    .install();
+
+ES2015 (ES6)
+~~~~~~~~~~~~
+
+To use Raven with ES2015 (ES6) imports:
+
+.. code-block:: javascript
+
+	import Raven from 'raven-js';
+	Raven
+	    .config('___PUBLIC_DSN___')
+	    .install();
 
 Requirements
 ~~~~~~~~~~~~
