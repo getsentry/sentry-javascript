@@ -43,7 +43,8 @@ enter ``*`` to whitelist all domains.
 Configuring the Client
 ----------------------
 
-Now need to set up Raven.js to use your Sentry DSN:
+Now you need to set up Raven.js to use your `Sentry DSN
+<https://docs.getsentry.com/hosted/quickstart/#configure-the-dsn>`_:
 
 .. code-block:: javascript
 
@@ -51,16 +52,16 @@ Now need to set up Raven.js to use your Sentry DSN:
 
 At this point, Raven is ready to capture any uncaught exception.
 
-Although, this technically works, this is not going to yield the greatest
-results.  It's highly recommended to next check out :doc:`config` and
-:doc:`usage` after you have it up and running to improve your results.
+Once you have Raven up and running, it is highly recommended to check out :doc:`config`
+and :doc:`usage` to improve your results.
 
 Reporting Errors
 ----------------
 
-The simplest way, is to try and explicitly capture and report potentially
-problematic code with a ``try...catch`` block and
-``Raven.captureException``.
+By default, Raven makes a best effort to capture any uncaught exception.
+
+To report errors manually, wrap potentially problematic code with a ``try...catch``
+block and call ``Raven.captureException``:
 
 .. code-block:: javascript
 
