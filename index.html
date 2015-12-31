@@ -16,18 +16,6 @@
     <div class="page-header"><h1>raven.js</h1></div>
     <div class="checkbox">
       <label>
-        <input type="checkbox" value="jquery">
-        jQuery <a href="https://github.com/getsentry/raven-js/blob/master/plugins/jquery.js">View Source</a>
-      </label>
-    </div>
-    <div class="checkbox">
-      <label>
-        <input type="checkbox" value="native">
-        native (setTimeout/setInterval patches) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/native.js">View Source</a>
-      </label>
-    </div>
-    <div class="checkbox">
-      <label>
         <input type="checkbox" value="require">
         require.js (experimental, may not work at all) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/require.js">View Source</a>
       </label>
@@ -50,19 +38,16 @@
         angular.js (experimental) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/angular.js">View Source</a>
       </label>
     </div>
-    <div class="checkbox">
-      <label>
-        <input type="checkbox" value="backbone">
-        backbone.js (experimental) <a href="https://github.com/getsentry/raven-js/blob/master/plugins/backbone.js">View Source</a>
-      </label>
-    </div>
     <input id="download" class="form-control input-lg" type="text" />
 </div>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 <script>
 $(function() {
-    var plugins = [], base = 'https://cdn.ravenjs.com/1.3.0/', $download = $('#download');
+    var plugins = [], base = 'https://cdn.ravenjs.com/2.0.0/', $download = $('#download');
+
+    $('#download').val(base); // default to base value
+
     $('input[type="checkbox"]').on('click', function() {
         var val = $(this).val(), url;
         if ($(this).prop('checked')) {
@@ -78,10 +63,7 @@ $(function() {
         }
         $download.val(url);
     });
-    var defaults = ['jquery', 'native'];
-    for (var i=0; i<defaults.length; i++) {
-        $('input[value="'+defaults[i]+'"]').click();
-    }
+
     $download.on('click', function() { $(this).select(); });
 });
 
