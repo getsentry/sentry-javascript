@@ -46,7 +46,7 @@ function Raven() {
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
         maxMessageLength: 0,
-        stackTraceLimit: Infinity
+        stackTraceLimit: 50
     };
     this._ignoreOnError = 0;
     this._isRavenInstalled = false;
