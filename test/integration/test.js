@@ -43,7 +43,7 @@ describe('integration', function () {
                     done();
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.equal(ravenData.message, 'Hello');
                 }
             );
@@ -62,7 +62,7 @@ describe('integration', function () {
                     }
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 1);
                 }
             );
@@ -79,9 +79,48 @@ describe('integration', function () {
                     eval('foo{};');
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isTrue(/SyntaxError/.test(ravenData.message)); // full message differs per-browser
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // just one frame
+                }
+            );
+        });
+
+        it('should NOT catch an exception already caught via Raven.wrap', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+                    Raven.wrap(function () {
+                        foo();
+                    })();
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData;
+                    assert.equal(ravenData.length, 1); // one caught error
+                }
+            );
+        });
+
+        it('should catch an exception already caught [but rethrown] via Raven.captureException', function (done) {
+            // unlike Raven.wrap which ALWAYS re-throws, we don't know if the user will
+            // re-throw an exception passed to Raven.captureException, and so we cannot
+            // automatically suppress the next error caught through window.onerror
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done, 50);
+                    try {
+                        foo();
+                    } catch (e) {
+                        Raven.captureException(e);
+                        throw e; // intentionally re-throw
+                    }
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData;
+                    assert.equal(ravenData.length, 2);
                 }
             );
         });
@@ -111,7 +150,7 @@ describe('integration', function () {
                     }
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
             );
@@ -140,7 +179,7 @@ describe('integration', function () {
                   }
               },
               function () {
-                  var ravenData = iframe.contentWindow.ravenData;
+                  var ravenData = iframe.contentWindow.ravenData[0];
                   assert.equal(ravenData, null); // should never trigger error
               }
             );
@@ -157,7 +196,7 @@ describe('integration', function () {
                     }, 10);
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
             );
@@ -175,7 +214,7 @@ describe('integration', function () {
                     }, 10);
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
             );
@@ -194,7 +233,7 @@ describe('integration', function () {
                     });
                 },
                 function () {
-                    var ravenData = iframe.contentWindow.ravenData;
+                    var ravenData = iframe.contentWindow.ravenData[0];
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
             );
@@ -214,7 +253,7 @@ describe('integration', function () {
                   xhr.send();
               },
               function () {
-                  var ravenData = iframe.contentWindow.ravenData;
+                  var ravenData = iframe.contentWindow.ravenData[0];
                   // # of frames alter significantly between chrome/firefox & safari
                   assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
               }

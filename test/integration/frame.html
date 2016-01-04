@@ -45,9 +45,10 @@
     // making "clean" stack traces that don't originate from mocha)
     window.origSetTimeout = setTimeout;
 
+    window.ravenData = [];
     Raven.config('https://public@example.com/1', {
       dataCallback: function (data) {
-        window.ravenData = data;
+        ravenData.push(data);
       }
     }).install();
 
