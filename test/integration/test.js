@@ -68,7 +68,26 @@ describe('integration', function () {
             );
         });
     });
-    describe('native', function () {
+
+    describe('window.onerror', function () {
+        it('should catch syntax errors', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+                    eval('foo{};');
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData;
+                    assert.isTrue(/SyntaxError/.test(ravenData.message)); // full message differs per-browser
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // just one frame
+                }
+            );
+        });
+    });
+
+    describe('wrapped built-ins', function () {
         it('should capture exceptions from event listeners', function (done) {
             var iframe = this.iframe;
 

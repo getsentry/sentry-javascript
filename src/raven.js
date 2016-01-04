@@ -155,10 +155,7 @@ Raven.prototype = {
         var self = this;
         if (this.isSetup() && !this._isRavenInstalled) {
             TraceKit.report.subscribe(function () {
-                // maintain 'self'
-                if (!self._ignoreOnError) {
-                    self._handleStackInfo.apply(self, arguments);
-                }
+                self._handleOnErrorStackInfo.apply(self, arguments);
             });
             this._wrapBuiltIns();
 
@@ -659,6 +656,13 @@ Raven.prototype = {
             throw new RavenConfigError('Do not specify your private key in the DSN!');
 
         return dsn;
+    },
+
+    _handleOnErrorStackInfo: function(stackInfo, options) {
+        // if we are intentionally ignoring errors via onerror, bail out
+        if (!this._ignoreOnError) {
+            this._handleStackInfo.apply(this, arguments);
+        }
     },
 
     _handleStackInfo: function(stackInfo, options) {

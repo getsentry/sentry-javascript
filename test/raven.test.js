@@ -1264,6 +1264,36 @@ describe('globals', function() {
         });
     });
 
+    describe('handleOnErrorStackInfo', function () {
+        it('should call handleStackInfo if ignoreOnError is falsy', function () {
+            var frame = {url: 'http://example.com'};
+            this.sinon.stub(Raven, '_handleStackInfo');
+
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10,
+                stack: [
+                    frame, frame
+                ]
+            };
+
+            Raven._ignoreOnError = 1;
+            Raven._handleOnErrorStackInfo(stackInfo, {foo: 'bar'});
+
+            assert.equal(Raven._handleStackInfo.callCount, 0);
+
+            Raven._ignoreOnError = 0;
+            Raven._handleOnErrorStackInfo(stackInfo, {foo: 'bar'});
+
+            assert.equal(Raven._handleStackInfo.callCount, 1);
+            assert.deepEqual(Raven._handleStackInfo.lastCall.args, [
+                stackInfo, {foo: 'bar'}
+            ]);
+        });
+    });
+
     describe('handleStackInfo', function() {
         it('should work as advertised', function() {
             var frame = {url: 'http://example.com'};
