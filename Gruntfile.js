@@ -90,8 +90,8 @@ module.exports = function(grunt) {
 
         browserify: {
             options: {
+                banner: grunt.file.read('template/_copyright.js'),
                 browserifyOptions: {
-                    banner: grunt.file.read('template/_copyright.js'),
                     standalone: 'Raven' // umd
 
                 },
