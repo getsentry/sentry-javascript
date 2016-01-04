@@ -110,7 +110,7 @@ describe('integration', function () {
             var iframe = this.iframe;
             iframeExecute(iframe, done,
                 function () {
-                    setTimeout(done, 50);
+                    setTimeout(done);
                     try {
                         foo();
                     } catch (e) {
