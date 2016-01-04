@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+* BUGFIX: Fixed bug where unwrapped errors might be suppressed. See: https://github.com/getsentry/raven-js/pull/447
+
 ## 2.0.0
 
 * CHANGE: Raven.js now wraps functions passed to timer functions, event listeners, and XMLHttpRequest handlers
