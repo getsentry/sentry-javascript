@@ -81,7 +81,7 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '2.0.0',
+    VERSION: '2.0.1',
 
     debug: false,
 
@@ -512,10 +512,11 @@ Raven.prototype = {
 
     /**** Private functions ****/
     _ignoreNextOnError: function () {
+        var self = this;
         this._ignoreOnError += 1;
         setTimeout(function () {
             // onerror should trigger before setTimeout
-            this._ignoreOnError -= 1;
+            self._ignoreOnError -= 1;
         });
     },
 
