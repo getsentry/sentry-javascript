@@ -1,12 +1,11 @@
-var proxyquire = require('proxyquireify');
-var versionify = require('browserify-versionify');
-
 module.exports = function(grunt) {
     "use strict";
 
     var _ = require('lodash');
     var path = require('path');
     var through = require('through2');
+    var proxyquire = require('proxyquireify');
+    var versionify = require('browserify-versionify');
 
     var excludedPlugins = [
         'react-native'
@@ -132,7 +131,8 @@ module.exports = function(grunt) {
                 sourceMappingURL: function (dest) {
                     return path.basename(dest, '.js') + '.map';
                 },
-                preserveComments: 'some',
+                // Only preserve comments that start with (!)
+                preserveComments: /^!/,
                 compress: {
                     dead_code: true,
                     global_defs: {

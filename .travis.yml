@@ -3,4 +3,4 @@ language: node_js
 node_js:
     - "0.12"
 script:
-    - ./node_modules/.bin/grunt test
+    - node_modules/.bin/grunt test
