@@ -149,7 +149,7 @@ functions all allow passing additional data to be tagged onto the error.
     .. code-block:: javascript
 
         Raven.context({
-          extra: {planet: {name: 'Earth'}}}
+          extra: {planet: {name: 'Earth'}}
         }, function () { /* ... */ });
 
         // NOTE: Raven.wrap and Raven.context accept options as first argument
