@@ -5,6 +5,7 @@
     "predef": [
         "console",
         "module",
-        "require"
+        "require",
+        "JSON"
     ]
 }
