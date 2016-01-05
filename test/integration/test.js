@@ -7,9 +7,9 @@ function iframeExecute(iframe, done, execute, assertCallback) {
         } catch (e) {
             done(e);
         }
-    }
+    };
     // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-    iframe.contentWindow.eval('origSetTimeout(' + execute.toString() + ');');
+    iframe.contentWindow.eval('window.originalBuiltIns.setTimeout.call(window, ' + execute.toString() + ');');
 }
 
 function createIframe(done) {
@@ -248,7 +248,7 @@ describe('integration', function () {
                   var xhr = new XMLHttpRequest();
                   xhr.onreadystatechange = function () {
                       foo();
-                  }
+                  };
                   xhr.open('GET', 'example.json');
                   xhr.send();
               },
@@ -257,6 +257,78 @@ describe('integration', function () {
                   // # of frames alter significantly between chrome/firefox & safari
                   assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
               }
+            );
+        });
+
+        it('should capture exceptions from $.fn.ready (jQuery)', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    $(function () {
+                        foo();
+                    });
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    // # of frames alter significantly between chrome/firefox & safari
+                    assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
+                }
+            );
+        });
+    });
+
+    describe('uninstall', function () {
+        it('should restore original built-ins', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+                    Raven.uninstall();
+
+                    window.isRestored = {
+                        setTimeout: originalBuiltIns.setTimeout === setTimeout,
+                        setInterval: originalBuiltIns.setInterval === setInterval,
+                        requestAnimationFrame: originalBuiltIns.requestAnimationFrame === requestAnimationFrame,
+                        xhrProtoOpen: originalBuiltIns.xhrProtoOpen === XMLHttpRequest.prototype.open,
+                        headAddEventListener: originalBuiltIns.headAddEventListener === document.body.addEventListener,
+                        headRemoveEventListener: originalBuiltIns.headRemoveEventListener === document.body.removeEventListener
+                    };
+                },
+                function () {
+                    var isRestored = iframe.contentWindow.isRestored;
+                    assert.isTrue(isRestored.setTimeout);
+                    assert.isTrue(isRestored.setInterval);
+                    assert.isTrue(isRestored.requestAnimationFrame);
+                    assert.isTrue(isRestored.xhrProtoOpen);
+                    assert.isTrue(isRestored.headAddEventListener);
+                    assert.isTrue(isRestored.headRemoveEventListener);
+                }
+            );
+        });
+
+        it('should not restore XMLHttpRequest instance methods', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    var xhr = new XMLHttpRequest();
+                    var origOnReadyStateChange = xhr.onreadystatechange = function () {};
+                    xhr.open('GET', '/foo/');
+                    xhr.abort();
+
+                    Raven.uninstall();
+
+                    window.isOnReadyStateChangeRestored = xhr.onready === origOnReadyStateChange;
+                },
+                function () {
+                    assert.isFalse(iframe.contentWindow.isOnReadyStateChangeRestored);
+                }
             );
         });
     });
