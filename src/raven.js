@@ -56,7 +56,7 @@ function Raven() {
     this._plugins = [];
     this._startTime = now();
 
-    for (var method in this._originalConsole) {
+    for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
     }
 }
@@ -98,7 +98,7 @@ Raven.prototype = {
         if (options) {
             each(options, function(key, value){
                 // tags and extra are special and need to be put into context
-                if (key == 'tags' || key == 'extra') {
+                if (key === 'tags' || key === 'extra') {
                     self._globalContext[key] = value;
                 } else {
                     self._globalOptions[key] = value;
@@ -535,7 +535,9 @@ Raven.prototype = {
             // IE9 if quirks
             try {
                 document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
-            } catch(e) {}
+            } catch(e) {
+                // Do nothing
+            }
         }
     },
 
@@ -555,7 +557,7 @@ Raven.prototype = {
                 // Make a copy of the arguments
                 var args = [].slice.call(arguments);
                 var originalCallback = args[0];
-                if (typeof (originalCallback) === 'function') {
+                if (typeof originalCallback === 'function') {
                     args[0] = self.wrap(originalCallback);
                 }
 
@@ -591,7 +593,9 @@ Raven.prototype = {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
                             }
-                        } catch (err) {} // can sometimes get 'Permission denied to access property "handle Event'
+                        } catch (err) {
+                            // can sometimes get 'Permission denied to access property "handle Event'
+                        }
                         return orig.call(this, evt, self.wrap(fn), capture, secure);
                     };
                 });
@@ -658,7 +662,7 @@ Raven.prototype = {
         return dsn;
     },
 
-    _handleOnErrorStackInfo: function(stackInfo, options) {
+    _handleOnErrorStackInfo: function() {
         // if we are intentionally ignoring errors via onerror, bail out
         if (!this._ignoreOnError) {
             this._handleStackInfo.apply(this, arguments);
@@ -712,9 +716,9 @@ Raven.prototype = {
 
         normalized.in_app = !( // determine if an exception came from outside of our app
             // first we check the global includePaths list.
-            (!!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename)) ||
+            !!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename) ||
             // Now we check for fun, if the function name is Raven or TraceKit
-            /(Raven|TraceKit)\./.test(normalized['function']) ||
+            /(Raven|TraceKit)\./.test(normalized.function) ||
             // finally, we do a last ditch effort and check for raven.min.js
             /raven\.(min\.)?js$/.test(normalized.filename)
         );
@@ -762,7 +766,7 @@ Raven.prototype = {
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
-        var stacktrace, i, fullMessage;
+        var stacktrace, fullMessage;
 
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 

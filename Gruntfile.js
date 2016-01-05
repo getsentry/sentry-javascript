@@ -1,6 +1,6 @@
-module.exports = function(grunt) {
-    "use strict";
+'use strict';
 
+module.exports = function(grunt) {
     var _ = require('lodash');
     var path = require('path');
     var through = require('through2');
@@ -14,12 +14,12 @@ module.exports = function(grunt) {
     var plugins = grunt.option('plugins');
     // Create plugin paths and verify they exist
     plugins = _.map(plugins ? plugins.split(',') : [], function (plugin) {
-        var path = 'plugins/' + plugin + '.js';
+        var p = 'plugins/' + plugin + '.js';
 
-        if(!grunt.file.exists(path))
+        if(!grunt.file.exists(p))
             throw new Error("Plugin '" + plugin + "' not found in plugins directory.");
 
-        return path;
+        return p;
     });
 
     // custom browserify transformer to re-write plugins to
@@ -136,7 +136,7 @@ module.exports = function(grunt) {
                 compress: {
                     dead_code: true,
                     global_defs: {
-                        "TEST": false
+                        'TEST': false
                     }
                 }
             },
@@ -151,11 +151,8 @@ module.exports = function(grunt) {
             all: ['build/**/*.map']
         },
 
-        jshint: {
-            options: {
-                jshintrc: '.jshintrc'
-            },
-            all: ['Gruntfile.js', 'src/**/*.js', 'plugins/**/*.js']
+        eslint: {
+            target: ['Gruntfile.js', 'src/**/*.js', 'plugins/**/*.js']
         },
 
         mocha: {
@@ -270,8 +267,7 @@ module.exports = function(grunt) {
 
     grunt.registerMultiTask('fixSourceMaps', function () {
         this.files.forEach(function (f) {
-            var result;
-            var sources = f.src.filter(function (filepath) {
+            f.src.filter(function (filepath) {
                 if (!grunt.file.exists(filepath)) {
                     grunt.log.warn('Source file "' + filepath + '" not found.');
                     return false;
@@ -294,7 +290,6 @@ module.exports = function(grunt) {
     // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-contrib-copy');
 
@@ -305,6 +300,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-s3');
     grunt.loadNpmTasks('grunt-gitinfo');
     grunt.loadNpmTasks('grunt-sri');
+    grunt.loadNpmTasks('grunt-eslint');
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
@@ -317,7 +313,7 @@ module.exports = function(grunt) {
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
-    grunt.registerTask('test', ['jshint', 'browserify.core', 'browserify:test', 'mocha']);
+    grunt.registerTask('test', ['eslint', 'browserify.core', 'browserify:test', 'mocha']);
 
     // Webserver tasks
     grunt.registerTask('run:test', ['connect:test']);
