@@ -55,6 +55,7 @@ function Raven() {
     this._originalConsoleMethods = {};
     this._plugins = [];
     this._startTime = now();
+    this._wrappedBuiltIns = [];
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -267,6 +268,9 @@ Raven.prototype = {
      */
     uninstall: function() {
         TraceKit.report.uninstall();
+
+        this._restoreBuiltIns();
+
         this._isRavenInstalled = false;
 
         return this;
@@ -547,9 +551,12 @@ Raven.prototype = {
     _wrapBuiltIns: function() {
         var self = this;
 
-        function fill(obj, name, replacement) {
+        function fill(obj, name, replacement, noUndo) {
             var orig = obj[name];
             obj[name] = replacement(orig);
+            if (!noUndo) {
+                self._wrappedBuiltIns.push([obj, name, orig]);
+            }
         }
 
         function wrapTimeFn(orig) {
@@ -611,26 +618,42 @@ Raven.prototype = {
         var origOpen;
         if ('XMLHttpRequest' in window) {
             origOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function (data) { // preserve arity
-                var xhr = this;
-                'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
-                    if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
-                        fill(xhr, prop, function (orig) {
-                            return self.wrap(orig);
-                        });
-                    }
-                });
-                origOpen.apply(this, arguments);
-            };
+            fill(XMLHttpRequest.prototype, 'open', function(origOpen) {
+                return function (data) { // preserve arity
+                    var xhr = this;
+                    'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
+                        if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
+                            fill(xhr, prop, function (orig) {
+                                return self.wrap(orig);
+                            }, true /* noUndo */); // don't track filled methods on XHR instances
+                        }
+                    });
+                    origOpen.apply(this, arguments);
+                };
+            });
         }
 
         var $ = window.jQuery || window.$;
-        var origReady;
         if ($ && $.fn && $.fn.ready) {
-            origReady = $.fn.ready;
-            $.fn.ready = function ravenjQueryReadyWrapper(fn) {
-                return origReady.call(this, self.wrap(fn));
-            };
+            fill($.fn, 'ready', function (orig) {
+                return function (fn) {
+                    orig.call(this, self.wrap(fn));
+                };
+            });
+        }
+    },
+
+    _restoreBuiltIns: function () {
+        // restore any wrapped builtins
+        var builtin;
+        while (this._wrappedBuiltIns.length) {
+            builtin = this._wrappedBuiltIns.shift();
+
+            var obj = builtin[0],
+              name = builtin[1],
+              orig = builtin[2];
+
+            obj[name] = orig;
         }
     },
 

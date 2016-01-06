@@ -36,14 +36,25 @@
         };
     }());
   </script>
+  <script src="../../node_modules/jquery/dist/jquery.js"></script>
   <script src="../../build/raven.js"></script>
   <script>
     // stub _makeRequest so we don't actually transmit any data
     Raven._makeRequest = function () {};
 
-    // get a reference to the original, unwrapped setTimeout (used for
-    // making "clean" stack traces that don't originate from mocha)
-    window.origSetTimeout = setTimeout;
+    // store references to original, unwrapped built-ins in order to:
+    // - get a clean, unwrapped setTimeout (so stack traces don't include
+    //   frames from mocha)
+    // - make assertions re: wrapped functions
+
+    window.originalBuiltIns  = {
+      setTimeout: setTimeout,
+      setInterval: setInterval,
+      requestAnimationFrame: requestAnimationFrame,
+      xhrProtoOpen: XMLHttpRequest.prototype.open,
+      headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
+      headRemoveEventListener: document.head.removeEventListener
+    };
 
     window.ravenData = [];
     Raven.config('https://public@example.com/1', {
@@ -62,3 +73,5 @@
   </script>
 </head>
 <body>
+</body>
+</html>
