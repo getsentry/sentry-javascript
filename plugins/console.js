@@ -13,8 +13,8 @@ function consolePlugin(Raven, console) {
         logLevels = ['debug', 'info', 'warn', 'error'],
         level = logLevels.pop();
 
-    var logForGivenLevel = function(level) {
-        var originalConsoleLevel = console[level];
+    var logForGivenLevel = function(l) {
+        var originalConsoleLevel = console[l];
 
         // warning level is the only level that doesn't map up
         // correctly with what Sentry expects.

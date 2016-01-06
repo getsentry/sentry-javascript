@@ -25,9 +25,9 @@ function angularPlugin(Raven, angular) {
             ['Raven', '$delegate', exceptionHandler]);
     }
 
-    function exceptionHandler(Raven, $delegate) {
+    function exceptionHandler(R, $delegate) {
         return function (ex, cause) {
-            Raven.captureException(ex, {
+            R.captureException(ex, {
                 extra: { cause: cause }
             });
             $delegate(ex, cause);
