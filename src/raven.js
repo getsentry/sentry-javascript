@@ -615,9 +615,7 @@ Raven.prototype = {
             }
         });
 
-        var origOpen;
         if ('XMLHttpRequest' in window) {
-            origOpen = XMLHttpRequest.prototype.open;
             fill(XMLHttpRequest.prototype, 'open', function(origOpen) {
                 return function (data) { // preserve arity
                     var xhr = this;
