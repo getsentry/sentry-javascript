@@ -107,6 +107,8 @@ Raven.prototype = {
             });
         }
 
+        this._dsn = dsn;
+
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         this._globalOptions.ignoreErrors.push(/^Script error\.?$/);
@@ -123,12 +125,13 @@ Raven.prototype = {
 
         // assemble the endpoint from the uri pieces
         this._globalServer = '//' + uri.host +
-                      (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + this._globalProject + '/store/';
+                      (uri.port ? ':' + uri.port : '');
 
         if (uri.protocol) {
             this._globalServer = uri.protocol + ':' + this._globalServer;
         }
+        this._globalEndpoint = this._globalServer +
+            '/' + path + 'api/' + this._globalProject + '/store/';
 
         if (this._globalOptions.fetchContext) {
             TraceKit.remoteFetching = true;
@@ -496,6 +499,35 @@ Raven.prototype = {
         if (RavenConfig) {
             this.config(RavenConfig.dsn, RavenConfig.config).install();
         }
+    },
+
+    showReportDialog: function (options) {
+        if (!window.document) // doesn't work without a document (React native)
+            return;
+
+        options = options || {};
+
+        var lastEventId = options.eventId || this.lastEventId();
+        if (!lastEventId)
+            return;
+
+        var encode = encodeURIComponent;
+        var qs = '';
+        qs += '?eventId=' + encode(lastEventId);
+        qs += '&dsn=' + encode(this._dsn || '');
+
+        var user = this._globalContext.user;
+        if (user) {
+            if (user.name)
+                qs += '&name=' + encode(user.name);
+            if (user.email)
+                qs += '&email=' + encode(user.email);
+        }
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = this._globalServer + '/api/embed/error-page/' + qs;
+        document.getElementsByTagName('body')[0].appendChild(script);
     },
 
     /**** Private functions ****/
@@ -933,8 +965,9 @@ Raven.prototype = {
 
         if (!this.isSetup()) return;
 
+        var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
-            url: this._globalServer,
+            url: url,
             auth: {
                 sentry_version: '7',
                 sentry_client: 'raven-js/' + this.VERSION,
@@ -945,13 +978,13 @@ Raven.prototype = {
             onSuccess: function success() {
                 self._triggerEvent('success', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             },
             onError: function failure() {
                 self._triggerEvent('failure', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             }
         });

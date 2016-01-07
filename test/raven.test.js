@@ -1013,7 +1013,7 @@ describe('globals', function() {
                 maxMessageLength: 100,
                 release: 'abc123',
             };
-            Raven._globalServer = 'http://localhost/store/';
+            Raven._globalEndpoint = 'http://localhost/store/';
             Raven._globalOptions = globalOptions;
 
             Raven._send({message: 'bar'});
@@ -1226,7 +1226,7 @@ describe('globals', function() {
 
         it('should populate crossOrigin based on options', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1239,7 +1239,7 @@ describe('globals', function() {
 
         it('should populate crossOrigin if empty string', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1252,7 +1252,7 @@ describe('globals', function() {
 
         it('should not populate crossOrigin if falsey', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1487,7 +1487,7 @@ describe('Raven (public API)', function() {
             Raven.afterLoad();
 
             assert.equal(Raven._globalKey, 'random');
-            assert.equal(Raven._globalServer, 'http://some.other.server:80/api/2/store/');
+            assert.equal(Raven._globalEndpoint, 'http://some.other.server:80/api/2/store/');
 
             assert.equal(Raven._globalOptions.some, 'config');
             assert.equal(Raven._globalProject, '2');
@@ -1504,7 +1504,7 @@ describe('Raven (public API)', function() {
             assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
 
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, 'http://example.com:80/api/2/store/');
+            assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
             assert.equal(Raven._globalOptions.foo, 'bar');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
@@ -1514,7 +1514,7 @@ describe('Raven (public API)', function() {
             Raven.config('//abc@example.com/2');
 
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, '//example.com/api/2/store/');
+            assert.equal(Raven._globalEndpoint, '//example.com/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
@@ -1522,7 +1522,7 @@ describe('Raven (public API)', function() {
         it('should work should work at a non root path', function() {
             Raven.config('//abc@example.com/sentry/2');
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, '//example.com/sentry/api/2/store/');
+            assert.equal(Raven._globalEndpoint, '//example.com/sentry/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });

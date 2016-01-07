@@ -40,3 +40,8 @@ function testOptions() {
 function throwString() {
     throw 'oops';
 }
+
+function showDialog() {
+    broken();
+    Raven.showReportDialog();
+}

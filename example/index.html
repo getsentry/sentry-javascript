@@ -3,8 +3,7 @@
 <head>
     <title>Scratch Disk</title>
 </head>
-<script src="../vendor/TraceKit/tracekit.js"></script>
-<script src="../src/raven.js"></script>
+<script src="../dist/raven.js"></script>
 <!-- <script src="scratch.min.js"></script> -->
 <script src="scratch.js" crossorigin></script>
 <script src="file.min.js" crossorigin></script>
@@ -14,7 +13,8 @@
 //awesome
 Raven.config('http://50dbe04cd1224d439e9c49bf1d0464df@localhost:8000/1', {
     whitelistUrls: [
-        /localhost/
+        /localhost/,
+        /127\.0\.0\.1/
     ],
     dataCallback: function(data) {
         console.log(data);
@@ -25,7 +25,8 @@ Raven.config('http://50dbe04cd1224d439e9c49bf1d0464df@localhost:8000/1', {
 Raven.setUserContext({
     email: 'matt@ydekproductions.com',
     id: 5
-})
+});
+
 
 </script>
 <body>
@@ -36,6 +37,7 @@ Raven.setUserContext({
 <button onclick="derp()">window.onerror</button>
 <button onclick="testOptions()">test options</button>
 <button onclick="throwString()">throw string</button>
+<button onclick="showDialog()">show dialog</button>
 
 </body>
 </html>
