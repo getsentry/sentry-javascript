@@ -1,4 +1,3 @@
-/*jshint mocha:true*/
 /*global Mocha, assert*/
 'use strict';
 

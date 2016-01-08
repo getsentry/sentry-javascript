@@ -235,7 +235,6 @@ Raven.prototype = {
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
-                /*jshint -W040*/
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();

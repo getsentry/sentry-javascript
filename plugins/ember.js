@@ -6,7 +6,6 @@
 'use strict';
 
 function emberPlugin(Raven, Ember) {
-    /*jshint validthis:true*/
     Ember = Ember || window.Ember;
 
     // quit if Ember isn't on the page

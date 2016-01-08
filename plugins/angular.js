@@ -9,7 +9,6 @@
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.+?)\n(\S+)$/;
 
 function angularPlugin(Raven, angular) {
-    /*jshint validthis:true*/
     angular = angular || window.angular;
 
     if (!angular) return;
