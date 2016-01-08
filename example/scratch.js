@@ -45,3 +45,19 @@ function showDialog() {
     broken();
     Raven.showReportDialog();
 }
+
+function a() { b(); }
+function b() { c(); }
+function c() { d(); }
+function d() { e(); }
+function e() { f(); }
+function f() { g(); }
+function g() { h(); }
+function h() { i(); }
+function i() { j(); }
+function j() { k(); }
+function k() { l(); }
+function l() { m(); }
+function m() { n(); }
+function n() { o(); }
+function o() { throw new Error('dang'); }

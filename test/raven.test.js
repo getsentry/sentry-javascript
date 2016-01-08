@@ -1449,6 +1449,29 @@ describe('globals', function() {
                 'new <anonymous>', 'hey', 'http://example.com', 10, [], undefined
             ]);
         });
+
+        it('should trim number of frames based on stackTraceLimit', function() {
+            var frame = {url: 'http://example.com'};
+            this.sinon.stub(Raven, '_normalizeFrame').returns(frame);
+            this.sinon.stub(Raven, '_processException');
+
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10,
+                stack: [
+                  frame, frame
+                ]
+            };
+
+            Raven._globalOptions.stackTraceLimit = 1;
+
+            Raven._handleStackInfo(stackInfo);
+            assert.deepEqual(Raven._processException.lastCall.args, [
+                'Matt', 'hey', 'http://example.com', 10, [frame], undefined
+            ]);
+        });
     });
 });
 
