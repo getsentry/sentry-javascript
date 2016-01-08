@@ -617,7 +617,7 @@ Raven.prototype = {
         if (window.requestAnimationFrame) {
             fill(window, 'requestAnimationFrame', function (orig) {
                 return function (cb) {
-                    orig(self.wrap(cb));
+                    return orig(self.wrap(cb));
                 };
             });
         }
