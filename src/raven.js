@@ -107,6 +107,8 @@ Raven.prototype = {
             });
         }
 
+        this._dsn = dsn;
+
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
         this._globalOptions.ignoreErrors.push(/^Script error\.?$/);
@@ -121,14 +123,10 @@ Raven.prototype = {
         this._globalKey = uri.user;
         this._globalProject = uri.path.substr(lastSlash + 1);
 
-        // assemble the endpoint from the uri pieces
-        this._globalServer = '//' + uri.host +
-                      (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + this._globalProject + '/store/';
+        this._globalServer = this._getGlobalServer(uri);
 
-        if (uri.protocol) {
-            this._globalServer = uri.protocol + ':' + this._globalServer;
-        }
+        this._globalEndpoint = this._globalServer +
+            '/' + path + 'api/' + this._globalProject + '/store/';
 
         if (this._globalOptions.fetchContext) {
             TraceKit.remoteFetching = true;
@@ -498,6 +496,41 @@ Raven.prototype = {
         }
     },
 
+    showReportDialog: function (options) {
+        if (!window.document) // doesn't work without a document (React native)
+            return;
+
+        options = options || {};
+
+        var lastEventId = options.eventId || this.lastEventId();
+        if (!lastEventId) {
+            throw new RavenConfigError('Missing eventId');
+        }
+
+        var dsn = options.dsn || this._dsn;
+        if (!dsn) {
+            throw new RavenConfigError('Missing DSN');
+        }
+
+        var encode = encodeURIComponent;
+        var qs = '';
+        qs += '?eventId=' + encode(lastEventId);
+        qs += '&dsn=' + encode(dsn);
+
+        var user = options.user || this._globalContext.user;
+        if (user) {
+            if (user.name)  qs += '&name=' + encode(user.name);
+            if (user.email) qs += '&email=' + encode(user.email);
+        }
+
+        var globalServer = this._getGlobalServer(this._parseDSN(dsn));
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = globalServer + '/api/embed/error-page/' + qs;
+        (document.head || document.body).appendChild(script);
+    },
+
     /**** Private functions ****/
     _ignoreNextOnError: function () {
         var self = this;
@@ -681,6 +714,17 @@ Raven.prototype = {
             throw new RavenConfigError('Do not specify your private key in the DSN!');
 
         return dsn;
+    },
+
+    _getGlobalServer: function(uri) {
+        // assemble the endpoint from the uri pieces
+        var globalServer = '//' + uri.host +
+            (uri.port ? ':' + uri.port : '');
+
+        if (uri.protocol) {
+            globalServer = uri.protocol + ':' + globalServer;
+        }
+        return globalServer;
     },
 
     _handleOnErrorStackInfo: function() {
@@ -933,8 +977,9 @@ Raven.prototype = {
 
         if (!this.isSetup()) return;
 
+        var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
-            url: this._globalServer,
+            url: url,
             auth: {
                 sentry_version: '7',
                 sentry_client: 'raven-js/' + this.VERSION,
@@ -945,13 +990,13 @@ Raven.prototype = {
             onSuccess: function success() {
                 self._triggerEvent('success', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             },
             onError: function failure() {
                 self._triggerEvent('failure', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             }
         });

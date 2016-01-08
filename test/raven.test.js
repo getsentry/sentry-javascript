@@ -5,6 +5,7 @@
 var proxyquire = require('proxyquireify')(require);
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+
 var _Raven = proxyquire('../src/raven', {
     './utils': {
         // patched to return a predictable result
@@ -1013,7 +1014,7 @@ describe('globals', function() {
                 maxMessageLength: 100,
                 release: 'abc123',
             };
-            Raven._globalServer = 'http://localhost/store/';
+            Raven._globalEndpoint = 'http://localhost/store/';
             Raven._globalOptions = globalOptions;
 
             Raven._send({message: 'bar'});
@@ -1226,7 +1227,7 @@ describe('globals', function() {
 
         it('should populate crossOrigin based on options', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1239,7 +1240,7 @@ describe('globals', function() {
 
         it('should populate crossOrigin if empty string', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1252,7 +1253,7 @@ describe('globals', function() {
 
         it('should not populate crossOrigin if falsey', function() {
             Raven._makeImageRequest({
-                url: Raven._globalServer,
+                url: Raven._globalEndpoint,
                 auth: {lol: '1'},
                 data: {foo: 'bar'},
                 options: {
@@ -1487,7 +1488,7 @@ describe('Raven (public API)', function() {
             Raven.afterLoad();
 
             assert.equal(Raven._globalKey, 'random');
-            assert.equal(Raven._globalServer, 'http://some.other.server:80/api/2/store/');
+            assert.equal(Raven._globalEndpoint, 'http://some.other.server:80/api/2/store/');
 
             assert.equal(Raven._globalOptions.some, 'config');
             assert.equal(Raven._globalProject, '2');
@@ -1504,7 +1505,7 @@ describe('Raven (public API)', function() {
             assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
 
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, 'http://example.com:80/api/2/store/');
+            assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
             assert.equal(Raven._globalOptions.foo, 'bar');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
@@ -1514,7 +1515,7 @@ describe('Raven (public API)', function() {
             Raven.config('//abc@example.com/2');
 
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, '//example.com/api/2/store/');
+            assert.equal(Raven._globalEndpoint, '//example.com/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
@@ -1522,7 +1523,7 @@ describe('Raven (public API)', function() {
         it('should work should work at a non root path', function() {
             Raven.config('//abc@example.com/sentry/2');
             assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalServer, '//example.com/sentry/api/2/store/');
+            assert.equal(Raven._globalEndpoint, '//example.com/sentry/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
@@ -2026,6 +2027,82 @@ describe('Raven (public API)', function() {
             assert.isTrue(Raven.isSetup());
             isSetup.returns(false);
             assert.isFalse(Raven.isSetup());
+        });
+    });
+
+    describe('.showReportDialog', function () {
+        it('should throw a RavenConfigError if no eventId', function () {
+            assert.throws(function () {
+                Raven.showReportDialog({
+                    dsn: SENTRY_DSN // dsn specified via options
+                });
+            }, 'Missing eventId');
+
+            Raven.config(SENTRY_DSN);
+            assert.throws(function () {
+                Raven.showReportDialog(); // dsn specified via Raven.config
+            }, 'Missing eventId');
+        });
+
+        it('should throw a RavenConfigError if no dsn', function () {
+            assert.throws(function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123'
+                });
+            }, 'Missing DSN');
+        });
+
+        describe('script tag insertion', function () {
+            beforeEach(function () {
+                this.appendChildStub = this.sinon.stub(document.head, 'appendChild');
+            });
+
+            it('should specify embed API endpoint and basic query string (DSN, eventId)', function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123',
+                    dsn: SENTRY_DSN
+                });
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2');
+
+                this.appendChildStub.reset();
+
+                Raven
+                    .config(SENTRY_DSN)
+                    .captureException(new Error('foo')) // generates lastEventId
+                    .showReportDialog();
+
+                this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2');
+            });
+
+            it('should specify embed API endpoint and full query string (DSN, eventId, user)', function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123',
+                    dsn: SENTRY_DSN,
+                    user: {
+                        name: 'Average Normalperson',
+                        email: 'an@example.com'
+                    }
+                });
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson&email=an%40example.com');
+
+                this.appendChildStub.reset();
+                Raven
+                    .config(SENTRY_DSN)
+                    .captureException(new Error('foo')) // generates lastEventId
+                    .setUserContext({
+                        name: 'Average Normalperson 2',
+                        email: 'an2@example.com'
+                    })
+                    .showReportDialog();
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson%202&email=an2%40example.com');
+            });
         });
     });
 });
