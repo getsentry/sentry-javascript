@@ -5,6 +5,7 @@
 var proxyquire = require('proxyquireify')(require);
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+
 var _Raven = proxyquire('../src/raven', {
     './utils': {
         // patched to return a predictable result
@@ -2026,6 +2027,82 @@ describe('Raven (public API)', function() {
             assert.isTrue(Raven.isSetup());
             isSetup.returns(false);
             assert.isFalse(Raven.isSetup());
+        });
+    });
+
+    describe('.showReportDialog', function () {
+        it('should throw a RavenConfigError if no eventId', function () {
+            assert.throws(function () {
+                Raven.showReportDialog({
+                    dsn: SENTRY_DSN // dsn specified via options
+                });
+            }, 'Missing eventId');
+
+            Raven.config(SENTRY_DSN);
+            assert.throws(function () {
+                Raven.showReportDialog(); // dsn specified via Raven.config
+            }, 'Missing eventId');
+        });
+
+        it('should throw a RavenConfigError if no dsn', function () {
+            assert.throws(function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123'
+                });
+            }, 'Missing DSN');
+        });
+
+        describe('script tag insertion', function () {
+            beforeEach(function () {
+                this.appendChildStub = this.sinon.stub(document.head, 'appendChild');
+            });
+
+            it('should specify embed API endpoint and basic query string (DSN, eventId)', function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123',
+                    dsn: SENTRY_DSN
+                });
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2');
+
+                this.appendChildStub.reset();
+
+                Raven
+                    .config(SENTRY_DSN)
+                    .captureException(new Error('foo')) // generates lastEventId
+                    .showReportDialog();
+
+                this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2');
+            });
+
+            it('should specify embed API endpoint and full query string (DSN, eventId, user)', function () {
+                Raven.showReportDialog({
+                    eventId: 'abc123',
+                    dsn: SENTRY_DSN,
+                    user: {
+                        name: 'Average Normalperson',
+                        email: 'an@example.com'
+                    }
+                });
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson&email=an%40example.com');
+
+                this.appendChildStub.reset();
+                Raven
+                    .config(SENTRY_DSN)
+                    .captureException(new Error('foo')) // generates lastEventId
+                    .setUserContext({
+                        name: 'Average Normalperson 2',
+                        email: 'an2@example.com'
+                    })
+                    .showReportDialog();
+
+                var script = this.appendChildStub.getCall(0).args[0];
+                assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson%202&email=an2%40example.com');
+            });
         });
     });
 });

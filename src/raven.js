@@ -123,13 +123,8 @@ Raven.prototype = {
         this._globalKey = uri.user;
         this._globalProject = uri.path.substr(lastSlash + 1);
 
-        // assemble the endpoint from the uri pieces
-        this._globalServer = '//' + uri.host +
-                      (uri.port ? ':' + uri.port : '');
+        this._globalServer = this._getGlobalServer(uri);
 
-        if (uri.protocol) {
-            this._globalServer = uri.protocol + ':' + this._globalServer;
-        }
         this._globalEndpoint = this._globalServer +
             '/' + path + 'api/' + this._globalProject + '/store/';
 
@@ -508,26 +503,32 @@ Raven.prototype = {
         options = options || {};
 
         var lastEventId = options.eventId || this.lastEventId();
-        if (!lastEventId)
-            return;
+        if (!lastEventId) {
+            throw new RavenConfigError('Missing eventId');
+        }
+
+        var dsn = options.dsn || this._dsn;
+        if (!dsn) {
+            throw new RavenConfigError('Missing DSN');
+        }
 
         var encode = encodeURIComponent;
         var qs = '';
         qs += '?eventId=' + encode(lastEventId);
-        qs += '&dsn=' + encode(this._dsn || '');
+        qs += '&dsn=' + encode(dsn);
 
-        var user = this._globalContext.user;
+        var user = options.user || this._globalContext.user;
         if (user) {
-            if (user.name)
-                qs += '&name=' + encode(user.name);
-            if (user.email)
-                qs += '&email=' + encode(user.email);
+            if (user.name)  qs += '&name=' + encode(user.name);
+            if (user.email) qs += '&email=' + encode(user.email);
         }
+
+        var globalServer = this._getGlobalServer(this._parseDSN(dsn));
 
         var script = document.createElement('script');
         script.async = true;
-        script.src = this._globalServer + '/api/embed/error-page/' + qs;
-        document.getElementsByTagName('body')[0].appendChild(script);
+        script.src = globalServer + '/api/embed/error-page/' + qs;
+        (document.head || document.body).appendChild(script);
     },
 
     /**** Private functions ****/
@@ -713,6 +714,17 @@ Raven.prototype = {
             throw new RavenConfigError('Do not specify your private key in the DSN!');
 
         return dsn;
+    },
+
+    _getGlobalServer: function(uri) {
+        // assemble the endpoint from the uri pieces
+        var globalServer = '//' + uri.host +
+            (uri.port ? ':' + uri.port : '');
+
+        if (uri.protocol) {
+            globalServer = uri.protocol + ':' + globalServer;
+        }
+        return globalServer;
     },
 
     _handleOnErrorStackInfo: function() {
