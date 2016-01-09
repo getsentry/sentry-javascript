@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.2
+* BUGFIX: Fixed bug where wrapped requestAnimationFrame didn't return callback ID. See: https://github.com/getsentry/raven-js/pull/460
+
 ## 2.0.1
 * BUGFIX: Fixed bug where unwrapped errors might be suppressed. See: https://github.com/getsentry/raven-js/pull/447
 
