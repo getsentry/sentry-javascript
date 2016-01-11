@@ -46,6 +46,22 @@ function showDialog() {
     Raven.showReportDialog();
 }
 
+function blobExample() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'stack.js');
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            var blob = new Blob([xhr.responseText], {type: 'application/javascript'});
+            var url = URL.createObjectURL(blob);
+
+            var script = document.createElement('script');
+            script.src = url;
+            document.head.appendChild(script);
+        }
+    };
+    xhr.send();
+}
+
 function a() { b(); }
 function b() { c(); }
 function c() { d(); }
