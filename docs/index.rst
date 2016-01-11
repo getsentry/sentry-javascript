@@ -104,6 +104,47 @@ you provide source maps in addition to your minified files that data
 becomes available in Sentry.  For more information see
 :ref:`raven-js-sourcemaps`.
 
+Browser Compatibility
+---------------------
+
+Raven.js supports all major browsers. In older browsers, error reports collected
+by Raven.js may have a degraded level of detail – for example, missing stack trace data
+or missing source code column numbers.
+
+The table below describes what features are available in each supported browser:
+
++-------------------------+--------------+----------------+-------------+
+| Browser                 | Line numbers | Column numbers | Stack trace |
++=========================+==============+================+=============+
+| Chrome                  | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| Firefox                 | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| Edge                    | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| IE 11                   | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| IE 10                   | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| IE 9                    | ✓            | ✓              |             |
++-------------------------+--------------+----------------+-------------+
+| IE 8                    | ✓            |                |             |
++-------------------------+--------------+----------------+-------------+
+| Safari 6+               | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| iOS 6+                  | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| Opera 15+               | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| Android Browser 4.4     | ✓            | ✓              | ✓           |
++-------------------------+--------------+----------------+-------------+
+| Android Browser 4 - 4.3 | ✓            |                |             |
++-------------------------+--------------+----------------+-------------+
+
+For unlisted browsers (e.g. IE7), Raven.js is designed to fail gracefully. Including
+it on your page should have no effect on your page; it will just not collect
+and report uncaught exceptions.
+
 Deep Dive
 ---------
 
