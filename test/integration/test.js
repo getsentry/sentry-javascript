@@ -244,12 +244,20 @@ describe('integration', function () {
 
             iframeExecute(iframe, done,
               function () {
-                  setTimeout(done);
                   var xhr = new XMLHttpRequest();
+
+                  // intentionally assign event handlers *after* XMLHttpRequest.prototype.open,
+                  // since this is what jQuery does
+                  // https://github.com/jquery/jquery/blob/master/src/ajax/xhr.js#L37
+
+                  xhr.open('GET', 'example.json')
                   xhr.onreadystatechange = function () {
+                      setTimeout(done);
+                      // replace onreadystatechange with no-op so exception doesn't
+                      // fire more than once as XHR changes loading state
+                      xhr.onreadystatechange = function () {};
                       foo();
                   };
-                  xhr.open('GET', 'example.json');
                   xhr.send();
               },
               function () {
