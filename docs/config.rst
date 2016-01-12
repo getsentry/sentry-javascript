@@ -1,29 +1,26 @@
 Configuration
 =============
 
-We must first configure the client to allow certain hosts to report
-errors.  This prevents abuse so somebody else couldn't start sending
-errors to your account from their site.
+To get started, you need to configure Raven.js to use your Sentry DSN:
 
-**Note**: Without setting this, all messages will be rejected!
-
-This can be found under the *Project Details* page in Sentry.
-
-Now need to set up Raven.js to use your Sentry DSN.
-
-.. code-block:: javascript
+.. sourcecode:: javascript
 
     Raven.config('___PUBLIC_DSN___').install()
 
 At this point, Raven is ready to capture any uncaught exception.
 
-Although, this technically works, this is not going to yield the greatest
-results. It's highly recommended to next check out :doc:`usage`.
-
 Optional settings
 -----------------
 
-``Raven.config()`` can be passed an optional object for extra configuration.
+``Raven.config()`` can optionally be passed an additional argument for extra configuration:
+
+.. sourcecode:: javascript
+
+    Raven.config('___PUBLIC_DSN___', {
+        release: '1.3.0'
+    }).install()
+
+Those configuration options are documented below:
 
 .. describe:: logger
 

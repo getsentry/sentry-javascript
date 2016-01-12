@@ -28,17 +28,6 @@ scripts.  For all details see :doc:`install`.
 
     <script src="https://cdn.ravenjs.com/2.0.4/raven.min.js"></script>
 
-Configuring the Project
------------------------
-
-We must first configure Sentry to allow certain hosts to report errors.
-This prevents abuse so somebody else couldn't start sending errors to your
-account from their site.
-
-This can be found under the **Project Settings** page in Sentry. You'll need
-to add each domain that you plan to report from into the **Allowed Domains**
-box. Alternatively if you're not worried about CORS security, you can simply
-enter ``*`` to whitelist all domains.
 
 Configuring the Client
 ----------------------
