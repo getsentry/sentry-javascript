@@ -94,9 +94,9 @@ that happen. You can do this via the ``shouldSendCallback`` setting:
 jQuery AJAX Error Reporting
 ---------------------------
 
-For automatically AJAX errors from jQuery the following tip might come in
-helpful.  However depending on the type of request you might have to do
-slightly different things.
+For automatically reporting AJAX errors from jQuery, the following tips
+might be helpful, however depending on the type of request you might
+have to do slightly different things.
 
 Same Origin
 -----------
@@ -139,7 +139,7 @@ You can use this event to globally handle Ajax errors:
 Cross Origin
 ------------
 
-Due security reasons most web browsers are not giving permissions to
+Due to security reasons most web browsers are not giving permissions to
 access error messages for cross domain scripts. This is not jQuery issue
 but an overall javascript limitation.
 
