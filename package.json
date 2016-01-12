@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "license": "BSD-2-Clause",
   "homepage": "https://getsentry.com",
   "scripts": {

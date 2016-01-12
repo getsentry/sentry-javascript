@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.5
+* BUGFIX: Fixed exception thrown by React Native plugin. See: https://github.com/getsentry/raven-js/issues/468
+* BUGFIX: Fixed "pre-built JavaScript" warning when loading Raven.js via Webpack: https://github.com/getsentry/raven-js/issues/465
+
 ## 2.0.4
 * BUGFIX: Fixed bug where Raven.VERSION was not set when required as a CommonJS module.
 

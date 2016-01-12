@@ -81,7 +81,11 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '2.0.4',
+    // Hardcode version string so that raven source can be loaded directly via
+    // webpack (using a build step causes webpack #1617). Grunt verifies that
+    // this value matches package.json during build.
+    //   See: https://github.com/getsentry/raven-js/issues/465
+    VERSION: '2.0.5',
 
     debug: false,
 
