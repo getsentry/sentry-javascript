@@ -6,6 +6,7 @@ module.exports = function(grunt) {
     var through = require('through2');
     var proxyquire = require('proxyquireify');
     var versionify = require('browserify-versionify');
+    var derequire = require('derequire/plugin');
 
     var excludedPlugins = [
         'react-native'
@@ -98,7 +99,14 @@ module.exports = function(grunt) {
             },
             core: {
                 src: 'src/singleton.js',
-                dest: 'build/raven.js'
+                dest: 'build/raven.js',
+                options: {
+                    plugin: [ derequire ],
+                    transform: [
+                        [ versionify ],
+                        [ new AddPluginBrowserifyTransformer() ]
+                    ]
+                }
             },
             plugins: {
                 files: pluginConcatFiles,
