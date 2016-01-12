@@ -95,18 +95,12 @@ module.exports = function(grunt) {
                     standalone: 'Raven' // umd
 
                 },
-                transform: [versionify]
+                transform: [versionify],
+                plugin: [ derequire ]
             },
             core: {
                 src: 'src/singleton.js',
-                dest: 'build/raven.js',
-                options: {
-                    plugin: [ derequire ],
-                    transform: [
-                        [ versionify ],
-                        [ new AddPluginBrowserifyTransformer() ]
-                    ]
-                }
+                dest: 'build/raven.js'
             },
             plugins: {
                 files: pluginConcatFiles,
