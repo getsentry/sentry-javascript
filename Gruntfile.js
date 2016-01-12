@@ -261,9 +261,16 @@ module.exports = function(grunt) {
     // Custom Grunt tasks
     grunt.registerTask('version', function() {
         var pkg = grunt.config.get('pkg');
+
+        // Verify version string in source code matches what's in package.json
+        var Raven = require('./src/raven');
+        if (Raven.prototype.VERSION !== pkg.version) {
+            return grunt.util.error('Mismatched version in src/raven.js: ' + Raven.prototype.VERSION +
+                ' (should be ' + pkg.version + ')');
+        }
+
         if (grunt.option('dev')) {
             pkg.release = 'dev';
-            pkg.version = grunt.config.get('gitinfo').local.branch.current.shortSHA;
         } else {
             pkg.release = pkg.version;
         }
