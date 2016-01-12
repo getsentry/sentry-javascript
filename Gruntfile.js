@@ -7,6 +7,7 @@ module.exports = function(grunt) {
     var _ = require('lodash');
     var path = require('path');
     var through = require('through2');
+    var derequire = require('derequire/plugin');
 
     var excludedPlugins = [
         'react-native'
@@ -99,7 +100,14 @@ module.exports = function(grunt) {
             },
             core: {
                 src: 'src/singleton.js',
-                dest: 'build/raven.js'
+                dest: 'build/raven.js',
+                options: {
+                    plugin: [ derequire ],
+                    transform: [
+                        [ versionify ],
+                        [ new AddPluginBrowserifyTransformer() ]
+                    ]
+                }
             },
             plugins: {
                 files: pluginConcatFiles,
