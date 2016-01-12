@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 'use strict';
 
 function RavenConfigError(message) {
@@ -10,13 +10,13 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
-},{}],2:[function(require,module,exports){
+},{}],2:[function(_dereq_,module,exports){
 /*global XDomainRequest:false*/
 'use strict';
 
-var TraceKit = require('../vendor/TraceKit/tracekit');
-var RavenConfigError = require('./configError');
-var utils = require('./utils');
+var TraceKit = _dereq_('../vendor/TraceKit/tracekit');
+var RavenConfigError = _dereq_('./configError');
+var utils = _dereq_('./utils');
 
 var isFunction = utils.isFunction;
 var isUndefined = utils.isUndefined;
@@ -81,7 +81,7 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '2.0.2',
+    VERSION: '2.0.4',
 
     debug: false,
 
@@ -1031,7 +1031,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 
 module.exports = Raven;
 
-},{"../vendor/TraceKit/tracekit":5,"./configError":1,"./utils":4}],3:[function(require,module,exports){
+},{"../vendor/TraceKit/tracekit":5,"./configError":1,"./utils":4}],3:[function(_dereq_,module,exports){
 /**
  * Enforces a single instance of the Raven client, and the
  * main entry point for Raven. If you are a consumer of the
@@ -1040,7 +1040,7 @@ module.exports = Raven;
 
 'use strict';
 
-var RavenConstructor = require('./raven');
+var RavenConstructor = _dereq_('./raven');
 
 var _Raven = window.Raven;
 
@@ -1061,7 +1061,7 @@ Raven.afterLoad();
 
 module.exports = Raven;
 
-},{"./raven":2}],4:[function(require,module,exports){
+},{"./raven":2}],4:[function(_dereq_,module,exports){
 'use strict';
 
 var objectPrototype = Object.prototype;
@@ -1218,10 +1218,10 @@ module.exports = {
     uuid4: uuid4
 };
 
-},{}],5:[function(require,module,exports){
+},{}],5:[function(_dereq_,module,exports){
 'use strict';
 
-var utils = require('../../src/utils');
+var utils = _dereq_('../../src/utils');
 
 var hasKey = utils.hasKey;
 var isString = utils.isString;

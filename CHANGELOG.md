@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.4
+* BUGFIX: Fixed bug where Raven.VERSION was not set when required as a CommonJS module.
+
 ## 2.0.2
 * BUGFIX: Fixed bug where wrapped requestAnimationFrame didn't return callback ID. See: https://github.com/getsentry/raven-js/pull/460
 
