@@ -1079,14 +1079,13 @@ Raven.prototype = {
     },
 
     _logDebug: function(level) {
-        var args = [].slice.call(arguments, 1);
         if (this._originalConsoleMethods[level] && this.debug) {
-            try {
-                // For IE<10, cannot invoke 'apply' on console methods
-                this._originalConsoleMethods[level].apply(this._originalConsole, args);
-            } catch (err) {
-                this._originalConsole[level](args.join(' '));
-            }
+            // taken from plugis/console.js
+            // IE9 doesn't allow calling apply on console functions directly
+            // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
+            Function.prototype.bind
+                .call(this._originalConsoleMethods[level], this._originalConsole)
+                .apply(this._originalConsole, [].slice.call(arguments, 1));
         }
     },
 
