@@ -1079,8 +1079,14 @@ Raven.prototype = {
     },
 
     _logDebug: function(level) {
+        var args = [].slice.call(arguments, 1);
         if (this._originalConsoleMethods[level] && this.debug) {
-            this._originalConsoleMethods[level].apply(this._originalConsole, [].slice.call(arguments, 1));
+            try {
+                // For IE<10, cannot invoke 'apply' on console methods
+                this._originalConsoleMethods[level].apply(this._originalConsole, args);
+            } catch (err) {
+                this._originalConsole[level](args.join(' '));
+            }
         }
     },
 
