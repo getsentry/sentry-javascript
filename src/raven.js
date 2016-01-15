@@ -485,9 +485,10 @@ Raven.prototype = {
     isSetup: function() {
         if (!this._hasJSON) return false;  // needs JSON support
         if (!this._globalServer) {
-            if (!this.ravenNotConfiguredError)
+            if (!this.ravenNotConfiguredError) {
+              this.ravenNotConfiguredError = true;
               this._logDebug('error', 'Error: Raven has not been configured.');
-            this.ravenNotConfiguredError = true;
+            }
             return false;
         }
         return true;
