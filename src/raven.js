@@ -1080,7 +1080,7 @@ Raven.prototype = {
 
     _logDebug: function(level) {
         if (this._originalConsoleMethods[level] && this.debug) {
-            // taken from plugins/console.js
+            // taken from plugis/console.js
             // IE9 doesn't allow calling apply on console functions directly
             // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
             Function.prototype.bind
