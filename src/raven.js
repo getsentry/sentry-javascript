@@ -1079,14 +1079,13 @@ Raven.prototype = {
     },
 
     _logDebug: function(level) {
-        var args = [].slice.call(arguments, 1);
         if (this._originalConsoleMethods[level] && this.debug) {
-            try {
-                // For IE<10, cannot invoke 'apply' on console methods
-                this._originalConsoleMethods[level].apply(this._originalConsole, args);
-            } catch (err) {
-                this._originalConsole[level](args.join(' '));
-            }
+            // In IE<10 console methods do not have their own 'apply' method
+            Function.prototype.apply.call(
+                this._originalConsoleMethods[level],
+                this._originalConsole,
+                [].slice.call(arguments, 1)
+            );
         }
     },
 
