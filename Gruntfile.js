@@ -69,7 +69,25 @@ module.exports = function(grunt) {
         return all;
     };
 
-    var pluginCombinations = combine(grunt.file.expand('plugins/*.js'));
+    var plugins = grunt.file.expand('plugins/*.js');
+
+    var cleanedPlugins = plugins.filter(function (plugin) {
+        var pluginName = path.basename(plugin, '.js');
+
+        return excludedPlugins.indexOf(pluginName) === -1;
+    });
+
+    var pluginSingleFiles = cleanedPlugins.map(function (plugin) {
+        var filename = path.basename(plugin);
+
+        var file = {};
+        file.src = plugin;
+        file.dest = path.join('build', 'plugin', filename);
+
+        return file;
+    });
+
+    var pluginCombinations = combine(plugins);
     var pluginConcatFiles = _.reduce(pluginCombinations, function (dict, comb) {
         var key = _.map(comb, function (plugin) {
             return path.basename(plugin, '.js');
@@ -103,6 +121,18 @@ module.exports = function(grunt) {
                 dest: 'build/raven.js'
             },
             plugins: {
+                files: pluginSingleFiles,
+                options: {
+                    external: [
+                        '../src/singleton'
+                    ],
+                    transform: [
+                        [ versionify ],
+                        [ new AddPluginBrowserifyTransformer() ]
+                    ]
+                }
+            },
+            'plugins-combined': {
                 files: pluginConcatFiles,
                 options: {
                     transform: [
@@ -161,11 +191,11 @@ module.exports = function(grunt) {
             options: {
                 mocha: {
                     ignoreLeaks: true,
-                    grep:        grunt.option('grep')
+                    grep: grunt.option('grep')
                 },
-                log:      true,
+                log: true,
                 reporter: 'Dot',
-                run:      true
+                run: true
             },
             unit: {
                 src: ['test/index.html'],
@@ -179,7 +209,7 @@ module.exports = function(grunt) {
 
         release: {
             options: {
-                npm:           false,
+                npm: false,
                 commitMessage: 'Release <%= version %>'
             }
         },
@@ -315,11 +345,13 @@ module.exports = function(grunt) {
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
     grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
     grunt.registerTask('browserify.plugins', ['_prep', 'browserify:plugins']);
+    grunt.registerTask('browserify.plugins-combined', ['_prep', 'browserify:plugins-combined']);
     grunt.registerTask('build.test', ['_prep', 'browserify:test']);
     grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.all', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
-    grunt.registerTask('build', ['build.all']);
-    grunt.registerTask('dist', ['build.core', 'copy:dist']);
+    grunt.registerTask('build.plugins', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.plugins-combined', ['browserify.plugins-combined', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('build', ['build.plugins-combined']);
+    grunt.registerTask('dist', ['build.core', 'build.plugins', 'copy:dist']);
 
     // Test task
     grunt.registerTask('test', ['eslint', 'browserify.core', 'browserify:test', 'mocha']);
