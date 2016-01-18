@@ -356,15 +356,13 @@ module.exports = function(grunt) {
 
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-    grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
-    grunt.registerTask('browserify.plugins', ['_prep'].concat(browserifyPluginTaskNames));
+    grunt.registerTask('browserify.core', ['_prep', 'browserify:core'].concat(browserifyPluginTaskNames));
     grunt.registerTask('browserify.plugins-combined', ['_prep', 'browserify:plugins-combined']);
     grunt.registerTask('build.test', ['_prep', 'browserify:test']);
     grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.plugins', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist']);
     grunt.registerTask('build.plugins-combined', ['browserify.plugins-combined', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.plugins-combined']);
-    grunt.registerTask('dist', ['build.core', 'build.plugins', 'copy:dist']);
+    grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
     // Test task
     grunt.registerTask('test', ['eslint', 'browserify.core', 'browserify:test', 'mocha']);
