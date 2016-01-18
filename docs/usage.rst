@@ -289,3 +289,16 @@ deduplicate by taking into account the URL:
 .. sentry:edition:: hosted, on-premise
 
     For more information, see :ref:`custom-grouping`.
+
+Preventing Abuse
+----------------
+
+By default, the Sentry server accepts errors from any host. This can lead to an abuse
+scenario where a malicious party triggers JavaScript errors from a different website that are
+accepted by your Sentry Project. To prevent this, it is recommended to whitelist known hosts where your
+JavaScript code is operating.
+
+This setting can be found under the **Project Settings** page in Sentry. You'll need
+to add each domain that you plan to report from into the **Allowed Domains**
+box. When an error is collected by Raven.js and transmitted to Sentry, Sentry will verify the ``Origin`` and/or
+``Referer`` headers of the HTTP request to verify that it matches one of your allowed hosts.
