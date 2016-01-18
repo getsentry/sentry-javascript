@@ -168,14 +168,13 @@ module.exports = function(grunt) {
 
         uglify: {
             options: {
-                sourceMap: function (dest) {
+                sourceMap: true,
+                sourceMapName: function (dest) {
                     return path.join(path.dirname(dest),
                                      path.basename(dest, '.js')) +
                            '.map';
                 },
-                sourceMappingURL: function (dest) {
-                    return path.basename(dest, '.js') + '.map';
-                },
+
                 // Only preserve comments that start with (!)
                 preserveComments: /^!/,
                 compress: {
