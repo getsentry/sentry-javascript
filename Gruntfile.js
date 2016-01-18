@@ -69,7 +69,25 @@ module.exports = function(grunt) {
         return all;
     };
 
-    var pluginCombinations = combine(grunt.file.expand('plugins/*.js'));
+    var plugins = grunt.file.expand('plugins/*.js');
+
+    var cleanedPlugins = plugins.filter(function (plugin) {
+        var pluginName = path.basename(plugin, '.js');
+
+        return excludedPlugins.indexOf(pluginName) === -1;
+    });
+
+    var pluginSingleFiles = cleanedPlugins.map(function (plugin) {
+        var filename = path.basename(plugin);
+
+        var file = {};
+        file.src = plugin;
+        file.dest = path.join('build', 'plugins', filename);
+
+        return file;
+    });
+
+    var pluginCombinations = combine(plugins);
     var pluginConcatFiles = _.reduce(pluginCombinations, function (dict, comb) {
         var key = _.map(comb, function (plugin) {
             return path.basename(plugin, '.js');
@@ -82,46 +100,71 @@ module.exports = function(grunt) {
         return dict;
     }, {});
 
+    var browserifyConfig = {
+        options: {
+            banner: grunt.file.read('template/_copyright.js'),
+                browserifyOptions: {
+                standalone: 'Raven' // umd
+            },
+            transform: [ versionify ],
+                plugin: [ derequire ]
+        },
+        core: {
+            src: 'src/singleton.js',
+            dest: 'build/raven.js'
+        },
+        'plugins-combined': {
+            files: pluginConcatFiles,
+                options: {
+                transform: [
+                    [ versionify ],
+                    [ new AddPluginBrowserifyTransformer() ]
+                ]
+            }
+        },
+        test: {
+            src: 'test/**/*.test.js',
+                dest: 'build/raven.test.js',
+                options: {
+                browserifyOptions: {
+                    debug: true // source maps
+                },
+                plugin: [proxyquire.plugin]
+            }
+        }
+    };
+
+    // Create a dedicated entry in browserify config for
+    // each individual plugin (each needs a unique `standalone`
+    // config)
+    var browserifyPluginTaskNames = [];
+    pluginSingleFiles.forEach(function (item) {
+        var name = item.src
+            .replace(/.*\//, '') // everything before slash
+            .replace('.js', ''); // extension
+        var capsName = name.charAt(0).toUpperCase() + name.slice(1);
+        var config = {
+            src: item.src,
+            dest: item.dest,
+            options: {
+                browserifyOptions: {
+                    // e.g. Raven.Plugins.Angular
+                    standalone: 'Raven.Plugins.' + capsName
+                }
+            }
+        };
+        browserifyConfig[name] = config;
+        browserifyPluginTaskNames.push('browserify:' + name);
+    });
+
+
     var gruntConfig = {
         pkg: grunt.file.readJSON('package.json'),
         aws: grunt.file.exists('aws.json') ? grunt.file.readJSON('aws.json'): {},
 
         clean: ['build'],
 
-        browserify: {
-            options: {
-                banner: grunt.file.read('template/_copyright.js'),
-                browserifyOptions: {
-                    standalone: 'Raven' // umd
-
-                },
-                transform: [versionify],
-                plugin: [ derequire ]
-            },
-            core: {
-                src: 'src/singleton.js',
-                dest: 'build/raven.js'
-            },
-            plugins: {
-                files: pluginConcatFiles,
-                options: {
-                    transform: [
-                        [ versionify ],
-                        [ new AddPluginBrowserifyTransformer() ]
-                    ]
-                }
-            },
-            test: {
-                src: 'test/**/*.test.js',
-                dest: 'build/raven.test.js',
-                options: {
-                    browserifyOptions: {
-                        debug: true // source maps
-                    },
-                    plugin: [proxyquire.plugin]
-                }
-            }
-        },
+        browserify: browserifyConfig,
 
         uglify: {
             options: {
@@ -161,11 +204,11 @@ module.exports = function(grunt) {
             options: {
                 mocha: {
                     ignoreLeaks: true,
-                    grep:        grunt.option('grep')
+                    grep: grunt.option('grep')
                 },
-                log:      true,
+                log: true,
                 reporter: 'Dot',
-                run:      true
+                run: true
             },
             unit: {
                 src: ['test/index.html'],
@@ -179,7 +222,7 @@ module.exports = function(grunt) {
 
         release: {
             options: {
-                npm:           false,
+                npm: false,
                 commitMessage: 'Release <%= version %>'
             }
         },
@@ -228,7 +271,7 @@ module.exports = function(grunt) {
         copy: {
             dist: {
                 expand: true,
-                flatten: true,
+                flatten: false,
                 cwd: 'build/',
                 src: '**',
                 dest: 'dist/'
@@ -314,12 +357,14 @@ module.exports = function(grunt) {
     // Build tasks
     grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
     grunt.registerTask('browserify.core', ['_prep', 'browserify:core']);
-    grunt.registerTask('browserify.plugins', ['_prep', 'browserify:plugins']);
+    grunt.registerTask('browserify.plugins', ['_prep'].concat(browserifyPluginTaskNames));
+    grunt.registerTask('browserify.plugins-combined', ['_prep', 'browserify:plugins-combined']);
     grunt.registerTask('build.test', ['_prep', 'browserify:test']);
     grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.all', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
-    grunt.registerTask('build', ['build.all']);
-    grunt.registerTask('dist', ['build.core', 'copy:dist']);
+    grunt.registerTask('build.plugins', ['browserify.plugins', 'uglify', 'fixSourceMaps', 'sri:dist']);
+    grunt.registerTask('build.plugins-combined', ['browserify.plugins-combined', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('build', ['build.plugins-combined']);
+    grunt.registerTask('dist', ['build.core', 'build.plugins', 'copy:dist']);
 
     // Test task
     grunt.registerTask('test', ['eslint', 'browserify.core', 'browserify:test', 'mocha']);
