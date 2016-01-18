@@ -13,7 +13,7 @@ Example:
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/2.0.5/angular/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.1.0/angular/raven.min.js"></script>
 
     <!-- your application code below -->
     <script src="static/app.js"></script>
@@ -38,7 +38,7 @@ to wire up the SDK just as if you weren't using Angular. This should happen imme
 
 .. code-block:: html
 
-    <script src="https://cdn.ravenjs.com/2.0.5/angular/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.1.0/angular/raven.min.js"></script>
     <script>
       Raven.config('___PUBLIC_DSN___').install();
     </script>

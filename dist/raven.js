@@ -1,4 +1,16 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*! Raven.js 2.1.0 (9ca11cd) | github.com/getsentry/raven-js */
+
+/*
+ * Includes TraceKit
+ * https://github.com/getsentry/TraceKit
+ *
+ * Copyright 2016 Matt Robenolt and other contributors
+ * Released under the BSD license
+ * https://github.com/getsentry/raven-js/blob/master/LICENSE
+ *
+ */
+
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 'use strict';
 
 function RavenConfigError(message) {
@@ -10,13 +22,13 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
-},{}],2:[function(require,module,exports){
+},{}],2:[function(_dereq_,module,exports){
 /*global XDomainRequest:false*/
 'use strict';
 
-var TraceKit = require('../vendor/TraceKit/tracekit');
-var RavenConfigError = require('./configError');
-var utils = require('./utils');
+var TraceKit = _dereq_('../vendor/TraceKit/tracekit');
+var RavenConfigError = _dereq_('./configError');
+var utils = _dereq_('./utils');
 
 var isFunction = utils.isFunction;
 var isUndefined = utils.isUndefined;
@@ -58,18 +70,21 @@ function Raven() {
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
-        maxMessageLength: 100
+        maxMessageLength: 0,
+        stackTraceLimit: 50
     };
     this._ignoreOnError = 0;
     this._isRavenInstalled = false;
+    this._originalErrorStackTraceLimit = Error.stackTraceLimit;
     // capture references to window.console *and* all its methods first
     // before the console plugin has a chance to monkey patch
     this._originalConsole = window.console || {};
     this._originalConsoleMethods = {};
     this._plugins = [];
     this._startTime = now();
+    this._wrappedBuiltIns = [];
 
-    for (var method in this._originalConsole) {
+    for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
     }
 }
@@ -81,7 +96,11 @@ function Raven() {
  */
 
 Raven.prototype = {
-    VERSION: '2.0.0',
+    // Hardcode version string so that raven source can be loaded directly via
+    // webpack (using a build step causes webpack #1617). Grunt verifies that
+    // this value matches package.json during build.
+    //   See: https://github.com/getsentry/raven-js/issues/465
+    VERSION: '2.1.0',
 
     debug: false,
 
@@ -111,13 +130,15 @@ Raven.prototype = {
         if (options) {
             each(options, function(key, value){
                 // tags and extra are special and need to be put into context
-                if (key == 'tags' || key == 'extra') {
+                if (key === 'tags' || key === 'extra') {
                     self._globalContext[key] = value;
                 } else {
                     self._globalOptions[key] = value;
                 }
             });
         }
+
+        this._dsn = dsn;
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
@@ -133,14 +154,10 @@ Raven.prototype = {
         this._globalKey = uri.user;
         this._globalProject = uri.path.substr(lastSlash + 1);
 
-        // assemble the endpoint from the uri pieces
-        this._globalServer = '//' + uri.host +
-                      (uri.port ? ':' + uri.port : '') +
-                      '/' + path + 'api/' + this._globalProject + '/store/';
+        this._globalServer = this._getGlobalServer(uri);
 
-        if (uri.protocol) {
-            this._globalServer = uri.protocol + ':' + this._globalServer;
-        }
+        this._globalEndpoint = this._globalServer +
+            '/' + path + 'api/' + this._globalProject + '/store/';
 
         if (this._globalOptions.fetchContext) {
             TraceKit.remoteFetching = true;
@@ -168,10 +185,7 @@ Raven.prototype = {
         var self = this;
         if (this.isSetup() && !this._isRavenInstalled) {
             TraceKit.report.subscribe(function () {
-                // maintain 'self'
-                if (!self._ignoreOnError) {
-                    self._handleStackInfo.apply(self, arguments);
-                }
+                self._handleOnErrorStackInfo.apply(self, arguments);
             });
             this._wrapBuiltIns();
 
@@ -181,6 +195,7 @@ Raven.prototype = {
             this._isRavenInstalled = true;
         }
 
+        Error.stackTraceLimit = this._globalOptions.stackTraceLimit;
         return this;
     },
 
@@ -249,7 +264,6 @@ Raven.prototype = {
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
-                /*jshint -W040*/
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();
@@ -283,6 +297,10 @@ Raven.prototype = {
      */
     uninstall: function() {
         TraceKit.report.uninstall();
+
+        this._restoreBuiltIns();
+
+        Error.stackTraceLimit = this._originalErrorStackTraceLimit;
         this._isRavenInstalled = false;
 
         return this;
@@ -492,9 +510,10 @@ Raven.prototype = {
     isSetup: function() {
         if (!this._hasJSON) return false;  // needs JSON support
         if (!this._globalServer) {
-            if (!this.ravenNotConfiguredError)
+            if (!this.ravenNotConfiguredError) {
+              this.ravenNotConfiguredError = true;
               this._logDebug('error', 'Error: Raven has not been configured.');
-            this.ravenNotConfiguredError = true;
+            }
             return false;
         }
         return true;
@@ -510,12 +529,48 @@ Raven.prototype = {
         }
     },
 
+    showReportDialog: function (options) {
+        if (!window.document) // doesn't work without a document (React native)
+            return;
+
+        options = options || {};
+
+        var lastEventId = options.eventId || this.lastEventId();
+        if (!lastEventId) {
+            throw new RavenConfigError('Missing eventId');
+        }
+
+        var dsn = options.dsn || this._dsn;
+        if (!dsn) {
+            throw new RavenConfigError('Missing DSN');
+        }
+
+        var encode = encodeURIComponent;
+        var qs = '';
+        qs += '?eventId=' + encode(lastEventId);
+        qs += '&dsn=' + encode(dsn);
+
+        var user = options.user || this._globalContext.user;
+        if (user) {
+            if (user.name)  qs += '&name=' + encode(user.name);
+            if (user.email) qs += '&email=' + encode(user.email);
+        }
+
+        var globalServer = this._getGlobalServer(this._parseDSN(dsn));
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = globalServer + '/api/embed/error-page/' + qs;
+        (document.head || document.body).appendChild(script);
+    },
+
     /**** Private functions ****/
     _ignoreNextOnError: function () {
+        var self = this;
         this._ignoreOnError += 1;
         setTimeout(function () {
             // onerror should trigger before setTimeout
-            this._ignoreOnError -= 1;
+            self._ignoreOnError -= 1;
         });
     },
 
@@ -550,7 +605,9 @@ Raven.prototype = {
             // IE9 if quirks
             try {
                 document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
-            } catch(e) {}
+            } catch(e) {
+                // Do nothing
+            }
         }
     },
 
@@ -560,9 +617,12 @@ Raven.prototype = {
     _wrapBuiltIns: function() {
         var self = this;
 
-        function fill(obj, name, replacement) {
+        function fill(obj, name, replacement, noUndo) {
             var orig = obj[name];
             obj[name] = replacement(orig);
+            if (!noUndo) {
+                self._wrappedBuiltIns.push([obj, name, orig]);
+            }
         }
 
         function wrapTimeFn(orig) {
@@ -570,7 +630,7 @@ Raven.prototype = {
                 // Make a copy of the arguments
                 var args = [].slice.call(arguments);
                 var originalCallback = args[0];
-                if (typeof (originalCallback) === 'function') {
+                if (isFunction(originalCallback)) {
                     args[0] = self.wrap(originalCallback);
                 }
 
@@ -590,7 +650,7 @@ Raven.prototype = {
         if (window.requestAnimationFrame) {
             fill(window, 'requestAnimationFrame', function (orig) {
                 return function (cb) {
-                    orig(self.wrap(cb));
+                    return orig(self.wrap(cb));
                 };
             });
         }
@@ -606,7 +666,9 @@ Raven.prototype = {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
                             }
-                        } catch (err) {} // can sometimes get 'Permission denied to access property "handle Event'
+                        } catch (err) {
+                            // can sometimes get 'Permission denied to access property "handle Event'
+                        }
                         return orig.call(this, evt, self.wrap(fn), capture, secure);
                     };
                 });
@@ -619,29 +681,43 @@ Raven.prototype = {
             }
         });
 
-        var origOpen;
         if ('XMLHttpRequest' in window) {
-            origOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function (data) { // preserve arity
-                var xhr = this;
-                'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
-                    if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
-                        fill(xhr, prop, function (orig) {
-                            return self.wrap(orig);
-                        });
-                    }
-                });
-                origOpen.apply(this, arguments);
-            };
+            fill(XMLHttpRequest.prototype, 'send', function(origSend) {
+                return function (data) { // preserve arity
+                    var xhr = this;
+                    'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
+                        if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
+                            fill(xhr, prop, function (orig) {
+                                return self.wrap(orig);
+                            }, true /* noUndo */); // don't track filled methods on XHR instances
+                        }
+                    });
+                    return origSend.apply(this, arguments);
+                };
+            });
         }
 
         var $ = window.jQuery || window.$;
-        var origReady;
         if ($ && $.fn && $.fn.ready) {
-            origReady = $.fn.ready;
-            $.fn.ready = function ravenjQueryReadyWrapper(fn) {
-                return origReady.call(this, self.wrap(fn));
-            };
+            fill($.fn, 'ready', function (orig) {
+                return function (fn) {
+                    return orig.call(this, self.wrap(fn));
+                };
+            });
+        }
+    },
+
+    _restoreBuiltIns: function () {
+        // restore any wrapped builtins
+        var builtin;
+        while (this._wrappedBuiltIns.length) {
+            builtin = this._wrappedBuiltIns.shift();
+
+            var obj = builtin[0],
+              name = builtin[1],
+              orig = builtin[2];
+
+            obj[name] = orig;
         }
     },
 
@@ -673,6 +749,24 @@ Raven.prototype = {
         return dsn;
     },
 
+    _getGlobalServer: function(uri) {
+        // assemble the endpoint from the uri pieces
+        var globalServer = '//' + uri.host +
+            (uri.port ? ':' + uri.port : '');
+
+        if (uri.protocol) {
+            globalServer = uri.protocol + ':' + globalServer;
+        }
+        return globalServer;
+    },
+
+    _handleOnErrorStackInfo: function() {
+        // if we are intentionally ignoring errors via onerror, bail out
+        if (!this._ignoreOnError) {
+            this._handleStackInfo.apply(this, arguments);
+        }
+    },
+
     _handleStackInfo: function(stackInfo, options) {
         var self = this;
         var frames = [];
@@ -696,7 +790,7 @@ Raven.prototype = {
             stackInfo.message,
             stackInfo.url,
             stackInfo.lineno,
-            frames,
+            frames.slice(0, this._globalOptions.stackTraceLimit),
             options
         );
     },
@@ -720,9 +814,9 @@ Raven.prototype = {
 
         normalized.in_app = !( // determine if an exception came from outside of our app
             // first we check the global includePaths list.
-            (!!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename)) ||
+            !!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename) ||
             // Now we check for fun, if the function name is Raven or TraceKit
-            /(Raven|TraceKit)\./.test(normalized['function']) ||
+            /(Raven|TraceKit)\./.test(normalized.function) ||
             // finally, we do a last ditch effort and check for raven.min.js
             /raven\.(min\.)?js$/.test(normalized.filename)
         );
@@ -770,7 +864,7 @@ Raven.prototype = {
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
-        var stacktrace, i, fullMessage;
+        var stacktrace, fullMessage;
 
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
@@ -916,8 +1010,9 @@ Raven.prototype = {
 
         if (!this.isSetup()) return;
 
+        var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
-            url: this._globalServer,
+            url: url,
             auth: {
                 sentry_version: '7',
                 sentry_client: 'raven-js/' + this.VERSION,
@@ -928,13 +1023,13 @@ Raven.prototype = {
             onSuccess: function success() {
                 self._triggerEvent('success', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             },
             onError: function failure() {
                 self._triggerEvent('failure', {
                     data: data,
-                    src: self._globalServer
+                    src: url
                 });
             }
         });
@@ -1011,7 +1106,12 @@ Raven.prototype = {
 
     _logDebug: function(level) {
         if (this._originalConsoleMethods[level] && this.debug) {
-            this._originalConsoleMethods[level].apply(this._originalConsole, [].slice.call(arguments, 1));
+            // In IE<10 console methods do not have their own 'apply' method
+            Function.prototype.apply.call(
+                this._originalConsoleMethods[level],
+                this._originalConsole,
+                [].slice.call(arguments, 1)
+            );
         }
     },
 
@@ -1030,7 +1130,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 
 module.exports = Raven;
 
-},{"../vendor/TraceKit/tracekit":5,"./configError":1,"./utils":4}],3:[function(require,module,exports){
+},{"../vendor/TraceKit/tracekit":5,"./configError":1,"./utils":4}],3:[function(_dereq_,module,exports){
 /**
  * Enforces a single instance of the Raven client, and the
  * main entry point for Raven. If you are a consumer of the
@@ -1039,7 +1139,7 @@ module.exports = Raven;
 
 'use strict';
 
-var RavenConstructor = require('./raven');
+var RavenConstructor = _dereq_('./raven');
 
 var _Raven = window.Raven;
 
@@ -1060,7 +1160,7 @@ Raven.afterLoad();
 
 module.exports = Raven;
 
-},{"./raven":2}],4:[function(require,module,exports){
+},{"./raven":2}],4:[function(_dereq_,module,exports){
 'use strict';
 
 var objectPrototype = Object.prototype;
@@ -1082,7 +1182,7 @@ function isObject(what) {
 }
 
 function isEmptyObject(what) {
-    for (var k in what) return false;
+    for (var _ in what) return false;  // eslint-disable-line guard-for-in, no-unused-vars
     return true;
 }
 
@@ -1124,7 +1224,7 @@ function objectMerge(obj1, obj2) {
 }
 
 function truncate(str, max) {
-    return str.length <= max ? str : str.substr(0, max) + '\u2026';
+    return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
 /**
@@ -1150,7 +1250,7 @@ function joinRegExp(patterns) {
         if (isString(pattern)) {
             // If it's a string, we need to escape it
             // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-            sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1"));
+            sources.push(pattern.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1'));
         } else if (pattern && pattern.source) {
             // If it's a regexp already, we want to extract the source
             sources.push(pattern.source);
@@ -1189,13 +1289,13 @@ function uuid4() {
             return v;
         };
 
-        return (pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) +
-        pad(arr[5]) + pad(arr[6]) + pad(arr[7]));
+        return pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) +
+        pad(arr[5]) + pad(arr[6]) + pad(arr[7]);
     } else {
         // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
         return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random()*16|0,
-                v = c == 'x' ? r : (r&0x3|0x8);
+                v = c === 'x' ? r : r&0x3|0x8;
             return v.toString(16);
         });
     }
@@ -1217,10 +1317,10 @@ module.exports = {
     uuid4: uuid4
 };
 
-},{}],5:[function(require,module,exports){
+},{}],5:[function(_dereq_,module,exports){
 'use strict';
 
-var utils = require('../../src/utils');
+var utils = _dereq_('../../src/utils');
 
 var hasKey = utils.hasKey;
 var isString = utils.isString;
@@ -1835,9 +1935,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     function computeStackTraceFromStackProp(ex) {
         if (isUndefined(ex.stack) || !ex.stack) return;
 
-        var chrome = /^\s*at (.*?) ?\(?((?:(?:file|https?|chrome-extension):.*?)|<anonymous>):(\d+)(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(.*?)(?:\((.*?)\))?@((?:file|https?|chrome).*?):(\d+)(?::(\d+))?\s*$/i,
-            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|http|https):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|<anonymous>).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|\[).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
+            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|https?|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
@@ -1845,27 +1945,30 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             reference = /^(.*) is undefined$/.exec(ex.message);
 
         for (var i = 0, j = lines.length; i < j; ++i) {
-            if ((parts = gecko.exec(lines[i]))) {
+            if ((parts = chrome.exec(lines[i]))) {
+                var isNative = parts[2] && parts[2].indexOf('native') !== -1;
+                element = {
+                    'url': !isNative ? parts[2] : null,
+                    'func': parts[1] || UNKNOWN_FUNCTION,
+                    'args': isNative ? [parts[2]] : [],
+                    'line': parts[3] ? +parts[3] : null,
+                    'column': parts[4] ? +parts[4] : null
+                };
+            } else if ( parts = winjs.exec(lines[i]) ) {
+                element = {
+                    'url': parts[2],
+                    'func': parts[1] || UNKNOWN_FUNCTION,
+                    'args': [],
+                    'line': +parts[3],
+                    'column': parts[4] ? +parts[4] : null
+                };
+            } else if ((parts = gecko.exec(lines[i]))) {
                 element = {
                     'url': parts[3],
                     'func': parts[1] || UNKNOWN_FUNCTION,
-                    'args': parts[2] ? parts[2].split(',') : '',
-                    'line': +parts[4],
+                    'args': parts[2] ? parts[2].split(',') : [],
+                    'line': parts[4] ? +parts[4] : null,
                     'column': parts[5] ? +parts[5] : null
-                };
-            } else if ((parts = chrome.exec(lines[i]))) {
-                element = {
-                    'url': parts[2],
-                    'func': parts[1] || UNKNOWN_FUNCTION,
-                    'line': +parts[3],
-                    'column': parts[4] ? +parts[4] : null
-                };
-            } else if ((parts = winjs.exec(lines[i]))) {
-                element = {
-                    'url': parts[2],
-                    'func': parts[1] || UNKNOWN_FUNCTION,
-                    'line': +parts[3],
-                    'column': parts[4] ? +parts[4] : null
                 };
             } else {
                 continue;
@@ -1916,21 +2019,33 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         var stacktrace = ex.stacktrace;
         if (isUndefined(ex.stacktrace) || !ex.stacktrace) return;
 
-        var testRE = / line (\d+), column (\d+) in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\) in (.*):\s*$/i,
-            lines = stacktrace.split('\n'),
-            stack = [],
-            parts;
+        var opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i,
+          opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i,
+          lines = stacktrace.split('\n'),
+          stack = [],
+          parts;
 
-        for (var i = 0, j = lines.length; i < j; i += 2) {
-            if ((parts = testRE.exec(lines[i]))) {
-                var element = {
+        for (var line = 0; line < lines.length; line += 2) {
+            var element = null;
+            if ((parts = opera10Regex.exec(lines[line]))) {
+                element = {
+                    'url': parts[2],
+                    'line': +parts[1],
+                    'column': null,
+                    'func': parts[3],
+                    'args':[]
+                };
+            } else if ((parts = opera11Regex.exec(lines[line]))) {
+                element = {
+                    'url': parts[6],
                     'line': +parts[1],
                     'column': +parts[2],
                     'func': parts[3] || parts[4],
-                    'args': parts[5] ? parts[5].split(',') : [],
-                    'url': parts[6]
+                    'args': parts[5] ? parts[5].split(',') : []
                 };
+            }
 
+            if (element) {
                 if (!element.func && element.line) {
                     element.func = guessFunctionName(element.url, element.line);
                 }
@@ -1941,7 +2056,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 }
 
                 if (!element.context) {
-                    element.context = [lines[i + 1]];
+                    element.context = [lines[line + 1]];
                 }
 
                 stack.push(element);
@@ -1989,40 +2104,42 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
-            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?)\S+)(?:: in function (\S+))?\s*$/i,
+        var lineRE1 = /^\s*Line (\d+) of linked script ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
+            lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
             lineRE3 = /^\s*Line (\d+) of function script\s*$/i,
             stack = [],
             scripts = document.getElementsByTagName('script'),
             inlineScriptBlocks = [],
-            parts,
-            i,
-            len,
-            source;
+            parts;
 
-        for (i in scripts) {
-            if (hasKey(scripts, i) && !scripts[i].src) {
-                inlineScriptBlocks.push(scripts[i]);
+        for (var s in scripts) {
+            if (hasKey(scripts, s) && !scripts[s].src) {
+                inlineScriptBlocks.push(scripts[s]);
             }
         }
 
-        for (i = 2, len = lines.length; i < len; i += 2) {
+        for (var line = 2; line < lines.length; line += 2) {
             var item = null;
-            if ((parts = lineRE1.exec(lines[i]))) {
+            if ((parts = lineRE1.exec(lines[line]))) {
                 item = {
                     'url': parts[2],
                     'func': parts[3],
-                    'line': +parts[1]
+                    'args': [],
+                    'line': +parts[1],
+                    'column': null
                 };
-            } else if ((parts = lineRE2.exec(lines[i]))) {
+            } else if ((parts = lineRE2.exec(lines[line]))) {
                 item = {
                     'url': parts[3],
-                    'func': parts[4]
+                    'func': parts[4],
+                    'args': [],
+                    'line': +parts[1],
+                    'column': null // TODO: Check to see if inline#1 (+parts[2]) points to the script number or column number.
                 };
                 var relativeLine = (+parts[1]); // relative to the start of the <SCRIPT> block
                 var script = inlineScriptBlocks[parts[2] - 1];
                 if (script) {
-                    source = getSource(item.url);
+                    var source = getSource(item.url);
                     if (source) {
                         source = source.join('\n');
                         var pos = source.indexOf(script.innerText);
@@ -2031,15 +2148,16 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                         }
                     }
                 }
-            } else if ((parts = lineRE3.exec(lines[i]))) {
-                var url = window.location.href.replace(/#.*$/, ''),
-                    line = parts[1];
-                var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[i + 1]));
-                source = findSourceInUrls(re, [url]);
+            } else if ((parts = lineRE3.exec(lines[line]))) {
+                var url = window.location.href.replace(/#.*$/, '');
+                var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]));
+                var src = findSourceInUrls(re, [url]);
                 item = {
                     'url': url,
-                    'line': source ? source.line : line,
-                    'func': ''
+                    'func': '',
+                    'args': [],
+                    'line': src ? src.line : parts[1],
+                    'column': null
                 };
             }
 
@@ -2049,15 +2167,16 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 }
                 var context = gatherContext(item.url, item.line);
                 var midline = (context ? context[Math.floor(context.length / 2)] : null);
-                if (context && midline.replace(/^\s*/, '') === lines[i + 1].replace(/^\s*/, '')) {
+                if (context && midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')) {
                     item.context = context;
                 } else {
                     // if (context) alert("Context mismatch. Correct midline:\n" + lines[i+1] + "\n\nMidline:\n" + midline + "\n\nContext:\n" + context.join("\n") + "\n\nURL:\n" + item.url);
-                    item.context = [lines[i + 1]];
+                    item.context = [lines[line + 1]];
                 }
                 stack.push(item);
             }
         }
+
         if (!stack.length) {
             return null; // could not parse multiline exception message as Opera stack trace
         }

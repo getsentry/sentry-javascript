@@ -1,8 +1,19 @@
 # Changelog
 
+## 2.1.0
+* BUGFIX: Fixed Raven.js rejecting frames w/ blob URLs. See: https://github.com/getsentry/raven-js/issues/463
+* BUGFIX: Fixed plugin files not consumable without module loader. See: https://github.com/getsentry/raven-js/issues/446
+* BUGFIX: Fixed bug in console.js plugin where `level` wasn't passed. See: https://github.com/getsentry/raven-js/pull/474
+* BUGFIX: Fixed broken debug logging in IE9 and below. See: https://github.com/getsentry/raven-js/pull/473
+* BUGFIX: Fixed `XMLHttpRequest` wrapper not capturing all event handlers. See: https://github.com/getsentry/raven-js/issues/453
+* CHANGE: `Raven.uninstall` now restores original builtin functions (e.g. setTimeout). See: https://github.com/getsentry/raven-js/issues/228
+* CHANGE: `maxMessageLength` now defaults to 0 (no limit). See: https://github.com/getsentry/raven-js/pull/441
+* NEW: New `stackTraceLimit` config option (default 50 in supported browsers). See: https://github.com/getsentry/raven-js/pull/419/files
+* NEW: `Raven.showReportDialog` (experimental). See: https://github.com/getsentry/raven-js/pull/456
+
 ## 2.0.5
 * BUGFIX: Fixed exception thrown by React Native plugin. See: https://github.com/getsentry/raven-js/issues/468
-* BUGFIX: Fixed "pre-built JavaScript" warning when loading Raven.js via Webpack: https://github.com/getsentry/raven-js/issues/465
+* BUGFIX: Fixed "pre-built JavaScript" warning when loading Raven.js via Webpack. See: https://github.com/getsentry/raven-js/issues/465
 
 ## 2.0.4
 * BUGFIX: Fixed bug where Raven.VERSION was not set when required as a CommonJS module.
