@@ -667,7 +667,7 @@ Raven.prototype = {
                             }, true /* noUndo */); // don't track filled methods on XHR instances
                         }
                     });
-                    origSend.apply(this, arguments);
+                    return origSend.apply(this, arguments);
                 };
             });
         }
@@ -676,7 +676,7 @@ Raven.prototype = {
         if ($ && $.fn && $.fn.ready) {
             fill($.fn, 'ready', function (orig) {
                 return function (fn) {
-                    orig.call(this, self.wrap(fn));
+                    return orig.call(this, self.wrap(fn));
                 };
             });
         }
