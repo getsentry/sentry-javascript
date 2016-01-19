@@ -605,7 +605,7 @@ Raven.prototype = {
                 // Make a copy of the arguments
                 var args = [].slice.call(arguments);
                 var originalCallback = args[0];
-                if (typeof originalCallback === 'function') {
+                if (isFunction(originalCallback)) {
                     args[0] = self.wrap(originalCallback);
                 }
 
