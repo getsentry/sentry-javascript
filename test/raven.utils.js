@@ -1,8 +1,6 @@
-var raven = require('../')
-  , fs = require('fs')
-  , glob = require('glob')
-  , path = require('path')
-  , should = require('should');
+'use strict';
+
+var raven = require('../');
 
 describe('raven.utils', function() {
   describe('#parseDSN()', function(){

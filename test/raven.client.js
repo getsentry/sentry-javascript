@@ -1,5 +1,7 @@
+/*eslint no-shadow:0*/
+'use strict';
+
 var raven = require('../')
-  , fs = require('fs')
   , nock = require('nock')
   , mockudp = require('mock-udp')
   , zlib = require('zlib');
@@ -154,7 +156,7 @@ describe('raven.Client', function(){
         });
 
         it('shouldn\'t shit it\'s pants when error is emitted without a listener', function(){
-            var scope = nock('https://app.getsentry.com')
+            nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
                 .post('/api/269/store/', '*')
                 .reply(500, 'Oops!');
@@ -199,10 +201,10 @@ describe('raven.Client', function(){
             client.send = function mockSend(kwargs) {
                 client.send = old;
 
-                kwargs['message'].should.equal("Error: wtf?");
+                kwargs.message.should.equal('Error: wtf?');
                 kwargs.should.have.property('exception');
-                var stack = kwargs['exception'][0].stacktrace;
-                stack.frames[stack.frames.length-1]['function'].should.equal('Client.captureError');
+                var stack = kwargs.exception[0].stacktrace;
+                stack.frames[stack.frames.length-1].function.should.equal('Client.captureError');
                 done();
             };
             client.captureError('wtf?');
@@ -328,7 +330,7 @@ describe('raven.Client', function(){
     });
 
     describe('#process()', function(){
-        it('should respect dataCallback', function(){
+        it('should respect dataCallback', function(done){
             var scope = nock('https://app.getsentry.com')
                 .filteringRequestBody(/.*/, '*')
                 .post('/api/269/store/', '*')
@@ -339,6 +341,7 @@ describe('raven.Client', function(){
                       var extra = msg.extra;
 
                       extra.should.not.have.property('foo');
+                      done();
                     });
                     return 'OK';
                 });
@@ -427,7 +430,7 @@ describe('raven.Client', function(){
               var extra = msg.extra;
 
               extra.should.have.property('key');
-              extra['key'].should.equal('value');
+              extra.key.should.equal('value');
 
               done();
             });
@@ -451,7 +454,7 @@ describe('raven.Client', function(){
               var tags = msg.tags;
 
               tags.should.have.property('key');
-              tags['key'].should.equal('value');
+              tags.key.should.equal('value');
 
               done();
             });
