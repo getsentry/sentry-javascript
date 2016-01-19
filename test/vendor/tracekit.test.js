@@ -10,23 +10,46 @@ describe('TraceKit', function(){
             // named functions and anonymous functions
             var stack_str = "" +
                 "  Error: \n" +
-                "    at new <anonymous> (http://example.com/js/test.js:63)\n" + // stack[0]
-                "    at namedFunc0 (http://example.com/js/script.js:10)\n" +    // stack[1]
-                "    at http://example.com/js/test.js:65\n" +                   // stack[2]
-                "    at namedFunc2 (http://example.com/js/script.js:20)\n" +    // stack[3]
-                "    at http://example.com/js/test.js:67\n" +                   // stack[4]
-                "    at namedFunc4 (http://example.com/js/script.js:100001)";   // stack[5]
+                "    at new <anonymous> (http://example.com/js/test.js:63:1)\n" +   // stack[0]
+                "    at namedFunc0 (http://example.com/js/script.js:10:2)\n" +      // stack[1]
+                "    at http://example.com/js/test.js:65:10\n" +                    // stack[2]
+                "    at namedFunc2 (http://example.com/js/script.js:20:5)\n" +      // stack[3]
+                "    at http://example.com/js/test.js:67:5\n" +                     // stack[4]
+                "    at namedFunc4 (http://example.com/js/script.js:100001:10002)"; // stack[5]
             var mock_err = { stack: stack_str };
             var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
 
             // Make sure TraceKit didn't remove the anonymous functions
             // from the stack like it used to :)
             assert.equal(trace.stack[0].func, 'new <anonymous>');
+            assert.equal(trace.stack[0].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[0].line, 63);
+            assert.equal(trace.stack[0].column, 1);
+
             assert.equal(trace.stack[1].func, 'namedFunc0');
+            assert.equal(trace.stack[1].url, 'http://example.com/js/script.js');
+            assert.equal(trace.stack[1].line, 10);
+            assert.equal(trace.stack[1].column, 2);
+
             assert.equal(trace.stack[2].func, '?');
+            assert.equal(trace.stack[2].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[2].line, 65);
+            assert.equal(trace.stack[2].column, 10);
+
             assert.equal(trace.stack[3].func, 'namedFunc2');
+            assert.equal(trace.stack[3].url, 'http://example.com/js/script.js');
+            assert.equal(trace.stack[3].line, 20);
+            assert.equal(trace.stack[3].column, 5);
+
             assert.equal(trace.stack[4].func, '?');
+            assert.equal(trace.stack[4].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[4].line, 67);
+            assert.equal(trace.stack[4].column, 5);
+
             assert.equal(trace.stack[5].func, 'namedFunc4');
+            assert.equal(trace.stack[5].url, 'http://example.com/js/script.js');
+            assert.equal(trace.stack[5].line, 100001);
+            assert.equal(trace.stack[5].column, 10002);
         });
 
         it('should handle eval/anonymous strings in Chrome 46', function () {
@@ -39,8 +62,20 @@ describe('TraceKit', function(){
             var mock_err = { stack: stack_str };
             var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
             assert.equal(trace.stack[0].func, 'bar');
+            assert.equal(trace.stack[0].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[0].line, 19);
+            assert.equal(trace.stack[0].column, 7);
+
             assert.equal(trace.stack[1].func, 'foo');
+            assert.equal(trace.stack[1].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[1].line, 23);
+            assert.equal(trace.stack[1].column, 7);
+
             assert.equal(trace.stack[2].func, 'eval');
+            // TODO: fix nested evals
+            assert.equal(trace.stack[2].url, 'eval at <anonymous> (http://example.com/js/test.js:26:5), <anonymous>');
+            assert.equal(trace.stack[2].line, 1); // second set of line/column numbers used
+            assert.equal(trace.stack[2].column, 26);
         });
     });
 
