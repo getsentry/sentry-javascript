@@ -77,7 +77,8 @@ Those configuration options are documented below:
     matching a regex pattern or an exact string. ``whitelistUrls`` should
     match the url of your actual JavaScript files. It should match the url
     of your site if and only if you are inlining code inside ``<script>``
-    tags.
+    tags. Not setting this value is equivalent to a catch-all and will not
+    filter out any values.
 
     Does not affect ``captureMessage`` or when non-error object is passed in
     as argument to captureException.
