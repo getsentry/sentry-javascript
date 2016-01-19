@@ -485,6 +485,7 @@ describe('raven.parsers', function() {
     });
 
     it('should parse caught real error', function(done) {
+      /*eslint new-cap:0*/
       try {
         var o = {};
         o['...'].Derp();
