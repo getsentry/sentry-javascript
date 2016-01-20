@@ -169,11 +169,6 @@ module.exports = function(grunt) {
         uglify: {
             options: {
                 sourceMap: true,
-                sourceMapName: function (dest) {
-                    return path.join(path.dirname(dest),
-                                     path.basename(dest, '.js')) +
-                           '.map';
-                },
 
                 // Only preserve comments that start with (!)
                 preserveComments: /^!/,
@@ -189,10 +184,6 @@ module.exports = function(grunt) {
                 ext: '.min.js',
                 expand: true
             }
-        },
-
-        fixSourceMaps: {
-            all: ['build/**/*.map']
         },
 
         eslint: {
@@ -316,28 +307,6 @@ module.exports = function(grunt) {
         grunt.config.set('pkg', pkg);
     });
 
-    grunt.registerMultiTask('fixSourceMaps', function () {
-        this.files.forEach(function (f) {
-            f.src.filter(function (filepath) {
-                if (!grunt.file.exists(filepath)) {
-                    grunt.log.warn('Source file "' + filepath + '" not found.');
-                    return false;
-                } else {
-                    return true;
-                }
-            }).forEach(function (filepath) {
-                var base = path.dirname(filepath);
-                var sMap = grunt.file.readJSON(filepath);
-                sMap.file = path.relative(base, sMap.file);
-                sMap.sources = _.map(sMap.sources, path.relative.bind(path, base));
-
-                grunt.file.write(filepath, JSON.stringify(sMap));
-                // Print a success message.
-                grunt.log.writeln('File "' + filepath + '" fixed.');
-            });
-        });
-    });
-
     // Grunt contrib tasks
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-clean');
@@ -358,8 +327,8 @@ module.exports = function(grunt) {
     grunt.registerTask('browserify.core', ['_prep', 'browserify:core'].concat(browserifyPluginTaskNames));
     grunt.registerTask('browserify.plugins-combined', ['_prep', 'browserify:plugins-combined']);
     grunt.registerTask('build.test', ['_prep', 'browserify:test']);
-    grunt.registerTask('build.core', ['browserify.core', 'uglify', 'fixSourceMaps', 'sri:dist']);
-    grunt.registerTask('build.plugins-combined', ['browserify.plugins-combined', 'uglify', 'fixSourceMaps', 'sri:dist', 'sri:build']);
+    grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
+    grunt.registerTask('build.plugins-combined', ['browserify.plugins-combined', 'uglify', 'sri:dist', 'sri:build']);
     grunt.registerTask('build', ['build.plugins-combined']);
     grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
