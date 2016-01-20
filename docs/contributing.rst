@@ -103,7 +103,7 @@ and than pointing your browser to http://127.0.0.1:8000/:
 Releasing New Version
 ~~~~~~~~~~~~~~~~~~~~~
 
-* Bump version numbers in both ``package.json`` and ``bower.json``.
+* Bump version numbers in ``package.json``, ``bower.json``, and ``src/raven.js``.
 * ``$ grunt dist`` This will compile a new version and update it in the
   ``dist/`` folder.
 * Confirm that build was fine, etc.

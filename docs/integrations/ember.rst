@@ -9,7 +9,7 @@ after you load all other external libraries (like jQuery), but before your code.
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/2.0.5/ember/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.1.0/ember/raven.min.js"></script>
 
 Configuring the Client
 ----------------------

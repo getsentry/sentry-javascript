@@ -9,7 +9,7 @@ So for example:
 .. sourcecode:: html
 
     <script src="jquery.js"></script>
-    <script src="https://cdn.ravenjs.com/2.0.5/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
     <script src="app.js"></script>
 
@@ -28,7 +28,7 @@ Our CDN distributes builds with and without :doc:`integrations <integrations/ind
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/2.0.5/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>
 
 This version does not include any plugins. See `ravenjs.com
 <http://ravenjs.com/>`_ for more information about plugins and getting
