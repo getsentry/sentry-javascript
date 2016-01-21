@@ -195,3 +195,10 @@ Note also that Sentry will resolve relative paths. For example, if you have the 
     //# sourceMappingURL=app.min.js.map
 
 Sentry will resolve ``sourceMappingURL`` relative to ``https://example.com/dist/js/`` (the root path from which ``app.min.js`` was served). You will again need to name your source map with the full URL: ``https://example.com/dist/js/app.min.js.map``.
+
+Verify artifacts are uploaded before errors occur
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sentry expects that source code and source maps in a given release are uploaded to Sentry **before** errors occur in that release.
+
+If you upload artifacts **after** an error is captured by Sentry, Sentry will not go back and retroactively apply any source annotations to those errors. Only new errors triggered after the artifact was uploaded will be affected.
