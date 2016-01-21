@@ -178,8 +178,6 @@ Verify artifact names match sourceMappingURL
 When `uploading source maps to Sentry
 <#uploading-source-maps-to-sentry>`_, you must name your source map files with the same name found in ``sourceMappingURL``.
 
-__ Uploading Source Maps to Sentry
-
 For example, if you have the following in a minified application file, ``app.min.js``:
 
 .. code-block:: javascript
