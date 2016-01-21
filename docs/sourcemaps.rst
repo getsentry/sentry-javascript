@@ -152,9 +152,48 @@ Additional information can be found in the `Releases API documentation
 
 .. sentry:edition:: hosted
 
-    Working Behind a Firewall
-    -------------------------
+Working Behind a Firewall
+-------------------------
 
-    While the recommended solution is to upload your source artifacts to
-    Sentry, sometimes it's necessary to allow communication from Sentry's
-    internal IPs. For more information on Sentry's public IPs, see :ref:`ip-ranges`.
+While the recommended solution is to upload your source artifacts to
+Sentry, sometimes it's necessary to allow communication from Sentry's
+internal IPs. For more information on Sentry's public IPs, see :ref:`ip-ranges`.
+
+Troubleshooting
+---------------
+
+Source maps can sometimes be tricky to get going. If you're having trouble, try the following tips.
+
+Verify sourceMappingURL is present
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some CDNs automatically strip comments from static files, including JavaScript files. This can have the effect of stripping your JavaScript file of its ``sourceMappingURL`` directive, because it is considered a comment. For example, CloudFlare has a feature called `Auto-Minify
+<https://blog.cloudflare.com/an-all-new-and-improved-autominify/>`_ which will strip ``sourceMappingURL`` if it is enabled.
+
+Double-check that your deployed, final JavaScript files have ``sourceMappingURL`` present.
+
+Verify artifact names match sourceMappingURL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When `uploading source maps to Sentry
+<#uploading-source-maps-to-sentry>`_, you must name your source map files with the same name found in ``sourceMappingURL``.
+
+__ Uploading Source Maps to Sentry
+
+For example, if you have the following in a minified application file, ``app.min.js``:
+
+.. code-block:: javascript
+
+    //-- end app.min.js
+    //# sourceMappingURL=https://example.com/dist/js/app.min.js.map
+
+Sentry will look for a matching artifact named exactly ``https://example.com/dist/js/app.min.js.map``.
+
+Note also that Sentry will resolve relative paths. For example, if you have the following:
+
+.. code-block:: JavaScript
+
+    // -- end app.min.js (located at https://example.com/dist/js/app.min.js)
+    //# sourceMappingURL=app.min.js.map
+
+Sentry will resolve ``sourceMappingURL`` relative to ``https://example.com/dist/js/`` (the root path from which ``app.min.js`` was served). You will again need to name your source map with the full URL: ``https://example.com/dist/js/app.min.js.map``.
