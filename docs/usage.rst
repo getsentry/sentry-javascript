@@ -249,13 +249,13 @@ manually hook into such an event handler and call ``Raven.captureException`` or 
 directly.
 
 For example, the `RSVP.js library
-<https://github.com/tildeio/rsvp.js/>`_ allows you to bind an event handler to a `global error event
+<https://github.com/tildeio/rsvp.js/>`_ (used by Ember.js) allows you to bind an event handler to a `global error event
 <https://github.com/tildeio/rsvp.js#error-handling>`_:
 
 .. code-block:: javascript
 
     RSVP.on('error', function(reason) {
-        Raven.captureMessage(reason); // NOTE: "reason" is a string
+        Raven.captureException(reason);
     });
 
 `Bluebird
@@ -263,8 +263,8 @@ For example, the `RSVP.js library
 
 .. code-block:: javascript
 
-    window.addEventListener('unhandledrejection', function(err) {
-        Raven.captureException(err);
+    window.addEventListener('unhandledrejection', function(evt) {
+        Raven.captureException(evt.reason);
     });
 
 Please consult your promise library documentation on how to hook into its global unhandled rejection handler, if it exposes one.
