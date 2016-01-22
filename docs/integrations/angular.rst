@@ -4,22 +4,105 @@ AngularJS
 .. versionadded:: 1.3.0
    Prior to 1.3.0, we had an Angular plugin, but was undocumented. 1.3.0 comes with a rewritten version with better support.
 
+To use Sentry with your Angular application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Angular plugin.
+
+On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <usage>`.
+
+Additionally, the Raven.js Angular plugin will catch any Angular-specific exceptions reported through Angular's ``$exceptionHandler`` interface.
+
+**Note**: The Angular integration supports Angular 1.x.
+
 Installation
 ------------
 
-Start by adding the ``raven.js`` script tag to your page. It should go **before** your application code.
+Raven.js and the Raven.js Angular plugin are distributed using a few different methods.
+
+Using our CDN
+~~~~~~~~~~~~~
+
+For convenience, our CDN serves a single, minified JavaScript file containing both Raven.js and the Raven.js Angular plugin. It should be included **after** Angular, but **before** your application code.
 
 Example:
 
 .. sourcecode:: html
 
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
     <script src="https://cdn.ravenjs.com/2.1.0/angular/raven.min.js"></script>
+    <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
-    <!-- your application code below -->
-    <script src="static/app.js"></script>
+Note that this CDN build auto-initializes the Angular plugin.
 
-Additionally, inside your main Angular application module, you need to declare ``ngRaven`` as a
-module dependency:
+Using package managers
+~~~~~~~~~~~~~~~~~~~~~~
+
+Pre-built distributions of Raven.js and the Raven.js Angular plugin are avilable via both Bower and npm.
+
+Bower
+`````
+
+.. code
+
+.. code-block:: sh
+
+    $ bower install raven-js --save
+
+.. code-block:: html
+
+    <script src="/bower_components/angular/angular.js"></script>
+    <script src="/bower_components/raven-js/dist/raven.js"></script>
+    <script src="/bower_components/raven-js/dist/plugins/angular.js"></script>
+    <script>
+      Raven
+        .config('___PUBLIC_DSN___')
+        .addPlugin(Raven.Plugins.Angular)
+        .install();
+    </script>
+npm
+````
+
+.. code-block:: sh
+
+    $ npm install raven-js --save
+
+.. code-block:: html
+
+    <script src="/node_modules/angular/angular.js"></script>
+    <script src="/node_modules/raven-js/dist/raven.js"></script>
+    <script src="/node_modules/raven-js/dist/plugins/angular.js"></script>
+    <script>
+      Raven
+        .config('___PUBLIC_DSN___')
+        .addPlugin(Raven.Plugins.Angular)
+        .install();
+    </script>
+
+These examples assume that Angular is exported globally as `window.angular`. You can alternatively pass a reference to the `angular` object directly as the second argument to `addPlugin`:
+
+.. code-block:: javascript
+
+  Raven.addPlugin(Raven.Plugins.Angular, angular);
+
+Module loaders (CommonJS)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Raven and the Raven Angular plugin can be loaded using a module loader like Browserify or Webpack.
+
+.. code-block:: javascript
+
+    var angular = require('angular');
+    var Raven = require('raven-js');
+
+    Raven
+      .config('___PUBLIC_DSN___')
+      .addPlugin(require('raven-js/plugins/angular'), angular)
+      .install();
+
+Note that when using CommonJS-style imports, you must pass a reference to the `angular` as the second argument to `addPlugin`.
+
+Angular Configuration
+---------------------
+
+Inside your main Angular application module, you need to declare `ngRaven` as a module dependency:
 
 .. code-block:: javascript
 
@@ -29,19 +112,3 @@ module dependency:
       'myAppControllers',
       'myAppFilters'
     ]);
-
-Configuring the Client
-----------------------
-
-While adding ``ngRaven`` to your app will capture enable integration support, you'll still need
-to wire up the SDK just as if you weren't using Angular. This should happen immediately **after** the JS SDK script tag:
-
-.. code-block:: html
-
-    <script src="https://cdn.ravenjs.com/2.1.0/angular/raven.min.js"></script>
-    <script>
-      Raven.config('___PUBLIC_DSN___').install();
-    </script>
-
-At this point the SDK will capture Angular-specific errors, as well as general JavaScript
-issues that may happen outside of the scope of the framework.
