@@ -1,4 +1,6 @@
 Mocha = require('mocha')
+should = require('should')
+
 fs = require('fs')
 path = require('path')
 
