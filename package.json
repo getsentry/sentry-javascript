@@ -18,8 +18,9 @@
     "raven": "./bin/raven"
   },
   "scripts": {
-    "pretest": "npm install",
-    "test": "NODE_ENV=test mocha --reporter dot && NODE_ENV=test coffee ./test/run.coffee"
+    "pretest": "npm install && npm run lint",
+    "test": "NODE_ENV=test mocha --reporter dot && NODE_ENV=test node_modules/coffee-script/bin/coffee ./test/run.coffee",
+    "lint": "node_modules/eslint/bin/eslint.js ."
   },
   "engines": {
     "node": ">= 0.8.0"
