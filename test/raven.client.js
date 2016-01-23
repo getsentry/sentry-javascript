@@ -343,6 +343,7 @@ describe('raven.Client', function() {
 
   describe('#process()', function() {
     it('should respect dataCallback', function(done) {
+      client = new raven.Client(dsn);
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
@@ -436,6 +437,12 @@ describe('raven.Client', function() {
   });
 
   it('should capture extra data', function(done) {
+    client = new raven.Client(dsn, {
+      extra: {
+        globalContextKey: 'globalContextValue'
+      }
+    });
+
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
@@ -447,6 +454,8 @@ describe('raven.Client', function() {
 
           extra.should.have.property('key');
           extra.key.should.equal('value');
+          extra.should.have.property('globalContextKey');
+          extra.globalContextKey.should.equal('globalContextValue')
 
           done();
         });
@@ -465,6 +474,11 @@ describe('raven.Client', function() {
   });
 
   it('should capture tags', function(done) {
+    client = new raven.Client(dsn, {
+      tags: {
+        globalContextKey: 'globalContextValue'
+      }
+    });
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
@@ -476,6 +490,8 @@ describe('raven.Client', function() {
 
           tags.should.have.property('key');
           tags.key.should.equal('value');
+          tags.should.have.property('globalContextKey');
+          tags.globalContextKey.should.equal('globalContextValue')
 
           done();
         });
@@ -492,6 +508,7 @@ describe('raven.Client', function() {
       }
     });
   });
+
   it('should capture fingerprint', function(done) {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
@@ -517,6 +534,41 @@ describe('raven.Client', function() {
       fingerprint: ['foo']
     });
   });
+
+  it('should capture user', function(done) {
+    var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+
+            msg.user.should.have.property('email', 'matt@example.com');
+            msg.user.should.have.property('id', '123');
+
+            done();
+          });
+          return 'OK';
+        });
+
+    var client = new raven.Client(dsn, {
+      release: 'version1'
+    });
+
+    client.setUserContext({
+      email: 'matt@example.com',
+      id: '123'
+    });
+
+    client.on('logged', function() {
+      scope.done();
+    });
+    client.process({
+      message: 'test'
+    });
+  });
+
   it('should capture release', function(done) {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
@@ -541,6 +593,55 @@ describe('raven.Client', function() {
     });
     client.process({
       message: 'test'
+    });
+  });
+
+  describe('#setUserContext()', function() {
+    it('should add the user object to the globalContext', function () {
+      var user = {
+        email: 'matt@example.com', // <-- my fave user
+        id: '123'
+      };
+
+      client.setUserContext(user);
+
+      client._globalContext.user.should.equal(user);
+    });
+  });
+
+  describe('#setExtraContext()', function() {
+    it('should merge the extra data object into the globalContext', function () {
+      // when no pre-existing context
+      client.setExtraContext({
+        bar: 'baz'
+      });
+
+      client._globalContext.extra.should.have.property('bar', 'baz');
+
+      client.setExtraContext({ // should merge onto previous
+        foo: 'bar'
+      });
+
+      client._globalContext.extra.should.have.property('foo', 'bar');
+      client._globalContext.extra.should.have.property('bar', 'baz');
+    });
+  });
+
+  describe('#setTagsContext()', function() {
+    it('should merge the extra data object into the globalContext', function () {
+      // when no pre-existing context
+      client.setTagsContext({
+        browser: 'Chrome'
+      });
+
+      client._globalContext.tags.should.have.property('browser', 'Chrome');
+
+      client.setTagsContext({ // should merge onto previous
+        platform: 'OS X'
+      });
+
+      client._globalContext.tags.should.have.property('browser', 'Chrome');
+      client._globalContext.tags.should.have.property('platform', 'OS X');
     });
   });
 });
