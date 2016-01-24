@@ -1,3 +1,7 @@
+# 0.10.0 - 1/24/2016
+ * Now supports global context for extra data, tags, user [See #141]
+ * Added `setUserContext`, `setExtraContext`, `setTagsContext`
+
 # 0.9.0 - 11/23/2015
  * Always coerce req.body to string. [See 2061d4efbf269c5e2096f2b7b55f5af2249c4aa7]
  * Allow passing options to HTTP transports. [See #123]
