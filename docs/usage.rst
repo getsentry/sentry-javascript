@@ -24,6 +24,8 @@ Configuring the HTTP Transport
         transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})
     });
 
+.. _raven-node-additional-context:
+
 Optional Attributes
 -------------------
 
@@ -39,6 +41,12 @@ All optional attributes are passed as part of the options to ``captureError`` an
             extra: {'key': 'value'}
         }
 
+    You can also set extra data globally to be merged in with future events with ``setExtraContext``:
+
+    .. code-block:: javascript
+
+        client.setExtraContext({ foo: "bar" })
+
 .. describe:: tags
 
     Tags to index with this event. Must be a mapping of strings.
@@ -48,6 +56,12 @@ All optional attributes are passed as part of the options to ``captureError`` an
         {
             tags: {'key': 'value'}
         }
+
+    You can also set tags globally to be merged in with future exceptions events with ``setTagsContext``:
+
+    .. code-block:: javascript
+
+        client.setTagsContext({ key: "value" });
 
 .. describe:: fingerprint
 
@@ -77,6 +91,27 @@ All optional attributes are passed as part of the options to ``captureError`` an
     * warning
     * error
     * fatal (the most serious)
+
+Tracking Users
+--------------
+
+While a user is logged in, you can tell Sentry to associate errors with
+user data.
+
+.. code-block:: javascript
+
+    client.setUserContext({
+        email: 'matt@example.com',
+        id: '123'
+    })
+
+If at any point, the user becomes unauthenticated, you can call
+``client.setUserContext()`` with no arguments to remove their data. *This
+would only really be useful in a large web app where the user logs in/out
+without a page reload.*
+
+This data is generally submitted with each error or message and allows you
+to figure out which errors are affected by problems.
 
 Event IDs
 ---------

@@ -58,6 +58,26 @@ problematic code with a ``try...catch`` block and ``Raven.captureException``:
         client.captureException(e)
     }
 
+Adding Context
+--------------
+
+While a user is logged in, you can tell Sentry to associate errors with
+user data.  This data is then submitted with each error which allows you
+to figure out which users are affected.
+
+.. code-block:: javascript
+
+    client.setUserContext({
+        email: 'matt@example.com',
+        id: '123'
+    })
+
+If at any point, the user becomes unauthenticated, you can call
+``client.setUserContext()`` with no arguments to remove their data.
+
+Other similar methods are ``client.setExtraContext`` and
+``client.setTagsContext``.  See :ref:`raven-node-additional-context` for more info.
+
 Deep Dive
 ---------
 
