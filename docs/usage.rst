@@ -13,7 +13,7 @@ Capturing Messages
 
 .. code-block:: javascript
 
-    Raven.captureMessage('Broken!')
+    client.captureMessage('Broken!')
 
 Configuring the HTTP Transport
 ------------------------------
@@ -29,7 +29,7 @@ Configuring the HTTP Transport
 Optional Attributes
 -------------------
 
-All optional attributes are passed as part of the options to ``captureError`` and ``captureMessage``.
+All optional attributes are passed as part of the options to ``captureException`` and ``captureMessage``.
 
 .. describe:: extra
 
@@ -128,7 +128,7 @@ the event ID using a callback:
 
 .. code-block:: javascript
 
-    client.captureError(new Error('Broke!'), function(result) {
+    client.captureException(new Error('Broke!'), function(result) {
         console.log(client.getIdent(result));
     });
 
