@@ -27,28 +27,30 @@ Raven is distributed via ``npm``:
 Configuring the Client
 ----------------------
 
-Now need to configure your application:
+Next you need to initialize the Raven client and configure it to use your `Sentry DSN
+<https://docs.getsentry.com/hosted/quickstart/#configure-the-dsn>`_:
 
 .. code-block:: javascript
 
+    var raven = require('raven');
     var client = new raven.Client('___DSN___');
 
-At this point you'll likely need to integrate it into your application via
-middleware or another integration mechanism. Take a look at our documentation
-on :doc:`integrations/index` and :doc:`usage`.
+You can optionally pass an object of configuration options as the 2nd argument to `Client`. For
+more information, see :doc:`config`.
 
 Reporting Errors
 ----------------
 
-You'll want to start by injecting a global error handler, which will catch any
-exceptions which would bubble up to the Node runtime:
+To get started passing errors to Raven, it is recommended to initialize Raven's global error handler using
+``patchGlobal``. This will cause any uncaught exception which would bubble up to the Node runtime to be
+captured and processed by Raven.
 
 .. code-block:: javascript
 
   client.patchGlobal();
 
-Beyond that, the simplest way is to explicitly capture and report potentially
-problematic code with a ``try...catch`` block and ``Raven.captureException``:
+Additionally, you can manually capture and report potentially problematic code with ``try...catch`` and
+ ``captureException``:
 
 .. code-block:: javascript
 
@@ -57,6 +59,8 @@ problematic code with a ``try...catch`` block and ``Raven.captureException``:
     } catch(e) {
         client.captureException(e)
     }
+
+The ``captureException`` method optionally takes an object of configuration options as the 2nd argument. For more information, and to learn about other methods provided by the Raven API, see :docs:`usage`.
 
 Adding Context
 --------------
