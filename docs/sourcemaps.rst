@@ -202,3 +202,11 @@ Verify artifacts are uploaded before errors occur
 Sentry expects that source code and source maps in a given release are uploaded to Sentry **before** errors occur in that release.
 
 If you upload artifacts **after** an error is captured by Sentry, Sentry will not go back and retroactively apply any source annotations to those errors. Only new errors triggered after the artifact was uploaded will be affected.
+
+Verify your source files are not too large
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For an individual artifact, Sentry accepts a max filesize of **20 MB**.
+
+Often users hit this limit because they are transmitting source files at an interim build stage. For example, after Webpack/Browserify has combined all
+your source files, but before minification has taken place. If possible, send the original source files.
