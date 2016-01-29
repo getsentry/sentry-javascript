@@ -33,7 +33,7 @@ Now we need to set up Raven.js to use your Sentry DSN:
 .. code-block:: javascript
 
     Raven
-      .config('https://___PUBLIC_DSN___', { release: RELEASE_ID })
+      .config('___PUBLIC_DSN___', { release: RELEASE_ID })
       .install();
 
 RELEASE_ID is a string representing the “version” of the build you are
