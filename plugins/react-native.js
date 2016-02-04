@@ -71,8 +71,8 @@ function reactNativePlugin(Raven) {
         }
     });
 
-    var defaultHandler = (ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler())
-     || ErrorUtils._globalHandler;
+    var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
+
     ErrorUtils.setGlobalHandler(function(){
       var error = arguments[0];
       defaultHandler.apply(this, arguments)
