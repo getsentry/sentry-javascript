@@ -27,8 +27,6 @@ function reactNativePlugin(Raven) {
     }
 
     function xhrTransport(options) {
-        options.auth.sentry_data = JSON.stringify(options.data);
-
         var request = new XMLHttpRequest();
         request.onreadystatechange = function (e) {
             if (request.readyState !== 4) {
@@ -46,8 +44,12 @@ function reactNativePlugin(Raven) {
             }
         };
 
-        request.open('GET', options.url + '?' + urlencode(options.auth));
-        request.send();
+        request.open('POST', options.url + '?' + urlencode(options.auth));
+        // Sentry expects an Origin header when using HTTP POST w/ public DSN.
+        // Just set a phony Origin value; only matters if Sentry Project is configured
+        // to whitelist specific origins.
+        request.setRequestHeader('Origin', 'react-native://');
+        request.send(JSON.stringify(options.data));
     }
 
     // react-native doesn't have a document, so can't use default Image
