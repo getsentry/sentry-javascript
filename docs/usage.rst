@@ -1,12 +1,16 @@
 Usage
 =====
 
+Capturing Errors
+----------------
+
 .. code-block:: javascript
 
-    var raven = require('raven');
-    var client = new raven.Client('___DSN___');
-
-    client.captureMessage('Hello, world!');
+    try {
+        doSomething(a[0])
+    } catch (err) {
+        client.captureException(err)
+    }
 
 Capturing Messages
 ------------------
@@ -14,15 +18,6 @@ Capturing Messages
 .. code-block:: javascript
 
     client.captureMessage('Broken!')
-
-Configuring the HTTP Transport
-------------------------------
-
-.. code-block:: javascript
-
-    var client = new raven.Client('___DSN___', {
-        transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})
-    });
 
 .. _raven-node-additional-context:
 
@@ -165,6 +160,13 @@ so an optional callback is provided to allow you to hook in something like:
 
 The callback is called **after** the event has been sent to the Sentry server.
 
+
+Middleware and Integrations
+---------------------------
+
+If you're using Node.js with a web server framework/library like Connect, Express, or Koa, it is recommended
+to configure one of Raven's server middleware integrations. See doc:`integrations/index`.
+
 Events
 ------
 
@@ -187,6 +189,14 @@ If you really care if the event was logged or errored out, Client emits two even
 
     client.captureMessage('Boom');
 
+Configuring the HTTP Transport
+------------------------------
+
+.. code-block:: javascript
+
+    var client = new raven.Client('___DSN___', {
+        transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})
+    });
 
 Disable Raven
 -------------
