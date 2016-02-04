@@ -60,7 +60,7 @@ Additionally, you can manually capture and report potentially problematic code w
         client.captureException(e)
     }
 
-The ``captureException`` method optionally takes an object of configuration options as the 2nd argument. For more information, and to learn about other methods provided by the Raven API, see :docs:`usage`.
+The ``captureException`` method optionally takes an object of configuration options as the 2nd argument. For more information, and to learn about other methods provided by the Raven API, see :doc:`usage`.
 
 Adding Context
 --------------
@@ -81,6 +81,12 @@ If at any point, the user becomes unauthenticated, you can call
 
 Other similar methods are ``client.setExtraContext`` and
 ``client.setTagsContext``.  See :ref:`raven-node-additional-context` for more info.
+
+Middleware and Integrations
+---------------------------
+
+If you're using Node.js with a web server framework/library like Connect, Express, or Koa, it is recommended
+to configure one of Raven's server middleware integrations. See doc:`integrations/index`.
 
 Deep Dive
 ---------

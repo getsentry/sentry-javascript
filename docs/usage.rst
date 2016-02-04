@@ -160,13 +160,6 @@ so an optional callback is provided to allow you to hook in something like:
 
 The callback is called **after** the event has been sent to the Sentry server.
 
-
-Middleware and Integrations
----------------------------
-
-If you're using Node.js with a web server framework/library like Connect, Express, or Koa, it is recommended
-to configure one of Raven's server middleware integrations. See doc:`integrations/index`.
-
 Events
 ------
 
