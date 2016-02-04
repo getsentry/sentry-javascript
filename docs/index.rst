@@ -98,7 +98,6 @@ is additional documentation available that covers all the rest:
    :maxdepth: 2
    :titlesonly:
 
-   install
    config
    usage
    integrations/index
