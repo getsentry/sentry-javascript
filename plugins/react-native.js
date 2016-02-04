@@ -71,7 +71,13 @@ function reactNativePlugin(Raven) {
         }
     });
 
-    ErrorUtils.setGlobalHandler(Raven.captureException.bind(Raven));
+    var defaultHandler = (ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler())
+     || ErrorUtils._globalHandler;
+    ErrorUtils.setGlobalHandler(function(){
+      var error = arguments[0];
+      defaultHandler.apply(this, arguments)
+      Raven.captureException(error);
+    });
 }
 
 module.exports = reactNativePlugin;
