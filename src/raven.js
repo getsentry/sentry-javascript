@@ -791,7 +791,7 @@ Raven.prototype = {
             // first we check the global includePaths list.
             !!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename) ||
             // Now we check for fun, if the function name is Raven or TraceKit
-            /(Raven|TraceKit)\./.test(normalized.function) ||
+            /(Raven|TraceKit)\./.test(normalized['function']) ||
             // finally, we do a last ditch effort and check for raven.min.js
             /raven\.(min\.)?js$/.test(normalized.filename)
         );
