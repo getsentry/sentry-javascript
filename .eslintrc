@@ -14,7 +14,7 @@
     "dot-notation": [
       2,
       {
-        "allowKeywords": true
+        "allowKeywords": false
       }
     ],
     "eqeqeq": [
