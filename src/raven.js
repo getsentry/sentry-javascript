@@ -221,7 +221,14 @@ Raven.prototype = {
         }
 
         // We don't wanna wrap it twice!
-        if (func.__raven__) {
+        try {
+            if (func.__raven__) {
+                return func;
+            }
+        } catch (e) {
+            // Just accessing the __raven__ prop in some Selenium environments
+            // can cause a "Permission denied" exception (see raven-js#495).
+            // Bail on wrapping and return the function as-is (defers to window.onerror).
             return func;
         }
 
