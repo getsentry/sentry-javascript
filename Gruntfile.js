@@ -7,6 +7,7 @@ module.exports = function(grunt) {
     var proxyquire = require('proxyquireify');
     var versionify = require('browserify-versionify');
     var derequire = require('derequire/plugin');
+    var collapser = require('bundle-collapser/plugin');
 
     var excludedPlugins = [
         'react-native'
@@ -106,8 +107,11 @@ module.exports = function(grunt) {
                 browserifyOptions: {
                 standalone: 'Raven' // umd
             },
-            transform: [ versionify ],
-                plugin: [ derequire ]
+            transform: [versionify],
+            plugin: [
+                derequire,
+                collapser
+            ]
         },
         core: {
             src: 'src/singleton.js',
@@ -115,10 +119,10 @@ module.exports = function(grunt) {
         },
         'plugins-combined': {
             files: pluginConcatFiles,
-                options: {
+            options: {
                 transform: [
-                    [ versionify ],
-                    [ new AddPluginBrowserifyTransformer() ]
+                    [versionify],
+                    [new AddPluginBrowserifyTransformer()]
                 ]
             }
         },
