@@ -339,6 +339,6 @@ module.exports = function(grunt) {
     grunt.registerTask('run:test', ['connect:test']);
     grunt.registerTask('run:docs', ['connect:docs']);
 
-    grunt.registerTask('publish', ['test', 'build.all', 's3']);
+    grunt.registerTask('publish', ['test', 'build.plugins-combined', 's3']);
     grunt.registerTask('default', ['test']);
 };
