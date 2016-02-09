@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.1
+* BUGFIX: Fixed IE8 regression introduced in 2.1.0. See: https://github.com/getsentry/raven-js/issues/498
+* BUGFIX: Fixed initialization error when run via Selenium. See: https://github.com/getsentry/raven-js/issues/495
+
 ## 2.1.0
 * BUGFIX: Fixed Raven.js rejecting frames w/ blob URLs. See: https://github.com/getsentry/raven-js/issues/463
 * BUGFIX: Fixed plugin files not consumable without module loader. See: https://github.com/getsentry/raven-js/issues/446

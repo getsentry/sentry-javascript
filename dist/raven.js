@@ -1,4 +1,4 @@
-/*! Raven.js 2.1.0 (9ca11cd) | github.com/getsentry/raven-js */
+/*! Raven.js 2.1.1 (9dbc6bd) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -100,7 +100,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '2.1.0',
+    VERSION: '2.1.1',
 
     debug: false,
 
@@ -246,7 +246,14 @@ Raven.prototype = {
         }
 
         // We don't wanna wrap it twice!
-        if (func.__raven__) {
+        try {
+            if (func.__raven__) {
+                return func;
+            }
+        } catch (e) {
+            // Just accessing the __raven__ prop in some Selenium environments
+            // can cause a "Permission denied" exception (see raven-js#495).
+            // Bail on wrapping and return the function as-is (defers to window.onerror).
             return func;
         }
 
@@ -816,7 +823,7 @@ Raven.prototype = {
             // first we check the global includePaths list.
             !!this._globalOptions.includePaths.test && !this._globalOptions.includePaths.test(normalized.filename) ||
             // Now we check for fun, if the function name is Raven or TraceKit
-            /(Raven|TraceKit)\./.test(normalized.function) ||
+            /(Raven|TraceKit)\./.test(normalized['function']) ||
             // finally, we do a last ditch effort and check for raven.min.js
             /raven\.(min\.)?js$/.test(normalized.filename)
         );
