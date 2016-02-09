@@ -172,8 +172,22 @@ module.exports = function(grunt) {
 
                 // Only preserve comments that start with (!)
                 preserveComments: /^!/,
+
+                // Minify object properties that begin with _ ("private"
+                // methods and values)
+                mangleProperties: {
+                    regex: /^_/
+                },
+
                 compress: {
+                    booleans: true,
+                    conditionals: true,
                     dead_code: true,
+                    join_vars: true,
+                    pure_getters: true,
+                    sequences: true,
+                    unused: true,
+
                     global_defs: {
                         'TEST': false
                     }
