@@ -2047,6 +2047,21 @@ describe('Raven (public API)', function() {
             assert.isFalse(Raven._handleStackInfo.called);
         });
 
+        it('should capture custom errors that extend the Error prototype', function() {
+            function NotImplementedError(message) {
+                this.name = "NotImplementedError";
+                this.message = message || "";
+            }
+            NotImplementedError.prototype = Error.prototype;
+
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_handleStackInfo');
+
+            Raven.captureException(new NotImplementedError('Bzzap'));
+
+            assert.isTrue(Raven._handleStackInfo.calledOnce);
+        });
+
         it('should not throw an error if not configured', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
             this.sinon.stub(Raven, '_handleStackInfo');
