@@ -35,7 +35,7 @@ Note that this CDN build auto-initializes the Angular plugin.
 Using package managers
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Pre-built distributions of Raven.js and the Raven.js Angular plugin are avilable via both Bower and npm.
+Pre-built distributions of Raven.js and the Raven.js Angular plugin are available via both Bower and npm.
 
 Bower
 `````
