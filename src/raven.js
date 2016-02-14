@@ -100,7 +100,10 @@ Raven.prototype = {
         var uri = this._parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
-        this._secret = uri.pass.substr(1);
+
+        var secret = uri.pass;
+        if(secret && secret.length)
+            this._secret = secret.substr(1);
 
 
         // merge in options
