@@ -100,7 +100,7 @@ Raven.prototype = {
         var uri = this._parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
-        this._secret = uri.pass;
+        this._secret = uri.pass.substr(1);
 
 
         // merge in options
@@ -994,15 +994,20 @@ Raven.prototype = {
 
         if (!this.isSetup()) return;
 
+        var header_data = {
+            sentry_version: '7',
+            sentry_client: 'raven-js/' + this.VERSION,
+            sentry_key: this._globalKey
+        };
+
+        if(this._secret) {
+            header_data.sentry_secret = this._secret;
+        }
+
         var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
             url: url,
-            auth: {
-                sentry_version: '7',
-                sentry_client: 'raven-js/' + this.VERSION,
-                sentry_key: this._globalKey,
-                sentry_secret: this._secret
-            },
+            auth: header_data,
             data: data,
             options: globalOptions,
             onSuccess: function success() {
