@@ -100,6 +100,8 @@ Raven.prototype = {
         var uri = this._parseDSN(dsn),
             lastSlash = uri.path.lastIndexOf('/'),
             path = uri.path.substr(1, lastSlash);
+        this._secret = uri.pass;
+
 
         // merge in options
         if (options) {
@@ -725,8 +727,8 @@ Raven.prototype = {
             throw new RavenConfigError('Invalid DSN: ' + str);
         }
 
-        if (dsn.pass)
-            throw new RavenConfigError('Do not specify your private key in the DSN!');
+        //if (dsn.pass)
+        //    throw new RavenConfigError('Do not specify your private key in the DSN!');
 
         return dsn;
     },
@@ -998,7 +1000,8 @@ Raven.prototype = {
             auth: {
                 sentry_version: '7',
                 sentry_client: 'raven-js/' + this.VERSION,
-                sentry_key: this._globalKey
+                sentry_key: this._globalKey,
+                sentry_secret: this._secret
             },
             data: data,
             options: globalOptions,
