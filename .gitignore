@@ -19,4 +19,5 @@ scratch/
 *.pyc
 
 .idea
+*.sublime-*
 aws.json
