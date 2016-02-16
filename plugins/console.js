@@ -20,7 +20,7 @@ function consolePlugin(Raven, console) {
         // correctly with what Sentry expects.
         if (l === 'warn') l = 'warning';
         return function () {
-            var args = [].slice.call(arguments);
+            var args = Array.prototype.slice.call(arguments);
             Raven.captureMessage('' + args.join(' '), {level: l, logger: 'console', extra: { 'arguments': args }});
 
             // this fails for some browsers. :(
