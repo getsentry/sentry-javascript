@@ -960,11 +960,9 @@ Raven.prototype = {
 
         // Include the release if it's defined in globalOptions
         if (globalOptions.release) data.release = globalOptions.release;
+
         // Include server_name if it's defined in globalOptions
         if (globalOptions.serverName) data.server_name = globalOptions.serverName;
-
-        // Include the release if it's defined in globalOptions
-        if (globalOptions.release) data.release = globalOptions.release;
 
         if (isFunction(globalOptions.dataCallback)) {
             data = globalOptions.dataCallback(data) || data;
