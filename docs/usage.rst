@@ -263,9 +263,9 @@ For example, the `RSVP.js library
 
 .. code-block:: javascript
 
-    window.addEventListener('unhandledrejection', function(evt) {
+    window.onunhandledrejection = function(evt) {
         Raven.captureException(evt.reason);
-    });
+    };
 
 Please consult your promise library documentation on how to hook into its global unhandled rejection handler, if it exposes one.
 
