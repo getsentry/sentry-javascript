@@ -334,10 +334,17 @@ Raven.prototype = {
             return;
         }
 
+        var data = {
+            message: msg,
+            options: options
+        };
+
+        this._triggerEvent('message', data);
+
         // Fire away!
         this._send(
             objectMerge({
-                message: msg + ''  // Make sure it's actually a string
+                message: data.message + ''  // Make sure it's actually a string
             }, options)
         );
 
@@ -557,7 +564,7 @@ Raven.prototype = {
     },
 
     _triggerEvent: function(eventType, options) {
-        // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
+        // NOTE: `event` is a native browser thing, so let's avoid conflicting with it
         var evt, key;
 
         if (!this._hasDocument)
@@ -985,6 +992,11 @@ Raven.prototype = {
 
         // Try and clean up the packet before sending by truncating long values
         data = this._trimPacket(data);
+
+        this._triggerEvent('presend', {
+            options: globalOptions,
+            data: data
+        });
 
         this._logDebug('debug', 'Raven about to send:', data);
 
