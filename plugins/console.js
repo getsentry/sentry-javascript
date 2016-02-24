@@ -6,11 +6,11 @@
  */
 'use strict';
 
-function consolePlugin(Raven, console) {
+function consolePlugin(Raven, console, levels) {
     console = console || window.console || {};
 
     var originalConsole = console,
-        logLevels = ['debug', 'info', 'warn', 'error'],
+        logLevels = levels || ['debug', 'info', 'warn', 'error'],
         level = logLevels.pop();
 
     var logForGivenLevel = function(l) {
@@ -35,7 +35,6 @@ function consolePlugin(Raven, console) {
             }
         };
     };
-
 
     while(level) {
         console[level] = logForGivenLevel(level);
