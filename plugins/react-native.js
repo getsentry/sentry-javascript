@@ -5,19 +5,25 @@
  *
  * Usage:
  *   var Raven = require('raven-js');
- *   require('raven-js/plugins/react-native')(Raven);
+ *   Raven.addPlugin(require('raven-js/plugins/react-native'));
+ *
+ * Options:
+ *
+ *   pathStrip: A RegExp that matches the portions of a file URI that should be
+ *     removed from stacks prior to submission.
+ *
  */
 'use strict';
 
-var DEVICE_PATH_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
+var PATH_STRIP_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
 
 /**
  * Strip device-specific IDs from React Native file:// paths
  */
-function normalizeUrl(url) {
+function normalizeUrl(url, pathStripRe) {
     return url
         .replace(/^file\:\/\//, '')
-        .replace(DEVICE_PATH_RE, '');
+        .replace(pathStripRe, '');
 }
 
 /**
@@ -27,8 +33,8 @@ function normalizeUrl(url) {
 function urlencode(obj) {
     var pairs = [];
     for (var key in obj) {
-      if ({}.hasOwnProperty.call(obj, key))
-        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+        if ({}.hasOwnProperty.call(obj, key))
+            pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
     }
     return pairs.join('&');
 }
@@ -36,20 +42,24 @@ function urlencode(obj) {
 /**
  * Initializes React Native plugin
  */
-function reactNativePlugin(Raven) {
+function reactNativePlugin(Raven, options) {
+    options = options || {};
+
     // react-native doesn't have a document, so can't use default Image
     // transport - use XMLHttpRequest instead
     Raven.setTransport(reactNativePlugin._transport);
 
     // Use data callback to strip device-specific paths from stack traces
-    Raven.setDataCallback(reactNativePlugin._normalizeData);
+    Raven.setDataCallback(function(data) {
+        reactNativePlugin._normalizeData(data, options.pathStrip)
+    });
 
     var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
 
     ErrorUtils.setGlobalHandler(function() {
-      var error = arguments[0];
-      defaultHandler.apply(this, arguments)
-      Raven.captureException(error);
+        var error = arguments[0];
+        defaultHandler.apply(this, arguments)
+        Raven.captureException(error);
     });
 }
 
@@ -92,16 +102,20 @@ reactNativePlugin._transport = function (options) {
  * Strip device-specific IDs found in culprit and frame filenames
  * when running React Native applications on a physical device.
  */
-reactNativePlugin._normalizeData = function (data) {
+reactNativePlugin._normalizeData = function (data, pathStripRe) {
+    if (!pathStripRe) {
+        pathStripRe = PATH_STRIP_RE;
+    }
+
     if (data.culprit) {
-      data.culprit = normalizeUrl(data.culprit);
+        data.culprit = normalizeUrl(data.culprit, pathStripRe);
     }
 
     if (data.exception) {
-      // if data.exception exists, all of the other keys are guaranteed to exist
-      data.exception.values[0].stacktrace.frames.forEach(function (frame) {
-        frame.filename = normalizeUrl(frame.filename);
-      });
+        // if data.exception exists, all of the other keys are guaranteed to exist
+        data.exception.values[0].stacktrace.frames.forEach(function (frame) {
+            frame.filename = normalizeUrl(frame.filename, pathStripRe);
+        });
     }
 };
 
