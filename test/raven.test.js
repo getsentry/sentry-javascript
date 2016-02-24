@@ -718,6 +718,9 @@ describe('globals', function() {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
+            Raven._breadcrumbs = [
+                { type: 'request', data: { method: 'POST', url: 'http://example.org/api/0/auth/' }}
+            ];
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -732,7 +735,8 @@ describe('globals', function() {
                 },
                 event_id: 'abc123',
                 message: 'bar',
-                extra: {'session:duration': 100}
+                extra: {'session:duration': 100},
+                breadcrumbs: [{ type: 'request', data: { method: 'POST', url: 'http://example.org/api/0/auth/' }}]
             });
         });
 
@@ -767,7 +771,8 @@ describe('globals', function() {
                     name: 'Matt'
                 },
                 message: 'bar',
-                extra: {'session:duration': 100}
+                extra: {'session:duration': 100},
+                breadcrumbs: []
             });
         });
 
@@ -800,7 +805,8 @@ describe('globals', function() {
                 event_id: 'abc123',
                 message: 'bar',
                 tags: {tag1: 'value1', tag2: 'value2'},
-                extra: {'session:duration': 100}
+                extra: {'session:duration': 100},
+                breadcrumbs: []
             });
 
 
@@ -842,7 +848,8 @@ describe('globals', function() {
 
                 event_id: 'abc123',
                 message: 'bar',
-                extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
+                extra: {key1: 'value1', key2: 'value2', 'session:duration': 100},
+                breadcrumbs: []
             });
 
             assert.deepEqual(Raven._globalOptions, {
@@ -2141,6 +2148,43 @@ describe('Raven (public API)', function() {
             assert.doesNotThrow(function() {
                 Raven.captureException(new Error('err'));
             });
+        });
+    });
+
+    describe('.captureBreadcrumb', function () {
+        it('should store the passed object in _breadcrumbs', function() {
+            var breadcrumb = {
+                type: 'request',
+                timestamp: 100,
+                data: {
+                    url: 'http://example.org/api/0/auth/',
+                    statusCode: 200
+                }
+            };
+
+            Raven.captureBreadcrumb(breadcrumb);
+
+            assert.equal(Raven._breadcrumbs[0], breadcrumb);
+        });
+
+        it('should dequeue the oldest breadcrumb when over limit', function() {
+            Raven._breadcrumbLimit = 5;
+            Raven._breadcrumbs = [
+                { id: 1 },
+                { id: 2 },
+                { id: 3 },
+                { id: 4 },
+                { id: 5 }
+            ];
+
+            Raven.captureBreadcrumb({ id: 6 });
+            assert.deepEqual(Raven._breadcrumbs, [
+                { id: 2 },
+                { id: 3 },
+                { id: 4 },
+                { id: 5 },
+                { id: 6 }
+            ]);
         });
     });
 

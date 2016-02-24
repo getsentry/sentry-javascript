@@ -58,6 +58,8 @@ function Raven() {
     this._plugins = [];
     this._startTime = now();
     this._wrappedBuiltIns = [];
+    this._breadcrumbs = [];
+    this._breadcrumbLimit = 20;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -343,6 +345,15 @@ Raven.prototype = {
         );
 
         return this;
+    },
+
+    captureBreadcrumb: function (obj) {
+        obj.timestamp = now();
+
+        this._breadcrumbs.push(obj);
+        if (this._breadcrumbs.length > this._breadcrumbLimit) {
+            this._breadcrumbs.shift();
+        }
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
@@ -665,12 +676,35 @@ Raven.prototype = {
         });
 
         if ('XMLHttpRequest' in window) {
-            fill(XMLHttpRequest.prototype, 'send', function(origSend) {
+            var xhrproto = XMLHttpRequest.prototype;
+            fill(xhrproto, 'open', function(origOpen) {
+                return function (method, url) { // preserve arity
+                    this.__raven_xhr = {
+                        method: method,
+                        url: url,
+                        statusCode: null
+                    };
+                    return origOpen.apply(this, arguments);
+                };
+            });
+
+            fill(xhrproto, 'send', function(origSend) {
                 return function (data) { // preserve arity
                     var xhr = this;
                     'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
-                        if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
+                        if (prop in xhr && isFunction(xhr[prop])) {
                             fill(xhr, prop, function (orig) {
+                                if (prop === 'onreadystatechange' && xhr.__raven_xhr && (xhr.readyState === 1 || xhr.readyState === 4)) {
+                                    try {
+                                        // touching statusCode in some platforms throws
+                                        // an exception
+                                        xhr.__raven_xhr.statusCode = xhr.status;
+                                    } catch (e) { /* do nothing */ }
+                                    self.captureBreadcrumb({
+                                        type: 'request',
+                                        data: xhr.__raven_xhr
+                                    });
+                                }
                                 return self.wrap(orig);
                             }, true /* noUndo */); // don't track filled methods on XHR instances
                         }
@@ -951,6 +985,8 @@ Raven.prototype = {
 
         // Send along our own collected metadata with extra
         data.extra['session:duration'] = now() - this._startTime;
+
+        data.breadcrumbs = this._breadcrumbs;
 
         // If there are no tags/extra, strip the key from the payload alltogther.
         if (isEmptyObject(data.tags)) delete data.tags;
