@@ -162,8 +162,6 @@ TraceKit.report = (function reportModuleWrapper() {
                 'line': lineNo,
                 'column': colNo
             };
-            location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
-            location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
 
             var name = undefined;
             var msg = message; // must be new var or will modify original `arguments`
@@ -175,6 +173,9 @@ TraceKit.report = (function reportModuleWrapper() {
                     msg = groups[2];
                 }
             }
+
+            location.func = UNKNOWN_FUNCTION;
+            location.context = null;
 
             stack = {
                 'name': name,
@@ -317,131 +318,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    var sourceCache = {};
-
-    /**
-     * Attempts to retrieve source code via XMLHttpRequest, which is used
-     * to look up anonymous function names.
-     * @param {string} url URL of source code.
-     * @return {string} Source contents.
-     */
-    function loadSource(url) {
-        if (!TraceKit.remoteFetching) { //Only attempt request if remoteFetching is on.
-            return '';
-        }
-        try {
-            var getXHR = function() {
-                try {
-                    return new window.XMLHttpRequest();
-                } catch (e) {
-                    // explicitly bubble up the exception if not found
-                    return new window.ActiveXObject('Microsoft.XMLHTTP');
-                }
-            };
-
-            var request = getXHR();
-            request.open('GET', url, false);
-            request.send('');
-            return request.responseText;
-        } catch (e) {
-            return '';
-        }
-    }
-
-    /**
-     * Retrieves source code from the source code cache.
-     * @param {string} url URL of source code.
-     * @return {Array.<string>} Source contents.
-     */
-    function getSource(url) {
-        if (!isString(url)) return [];
-        if (!hasKey(sourceCache, url)) {
-            // URL needs to be able to fetched within the acceptable domain.  Otherwise,
-            // cross-domain errors will be triggered.
-            var source = '';
-            var domain = '';
-            try { domain = document.domain; } catch (e) {}
-            if (url.indexOf(domain) !== -1) {
-                source = loadSource(url);
-            }
-            sourceCache[url] = source ? source.split('\n') : [];
-        }
-
-        return sourceCache[url];
-    }
-
-    /**
-     * Tries to use an externally loaded copy of source code to determine
-     * the name of a function by looking at the name of the variable it was
-     * assigned to, if any.
-     * @param {string} url URL of source code.
-     * @param {(string|number)} lineNo Line number in source code.
-     * @return {string} The function name, if discoverable.
-     */
-    function guessFunctionName(url, lineNo) {
-        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/,
-            reGuessFunction = /['"]?([0-9A-Za-z$_]+)['"]?\s*[:=]\s*(function|eval|new Function)/,
-            line = '',
-            maxLines = 10,
-            source = getSource(url),
-            m;
-
-        if (!source.length) {
-            return UNKNOWN_FUNCTION;
-        }
-
-        // Walk backwards from the first line in the function until we find the line which
-        // matches the pattern above, which is the function definition
-        for (var i = 0; i < maxLines; ++i) {
-            line = source[lineNo - i] + line;
-
-            if (!isUndefined(line)) {
-                if ((m = reGuessFunction.exec(line))) {
-                    return m[1];
-                } else if ((m = reFunctionArgNames.exec(line))) {
-                    return m[1];
-                }
-            }
-        }
-
-        return UNKNOWN_FUNCTION;
-    }
-
-    /**
-     * Retrieves the surrounding lines from where an exception occurred.
-     * @param {string} url URL of source code.
-     * @param {(string|number)} line Line number in source code to centre
-     * around for context.
-     * @return {?Array.<string>} Lines of source code.
-     */
-    function gatherContext(url, line) {
-        var source = getSource(url);
-
-        if (!source.length) {
-            return null;
-        }
-
-        var context = [],
-            // linesBefore & linesAfter are inclusive with the offending line.
-            // if linesOfContext is even, there will be one extra line
-            //   *before* the offending line.
-            linesBefore = Math.floor(TraceKit.linesOfContext / 2),
-            // Add one extra line if linesOfContext is odd
-            linesAfter = linesBefore + (TraceKit.linesOfContext % 2),
-            start = Math.max(0, line - linesBefore - 1),
-            end = Math.min(source.length, line + linesAfter - 1);
-
-        line -= 1; // convert to 0-based index
-
-        for (var i = start; i < end; ++i) {
-            if (!isUndefined(source[i])) {
-                context.push(source[i]);
-            }
-        }
-
-        return context.length > 0 ? context : null;
-    }
-
     /**
      * Escapes special characters, except for whitespace, in a string to be
      * used inside a regular expression as a string literal.
@@ -461,128 +337,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      */
     function escapeCodeAsRegExpForMatchingInsideHTML(body) {
         return escapeRegExp(body).replace('<', '(?:<|&lt;)').replace('>', '(?:>|&gt;)').replace('&', '(?:&|&amp;)').replace('"', '(?:"|&quot;)').replace(/\s+/g, '\\s+');
-    }
-
-    /**
-     * Determines where a code fragment occurs in the source code.
-     * @param {RegExp} re The function definition.
-     * @param {Array.<string>} urls A list of URLs to search.
-     * @return {?Object.<string, (string|number)>} An object containing
-     * the url, line, and column number of the defined function.
-     */
-    function findSourceInUrls(re, urls) {
-        var source, m;
-        for (var i = 0, j = urls.length; i < j; ++i) {
-            // console.log('searching', urls[i]);
-            if ((source = getSource(urls[i])).length) {
-                source = source.join('\n');
-                if ((m = re.exec(source))) {
-                    // console.log('Found function in ' + urls[i]);
-
-                    return {
-                        'url': urls[i],
-                        'line': source.substring(0, m.index).split('\n').length,
-                        'column': m.index - source.lastIndexOf('\n', m.index) - 1
-                    };
-                }
-            }
-        }
-
-        // console.log('no match');
-
-        return null;
-    }
-
-    /**
-     * Determines at which column a code fragment occurs on a line of the
-     * source code.
-     * @param {string} fragment The code fragment.
-     * @param {string} url The URL to search.
-     * @param {(string|number)} line The line number to examine.
-     * @return {?number} The column number.
-     */
-    function findSourceInLine(fragment, url, line) {
-        var source = getSource(url),
-            re = new RegExp('\\b' + escapeRegExp(fragment) + '\\b'),
-            m;
-
-        line -= 1;
-
-        if (source && source.length > line && (m = re.exec(source[line]))) {
-            return m.index;
-        }
-
-        return null;
-    }
-
-    /**
-     * Determines where a function was defined within the source code.
-     * @param {(Function|string)} func A function reference or serialized
-     * function definition.
-     * @return {?Object.<string, (string|number)>} An object containing
-     * the url, line, and column number of the defined function.
-     */
-    function findSourceByFunctionBody(func) {
-        if (typeof document === 'undefined')
-            return;
-
-        var urls = [window.location.href],
-            scripts = document.getElementsByTagName('script'),
-            body,
-            code = '' + func,
-            codeRE = /^function(?:\s+([\w$]+))?\s*\(([\w\s,]*)\)\s*\{\s*(\S[\s\S]*\S)\s*\}\s*$/,
-            eventRE = /^function on([\w$]+)\s*\(event\)\s*\{\s*(\S[\s\S]*\S)\s*\}\s*$/,
-            re,
-            parts,
-            result;
-
-        for (var i = 0; i < scripts.length; ++i) {
-            var script = scripts[i];
-            if (script.src) {
-                urls.push(script.src);
-            }
-        }
-
-        if (!(parts = codeRE.exec(code))) {
-            re = new RegExp(escapeRegExp(code).replace(/\s+/g, '\\s+'));
-        }
-
-        // not sure if this is really necessary, but I don’t have a test
-        // corpus large enough to confirm that and it was in the original.
-        else {
-            var name = parts[1] ? '\\s+' + parts[1] : '',
-                args = parts[2].split(',').join('\\s*,\\s*');
-
-            body = escapeRegExp(parts[3]).replace(/;$/, ';?'); // semicolon is inserted if the function ends with a comment.replace(/\s+/g, '\\s+');
-            re = new RegExp('function' + name + '\\s*\\(\\s*' + args + '\\s*\\)\\s*{\\s*' + body + '\\s*}');
-        }
-
-        // look for a normal function definition
-        if ((result = findSourceInUrls(re, urls))) {
-            return result;
-        }
-
-        // look for an old-school event handler function
-        if ((parts = eventRE.exec(code))) {
-            var event = parts[1];
-            body = escapeCodeAsRegExpForMatchingInsideHTML(parts[2]);
-
-            // look for a function defined in HTML as an onXXX handler
-            re = new RegExp('on' + event + '=[\\\'"]\\s*' + body + '\\s*[\\\'"]', 'i');
-
-            if ((result = findSourceInUrls(re, urls[0]))) {
-                return result;
-            }
-
-            // look for ???
-            re = new RegExp(body);
-
-            if ((result = findSourceInUrls(re, urls))) {
-                return result;
-            }
-        }
-
-        return null;
     }
 
     // Contents of Exception in various browsers.
@@ -671,11 +425,11 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             }
 
             if (!element.func && element.line) {
-                element.func = guessFunctionName(element.url, element.line);
+                element.func = UNKNOWN_FUNCTION;
             }
 
             if (element.line) {
-                element.context = gatherContext(element.url, element.line);
+                element.context = null;
             }
 
             stack.push(element);
@@ -685,9 +439,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        if (stack[0].line && !stack[0].column && reference) {
-            stack[0].column = findSourceInLine(reference[1], stack[0].url, stack[0].line);
-        } else if (!stack[0].column && !isUndefined(ex.columnNumber)) {
+        if (!stack[0].column && !isUndefined(ex.columnNumber)) {
             // FireFox uses this awesome columnNumber property for its top frame
             // Also note, Firefox's column number is 0-based and everything else expects 1-based,
             // so adding 1
@@ -743,17 +495,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
             if (element) {
                 if (!element.func && element.line) {
-                    element.func = guessFunctionName(element.url, element.line);
+                    element.func = UNKNOWN_FUNCTION;
                 }
-                if (element.line) {
-                    try {
-                        element.context = gatherContext(element.url, element.line);
-                    } catch (exc) {}
-                }
-
-                if (!element.context) {
-                    element.context = [lines[line + 1]];
-                }
+                element.context = [lines[line + 1]];
 
                 stack.push(element);
             }
@@ -805,14 +549,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             lineRE3 = /^\s*Line (\d+) of function script\s*$/i,
             stack = [],
             scripts = document.getElementsByTagName('script'),
-            inlineScriptBlocks = [],
             parts;
-
-        for (var s in scripts) {
-            if (hasKey(scripts, s) && !scripts[s].src) {
-                inlineScriptBlocks.push(scripts[s]);
-            }
-        }
 
         for (var line = 2; line < lines.length; line += 2) {
             var item = null;
@@ -833,42 +570,23 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                     'column': null // TODO: Check to see if inline#1 (+parts[2]) points to the script number or column number.
                 };
                 var relativeLine = (+parts[1]); // relative to the start of the <SCRIPT> block
-                var script = inlineScriptBlocks[parts[2] - 1];
-                if (script) {
-                    var source = getSource(item.url);
-                    if (source) {
-                        source = source.join('\n');
-                        var pos = source.indexOf(script.innerText);
-                        if (pos >= 0) {
-                            item.line = relativeLine + source.substring(0, pos).split('\n').length;
-                        }
-                    }
-                }
             } else if ((parts = lineRE3.exec(lines[line]))) {
                 var url = window.location.href.replace(/#.*$/, '');
-                var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]));
-                var src = findSourceInUrls(re, [url]);
                 item = {
                     'url': url,
                     'func': '',
                     'args': [],
-                    'line': src ? src.line : parts[1],
+                    'line': parts[1],
                     'column': null
                 };
             }
 
             if (item) {
                 if (!item.func) {
-                    item.func = guessFunctionName(item.url, item.line);
+                    item.func = UNKNOWN_FUNCTION;
                 }
-                var context = gatherContext(item.url, item.line);
-                var midline = (context ? context[Math.floor(context.length / 2)] : null);
-                if (context && midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')) {
-                    item.context = context;
-                } else {
-                    // if (context) alert("Context mismatch. Correct midline:\n" + lines[i+1] + "\n\nMidline:\n" + midline + "\n\nContext:\n" + context.join("\n") + "\n\nURL:\n" + item.url);
-                    item.context = [lines[line + 1]];
-                }
+                item.context = [lines[line + 1]];
+
                 stack.push(item);
             }
         }
@@ -908,16 +626,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             stackInfo.incomplete = false;
 
             if (!initial.func) {
-                initial.func = guessFunctionName(initial.url, initial.line);
-            }
-
-            if (!initial.context) {
-                initial.context = gatherContext(initial.url, initial.line);
-            }
-
-            var reference = / '([^']+)' /.exec(message);
-            if (reference) {
-                initial.column = findSourceInLine(reference[1], initial.url, initial.line);
+                initial.func = UNKNOWN_FUNCTION;
             }
 
             if (stackInfo.stack.length > 0) {
@@ -983,20 +692,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
               try {
                 item.func = parts.input.substring(0, parts.input.indexOf('{'));
               } catch (e) { }
-            }
-
-            if ((source = findSourceByFunctionBody(curr))) {
-                item.url = source.url;
-                item.line = source.line;
-
-                if (item.func === UNKNOWN_FUNCTION) {
-                    item.func = guessFunctionName(item.url, item.line);
-                }
-
-                var reference = / '([^']+)' /.exec(ex.message || ex.description);
-                if (reference) {
-                    item.column = findSourceInLine(reference[1], source.url, source.line);
-                }
             }
 
             if (funcs['' + curr]) {
@@ -1089,8 +784,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
     computeStackTrace.computeStackTraceFromStackProp = computeStackTraceFromStackProp;
-    computeStackTrace.guessFunctionName = guessFunctionName;
-    computeStackTrace.gatherContext = gatherContext;
 
     return computeStackTrace;
 }());
