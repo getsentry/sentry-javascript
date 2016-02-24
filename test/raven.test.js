@@ -1047,6 +1047,62 @@ describe('globals', function() {
             assert.isFunction(opts.onError);
         });
 
+        it('should trigger success/failure global Raven events on successful/erroneous transport', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            var globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                release: 'abc123',
+            };
+            Raven._globalEndpoint = 'http://localhost/store/';
+            Raven._globalOptions = globalOptions;
+
+            Raven._send({message: 'bar'});
+            var opts = Raven._makeRequest.lastCall.args[0];
+
+            var expectedCallbackArgs = {
+                data: {
+                    event_id: 'abc123',
+                    extra: {
+                      'session:duration': 100
+                    },
+                    logger: 'javascript',
+                    message: 'bar',
+                    platform: 'javascript',
+                    project: '2',
+                    release: 'abc123',
+                    request: {
+                      headers: {
+                        'User-Agent': 'lolbrowser'
+                      },
+                      url: 'http://localhost/?a=b'
+                    }
+                },
+                src: 'http://localhost/store/'
+            };
+
+            // manually call onSuccess/onError and verify that the corresponding
+            // global Raven event (e.g. Raven.on('success')) is called
+            var successListener = this.sinon.stub();
+            Raven.on('success', successListener);
+            opts.onSuccess();
+            assert.isTrue(successListener.calledOnce);
+            assert.deepEqual(successListener.getCall(0).args[0], expectedCallbackArgs);
+
+            var errorListener = this.sinon.stub();
+            Raven.on('failure', errorListener);
+            opts.onError();
+            assert.isTrue(errorListener.calledOnce);
+            assert.deepEqual(errorListener.getCall(0).args[0], expectedCallbackArgs);
+        });
+
         it('should call globalOptions.transport if specified', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_getHttpData').returns({
@@ -1471,6 +1527,26 @@ describe('globals', function() {
             assert.deepEqual(Raven._processException.lastCall.args, [
                 'Matt', 'hey', 'http://example.com', 10, [frame], undefined
             ]);
+        });
+
+        it('should trigger the global \'handle\' Raven event', function() {
+            this.sinon.stub(Raven, '_processException');
+
+            var stackInfo = {
+                name: 'Matt',
+                message: 'hey',
+                url: 'http://example.com',
+                lineno: 10
+            };
+
+            var listener = this.sinon.stub();
+            Raven.on('handle', listener);
+            Raven._handleStackInfo(stackInfo, {foo: 'bar'});
+            assert.isTrue(listener.calledOnce);
+            assert.deepEqual(listener.getCall(0).args[0], {
+                stackInfo: stackInfo,
+                options: {foo: 'bar'}
+            });
         });
     });
 });

@@ -4,6 +4,7 @@
 var TraceKit = require('../vendor/TraceKit/tracekit');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
+var Events = require('./events');
 
 var isFunction = utils.isFunction;
 var isUndefined = utils.isUndefined;
@@ -556,43 +557,6 @@ Raven.prototype = {
         });
     },
 
-    _triggerEvent: function(eventType, options) {
-        // NOTE: `event` is a native browser thing, so let's avoid conflicting wiht it
-        var evt, key;
-
-        if (!this._hasDocument)
-            return;
-
-        options = options || {};
-
-        eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
-
-        if (document.createEvent) {
-            evt = document.createEvent('HTMLEvents');
-            evt.initEvent(eventType, true, true);
-        } else {
-            evt = document.createEventObject();
-            evt.eventType = eventType;
-        }
-
-        for (key in options) if (hasKey(options, key)) {
-            evt[key] = options[key];
-        }
-
-        if (document.createEvent) {
-            // IE9 if standards
-            document.dispatchEvent(evt);
-        } else {
-            // IE8 regardless of Quirks or Standards
-            // IE9 if quirks
-            try {
-                document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
-            } catch(e) {
-                // Do nothing
-            }
-        }
-    },
-
     /**
      * Install any queued plugins
      */
@@ -762,7 +726,7 @@ Raven.prototype = {
             });
         }
 
-        this._triggerEvent('handle', {
+        this.trigger('handle', {
             stackInfo: stackInfo,
             options: options
         });
@@ -1001,13 +965,13 @@ Raven.prototype = {
             data: data,
             options: globalOptions,
             onSuccess: function success() {
-                self._triggerEvent('success', {
+                self.trigger('success', {
                     data: data,
                     src: url
                 });
             },
             onError: function failure() {
-                self._triggerEvent('failure', {
+                self.trigger('failure', {
                     data: data,
                     src: url
                 });
@@ -1107,5 +1071,7 @@ Raven.prototype = {
 // Deprecations
 Raven.prototype.setUser = Raven.prototype.setUserContext;
 Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
+
+objectMerge(Raven.prototype, Events);
 
 module.exports = Raven;
