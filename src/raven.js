@@ -165,7 +165,7 @@ Raven.prototype = {
             });
 
             if (this._globalOptions.wrapBuiltIns) {
-              this._wrapBuiltIns();
+                this._wrapBuiltIns();
             }
 
             // Install all of the plugins
