@@ -159,8 +159,8 @@ TraceKit.report = (function reportModuleWrapper() {
                 'line': lineNo,
                 'column': colNo
             };
-            location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
-            location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
+            location.func = UNKNOWN_FUNCTION;
+            location.context = null;
             stack = {
                 'message': message,
                 'url': getLocationHref(),
@@ -301,131 +301,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    var sourceCache = {};
-
-    /**
-     * Attempts to retrieve source code via XMLHttpRequest, which is used
-     * to look up anonymous function names.
-     * @param {string} url URL of source code.
-     * @return {string} Source contents.
-     */
-    function loadSource(url) {
-        if (!TraceKit.remoteFetching) { //Only attempt request if remoteFetching is on.
-            return '';
-        }
-        try {
-            var getXHR = function() {
-                try {
-                    return new window.XMLHttpRequest();
-                } catch (e) {
-                    // explicitly bubble up the exception if not found
-                    return new window.ActiveXObject('Microsoft.XMLHTTP');
-                }
-            };
-
-            var request = getXHR();
-            request.open('GET', url, false);
-            request.send('');
-            return request.responseText;
-        } catch (e) {
-            return '';
-        }
-    }
-
-    /**
-     * Retrieves source code from the source code cache.
-     * @param {string} url URL of source code.
-     * @return {Array.<string>} Source contents.
-     */
-    function getSource(url) {
-        if (!isString(url)) return [];
-        if (!hasKey(sourceCache, url)) {
-            // URL needs to be able to fetched within the acceptable domain.  Otherwise,
-            // cross-domain errors will be triggered.
-            var source = '';
-            var domain = '';
-            try { domain = document.domain; } catch (e) {}
-            if (url.indexOf(domain) !== -1) {
-                source = loadSource(url);
-            }
-            sourceCache[url] = source ? source.split('\n') : [];
-        }
-
-        return sourceCache[url];
-    }
-
-    /**
-     * Tries to use an externally loaded copy of source code to determine
-     * the name of a function by looking at the name of the variable it was
-     * assigned to, if any.
-     * @param {string} url URL of source code.
-     * @param {(string|number)} lineNo Line number in source code.
-     * @return {string} The function name, if discoverable.
-     */
-    function guessFunctionName(url, lineNo) {
-        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/,
-            reGuessFunction = /['"]?([0-9A-Za-z$_]+)['"]?\s*[:=]\s*(function|eval|new Function)/,
-            line = '',
-            maxLines = 10,
-            source = getSource(url),
-            m;
-
-        if (!source.length) {
-            return UNKNOWN_FUNCTION;
-        }
-
-        // Walk backwards from the first line in the function until we find the line which
-        // matches the pattern above, which is the function definition
-        for (var i = 0; i < maxLines; ++i) {
-            line = source[lineNo - i] + line;
-
-            if (!isUndefined(line)) {
-                if ((m = reGuessFunction.exec(line))) {
-                    return m[1];
-                } else if ((m = reFunctionArgNames.exec(line))) {
-                    return m[1];
-                }
-            }
-        }
-
-        return UNKNOWN_FUNCTION;
-    }
-
-    /**
-     * Retrieves the surrounding lines from where an exception occurred.
-     * @param {string} url URL of source code.
-     * @param {(string|number)} line Line number in source code to centre
-     * around for context.
-     * @return {?Array.<string>} Lines of source code.
-     */
-    function gatherContext(url, line) {
-        var source = getSource(url);
-
-        if (!source.length) {
-            return null;
-        }
-
-        var context = [],
-            // linesBefore & linesAfter are inclusive with the offending line.
-            // if linesOfContext is even, there will be one extra line
-            //   *before* the offending line.
-            linesBefore = Math.floor(TraceKit.linesOfContext / 2),
-            // Add one extra line if linesOfContext is odd
-            linesAfter = linesBefore + (TraceKit.linesOfContext % 2),
-            start = Math.max(0, line - linesBefore - 1),
-            end = Math.min(source.length, line + linesAfter - 1);
-
-        line -= 1; // convert to 0-based index
-
-        for (var i = start; i < end; ++i) {
-            if (!isUndefined(source[i])) {
-                context.push(source[i]);
-            }
-        }
-
-        return context.length > 0 ? context : null;
-    }
-
     /**
      * Escapes special characters, except for whitespace, in a string to be
      * used inside a regular expression as a string literal.
@@ -655,11 +530,11 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             }
 
             if (!element.func && element.line) {
-                element.func = guessFunctionName(element.url, element.line);
+                element.func = UNKNOWN_FUNCTION;
             }
 
             if (element.line) {
-                element.context = gatherContext(element.url, element.line);
+                element.context = null;
             }
 
             stack.push(element);
@@ -727,17 +602,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
             if (element) {
                 if (!element.func && element.line) {
-                    element.func = guessFunctionName(element.url, element.line);
+                    element.func = UNKNOWN_FUNCTION;
                 }
-                if (element.line) {
-                    try {
-                        element.context = gatherContext(element.url, element.line);
-                    } catch (exc) {}
-                }
-
-                if (!element.context) {
-                    element.context = [lines[line + 1]];
-                }
+                element.context = [lines[line + 1]];
 
                 stack.push(element);
             }
@@ -843,16 +710,10 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
             if (item) {
                 if (!item.func) {
-                    item.func = guessFunctionName(item.url, item.line);
+                    item.func = UNKNOWN_FUNCTION;
                 }
-                var context = gatherContext(item.url, item.line);
-                var midline = (context ? context[Math.floor(context.length / 2)] : null);
-                if (context && midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')) {
-                    item.context = context;
-                } else {
-                    // if (context) alert("Context mismatch. Correct midline:\n" + lines[i+1] + "\n\nMidline:\n" + midline + "\n\nContext:\n" + context.join("\n") + "\n\nURL:\n" + item.url);
-                    item.context = [lines[line + 1]];
-                }
+                item.context = [lines[line + 1]];
+
                 stack.push(item);
             }
         }
@@ -892,11 +753,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             stackInfo.incomplete = false;
 
             if (!initial.func) {
-                initial.func = guessFunctionName(initial.url, initial.line);
-            }
-
-            if (!initial.context) {
-                initial.context = gatherContext(initial.url, initial.line);
+                initial.func = UNKNOWN_FUNCTION;
             }
 
             var reference = / '([^']+)' /.exec(message);
@@ -972,10 +829,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             if ((source = findSourceByFunctionBody(curr))) {
                 item.url = source.url;
                 item.line = source.line;
-
-                if (item.func === UNKNOWN_FUNCTION) {
-                    item.func = guessFunctionName(item.url, item.line);
-                }
 
                 var reference = / '([^']+)' /.exec(ex.message || ex.description);
                 if (reference) {
@@ -1073,8 +926,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
     computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
     computeStackTrace.computeStackTraceFromStackProp = computeStackTraceFromStackProp;
-    computeStackTrace.guessFunctionName = guessFunctionName;
-    computeStackTrace.gatherContext = gatherContext;
 
     return computeStackTrace;
 }());
