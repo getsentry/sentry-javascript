@@ -45,6 +45,7 @@ function Raven() {
         includePaths: [],
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
+        wrapBuiltIns: true,
         maxMessageLength: 0,
         stackTraceLimit: 50
     };
@@ -162,7 +163,10 @@ Raven.prototype = {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            this._wrapBuiltIns();
+
+            if (this._globalOptions.wrapBuiltIns) {
+                this._wrapBuiltIns();
+            }
 
             // Install all of the plugins
             this._drainPlugins();

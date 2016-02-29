@@ -215,6 +215,18 @@ Those configuration options are documented below:
     onFailure
         Callback to be invoked upon a failed request.
 
+.. describe:: wrapBuiltIns
+
+    By default, Raven will automatically wrap built-ins such as ``setTimeout``, ``setInterval``, and ``addEventListener``
+    on most EventTargets. Any errors that are thrown by the functions these invoke will now be automatically be
+    reported to Sentry. This can be disabled by setting ``wrapBuiltIns`` to ``false``.
+
+    .. code-block:: javascript
+
+        {
+          wrapBuiltIns: false
+        }
+
 Putting it all together
 -----------------------
 
