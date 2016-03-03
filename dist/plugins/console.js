@@ -1,4 +1,4 @@
-/*! Raven.js 2.1.0 (9ca11cd) | github.com/getsentry/raven-js */
+/*! Raven.js 2.2.0 (a472b10) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -16,14 +16,20 @@
  *
  * Monkey patches console.* calls into Sentry messages with
  * their appropriate log levels. (Experimental)
+ *
+ * Options:
+ *
+ *   `levels`: An array of levels (methods on `console`) to report to Sentry.
+ *     Defaults to debug, info, warn, and error.
  */
 'use strict';
 
-function consolePlugin(Raven, console) {
+function consolePlugin(Raven, console, pluginOptions) {
     console = console || window.console || {};
+    pluginOptions = pluginOptions || {};
 
     var originalConsole = console,
-        logLevels = ['debug', 'info', 'warn', 'error'],
+        logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
         level = logLevels.pop();
 
     var logForGivenLevel = function(l) {
@@ -48,7 +54,6 @@ function consolePlugin(Raven, console) {
             }
         };
     };
-
 
     while(level) {
         console[level] = logForGivenLevel(level);
