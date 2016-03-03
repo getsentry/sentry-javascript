@@ -1085,7 +1085,7 @@ describe('globals', function() {
                 extra: {'session:duration': 100},
             });
             assert.deepEqual(opts.auth, {
-                sentry_client: 'raven-js/2.1.0',
+                sentry_client: 'raven-js/2.2.0',
                 sentry_key: 'abc',
                 sentry_secret: 'def',
                 sentry_version: '7'
