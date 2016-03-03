@@ -97,10 +97,6 @@ Raven.prototype = {
         }
         if (!dsn) return this;
 
-        var uri = this._parseDSN(dsn),
-            lastSlash = uri.path.lastIndexOf('/'),
-            path = uri.path.substr(1, lastSlash);
-
         // merge in options
         if (options) {
             each(options, function(key, value){
@@ -112,6 +108,10 @@ Raven.prototype = {
                 }
             });
         }
+
+        var uri = this._parseDSN(dsn),
+            lastSlash = uri.path.lastIndexOf('/'),
+            path = uri.path.substr(1, lastSlash);
 
         this._dsn = dsn;
 
@@ -127,6 +127,7 @@ Raven.prototype = {
         this._globalOptions.includePaths = joinRegExp(this._globalOptions.includePaths);
 
         this._globalKey = uri.user;
+        this._globalSecret = uri.pass && uri.pass.substr(1);
         this._globalProject = uri.path.substr(lastSlash + 1);
 
         this._globalServer = this._getGlobalServer(uri);
@@ -725,8 +726,9 @@ Raven.prototype = {
             throw new RavenConfigError('Invalid DSN: ' + str);
         }
 
-        if (dsn.pass)
-            throw new RavenConfigError('Do not specify your private key in the DSN!');
+        if (dsn.pass && !this._globalOptions.allowSecretKey) {
+            throw new RavenConfigError('Do not specify your secret key in the DSN. See: http://bit.ly/raven-secret-key');
+        }
 
         return dsn;
     },
@@ -990,14 +992,19 @@ Raven.prototype = {
 
         if (!this.isSetup()) return;
 
+        var auth = {
+            sentry_version: '7',
+            sentry_client: 'raven-js/' + this.VERSION,
+            sentry_key: this._globalKey
+        };
+        if (this._globalSecret) {
+            auth.sentry_secret = this._globalSecret;
+        }
+
         var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
             url: url,
-            auth: {
-                sentry_version: '7',
-                sentry_client: 'raven-js/' + this.VERSION,
-                sentry_key: this._globalKey
-            },
+            auth: auth,
             data: data,
             options: globalOptions,
             onSuccess: function success() {
