@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.0
+* NEW: `allowSecretKey` configuration option. See: https://github.com/getsentry/raven-js/pull/525
+* NEW: Console plugin can be configured to capture specific log levels. See: https://github.com/getsentry/raven-js/pull/514
+* CHANGE: React Native plugin now calls default exception handler. See: https://github.com/getsentry/raven-js/pull/492
+* CHANGE: React Native plugin now uses HTTP POST transport. See: https://github.com/getsentry/raven-js/pull/494
+* BUGFIX: Fix Raven throwing exception when run via Webdriver. See: https://github.com/getsentry/raven-js/issues/495
+
 ## 2.1.1
 * BUGFIX: Fixed IE8 regression introduced in 2.1.0. See: https://github.com/getsentry/raven-js/issues/498
 * BUGFIX: Fixed initialization error when run via Selenium. See: https://github.com/getsentry/raven-js/issues/495
