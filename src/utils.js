@@ -26,8 +26,10 @@ function isEmptyObject(what) {
 // Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
 // with some tiny modifications
 function isError(what) {
+    var toString = objectPrototype.toString.call(what);
     return isObject(what) &&
-        objectPrototype.toString.call(what) === '[object Error]' ||
+        toString === '[object Error]' ||
+        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
         what instanceof Error;
 }
 
