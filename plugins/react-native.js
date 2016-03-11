@@ -45,6 +45,12 @@ function reactNativePlugin(Raven) {
         };
 
         request.open('POST', options.url + '?' + urlencode(options.auth));
+
+        // NOTE: React Native ignores CORS and will NOT send a preflight
+        //       request for application/json.
+        // See: https://facebook.github.io/react-native/docs/network.html#xmlhttprequest
+        request.setRequestHeader('Content-type', 'application/json');
+
         // Sentry expects an Origin header when using HTTP POST w/ public DSN.
         // Just set a phony Origin value; only matters if Sentry Project is configured
         // to whitelist specific origins.
