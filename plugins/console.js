@@ -20,8 +20,13 @@ function consolePlugin(Raven, console, pluginOptions) {
     var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
         level = logLevels.pop();
 
-    var callback = function (msg, data) {
-        Raven.captureMessage(msg, data);
+    var callback = function (msg, data, error) {
+        if (error) {
+            data.message = msg;
+            Raven.captureException(error, data);
+        } else {
+            Raven.captureMessage(msg, data);
+        }
     };
 
     while(level) {

@@ -1,5 +1,7 @@
 'use strict';
 
+var utils = require('./utils');
+
 var wrapMethod = function(console, level, callback) {
     var originalConsoleLevel = console[level];
     var originalConsole = console;
@@ -14,10 +16,19 @@ var wrapMethod = function(console, level, callback) {
 
     console[level] = function () {
         var args = [].slice.call(arguments);
+        var error;
+
+        // If we have an error passed directly as an argument, extract it.
+        for (var i = 0; i < args.length; i++) {
+            var arg = args[i];
+            if (utils.isError(arg)) {
+                error = arg;
+            }
+        }
 
         var msg = '' + args.join(' ');
         var data = {level: sentryLevel, logger: 'console', extra: {'arguments': args}};
-        callback && callback(msg, data);
+        callback && callback(msg, data, error);
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {

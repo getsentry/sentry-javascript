@@ -45,4 +45,29 @@ describe('console plugin', function () {
             }
         });
     });
+
+    it('should call Raven.captureException when an error is included', function () {
+        var console = {
+            debug: function () {},
+            info: function () {},
+            warn: function () {},
+            error: function () {}
+        };
+        consolePlugin(Raven, console);
+        this.sinon.stub(Raven, 'captureException');
+        var error = new Error('boom');
+
+        console.error('something happened:', error, 'and now I\'m sad');
+
+        assert.equal(Raven.captureException.callCount, 1);
+        assert.equal(Raven.captureException.getCall(0).args[0], error);
+        assert.deepEqual(Raven.captureException.getCall(0).args[1], {
+            message: 'something happened: Error: boom and now I\'m sad',
+            level: 'error',
+            logger: 'console',
+            extra: {
+                arguments: ['something happened:', error, 'and now I\'m sad']
+            }
+        });
+    });
 });
