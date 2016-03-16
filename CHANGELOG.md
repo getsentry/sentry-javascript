@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+* BUGFIX: Fix HTTP requests not sending with React Native on Android devices. See: https://github.com/getsentry/raven-js/issues/526
+* BUGFIX: Raven.js now captures stack traces caused by Firefox internal errors. See: https://github.com/getsentry/raven-js/pull/528
+
 ## 2.2.0
 * NEW: `allowSecretKey` configuration option. See: https://github.com/getsentry/raven-js/pull/525
 * NEW: Console plugin can be configured to capture specific log levels. See: https://github.com/getsentry/raven-js/pull/514
