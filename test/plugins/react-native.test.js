@@ -135,7 +135,8 @@ describe('React Native plugin', function () {
             }
         });
 
-        it('should call the default React Native handler and Raven.captureException', function () {
+        it('should call the default React Native handler and Raven.captureException in development mode', function () {
+            global.__DEV__ = true;
             reactNativePlugin(Raven);
             var err = new Error();
             this.sinon.stub(Raven, 'captureException');
@@ -145,6 +146,18 @@ describe('React Native plugin', function () {
             assert.isTrue(this.defaultErrorHandler.calledOnce);
             assert.isTrue(Raven.captureException.calledOnce);
             assert.equal(Raven.captureException.getCall(0).args[0], err);
+        });
+
+        it('should not call the default React Native handler and Raven.captureException in production mode', function () {
+            global.__DEV__ = false;
+            reactNativePlugin(Raven);
+            var err = new Error();
+            this.sinon.stub(Raven, 'captureException');
+
+            this.globalErrorHandler(err);
+
+            assert.equal(this.defaultErrorHandler.callCount, 0);
+            assert.equal(Raven.captureException.callCount, 1);
         });
     });
 });
