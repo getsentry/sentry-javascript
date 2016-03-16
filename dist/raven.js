@@ -1,4 +1,4 @@
-/*! Raven.js 2.2.0 (a472b10) | github.com/getsentry/raven-js */
+/*! Raven.js 2.2.1 (639131b) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -100,7 +100,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '2.2.0',
+    VERSION: '2.2.1',
 
     debug: false,
 
@@ -1201,8 +1201,10 @@ function isEmptyObject(what) {
 // Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
 // with some tiny modifications
 function isError(what) {
+    var toString = objectPrototype.toString.call(what);
     return isObject(what) &&
-        objectPrototype.toString.call(what) === '[object Error]' ||
+        toString === '[object Error]' ||
+        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
         what instanceof Error;
 }
 
