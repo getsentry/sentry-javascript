@@ -108,6 +108,16 @@ describe('TraceKit', function () {
             expect(stackFrames.stack[2]).toEqual({ url: 'http://path/to/file.js', func: '.plugin/e.fn[c]/<', args: [], line: 1, column: 1, context: null });
         });
 
+        it('should parse Firefox 44 ns exceptions', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.FIREFOX_44_NS_EXCEPTION);
+            expect(stackFrames).toBeTruthy();
+            expect(stackFrames.stack.length).toBe(4);
+            expect(stackFrames.stack[0]).toEqual({ url: 'http://path/to/file.js', func: '[2]</Bar.prototype._baz/</<', args: [], line: 703, column: 28, context: null });
+            expect(stackFrames.stack[1]).toEqual({ url: 'file:///path/to/file.js', func: 'App.prototype.foo', args: [], line: 15, column: 2, context: null });
+            expect(stackFrames.stack[2]).toEqual({ url: 'file:///path/to/file.js', func: 'bar', args: [], line: 20, column: 3, context: null });
+            expect(stackFrames.stack[3]).toEqual({ url: 'file:///path/to/index.html', func: '?', args: [], line: 23, column: 1, context: null });
+        });
+
         it('should parse Chrome error with no location', function () {
             var stackFrames = TraceKit.computeStackTrace({stack: "error\n at Array.forEach (native)"});
             expect(stackFrames.stack.length).toBe(1);
