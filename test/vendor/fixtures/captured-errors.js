@@ -223,6 +223,24 @@ CapturedExceptions.FIREFOX_31 = {
     columnNumber: 12
 };
 
+// Internal errors sometimes thrown by Firefox
+// More here: https://developer.mozilla.org/en-US/docs/Mozilla/Errors
+//
+// Note that such errors are instanceof "Exception", not "Error"
+CapturedExceptions.FIREFOX_44_NS_EXCEPTION = {
+    message: "",
+    name: "NS_ERROR_FAILURE",
+    stack: "[2]</Bar.prototype._baz/</<@http://path/to/file.js:703:28\n" +
+    "App.prototype.foo@file:///path/to/file.js:15:2\n" +
+    "bar@file:///path/to/file.js:20:3\n" +
+    "@file:///path/to/index.html:23:1\n" + // inside <script> tag
+    "",
+    fileName: "http://path/to/file.js",
+    columnNumber: 0,
+    lineNumber: 703,
+    result: 2147500037
+};
+
 CapturedExceptions.SAFARI_6 = {
     message: "'null' is not an object (evaluating 'x.undef')",
     stack: "@http://path/to/file.js:48\n" +
