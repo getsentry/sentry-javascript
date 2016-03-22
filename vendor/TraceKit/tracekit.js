@@ -23,6 +23,9 @@ var TraceKit = {
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error#Error_types
+var ERROR_TYPES_RE = /^(?:Uncaught )?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error)\: ?(.*)$/;
+
 function getLocationHref() {
     if (typeof document === 'undefined')
         return '';
@@ -161,8 +164,21 @@ TraceKit.report = (function reportModuleWrapper() {
             };
             location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
             location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
+
+            var name = undefined;
+            var msg = message; // must be new var or will modify original `arguments`
+            var groups;
+            if (isString(message)) {
+                var groups = message.match(ERROR_TYPES_RE);
+                if (groups) {
+                    name = groups[1];
+                    msg = groups[2];
+                }
+            }
+
             stack = {
-                'message': message,
+                'name': name,
+                'message': msg,
                 'url': getLocationHref(),
                 'stack': [location]
             };
