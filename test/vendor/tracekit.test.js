@@ -106,6 +106,8 @@ describe('TraceKit', function(){
 
     describe('error notifications', function(){
         var testMessage = "__mocha_ignore__";
+        var testLineNo = 1337;
+
         var subscriptionHandler;
         // TraceKit waits 2000ms for window.onerror to fire, so give the tests
         // some extra time.
@@ -119,8 +121,8 @@ describe('TraceKit', function(){
             // we can't do that without clobbering TraceKit's handler, which can only
             // be installed once.
             var oldOnError = window.onerror;
-            window.onerror = function(message) {
-                if (message == testMessage) {
+            window.onerror = function(message, url, lineNo) {
+                if (message == testMessage || lineNo === testLineNo) {
                     return true;
                 }
                 return oldOnError.apply(this, arguments);
@@ -132,6 +134,53 @@ describe('TraceKit', function(){
                 TraceKit.report.unsubscribe(subscriptionHandler);
                 subscriptionHandler = null;
             }
+        });
+
+        describe('with undefined arguments', function () {
+            it('should pass undefined:undefined', function () {
+                // this is probably not good behavior;  just writing this test to verify
+                // that it doesn't change unintentionally
+                subscriptionHandler = function (stackInfo, extra) {
+                    assert.equal(stackInfo.name, undefined);
+                    assert.equal(stackInfo.message, undefined);
+                };
+                TraceKit.report.subscribe(subscriptionHandler);
+                window.onerror(undefined, undefined, testLineNo);
+            });
+        });
+        describe('when no 5th argument (error object)', function () {
+            it('should seperate name, message for default error types (e.g. ReferenceError)', function (done) {
+                subscriptionHandler = function (stackInfo, extra) {
+                    assert.equal(stackInfo.name, 'ReferenceError');
+                    assert.equal(stackInfo.message, 'foo is undefined');
+                };
+                TraceKit.report.subscribe(subscriptionHandler);
+                // should work with/without "Uncaught"
+                window.onerror('Uncaught ReferenceError: foo is undefined', 'http://example.com', testLineNo);
+                window.onerror('ReferenceError: foo is undefined', 'http://example.com', testLineNo)
+                done();
+            });
+
+            it('should ignore unknown error types', function (done) {
+                // TODO: should we attempt to parse this?
+                subscriptionHandler = function (stackInfo, extra) {
+                    assert.equal(stackInfo.name, undefined);
+                    assert.equal(stackInfo.message, 'CustomError: woo scary');
+                    done();
+                };
+                TraceKit.report.subscribe(subscriptionHandler);
+                window.onerror('CustomError: woo scary', 'http://example.com', testLineNo);
+            });
+
+            it('should ignore arbitrary messages passed through onerror', function (done) {
+                subscriptionHandler = function (stackInfo, extra) {
+                    assert.equal(stackInfo.name, undefined);
+                    assert.equal(stackInfo.message, 'all work and no play makes homer: something something');
+                    done();
+                };
+                TraceKit.report.subscribe(subscriptionHandler);
+                window.onerror('all work and no play makes homer: something something', 'http://example.com', testLineNo);
+            });
         });
 
         function testErrorNotification(collectWindowErrors, callOnError, numReports, done) {
