@@ -695,6 +695,13 @@ describe('globals', function() {
             Raven._processException('TypeError', undefined, 'http://example.com', []);
             assert.isTrue(Raven._send.called);
         });
+
+        it('should omit error name as part of message if error name is undefined/falsy', function () {
+            this.sinon.stub(Raven, '_send');
+
+            Raven._processException(undefined, '\'foo\' is undefined', 'http://example.com', 10); // IE9 ReferenceError
+            assert.deepEqual(Raven._send.lastCall.args[0].message, '\'foo\' is undefined');
+        });
     });
 
     describe('send', function() {

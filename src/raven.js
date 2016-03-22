@@ -855,7 +855,7 @@ Raven.prototype = {
         message += '';
         message = truncate(message, this._globalOptions.maxMessageLength);
 
-        fullMessage = type + ': ' + message;
+        fullMessage = (type ? type + ': ' : '') + message;
         fullMessage = truncate(fullMessage, this._globalOptions.maxMessageLength);
 
         if (frames && frames.length) {
