@@ -333,4 +333,4 @@ CapturedExceptions.CHROME_48_BLOB = {
     "    at n.handle (blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379:7:2863)"
 };
 
-module.exports = CaptureExceptions;
+module.exports = CapturedExceptions;
