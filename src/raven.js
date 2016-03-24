@@ -349,7 +349,7 @@ Raven.prototype = {
     },
 
     captureBreadcrumb: function (obj) {
-        obj.timestamp = obj.timestamp || now();
+        obj.timestamp = (obj.timestamp || now()) / 1000;
 
         this._breadcrumbs.push(obj);
         if (this._breadcrumbs.length > this._breadcrumbLimit) {
@@ -606,6 +606,30 @@ Raven.prototype = {
         }
     },
 
+
+    /**
+     * Wraps addEventListener to capture breadcrumbs
+     * @param elem the element addEventListener was called on
+     * @param evt the event name (e.g. "click")
+     * @param fn the function being wrapped
+     * @param origArgs the original arguments to addEventListener
+     * @returns {Function}
+     * @private
+     */
+    _wrapEventHandlerForBreadcrumbs: function(elem, evt, fn, origArgs) {
+        var self = this;
+        return function () {
+            self.captureBreadcrumb({
+                type: "ui_event",
+                data: {
+                    type: evt,
+                    target: elem.outerHTML
+                }
+            });
+            return fn.apply(this, origArgs);
+        }
+    },
+
     /**
      * Install any queued plugins
      */
@@ -657,12 +681,18 @@ Raven.prototype = {
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
                     return function (evt, fn, capture, secure) { // preserve arity
+                        var args = [].slice.apply(arguments);
                         try {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
                             }
                         } catch (err) {
                             // can sometimes get 'Permission denied to access property "handle Event'
+                        }
+
+                        // TODO: more than just click
+                        if (global === 'EventTarget' && evt === 'click') {
+                            fn = self._wrapEventHandlerForBreadcrumbs(this, evt, fn, args);
                         }
                         return orig.call(this, evt, self.wrap(fn), capture, secure);
                     };
@@ -717,6 +747,7 @@ Raven.prototype = {
 
         // record navigation (URL) changes
         if ('history' in window && history.pushState) {
+            // TODO: remove onpopstate handler on uninstall()
             var oldOnPopState = window.onpopstate;
             window.onpopstate = function () {
                 self.captureBreadcrumb({
@@ -1014,7 +1045,7 @@ Raven.prototype = {
         }, httpData = this._getHttpData();
 
         if (httpData) {
-            baseData.request = httpData;
+            baseData.http_request = httpData;
         }
 
         data = objectMerge(baseData, data);
@@ -1026,7 +1057,11 @@ Raven.prototype = {
         // Send along our own collected metadata with extra
         data.extra['session:duration'] = now() - this._startTime;
 
-        if (this._breadcrumbs && this._breadcrumbs.length > 0) data.breadcrumbs = this._breadcrumbs;
+        if (this._breadcrumbs && this._breadcrumbs.length > 0) {
+            data.breadcrumbs = {
+                items: this._breadcrumbs
+            };
+        }
 
         // If there are no tags/extra, strip the key from the payload alltogther.
         if (isEmptyObject(data.tags)) delete data.tags;

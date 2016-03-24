@@ -298,7 +298,7 @@ describe('integration', function () {
             );
         });
 
-        it('should record pushState changes as navigation breadcrumbs', function (done) {
+        it('should record history.[pushState|back] changes as navigation breadcrumbs', function (done) {
             var iframe = this.iframe;
 
             iframeExecute(iframe, done,
