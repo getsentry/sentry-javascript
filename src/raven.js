@@ -60,6 +60,7 @@ function Raven() {
     this._wrappedBuiltIns = [];
     this._breadcrumbs = [];
     this._breadcrumbLimit = 20;
+    this._lastHref = window.location && location.href;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -721,10 +722,15 @@ Raven.prototype = {
                 self.captureBreadcrumb({
                     type: 'navigation',
                     data: {
-                        from: 'TODO',
+                        from: self._lastHref,
                         to: location.href
                     }
                 });
+
+                // because onpopstate only tells you the "new" (to) value of location.href, and
+                // not the previous (from) value, we need to track the value of location.href
+                // ourselves
+                self._lastHref = location.href;
                 if (oldOnPopState) {
                     return oldOnPopState.apply(this, arguments);
                 }
@@ -734,13 +740,15 @@ Raven.prototype = {
                 // note history.pushState.length is 0; intentionally not declaring
                 // params to preserve 0 arity
                 return function(/* state, title, url */) {
+                    var url = arguments.length > 2 ? arguments[2] : undefined;
                     self.captureBreadcrumb({
                         type: 'navigation',
                         data: {
-                            to: arguments.length > 2 ? arguments[2] : '',
+                            to: url,
                             from: location.href
                         }
                     });
+                    if (url) self._lastHref = url;
                     return origPushState.apply(this, arguments);
                 }
             });

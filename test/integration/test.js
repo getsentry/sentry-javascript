@@ -309,7 +309,9 @@ describe('integration', function () {
                   history.pushState({}, '', '/bar');
 
                   // can't call history.back() because it will change url of parent document
-                  // (e.g. document running mocha) ... instead just call onpopstate directly
+                  // (e.g. document running mocha) ... instead just "emulate" a back button
+                  // press by calling replaceState + onpopstate manually
+                  history.replaceState({}, '', '/foo');
                   window.onpopstate();
                   done();
               },
@@ -331,8 +333,8 @@ describe('integration', function () {
                   assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), '\'from\' url is incorrect');
                   assert.ok(/\/bar$/.test(breadcrumbs[1].data.to), '\'to\' url is incorrect');
 
-                  assert.ok(/\/bar$/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
-                  assert.ok(/\/foo$/.test(breadcrumbs[2].data.to), '\'to\' url is incorrect');
+                  assert.ok(/\/bar/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/foo/.test(breadcrumbs[2].data.to), '\'to\' url is incorrect');
               }
             );
         });
