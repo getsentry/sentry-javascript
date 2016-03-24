@@ -771,8 +771,7 @@ describe('globals', function() {
                     name: 'Matt'
                 },
                 message: 'bar',
-                extra: {'session:duration': 100},
-                breadcrumbs: []
+                extra: {'session:duration': 100}
             });
         });
 
@@ -806,7 +805,6 @@ describe('globals', function() {
                 message: 'bar',
                 tags: {tag1: 'value1', tag2: 'value2'},
                 extra: {'session:duration': 100},
-                breadcrumbs: []
             });
 
 
@@ -849,7 +847,6 @@ describe('globals', function() {
                 event_id: 'abc123',
                 message: 'bar',
                 extra: {key1: 'value1', key2: 'value2', 'session:duration': 100},
-                breadcrumbs: []
             });
 
             assert.deepEqual(Raven._globalOptions, {
@@ -2177,13 +2174,13 @@ describe('Raven (public API)', function() {
                 { id: 5 }
             ];
 
-            Raven.captureBreadcrumb({ id: 6 });
+            Raven.captureBreadcrumb({ id: 6, timestamp: 100 });
             assert.deepEqual(Raven._breadcrumbs, [
                 { id: 2 },
                 { id: 3 },
                 { id: 4 },
                 { id: 5 },
-                { id: 6 }
+                { id: 6, timestamp: 100 }
             ]);
         });
     });

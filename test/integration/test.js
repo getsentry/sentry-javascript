@@ -23,6 +23,17 @@ function createIframe(done) {
     return iframe;
 }
 
+var anchor = document.createElement('a');
+function parseUrl(url) {
+    var out = {pathname: '', origin: '', protocol: ''};
+    if (!url)
+    anchor.href = url;
+    for (var key in out) {
+        out[key] = anchor[key];
+    }
+    return out;
+}
+
 describe('integration', function () {
 
     beforeEach(function (done) {
@@ -284,6 +295,45 @@ describe('integration', function () {
                     // # of frames alter significantly between chrome/firefox & safari
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
+            );
+        });
+
+        it('should record pushState changes as navigation breadcrumbs', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+              function () {
+                  // some browsers trigger onpopstate for load / reset breadcrumb state
+                  Raven._breadcrumbs = [];
+                  history.pushState({}, '', '/foo');
+                  history.pushState({}, '', '/bar');
+
+                  // can't call history.back() because it will change url of parent document
+                  // (e.g. document running mocha) ... instead just call onpopstate directly
+                  window.onpopstate();
+                  done();
+              },
+              function () {
+                  var Raven = iframe.contentWindow.Raven,
+                      breadcrumbs = Raven._breadcrumbs,
+                      from,
+                      to;
+
+                  assert.equal(breadcrumbs.length, 3);
+                  assert.equal(breadcrumbs[0].type, 'navigation'); // (start) => foo
+                  assert.equal(breadcrumbs[1].type, 'navigation'); // foo => bar
+                  assert.equal(breadcrumbs[2].type, 'navigation'); // bar => foo (back button)
+
+                  // assert end of string because PhantomJS uses full system path
+                  assert.ok(/\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), '\'to\' url is incorrect');
+
+                  assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/bar$/.test(breadcrumbs[1].data.to), '\'to\' url is incorrect');
+
+                  assert.ok(/\/bar$/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/foo$/.test(breadcrumbs[2].data.to), '\'to\' url is incorrect');
+              }
             );
         });
     });

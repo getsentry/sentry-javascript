@@ -348,7 +348,7 @@ Raven.prototype = {
     },
 
     captureBreadcrumb: function (obj) {
-        obj.timestamp = now();
+        obj.timestamp = obj.timestamp || now();
 
         this._breadcrumbs.push(obj);
         if (this._breadcrumbs.length > this._breadcrumbLimit) {
@@ -714,6 +714,38 @@ Raven.prototype = {
             });
         }
 
+        // record navigation (URL) changes
+        if ('history' in window && history.pushState) {
+            var oldOnPopState = window.onpopstate;
+            window.onpopstate = function () {
+                self.captureBreadcrumb({
+                    type: 'navigation',
+                    data: {
+                        from: 'TODO',
+                        to: location.href
+                    }
+                });
+                if (oldOnPopState) {
+                    return oldOnPopState.apply(this, arguments);
+                }
+            };
+
+            fill(history, 'pushState', function (origPushState) {
+                // note history.pushState.length is 0; intentionally not declaring
+                // params to preserve 0 arity
+                return function(/* state, title, url */) {
+                    self.captureBreadcrumb({
+                        type: 'navigation',
+                        data: {
+                            to: arguments.length > 2 ? arguments[2] : '',
+                            from: location.href
+                        }
+                    });
+                    return origPushState.apply(this, arguments);
+                }
+            });
+        }
+
         var $ = window.jQuery || window.$;
         if ($ && $.fn && $.fn.ready) {
             fill($.fn, 'ready', function (orig) {
@@ -986,7 +1018,7 @@ Raven.prototype = {
         // Send along our own collected metadata with extra
         data.extra['session:duration'] = now() - this._startTime;
 
-        data.breadcrumbs = this._breadcrumbs;
+        if (this._breadcrumbs && this._breadcrumbs.length > 0) data.breadcrumbs = this._breadcrumbs;
 
         // If there are no tags/extra, strip the key from the payload alltogther.
         if (isEmptyObject(data.tags)) delete data.tags;
