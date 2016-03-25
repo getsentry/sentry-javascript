@@ -2,6 +2,7 @@
 'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+var consolePlugin = require('../plugins/console');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
 
@@ -732,7 +733,7 @@ Raven.prototype = {
                                         xhr.__raven_xhr.statusCode = xhr.status;
                                     } catch (e) { /* do nothing */ }
                                     self.captureBreadcrumb({
-                                        type: 'request',
+                                        type: 'http_request',
                                         data: xhr.__raven_xhr
                                     });
                                 }
@@ -781,6 +782,22 @@ Raven.prototype = {
                     });
                     if (url) self._lastHref = url;
                     return origPushState.apply(this, arguments);
+                }
+            });
+        }
+
+        // console
+        if ('console' in window && console.log) {
+            consolePlugin(self, console, {
+                levels: ['debug', 'info', 'warn', 'error', 'log'],
+                callback: function (msg, data) {
+                    self.captureBreadcrumb({
+                        type: 'message',
+                        data: {
+                            level: data.level,
+                            message: msg
+                        }
+                    })
                 }
             });
         }
@@ -1045,7 +1062,7 @@ Raven.prototype = {
         }, httpData = this._getHttpData();
 
         if (httpData) {
-            baseData.http_request = httpData;
+            baseData.request = httpData;
         }
 
         data = objectMerge(baseData, data);
@@ -1059,7 +1076,7 @@ Raven.prototype = {
 
         if (this._breadcrumbs && this._breadcrumbs.length > 0) {
             data.breadcrumbs = {
-                items: this._breadcrumbs
+                values: this._breadcrumbs
             };
         }
 

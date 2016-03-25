@@ -27,7 +27,14 @@ function consolePlugin(Raven, console, pluginOptions) {
         if (l === 'warn') l = 'warning';
         return function () {
             var args = [].slice.call(arguments);
-            Raven.captureMessage('' + args.join(' '), {level: l, logger: 'console', extra: { 'arguments': args }});
+
+            var msg = '' + args.join(' ');
+            var data = {level: l, logger: 'console', extra: { 'arguments': args }};
+            if (pluginOptions.callback) {
+                pluginOptions.callback(msg, data);
+            } else {
+                Raven.captureMessage(msg, data);
+            }
 
             // this fails for some browsers. :(
             if (originalConsoleLevel) {
