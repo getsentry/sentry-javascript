@@ -613,11 +613,10 @@ Raven.prototype = {
      * @param elem the element addEventListener was called on
      * @param evt the event name (e.g. "click")
      * @param fn the function being wrapped
-     * @param origArgs the original arguments to addEventListener
      * @returns {Function}
      * @private
      */
-    _wrapEventHandlerForBreadcrumbs: function(elem, evt, fn, origArgs) {
+    _wrapEventHandlerForBreadcrumbs: function(elem, evt, fn) {
         var self = this;
         return function () {
             self.captureBreadcrumb({
@@ -627,7 +626,7 @@ Raven.prototype = {
                     target: elem.outerHTML
                 }
             });
-            return fn.apply(this, origArgs);
+            return fn.apply(this, arguments);
         }
     },
 
@@ -682,7 +681,6 @@ Raven.prototype = {
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
                     return function (evt, fn, capture, secure) { // preserve arity
-                        var args = [].slice.apply(arguments);
                         try {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
@@ -693,7 +691,7 @@ Raven.prototype = {
 
                         // TODO: more than just click
                         if (global === 'EventTarget' && evt === 'click') {
-                            fn = self._wrapEventHandlerForBreadcrumbs(this, evt, fn, args);
+                            fn = self._wrapEventHandlerForBreadcrumbs(this, evt, fn);
                         }
                         return orig.call(this, evt, self.wrap(fn), capture, secure);
                     };
