@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0
+* NEW: `pathStrip` option now available in React Native plugin. See: https://github.com/getsentry/raven-js/pull/515
+* BUGFIX: Handle stacks from internal exceptions sometimes thrown by Firefox. See: https://github.com/getsentry/raven-js/pull/536
+* BUGFIX: Better error message strings in browsers w/ limited onerror implementations. See: https://github.com/getsentry/raven-js/pull/538
+
 ## 2.2.1
 * BUGFIX: Fix HTTP requests not sending with React Native on Android devices. See: https://github.com/getsentry/raven-js/issues/526
 * BUGFIX: Raven.js now captures stack traces caused by Firefox internal errors. See: https://github.com/getsentry/raven-js/pull/528

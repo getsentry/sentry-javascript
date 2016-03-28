@@ -75,7 +75,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '2.2.1',
+    VERSION: '2.3.0',
 
     debug: false,
 
