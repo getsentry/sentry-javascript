@@ -718,9 +718,7 @@ describe('globals', function() {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
-            Raven._breadcrumbs = [
-                { type: 'request', data: { method: 'POST', url: 'http://example.org/api/0/auth/' }}
-            ];
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: {method: 'POST', url: 'http://example.org/api/0/auth/'}}];
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -736,7 +734,12 @@ describe('globals', function() {
                 event_id: 'abc123',
                 message: 'bar',
                 extra: {'session:duration': 100},
-                breadcrumbs: [{ type: 'request', data: { method: 'POST', url: 'http://example.org/api/0/auth/' }}]
+                breadcrumbs: {
+                    values: [
+                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                        { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', eventId: 'abc123' }}
+                    ]
+                }
             });
         });
 
@@ -2180,7 +2183,7 @@ describe('Raven (public API)', function() {
                 { id: 3 },
                 { id: 4 },
                 { id: 5 },
-                { id: 6, timestamp: 100 }
+                { id: 6, timestamp: 0.1 }
             ]);
         });
     });

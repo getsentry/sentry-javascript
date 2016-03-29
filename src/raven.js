@@ -620,7 +620,7 @@ Raven.prototype = {
         var self = this;
         return function () {
             self.captureBreadcrumb({
-                type: "ui_event",
+                type: 'ui_event',
                 data: {
                     type: evt,
                     target: elem.outerHTML
@@ -1126,6 +1126,14 @@ Raven.prototype = {
         if (this._globalSecret) {
             auth.sentry_secret = this._globalSecret;
         }
+
+        this.captureBreadcrumb({
+            type: 'sentry',
+            data: {
+                message: data.message,
+                eventId: data.event_id
+            }
+        });
 
         var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
