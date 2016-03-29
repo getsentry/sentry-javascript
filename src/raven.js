@@ -1039,9 +1039,10 @@ Raven.prototype = {
     },
 
     _makeXhrRequest: function(opts) {
-        var request;
+        var request,
+            self = this,
+            url = opts.url;
 
-        var url = opts.url;
         function handler() {
             if (request.status === 200) {
                 if (opts.onSuccess) {
@@ -1070,6 +1071,13 @@ Raven.prototype = {
             request.onload = handler;
         }
 
+        // Allow limiting request duration to ensure that logging something will always reach a finished state. By
+        // default, the timeout is 0, which is unlimited.
+        request.timeout = opts.options.timeout || 0;
+        request.ontimeout = function () {
+            self._triggerEvent('timeout');
+        };
+
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', url + '?' + urlencode(opts.auth));
@@ -1081,7 +1089,7 @@ Raven.prototype = {
             'withCredentials' in new XMLHttpRequest() ||
             typeof XDomainRequest !== 'undefined';
 
-        return (hasCORS ? this._makeXhrRequest : this._makeImageRequest)(opts);
+        return (hasCORS ? this._makeXhrRequest : this._makeImageRequest).call(this, opts);
     },
 
     // Note: this is shitty, but I can't figure out how to get

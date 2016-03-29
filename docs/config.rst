@@ -215,6 +215,12 @@ Those configuration options are documented below:
     onFailure
         Callback to be invoked upon a failed request.
 
+.. describe:: timeout
+
+    By default, Raven.js requests do not time out. By setting this options, you can enforce that the request
+    is aborted after a number of milliseconds, e.g. set ``timeout: 500`` to abort after half a second during
+    configuration. Once the timeout occurs, the ``ravenTimeout`` event is triggered.
+
 .. describe:: allowSecretKey
 
     By default, Raven.js will throw an error if configured with a Sentry DSN that contains a secret key.

@@ -1256,6 +1256,50 @@ describe('globals', function() {
             assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
             assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
         });
+
+        it('should set the request timeout if configured', function() {
+            var optionsWithTimeout = JSON.parse(JSON.stringify(Raven._globalOptions)),
+                expectedTimeout = 500;
+
+            optionsWithTimeout.timeout = expectedTimeout;
+            Raven._makeXhrRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: optionsWithTimeout
+            });
+
+            var lastXhr = this.requests[this.requests.length - 1];
+            assert.equal(lastXhr.timeout, expectedTimeout);
+        });
+
+        it('should trigger a timeout event once timeout occurs', function () {
+            Raven._makeXhrRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: Raven._globalOptions
+            });
+            this.sinon.stub(Raven, '_triggerEvent');
+
+            var lastXhr = this.requests[this.requests.length - 1];
+            assert.typeOf(lastXhr.ontimeout, 'function');
+
+            lastXhr.ontimeout();
+            assert.isTrue(Raven._triggerEvent.calledWith('timeout'));
+        });
+
+        it('should use an infinite request timeout by default', function() {
+            Raven._makeXhrRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: Raven._globalOptions
+            });
+
+            var lastXhr = this.requests[this.requests.length - 1];
+            assert.equal(lastXhr.timeout, 0);
+        });
     });
 
     describe('makeImageRequest', function() {
