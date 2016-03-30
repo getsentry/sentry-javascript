@@ -140,6 +140,25 @@ function uuid4() {
     }
 }
 
+/**
+ * Returns a simple, child-less string representation of a DOM element
+ * e.g. [HTMLElement] => <input class="btn" />
+ * @param HTMLElement
+ */
+function htmlElementAsString(elem) {
+    var out = ['<'];
+    out.push(elem.tagName.toLowerCase());
+    var attrWhitelist = ['id', 'type', 'name', 'value', 'class', 'placeholder', 'title', 'alt'];
+    each(attrWhitelist, function(index, key) {
+        var attr = elem.getAttribute(key);
+        if (attr) {
+            out.push(' ' + key + '="' + attr + '"');
+        }
+    });
+    out.push(' />');
+    return out.join('');
+}
+
 module.exports = {
     isUndefined: isUndefined,
     isFunction: isFunction,
@@ -153,5 +172,6 @@ module.exports = {
     hasKey: hasKey,
     joinRegExp: joinRegExp,
     urlencode: urlencode,
-    uuid4: uuid4
+    uuid4: uuid4,
+    htmlElementAsString: htmlElementAsString
 };

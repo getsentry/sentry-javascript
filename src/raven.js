@@ -17,6 +17,7 @@ var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
+var htmlElementAsString = utils.htmlElementAsString;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -623,7 +624,7 @@ Raven.prototype = {
                 type: 'ui_event',
                 data: {
                     type: evt,
-                    target: elem.outerHTML
+                    target: htmlElementAsString(elem)
                 }
             });
             return fn.apply(this, arguments);
