@@ -62,6 +62,7 @@ function Raven() {
     this._wrappedBuiltIns = [];
     this._breadcrumbs = [];
     this._breadcrumbLimit = 20;
+    this._lastCapturedEvent = null;
     this._lastHref = window.location && location.href;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
@@ -207,7 +208,6 @@ Raven.prototype = {
      */
     wrap: function(options, func) {
         var self = this;
-
         // 1 argument has been passed, and it's not a function
         // so just return it
         if (isUndefined(func) && !isFunction(options)) {
@@ -260,21 +260,29 @@ Raven.prototype = {
             }
         }
 
+        this._imitate(wrapped, func);
+
+        func.__raven_wrapper__ = wrapped;
+        // Signal that this function has been wrapped already
+        // for both debugging and to prevent it to being wrapped twice
+        wrapped.__raven__ = true;
+        wrapped.__inner__ = func;
+
+        return wrapped;
+    },
+
+    /**
+     * Give a wrapper function the properties/prototype
+     * of the wrapepd (inner) function
+     */
+    _imitate: function (wrapped, func) {
         // copy over properties of the old function
         for (var property in func) {
             if (hasKey(func, property)) {
                 wrapped[property] = func[property];
             }
         }
-        func.__raven_wrapper__ = wrapped;
-
         wrapped.prototype = func.prototype;
-
-        // Signal that this function has been wrapped already
-        // for both debugging and to prevent it to being wrapped twice
-        wrapped.__raven__ = true;
-        wrapped.__inner__ = func;
-
         return wrapped;
     },
 
@@ -611,24 +619,39 @@ Raven.prototype = {
 
     /**
      * Wraps addEventListener to capture breadcrumbs
-     * @param elem the element addEventListener was called on
-     * @param evt the event name (e.g. "click")
+     * @param evtName the event name (e.g. "click")
      * @param fn the function being wrapped
      * @returns {Function}
      * @private
      */
-    _wrapEventHandlerForBreadcrumbs: function(elem, evt, fn) {
+    _wrapEventHandlerForBreadcrumbs: function(evtName, fn) {
         var self = this;
-        return function () {
+        function wrapped(evt) {
+            // It's possible this handler might trigger multiple times for the same
+            // event (e.g. event propagation through node ancestors). Ignore if we've
+            // already captured the event.
+            if (self._lastCapturedEvent === evt)
+                return;
+
+            self._lastCapturedEvent = evt;
+            var elem = evt.target;
             self.captureBreadcrumb({
                 type: 'ui_event',
                 data: {
-                    type: evt,
+                    type: evtName,
                     target: htmlElementAsString(elem)
                 }
             });
-            return fn.apply(this, arguments);
+            if (fn) return fn.apply(this, arguments);
+        };
+
+        if (fn) {
+            this._imitate(wrapped, fn);
+            fn.__raven_breadcrumb__ = wrapped;
+
         }
+
+        return wrapped;
     },
 
     /**
@@ -675,6 +698,13 @@ Raven.prototype = {
             });
         }
 
+        // Capture breadcrubms from any click that is unhandled / bubbled up all the way
+        // to the document. Do this before we instrument addEventListener.
+        if (this._hasDocument) {
+            document.addEventListener('click', self._wrapEventHandlerForBreadcrumbs('click'));
+
+        }
+
         // event targets borrowed from bugsnag-js:
         // https://github.com/bugsnag/bugsnag-js/blob/master/src/bugsnag.js#L666
         'EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload'.replace(/\w+/g, function (global) {
@@ -691,14 +721,18 @@ Raven.prototype = {
                         }
 
                         // TODO: more than just click
-                        if (global === 'EventTarget' && evt === 'click') {
-                            fn = self._wrapEventHandlerForBreadcrumbs(this, evt, fn);
+                        if ((global === 'EventTarget' || global === 'Node') && evt === 'click') {
+                            fn = self._wrapEventHandlerForBreadcrumbs(evt, fn);
                         }
                         return orig.call(this, evt, self.wrap(fn), capture, secure);
                     };
                 });
                 fill(proto, 'removeEventListener', function (orig) {
                     return function (evt, fn, capture, secure) {
+                        // from the original function, get the breadcrumb wrapper
+                        // from the breadcrumb wrapper, get the raven wrapper (try/catch)
+                        // i.e. fn => breadcrumb_wrapper(fn) => raven_wrapper(breadcrumb_wrapper(fn))
+                        fn = fn && (fn.__raven_breadcrumb__ ? fn.__raven_breadcrumb__ : fn);
                         fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
                         return orig.call(this, evt, fn, capture, secure);
                     };
