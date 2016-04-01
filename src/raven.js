@@ -1162,24 +1162,15 @@ Raven.prototype = {
         });
     },
 
-    _makeImageRequest: function(opts) {
-        // Tack on sentry_data to auth options, which get urlencoded
-        opts.auth.sentry_data = JSON.stringify(opts.data);
+    _makeRequest: function(opts) {
+        var request = new XMLHttpRequest();
 
-        var img = this._newImage(),
-            src = opts.url + '?' + urlencode(opts.auth),
-            crossOrigin = opts.options.crossOrigin;
+        // if browser doesn't support CORS (e.g. IE7), we are out of luck
+        var hasCORS =
+            'withCredentials' in request ||
+            typeof XDomainRequest !== 'undefined';
 
-        if (crossOrigin || crossOrigin === '') {
-            img.crossOrigin = crossOrigin;
-        }
-        img.onload = opts.onSuccess;
-        img.onerror = img.onabort = opts.onError;
-        img.src = src;
-    },
-
-    _makeXhrRequest: function(opts) {
-        var request;
+        if (!hasCORS) return;
 
         var url = opts.url;
         function handler() {
@@ -1192,7 +1183,6 @@ Raven.prototype = {
             }
         }
 
-        request = new XMLHttpRequest();
         if ('withCredentials' in request) {
             request.onreadystatechange = function () {
                 if (request.readyState !== 4) {
@@ -1214,14 +1204,6 @@ Raven.prototype = {
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', url + '?' + urlencode(opts.auth));
         request.send(JSON.stringify(opts.data));
-    },
-
-    _makeRequest: function(opts) {
-        var hasCORS =
-            'withCredentials' in new XMLHttpRequest() ||
-            typeof XDomainRequest !== 'undefined';
-
-        return (hasCORS ? this._makeXhrRequest : this._makeImageRequest)(opts);
     },
 
     // Note: this is shitty, but I can't figure out how to get

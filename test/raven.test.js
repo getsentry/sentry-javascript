@@ -1189,52 +1189,6 @@ describe('globals', function() {
 
     describe('makeRequest', function() {
         beforeEach(function() {
-            // use fake xml http request so we can muck w/ its prototype
-            this.xhr = sinon.useFakeXMLHttpRequest();
-            this.sinon.stub(Raven, '_makeImageRequest');
-            this.sinon.stub(Raven, '_makeXhrRequest');
-        });
-
-        afterEach(function() {
-            this.xhr.restore();
-        });
-
-        it('should call makeXhrRequest if CORS is supported', function () {
-            XMLHttpRequest.prototype.withCredentials = true;
-
-            Raven._makeRequest({
-                url: 'http://localhost/',
-                auth: {a: '1', b: '2'},
-                data: {foo: 'bar'},
-                options: Raven._globalOptions
-            });
-
-            assert.isTrue(Raven._makeImageRequest.notCalled);
-            assert.isTrue(Raven._makeXhrRequest.calledOnce);
-        });
-
-        it('should call makeImageRequest if CORS is NOT supported', function () {
-            delete XMLHttpRequest.prototype.withCredentials;
-
-            var oldXDR = window.XDomainRequest;
-            window.XDomainRequest = undefined;
-
-            Raven._makeRequest({
-                url: 'http://localhost/',
-                auth: {a: '1', b: '2'},
-                data: {foo: 'bar'},
-                options: Raven._globalOptions
-            });
-
-            assert.isTrue(Raven._makeImageRequest.calledOnce);
-            assert.isTrue(Raven._makeXhrRequest.notCalled);
-
-            window.XDomainRequest = oldXDR;
-        });
-    });
-
-    describe('makeXhrRequest', function() {
-        beforeEach(function() {
             // NOTE: can't seem to call useFakeXMLHttpRequest via sandbox; must
             //       restore manually
             this.xhr = sinon.useFakeXMLHttpRequest();
@@ -1252,7 +1206,7 @@ describe('globals', function() {
         it('should create an XMLHttpRequest object with body as JSON payload', function() {
             XMLHttpRequest.prototype.withCredentials = true;
 
-            Raven._makeXhrRequest({
+            Raven._makeRequest({
                 url: 'http://localhost/',
                 auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
@@ -1263,64 +1217,24 @@ describe('globals', function() {
             assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
             assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
         });
-    });
 
-    describe('makeImageRequest', function() {
-        var imageCache;
+        it('should no-op if CORS is not supported', function () {
+            delete XMLHttpRequest.prototype.withCredentials;
 
-        beforeEach(function () {
-            imageCache = [];
-            this.sinon.stub(Raven, '_newImage', function(){ var img = {}; imageCache.push(img); return img; });
-        });
+            var oldXDR = window.XDomainRequest;
+            window.XDomainRequest = undefined;
 
-        it('should load an Image', function() {
-            Raven._makeImageRequest({
+            Raven._makeRequest({
                 url: 'http://localhost/',
                 auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
                 options: Raven._globalOptions
             });
-            assert.equal(imageCache.length, 1);
-            assert.equal(imageCache[0].src, 'http://localhost/?a=1&b=2&sentry_data=%7B%22foo%22%3A%22bar%22%7D');
-        });
 
-        it('should populate crossOrigin based on options', function() {
-            Raven._makeImageRequest({
-                url: Raven._globalEndpoint,
-                auth: {lol: '1'},
-                data: {foo: 'bar'},
-                options: {
-                    crossOrigin: 'something'
-                }
-            });
-            assert.equal(imageCache.length, 1);
-            assert.equal(imageCache[0].crossOrigin, 'something');
-        });
+            assert.equal(this.requests.length, 1); // the "test" xhr
+            assert.equal(this.requests[0].readyState, 0);
 
-        it('should populate crossOrigin if empty string', function() {
-            Raven._makeImageRequest({
-                url: Raven._globalEndpoint,
-                auth: {lol: '1'},
-                data: {foo: 'bar'},
-                options: {
-                    crossOrigin: ''
-                }
-            });
-            assert.equal(imageCache.length, 1);
-            assert.equal(imageCache[0].crossOrigin, '');
-        });
-
-        it('should not populate crossOrigin if falsey', function() {
-            Raven._makeImageRequest({
-                url: Raven._globalEndpoint,
-                auth: {lol: '1'},
-                data: {foo: 'bar'},
-                options: {
-                    crossOrigin: false
-                }
-            });
-            assert.equal(imageCache.length, 1);
-            assert.isUndefined(imageCache[0].crossOrigin);
+            window.XDomainRequest = oldXDR
         });
     });
 
