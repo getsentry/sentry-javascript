@@ -1537,7 +1537,15 @@ describe('globals', function() {
 describe('Raven (public API)', function() {
 
     beforeEach(function () {
+        this.clock = sinon.useFakeTimers();
+        this.clock.tick(0); // Raven initialized at time "0"
         Raven = new _Raven();
+
+        this.clock.tick(100); // tick 100 ms
+    });
+
+    afterEach(function () {
+        this.clock.restore();
     });
 
     describe('.VERSION', function() {
@@ -2153,37 +2161,38 @@ describe('Raven (public API)', function() {
 
     describe('.captureBreadcrumb', function () {
         it('should store the passed object in _breadcrumbs', function() {
-            var breadcrumb = {
-                type: 'request',
-                timestamp: 100,
+            Raven.captureBreadcrumb('http_request', {
+                url: 'http://example.org/api/0/auth/',
+                statusCode: 200
+            });
+
+            assert.deepEqual(Raven._breadcrumbs[0], {
+                type: 'http_request',
+                timestamp: 0.1,
                 data: {
                     url: 'http://example.org/api/0/auth/',
                     statusCode: 200
                 }
-            };
-
-            Raven.captureBreadcrumb(breadcrumb);
-
-            assert.equal(Raven._breadcrumbs[0], breadcrumb);
+            });
         });
 
         it('should dequeue the oldest breadcrumb when over limit', function() {
             Raven._breadcrumbLimit = 5;
             Raven._breadcrumbs = [
-                { id: 1 },
-                { id: 2 },
-                { id: 3 },
-                { id: 4 },
-                { id: 5 }
+                { type: 'message', timestamp: 0.1, data: { message: '1' }},
+                { type: 'message', timestamp: 0.1, data: { message: '2' }},
+                { type: 'message', timestamp: 0.1, data: { message: '3' }},
+                { type: 'message', timestamp: 0.1, data: { message: '4' }},
+                { type: 'message', timestamp: 0.1, data: { message: '5' }}
             ];
 
-            Raven.captureBreadcrumb({ id: 6, timestamp: 100 });
+            Raven.captureBreadcrumb('message', { message: 'lol' });
             assert.deepEqual(Raven._breadcrumbs, [
-                { id: 2 },
-                { id: 3 },
-                { id: 4 },
-                { id: 5 },
-                { id: 6, timestamp: 0.1 }
+                { type: 'message', timestamp: 0.1, data: { message: '2' }},
+                { type: 'message', timestamp: 0.1, data: { message: '3' }},
+                { type: 'message', timestamp: 0.1, data: { message: '4' }},
+                { type: 'message', timestamp: 0.1, data: { message: '5' }},
+                { type: 'message', timestamp: 0.1, data: { message: 'lol' }}
             ]);
         });
     });

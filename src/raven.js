@@ -354,10 +354,14 @@ Raven.prototype = {
         return this;
     },
 
-    captureBreadcrumb: function (obj) {
-        obj.timestamp = (obj.timestamp || now()) / 1000;
+    captureBreadcrumb: function (type, data) {
+        var crumb = {
+            type: type,
+            timestamp: now() / 1000,
+            data: data
+        };
 
-        this._breadcrumbs.push(obj);
+        this._breadcrumbs.push(crumb);
         if (this._breadcrumbs.length > this._breadcrumbLimit) {
             this._breadcrumbs.shift();
         }
@@ -631,12 +635,9 @@ Raven.prototype = {
 
             self._lastCapturedEvent = evt;
             var elem = evt.target;
-            self.captureBreadcrumb({
-                type: 'ui_event',
-                data: {
-                    type: evtName,
-                    target: htmlElementAsString(elem)
-                }
+            self.captureBreadcrumb('ui_event', {
+                type: evtName,
+                target: htmlElementAsString(elem)
             });
         };
     },
@@ -750,10 +751,7 @@ Raven.prototype = {
                                         // an exception
                                         xhr.__raven_xhr.statusCode = xhr.status;
                                     } catch (e) { /* do nothing */ }
-                                    self.captureBreadcrumb({
-                                        type: 'http_request',
-                                        data: xhr.__raven_xhr
-                                    });
+                                    self.captureBreadcrumb('http_request', xhr.__raven_xhr);
                                 }
                                 return self.wrap(orig);
                             }, true /* noUndo */); // don't track filled methods on XHR instances
@@ -769,12 +767,9 @@ Raven.prototype = {
             // TODO: remove onpopstate handler on uninstall()
             var oldOnPopState = window.onpopstate;
             window.onpopstate = function () {
-                self.captureBreadcrumb({
-                    type: 'navigation',
-                    data: {
-                        from: self._lastHref,
-                        to: location.href
-                    }
+                self.captureBreadcrumb('navigation', {
+                    from: self._lastHref,
+                    to: location.href
                 });
 
                 // because onpopstate only tells you the "new" (to) value of location.href, and
@@ -791,12 +786,9 @@ Raven.prototype = {
                 // params to preserve 0 arity
                 return function(/* state, title, url */) {
                     var url = arguments.length > 2 ? arguments[2] : undefined;
-                    self.captureBreadcrumb({
-                        type: 'navigation',
-                        data: {
-                            to: url,
-                            from: location.href
-                        }
+                    self.captureBreadcrumb('navigation', {
+                        to: url,
+                        from: location.href
                     });
                     if (url) self._lastHref = url;
                     return origPushState.apply(this, arguments);
@@ -809,13 +801,10 @@ Raven.prototype = {
             consolePlugin(self, console, {
                 levels: ['debug', 'info', 'warn', 'error', 'log'],
                 callback: function (msg, data) {
-                    self.captureBreadcrumb({
-                        type: 'message',
-                        data: {
-                            level: data.level,
-                            message: msg
-                        }
-                    })
+                    self.captureBreadcrumb('message', {
+                        level: data.level,
+                        message: msg
+                    });
                 }
             });
         }
@@ -1147,12 +1136,9 @@ Raven.prototype = {
             auth.sentry_secret = this._globalSecret;
         }
 
-        this.captureBreadcrumb({
-            type: 'sentry',
-            data: {
-                message: data.message,
-                eventId: data.event_id
-            }
+        this.captureBreadcrumb('sentry', {
+            message: data.message,
+            eventId: data.event_id
         });
 
         var url = this._globalEndpoint;

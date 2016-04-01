@@ -173,7 +173,6 @@ describe('integration', function () {
             iframeExecute(iframe, done,
               function () {
                   setTimeout(done);
-                  debugger;
 
                   var div = document.createElement('div');
                   document.body.appendChild(div);
