@@ -23,6 +23,17 @@ function createIframe(done) {
     return iframe;
 }
 
+var anchor = document.createElement('a');
+function parseUrl(url) {
+    var out = {pathname: '', origin: '', protocol: ''};
+    if (!url)
+    anchor.href = url;
+    for (var key in out) {
+        out[key] = anchor[key];
+    }
+    return out;
+}
+
 describe('integration', function () {
 
     beforeEach(function (done) {
@@ -284,6 +295,186 @@ describe('integration', function () {
                     // # of frames alter significantly between chrome/firefox & safari
                     assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
                 }
+            );
+        });
+    });
+
+    describe('breadcrumbs', function () {
+        it('should record a mouse click on element WITH click handler present', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // add an event listener to the input. we want to make sure that
+                    // our breadcrumbs still work even if the page has an event listener
+                    // on an element that cancels event bubbling
+                    var input = document.getElementsByTagName('input')[0];
+                    var clickHandler = function (evt) {
+                        evt.stopPropagation(); // don't bubble
+                    };
+                    input.addEventListener('click', clickHandler);
+
+                    // click <input/>
+                    var evt = document.createEvent('MouseEvent');
+                    evt.initMouseEvent(
+                        "click",
+                        true /* bubble */,
+                        true /* cancelable */,
+                        window,
+                        null,
+                        0, 0, 0, 0, /* coordinates */
+                        false, false, false, false, /* modifier keys */
+                        0 /*left*/,
+                        null
+                    );
+                    input.dispatchEvent(evt);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    // NOTE: attributes re-ordered. should this be expected?
+                    assert.equal(breadcrumbs[0].data.target, '<input id="bar" name="foo" placeholder="lol" />');
+                    assert.equal(breadcrumbs[0].data.type, 'click');
+                }
+            );
+        });
+
+        it('should record a mouse click on element WITHOUT click handler present', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // click <input/>
+                    var evt = document.createEvent('MouseEvent');
+                    evt.initMouseEvent(
+                        "click",
+                        true /* bubble */,
+                        true /* cancelable */,
+                        window,
+                        null,
+                        0, 0, 0, 0, /* coordinates */
+                        false, false, false, false, /* modifier keys */
+                        0 /*left*/,
+                        null
+                    );
+
+                    var input = document.getElementsByTagName('input')[0];
+                    input.dispatchEvent(evt);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    // NOTE: attributes re-ordered. should this be expected?
+                    assert.equal(breadcrumbs[0].data.target, '<input id="bar" name="foo" placeholder="lol" />');
+                    assert.equal(breadcrumbs[0].data.type, 'click');
+                }
+            );
+        });
+
+        it('should only record a SINGLE mouse click for a tree of elements with event listeners', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    var clickHandler = function (evt) {
+                        //evt.stopPropagation();
+                    };
+                    document.getElementById('a').addEventListener('click', clickHandler);
+                    document.getElementById('b').addEventListener('click', clickHandler);
+                    document.getElementById('c').addEventListener('click', clickHandler);
+
+                    // click <input/>
+                    var evt = document.createEvent('MouseEvent');
+                    evt.initMouseEvent(
+                        "click",
+                        true /* bubble */,
+                        true /* cancelable */,
+                        window,
+                        null,
+                        0, 0, 0, 0, /* coordinates */
+                        false, false, false, false, /* modifier keys */
+                        0 /*left*/,
+                        null
+                    );
+
+                    var input = document.getElementById('a'); // leaf node
+                    input.dispatchEvent(evt);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    // NOTE: attributes re-ordered. should this be expected?
+                    assert.equal(breadcrumbs[0].data.target, '<div id="a" />');
+                    assert.equal(breadcrumbs[0].data.type, 'click');
+                }
+            );
+        });
+
+        it('should record history.[pushState|back] changes as navigation breadcrumbs', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+              function () {
+                  // some browsers trigger onpopstate for load / reset breadcrumb state
+                  Raven._breadcrumbs = [];
+                  history.pushState({}, '', '/foo');
+                  history.pushState({}, '', '/bar');
+
+                  // can't call history.back() because it will change url of parent document
+                  // (e.g. document running mocha) ... instead just "emulate" a back button
+                  // press by calling replaceState + onpopstate manually
+                  history.replaceState({}, '', '/foo');
+                  window.onpopstate();
+                  done();
+              },
+              function () {
+                  var Raven = iframe.contentWindow.Raven,
+                      breadcrumbs = Raven._breadcrumbs,
+                      from,
+                      to;
+
+                  assert.equal(breadcrumbs.length, 3);
+                  assert.equal(breadcrumbs[0].type, 'navigation'); // (start) => foo
+                  assert.equal(breadcrumbs[1].type, 'navigation'); // foo => bar
+                  assert.equal(breadcrumbs[2].type, 'navigation'); // bar => foo (back button)
+
+                  // assert end of string because PhantomJS uses full system path
+                  assert.ok(/\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), '\'to\' url is incorrect');
+
+                  assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/bar$/.test(breadcrumbs[1].data.to), '\'to\' url is incorrect');
+
+                  assert.ok(/\/bar/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/foo/.test(breadcrumbs[2].data.to), '\'to\' url is incorrect');
+              }
             );
         });
     });

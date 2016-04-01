@@ -718,6 +718,7 @@ describe('globals', function() {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: {method: 'POST', url: 'http://example.org/api/0/auth/'}}];
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -732,7 +733,13 @@ describe('globals', function() {
                 },
                 event_id: 'abc123',
                 message: 'bar',
-                extra: {'session:duration': 100}
+                extra: {'session:duration': 100},
+                breadcrumbs: {
+                    values: [
+                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                        { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', eventId: 'abc123' }}
+                    ]
+                }
             });
         });
 
@@ -800,7 +807,7 @@ describe('globals', function() {
                 event_id: 'abc123',
                 message: 'bar',
                 tags: {tag1: 'value1', tag2: 'value2'},
-                extra: {'session:duration': 100}
+                extra: {'session:duration': 100},
             });
 
 
@@ -842,7 +849,7 @@ describe('globals', function() {
 
                 event_id: 'abc123',
                 message: 'bar',
-                extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
+                extra: {key1: 'value1', key2: 'value2', 'session:duration': 100},
             });
 
             assert.deepEqual(Raven._globalOptions, {
@@ -1530,7 +1537,15 @@ describe('globals', function() {
 describe('Raven (public API)', function() {
 
     beforeEach(function () {
+        this.clock = sinon.useFakeTimers();
+        this.clock.tick(0); // Raven initialized at time "0"
         Raven = new _Raven();
+
+        this.clock.tick(100); // tick 100 ms
+    });
+
+    afterEach(function () {
+        this.clock.restore();
     });
 
     describe('.VERSION', function() {
@@ -2141,6 +2156,44 @@ describe('Raven (public API)', function() {
             assert.doesNotThrow(function() {
                 Raven.captureException(new Error('err'));
             });
+        });
+    });
+
+    describe('.captureBreadcrumb', function () {
+        it('should store the passed object in _breadcrumbs', function() {
+            Raven.captureBreadcrumb('http_request', {
+                url: 'http://example.org/api/0/auth/',
+                statusCode: 200
+            });
+
+            assert.deepEqual(Raven._breadcrumbs[0], {
+                type: 'http_request',
+                timestamp: 0.1,
+                data: {
+                    url: 'http://example.org/api/0/auth/',
+                    statusCode: 200
+                }
+            });
+        });
+
+        it('should dequeue the oldest breadcrumb when over limit', function() {
+            Raven._breadcrumbLimit = 5;
+            Raven._breadcrumbs = [
+                { type: 'message', timestamp: 0.1, data: { message: '1' }},
+                { type: 'message', timestamp: 0.1, data: { message: '2' }},
+                { type: 'message', timestamp: 0.1, data: { message: '3' }},
+                { type: 'message', timestamp: 0.1, data: { message: '4' }},
+                { type: 'message', timestamp: 0.1, data: { message: '5' }}
+            ];
+
+            Raven.captureBreadcrumb('message', { message: 'lol' });
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'message', timestamp: 0.1, data: { message: '2' }},
+                { type: 'message', timestamp: 0.1, data: { message: '3' }},
+                { type: 'message', timestamp: 0.1, data: { message: '4' }},
+                { type: 'message', timestamp: 0.1, data: { message: '5' }},
+                { type: 'message', timestamp: 0.1, data: { message: 'lol' }}
+            ]);
         });
     });
 

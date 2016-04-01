@@ -2,6 +2,7 @@
 'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+var consolePlugin = require('../plugins/console');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
 
@@ -16,6 +17,7 @@ var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
+var htmlElementAsString = utils.htmlElementAsString;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -58,6 +60,10 @@ function Raven() {
     this._plugins = [];
     this._startTime = now();
     this._wrappedBuiltIns = [];
+    this._breadcrumbs = [];
+    this._breadcrumbLimit = 20;
+    this._lastCapturedEvent = null;
+    this._lastHref = window.location && location.href;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -198,11 +204,11 @@ Raven.prototype = {
      *
      * @param {object} options A specific set of options for this context [optional]
      * @param {function} func The function to be wrapped in a new context
+     * @param {function} func A function to call before the try/catch wrapper [optional, private]
      * @return {function} The newly wrapped functions with a context
      */
-    wrap: function(options, func) {
+    wrap: function(options, func, _before) {
         var self = this;
-
         // 1 argument has been passed, and it's not a function
         // so just return it
         if (isUndefined(func) && !isFunction(options)) {
@@ -241,9 +247,13 @@ Raven.prototype = {
         function wrapped() {
             var args = [], i = arguments.length,
                 deep = !options || options && options.deep !== false;
+
+            if (_before && isFunction(_before)) {
+                _before.apply(this, arguments);
+            }
+
             // Recursively wrap all of a function's arguments that are
             // functions themselves.
-
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
@@ -261,10 +271,9 @@ Raven.prototype = {
                 wrapped[property] = func[property];
             }
         }
-        func.__raven_wrapper__ = wrapped;
-
         wrapped.prototype = func.prototype;
 
+        func.__raven_wrapper__ = wrapped;
         // Signal that this function has been wrapped already
         // for both debugging and to prevent it to being wrapped twice
         wrapped.__raven__ = true;
@@ -343,6 +352,19 @@ Raven.prototype = {
         );
 
         return this;
+    },
+
+    captureBreadcrumb: function (type, data) {
+        var crumb = {
+            type: type,
+            timestamp: now() / 1000,
+            data: data
+        };
+
+        this._breadcrumbs.push(crumb);
+        if (this._breadcrumbs.length > this._breadcrumbLimit) {
+            this._breadcrumbs.shift();
+        }
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
@@ -594,6 +616,32 @@ Raven.prototype = {
         }
     },
 
+
+    /**
+     * Wraps addEventListener to capture breadcrumbs
+     * @param evtName the event name (e.g. "click")
+     * @param fn the function being wrapped
+     * @returns {Function}
+     * @private
+     */
+    _breadcrumbEventHandler: function(evtName) {
+        var self = this;
+        return function (evt) {
+            // It's possible this handler might trigger multiple times for the same
+            // event (e.g. event propagation through node ancestors). Ignore if we've
+            // already captured the event.
+            if (self._lastCapturedEvent === evt)
+                return;
+
+            self._lastCapturedEvent = evt;
+            var elem = evt.target;
+            self.captureBreadcrumb('ui_event', {
+                type: evtName,
+                target: htmlElementAsString(elem)
+            });
+        };
+    },
+
     /**
      * Install any queued plugins
      */
@@ -638,6 +686,13 @@ Raven.prototype = {
             });
         }
 
+        // Capture breadcrubms from any click that is unhandled / bubbled up all the way
+        // to the document. Do this before we instrument addEventListener.
+        if (this._hasDocument) {
+            document.addEventListener('click', self._breadcrumbEventHandler('click'));
+
+        }
+
         // event targets borrowed from bugsnag-js:
         // https://github.com/bugsnag/bugsnag-js/blob/master/src/bugsnag.js#L666
         'EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload'.replace(/\w+/g, function (global) {
@@ -652,7 +707,14 @@ Raven.prototype = {
                         } catch (err) {
                             // can sometimes get 'Permission denied to access property "handle Event'
                         }
-                        return orig.call(this, evt, self.wrap(fn), capture, secure);
+
+
+                        // TODO: more than just click
+                        var before;
+                        if ((global === 'EventTarget' || global === 'Node') && evt === 'click') {
+                            before = self._breadcrumbEventHandler(evt, fn);
+                        }
+                        return orig.call(this, evt, self.wrap(fn, undefined, before), capture, secure);
                     };
                 });
                 fill(proto, 'removeEventListener', function (orig) {
@@ -665,18 +727,85 @@ Raven.prototype = {
         });
 
         if ('XMLHttpRequest' in window) {
-            fill(XMLHttpRequest.prototype, 'send', function(origSend) {
+            var xhrproto = XMLHttpRequest.prototype;
+            fill(xhrproto, 'open', function(origOpen) {
+                return function (method, url) { // preserve arity
+                    this.__raven_xhr = {
+                        method: method,
+                        url: url,
+                        statusCode: null
+                    };
+                    return origOpen.apply(this, arguments);
+                };
+            });
+
+            fill(xhrproto, 'send', function(origSend) {
                 return function (data) { // preserve arity
                     var xhr = this;
                     'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
-                        if (prop in xhr && Object.prototype.toString.call(xhr[prop]) === '[object Function]') {
+                        if (prop in xhr && isFunction(xhr[prop])) {
                             fill(xhr, prop, function (orig) {
+                                if (prop === 'onreadystatechange' && xhr.__raven_xhr && (xhr.readyState === 1 || xhr.readyState === 4)) {
+                                    try {
+                                        // touching statusCode in some platforms throws
+                                        // an exception
+                                        xhr.__raven_xhr.statusCode = xhr.status;
+                                    } catch (e) { /* do nothing */ }
+                                    self.captureBreadcrumb('http_request', xhr.__raven_xhr);
+                                }
                                 return self.wrap(orig);
                             }, true /* noUndo */); // don't track filled methods on XHR instances
                         }
                     });
                     return origSend.apply(this, arguments);
                 };
+            });
+        }
+
+        // record navigation (URL) changes
+        if ('history' in window && history.pushState) {
+            // TODO: remove onpopstate handler on uninstall()
+            var oldOnPopState = window.onpopstate;
+            window.onpopstate = function () {
+                self.captureBreadcrumb('navigation', {
+                    from: self._lastHref,
+                    to: location.href
+                });
+
+                // because onpopstate only tells you the "new" (to) value of location.href, and
+                // not the previous (from) value, we need to track the value of location.href
+                // ourselves
+                self._lastHref = location.href;
+                if (oldOnPopState) {
+                    return oldOnPopState.apply(this, arguments);
+                }
+            };
+
+            fill(history, 'pushState', function (origPushState) {
+                // note history.pushState.length is 0; intentionally not declaring
+                // params to preserve 0 arity
+                return function(/* state, title, url */) {
+                    var url = arguments.length > 2 ? arguments[2] : undefined;
+                    self.captureBreadcrumb('navigation', {
+                        to: url,
+                        from: location.href
+                    });
+                    if (url) self._lastHref = url;
+                    return origPushState.apply(this, arguments);
+                }
+            });
+        }
+
+        // console
+        if ('console' in window && console.log) {
+            consolePlugin(self, console, {
+                levels: ['debug', 'info', 'warn', 'error', 'log'],
+                callback: function (msg, data) {
+                    self.captureBreadcrumb('message', {
+                        level: data.level,
+                        message: msg
+                    });
+                }
             });
         }
 
@@ -952,6 +1081,12 @@ Raven.prototype = {
         // Send along our own collected metadata with extra
         data.extra['session:duration'] = now() - this._startTime;
 
+        if (this._breadcrumbs && this._breadcrumbs.length > 0) {
+            data.breadcrumbs = {
+                values: this._breadcrumbs
+            };
+        }
+
         // If there are no tags/extra, strip the key from the payload alltogther.
         if (isEmptyObject(data.tags)) delete data.tags;
 
@@ -1000,6 +1135,11 @@ Raven.prototype = {
         if (this._globalSecret) {
             auth.sentry_secret = this._globalSecret;
         }
+
+        this.captureBreadcrumb('sentry', {
+            message: data.message,
+            eventId: data.event_id
+        });
 
         var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {

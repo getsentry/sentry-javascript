@@ -16,6 +16,7 @@ var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;
 var urlencode = utils.urlencode;
+var htmlElementAsString = utils.htmlElementAsString;
 
 describe('utils', function () {
     describe('isUndefined', function() {
@@ -117,5 +118,34 @@ describe('utils', function () {
             assert.equal(urlencode({}), '');
             assert.equal(urlencode({'foo': 'bar', 'baz': '1 2'}), 'foo=bar&baz=1%202');
         });
+    });
+
+    describe('htmlElementAsString', function () {
+        it('should work', function () {
+            assert.equal(htmlElementAsString({
+                tagName: 'INPUT',
+                getAttribute: function (key){
+                    return {
+                        id: 'the-username',
+                        name: 'username',
+                        class: 'form-control',
+                        placeholder: 'Enter your username'
+                    }[key];
+                }
+            }), '<input id="the-username" name="username" class="form-control" placeholder="Enter your username" />');
+
+            assert.equal(htmlElementAsString({
+                tagName: 'IMG',
+                getAttribute: function (key){
+                    return {
+                        id: 'image-3',
+                        title: 'A picture of an apple',
+                        'data-something': 'This should be ignored' // skipping data-* attributes in first implementation
+                    }[key];
+                }
+            }), '<img id="image-3" title="A picture of an apple" />');
+        });
+
+        it
     });
 });
