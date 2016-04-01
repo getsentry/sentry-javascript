@@ -618,7 +618,7 @@ Raven.prototype = {
 
 
     /**
-     * Wraps addEventListener to capture breadcrumbs
+     * Wraps addEventListener to capture UI breadcrumbs
      * @param evtName the event name (e.g. "click")
      * @param fn the function being wrapped
      * @returns {Function}

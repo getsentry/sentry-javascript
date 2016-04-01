@@ -300,6 +300,44 @@ describe('integration', function () {
     });
 
     describe('breadcrumbs', function () {
+
+        it('should record an XMLHttpRequest', function (done) {
+           var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+              function () {
+
+                  // some browsers trigger onpopstate for load / reset breadcrumb state
+                  Raven._breadcrumbs = [];
+
+                  var xhr = new XMLHttpRequest();
+
+                  xhr.open('GET', '/test/integration/example.json');
+                  xhr.setRequestHeader('Content-type', 'application/json');
+                  xhr.onreadystatechange = function () {
+                      // don't fire `done` handler until at least *one* onreadystatechange
+                      // has occurred (doesn't actually need to finish)
+                      if (xhr.readyState === 4) {
+                          setTimeout(done);
+                      }
+                  };
+                  xhr.send();
+              },
+              function () {
+                  var Raven = iframe.contentWindow.Raven,
+                      breadcrumbs = Raven._breadcrumbs;
+
+                   assert.equal(breadcrumbs.length, 1);
+
+                   assert.equal(breadcrumbs[0].type, 'http_request');
+                   assert.equal(breadcrumbs[0].data.method, 'GET');
+                   // NOTE: not checking status code because we seem to get
+                   //       statusCode 0/undefined from Phantom when fetching
+                   //       example.json (CORS issue?
+              }
+            );
+        });
+
         it('should record a mouse click on element WITH click handler present', function (done) {
             var iframe = this.iframe;
 
