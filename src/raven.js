@@ -204,9 +204,10 @@ Raven.prototype = {
      *
      * @param {object} options A specific set of options for this context [optional]
      * @param {function} func The function to be wrapped in a new context
+     * @param {function} func A function to call before the try/catch wrapper [optional, private]
      * @return {function} The newly wrapped functions with a context
      */
-    wrap: function(options, func) {
+    wrap: function(options, func, _before) {
         var self = this;
         // 1 argument has been passed, and it's not a function
         // so just return it
@@ -246,9 +247,13 @@ Raven.prototype = {
         function wrapped() {
             var args = [], i = arguments.length,
                 deep = !options || options && options.deep !== false;
+
+            if (_before && isFunction(_before)) {
+                _before.apply(this, arguments);
+            }
+
             // Recursively wrap all of a function's arguments that are
             // functions themselves.
-
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
@@ -260,22 +265,6 @@ Raven.prototype = {
             }
         }
 
-        this._imitate(wrapped, func);
-
-        func.__raven_wrapper__ = wrapped;
-        // Signal that this function has been wrapped already
-        // for both debugging and to prevent it to being wrapped twice
-        wrapped.__raven__ = true;
-        wrapped.__inner__ = func;
-
-        return wrapped;
-    },
-
-    /**
-     * Give a wrapper function the properties/prototype
-     * of the wrapepd (inner) function
-     */
-    _imitate: function (wrapped, func) {
         // copy over properties of the old function
         for (var property in func) {
             if (hasKey(func, property)) {
@@ -283,6 +272,13 @@ Raven.prototype = {
             }
         }
         wrapped.prototype = func.prototype;
+
+        func.__raven_wrapper__ = wrapped;
+        // Signal that this function has been wrapped already
+        // for both debugging and to prevent it to being wrapped twice
+        wrapped.__raven__ = true;
+        wrapped.__inner__ = func;
+
         return wrapped;
     },
 
@@ -624,9 +620,9 @@ Raven.prototype = {
      * @returns {Function}
      * @private
      */
-    _wrapEventHandlerForBreadcrumbs: function(evtName, fn) {
+    _breadcrumbEventHandler: function(evtName) {
         var self = this;
-        function wrapped(evt) {
+        return function (evt) {
             // It's possible this handler might trigger multiple times for the same
             // event (e.g. event propagation through node ancestors). Ignore if we've
             // already captured the event.
@@ -642,16 +638,7 @@ Raven.prototype = {
                     target: htmlElementAsString(elem)
                 }
             });
-            if (fn) return fn.apply(this, arguments);
         };
-
-        if (fn) {
-            this._imitate(wrapped, fn);
-            fn.__raven_breadcrumb__ = wrapped;
-
-        }
-
-        return wrapped;
     },
 
     /**
@@ -701,7 +688,7 @@ Raven.prototype = {
         // Capture breadcrubms from any click that is unhandled / bubbled up all the way
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
-            document.addEventListener('click', self._wrapEventHandlerForBreadcrumbs('click'));
+            document.addEventListener('click', self._breadcrumbEventHandler('click'));
 
         }
 
@@ -720,19 +707,17 @@ Raven.prototype = {
                             // can sometimes get 'Permission denied to access property "handle Event'
                         }
 
+
                         // TODO: more than just click
+                        var before;
                         if ((global === 'EventTarget' || global === 'Node') && evt === 'click') {
-                            fn = self._wrapEventHandlerForBreadcrumbs(evt, fn);
+                            before = self._breadcrumbEventHandler(evt, fn);
                         }
-                        return orig.call(this, evt, self.wrap(fn), capture, secure);
+                        return orig.call(this, evt, self.wrap(fn, undefined, before), capture, secure);
                     };
                 });
                 fill(proto, 'removeEventListener', function (orig) {
                     return function (evt, fn, capture, secure) {
-                        // from the original function, get the breadcrumb wrapper
-                        // from the breadcrumb wrapper, get the raven wrapper (try/catch)
-                        // i.e. fn => breadcrumb_wrapper(fn) => raven_wrapper(breadcrumb_wrapper(fn))
-                        fn = fn && (fn.__raven_breadcrumb__ ? fn.__raven_breadcrumb__ : fn);
                         fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
                         return orig.call(this, evt, fn, capture, secure);
                     };
