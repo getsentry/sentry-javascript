@@ -736,11 +736,34 @@ describe('globals', function() {
                 extra: {'session:duration': 100},
                 breadcrumbs: {
                     values: [
-                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
-                        { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', eventId: 'abc123' }}
+                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }}
                     ]
                 }
             });
+
+        });
+
+        it('should create and append \'sentry\' breadcrumb', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 100
+            };
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: {method: 'POST', url: 'http://example.org/api/0/auth/'}}];
+
+            Raven._send({message: 'bar'});
+
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', eventId: 'abc123' }}
+            ])
         });
 
         it('should build a good data payload with a User', function() {

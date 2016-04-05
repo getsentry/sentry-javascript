@@ -1082,8 +1082,10 @@ Raven.prototype = {
         data.extra['session:duration'] = now() - this._startTime;
 
         if (this._breadcrumbs && this._breadcrumbs.length > 0) {
+            // intentionally make shallow copy so that additions
+            // to breadcrumbs aren't accidentally sent in this request
             data.breadcrumbs = {
-                values: this._breadcrumbs
+                values: [].slice.call(this._breadcrumbs, 0)
             };
         }
 
