@@ -1647,38 +1647,6 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('.install', function() {
-        it('should check `Raven.isSetup`', function() {
-            this.sinon.stub(Raven, 'isSetup').returns(false);
-            this.sinon.stub(TraceKit.report, 'subscribe');
-            Raven.install();
-            assert.isTrue(Raven.isSetup.calledOnce);
-            assert.isFalse(TraceKit.report.subscribe.calledOnce);
-        });
-
-        it('should register itself with TraceKit', function() {
-            this.sinon.stub(Raven, 'isSetup').returns(true);
-            this.sinon.stub(TraceKit.report, 'subscribe');
-            this.sinon.stub(Raven, '_handleStackInfo');
-            assert.equal(Raven, Raven.install());
-            assert.isTrue(TraceKit.report.subscribe.calledOnce);
-
-            // `install` subscribes to TraceKit w/ an anonymous function that
-            // wraps _handleStackInfo to preserve `this`. Invoke the anonymous
-            // function and verify that `_handleStackInfo` is called.
-            TraceKit.report.subscribe.lastCall.args[0]();
-            assert.isTrue(Raven._handleStackInfo.calledOnce);
-        });
-
-        it('should not register itself more than once', function() {
-            this.sinon.stub(Raven, 'isSetup').returns(true);
-            this.sinon.stub(TraceKit.report, 'subscribe');
-            Raven.install();
-            Raven.install();
-            assert.isTrue(TraceKit.report.subscribe.calledOnce);
-        });
-    });
-
     describe('.wrap', function() {
         it('should return a wrapped callback', function() {
             var spy = this.sinon.spy();
@@ -1827,21 +1795,6 @@ describe('Raven (public API)', function() {
             var val = {};
             var func = function() { return val; };
             assert.equal(Raven.context(func), val);
-        });
-    });
-
-    describe('.uninstall', function() {
-        it('should uninstall from TraceKit', function() {
-            this.sinon.stub(TraceKit.report, 'uninstall');
-            Raven.uninstall();
-            assert.isTrue(TraceKit.report.uninstall.calledOnce);
-        });
-
-        it('should set isRavenInstalled flag to false', function() {
-            Raven._isRavenInstalled = true;
-            this.sinon.stub(TraceKit.report, 'uninstall');
-            Raven.uninstall();
-            assert.isFalse(Raven._isRavenInstalled);
         });
     });
 
@@ -2217,6 +2170,62 @@ describe('Raven (public API)', function() {
                 var script = this.appendChildStub.getCall(0).args[0];
                 assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson%202&email=an2%40example.com');
             });
+        });
+    });
+});
+
+// intentionally separate install/uninstall from other test methods, because
+// the built-in wrapping doesn't play nice w/ Sinon's useFakeTimers() [won't
+// restore setTimeout, setInterval, etc]
+describe('install/uninstall', function () {
+   beforeEach(function () {
+      Raven = new _Raven();
+   });
+
+   describe('.install', function() {
+        it('should check `Raven.isSetup`', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(false);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+            Raven.install();
+            assert.isTrue(Raven.isSetup.calledOnce);
+            assert.isFalse(TraceKit.report.subscribe.calledOnce);
+        });
+
+        it('should register itself with TraceKit', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+            this.sinon.stub(Raven, '_handleStackInfo');
+            assert.equal(Raven, Raven.install());
+            assert.isTrue(TraceKit.report.subscribe.calledOnce);
+
+            // `install` subscribes to TraceKit w/ an anonymous function that
+            // wraps _handleStackInfo to preserve `this`. Invoke the anonymous
+            // function and verify that `_handleStackInfo` is called.
+            TraceKit.report.subscribe.lastCall.args[0]();
+            assert.isTrue(Raven._handleStackInfo.calledOnce);
+        });
+
+        it('should not register itself more than once', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+            Raven.install();
+            Raven.install();
+            assert.isTrue(TraceKit.report.subscribe.calledOnce);
+        });
+    });
+
+    describe('.uninstall', function() {
+        it('should uninstall from TraceKit', function() {
+            this.sinon.stub(TraceKit.report, 'uninstall');
+            Raven.uninstall();
+            assert.isTrue(TraceKit.report.uninstall.calledOnce);
+        });
+
+        it('should set isRavenInstalled flag to false', function() {
+            Raven._isRavenInstalled = true;
+            this.sinon.stub(TraceKit.report, 'uninstall');
+            Raven.uninstall();
+            assert.isFalse(Raven._isRavenInstalled);
         });
     });
 });
