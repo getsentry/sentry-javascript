@@ -126,7 +126,6 @@ describe('TraceKit', function () {
         it('should parse Chrome error with blob URLs', function () {
             var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_48_BLOB);
             assert.ok(stackFrames);
-            console.log(stackFrames);
             assert.deepEqual(stackFrames.stack.length, 7);
             assert.deepEqual(stackFrames.stack[1], { url: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379', func: 's', args: [], line: 31, column: 29146, context: null });
             assert.deepEqual(stackFrames.stack[2], { url: 'blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379', func: 'Object.d [as add]', args: [  ], line: 31, column: 30039, context: null });

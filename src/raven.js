@@ -1167,6 +1167,9 @@ Raven.prototype = {
     _makeRequest: function(opts) {
         var request = new XMLHttpRequest();
 
+        if (request.send.toString() === 'function send() { [native code] }') {
+            throw new Error('shouldnt get here');
+        }
         // if browser doesn't support CORS (e.g. IE7), we are out of luck
         var hasCORS =
             'withCredentials' in request ||

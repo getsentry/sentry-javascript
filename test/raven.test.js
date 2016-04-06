@@ -1948,6 +1948,7 @@ describe('Raven (public API)', function() {
         });
 
         it('should tag lastEventId #integration', function() {
+            this.sinon.stub(Raven, '_makeRequest');
             setupRaven();
             Raven.captureMessage('lol');
             assert.equal(Raven.lastEventId(), 'abc123');
@@ -2125,6 +2126,8 @@ describe('Raven (public API)', function() {
             });
 
             it('should specify embed API endpoint and basic query string (DSN, eventId)', function () {
+                this.sinon.stub(Raven, '_makeRequest');
+
                 Raven.showReportDialog({
                     eventId: 'abc123',
                     dsn: SENTRY_DSN
@@ -2145,6 +2148,8 @@ describe('Raven (public API)', function() {
             });
 
             it('should specify embed API endpoint and full query string (DSN, eventId, user)', function () {
+                this.sinon.stub(Raven, '_makeRequest');
+
                 Raven.showReportDialog({
                     eventId: 'abc123',
                     dsn: SENTRY_DSN,
