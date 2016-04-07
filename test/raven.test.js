@@ -762,7 +762,7 @@ describe('globals', function() {
 
             assert.deepEqual(Raven._breadcrumbs, [
                 { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
-                { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', eventId: 'abc123' }}
+                { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', event_id: 'abc123' }}
             ])
         });
 

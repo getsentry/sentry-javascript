@@ -733,7 +733,7 @@ Raven.prototype = {
                     this.__raven_xhr = {
                         method: method,
                         url: url,
-                        statusCode: null
+                        status_code: null
                     };
                     return origOpen.apply(this, arguments);
                 };
@@ -749,7 +749,7 @@ Raven.prototype = {
                                     try {
                                         // touching statusCode in some platforms throws
                                         // an exception
-                                        xhr.__raven_xhr.statusCode = xhr.status;
+                                        xhr.__raven_xhr.status_code = xhr.status;
                                     } catch (e) { /* do nothing */ }
                                     self.captureBreadcrumb('http_request', xhr.__raven_xhr);
                                 }
@@ -1140,7 +1140,7 @@ Raven.prototype = {
 
         this.captureBreadcrumb('sentry', {
             message: data.message,
-            eventId: data.event_id
+            event_id: data.event_id
         });
 
         var url = this._globalEndpoint;
