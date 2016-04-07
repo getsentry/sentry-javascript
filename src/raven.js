@@ -742,21 +742,36 @@ Raven.prototype = {
             fill(xhrproto, 'send', function(origSend) {
                 return function (data) { // preserve arity
                     var xhr = this;
-                    'onreadystatechange onload onerror onprogress'.replace(/\w+/g, function (prop) {
+
+                    function onreadystatechangeHandler() {
+                        if (xhr.__raven_xhr && (xhr.readyState === 1 || xhr.readyState === 4)) {
+                            try {
+                                // touching statusCode in some platforms throws
+                                // an exception
+                                xhr.__raven_xhr.status_code = xhr.status;
+                            } catch (e) { /* do nothing */ }
+                            self.captureBreadcrumb('http_request', xhr.__raven_xhr);
+                        }
+                    }
+
+                    'onload onerror onprogress'.replace(/\w+/g, function (prop) {
                         if (prop in xhr && isFunction(xhr[prop])) {
                             fill(xhr, prop, function (orig) {
-                                if (prop === 'onreadystatechange' && xhr.__raven_xhr && (xhr.readyState === 1 || xhr.readyState === 4)) {
-                                    try {
-                                        // touching statusCode in some platforms throws
-                                        // an exception
-                                        xhr.__raven_xhr.status_code = xhr.status;
-                                    } catch (e) { /* do nothing */ }
-                                    self.captureBreadcrumb('http_request', xhr.__raven_xhr);
-                                }
                                 return self.wrap(orig);
                             }, true /* noUndo */); // don't track filled methods on XHR instances
                         }
                     });
+
+                    if ('onreadystatechange' in xhr && isFunction(xhr.onreadystatechange)) {
+                        fill(xhr, 'onreadystatechange', function (orig) {
+                            return self.wrap(orig, undefined, onreadystatechangeHandler);
+                        }, true /* noUndo */);
+                    } else {
+                        // if onreadystatechange wasn't actually set by the page on this xhr, we
+                        // are free to set our own and capture the breadcrumb
+                        xhr.onreadystatechange = onreadystatechangeHandler;
+                    }
+
                     return origSend.apply(this, arguments);
                 };
             });

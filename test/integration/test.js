@@ -338,6 +338,40 @@ describe('integration', function () {
             );
         });
 
+        it('should record an XMLHttpRequest without any handlers set', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    // I hate to do a time-based "done" trigger, but unfortunately we can't
+                    // set an onload/onreadystatechange handler on XHR to verify that it finished
+                    // - that's the whole point of this test! :(
+                    setTimeout(done, 1000);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    var xhr = new XMLHttpRequest();
+
+                    xhr.open('GET', '/test/integration/example.json');
+                    xhr.setRequestHeader('Content-type', 'application/json');
+                    xhr.send();
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].type, 'http_request');
+                    assert.equal(breadcrumbs[0].data.method, 'GET');
+                    // NOTE: not checking status code because we seem to get
+                    //       statusCode 0/undefined from Phantom when fetching
+                    //       example.json (CORS issue?
+                }
+            );
+        });
+
         it('should record a mouse click on element WITH click handler present', function (done) {
             var iframe = this.iframe;
 
