@@ -743,7 +743,7 @@ describe('globals', function() {
 
         });
 
-        it('should create and append \'sentry\' breadcrumb', function () {
+        it('should create and append \'error\' breadcrumb', function () {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
             this.sinon.stub(Raven, '_getHttpData').returns({
@@ -762,7 +762,7 @@ describe('globals', function() {
 
             assert.deepEqual(Raven._breadcrumbs, [
                 { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
-                { type: 'sentry', timestamp: 0.1, /* 100ms */ data: { message: 'bar', event_id: 'abc123' }}
+                { type: 'error', timestamp: 0.1, /* 100ms */ data: { message: 'bar', event_id: 'abc123' }}
             ])
         });
 

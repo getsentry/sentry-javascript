@@ -1138,7 +1138,8 @@ Raven.prototype = {
             auth.sentry_secret = this._globalSecret;
         }
 
-        this.captureBreadcrumb('sentry', {
+        // TODO: is captureMessage considered an 'error' breadcrumb? or 'message'?
+        this.captureBreadcrumb('error', {
             message: data.message,
             event_id: data.event_id
         });
