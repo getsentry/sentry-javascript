@@ -24,7 +24,7 @@ var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error#Error_types
-var ERROR_TYPES_RE = /^(?:Uncaught )?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error)\: ?(.*)$/;
+var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error): ?(.*)$/;
 
 function getLocationHref() {
     if (typeof document === 'undefined')
