@@ -157,7 +157,17 @@ describe('TraceKit', function(){
                 TraceKit.report.subscribe(subscriptionHandler);
                 // should work with/without "Uncaught"
                 window.onerror('Uncaught ReferenceError: foo is undefined', 'http://example.com', testLineNo);
-                window.onerror('ReferenceError: foo is undefined', 'http://example.com', testLineNo)
+                window.onerror('ReferenceError: foo is undefined', 'http://example.com', testLineNo);
+                done();
+            });
+
+            it('should separate name, message for default error types on Opera Mini (see #546)', function (done) {
+                subscriptionHandler = function (stackInfo, extra) {
+                    assert.equal(stackInfo.name, 'ReferenceError');
+                    assert.equal(stackInfo.message, 'Undefined variable: foo');
+                };
+                TraceKit.report.subscribe(subscriptionHandler);
+                window.onerror('Uncaught exception: ReferenceError: Undefined variable: foo', 'http://example.com', testLineNo);
                 done();
             });
 
