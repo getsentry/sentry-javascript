@@ -658,8 +658,12 @@ Raven.prototype = {
 
         function wrapTimeFn(orig) {
             return function (fn, t) { // preserve arity
-                // Make a copy of the arguments
-                var args = [].slice.call(arguments);
+                // Make a copy of the arguments to prevent deoptimization
+                // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
+                var args = new Array(arguments.length);
+                for(var i = 0; i < args.length; ++i) {
+                    args[i] = arguments[i];
+                }
                 var originalCallback = args[0];
                 if (isFunction(originalCallback)) {
                     args[0] = self.wrap(originalCallback);
@@ -676,26 +680,7 @@ Raven.prototype = {
             };
         }
 
-        fill(window, 'setTimeout', wrapTimeFn);
-        fill(window, 'setInterval', wrapTimeFn);
-        if (window.requestAnimationFrame) {
-            fill(window, 'requestAnimationFrame', function (orig) {
-                return function (cb) {
-                    return orig(self.wrap(cb));
-                };
-            });
-        }
-
-        // Capture breadcrubms from any click that is unhandled / bubbled up all the way
-        // to the document. Do this before we instrument addEventListener.
-        if (this._hasDocument) {
-            document.addEventListener('click', self._breadcrumbEventHandler('click'));
-
-        }
-
-        // event targets borrowed from bugsnag-js:
-        // https://github.com/bugsnag/bugsnag-js/blob/master/src/bugsnag.js#L666
-        'EventTarget Window Node ApplicationCache AudioTrackList ChannelMergerNode CryptoOperation EventSource FileReader HTMLUnknownElement IDBDatabase IDBRequest IDBTransaction KeyOperation MediaController MessagePort ModalWindow Notification SVGElementInstance Screen TextTrack TextTrackCue TextTrackList WebSocket WebSocketWorker Worker XMLHttpRequest XMLHttpRequestEventTarget XMLHttpRequestUpload'.replace(/\w+/g, function (global) {
+        function wrapEventTarget(global) {
             var proto = window[global] && window[global].prototype;
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
@@ -724,7 +709,38 @@ Raven.prototype = {
                     };
                 });
             }
-        });
+        }
+
+        function wrapProp(prop, xhr) {
+            if (prop in xhr && isFunction(xhr[prop])) {
+                fill(xhr, prop, function (orig) {
+                    return self.wrap(orig);
+                }, true /* noUndo */); // don't track filled methods on XHR instances
+            }
+        }
+
+        fill(window, 'setTimeout', wrapTimeFn);
+        fill(window, 'setInterval', wrapTimeFn);
+        if (window.requestAnimationFrame) {
+            fill(window, 'requestAnimationFrame', function (orig) {
+                return function (cb) {
+                    return orig(self.wrap(cb));
+                };
+            });
+        }
+
+        // Capture breadcrubms from any click that is unhandled / bubbled up all the way
+        // to the document. Do this before we instrument addEventListener.
+        if (this._hasDocument) {
+            document.addEventListener('click', self._breadcrumbEventHandler('click'));
+        }
+
+        // event targets borrowed from bugsnag-js:
+        // https://github.com/bugsnag/bugsnag-js/blob/master/src/bugsnag.js#L666
+        var eventTargets = ['EventTarget', 'Window', 'Node', 'ApplicationCache', 'AudioTrackList', 'ChannelMergerNode', 'CryptoOperation', 'EventSource', 'FileReader', 'HTMLUnknownElement', 'IDBDatabase', 'IDBRequest', 'IDBTransaction', 'KeyOperation', 'MediaController', 'MessagePort', 'ModalWindow', 'Notification', 'SVGElementInstance', 'Screen', 'TextTrack', 'TextTrackCue', 'TextTrackList', 'WebSocket', 'WebSocketWorker', 'Worker', 'XMLHttpRequest', 'XMLHttpRequestEventTarget', 'XMLHttpRequestUpload'];
+        for (var i = 0; i < eventTargets.length; i++) {
+            wrapEventTarget(eventTargets[i]);
+        }
 
         if ('XMLHttpRequest' in window) {
             var xhrproto = XMLHttpRequest.prototype;
@@ -754,13 +770,10 @@ Raven.prototype = {
                         }
                     }
 
-                    'onload onerror onprogress'.replace(/\w+/g, function (prop) {
-                        if (prop in xhr && isFunction(xhr[prop])) {
-                            fill(xhr, prop, function (orig) {
-                                return self.wrap(orig);
-                            }, true /* noUndo */); // don't track filled methods on XHR instances
-                        }
-                    });
+                    var props = ['onload', 'onerror', 'onprogress'];
+                    for (var j = 0; j < props.length; j++) {
+                        wrapProp(props[j], xhr);
+                    }
 
                     if ('onreadystatechange' in xhr && isFunction(xhr.onreadystatechange)) {
                         fill(xhr, 'onreadystatechange', function (orig) {
