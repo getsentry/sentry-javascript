@@ -183,6 +183,24 @@ event is sent, it will contain the string id.
     alert(Raven.lastEventId())
 
 
+User Feedback
+-------------
+
+Often you might find yourself wanting to collect additional feedback from
+the user. Sentry supports this via an embeddable widget.
+
+.. sourcecode:: javascript
+
+    try {
+        handleRouteChange(...)
+    } catch (err) {
+        Raven.captureException(err);
+        Raven.showReportDialog();
+    }
+
+For more details on this feature, see the :doc:`User Feedback guide <../../learn/user-feedback>`.
+
+
 Verify Raven Setup
 ------------------
 
