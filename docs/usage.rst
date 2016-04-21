@@ -182,6 +182,7 @@ event is sent, it will contain the string id.
     Raven.captureMessage('Broken!')
     alert(Raven.lastEventId())
 
+.. _javascript-user-feedback:
 
 User Feedback
 -------------
