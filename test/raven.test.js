@@ -2088,6 +2088,26 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('._captureUrlChange', function () {
+        it('should create a new breadcrumb from its "from" and "to" arguments', function () {
+            Raven._breadcrumbs = [];
+            Raven._captureUrlChange('/foo', '/bar');
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+            ]);
+        });
+
+        it('should strip protocol/host if passed URLs share the same origin as location.href', function () {
+            Raven._location = { href: 'http://example.com/foo' };
+            Raven._breadcrumbs = [];
+
+            Raven._captureUrlChange('http://example.com/foo', 'http://example.com/bar');
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+            ]);
+        });
+    });
+
     describe('.Raven.isSetup', function() {
         it('should work as advertised', function() {
             var isSetup = this.sinon.stub(Raven, 'isSetup');

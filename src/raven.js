@@ -18,6 +18,7 @@ var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlElementAsString = utils.htmlElementAsString;
+var parseUrl = utils.parseUrl;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -63,7 +64,8 @@ function Raven() {
     this._breadcrumbs = [];
     this._breadcrumbLimit = 20;
     this._lastCapturedEvent = null;
-    this._lastHref = window.location && location.href;
+    this._location = window.location;
+    this._lastHref = this._location && this._location.href;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -643,6 +645,35 @@ Raven.prototype = {
     },
 
     /**
+     * Captures a breadcrumb of type "navigation", normalizing input URLs
+     * @param to the originating URL
+     * @param from the target URL
+     * @private
+     */
+    _captureUrlChange: function(from, to) {
+        var parsedLoc = parseUrl(this._location.href);
+        var parsedTo = parseUrl(to);
+        var parsedFrom = parseUrl(from);
+
+        // because onpopstate only tells you the "new" (to) value of location.href, and
+        // not the previous (from) value, we need to track the value of the current URL
+        // state ourselves
+        this._lastHref = to;
+
+        // Use only the path component of the URL if the URL matches the current
+        // document (almost all the time when using pushState)
+        if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host)
+            to = parsedTo.path;
+        if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host)
+            from = parsedFrom.path;
+
+        this.captureBreadcrumb('navigation', {
+            to: to,
+            from: from
+        });
+    },
+
+    /**
      * Install any queued plugins
      */
     _wrapBuiltIns: function() {
@@ -795,15 +826,9 @@ Raven.prototype = {
             // TODO: remove onpopstate handler on uninstall()
             var oldOnPopState = window.onpopstate;
             window.onpopstate = function () {
-                self.captureBreadcrumb('navigation', {
-                    from: self._lastHref,
-                    to: location.href
-                });
+                var currentHref = self._location.href;
+                self._captureUrlChange(self._lastHref, currentHref);
 
-                // because onpopstate only tells you the "new" (to) value of location.href, and
-                // not the previous (from) value, we need to track the value of location.href
-                // ourselves
-                self._lastHref = location.href;
                 if (oldOnPopState) {
                     return oldOnPopState.apply(this, arguments);
                 }
@@ -814,13 +839,14 @@ Raven.prototype = {
                 // params to preserve 0 arity
                 return function(/* state, title, url */) {
                     var url = arguments.length > 2 ? arguments[2] : undefined;
-                    self.captureBreadcrumb('navigation', {
-                        to: url,
-                        from: location.href
-                    });
-                    if (url) self._lastHref = url;
+
+                    // url argument is optional
+                    if (url) {
+                        self._captureUrlChange(self._lastHref, url);
+                    }
+
                     return origPushState.apply(this, arguments);
-                }
+                };
             });
         }
 

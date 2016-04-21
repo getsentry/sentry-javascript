@@ -17,6 +17,7 @@ var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var htmlElementAsString = utils.htmlElementAsString;
+var parseUrl = utils.parseUrl;
 
 describe('utils', function () {
     describe('isUndefined', function() {
@@ -145,7 +146,35 @@ describe('utils', function () {
                 }
             }), '<img id="image-3" title="A picture of an apple" />');
         });
+    });
 
-        it
+    describe('parseUrl', function () {
+        it('should parse fully qualified URLs', function () {
+            assert.deepEqual(parseUrl('http://example.com/foo'), {
+                host: 'example.com',
+                path: '/foo',
+                protocol: 'http'
+            });
+            assert.deepEqual(parseUrl('//example.com/foo'), {
+                host: 'example.com',
+                path: '/foo',
+                protocol: undefined
+            });
+        });
+
+        it('should parse partial URLs, e.g. path only', function () {
+            assert.deepEqual(parseUrl('/foo'), {
+                host: undefined,
+                protocol: undefined,
+                path: '/foo'
+            });
+            assert.deepEqual(parseUrl('example.com/foo'), {
+                host: undefined,
+                protocol: undefined,
+                path: 'example.com/foo'
+                // this is correct! pushState({}, '', 'example.com/foo') would take you
+                // from example.com => example.com/example.com/foo (valid url).
+            });
+        });
     });
 });

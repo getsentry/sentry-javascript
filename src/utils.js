@@ -107,6 +107,18 @@ function urlencode(o) {
     return pairs.join('&');
 }
 
+// borrowed from https://tools.ietf.org/html/rfc3986#appendix-B
+// intentionally using regex and not <a/> href parsing trick because React Native and other
+// environments where DOM might not be available
+function parseUrl(url) {
+    var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
+    if (!match) return {};
+    return {
+        protocol: match[2],
+        host: match[4],
+        path: match[5]
+    };
+}
 function uuid4() {
     var crypto = window.crypto || window.msCrypto;
 
@@ -173,5 +185,6 @@ module.exports = {
     joinRegExp: joinRegExp,
     urlencode: urlencode,
     uuid4: uuid4,
-    htmlElementAsString: htmlElementAsString
+    htmlElementAsString: htmlElementAsString,
+    parseUrl: parseUrl
 };
