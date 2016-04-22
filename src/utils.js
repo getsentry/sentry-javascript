@@ -153,21 +153,31 @@ function uuid4() {
 }
 
 /**
- * Returns a simple, child-less string representation of a DOM element
- * e.g. [HTMLElement] => <input class="btn" />
+ * Returns a simple, query-selector representation of a DOM element
+ * e.g. [HTMLElement] => input#foo.btn[name=baz]
  * @param HTMLElement
  */
 function htmlElementAsString(elem) {
-    var out = ['<'];
+    var out = [];
     out.push(elem.tagName.toLowerCase());
-    var attrWhitelist = ['id', 'type', 'name', 'value', 'class', 'placeholder', 'title', 'alt'];
+
+    if (elem.id) {
+        out.push('#' + elem.id);
+    }
+    var classes, i;
+    if (elem.className) {
+        classes = elem.className.split(' ');
+        for (i = 0; i < classes.length; i++) {
+            out.push('.' + classes[i]);
+        }
+    }
+    var attrWhitelist = ['type', 'name', 'value', 'placeholder', 'title', 'alt'];
     each(attrWhitelist, function(index, key) {
         var attr = elem.getAttribute(key);
         if (attr) {
-            out.push(' ' + key + '="' + attr + '"');
+            out.push('[' + key + '="' + attr + '"]');
         }
     });
-    out.push(' />');
     return out.join('');
 }
 

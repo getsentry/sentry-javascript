@@ -125,26 +125,26 @@ describe('utils', function () {
         it('should work', function () {
             assert.equal(htmlElementAsString({
                 tagName: 'INPUT',
+                id: 'the-username',
+                className: 'form-control',
                 getAttribute: function (key){
                     return {
-                        id: 'the-username',
                         name: 'username',
-                        class: 'form-control',
                         placeholder: 'Enter your username'
                     }[key];
                 }
-            }), '<input id="the-username" name="username" class="form-control" placeholder="Enter your username" />');
+            }), 'input#the-username.form-control[name="username"][placeholder="Enter your username"]');
 
             assert.equal(htmlElementAsString({
                 tagName: 'IMG',
+                id: 'image-3',
                 getAttribute: function (key){
                     return {
-                        id: 'image-3',
                         title: 'A picture of an apple',
                         'data-something': 'This should be ignored' // skipping data-* attributes in first implementation
                     }[key];
                 }
-            }), '<img id="image-3" title="A picture of an apple" />');
+            }), 'img#image-3[title="A picture of an apple"]');
         });
     });
 

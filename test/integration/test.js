@@ -441,7 +441,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, '<input id="bar" name="foo" placeholder="lol" />');
+                    assert.equal(breadcrumbs[0].data.target, 'input#bar[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );
@@ -482,7 +482,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, '<input id="bar" name="foo" placeholder="lol" />');
+                    assert.equal(breadcrumbs[0].data.target, 'input#bar[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );
@@ -530,7 +530,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, '<div id="a" />');
+                    assert.equal(breadcrumbs[0].data.target, 'div#a');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );
