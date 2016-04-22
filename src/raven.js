@@ -777,11 +777,16 @@ Raven.prototype = {
             var xhrproto = XMLHttpRequest.prototype;
             fill(xhrproto, 'open', function(origOpen) {
                 return function (method, url) { // preserve arity
-                    this.__raven_xhr = {
-                        method: method,
-                        url: url,
-                        status_code: null
-                    };
+
+                    // if Sentry key appears in URL, don't capture
+                    if (url.indexOf(self._globalKey) === -1) {
+                        this.__raven_xhr = {
+                            method: method,
+                            url: url,
+                            status_code: null
+                        };
+                    }
+
                     return origOpen.apply(this, arguments);
                 };
             });

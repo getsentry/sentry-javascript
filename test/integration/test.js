@@ -306,7 +306,6 @@ describe('integration', function () {
 
             iframeExecute(iframe, done,
               function () {
-
                   // some browsers trigger onpopstate for load / reset breadcrumb state
                   Raven._breadcrumbs = [];
 
@@ -369,6 +368,34 @@ describe('integration', function () {
                     //       statusCode 0/undefined from Phantom when fetching
                     //       example.json (CORS issue?
                 }
+            );
+        });
+
+        it('should NOT capture breadcrumbs from XMLHttpRequests to the Sentry store endpoint', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+              function () {
+                  // some browsers trigger onpopstate for load / reset breadcrumb state
+                  Raven._breadcrumbs = [];
+
+                  var xhr = new XMLHttpRequest();
+                  xhr.open('GET', 'https://example.com/api/1/store/?sentry_key=public');
+                  xhr.setRequestHeader('Content-type', 'application/json');
+                  xhr.onreadystatechange = function () {
+                      // don't fire `done` handler until at least *one* onreadystatechange
+                      // has occurred (doesn't actually need to finish)
+                      if (xhr.readyState === 4) {
+                          setTimeout(done);
+                      }
+                  };
+                  xhr.send();
+              },
+              function () {
+                  var Raven = iframe.contentWindow.Raven,
+                      breadcrumbs = Raven._breadcrumbs;
+
+                   assert.equal(breadcrumbs.length, 0);
+              }
             );
         });
 
