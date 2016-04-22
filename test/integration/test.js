@@ -441,7 +441,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, 'input#bar[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );
@@ -482,7 +482,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, 'input#bar[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );
@@ -501,9 +501,9 @@ describe('integration', function () {
                     var clickHandler = function (evt) {
                         //evt.stopPropagation();
                     };
-                    document.getElementById('a').addEventListener('click', clickHandler);
-                    document.getElementById('b').addEventListener('click', clickHandler);
-                    document.getElementById('c').addEventListener('click', clickHandler);
+                    document.querySelector('.a').addEventListener('click', clickHandler);
+                    document.querySelector('.b').addEventListener('click', clickHandler);
+                    document.querySelector('.c').addEventListener('click', clickHandler);
 
                     // click <input/>
                     var evt = document.createEvent('MouseEvent');
@@ -519,7 +519,7 @@ describe('integration', function () {
                         null
                     );
 
-                    var input = document.getElementById('a'); // leaf node
+                    var input = document.querySelector('.a'); // leaf node
                     input.dispatchEvent(evt);
                 },
                 function () {
@@ -530,7 +530,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
                     // NOTE: attributes re-ordered. should this be expected?
-                    assert.equal(breadcrumbs[0].data.target, 'div#a');
+                    assert.equal(breadcrumbs[0].data.target, 'body > div.c > div.b > div.a');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
             );

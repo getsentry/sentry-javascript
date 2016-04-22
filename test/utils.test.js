@@ -16,6 +16,7 @@ var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;
 var urlencode = utils.urlencode;
+var htmlTreeAsString = utils.htmlTreeAsString;
 var htmlElementAsString = utils.htmlElementAsString;
 var parseUrl = utils.parseUrl;
 
@@ -118,6 +119,60 @@ describe('utils', function () {
         it('should work', function() {
             assert.equal(urlencode({}), '');
             assert.equal(urlencode({'foo': 'bar', 'baz': '1 2'}), 'foo=bar&baz=1%202');
+        });
+    });
+
+    describe('htmlTreeAsString', function () {
+        it('should work', function () {
+            var tree = {
+                tagName: 'INPUT',
+                id: 'the-username',
+                className: 'form-control',
+                getAttribute: function (key){
+                    return {
+                        name: 'username'
+                    }[key];
+                },
+                parentNode: {
+                    tagName: 'span',
+                    getAttribute: function () {},
+                    parentNode: {
+                        tagName: 'div',
+                        getAttribute: function () {},
+                    }
+                }
+            };
+
+            assert.equal(htmlTreeAsString(tree), 'div > span > input#the-username.form-control[name="username"]');
+        });
+
+
+        it('should not create strings that are too big', function () {
+            var tree = {
+                tagName: 'INPUT',
+                id: 'the-username',
+                className: 'form-control',
+                getAttribute: function (key){
+                    return {
+                        name: 'username'
+                    }[key];
+                },
+                parentNode: {
+                    tagName: 'span',
+                    getAttribute: function () {},
+                    parentNode: {
+                        tagName: 'div',
+                        getAttribute: function (key) {
+                            return {
+                                name: 'super long input name that nobody would really ever have i mean come on look at this'
+                            }[key];
+                        }
+                    }
+                }
+            };
+
+            // NOTE: <div/> omitted because crazy long name
+            assert.equal(htmlTreeAsString(tree), 'span > input#the-username.form-control[name="username"]');
         });
     });
 
