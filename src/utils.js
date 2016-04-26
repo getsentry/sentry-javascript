@@ -198,18 +198,24 @@ function htmlTreeAsString(elem) {
  */
 function htmlElementAsString(elem) {
     var out = [],
+        className,
         classes,
         key,
         attr,
         i;
+
+    if (!elem || !elem.tagName) {
+        return '';
+    }
 
     out.push(elem.tagName.toLowerCase());
     if (elem.id) {
         out.push('#' + elem.id);
     }
 
-    if (elem.className) {
-        classes = elem.className.split(' ');
+    className = elem.className;
+    if (className && isString(className)) {
+        classes = className.split(' ');
         for (i = 0; i < classes.length; i++) {
             out.push('.' + classes[i]);
         }
