@@ -201,6 +201,32 @@ describe('utils', function () {
                 }
             }), 'img#image-3[title="A picture of an apple"]');
         });
+
+        it('should return an empty string if the input element is falsy', function () {
+            assert.equal(htmlElementAsString(null), '');
+            assert.equal(htmlElementAsString(0), '');
+            assert.equal(htmlElementAsString(undefined), '');
+        });
+
+        it('should return an empty string if the input element has no tagName property', function () {
+            assert.equal(htmlElementAsString({
+                id: 'the-username',
+                className: 'form-control'
+            }), '');
+        });
+
+        it('should gracefully handle when className is not a string (e.g. SVGAnimatedString', function () {
+            assert.equal(htmlElementAsString({
+                tagName: 'INPUT',
+                id: 'the-username',
+                className: {}, // not a string
+                getAttribute: function (key){
+                    return {
+                        name: 'username'
+                    }[key];
+                }
+            }), 'input#the-username[name="username"]');
+        });
     });
 
     describe('parseUrl', function () {
