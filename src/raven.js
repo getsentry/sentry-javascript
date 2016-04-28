@@ -64,7 +64,7 @@ function Raven() {
     this._breadcrumbs = [];
     this._breadcrumbLimit = 20;
     this._lastCapturedEvent = null;
-    this._keypressTimeout = null;
+    this._keypressTimeout;
     this._location = window.location;
     this._lastHref = this._location && this._location.href;
 
@@ -622,19 +622,16 @@ Raven.prototype = {
     /**
      * Wraps addEventListener to capture UI breadcrumbs
      * @param evtName the event name (e.g. "click")
-     * @param fn the function being wrapped
      * @returns {Function}
      * @private
      */
     _breadcrumbEventHandler: function(evtName) {
         var self = this;
         return function (evt) {
-            // if there's a keypress event still queued up (debounce
-            // hasn't flushed yet), flush it immediately before processing
-            // this event
-            if (self._keypressTimeout) {
-                self._keypressCapture();
-            }
+            // reset keypress timeout; e.g. triggering a 'click' after
+            // a 'keypress' will reset the keypress debounce so that a new
+            // set of keypresses can be recorded
+            self._keypressTimeout = null;
 
             // It's possible this handler might trigger multiple times for the same
             // event (e.g. event propagation through node ancestors). Ignore if we've
@@ -662,25 +659,18 @@ Raven.prototype = {
         };
     },
 
-    _keypressCapture: function(evt) {
-        evt = evt || this._lastKeypressEvent;
-        this._lastKeypressEvent = null;
-
-        if (this._keypressTimeout) {
-            clearTimeout(this._keypressTimeout);
-            this._keypressTimeout = null;
-        }
-
-        return this._breadcrumbEventHandler('input')(evt);
-    },
-
+    /**
+     * Wraps addEventListener to capture keypress UI events
+     * @returns {Function}
+     * @private
+     */
     _keypressEventHandler: function() {
-        var self = this;
-        var debounceDuration = 1000; // milliseconds
+        var self = this,
+            debounceDuration = 1000; // milliseconds
 
         // TODO: if somehow user switches keypress target before
         //       debounce timeout is triggered, we will only capture
-        //       a single breadcrumb from the LAST target (acceptable?)
+        //       a single breadcrumb from the FIRST target (acceptable?)
 
         return function (evt) {
             var target = evt.target,
@@ -692,10 +682,15 @@ Raven.prototype = {
             if (!tagName || tagName !== 'INPUT' && tagName !== 'TEXTAREA')
                 return;
 
-            clearTimeout(self._keypressTimeout);
-            self._lastKeypressEvent = evt;
+            // record first keypress in a series, but ignore subsequent
+            // keypresses until debounce clears
+            var timeout = self._keypressTimeout;
+            if (!timeout) {
+                self._breadcrumbEventHandler('input')(evt);
+            }
+            clearTimeout(timeout);
             self._keypressTimeout = setTimeout(function () {
-               self._keypressCapture(evt);
+               self._keypressTimeout = null;
             }, debounceDuration);
         };
     },
@@ -1201,10 +1196,6 @@ Raven.prototype = {
         // Send along our own collected metadata with extra
         data.extra['session:duration'] = now() - this._startTime;
 
-        // flush debounced keypress breadcrumb capture (if there is one)
-        if (this._keypressTimeout) {
-            this._keypressCapture();
-        }
         if (this._breadcrumbs && this._breadcrumbs.length > 0) {
             // intentionally make shallow copy so that additions
             // to breadcrumbs aren't accidentally sent in this request
