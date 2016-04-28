@@ -19,6 +19,7 @@ var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
+var debounce = utils.debounce;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -618,7 +619,6 @@ Raven.prototype = {
         }
     },
 
-
     /**
      * Wraps addEventListener to capture UI breadcrumbs
      * @param evtName the event name (e.g. "click")
@@ -642,6 +642,17 @@ Raven.prototype = {
                 target: htmlTreeAsString(elem)
             });
         };
+    },
+
+    _keypressEventHandler: function() {
+        var self = this;
+
+        // TODO: if somehow user switches keypress target before
+        //       debounce timeout is triggered, we will only capture
+        //       a single breadcrumb from the LAST target (acceptable?)
+        return debounce(function (evt) {
+            self._breadcrumbEventHandler('keypress')(evt);
+        }, 500); // 500ms after last consecutive keypress, record breadcrumb
     },
 
     /**
@@ -727,8 +738,12 @@ Raven.prototype = {
 
                         // TODO: more than just click
                         var before;
-                        if ((global === 'EventTarget' || global === 'Node') && evt === 'click') {
-                            before = self._breadcrumbEventHandler(evt, fn);
+                        if (global === 'EventTarget' || global === 'Node') {
+                            if (evt === 'click'){
+                                before = self._breadcrumbEventHandler(evt, fn);
+                            } else if (evt === 'keypress') {
+                                before = self._keypressEventHandler();
+                            }
                         }
                         return orig.call(this, evt, self.wrap(fn, undefined, before), capture, secure);
                     };
@@ -764,6 +779,7 @@ Raven.prototype = {
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
             document.addEventListener('click', self._breadcrumbEventHandler('click'));
+            document.addEventListener('keypress', self._keypressEventHandler());
         }
 
         // event targets borrowed from bugsnag-js:
