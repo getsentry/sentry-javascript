@@ -637,9 +637,20 @@ Raven.prototype = {
 
             self._lastCapturedEvent = evt;
             var elem = evt.target;
+
+            var target;
+
+            // try/catch htmlTreeAsString because it's particularly complicated, and
+            // just accessing the DOM incorrectly can throw an exception in some circumstances.
+            try {
+                target = htmlTreeAsString(elem);
+            } catch (e) {
+                target = '<unknown>';
+            }
+
             self.captureBreadcrumb('ui_event', {
                 type: evtName,
-                target: htmlTreeAsString(elem)
+                target: target
             });
         };
     },
