@@ -766,7 +766,7 @@ Raven.prototype = {
             var proto = window[global] && window[global].prototype;
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
-                    return function (evt, fn, capture, secure) { // preserve arity
+                    return function (evtName, fn, capture, secure) { // preserve arity
                         try {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
@@ -779,13 +779,13 @@ Raven.prototype = {
                         // TODO: more than just click
                         var before;
                         if (global === 'EventTarget' || global === 'Node') {
-                            if (evt === 'click'){
-                                before = self._breadcrumbEventHandler(evt, fn);
-                            } else if (evt === 'keypress') {
+                            if (evtName === 'click'){
+                                before = self._breadcrumbEventHandler(evtName);
+                            } else if (evtName === 'keypress') {
                                 before = self._keypressEventHandler();
                             }
                         }
-                        return orig.call(this, evt, self.wrap(fn, undefined, before), capture, secure);
+                        return orig.call(this, evtName, self.wrap(fn, undefined, before), capture, secure);
                     };
                 });
                 fill(proto, 'removeEventListener', function (orig) {
