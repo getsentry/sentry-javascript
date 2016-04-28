@@ -440,7 +440,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
@@ -481,7 +480,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
@@ -529,7 +527,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > div.c > div.b > div.a');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
@@ -541,39 +538,17 @@ describe('integration', function () {
 
             iframeExecute(iframe, done,
                 function () {
-                    // keypress events are debounced 1000ms - wait until
-                    // the debounce finishes
-                    setTimeout(done, 1001);
+                    setTimeout(done);
 
                     // some browsers trigger onpopstate for load / reset breadcrumb state
                     Raven._breadcrumbs = [];
 
                     // keypress <input/> twice
-                    var keypress1 = document.createEvent('MouseEvent');
-                    keypress1.initMouseEvent(
-                        "keypress",
-                        true /* bubble */,
-                        true /* cancelable */,
-                        window,
-                        null,
-                        0, 0, 0, 0, /* coordinates */
-                        false, false, false, false, /* modifier keys */
-                        0 /*left*/,
-                        null
-                    );
+                    var keypress1 = document.createEvent('KeyboardEvent');
+                    keypress1.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
 
-                    var keypress2 = document.createEvent('MouseEvent');
-                    keypress2.initMouseEvent(
-                        "keypress",
-                        true /* bubble */,
-                        true /* cancelable */,
-                        window,
-                        null,
-                        0, 0, 0, 0, /* coordinates */
-                        false, false, false, false, /* modifier keys */
-                        0 /*left*/,
-                        null
-                    );
+                    var keypress2 = document.createEvent('KeyboardEvent');
+                    keypress2.initKeyboardEvent("keypress", true, true, window, "a", 65, 0, "", false);
 
                     var input = document.getElementsByTagName('input')[0];
                     input.dispatchEvent(keypress1);
@@ -586,7 +561,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'input');
                 }
@@ -603,22 +577,12 @@ describe('integration', function () {
                     // some browsers trigger onpopstate for load / reset breadcrumb state
                     Raven._breadcrumbs = [];
 
-                    // click <input/>
-                    var evt = document.createEvent('MouseEvent');
-                    evt.initMouseEvent(
-                        "keypress",
-                        true /* bubble */,
-                        true /* cancelable */,
-                        window,
-                        null,
-                        0, 0, 0, 0, /* coordinates */
-                        false, false, false, false, /* modifier keys */
-                        0 /*left*/,
-                        null
-                    );
+                    // keypress <input/>
+                    var keypress = document.createEvent('KeyboardEvent');
+                    keypress.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
 
                     var input = document.getElementsByTagName('input')[0];
-                    input.dispatchEvent(evt);
+                    input.dispatchEvent(keypress);
 
                     foo(); // throw exception
                 },
@@ -630,7 +594,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 2);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'input');
                 }
@@ -647,23 +610,13 @@ describe('integration', function () {
                     // some browsers trigger onpopstate for load / reset breadcrumb state
                     Raven._breadcrumbs = [];
 
-                    // keypress <input/>
-                    var keypressEvent = document.createEvent('MouseEvent');
-                    keypressEvent.initMouseEvent(
-                        "keypress",
-                        true /* bubble */,
-                        true /* cancelable */,
-                        window,
-                        null,
-                        0, 0, 0, 0, /* coordinates */
-                        false, false, false, false, /* modifier keys */
-                        0 /*left*/,
-                        null
-                    );
+                    // 1st keypress <input/>
+                    var keypress1 = document.createEvent('KeyboardEvent');
+                    keypress1.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
 
                     // click <input/>
-                    var clickEvent = document.createEvent('MouseEvent');
-                    clickEvent.initMouseEvent(
+                    var click= document.createEvent('MouseEvent');
+                    click.initMouseEvent(
                         "click",
                         true /* bubble */,
                         true /* cancelable */,
@@ -675,26 +628,34 @@ describe('integration', function () {
                         null
                     );
 
+                    // 2nd keypress
+                    var keypress2 = document.createEvent('KeyboardEvent');
+                    keypress2.initKeyboardEvent("keypress", true, true, window, "a", 65, 0, "", false);
+
                     var input = document.getElementsByTagName('input')[0];
-                    input.dispatchEvent(keypressEvent);
-                    input.dispatchEvent(clickEvent);
+                    input.dispatchEvent(keypress1);
+                    input.dispatchEvent(click);
+                    input.dispatchEvent(keypress2);
                 },
                 function () {
                     var Raven = iframe.contentWindow.Raven,
                         breadcrumbs = Raven._breadcrumbs;
 
                     // 2x `ui_event`
-                    assert.equal(breadcrumbs.length, 2);
+                    assert.equal(breadcrumbs.length, 3);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'input');
 
                     assert.equal(breadcrumbs[1].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[1].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[1].data.type, 'click');
+
+                    assert.equal(breadcrumbs[2].type, 'ui_event');
+                    assert.equal(breadcrumbs[2].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[2].data.type, 'input');
+
                 }
             );
         });
