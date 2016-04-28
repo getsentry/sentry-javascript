@@ -440,7 +440,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
@@ -481,7 +480,6 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                     assert.equal(breadcrumbs[0].data.type, 'click');
                 }
@@ -529,9 +527,135 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'ui_event');
-                    // NOTE: attributes re-ordered. should this be expected?
                     assert.equal(breadcrumbs[0].data.target, 'body > div.c > div.b > div.a');
                     assert.equal(breadcrumbs[0].data.type, 'click');
+                }
+            );
+        });
+
+        it('should record consecutive keypress events into a single "input" breadcrumb', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // keypress <input/> twice
+                    var keypress1 = document.createEvent('KeyboardEvent');
+                    keypress1.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
+
+                    var keypress2 = document.createEvent('KeyboardEvent');
+                    keypress2.initKeyboardEvent("keypress", true, true, window, "a", 65, 0, "", false);
+
+                    var input = document.getElementsByTagName('input')[0];
+                    input.dispatchEvent(keypress1);
+                    input.dispatchEvent(keypress2);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].data.type, 'input');
+                }
+            );
+        });
+
+        it('should flush keypress breadcrumbs when an error is thrown', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // keypress <input/>
+                    var keypress = document.createEvent('KeyboardEvent');
+                    keypress.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
+
+                    var input = document.getElementsByTagName('input')[0];
+                    input.dispatchEvent(keypress);
+
+                    foo(); // throw exception
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    // 2 breadcrumbs: `ui_event`, then `error`
+                    assert.equal(breadcrumbs.length, 2);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].data.type, 'input');
+                }
+            );
+        });
+
+        it('should flush keypress breadcrumb when input event occurs immediately after', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // 1st keypress <input/>
+                    var keypress1 = document.createEvent('KeyboardEvent');
+                    keypress1.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
+
+                    // click <input/>
+                    var click= document.createEvent('MouseEvent');
+                    click.initMouseEvent(
+                        "click",
+                        true /* bubble */,
+                        true /* cancelable */,
+                        window,
+                        null,
+                        0, 0, 0, 0, /* coordinates */
+                        false, false, false, false, /* modifier keys */
+                        0 /*left*/,
+                        null
+                    );
+
+                    // 2nd keypress
+                    var keypress2 = document.createEvent('KeyboardEvent');
+                    keypress2.initKeyboardEvent("keypress", true, true, window, "a", 65, 0, "", false);
+
+                    var input = document.getElementsByTagName('input')[0];
+                    input.dispatchEvent(keypress1);
+                    input.dispatchEvent(click);
+                    input.dispatchEvent(keypress2);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    // 2x `ui_event`
+                    assert.equal(breadcrumbs.length, 3);
+
+                    assert.equal(breadcrumbs[0].type, 'ui_event');
+                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].data.type, 'input');
+
+                    assert.equal(breadcrumbs[1].type, 'ui_event');
+                    assert.equal(breadcrumbs[1].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[1].data.type, 'click');
+
+                    assert.equal(breadcrumbs[2].type, 'ui_event');
+                    assert.equal(breadcrumbs[2].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[2].data.type, 'input');
+
                 }
             );
         });

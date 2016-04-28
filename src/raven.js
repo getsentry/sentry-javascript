@@ -64,6 +64,7 @@ function Raven() {
     this._breadcrumbs = [];
     this._breadcrumbLimit = 20;
     this._lastCapturedEvent = null;
+    this._keypressTimeout;
     this._location = window.location;
     this._lastHref = this._location && this._location.href;
 
@@ -618,17 +619,20 @@ Raven.prototype = {
         }
     },
 
-
     /**
      * Wraps addEventListener to capture UI breadcrumbs
      * @param evtName the event name (e.g. "click")
-     * @param fn the function being wrapped
      * @returns {Function}
      * @private
      */
     _breadcrumbEventHandler: function(evtName) {
         var self = this;
         return function (evt) {
+            // reset keypress timeout; e.g. triggering a 'click' after
+            // a 'keypress' will reset the keypress debounce so that a new
+            // set of keypresses can be recorded
+            self._keypressTimeout = null;
+
             // It's possible this handler might trigger multiple times for the same
             // event (e.g. event propagation through node ancestors). Ignore if we've
             // already captured the event.
@@ -637,10 +641,57 @@ Raven.prototype = {
 
             self._lastCapturedEvent = evt;
             var elem = evt.target;
+
+            var target;
+
+            // try/catch htmlTreeAsString because it's particularly complicated, and
+            // just accessing the DOM incorrectly can throw an exception in some circumstances.
+            try {
+                target = htmlTreeAsString(elem);
+            } catch (e) {
+                target = '<unknown>';
+            }
+
             self.captureBreadcrumb('ui_event', {
                 type: evtName,
-                target: htmlTreeAsString(elem)
+                target: target
             });
+        };
+    },
+
+    /**
+     * Wraps addEventListener to capture keypress UI events
+     * @returns {Function}
+     * @private
+     */
+    _keypressEventHandler: function() {
+        var self = this,
+            debounceDuration = 1000; // milliseconds
+
+        // TODO: if somehow user switches keypress target before
+        //       debounce timeout is triggered, we will only capture
+        //       a single breadcrumb from the FIRST target (acceptable?)
+
+        return function (evt) {
+            var target = evt.target,
+                tagName = target && target.tagName;
+
+            // only consider keypress events on actual input elements
+            // this will disregard keypresses targeting body (e.g. tabbing
+            // through elements, hotkeys, etc)
+            if (!tagName || tagName !== 'INPUT' && tagName !== 'TEXTAREA')
+                return;
+
+            // record first keypress in a series, but ignore subsequent
+            // keypresses until debounce clears
+            var timeout = self._keypressTimeout;
+            if (!timeout) {
+                self._breadcrumbEventHandler('input')(evt);
+            }
+            clearTimeout(timeout);
+            self._keypressTimeout = setTimeout(function () {
+               self._keypressTimeout = null;
+            }, debounceDuration);
         };
     },
 
@@ -715,7 +766,7 @@ Raven.prototype = {
             var proto = window[global] && window[global].prototype;
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
-                    return function (evt, fn, capture, secure) { // preserve arity
+                    return function (evtName, fn, capture, secure) { // preserve arity
                         try {
                             if (fn && fn.handleEvent) {
                                 fn.handleEvent = self.wrap(fn.handleEvent);
@@ -727,10 +778,14 @@ Raven.prototype = {
 
                         // TODO: more than just click
                         var before;
-                        if ((global === 'EventTarget' || global === 'Node') && evt === 'click') {
-                            before = self._breadcrumbEventHandler(evt, fn);
+                        if (global === 'EventTarget' || global === 'Node') {
+                            if (evtName === 'click'){
+                                before = self._breadcrumbEventHandler(evtName);
+                            } else if (evtName === 'keypress') {
+                                before = self._keypressEventHandler();
+                            }
                         }
-                        return orig.call(this, evt, self.wrap(fn, undefined, before), capture, secure);
+                        return orig.call(this, evtName, self.wrap(fn, undefined, before), capture, secure);
                     };
                 });
                 fill(proto, 'removeEventListener', function (orig) {
@@ -764,6 +819,7 @@ Raven.prototype = {
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
             document.addEventListener('click', self._breadcrumbEventHandler('click'));
+            document.addEventListener('keypress', self._keypressEventHandler());
         }
 
         // event targets borrowed from bugsnag-js:
