@@ -740,7 +740,6 @@ describe('globals', function() {
                     ]
                 }
             });
-
         });
 
         it('should create and append \'error\' breadcrumb', function () {
@@ -756,14 +755,14 @@ describe('globals', function() {
                 logger: 'javascript',
                 maxMessageLength: 100
             };
-            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: {method: 'POST', url: 'http://example.org/api/0/auth/'}}];
+            Raven._breadcrumbs = [{type: 'http', timestamp: 0.1, data: {method: 'POST', url: 'http://example.org/api/0/auth/'}}];
 
             Raven._send({message: 'bar'});
 
             assert.deepEqual(Raven._breadcrumbs, [
-                { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
-                { type: 'error', timestamp: 0.1, /* 100ms */ data: { message: 'bar', event_id: 'abc123' }}
-            ])
+                { type: 'http', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123' }
+            ]);
         });
 
         it('should build a good data payload with a User', function() {
@@ -2052,17 +2051,20 @@ describe('Raven (public API)', function() {
 
     describe('.captureBreadcrumb', function () {
         it('should store the passed object in _breadcrumbs', function() {
-            Raven.captureBreadcrumb('http_request', {
-                url: 'http://example.org/api/0/auth/',
-                statusCode: 200
+            Raven.captureBreadcrumb({
+                type: 'http',
+                data: {
+                    url: 'http://example.org/api/0/auth/',
+                    status_code: 200
+                }
             });
 
             assert.deepEqual(Raven._breadcrumbs[0], {
-                type: 'http_request',
+                type: 'http',
                 timestamp: 0.1,
                 data: {
                     url: 'http://example.org/api/0/auth/',
-                    statusCode: 200
+                    status_code: 200
                 }
             });
         });
@@ -2070,20 +2072,20 @@ describe('Raven (public API)', function() {
         it('should dequeue the oldest breadcrumb when over limit', function() {
             Raven._breadcrumbLimit = 5;
             Raven._breadcrumbs = [
-                { type: 'message', timestamp: 0.1, data: { message: '1' }},
-                { type: 'message', timestamp: 0.1, data: { message: '2' }},
-                { type: 'message', timestamp: 0.1, data: { message: '3' }},
-                { type: 'message', timestamp: 0.1, data: { message: '4' }},
-                { type: 'message', timestamp: 0.1, data: { message: '5' }}
+                { message: '1', timestamp: 0.1 },
+                { message: '2', timestamp: 0.1 },
+                { message: '3', timestamp: 0.1 },
+                { message: '4', timestamp: 0.1 },
+                { message: '5', timestamp: 0.1 }
             ];
 
-            Raven.captureBreadcrumb('message', { message: 'lol' });
+            Raven.captureBreadcrumb({ message: 'lol' });
             assert.deepEqual(Raven._breadcrumbs, [
-                { type: 'message', timestamp: 0.1, data: { message: '2' }},
-                { type: 'message', timestamp: 0.1, data: { message: '3' }},
-                { type: 'message', timestamp: 0.1, data: { message: '4' }},
-                { type: 'message', timestamp: 0.1, data: { message: '5' }},
-                { type: 'message', timestamp: 0.1, data: { message: 'lol' }}
+                { message: '2', timestamp: 0.1 },
+                { message: '3', timestamp: 0.1 },
+                { message: '4', timestamp: 0.1 },
+                { message: '5', timestamp: 0.1 },
+                { message: 'lol', timestamp: 0.1 }
             ]);
         });
     });
@@ -2093,7 +2095,7 @@ describe('Raven (public API)', function() {
             Raven._breadcrumbs = [];
             Raven._captureUrlChange('/foo', '/bar');
             assert.deepEqual(Raven._breadcrumbs, [
-                { type: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
             ]);
         });
 
@@ -2103,7 +2105,7 @@ describe('Raven (public API)', function() {
 
             Raven._captureUrlChange('http://example.com/foo', 'http://example.com/bar');
             assert.deepEqual(Raven._breadcrumbs, [
-                { type: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
             ]);
         });
     });

@@ -357,12 +357,10 @@ Raven.prototype = {
         return this;
     },
 
-    captureBreadcrumb: function (type, data) {
-        var crumb = {
-            type: type,
-            timestamp: now() / 1000,
-            data: data
-        };
+    captureBreadcrumb: function (obj) {
+        var crumb = objectMerge({
+            timestamp: now() / 1000
+        }, obj);
 
         this._breadcrumbs.push(crumb);
         if (this._breadcrumbs.length > this._breadcrumbLimit) {
@@ -652,9 +650,9 @@ Raven.prototype = {
                 target = '<unknown>';
             }
 
-            self.captureBreadcrumb('ui_event', {
-                type: evtName,
-                target: target
+            self.captureBreadcrumb({
+                category: 'ui.' + evtName, // e.g. ui.click, ui.input
+                message: target
             });
         };
     },
@@ -718,9 +716,12 @@ Raven.prototype = {
         if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host)
             from = parsedFrom.path;
 
-        this.captureBreadcrumb('navigation', {
-            to: to,
-            from: from
+        this.captureBreadcrumb({
+            category: 'navigation',
+            data: {
+                to: to,
+                from: from
+            }
         });
     },
 
@@ -858,7 +859,11 @@ Raven.prototype = {
                                 // an exception
                                 xhr.__raven_xhr.status_code = xhr.status;
                             } catch (e) { /* do nothing */ }
-                            self.captureBreadcrumb('http_request', xhr.__raven_xhr);
+                            self.captureBreadcrumb({
+                                type: 'http',
+                                category: 'xhr',
+                                data: xhr.__raven_xhr
+                            });
                         }
                     }
 
@@ -916,9 +921,10 @@ Raven.prototype = {
             consolePlugin(self, console, {
                 levels: ['debug', 'info', 'warn', 'error', 'log'],
                 callback: function (msg, data) {
-                    self.captureBreadcrumb('message', {
+                    self.captureBreadcrumb({
+                        message: msg,
                         level: data.level,
-                        message: msg
+                        category: 'console'
                     });
                 }
             });
@@ -1253,8 +1259,8 @@ Raven.prototype = {
             auth.sentry_secret = this._globalSecret;
         }
 
-        // TODO: is captureMessage considered an 'error' breadcrumb? or 'message'?
-        this.captureBreadcrumb('error', {
+        this.captureBreadcrumb({
+            category: 'sentry',
             message: data.message,
             event_id: data.event_id
         });

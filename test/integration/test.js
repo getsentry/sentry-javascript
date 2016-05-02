@@ -328,7 +328,7 @@ describe('integration', function () {
 
                    assert.equal(breadcrumbs.length, 1);
 
-                   assert.equal(breadcrumbs[0].type, 'http_request');
+                   assert.equal(breadcrumbs[0].type, 'http');
                    assert.equal(breadcrumbs[0].data.method, 'GET');
                    // NOTE: not checking status code because we seem to get
                    //       statusCode 0/undefined from Phantom when fetching
@@ -362,7 +362,7 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs.length, 1);
 
-                    assert.equal(breadcrumbs[0].type, 'http_request');
+                    assert.equal(breadcrumbs[0].type, 'http');
                     assert.equal(breadcrumbs[0].data.method, 'GET');
                     // NOTE: not checking status code because we seem to get
                     //       statusCode 0/undefined from Phantom when fetching
@@ -439,9 +439,8 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs.length, 1);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[0].data.type, 'click');
+                    assert.equal(breadcrumbs[0].category, 'ui.click');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                 }
             );
         });
@@ -479,9 +478,8 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs.length, 1);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[0].data.type, 'click');
+                    assert.equal(breadcrumbs[0].category, 'ui.click');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                 }
             );
         });
@@ -526,9 +524,8 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs.length, 1);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > div.c > div.b > div.a');
-                    assert.equal(breadcrumbs[0].data.type, 'click');
+                    assert.equal(breadcrumbs[0].category, 'ui.click');
+                    assert.equal(breadcrumbs[0].message, 'body > div.c > div.b > div.a');
                 }
             );
         });
@@ -560,9 +557,8 @@ describe('integration', function () {
 
                     assert.equal(breadcrumbs.length, 1);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[0].data.type, 'input');
+                    assert.equal(breadcrumbs[0].category, 'ui.input');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                 }
             );
         });
@@ -593,9 +589,8 @@ describe('integration', function () {
                     // 2 breadcrumbs: `ui_event`, then `error`
                     assert.equal(breadcrumbs.length, 2);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[0].data.type, 'input');
+                    assert.equal(breadcrumbs[0].category, 'ui.input');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
                 }
             );
         });
@@ -644,17 +639,14 @@ describe('integration', function () {
                     // 2x `ui_event`
                     assert.equal(breadcrumbs.length, 3);
 
-                    assert.equal(breadcrumbs[0].type, 'ui_event');
-                    assert.equal(breadcrumbs[0].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[0].data.type, 'input');
+                    assert.equal(breadcrumbs[0].category, 'ui.input');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
 
-                    assert.equal(breadcrumbs[1].type, 'ui_event');
-                    assert.equal(breadcrumbs[1].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[1].data.type, 'click');
+                    assert.equal(breadcrumbs[1].category, 'ui.click');
+                    assert.equal(breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
 
-                    assert.equal(breadcrumbs[2].type, 'ui_event');
-                    assert.equal(breadcrumbs[2].data.target, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
-                    assert.equal(breadcrumbs[2].data.type, 'input');
+                    assert.equal(breadcrumbs[2].category, 'ui.input');
+                    assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
 
                 }
             );
@@ -684,9 +676,9 @@ describe('integration', function () {
                       to;
 
                   assert.equal(breadcrumbs.length, 3);
-                  assert.equal(breadcrumbs[0].type, 'navigation'); // (start) => foo
-                  assert.equal(breadcrumbs[1].type, 'navigation'); // foo => bar
-                  assert.equal(breadcrumbs[2].type, 'navigation'); // bar => foo (back button)
+                  assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
+                  assert.equal(breadcrumbs[1].category, 'navigation'); // foo => bar
+                  assert.equal(breadcrumbs[2].category, 'navigation'); // bar => foo (back button)
 
                   // assert end of string because PhantomJS uses full system path
                   assert.ok(/\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from), '\'from\' url is incorrect');
