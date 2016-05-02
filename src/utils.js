@@ -220,7 +220,7 @@ function htmlElementAsString(elem) {
             out.push('.' + classes[i]);
         }
     }
-    var attrWhitelist = ['type', 'name', 'value', 'placeholder', 'title', 'alt'];
+    var attrWhitelist = ['type', 'name', 'title', 'alt'];
     for (i = 0; i < attrWhitelist.length; i++) {
         key = attrWhitelist[i];
         attr = elem.getAttribute(key);

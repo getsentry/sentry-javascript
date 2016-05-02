@@ -188,7 +188,7 @@ describe('utils', function () {
                         placeholder: 'Enter your username'
                     }[key];
                 }
-            }), 'input#the-username.form-control[name="username"][placeholder="Enter your username"]');
+            }), 'input#the-username.form-control[name="username"]');
 
             assert.equal(htmlElementAsString({
                 tagName: 'IMG',
