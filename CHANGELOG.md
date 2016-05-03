@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0
+
+* NEW: Raven.js now collects breadcrumbs from XMLHttpRequest objects, URL changes (pushState), console log calls, UI clicks, and errors.
+* BUGFIX: Fix parsing error messages from Opera Mini. See: https://github.com/getsentry/raven-js/pull/554
+* REMOVED: Fallback Image transport (HTTP GET) has been removed. See: https://github.com/getsentry/raven-js/pull/545
+* REMOVED: TraceKit client-side source fetching has been removed. See: https://github.com/getsentry/raven-js/pull/542
+
 ## 2.3.0
 * NEW: `pathStrip` option now available in React Native plugin. See: https://github.com/getsentry/raven-js/pull/515
 * BUGFIX: Handle stacks from internal exceptions sometimes thrown by Firefox. See: https://github.com/getsentry/raven-js/pull/536
