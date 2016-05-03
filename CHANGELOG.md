@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+
+* BUGFIX: Fix broken CDN builds. See: https://github.com/getsentry/raven-js/pull/566
+
 ## 3.0.0
 
 * NEW: Raven.js now collects breadcrumbs from XMLHttpRequest objects, URL changes (pushState), console log calls, UI clicks, and errors.

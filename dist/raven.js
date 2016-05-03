@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.0 (6adaa62) | github.com/getsentry/raven-js */
+/*! Raven.js 3.0.1 (996e09a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -11,66 +11,6 @@
  */
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
-/**
- * console plugin
- *
- * Monkey patches console.* calls into Sentry messages with
- * their appropriate log levels. (Experimental)
- *
- * Options:
- *
- *   `levels`: An array of levels (methods on `console`) to report to Sentry.
- *     Defaults to debug, info, warn, and error.
- */
-'use strict';
-
-function consolePlugin(Raven, console, pluginOptions) {
-    console = console || window.console || {};
-    pluginOptions = pluginOptions || {};
-
-    var originalConsole = console,
-        logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
-        level = logLevels.pop();
-
-    var logForGivenLevel = function(l) {
-        var originalConsoleLevel = console[l];
-
-        // warning level is the only level that doesn't map up
-        // correctly with what Sentry expects.
-        if (l === 'warn') l = 'warning';
-        return function () {
-            var args = [].slice.call(arguments);
-
-            var msg = '' + args.join(' ');
-            var data = {level: l, logger: 'console', extra: { 'arguments': args }};
-            if (pluginOptions.callback) {
-                pluginOptions.callback(msg, data);
-            } else {
-                Raven.captureMessage(msg, data);
-            }
-
-            // this fails for some browsers. :(
-            if (originalConsoleLevel) {
-                // IE9 doesn't allow calling apply on console functions directly
-                // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
-                Function.prototype.apply.call(
-                    originalConsoleLevel,
-                    originalConsole,
-                    args
-                );
-            }
-        };
-    };
-
-    while(level) {
-        console[level] = logForGivenLevel(level);
-        level = logLevels.pop();
-    }
-}
-
-module.exports = consolePlugin;
-
-},{}],2:[function(_dereq_,module,exports){
 'use strict';
 
 function RavenConfigError(message) {
@@ -82,13 +22,51 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
+},{}],2:[function(_dereq_,module,exports){
+'use strict';
+
+var wrapMethod = function(console, level, callback) {
+    var originalConsoleLevel = console[level];
+    var originalConsole = console;
+
+    if (!(level in console)) {
+        return;
+    }
+
+    var sentryLevel = level === 'warn'
+        ? 'warning'
+        : level;
+
+    console[level] = function () {
+        var args = [].slice.call(arguments);
+
+        var msg = '' + args.join(' ');
+        var data = {level: sentryLevel, logger: 'console', extra: {'arguments': args}};
+        callback && callback(msg, data);
+
+        // this fails for some browsers. :(
+        if (originalConsoleLevel) {
+            // IE9 doesn't allow calling apply on console functions directly
+            // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
+            Function.prototype.apply.call(
+                originalConsoleLevel,
+                originalConsole,
+                args
+            );
+        }
+    };
+};
+
+module.exports = {
+    wrapMethod: wrapMethod
+};
+
 },{}],3:[function(_dereq_,module,exports){
 /*global XDomainRequest:false*/
 'use strict';
 
 var TraceKit = _dereq_(6);
-var consolePlugin = _dereq_(1);
-var RavenConfigError = _dereq_(2);
+var RavenConfigError = _dereq_(1);
 var utils = _dereq_(5);
 
 var isFunction = utils.isFunction;
@@ -104,6 +82,8 @@ var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
+
+var wrapConsoleMethod = _dereq_(2).wrapMethod;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -169,7 +149,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.0',
+    VERSION: '3.0.1',
 
     debug: false,
 
@@ -1002,16 +982,17 @@ Raven.prototype = {
         }
 
         // console
+        var consoleMethodCallback = function (msg, data) {
+            self.captureBreadcrumb({
+                message: msg,
+                level: data.level,
+                category: 'console'
+            });
+        };
+
         if ('console' in window && console.log) {
-            consolePlugin(self, console, {
-                levels: ['debug', 'info', 'warn', 'error', 'log'],
-                callback: function (msg, data) {
-                    self.captureBreadcrumb({
-                        message: msg,
-                        level: data.level,
-                        category: 'console'
-                    });
-                }
+            each(['debug', 'info', 'warn', 'error', 'log'], function (_, level) {
+                wrapConsoleMethod(console, level, consoleMethodCallback);
             });
         }
 
