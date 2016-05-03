@@ -11,46 +11,21 @@
  */
 'use strict';
 
+var wrapConsoleMethod = require('../src/console').wrapMethod;
+
 function consolePlugin(Raven, console, pluginOptions) {
     console = console || window.console || {};
     pluginOptions = pluginOptions || {};
 
-    var originalConsole = console,
-        logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
+    var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
         level = logLevels.pop();
 
-    var logForGivenLevel = function(l) {
-        var originalConsoleLevel = console[l];
-
-        // warning level is the only level that doesn't map up
-        // correctly with what Sentry expects.
-        if (l === 'warn') l = 'warning';
-        return function () {
-            var args = [].slice.call(arguments);
-
-            var msg = '' + args.join(' ');
-            var data = {level: l, logger: 'console', extra: { 'arguments': args }};
-            if (pluginOptions.callback) {
-                pluginOptions.callback(msg, data);
-            } else {
-                Raven.captureMessage(msg, data);
-            }
-
-            // this fails for some browsers. :(
-            if (originalConsoleLevel) {
-                // IE9 doesn't allow calling apply on console functions directly
-                // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
-                Function.prototype.apply.call(
-                    originalConsoleLevel,
-                    originalConsole,
-                    args
-                );
-            }
-        };
+    var callback = function (msg, data) {
+        Raven.captureMessage(msg, data);
     };
 
     while(level) {
-        console[level] = logForGivenLevel(level);
+        wrapConsoleMethod(console, level, callback);
         level = logLevels.pop();
     }
 }

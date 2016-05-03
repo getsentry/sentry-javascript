@@ -2,7 +2,6 @@
 'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
-var consolePlugin = require('../plugins/console');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
 
@@ -19,6 +18,8 @@ var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
+
+var wrapConsoleMethod = require('./console').wrapMethod;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -917,16 +918,17 @@ Raven.prototype = {
         }
 
         // console
+        var consoleMethodCallback = function (msg, data) {
+            self.captureBreadcrumb({
+                message: msg,
+                level: data.level,
+                category: 'console'
+            });
+        };
+
         if ('console' in window && console.log) {
-            consolePlugin(self, console, {
-                levels: ['debug', 'info', 'warn', 'error', 'log'],
-                callback: function (msg, data) {
-                    self.captureBreadcrumb({
-                        message: msg,
-                        level: data.level,
-                        category: 'console'
-                    });
-                }
+            each(['debug', 'info', 'warn', 'error', 'log'], function (_, level) {
+                wrapConsoleMethod(console, level, consoleMethodCallback);
             });
         }
 
