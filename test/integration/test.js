@@ -440,7 +440,7 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].category, 'ui.click');
-                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
                 }
             );
         });
@@ -479,7 +479,7 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].category, 'ui.click');
-                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
                 }
             );
         });
@@ -558,7 +558,7 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].category, 'ui.input');
-                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
                 }
             );
         });
@@ -590,7 +590,7 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 2);
 
                     assert.equal(breadcrumbs[0].category, 'ui.input');
-                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
                 }
             );
         });
@@ -640,13 +640,13 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 3);
 
                     assert.equal(breadcrumbs[0].category, 'ui.input');
-                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
 
                     assert.equal(breadcrumbs[1].category, 'ui.click');
-                    assert.equal(breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"]');
 
                     assert.equal(breadcrumbs[2].category, 'ui.input');
-                    assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"][placeholder="lol"]');
+                    assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"]');
 
                 }
             );
