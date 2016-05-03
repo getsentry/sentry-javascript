@@ -5,8 +5,8 @@ To use Sentry with your Ember application, you will need to use both Raven.js (S
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-Additionally, the Raven.js Ember plugin will catch any Ember-specific exceptions reported through Ember's `onerror <https://guides.emberjs.com/v2.3.0/configuring-ember/debugging/#toc_implement-an-ember-onerror-hook-to-log-all-errors-in-production>`_. hook
-and any `RSVP promises <https://guides.emberjs.com/v2.3.0/configuring-ember/debugging/#toc_errors-within-an-code-rsvp-promise-code>`_ that would otherwise be swallowed.
+Additionally, the Raven.js Ember plugin will catch any Ember-specific exceptions reported through Ember's `onerror <https://guides.emberjs.com/v3.0.0/configuring-ember/debugging/#toc_implement-an-ember-onerror-hook-to-log-all-errors-in-production>`_. hook
+and any `RSVP promises <https://guides.emberjs.com/v3.0.0/configuring-ember/debugging/#toc_errors-within-an-code-rsvp-promise-code>`_ that would otherwise be swallowed.
 
 Installation
 ------------
@@ -23,7 +23,7 @@ Example:
 .. sourcecode:: html
 
     <script src="http://builds.emberjs.com/tags/v2.3.1/ember.prod.js"></script>
-    <script src="https://cdn.ravenjs.com/2.3.0/ember/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/3.0.0/ember/raven.min.js"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
 Note that this CDN build auto-initializes the Ember plugin.
