@@ -18,6 +18,7 @@ var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
+var isString = utils.isString;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -837,7 +838,7 @@ Raven.prototype = {
                 return function (method, url) { // preserve arity
 
                     // if Sentry key appears in URL, don't capture
-                    if (url.indexOf(self._globalKey) === -1) {
+                    if (isString(url) && url.indexOf(self._globalKey) === -1) {
                         this.__raven_xhr = {
                             method: method,
                             url: url,
