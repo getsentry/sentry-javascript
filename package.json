@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "license": "BSD-2-Clause",
   "homepage": "https://getsentry.com",
   "scripts": {
@@ -35,7 +35,7 @@
     "jquery": "^2.1.4",
     "lodash": "^3.10.1",
     "mocha": "^1.21.5",
-    "proxyquireify": "^3.0.1",
+    "proxyquireify": "^3.0.2",
     "sinon": "1.7.3",
     "through2": "^2.0.0"
   },

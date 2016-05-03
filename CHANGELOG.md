@@ -1,11 +1,12 @@
 # Changelog
 
-## 3.0.1
+## 3.0.2
+* BUGFIX: Fix XMLHttpRequest.prototype.open breaking on non-string `url` arguments. See: https://github.com/getsentry/raven-js/issues/567
 
+## 3.0.1
 * BUGFIX: Fix broken CDN builds. See: https://github.com/getsentry/raven-js/pull/566
 
 ## 3.0.0
-
 * NEW: Raven.js now collects breadcrumbs from XMLHttpRequest objects, URL changes (pushState), console log calls, UI clicks, and errors.
 * BUGFIX: Fix parsing error messages from Opera Mini. See: https://github.com/getsentry/raven-js/pull/554
 * REMOVED: Fallback Image transport (HTTP GET) has been removed. See: https://github.com/getsentry/raven-js/pull/545
