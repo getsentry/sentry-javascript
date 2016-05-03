@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.1 (996e09a) | github.com/getsentry/raven-js */
+/*! Raven.js 3.0.2 (da9227a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -82,6 +82,7 @@ var urlencode = utils.urlencode;
 var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
+var isString = utils.isString;
 
 var wrapConsoleMethod = _dereq_(2).wrapMethod;
 
@@ -149,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.1',
+    VERSION: '3.0.2',
 
     debug: false,
 
@@ -901,7 +902,7 @@ Raven.prototype = {
                 return function (method, url) { // preserve arity
 
                     // if Sentry key appears in URL, don't capture
-                    if (url.indexOf(self._globalKey) === -1) {
+                    if (isString(url) && url.indexOf(self._globalKey) === -1) {
                         this.__raven_xhr = {
                             method: method,
                             url: url,
