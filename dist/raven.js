@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.2 (da9227a) | github.com/getsentry/raven-js */
+/*! Raven.js 3.0.3 (3738576) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.2',
+    VERSION: '3.0.3',
 
     debug: false,
 
@@ -974,7 +974,8 @@ Raven.prototype = {
 
                     // url argument is optional
                     if (url) {
-                        self._captureUrlChange(self._lastHref, url);
+                        // coerce to string (this is what pushState does)
+                        self._captureUrlChange(self._lastHref, url + '');
                     }
 
                     return origPushState.apply(this, arguments);

@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.3
+* BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569  
+
 ## 3.0.2
 * BUGFIX: Fix XMLHttpRequest.prototype.open breaking on non-string `url` arguments. See: https://github.com/getsentry/raven-js/issues/567
 
