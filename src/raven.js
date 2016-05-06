@@ -910,7 +910,8 @@ Raven.prototype = {
 
                     // url argument is optional
                     if (url) {
-                        self._captureUrlChange(self._lastHref, url);
+                        // coerce to string (this is what pushState does)
+                        self._captureUrlChange(self._lastHref, url + '');
                     }
 
                     return origPushState.apply(this, arguments);
