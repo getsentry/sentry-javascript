@@ -232,27 +232,31 @@ describe('utils', function () {
     describe('parseUrl', function () {
         it('should parse fully qualified URLs', function () {
             assert.deepEqual(parseUrl('http://example.com/foo'), {
+                protocol: 'http',
                 host: 'example.com',
                 path: '/foo',
-                protocol: 'http'
+                relative: '/foo'
             });
-            assert.deepEqual(parseUrl('//example.com/foo'), {
+            assert.deepEqual(parseUrl('//example.com/foo?query'), {
+                protocol: undefined,
                 host: 'example.com',
                 path: '/foo',
-                protocol: undefined
+                relative: '/foo?query'
             });
         });
 
         it('should parse partial URLs, e.g. path only', function () {
             assert.deepEqual(parseUrl('/foo'), {
-                host: undefined,
                 protocol: undefined,
-                path: '/foo'
+                host: undefined,
+                path: '/foo',
+                relative: '/foo'
             });
-            assert.deepEqual(parseUrl('example.com/foo'), {
-                host: undefined,
+            assert.deepEqual(parseUrl('example.com/foo#derp'), {
                 protocol: undefined,
-                path: 'example.com/foo'
+                host: undefined,
+                path: 'example.com/foo',
+                relative: 'example.com/foo#derp'
                 // this is correct! pushState({}, '', 'example.com/foo') would take you
                 // from example.com => example.com/example.com/foo (valid url).
             });

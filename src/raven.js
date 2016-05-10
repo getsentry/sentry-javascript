@@ -714,9 +714,9 @@ Raven.prototype = {
         // Use only the path component of the URL if the URL matches the current
         // document (almost all the time when using pushState)
         if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host)
-            to = parsedTo.path;
+            to = parsedTo.relative;
         if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host)
-            from = parsedFrom.path;
+            from = parsedFrom.relative;
 
         this.captureBreadcrumb({
             category: 'navigation',
