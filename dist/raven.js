@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.3 (3738576) | github.com/getsentry/raven-js */
+/*! Raven.js 3.0.4 (0784c3c) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.3',
+    VERSION: '3.0.4',
 
     debug: false,
 
@@ -778,9 +778,9 @@ Raven.prototype = {
         // Use only the path component of the URL if the URL matches the current
         // document (almost all the time when using pushState)
         if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host)
-            to = parsedTo.path;
+            to = parsedTo.relative;
         if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host)
-            from = parsedFrom.path;
+            from = parsedFrom.relative;
 
         this.captureBreadcrumb({
             category: 'navigation',
@@ -1357,9 +1357,6 @@ Raven.prototype = {
     _makeRequest: function(opts) {
         var request = new XMLHttpRequest();
 
-        if (request.send.toString() === 'function send() { [native code] }') {
-            throw new Error('shouldnt get here');
-        }
         // if browser doesn't support CORS (e.g. IE7), we are out of luck
         var hasCORS =
             'withCredentials' in request ||
@@ -1581,10 +1578,15 @@ function urlencode(o) {
 function parseUrl(url) {
     var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
     if (!match) return {};
+
+    // coerce to undefined values to empty string so we don't get 'undefined'
+    var query = match[6] || '';
+    var fragment = match[8] || '';
     return {
         protocol: match[2],
         host: match[4],
-        path: match[5]
+        path: match[5],
+        relative: match[5] + query + fragment // everything minus origin
     };
 }
 function uuid4() {

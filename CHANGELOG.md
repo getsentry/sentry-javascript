@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.4
+* BUGFIX: Navigation breadcrumbs now include query strings and document fragment (#). See: https://github.com/getsentry/raven-js/issues/573
+* BUGFIX: Remove errant `throw` call in _makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
+
 ## 3.0.3
 * BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569  
 
