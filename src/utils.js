@@ -114,10 +114,15 @@ function urlencode(o) {
 function parseUrl(url) {
     var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
     if (!match) return {};
+
+    // coerce to undefined values to empty string so we don't get 'undefined'
+    var query = match[6] || '';
+    var fragment = match[8] || '';
     return {
         protocol: match[2],
         host: match[4],
-        path: match[5]
+        path: match[5],
+        relative: match[5] + query + fragment // everything minus origin
     };
 }
 function uuid4() {

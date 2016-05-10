@@ -659,15 +659,16 @@ describe('integration', function () {
               function () {
                   // some browsers trigger onpopstate for load / reset breadcrumb state
                   Raven._breadcrumbs = [];
+
                   history.pushState({}, '', '/foo');
-                  history.pushState({}, '', '/bar');
+                  history.pushState({}, '', '/bar?a=1#fragment');
                   history.pushState({}, '', {}); // pushState calls toString on non-string args
                   history.pushState({}, '', null); // does nothing / no-op
 
                   // can't call history.back() because it will change url of parent document
                   // (e.g. document running mocha) ... instead just "emulate" a back button
                   // press by calling replaceState + onpopstate manually
-                  history.replaceState({}, '', '/bar');
+                  history.replaceState({}, '', '/bar?a=1#fragment');
                   window.onpopstate();
                   done();
               },
@@ -679,22 +680,22 @@ describe('integration', function () {
 
                   assert.equal(breadcrumbs.length, 4);
                   assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
-                  assert.equal(breadcrumbs[1].category, 'navigation'); // foo => bar
-                  assert.equal(breadcrumbs[2].category, 'navigation'); // bar => [object%20Object]
-                  assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar(back button)
+                  assert.equal(breadcrumbs[1].category, 'navigation'); // foo => bar?a=1#fragment
+                  assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
+                  assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
 
                   // assert end of string because PhantomJS uses full system path
                   assert.ok(/\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from), '\'from\' url is incorrect');
                   assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), '\'to\' url is incorrect');
 
                   assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), '\'from\' url is incorrect');
-                  assert.ok(/\/bar$/.test(breadcrumbs[1].data.to), '\'to\' url is incorrect');
+                  assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[1].data.to), '\'to\' url is incorrect');
 
-                  assert.ok(/\/bar$/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
+                  assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[2].data.from), '\'from\' url is incorrect');
                   assert.ok(/\[object Object\]$/.test(breadcrumbs[2].data.to), '\'to\' url is incorrect');
 
                   assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), '\'from\' url is incorrect');
-                  assert.ok(/\/bar/.test(breadcrumbs[3].data.to), '\'to\' url is incorrect');
+                  assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), '\'to\' url is incorrect');
               }
             );
         });
