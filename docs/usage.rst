@@ -228,7 +228,7 @@ https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/. Also, checkout
 good example of what we're doing.
 
 You can use `Source Map Validator
-<http://sourcemap-validator.herokuapp.com/>`_ to help verify that things
+<https://sourcemaps.io/>`_ to help verify that things
 are correct.
 
 CORS
