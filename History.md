@@ -1,3 +1,7 @@
+# 0.11.0 - 5/5/2016
+ * `captureError` renamed to `captureException` to match raven-js (alias exists for backwards compat)
+ * `parsers.parseError` now coerces Error type to string. [See #155]
+
 # 0.10.0 - 1/24/2016
  * Now supports global context for extra data, tags, user [See #141]
  * Added `setUserContext`, `setExtraContext`, `setTagsContext`
