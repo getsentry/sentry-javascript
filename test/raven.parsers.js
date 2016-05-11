@@ -445,6 +445,19 @@ describe('raven.parsers', function() {
       });
     });
 
+    it('should parse Error with non-string type', function(done) {
+      var err = new Error();
+      err.name = {};
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('[object Object]: <no message>');
+        parsed.should.have.property('exception');
+        parsed.exception[0].type.should.equal('[object Object]');
+        parsed.exception[0].value.should.equal('');
+        parsed.exception[0].stacktrace.should.have.property('frames');
+        done();
+      });
+    });
+
     it('should parse thrown Error', function(done) {
       try {
         throw new Error('Derp');
