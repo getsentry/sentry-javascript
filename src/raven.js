@@ -1042,13 +1042,7 @@ Raven.prototype = {
             lineno:     frame.line,
             colno:      frame.column,
             'function': frame.func || '?'
-        }, context = this._extractContextFromFrame(frame), i;
-
-        if (context) {
-            var keys = ['pre_context', 'context_line', 'post_context'];
-            i = 3;
-            while (i--) normalized[keys[i]] = context[i];
-        }
+        };
 
         normalized.in_app = !( // determine if an exception came from outside of our app
             // first we check the global includePaths list.
@@ -1060,45 +1054,6 @@ Raven.prototype = {
         );
 
         return normalized;
-    },
-
-    _extractContextFromFrame: function(frame) {
-        // immediately check if we should even attempt to parse a context
-        if (!frame.context || !this._globalOptions.fetchContext) return;
-
-        var context = frame.context,
-            pivot = ~~(context.length / 2),
-            i = context.length, isMinified = false;
-
-        while (i--) {
-            // We're making a guess to see if the source is minified or not.
-            // To do that, we make the assumption if *any* of the lines passed
-            // in are greater than 300 characters long, we bail.
-            // Sentry will see that there isn't a context
-            if (context[i].length > 300) {
-                isMinified = true;
-                break;
-            }
-        }
-
-        if (isMinified) {
-            // The source is minified and we don't know which column. Fuck it.
-            if (isUndefined(frame.column)) return;
-
-            // If the source is minified and has a frame column
-            // we take a chunk of the offending line to hopefully shed some light
-            return [
-                [],  // no pre_context
-                context[pivot].substr(frame.column, 50), // grab 50 characters, starting at the offending column
-                []   // no post_context
-            ];
-        }
-
-        return [
-            context.slice(0, pivot),    // pre_context
-            context[pivot],             // context_line
-            context.slice(pivot + 1)    // post_context
-        ];
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
