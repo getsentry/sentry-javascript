@@ -257,7 +257,9 @@ Raven.prototype = {
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();
-                self.captureException(e, options, 1);
+                self.captureException(e, objectMerge({
+                    trimTailFrames: 1
+                }, options));
                 throw e;
             }
         }
@@ -302,11 +304,14 @@ Raven.prototype = {
      * @param {object} options A specific set of options for this error [optional]
      * @return {Raven}
      */
-    captureException: function(ex, options, skipframes) {
-        skipframes = skipframes || 0;
-
+    captureException: function(ex, options) {
         // If not an Error is passed through, recall as a message instead
-        if (!isError(ex)) return this.captureMessage(ex, options, skipframes + 1);
+        if (!isError(ex)) {
+            return this.captureMessage(ex, objectMerge({
+                trimHeadFrames: 1,
+                stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
+            }, options));
+        }
 
         // Store the raw exception object for potential debugging and introspection
         this._lastCapturedException = ex;
@@ -318,7 +323,7 @@ Raven.prototype = {
         // report on.
         try {
             var stack = TraceKit.computeStackTrace(ex);
-            this._handleStackInfo(stack, options, skipframes);
+            this._handleStackInfo(stack, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
@@ -335,7 +340,36 @@ Raven.prototype = {
      * @param {object} options A specific set of options for this message [optional]
      * @return {Raven}
      */
-    captureMessage: function(msg, options, skipframes) {
+    captureMessage: function(msg, options) {
+        if (options.stacktrace) {
+            var ex;
+            // create a stack trace from this point; just trim
+            // off extra frames so they don't include this function call (or
+            // earlier Raven.js library fn calls)
+            try {
+                throw new Error(msg);
+            } catch (ex1) {
+                ex = ex1;
+            }
+
+            // null exception name so `Error` isn't prefixed to msg
+            ex.name = null;
+
+            options = objectMerge({
+                // fingerprint on msg, not stack trace
+                // NOTE: need also to do this because stack could include Raven.wrap,
+                //       which may create inconsistent traces if only using window.onerror
+                fingerprint: msg,
+                trimTailFrames: (options.trimHeadFrames || 0) + 1
+            }, options);
+
+            // infinite loop if ex *somehow* returns false for isError
+            // is that possible when it is result of try/catch?
+            this.captureException(ex, options);
+
+            return this;
+        }
+
         // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
         // early call; we'll error on the side of logging anything called before configuration since it's
         // probably something you should see:
@@ -1018,7 +1052,7 @@ Raven.prototype = {
         }
     },
 
-    _handleStackInfo: function(stackInfo, options, skipframes) {
+    _handleStackInfo: function(stackInfo, options) {
         var self = this;
         var frames = [];
 
@@ -1030,8 +1064,13 @@ Raven.prototype = {
                 }
             });
 
-            if (skipframes) {
-                frames = frames.slice(0, skipframes);
+            // e.g. frames captured via captureMessage throw
+            if (options.trimHeadFrames) {
+                frames = frames.slice(options.trimHeadFrames);
+            }
+            // e.g. try/catch (wrapper) frames
+            if (options.trimTailFrames) {
+                frames = frames.slice(0, options.trimTailFrames);
             }
         }
 
