@@ -30,8 +30,6 @@ var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
     Raven.config(SENTRY_DSN);
-
-    Raven._globalOptions.fetchContext = true;
 }
 
 
@@ -254,8 +252,6 @@ describe('globals', function() {
                 // context: []    context is stubbed
             };
 
-            Raven._globalOptions.fetchContext = true;
-
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://example.com/path/file.js',
                 lineno: 10,
@@ -290,7 +286,6 @@ describe('globals', function() {
                 func: 'lol'
             };
 
-            Raven._globalOptions.fetchContext = true;
             Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
@@ -310,7 +305,6 @@ describe('globals', function() {
                 func: 'lol'
             };
 
-            Raven._globalOptions.fetchContext = true;
             Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {

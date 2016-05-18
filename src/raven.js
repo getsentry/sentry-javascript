@@ -146,14 +146,6 @@ Raven.prototype = {
         this._globalEndpoint = this._globalServer +
             '/' + path + 'api/' + this._globalProject + '/store/';
 
-        if (this._globalOptions.fetchContext) {
-            TraceKit.remoteFetching = true;
-        }
-
-        if (this._globalOptions.linesOfContext) {
-            TraceKit.linesOfContext = this._globalOptions.linesOfContext;
-        }
-
         TraceKit.collectWindowErrors = !!this._globalOptions.collectWindowErrors;
 
         // return for chaining

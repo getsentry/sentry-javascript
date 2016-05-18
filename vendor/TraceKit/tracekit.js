@@ -12,10 +12,7 @@ var isUndefined = utils.isUndefined;
 */
 
 var TraceKit = {
-    remoteFetching: false,
     collectWindowErrors: true,
-    // 3 lines before, the offending line, 3 lines after
-    linesOfContext: 7,
     debug: false
 };
 
