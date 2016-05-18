@@ -246,12 +246,6 @@ describe('globals', function() {
 
     describe('normalizeFrame', function() {
         it('should handle a normal frame', function() {
-            var context = [
-                ['line1'],    // pre
-                'line2',        // culprit
-                ['line3']     // post
-            ];
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(context);
             var frame = {
                 url: 'http://example.com/path/file.js',
                 line: 10,
@@ -267,24 +261,17 @@ describe('globals', function() {
                 lineno: 10,
                 colno: 11,
                 'function': 'lol',
-                pre_context: ['line1'],
-                context_line: 'line2',
-                post_context: ['line3'],
                 in_app: true
             });
         });
 
         it('should handle a frame without context', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://example.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'lol'
-                // context: []    context is stubbed
             };
-
-            Raven._globalOptions.fetchContext = true;
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://example.com/path/file.js',
@@ -296,13 +283,11 @@ describe('globals', function() {
         });
 
         it('should not mark `in_app` if rules match', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://example.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'lol'
-                // context: []    context is stubbed
             };
 
             Raven._globalOptions.fetchContext = true;
@@ -318,13 +303,11 @@ describe('globals', function() {
         });
 
         it('should mark `in_app` if rules do not match', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'lol'
-                // context: []    context is stubbed
             };
 
             Raven._globalOptions.fetchContext = true;
@@ -340,13 +323,11 @@ describe('globals', function() {
         });
 
         it('should mark `in_app` for raven.js', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/raven.js',
                 line: 10,
                 column: 11,
                 func: 'lol'
-                // context: []    context is stubbed
             };
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
@@ -359,13 +340,11 @@ describe('globals', function() {
         });
 
         it('should mark `in_app` for raven.min.js', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/raven.min.js',
                 line: 10,
                 column: 11,
                 func: 'lol'
-                // context: []    context is stubbed
             };
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
@@ -378,13 +357,11 @@ describe('globals', function() {
         });
 
         it('should mark `in_app` for Raven', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'Raven.wrap'
-                // context: []    context is stubbed
             };
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
@@ -397,13 +374,11 @@ describe('globals', function() {
         });
 
         it('should mark `in_app` for TraceKit', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'TraceKit.lol'
-                // context: []    context is stubbed
             };
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
@@ -416,92 +391,14 @@ describe('globals', function() {
         });
 
         it('should not blow up if includePaths is empty, regression for #377', function() {
-            this.sinon.stub(Raven, '_extractContextFromFrame').returns(undefined);
             var frame = {
                 url: 'http://lol.com/path/file.js',
                 line: 10,
                 column: 11,
                 func: 'TraceKit.lol'
-                // context: []    context is stubbed
             };
             Raven._globalOptions.includePaths = [];
             Raven._normalizeFrame(frame);
-        });
-    });
-
-    describe('extractContextFromFrame', function() {
-        it('should handle a normal frame', function() {
-            var frame = {
-                column: 2,
-                context: [
-                    'line1',
-                    'line2',
-                    'line3',
-                    'line4',
-                    'line5',
-                    'culprit',
-                    'line7',
-                    'line8',
-                    'line9',
-                    'line10',
-                    'line11'
-                ]
-            };
-            var context = Raven._extractContextFromFrame(frame);
-            assert.deepEqual(context, [
-                ['line1', 'line2', 'line3', 'line4', 'line5'],
-                'culprit',
-                ['line7', 'line8', 'line9', 'line10', 'line11']
-            ]);
-        });
-
-        it('should return nothing if there is no context', function() {
-            var frame = {
-                column: 2
-            };
-            assert.isUndefined(Raven._extractContextFromFrame(frame));
-        });
-
-        it('should reject a context if a line is too long without a column', function() {
-            var frame = {
-                context: [
-                    new Array(1000).join('f')    // generate a line that is 1000 chars long
-                ]
-            };
-            assert.isUndefined(Raven._extractContextFromFrame(frame));
-        });
-
-        it('should reject a minified context with fetchContext disabled', function() {
-            var frame = {
-                column: 2,
-                context: [
-                    'line1',
-                    'line2',
-                    'line3',
-                    'line4',
-                    'line5',
-                    'culprit',
-                    'line7',
-                    'line8',
-                    'line9',
-                    'line10',
-                    'line11'
-                ]
-            };
-            Raven._globalOptions.fetchContext = false;
-            assert.isUndefined(Raven._extractContextFromFrame(frame));
-        });
-
-        it('should truncate the minified line if there is a column number without sourcemaps enabled', function() {
-            // Note to future self:
-            // Array(51).join('f').length === 50
-            var frame = {
-                column: 2,
-                context: [
-                    'aa' + (new Array(51).join('f')) + (new Array(500).join('z'))
-                ]
-            };
-            assert.deepEqual(Raven._extractContextFromFrame(frame), [[], new Array(51).join('f'), []]);
         });
     });
 

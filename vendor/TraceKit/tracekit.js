@@ -175,7 +175,6 @@ TraceKit.report = (function reportModuleWrapper() {
             }
 
             location.func = UNKNOWN_FUNCTION;
-            location.context = null;
 
             stack = {
                 'name': name,
@@ -278,7 +277,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *   s.stack[i].args     - arguments passed to the function, if known
  *   s.stack[i].line     - line number, if known
  *   s.stack[i].column   - column number, if known
- *   s.stack[i].context  - an array of source code lines; the middle element corresponds to the correct line#
  *
  * Supports:
  *   - Firefox:  full stack trace with line numbers and unreliable column
@@ -428,10 +426,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 element.func = UNKNOWN_FUNCTION;
             }
 
-            if (element.line) {
-                element.context = null;
-            }
-
             stack.push(element);
         }
 
@@ -497,7 +491,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 if (!element.func && element.line) {
                     element.func = UNKNOWN_FUNCTION;
                 }
-                element.context = [lines[line + 1]];
 
                 stack.push(element);
             }
@@ -585,7 +578,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 if (!item.func) {
                     item.func = UNKNOWN_FUNCTION;
                 }
-                item.context = [lines[line + 1]];
 
                 stack.push(item);
             }
@@ -635,7 +627,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                         return false; // already in stack trace
                     } else if (!stackInfo.stack[0].line && stackInfo.stack[0].func === initial.func) {
                         stackInfo.stack[0].line = initial.line;
-                        stackInfo.stack[0].context = initial.context;
                         return false;
                     }
                 }
