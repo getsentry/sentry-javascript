@@ -76,11 +76,10 @@ sourcemaps) within Sentry. This removes the requirement for them to be
 web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
-* Start by creating a new API key under your organization's API Keys nav
-  (on the home).
+* Start by creating a new authentication token under **[Account] > API**.
 * Ensure you you have ``project:write`` selected under scopes.
-* You'll use HTTP basic auth with the api key being your username, and an
-  empty value for the password.
+* You'll use the Authorization header with the value of ``Bearer: {TOKEN}``
+  with API requests.
 
 Now you need to setup your build system to create a release, and attach
 the various source files. You will want to upload all dist files (i.e. the
@@ -91,10 +90,10 @@ sourcemaps point to.
 
     # Create a new release
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/ \
-      -u [api_key]: \
       -X POST \
-      -d '{"version": "2da95dfb052f477380608d59d32b4ab9"}' \
+      -H 'Authorization: Bearer {TOKEN}' \
       -H 'Content-Type: application/json'
+      -d '{"version": "2da95dfb052f477380608d59d32b4ab9"}' \
 
     {
       "dateCreated": "2015-03-06T04:51:32.723Z",
@@ -112,8 +111,8 @@ reference to ``app.map.js``, the name of the uploaded file should be ``http://ex
 
     # Upload a file for the given release
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/2da95dfb052f477380608d59d32b4ab9/files/ \
-      -u [api_key]: \
       -X POST \
+      -H 'Authorization: Bearer {TOKEN}' \
       -F file=@app.js.map \
       -F name="http://example.com/app.js.map"
 
@@ -132,7 +131,7 @@ reference to ``app.map.js``, the name of the uploaded file should be ``http://ex
 
     # If you make a mistake, you can also simply clear out the release
     $ curl https://app.getsentry.com/api/0/projects/:organization_slug/:project_slug/releases/2da95dfb052f477380608d59d32b4ab9/ \
-      -u [api_key]: \
+      -H 'Authorization: Bearer {TOKEN}' \
       -X DELETE
 
 Additionally, you'll need to configure the client to send the ``release``:
