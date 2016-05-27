@@ -2130,6 +2130,23 @@ describe('install/uninstall', function () {
             Raven.install();
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
         });
+
+        it('should use attachEvent instead of addEventListener in IE8', function () {
+            // Maintain a ref to the old function so we can restore it later.
+            var temp = document.addEventListener;
+
+            // Test setup.
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            document.addEventListener = false;
+            document.attachEvent = this.sinon.stub();
+
+            // Invoke and assert.
+            Raven.install();
+            assert.isTrue(document.attachEvent.called);
+
+            // Cleanup.
+            document.addEventListener = temp;
+        });
     });
 
     describe('.uninstall', function() {
