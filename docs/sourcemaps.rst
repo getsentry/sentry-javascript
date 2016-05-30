@@ -76,6 +76,9 @@ sourcemaps) within Sentry. This removes the requirement for them to be
 web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
+You can either interact with the API directly or you can upload sourcemaps
+with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`_).
+
 * Start by creating a new authentication token under **[Account] > API**.
 * Ensure you you have ``project:write`` selected under scopes.
 * You'll use the Authorization header with the value of ``Bearer: {TOKEN}``
@@ -148,6 +151,30 @@ will not show any contextual source.
 
 Additional information can be found in the `Releases API documentation
 <https://docs.getsentry.com/hosted/api/releases/>`_.
+
+.. _upload-sourcemaps-with-cli:
+
+Using Sentry CLI
+----------------
+
+You can also use the Sentry :ref:`sentry-cli` to manage releases and
+sourcemaps on Sentry.  If you have it installed you can create releases
+with the following command::
+
+    $ sentry-cli releases -o MY_ORG -p MY_PROJECT new 2da95dfb052f477380608d59d32b4ab9
+
+After you have run this, you can use the `files` command to automatically
+add all javascript files and sourcemaps below a folder.  They are
+automatically prefixed with a URL or your choice::
+
+    $ sentry-cli releases -o MY_ORG -p MY_PROJECT files \
+      2da95dfb052f477380608d59d32b4ab9 upload-sourcemaps --url-prefix
+      https://mydomain.invalid/static /path/to/assets
+
+All files that end with `.js` and `.map` below `/path/to/assets` are
+automatically uploaded to the release `2da95dfb052f477380608d59d32b4ab9`
+in this case.  If you want to use other extensions you can provide it with
+the ``--ext`` parameter.
 
 .. sentry:edition:: hosted
 
