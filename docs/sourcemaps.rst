@@ -77,7 +77,7 @@ web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
 You can either interact with the API directly or you can upload sourcemaps
-with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`_).
+with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`).
 
 * Start by creating a new authentication token under **[Account] > API**.
 * Ensure you you have ``project:write`` selected under scopes.
