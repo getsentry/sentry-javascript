@@ -168,7 +168,7 @@ add all javascript files and sourcemaps below a folder.  They are
 automatically prefixed with a URL or your choice::
 
     $ sentry-cli releases -o MY_ORG -p MY_PROJECT files \
-      2da95dfb052f477380608d59d32b4ab9 upload-sourcemaps --url-prefix
+      2da95dfb052f477380608d59d32b4ab9 upload-sourcemaps --url-prefix \
       https://mydomain.invalid/static /path/to/assets
 
 All files that end with `.js` and `.map` below `/path/to/assets` are
