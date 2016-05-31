@@ -821,8 +821,15 @@ Raven.prototype = {
         // Capture breadcrubms from any click that is unhandled / bubbled up all the way
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
-            document.addEventListener('click', self._breadcrumbEventHandler('click'));
-            document.addEventListener('keypress', self._keypressEventHandler());
+            if (document.addEventListener) {
+                document.addEventListener('click', self._breadcrumbEventHandler('click'));
+                document.addEventListener('keypress', self._keypressEventHandler());
+            }
+            else {
+                // IE8 Compatibility
+                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+                document.attachEvent('onkeypress', self._keypressEventHandler());
+            }
         }
 
         // event targets borrowed from bugsnag-js:
