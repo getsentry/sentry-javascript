@@ -2137,6 +2137,8 @@ describe('install/uninstall', function () {
 
             // Test setup.
             this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(TraceKit.report, 'subscribe');
+
             document.addEventListener = false;
             document.attachEvent = this.sinon.stub();
 
