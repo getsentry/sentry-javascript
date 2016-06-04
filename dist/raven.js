@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.4 (0784c3c) | github.com/getsentry/raven-js */
+/*! Raven.js 3.0.5 (09588f9) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.4',
+    VERSION: '3.0.5',
 
     debug: false,
 
@@ -885,8 +885,15 @@ Raven.prototype = {
         // Capture breadcrubms from any click that is unhandled / bubbled up all the way
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
-            document.addEventListener('click', self._breadcrumbEventHandler('click'));
-            document.addEventListener('keypress', self._keypressEventHandler());
+            if (document.addEventListener) {
+                document.addEventListener('click', self._breadcrumbEventHandler('click'));
+                document.addEventListener('keypress', self._keypressEventHandler());
+            }
+            else {
+                // IE8 Compatibility
+                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+                document.attachEvent('onkeypress', self._keypressEventHandler());
+            }
         }
 
         // event targets borrowed from bugsnag-js:

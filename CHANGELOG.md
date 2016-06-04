@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.5
+* BUGFIX: Fix breadcrumb instrumentation failing in IE8. See: https://github.com/getsentry/raven-js/issues/594
+
 ## 3.0.4
 * BUGFIX: Navigation breadcrumbs now include query strings and document fragment (#). See: https://github.com/getsentry/raven-js/issues/573
 * BUGFIX: Remove errant `throw` call in _makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
