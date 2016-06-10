@@ -176,6 +176,27 @@ automatically uploaded to the release `2da95dfb052f477380608d59d32b4ab9`
 in this case.  If you want to use other extensions you can provide it with
 the ``--ext`` parameter.
 
+.. admonition:: Validating Sourcemaps
+
+    Unfortunately it can be quite challenging to ensure that sourcemaps
+    are actually valid themselves and uploaded correctly.  To ensure
+    that everything is working as intended you can use the `--validate`
+    flag when uploading sourcemaps which will attempt to locally parse the
+    sourcemap and look up the references.  Note that there are known cases
+    where the validate flag will indicate failures when the setup is
+    correct (if you have references to external sourcemaps then the
+    validation tool will indicate a failure).
+
+    Here are some things you can check in addition to the validation step:
+
+    *   Make sure that the URL prefix is correct for your files.  This is
+        easy to get wrong.
+    *   Make sure you upload the matching sourcemaps for your minimized
+        files.
+    *   Make sure that your minified files you have on your servers
+        actually have references to your files.
+
+
 .. sentry:edition:: hosted
 
 Working Behind a Firewall
