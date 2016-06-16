@@ -152,6 +152,38 @@ will not show any contextual source.
 Additional information can be found in the `Releases API documentation
 <https://docs.getsentry.com/hosted/api/releases/>`_.
 
+
+.. _assets_multiple_origins:
+
+.. admonition:: Assets Accessible at Multiple Origins
+
+    It's not uncommon for a web application to be accessible at multiple
+    origins. For example:
+
+    * Website is operable over both ``https`` and ``http``
+    * Geolocated web addresses: e.g. ``https://us.example.com``, ``https://eu.example.com``
+    * Multiple static CDNs: e.g. ``https://static1.example.com``, ``https://static2.example.com``
+    * Customer-specific domains/subdomains
+
+    In this situation, **identical** JavaScript and source map files may be located
+    at two or more distinct origins. If you are dealing with such a deployment, you have
+    two choices for naming your uploaded artifacts:
+
+    1. Upload the same artifact multiple times with each possible URL where it appears, for example:
+
+        * https://static1.example.com/js/app.js
+        * https://static2.example.com/js/app.js
+
+    2. Alternatively, you can omit the protocol + host and use a special tilde (~) prefixed path like so:
+
+        ~/js/app.js
+
+    The ~ prefix tells Sentry that for a given URL, **any** combination of protocol and hostname whose path is
+    ``/js/app.js`` should use this artifact. **ONLY** use this method if your source/sourcemap files
+    are identical at all possible protocol/hostname combinations. Note that Sentry will prioritize
+    full URLs over tilde prefixed paths if found.
+
+
 .. _upload-sourcemaps-with-cli:
 
 Using Sentry CLI
@@ -242,6 +274,10 @@ Note also that Sentry will resolve relative paths. For example, if you have the 
     //# sourceMappingURL=app.min.js.map
 
 Sentry will resolve ``sourceMappingURL`` relative to ``https://example.com/dist/js/`` (the root path from which ``app.min.js`` was served). You will again need to name your source map with the full URL: ``https://example.com/dist/js/app.min.js.map``.
+
+If you serve the same assets from multiple origins, you can also alternatively use our tilde (~) path prefix to ignore
+matching against protocol + hostname. In which case, ``~/dist/js/app.min.js.map``, will also work. See: `Assets Accessible at Multiple Origins
+<#assets-multiple-origins>`_.
 
 Verify artifacts are uploaded before errors occur
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
