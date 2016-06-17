@@ -203,6 +203,11 @@ automatically prefixed with a URL or your choice::
       2da95dfb052f477380608d59d32b4ab9 upload-sourcemaps --url-prefix \
       https://mydomain.invalid/static /path/to/assets
 
+.. admonition:: Assets Accessible at Multiple Origins
+
+    If you leave out the ``--url-prefix`` parameter the paths will be
+    prefixed with ``~/`` automatically to support multi origin behavior.
+
 All files that end with `.js` and `.map` below `/path/to/assets` are
 automatically uploaded to the release `2da95dfb052f477380608d59d32b4ab9`
 in this case.  If you want to use other extensions you can provide it with
