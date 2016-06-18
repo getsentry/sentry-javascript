@@ -21,3 +21,6 @@ scratch/
 .idea
 *.sublime-*
 aws.json
+
+# TypeScript compiler output
+typescript/raven-tests.js
