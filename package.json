@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "npm install",
     "test": "grunt test && npm run-script test-typescript",
-    "test-typescript": "node_modules/typescript/bin/tsc typescript/raven-tests.ts"
+    "test-typescript": "node_modules/typescript/bin/tsc --noEmit typescript/raven-tests.ts"
   },
   "repository": {
     "type": "git",
