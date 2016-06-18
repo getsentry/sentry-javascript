@@ -20,16 +20,16 @@ export interface RavenOptions {
     serverName?: string;
 
     /** List of messages to be fitlered out before being sent to Sentry. */
-    ignoreErrors?: RegExp[] | string[];
+    ignoreErrors?: (RegExp | string)[];
 
     /** Similar to ignoreErrors, but will ignore errors from whole urls patching a regex pattern. */
-    ignoreUrls?: RegExp[] | string[];
+    ignoreUrls?: (RegExp | string)[];
 
     /** The inverse of ignoreUrls. Only report errors from whole urls matching a regex pattern. */
-    whitelistUrls?: RegExp[] | string[];
+    whitelistUrls?: (RegExp | string)[];
 
     /** An array of regex patterns to indicate which urls are a part of your app. */
-    includePaths?: RegExp[] | string[];
+    includePaths?: (RegExp | string)[];
 
     /** Additional data to be tagged onto the error. */
     tags?: {
