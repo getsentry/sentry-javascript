@@ -2,17 +2,37 @@ import Raven, {RavenOptions} from '..';
 
 Raven.config('https://public@getsentry.com/1').install();
 
+// Test regex options
 var options: RavenOptions = {
     logger: 'my-logger',
     ignoreUrls: [
         /graph\.facebook\.com/i
     ],
     ignoreErrors: [
-        'fb_xd_fragment'
+        /fb_xd_fragment/
     ],
     includePaths: [
         /https?:\/\/(www\.)?getsentry\.com/,
         /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
+    ],
+    whitelistUrls: [
+        /https?:\/\/google\.com/
+    ]
+};
+
+// Test string params
+options = {
+    ignoreUrls: [
+        'graph.facebook.com'
+    ],
+    ignoreErrors: [
+        'fb_xd_fragment'
+    ],
+    includePaths: [
+        'https://www.getsentry.com'
+    ],
+    whitelistUrls: [
+        'https://www.google.com'
     ]
 };
 
