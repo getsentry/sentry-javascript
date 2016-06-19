@@ -5,7 +5,8 @@
   "homepage": "https://getsentry.com",
   "scripts": {
     "pretest": "npm install",
-    "test": "grunt test"
+    "test": "grunt test && npm run-script test-typescript",
+    "test-typescript": "node_modules/typescript/bin/tsc --noEmit typescript/raven-tests.ts"
   },
   "repository": {
     "type": "git",
@@ -37,7 +38,8 @@
     "mocha": "^1.21.5",
     "proxyquireify": "^3.0.2",
     "sinon": "1.7.3",
-    "through2": "^2.0.0"
+    "through2": "^2.0.0",
+    "typescript": "^1.8.10"
   },
   "keywords": [
     "exceptions",
@@ -46,5 +48,6 @@
     "errors",
     "sentry",
     "raven"
-  ]
+  ],
+  "typings": "typescript/raven.d.ts"
 }
