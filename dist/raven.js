@@ -1,4 +1,4 @@
-/*! Raven.js 3.0.4 (0784c3c) | github.com/getsentry/raven-js */
+/*! Raven.js 3.1.0 (d781478) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.0.4',
+    VERSION: '3.1.0',
 
     debug: false,
 
@@ -209,14 +209,6 @@ Raven.prototype = {
 
         this._globalEndpoint = this._globalServer +
             '/' + path + 'api/' + this._globalProject + '/store/';
-
-        if (this._globalOptions.fetchContext) {
-            TraceKit.remoteFetching = true;
-        }
-
-        if (this._globalOptions.linesOfContext) {
-            TraceKit.linesOfContext = this._globalOptions.linesOfContext;
-        }
 
         TraceKit.collectWindowErrors = !!this._globalOptions.collectWindowErrors;
 
@@ -885,8 +877,15 @@ Raven.prototype = {
         // Capture breadcrubms from any click that is unhandled / bubbled up all the way
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
-            document.addEventListener('click', self._breadcrumbEventHandler('click'));
-            document.addEventListener('keypress', self._keypressEventHandler());
+            if (document.addEventListener) {
+                document.addEventListener('click', self._breadcrumbEventHandler('click'));
+                document.addEventListener('keypress', self._keypressEventHandler());
+            }
+            else {
+                // IE8 Compatibility
+                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+                document.attachEvent('onkeypress', self._keypressEventHandler());
+            }
         }
 
         // event targets borrowed from bugsnag-js:
@@ -1106,13 +1105,7 @@ Raven.prototype = {
             lineno:     frame.line,
             colno:      frame.column,
             'function': frame.func || '?'
-        }, context = this._extractContextFromFrame(frame), i;
-
-        if (context) {
-            var keys = ['pre_context', 'context_line', 'post_context'];
-            i = 3;
-            while (i--) normalized[keys[i]] = context[i];
-        }
+        };
 
         normalized.in_app = !( // determine if an exception came from outside of our app
             // first we check the global includePaths list.
@@ -1124,45 +1117,6 @@ Raven.prototype = {
         );
 
         return normalized;
-    },
-
-    _extractContextFromFrame: function(frame) {
-        // immediately check if we should even attempt to parse a context
-        if (!frame.context || !this._globalOptions.fetchContext) return;
-
-        var context = frame.context,
-            pivot = ~~(context.length / 2),
-            i = context.length, isMinified = false;
-
-        while (i--) {
-            // We're making a guess to see if the source is minified or not.
-            // To do that, we make the assumption if *any* of the lines passed
-            // in are greater than 300 characters long, we bail.
-            // Sentry will see that there isn't a context
-            if (context[i].length > 300) {
-                isMinified = true;
-                break;
-            }
-        }
-
-        if (isMinified) {
-            // The source is minified and we don't know which column. Fuck it.
-            if (isUndefined(frame.column)) return;
-
-            // If the source is minified and has a frame column
-            // we take a chunk of the offending line to hopefully shed some light
-            return [
-                [],  // no pre_context
-                context[pivot].substr(frame.column, 50), // grab 50 characters, starting at the offending column
-                []   // no post_context
-            ];
-        }
-
-        return [
-            context.slice(0, pivot),    // pre_context
-            context[pivot],             // context_line
-            context.slice(pivot + 1)    // post_context
-        ];
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
@@ -1734,10 +1688,7 @@ var isUndefined = utils.isUndefined;
 */
 
 var TraceKit = {
-    remoteFetching: false,
     collectWindowErrors: true,
-    // 3 lines before, the offending line, 3 lines after
-    linesOfContext: 7,
     debug: false
 };
 
@@ -1897,7 +1848,6 @@ TraceKit.report = (function reportModuleWrapper() {
             }
 
             location.func = UNKNOWN_FUNCTION;
-            location.context = null;
 
             stack = {
                 'name': name,
@@ -2000,7 +1950,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *   s.stack[i].args     - arguments passed to the function, if known
  *   s.stack[i].line     - line number, if known
  *   s.stack[i].column   - column number, if known
- *   s.stack[i].context  - an array of source code lines; the middle element corresponds to the correct line#
  *
  * Supports:
  *   - Firefox:  full stack trace with line numbers and unreliable column
@@ -2150,10 +2099,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 element.func = UNKNOWN_FUNCTION;
             }
 
-            if (element.line) {
-                element.context = null;
-            }
-
             stack.push(element);
         }
 
@@ -2219,7 +2164,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 if (!element.func && element.line) {
                     element.func = UNKNOWN_FUNCTION;
                 }
-                element.context = [lines[line + 1]];
 
                 stack.push(element);
             }
@@ -2307,7 +2251,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 if (!item.func) {
                     item.func = UNKNOWN_FUNCTION;
                 }
-                item.context = [lines[line + 1]];
 
                 stack.push(item);
             }
@@ -2357,7 +2300,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                         return false; // already in stack trace
                     } else if (!stackInfo.stack[0].line && stackInfo.stack[0].func === initial.func) {
                         stackInfo.stack[0].line = initial.line;
-                        stackInfo.stack[0].context = initial.context;
                         return false;
                     }
                 }
