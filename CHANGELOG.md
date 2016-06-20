@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.0
+* NEW: Added TypeScript declaration file for compatibility with TypeScript projects. See: https://github.com/getsentry/raven-js/pull/610
+
 ## 3.0.5
 * BUGFIX: Fix breadcrumb instrumentation failing in IE8. See: https://github.com/getsentry/raven-js/issues/594
 
