@@ -1,16 +1,13 @@
-AngularJS
+Angular 1
 =========
 
-.. versionadded:: 1.3.0
-   Prior to 1.3.0, we had an Angular plugin, but was undocumented. 1.3.0 comes with a rewritten version with better support.
-
-To use Sentry with your Angular application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Angular plugin.
+To use Sentry with your Angular 1.x application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Angular plugin.
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
 Additionally, the Raven.js Angular plugin will catch any Angular-specific exceptions reported through Angular's ``$exceptionHandler`` interface.
 
-**Note**: The Angular integration supports Angular 1.x.
+**Note**: This documentation is for Angular 1.x. See also: Angular 2.x.
 
 Installation
 ------------

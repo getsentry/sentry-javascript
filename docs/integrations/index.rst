@@ -34,6 +34,7 @@ To install a plugin just include the plugin **after** Raven has been loaded and 
    :maxdepth: 1
 
    angular
+   angular2
    backbone
    ember
    react
