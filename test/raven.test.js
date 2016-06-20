@@ -1694,6 +1694,12 @@ describe('Raven (public API)', function() {
             assert.deepEqual(Raven._globalContext.user, {name: 'Matt'});
         });
 
+        it('should not merge globalContext.user object, but rewrite', function () {
+            Raven._globalContext.user = {name: 'Matt'};
+            Raven.setUserContext({age: 34, email: 'john@mail.com'});
+            assert.deepEqual(Raven._globalContext.user, {age: 34, email: 'john@mail.com'});
+        });
+
         it('should clear the globalContext.user with no arguments', function() {
             Raven._globalContext.user = {name: 'Matt'};
             Raven.setUserContext();
