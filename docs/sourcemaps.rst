@@ -55,13 +55,6 @@ Webpack can be configured to output source maps by editing webpack.config.js.
         }
     };
 
-Validating a Source Map
------------------------
-
-We maintain an online validation tool that can be used to test your source
-(and sourcemaps) against: `sourcemaps.io <http://sourcemaps.io>`_.
-
-
 Making Source Maps Available to Sentry
 --------------------------------------
 
@@ -260,7 +253,7 @@ automatically uploaded to the release `2da95dfb052f477380608d59d32b4ab9`
 in this case.  If you want to use other extensions you can provide it with
 the ``--ext`` parameter.
 
-.. admonition:: Validating Sourcemaps
+.. admonition:: Validating Sourcemaps with Sentry CLI
 
     Unfortunately it can be quite challenging to ensure that sourcemaps
     are actually valid themselves and uploaded correctly.  To ensure
@@ -287,6 +280,17 @@ Troubleshooting
 ---------------
 
 Source maps can sometimes be tricky to get going. If you're having trouble, try the following tips.
+
+
+Verify your source maps are built correctly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We maintain an online validation tool that can be used to test your source
+(and sourcemaps) against: `sourcemaps.io <http://sourcemaps.io>`_.
+
+Alternatively, if you are using Sentry CLI to upload source maps to Sentry, you can use the `--validate`
+command line option to verify your source maps are correct.
+
 
 Verify sourceMappingURL is present
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
