@@ -62,7 +62,7 @@ Source maps can be either:
 
 1) Served publicly over HTTP alongside your source files.
 
-2) Uploaded directly to Sentry.
+2) Uploaded directly to Sentry (**recommended**).
 
 Hosting Source Map Files
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,7 +72,7 @@ on the last line and have the following format:
 
 .. code-block:: javascript
 
-    //# sourceMappingURL: <url>
+    //# sourceMappingURL=<url>
 
 When Sentry encounters such a directive, it will resolve the source map URL relative the source file in which
 it is found, and attempt an HTTP request to fetch it.
@@ -82,7 +82,7 @@ on the last line, the following directive is found:
 
 .. code-block:: javascript
 
-    //# sourceMappingURL: app.map.js
+    //# sourceMappingURL=app.map.js
 
 Sentry will attempt to fetch ``app.map.js`` from http://example.org/js/app.map.js.
 
@@ -90,7 +90,7 @@ Alternatively, during source map generation you can specify a fully qualified UR
 
 .. code-block:: javascript
 
-    //# sourceMappingURL: http://example.org/js/app.map.js
+    //# sourceMappingURL=http://example.org/js/app.map.js
 
 While making source maps available to Sentry from your servers is the easiest integration, it is not always advisable:
 
