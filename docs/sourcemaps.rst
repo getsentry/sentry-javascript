@@ -4,9 +4,9 @@ Source Maps
 ===========
 
 Sentry supports un-minifying JavaScript via `Source Maps
-http://blog.getsentry.com/2015/10/29/debuggable-javascript-with-source-maps.html`_. This lets you
+<http://blog.getsentry.com/2015/10/29/debuggable-javascript-with-source-maps.html>`_. This lets you
 view source code context obtained from stack traces in their original untransformed form, which is
-is particularly useful for minified code (e.g. UglifyJS), or transpiled code from a higher-level
+is particularly useful for debugging minified code (e.g. UglifyJS), or transpiled code from a higher-level
 language (e.g. TypeScript, ES6).
 
 Generating a Source Map
@@ -62,8 +62,57 @@ We maintain an online validation tool that can be used to test your source
 (and sourcemaps) against: `sourcemaps.io <http://sourcemaps.io>`_.
 
 
+Making Source Maps Available to Sentry
+--------------------------------------
+
+Source maps can be either:
+
+1) Served publicly over HTTP alongside your source files.
+
+2) Uploaded directly to Sentry.
+
+Hosting Source Map Files
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, Sentry will look for source map directives in your compiled JavaScript files, which are located
+on the last line and have the following format:
+
+.. code-block:: javascript
+
+    //# sourceMappingURL: <url>
+
+When Sentry encounters such a directive, it will resolve the source map URL relative the source file in which
+it is found, and attempt an HTTP request to fetch it.
+
+So for example if you have a minified JavaScript file located at ``http://example.org/js/app.min.js``. And in that file,
+on the last line, the following directive is found:
+
+.. code-block:: javascript
+
+    //# sourceMappingURL: app.map.js
+
+Sentry will attempt to fetch ``app.map.js`` from http://example.org/js/app.map.js.
+
+Alternatively, during source map generation you can specify a fully qualified URL where your source maps are located:
+
+.. code-block:: javascript
+
+    //# sourceMappingURL: http://example.org/js/app.map.js
+
+While making source maps available to Sentry from your servers is the easiest integration, it is not always advisable:
+
+* Sentry may not always be able to reach your servers.
+* If you do not specify versions in your asset URLs, there may be a version mismatch
+* The additional latency may mean that source mappings are not available for all errors.
+
+For these reasons, it is recommended to upload source maps to Sentry beforehand (see below).
+
+.. admonition:: Working Behind a Firewall
+
+    While the recommended solution is to upload your source artifacts to Sentry, sometimes it’s necessary to allow communication from Sentry’s internal IPs. For more information on Sentry’s public IPs, :ref:`ip-ranges`.
+
 Uploading Source Maps to Sentry
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In many cases your application may sit behind firewalls or you simply
 can't expose source code to the public. Sentry provides an abstraction
@@ -103,7 +152,7 @@ sourcemaps point to.
 
 When uploading the file, you'll need to reference it just as it would be referenced
 if a browser (or filesystem) had to resolve its path. So for example, if your sourcemap
-reference is just a relative path, it's relative to the location of the referencing file.
+reference is just a relative path, it's **relative to the location of the referencing file**.
 
 So for example, if you have ``http://example.com/app.min.js``, and the file contains the
 reference to ``app.map.js``, the name of the uploaded file should be ``http://example.com/app.map.js``.
@@ -233,13 +282,6 @@ the ``--ext`` parameter.
 
 
 .. sentry:edition:: hosted
-
-Working Behind a Firewall
--------------------------
-
-While the recommended solution is to upload your source artifacts to
-Sentry, sometimes it's necessary to allow communication from Sentry's
-internal IPs. For more information on Sentry's public IPs, see :ref:`ip-ranges`.
 
 Troubleshooting
 ---------------
