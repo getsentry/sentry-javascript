@@ -1061,10 +1061,7 @@ Raven.prototype = {
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
-        message = truncate(message, this._globalOptions.maxMessageLength);
-
         fullMessage = (type ? type + ': ' : '') + message;
-        fullMessage = truncate(fullMessage, this._globalOptions.maxMessageLength);
 
         if (frames && frames.length) {
             fileurl = frames[0].filename || fileurl;
