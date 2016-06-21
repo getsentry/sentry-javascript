@@ -814,8 +814,8 @@ Raven.prototype = {
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
             if (document.addEventListener) {
-                document.addEventListener('click', self._breadcrumbEventHandler('click'));
-                document.addEventListener('keypress', self._keypressEventHandler());
+                document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
+                document.addEventListener('keypress', self._keypressEventHandler(), false);
             }
             else {
                 // IE8 Compatibility
