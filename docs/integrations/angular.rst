@@ -7,7 +7,7 @@ On its own, Raven.js will report any uncaught exceptions triggered from your app
 
 Additionally, the Raven.js Angular plugin will catch any Angular-specific exceptions reported through Angular's ``$exceptionHandler`` interface.
 
-**Note**: This documentation is for Angular 1.x. See also: Angular 2.x.
+**Note**: This documentation is for Angular 1.x. See also: :doc:`Angular 2.x <angular2>`
 
 Installation
 ------------
