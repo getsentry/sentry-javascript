@@ -25,8 +25,8 @@
       "type": "framework",
       "doc_link": "integrations/angular2/",
       "wizard": [
-        "integrations/angular#installation",
-        "integrations/angular#configuration"
+        "integrations/angular2#installation",
+        "integrations/angular2#configuration"
       ]
     },
     "javascript.backbone": {
