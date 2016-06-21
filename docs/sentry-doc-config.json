@@ -12,12 +12,21 @@
       ]
     },
     "javascript.angular": {
-      "name": "Angular",
+      "name": "Angular 1",
       "type": "framework",
       "doc_link": "integrations/angular/",
       "wizard": [
         "integrations/angular#installation",
         "integrations/angular#configuring-the-client"
+      ]
+    },
+    "javascript.angular2": {
+      "name": "Angular 2",
+      "type": "framework",
+      "doc_link": "integrations/angular2/",
+      "wizard": [
+        "integrations/angular#installation",
+        "integrations/angular#configuration"
       ]
     },
     "javascript.backbone": {
