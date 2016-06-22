@@ -36,16 +36,16 @@ First, configure SystemJS to locate the Raven.js package:
 .. code-block:: js
 
     System.config({
-        packages: {
-            /* ... existing packages above ... */
-            'raven-js': {
-              main: 'dist/raven.js'
-            }
-        },
-        paths: {
-            /* ... existing paths above ... */
-            'raven-js': 'node_modules/raven-js'
+      packages: {
+        /* ... existing packages above ... */
+        'raven-js': {
+          main: 'dist/raven.js'
         }
+      },
+      paths: {
+        /* ... existing paths above ... */
+        'raven-js': 'node_modules/raven-js'
+      }
     });
 
 Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts):
@@ -58,8 +58,8 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
     import { provide, ExceptionHandler } from 'angular2/core';
 
     Raven
-        .config('__PUBLIC_DSN__')
-        .install();
+      .config('__PUBLIC_DSN__')
+      .install();
 
     class RavenExceptionHandler {
       call(err:any) {
@@ -68,7 +68,7 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
     }
 
     bootstrap(MainApp, [
-        provide(ExceptionHandler, {useClass: RavenExceptionHandler})
+      provide(ExceptionHandler, {useClass: RavenExceptionHandler})
     ]);
 
 Once you've completed these two steps, you are done.
