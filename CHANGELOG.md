@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.1
+* BUGFIX: Fix message truncation occurring before dataCallback is invoked. See: https://github.com/getsentry/raven-js/issues/605
+* BUGFIX: Fix pushState error in Chrome Apps. See: https://github.com/getsentry/raven-js/issues/601
+* BUGFIX: Fix error in addEventListener call affecting very old Firefox versions. See: https://github.com/getsentry/raven-js/issues/603
+
 ## 3.1.0
 * NEW: Added TypeScript declaration file for compatibility with TypeScript projects. See: https://github.com/getsentry/raven-js/pull/610
 
