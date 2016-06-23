@@ -58,7 +58,12 @@ function reactNativePlugin(Raven, options) {
 
     ErrorUtils.setGlobalHandler(function() {
         var error = arguments[0];
-        defaultHandler.apply(this, arguments)
+        // We only call the default handler in development mode so that you are
+        // presented with the redbox.  Calling the default handler in production
+        // will trigger an Objective-C exception and crash the app.
+        if ('__DEV__' in global && global.__DEV__) {
+            defaultHandler.apply(this, arguments)
+        }
         Raven.captureException(error);
     });
 }
