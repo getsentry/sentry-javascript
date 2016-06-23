@@ -1,4 +1,4 @@
-/*! Raven.js 3.1.0 (d781478) | github.com/getsentry/raven-js */
+/*! Raven.js 3.1.1 (34f456e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.1.0',
+    VERSION: '3.1.1',
 
     debug: false,
 
@@ -878,8 +878,8 @@ Raven.prototype = {
         // to the document. Do this before we instrument addEventListener.
         if (this._hasDocument) {
             if (document.addEventListener) {
-                document.addEventListener('click', self._breadcrumbEventHandler('click'));
-                document.addEventListener('keypress', self._keypressEventHandler());
+                document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
+                document.addEventListener('keypress', self._keypressEventHandler(), false);
             }
             else {
                 // IE8 Compatibility
@@ -953,7 +953,13 @@ Raven.prototype = {
         }
 
         // record navigation (URL) changes
-        if ('history' in window && history.pushState) {
+        // NOTE: in Chrome App environment, touching history.pushState, *even inside
+        //       a try/catch block*, will cause Chrome to output an error to console.error
+        // borrowed from: https://github.com/angular/angular.js/pull/13945/files
+        var chrome = window.chrome;
+        var isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
+        var hasPushState = !isChromePackagedApp && window.history && history.pushState;
+        if (hasPushState) {
             // TODO: remove onpopstate handler on uninstall()
             var oldOnPopState = window.onpopstate;
             window.onpopstate = function () {
@@ -1125,10 +1131,7 @@ Raven.prototype = {
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
-        message = truncate(message, this._globalOptions.maxMessageLength);
-
         fullMessage = (type ? type + ': ' : '') + message;
-        fullMessage = truncate(fullMessage, this._globalOptions.maxMessageLength);
 
         if (frames && frames.length) {
             fileurl = frames[0].filename || fileurl;
