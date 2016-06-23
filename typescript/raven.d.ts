@@ -162,11 +162,7 @@ export interface RavenStatic {
      * @param {object} user An object representing user data [optional]
      * @return {Raven}
      */
-    setUserContext(user: {
-        id?: string;
-        username?: string;
-        email?: string;
-    }): RavenStatic;
+    setUserContext(user: SentryUser): RavenStatic;
 
     /** Override the default HTTP data transport handler. */
     setTransport(transportFunction: (options: RavenTransportOptions) => void): RavenStatic;
@@ -192,4 +188,61 @@ interface RavenTransportOptions {
 
 interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
+}
+
+// https://docs.getsentry.com/hosted/clientdev/interfaces/
+
+interface SentryException {
+    values: SentryExceptionValue[];
+    culprit: string;
+    message: string;
+}
+interface SentryExceptionValue {
+    value: string;
+    type?: string;
+    module?: string;
+    stacktrace: SentryStacktrace;
+}
+
+interface SentryStacktrace {
+    filename: string;
+    function?: string;
+    module?: string;
+    lineno?: number;
+    colno?: number;
+    abs_path?: string;
+    context_line?: string;
+    pre_context?: string;
+    post_context?: string;
+    in_app?: boolean;
+    vars?: {[key: string]: string};
+}
+
+interface SentryUser {
+    id?: string;
+    email?: string;
+    ip_address?: string;
+    username?: string;
+}
+
+interface SentryBreadcrumb {
+    timestamp: number;
+    type?: string;
+    message?: string;
+    data?: {[key: string]: any};
+    category: string;
+    level?: string;
+}
+
+interface RavenPayload {
+    message: string;
+    exception?: SentryException;
+    timestamp?: number;
+    tags: {[key: string]: string};
+    extra: {[key: string]: any};
+    breadcrumbs?: SentryBreadcrumb[];
+    user?: SentryUser;
+    release?: string;
+    server_name?: string;
+    event_id?: string;
 }
