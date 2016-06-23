@@ -79,6 +79,7 @@ $ grunt run:docs
 
 ## Releasing New Version
 
+* Verify TypeScript [language definition file](https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts) is up to date
 * Bump version numbers in both `package.json` and `bower.json`.
 * Bump version across all docs under `docs/`
 * Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
