@@ -469,6 +469,30 @@ Raven.prototype = {
         return this;
     },
 
+    /*
+     * Adds a shouldSendCallback callback that chains after any previously set
+     * callback(s).
+     *
+     * @param {function} callback The callback to run which allows
+     *                            introspecting the blob before sending
+     * @return {Raven}
+     */
+    addShouldSendCallback: function(callback) {
+        var prevCallback = this._globalOptions.shouldSendCallback;
+        if (prevCallback) {
+            this._globalOptions.shouldSendCallback = function() {
+                if (prevCallback && !prevCallback.apply(null, arguments)) {
+                    return false;
+                }
+                return callback.apply(null, arguments);
+            }
+        } else {
+            this._globalOptions.shouldSendCallback = callback;
+        }
+
+        return this;
+    },
+
     /**
      * Override the default HTTP transport mechanism that transmits data
      * to the Sentry server.

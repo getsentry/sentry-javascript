@@ -127,6 +127,12 @@ export interface RavenStatic {
     wrap<T extends Function>(options: RavenOptions, func: T): T;
 
     /*
+     * Adds a shouldSendCallback callback that chains after any previously set
+     * callback(s).
+     */
+    addShouldSendCallback(callback: (data: RavenPayload) => boolean): RavenStatic;
+
+    /*
      * Uninstalls the global error handler.
      *
      * @return {Raven}

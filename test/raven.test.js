@@ -1808,6 +1808,42 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.addShouldSendCallback', function() {
+        it('should set the globalOptions.shouldSendCallback attribute if it is the first callback', function() {
+            var called = false;
+            Raven.addShouldSendCallback(function(){ called = true; });
+            Raven._globalOptions.shouldSendCallback();
+            assert.isTrue(called);
+        });
+
+        it('should append callbacks', function() {
+            var calls = [];
+            Raven.addShouldSendCallback(function(d){ calls.push('foo'+d); return true; });
+            Raven.addShouldSendCallback(function(d){ calls.push('bar'+d); return true; });
+            Raven._globalOptions.shouldSendCallback('1');
+            assert.deepEqual(calls, ['foo1', 'bar1']);
+        });
+
+        it('should work with setShouldSendCallback', function() {
+            var calls = [];
+            Raven.addShouldSendCallback(function(d){ calls.push('bar'+d); return true; });
+            Raven.setShouldSendCallback(function(d){ calls.push('foo'+d); return true; });
+            Raven.addShouldSendCallback(function(d){ calls.push('bar'+d); return true; });
+            Raven.addShouldSendCallback(function(d){ calls.push('baz'+d); return true; });
+            Raven._globalOptions.shouldSendCallback('2');
+            assert.deepEqual(calls, ['foo2', 'bar2', 'baz2']);
+        });
+
+        it('stops chaining at the first callback to return false', function() {
+            var calls = [];
+            Raven.setShouldSendCallback(function(d){ calls.push('foo'+d); return true; });
+            Raven.addShouldSendCallback(function(d){ calls.push('bar'+d); return false; });
+            Raven.addShouldSendCallback(function(d){ calls.push('baz'+d); return true; });
+            Raven._globalOptions.shouldSendCallback('3');
+            assert.deepEqual(calls, ['foo3', 'bar3']);
+        });
+    });
+
     describe('.captureMessage', function() {
         it('should work as advertised', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
