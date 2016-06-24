@@ -246,9 +246,12 @@ interface RavenPayload {
     timestamp?: number;
     tags: {[key: string]: string};
     extra: {[key: string]: any};
-    breadcrumbs?: SentryBreadcrumb[];
+    breadcrumbs?: {values: SentryBreadcrumb[]};
     user?: SentryUser;
     release?: string;
     server_name?: string;
     event_id?: string;
+    culprit?: string;
+    logger?: string;
+    project?: string;
 }
