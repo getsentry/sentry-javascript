@@ -66,6 +66,12 @@ function reactNativePlugin(Raven, options) {
         })
         .catch(function() {});
 
+    // Make sure that if multiple fatals occur, we only persist the first one.
+    //
+    // The first error is probably the most important/interesting error, and we
+    // want to crash ASAP, rather than potentially queueing up multiple errors.
+    var handlingFatal = false;
+
     var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
 
     Raven.addShouldSendCallback(function(data) {
@@ -76,6 +82,7 @@ function reactNativePlugin(Raven, options) {
         reactNativePlugin._persistPayload(data)
             .then(function() {
                 defaultHandler(origError, true);
+                handlingFatal = false; // In case it isn't configured to crash.
                 return null;
             })
             .catch(function() {});
@@ -84,11 +91,17 @@ function reactNativePlugin(Raven, options) {
     });
 
     ErrorUtils.setGlobalHandler(function(error, isFatal) {
+
         var options = {
             timestamp: new Date() / 1000
         };
         var error = arguments[0];
-        if (isFatal && global.__DEV__) {
+        if (isFatal && !global.__DEV__) {
+            if (handlingFatal) {
+                console.log('Encountered multiple fatals in a row. The latest:', error);
+                return;
+            }
+            handlingFatal = true;
             // We need to preserve the original error so that it can be rethrown
             // after it is persisted (see our shouldSendCallback above).
             options[FATAL_ERROR_KEY] = error;
