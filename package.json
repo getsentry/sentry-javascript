@@ -14,6 +14,7 @@
   },
   "main": "src/singleton.js",
   "devDependencies": {
+    "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
     "chai": "2.3.0",

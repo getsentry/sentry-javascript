@@ -95,7 +95,9 @@ function reactNativePlugin(Raven, options) {
             timestamp: new Date() / 1000
         };
         var error = arguments[0];
-        if (isFatal && !global.__DEV__) {
+        // We want to handle fatals, but only in production mode.
+        var shouldHandleFatal = isFatal && !global.__DEV__;
+        if (shouldHandleFatal) {
             if (handlingFatal) {
                 console.log('Encountered multiple fatals in a row. The latest:', error);
                 return;
@@ -107,7 +109,7 @@ function reactNativePlugin(Raven, options) {
         }
         Raven.captureException(error, captureOptions);
         // Handle non-fatals regularly.
-        if (!isFatal) {
+        if (!shouldHandleFatal) {
             defaultHandler(error);
         }
     });
