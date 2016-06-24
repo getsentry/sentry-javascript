@@ -15,6 +15,8 @@
  */
 'use strict';
 
+var FATAL_ERROR_KEY = '--rn-fatal--';
+var ASYNC_STORAGE_KEY = '--raven-js-global-error-payload--';
 var PATH_STRIP_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
 
 /**
@@ -44,23 +46,96 @@ function urlencode(obj) {
  */
 function reactNativePlugin(Raven, options) {
     options = options || {};
-
     // react-native doesn't have a document, so can't use default Image
     // transport - use XMLHttpRequest instead
     Raven.setTransport(reactNativePlugin._transport);
 
     // Use data callback to strip device-specific paths from stack traces
     Raven.setDataCallback(function(data) {
-        reactNativePlugin._normalizeData(data, options.pathStrip)
+        reactNativePlugin._normalizeData(data, options.pathStrip);
     });
+
+    // Check for a previously persisted payload, and report it.
+    reactNativePlugin._restorePayload()
+        .then(function(payload) {
+            if (!payload) return;
+            Raven._sendProcessedPayload(payload, function(error) {
+                if (error) return; // Try again next launch.
+                reactNativePlugin._clearPayload();
+            });
+        })
+        .catch(function() {});
 
     var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
 
-    ErrorUtils.setGlobalHandler(function() {
-        var error = arguments[0];
-        defaultHandler.apply(this, arguments)
-        Raven.captureException(error);
+    Raven.addShouldSendCallback(function(data) {
+        if (!(FATAL_ERROR_KEY in data)) return true;
+        var origError = data[FATAL_ERROR_KEY];
+        delete data[FATAL_ERROR_KEY];
+
+        reactNativePlugin._persistPayload(data)
+            .then(function() {
+                defaultHandler(origError, true);
+                return null;
+            })
+            .catch(function() {});
+
+        return false; // Do not continue.
     });
+
+    ErrorUtils.setGlobalHandler(function(error, isFatal) {
+        var options = {
+            timestamp: new Date() / 1000
+        };
+        var error = arguments[0];
+        if (isFatal && global.__DEV__) {
+            // We need to preserve the original error so that it can be rethrown
+            // after it is persisted (see our shouldSendCallback above).
+            options[FATAL_ERROR_KEY] = error;
+        }
+        Raven.captureException(error, options);
+        // Handle non-fatals regularly.
+        if (!isFatal) {
+            defaultHandler(error);
+        }
+    });
+}
+
+/**
+ * Saves the payload for a globally-thrown error, so that we can report it on
+ * next launch.
+ *
+ * Returns a promise that guarantees never to reject.
+ */
+reactNativePlugin._persistPayload = function(payload) {
+    var AsyncStorage = require('react-native').AsyncStorage;
+    return AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify(payload))
+        .catch(function() { return null; });
+}
+
+/**
+ * Checks for any previously persisted errors (e.g. from last crash)
+ *
+ * Returns a promise that guarantees never to reject.
+ */
+reactNativePlugin._restorePayload = function() {
+    var AsyncStorage = require('react-native').AsyncStorage;
+    var promise = AsyncStorage.getItem(ASYNC_STORAGE_KEY)
+        .then(function(payload) { return JSON.parse(payload); })
+        .catch(function() { return null; });
+    // Make sure that we fetch ASAP.
+    AsyncStorage.flushGetRequests();
+
+    return promise;
+};
+
+/**
+ * Clears any persisted payloads.
+ */
+reactNativePlugin._clearPayload = function() {
+    var AsyncStorage = require('react-native').AsyncStorage;
+    return AsyncStorage.removeItem(ASYNC_STORAGE_KEY)
+        .catch(function() { return null; });
 }
 
 /**
