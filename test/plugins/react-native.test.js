@@ -142,18 +142,25 @@ describe('React Native plugin', function () {
         });
 
         it('checks for persisted errors when starting', function () {
-            reactNativePlugin(Raven);
+            var onInit = self.sinon.stub();
+            reactNativePlugin(Raven, {onInitialize: onInit});
             assert.isTrue(reactNativePlugin._restorePayload.calledOnce);
+
+            return Promise.resolve().then(function () {
+                assert.isTrue(onInit.calledOnce);
+            });
         });
 
         it('reports persisted errors', function () {
             var payload = {abc: 123};
             self.sinon.stub(Raven, '_sendProcessedPayload');
             reactNativePlugin._restorePayload = self.sinon.stub().returns(Promise.resolve(payload));
-
-            reactNativePlugin(Raven);
+            var onInit = self.sinon.stub();
+            reactNativePlugin(Raven, {onInitialize: onInit});
 
             return Promise.resolve().then(function () {
+                assert.isTrue(onInit.calledOnce);
+                assert.equal(onInit.getCall(0).args[0], payload);
                 assert.isTrue(Raven._sendProcessedPayload.calledOnce);
                 assert.equal(Raven._sendProcessedPayload.getCall(0).args[0], payload);
             });

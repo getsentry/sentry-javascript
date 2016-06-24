@@ -12,6 +12,10 @@
  *   pathStrip: A RegExp that matches the portions of a file URI that should be
  *     removed from stacks prior to submission.
  *
+ *   onInitialize: A callback that fires once the plugin has fully initialized
+ *     and checked for any previously thrown fatals.  If there was a fatal, its
+ *     data payload will be passed as the first argument of the callback.
+ *
  */
 'use strict';
 
@@ -58,6 +62,7 @@ function reactNativePlugin(Raven, options) {
     // Check for a previously persisted payload, and report it.
     reactNativePlugin._restorePayload()
         .then(function(payload) {
+            options.onInitialize && options.onInitialize(payload);
             if (!payload) return;
             Raven._sendProcessedPayload(payload, function(error) {
                 if (error) return; // Try again next launch.
