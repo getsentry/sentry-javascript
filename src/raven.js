@@ -1293,7 +1293,7 @@ Raven.prototype = {
                     opts.onSuccess();
                 }
             } else if (opts.onError) {
-                opts.onError();
+                opts.onError(new Error('Sentry error code: ' + request.status));
             }
         }
 
