@@ -64,7 +64,7 @@ function reactNativePlugin(Raven, options) {
                 reactNativePlugin._clearPayload();
             });
         })
-        .catch(function() {});
+        ['catch'](function() {});
 
     // Make sure that if multiple fatals occur, we only persist the first one.
     //
@@ -85,14 +85,13 @@ function reactNativePlugin(Raven, options) {
                 handlingFatal = false; // In case it isn't configured to crash.
                 return null;
             })
-            .catch(function() {});
+            ['catch'](function() {});
 
         return false; // Do not continue.
     });
 
     ErrorUtils.setGlobalHandler(function(error, isFatal) {
-
-        var options = {
+        var captureOptions = {
             timestamp: new Date() / 1000
         };
         var error = arguments[0];
@@ -104,9 +103,9 @@ function reactNativePlugin(Raven, options) {
             handlingFatal = true;
             // We need to preserve the original error so that it can be rethrown
             // after it is persisted (see our shouldSendCallback above).
-            options[FATAL_ERROR_KEY] = error;
+            captureOptions[FATAL_ERROR_KEY] = error;
         }
-        Raven.captureException(error, options);
+        Raven.captureException(error, captureOptions);
         // Handle non-fatals regularly.
         if (!isFatal) {
             defaultHandler(error);
@@ -123,7 +122,7 @@ function reactNativePlugin(Raven, options) {
 reactNativePlugin._persistPayload = function(payload) {
     var AsyncStorage = require('react-native').AsyncStorage;
     return AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify(payload))
-        .catch(function() { return null; });
+        ['catch'](function() { return null; });
 }
 
 /**
@@ -135,7 +134,7 @@ reactNativePlugin._restorePayload = function() {
     var AsyncStorage = require('react-native').AsyncStorage;
     var promise = AsyncStorage.getItem(ASYNC_STORAGE_KEY)
         .then(function(payload) { return JSON.parse(payload); })
-        .catch(function() { return null; });
+        ['catch'](function() { return null; });
     // Make sure that we fetch ASAP.
     AsyncStorage.flushGetRequests();
 
@@ -148,7 +147,7 @@ reactNativePlugin._restorePayload = function() {
 reactNativePlugin._clearPayload = function() {
     var AsyncStorage = require('react-native').AsyncStorage;
     return AsyncStorage.removeItem(ASYNC_STORAGE_KEY)
-        .catch(function() { return null; });
+        ['catch'](function() { return null; });
 }
 
 /**

@@ -1158,8 +1158,6 @@ Raven.prototype = {
 
 
     _send: function(data) {
-        var self = this;
-
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -1265,7 +1263,7 @@ Raven.prototype = {
                 });
                 callback && callback();
             },
-            onError: function failure() {
+            onError: function failure(error) {
                 self._triggerEvent('failure', {
                     data: data,
                     src: url
