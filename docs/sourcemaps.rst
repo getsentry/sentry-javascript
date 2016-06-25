@@ -57,9 +57,24 @@ Webpack can be configured to output source maps by editing webpack.config.js.
         }
     };
 
+SystemJS
+~~~~~~~~
+
+SystemJS is the default module loader for Angular 2 projects. The `SystemJS build tool
+<https://github.com/systemjs/builder>`_ can be used to bundle, transpile, and minify source code for
+use in production environments, and can be configured to output source maps.
+
+::
+
+    builder.bundle('src/app.js', 'dist/app.min.js', {
+        minify: true,
+        sourceMaps: true,
+        sourceMapContents: true
+    });
+
 .. admonition:: Inline Sources
 
-    The instructions above inline your original, un-transformed source files into the generated source map file. Sentry
+    All of the example configurations above inline your original, un-transformed source files into the generated source map file. Sentry
     requires both source map(s) **and** your original source files in order to perform reverse transformations. If you
     choose NOT to inline your source files, you must make those source files available to Sentry in *addition* to your
     source maps (see below).
