@@ -29,7 +29,9 @@ that maps the minified code back to the original source:
     node_modules/uglify-js/bin/uglifyjs {input} \
       --source-map-root={relroot}/ \
       --source-map-url={name}.map.js \
-      --source-map={relpath}/{name}.map.js -o {output}
+      --source-map={relpath}/{name}.map.js \
+      --source-map-include-sources \
+      -o {output}
 
 
 Webpack
@@ -54,6 +56,14 @@ Webpack can be configured to output source maps by editing webpack.config.js.
           sourceMapFilename: "[name].map.js",
         }
     };
+
+.. admonition:: Inline Sources
+
+    The instructions above inline your original, un-transformed source files into the generated source map file. Sentry
+    requires both source map(s) **and** your original source files in order to perform reverse transformations. If you
+    choose NOT to inline your source files, you must make those source files available to Sentry in *addition* to your
+    source maps (see below).
+
 
 Making Source Maps Available to Sentry
 --------------------------------------
