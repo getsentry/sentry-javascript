@@ -633,7 +633,7 @@ describe('globals', function() {
             });
         });
 
-        it('should create and append \'error\' breadcrumb', function () {
+        it('should create and append \'sentry\' breadcrumb', function () {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
             this.sinon.stub(Raven, '_getHttpData').returns({
@@ -652,7 +652,14 @@ describe('globals', function() {
 
             assert.deepEqual(Raven._breadcrumbs, [
                 { type: 'http', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
-                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123' }
+                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' }
+            ]);
+
+            Raven._send({message: 'foo', level: 'warning' });
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'http', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' },
+                { category: 'sentry', message: 'foo', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'warning' }
             ]);
         });
 

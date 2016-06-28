@@ -1223,7 +1223,8 @@ Raven.prototype = {
         this.captureBreadcrumb({
             category: 'sentry',
             message: data.message,
-            event_id: data.event_id
+            event_id: data.event_id,
+            level: data.level || 'error' // presume error unless specified
         });
 
         var url = this._globalEndpoint;
