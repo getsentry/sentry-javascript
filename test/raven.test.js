@@ -482,8 +482,7 @@ describe('globals', function() {
                         }
                     }]
                 },
-                culprit: 'http://example.com/file1.js',
-                message: 'Error: lol'
+                culprit: 'http://example.com/file1.js'
             }]);
 
             Raven._processException('Error', 'lol', '', 10, frames.slice(0), {});
@@ -497,8 +496,7 @@ describe('globals', function() {
                         }
                     }]
                 },
-                culprit: 'http://example.com/file1.js',
-                message: 'Error: lol'
+                culprit: 'http://example.com/file1.js'
             }]);
 
             Raven._processException('Error', 'lol', '', 10, frames.slice(0), {extra: 'awesome'});
@@ -513,7 +511,6 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com/file1.js',
-                message: 'Error: lol',
                 extra: 'awesome'
             }]);
         });
@@ -536,8 +533,7 @@ describe('globals', function() {
                         }
                     }]
                 },
-                culprit: 'http://example.com/override.js',
-                message: 'Error: lol'
+                culprit: 'http://example.com/override.js'
             }]);
 
             Raven._processException('Error', 'lol', 'http://example.com/override.js', 10, [], {});
@@ -555,8 +551,7 @@ describe('globals', function() {
                         }
                     }]
                 },
-                culprit: 'http://example.com/override.js',
-                message: 'Error: lol'
+                culprit: 'http://example.com/override.js'
             }]);
 
             Raven._processException('Error', 'lol', 'http://example.com/override.js', 10, [], {extra: 'awesome'});
@@ -575,7 +570,6 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com/override.js',
-                message: 'Error: lol',
                 extra: 'awesome'
             }]);
         });
@@ -585,13 +579,6 @@ describe('globals', function() {
 
             Raven._processException('TypeError', undefined, 'http://example.com', []);
             assert.isTrue(Raven._send.called);
-        });
-
-        it('should omit error name as part of message if error name is undefined/falsy', function () {
-            this.sinon.stub(Raven, '_send');
-
-            Raven._processException(undefined, '\'foo\' is undefined', 'http://example.com', 10); // IE9 ReferenceError
-            assert.deepEqual(Raven._send.lastCall.args[0].message, '\'foo\' is undefined');
         });
     });
 
