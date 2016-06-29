@@ -344,7 +344,7 @@ Raven.prototype = {
         // Fire away!
         this._send(
             objectMerge({
-                message: msg + '' // Make sure it's actually a string,
+                message: msg + ''  // Make sure it's actually a string
             }, options)
         );
 
