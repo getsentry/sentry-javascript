@@ -1062,12 +1062,11 @@ Raven.prototype = {
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
-        var stacktrace, fullMessage;
+        var stacktrace;
 
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
-        fullMessage = (type ? type + ': ' : '') + message;
 
         if (frames && frames.length) {
             fileurl = frames[0].filename || fileurl;
@@ -1097,8 +1096,7 @@ Raven.prototype = {
                     stacktrace: stacktrace
                 }]
             },
-            culprit: fileurl,
-            message: fullMessage
+            culprit: fileurl
         }, options);
 
         // Fire away!
@@ -1220,9 +1218,12 @@ Raven.prototype = {
             auth.sentry_secret = this._globalSecret;
         }
 
+        var exception = data.exception && data.exception.values[0];
         this.captureBreadcrumb({
             category: 'sentry',
-            message: data.message,
+            message: exception
+                ? (exception.type ? exception.type + ': ' : '') + exception.message
+                : data.message,
             event_id: data.event_id,
             level: data.level || 'error' // presume error unless specified
         });

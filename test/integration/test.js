@@ -91,7 +91,7 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData[0];
-                    assert.isTrue(/SyntaxError/.test(ravenData.message)); // full message differs per-browser
+                    assert.isTrue(/SyntaxError/.test(ravenData.exception.values[0].type)); // full message differs per-browser
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // just one frame
                 }
             );
