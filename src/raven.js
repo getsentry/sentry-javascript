@@ -451,7 +451,10 @@ Raven.prototype = {
      * @return {Raven}
      */
     setDataCallback: function(callback) {
-        this._globalOptions.dataCallback = callback;
+        var original = this._globalOptions.dataCallback;
+        this._globalOptions.dataCallback = isFunction(callback)
+          ? function (data) { return callback(data, original); }
+          : callback;
 
         return this;
     },
@@ -464,7 +467,10 @@ Raven.prototype = {
      * @return {Raven}
      */
     setShouldSendCallback: function(callback) {
-        this._globalOptions.shouldSendCallback = callback;
+        var original = this._globalOptions.shouldSendCallback;
+        this._globalOptions.shouldSendCallback = isFunction(callback)
+            ? function (data) { return callback(data, original); }
+            : callback;
 
         return this;
     },
