@@ -1774,9 +1774,14 @@ describe('Raven (public API)', function() {
 
     describe('.setDataCallback', function() {
         it('should set the globalOptions.dataCallback attribute', function() {
-            var foo = function(){};
+            var foo = sinon.stub();
             Raven.setDataCallback(foo);
-            assert.equal(Raven._globalOptions.dataCallback, foo);
+
+            // note that setDataCallback creates a callback/closure around
+            // foo, so can't test for equality - just verify that calling the wrapper
+            // also calls foo
+            Raven._globalOptions.dataCallback();
+            assert.isTrue(foo.calledOnce);
         });
 
         it('should clear globalOptions.dataCallback with no arguments', function() {
@@ -1785,13 +1790,33 @@ describe('Raven (public API)', function() {
             Raven.setDataCallback();
             assert.isUndefined(Raven._globalOptions.dataCallback);
         });
+
+        it('should generate a wrapper that passes the prior callback as the 2nd argument', function () {
+            var foo = sinon.stub();
+            var bar = sinon.spy(function(data, orig) {
+                assert.equal(orig, foo);
+                foo();
+            });
+            Raven._globalOptions.dataCallback = foo;
+            Raven.setDataCallback(bar);
+            Raven._globalOptions.dataCallback({
+                'a': 1 // "data"
+            });
+            assert.isTrue(bar.calledOnce);
+            assert.isTrue(foo.calledOnce);
+        });
     });
 
     describe('.setShouldSendCallback', function() {
         it('should set the globalOptions.shouldSendCallback attribute', function() {
-            var foo = function(){};
+            var foo = sinon.stub();
             Raven.setShouldSendCallback(foo);
-            assert.equal(Raven._globalOptions.shouldSendCallback, foo);
+
+            // note that setShouldSendCallback creates a callback/closure around
+            // foo, so can't test for equality - just verify that calling the wrapper
+            // also calls foo
+            Raven._globalOptions.shouldSendCallback();
+            assert.isTrue(foo.calledOnce);
         });
 
         it('should clear globalOptions.shouldSendCallback with no arguments', function() {
@@ -1799,6 +1824,21 @@ describe('Raven (public API)', function() {
             Raven._globalOptions.shouldSendCallback = foo;
             Raven.setShouldSendCallback();
             assert.isUndefined(Raven._globalOptions.shouldSendCallback);
+        });
+
+        it('should generate a wrapper that passes the prior callback as the 2nd argument', function () {
+            var foo = sinon.stub();
+            var bar = sinon.spy(function(data, orig) {
+                assert.equal(orig, foo);
+                foo();
+            });
+            Raven._globalOptions.shouldSendCallback = foo;
+            Raven.setShouldSendCallback(bar);
+            Raven._globalOptions.shouldSendCallback({
+                'a': 1 // "data"
+            });
+            assert.isTrue(bar.calledOnce);
+            assert.isTrue(foo.calledOnce);
         });
     });
 
