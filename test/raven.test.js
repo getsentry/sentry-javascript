@@ -1757,7 +1757,10 @@ describe('Raven (public API)', function() {
                 Raven.context({foo: 'bar'}, broken);
             }, error);
             assert.isTrue(Raven.captureException.called);
-            assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, {
+                'foo': 'bar',
+                trimTailFrames: 1 // because wrap
+            }]);
         });
 
         it('should capture the exception without options', function() {
@@ -1768,7 +1771,9 @@ describe('Raven (public API)', function() {
                 Raven.context(broken);
             }, error);
             assert.isTrue(Raven.captureException.called);
-            assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, {
+                trimTailFrames: 1 // because wrap
+            }]);
         });
 
         it('should execute the callback without arguments', function() {

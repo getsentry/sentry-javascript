@@ -362,7 +362,18 @@ Raven.prototype = {
      * @return {Raven}
      */
     captureMessage: function(msg, options) {
-        if (options.stacktrace) {
+        // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
+        // early call; we'll error on the side of logging anything called before configuration since it's
+        // probably something you should see:
+        if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(msg)) {
+            return;
+        }
+
+        var data = objectMerge({
+            message: msg + ''  // Make sure it's actually a string
+        }, options);
+
+        if (options && options.stacktrace) {
             var ex;
             // create a stack trace from this point; just trim
             // off extra frames so they don't include this function call (or
@@ -384,26 +395,16 @@ Raven.prototype = {
                 trimTailFrames: (options.trimHeadFrames || 0) + 1
             }, options);
 
-            // infinite loop if ex *somehow* returns false for isError
-            // is that possible when it is result of try/catch?
-            this.captureException(ex, options);
-
-            return this;
-        }
-
-        // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
-        // early call; we'll error on the side of logging anything called before configuration since it's
-        // probably something you should see:
-        if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(msg)) {
-            return;
+            var stack = TraceKit.computeStackTrace(ex);
+            var frames = this._buildNormalizedFrames(stack, options);
+            data.stacktrace = {
+                // Sentry expects frames oldest to newest
+                frames: frames.reverse()
+            }
         }
 
         // Fire away!
-        this._send(
-            objectMerge({
-                message: msg + ''  // Make sure it's actually a string
-            }, options)
-        );
+        this._send(data);
 
         return this;
     },
@@ -1101,26 +1102,7 @@ Raven.prototype = {
     },
 
     _handleStackInfo: function(stackInfo, options) {
-        var self = this;
-        var frames = [];
-
-        if (stackInfo.stack && stackInfo.stack.length) {
-            each(stackInfo.stack, function(i, stack) {
-                var frame = self._normalizeFrame(stack);
-                if (frame) {
-                    frames.push(frame);
-                }
-            });
-
-            // e.g. frames captured via captureMessage throw
-            if (options.trimHeadFrames) {
-                frames = frames.slice(options.trimHeadFrames);
-            }
-            // e.g. try/catch (wrapper) frames
-            if (options.trimTailFrames) {
-                frames = frames.slice(0, options.trimTailFrames);
-            }
-        }
+        var frames = this._prepareFrames(stackInfo, options);
 
         this._triggerEvent('handle', {
             stackInfo: stackInfo,
@@ -1132,10 +1114,41 @@ Raven.prototype = {
             stackInfo.message,
             stackInfo.url,
             stackInfo.lineno,
-            frames.slice(0, this._globalOptions.stackTraceLimit),
+            frames,
             options
         );
     },
+
+    _prepareFrames: function(stackInfo, options) {
+        var self = this;
+        var frames = [];
+        if (stackInfo.stack && stackInfo.stack.length) {
+            each(stackInfo.stack, function(i, stack) {
+                var frame = self._normalizeFrame(stack);
+                if (frame) {
+                    frames.push(frame);
+                }
+            });
+
+            // e.g. frames captured via captureMessage throw
+            var j;
+            if (options && options.trimHeadFrames) {
+                for (j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
+                    frames[j].in_app = true;
+                }
+            }
+
+            // e.g. try/catch (wrapper) frames
+            if (options && options.trimTailFrames) {
+                for (j = options.trimTailFrames; j < frames.length; j++) {
+                    frames[j].in_app = true;
+                }
+            }
+        }
+        frames = frames.slice(0, this._globalOptions.stackTraceLimit);
+        return frames;
+    },
+
 
     _normalizeFrame: function(frame) {
         if (!frame.url) return;
@@ -1162,7 +1175,6 @@ Raven.prototype = {
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
         var stacktrace;
-
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
