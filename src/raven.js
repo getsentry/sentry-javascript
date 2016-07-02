@@ -396,7 +396,7 @@ Raven.prototype = {
             }, options);
 
             var stack = TraceKit.computeStackTrace(ex);
-            var frames = this._buildNormalizedFrames(stack, options);
+            var frames = this._prepareFrames(stack, options);
             data.stacktrace = {
                 // Sentry expects frames oldest to newest
                 frames: frames.reverse()
@@ -1134,14 +1134,14 @@ Raven.prototype = {
             var j;
             if (options && options.trimHeadFrames) {
                 for (j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
-                    frames[j].in_app = true;
+                    frames[j].in_app = false;
                 }
             }
 
             // e.g. try/catch (wrapper) frames
             if (options && options.trimTailFrames) {
                 for (j = options.trimTailFrames; j < frames.length; j++) {
-                    frames[j].in_app = true;
+                    frames[j].in_app = false;
                 }
             }
         }
