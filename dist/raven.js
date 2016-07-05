@@ -1,4 +1,4 @@
-/*! Raven.js 3.1.1 (34f456e) | github.com/getsentry/raven-js */
+/*! Raven.js 3.2.0 (d052e7e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.1.1',
+    VERSION: '3.2.0',
 
     debug: false,
 
@@ -515,7 +515,10 @@ Raven.prototype = {
      * @return {Raven}
      */
     setDataCallback: function(callback) {
-        this._globalOptions.dataCallback = callback;
+        var original = this._globalOptions.dataCallback;
+        this._globalOptions.dataCallback = isFunction(callback)
+          ? function (data) { return callback(data, original); }
+          : callback;
 
         return this;
     },
@@ -528,7 +531,10 @@ Raven.prototype = {
      * @return {Raven}
      */
     setShouldSendCallback: function(callback) {
-        this._globalOptions.shouldSendCallback = callback;
+        var original = this._globalOptions.shouldSendCallback;
+        this._globalOptions.shouldSendCallback = isFunction(callback)
+            ? function (data) { return callback(data, original); }
+            : callback;
 
         return this;
     },
@@ -1126,12 +1132,11 @@ Raven.prototype = {
     },
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
-        var stacktrace, fullMessage;
+        var stacktrace;
 
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
-        fullMessage = (type ? type + ': ' : '') + message;
 
         if (frames && frames.length) {
             fileurl = frames[0].filename || fileurl;
@@ -1161,8 +1166,7 @@ Raven.prototype = {
                     stacktrace: stacktrace
                 }]
             },
-            culprit: fileurl,
-            message: fullMessage
+            culprit: fileurl
         }, options);
 
         // Fire away!
@@ -1284,10 +1288,14 @@ Raven.prototype = {
             auth.sentry_secret = this._globalSecret;
         }
 
+        var exception = data.exception && data.exception.values[0];
         this.captureBreadcrumb({
             category: 'sentry',
-            message: data.message,
-            event_id: data.event_id
+            message: exception
+                ? (exception.type ? exception.type + ': ' : '') + exception.message
+                : data.message,
+            event_id: data.event_id,
+            level: data.level || 'error' // presume error unless specified
         });
 
         var url = this._globalEndpoint;
@@ -1353,13 +1361,6 @@ Raven.prototype = {
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', url + '?' + urlencode(opts.auth));
         request.send(JSON.stringify(opts.data));
-    },
-
-    // Note: this is shitty, but I can't figure out how to get
-    // sinon to stub document.createElement without breaking everything
-    // so this wrapper is just so I can stub it for tests.
-    _newImage: function() {
-        return document.createElement('img');
     },
 
     _logDebug: function(level) {
