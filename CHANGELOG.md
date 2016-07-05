@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.2.0
+* CHANGE: Callbacks set via `setDataCallback`, `setShouldSendCallback` now receive any prior-set callback as the 2nd argument. See: https://github.com/getsentry/raven-js/pull/636
+* CHANGE: Raven.js no longer passes a 'message' interface for exceptions. See: https://github.com/getsentry/raven-js/pull/632
+* CHANGE: Log level now recorded for "sentry" breadcrumbs. See: https://github.com/getsentry/raven-js/pull/633
+
 ## 3.1.1
 * BUGFIX: Fix message truncation occurring before dataCallback is invoked. See: https://github.com/getsentry/raven-js/issues/605
 * BUGFIX: Fix pushState error in Chrome Apps. See: https://github.com/getsentry/raven-js/issues/601
