@@ -1299,13 +1299,6 @@ Raven.prototype = {
         request.send(JSON.stringify(opts.data));
     },
 
-    // Note: this is shitty, but I can't figure out how to get
-    // sinon to stub document.createElement without breaking everything
-    // so this wrapper is just so I can stub it for tests.
-    _newImage: function() {
-        return document.createElement('img');
-    },
-
     _logDebug: function(level) {
         if (this._originalConsoleMethods[level] && this.debug) {
             // In IE<10 console methods do not have their own 'apply' method
