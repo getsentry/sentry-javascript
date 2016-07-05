@@ -176,6 +176,12 @@ export interface RavenStatic {
 
     /** If you need to conditionally check if raven needs to be initialized or not, you can use the isSetup function. It will return true if Raven is already initialized. */
     isSetup(): boolean;
+
+    /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
+    setDataCallback(data: any, orig?: any): RavenStatic;
+
+    /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
+    setShouldSendCallback(data: any, orig?: any): RavenStatic;
 }
 
 interface RavenTransportOptions {

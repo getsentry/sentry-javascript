@@ -48,3 +48,8 @@ Raven.setUserContext({
 
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
+
+Raven.setDataCallback(function (data) {});
+Raven.setDataCallback(function (data, original) {});
+Raven.setShouldSendCallback(function (data) {});
+Raven.setShouldSendCallback(function (data, original) {});
