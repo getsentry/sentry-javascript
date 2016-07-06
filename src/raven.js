@@ -384,6 +384,8 @@ Raven.prototype = {
                 ex = ex1;
             }
 
+            console.log(ex.stack);
+
             // null exception name so `Error` isn't prefixed to msg
             ex.name = null;
 
@@ -1132,15 +1134,15 @@ Raven.prototype = {
 
             // e.g. frames captured via captureMessage throw
             var j;
-            if (options && options.trimHeadFrames) {
-                for (j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
+            if (options && options.trimTailFrames) {
+                for (j = 0; j < options.trimTailFrames && j < frames.length; j++) {
                     frames[j].in_app = false;
                 }
             }
 
             // e.g. try/catch (wrapper) frames
-            if (options && options.trimTailFrames) {
-                for (j = options.trimTailFrames; j < frames.length; j++) {
+            if (options && options.trimHeadFrames) {
+                for (j = frames.length - options.trimHeadFrames; j < frames.length; j++) {
                     frames[j].in_app = false;
                 }
             }
