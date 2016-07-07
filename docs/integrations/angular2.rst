@@ -52,7 +52,7 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
 
 .. code-block:: js
 
-    import Raven from 'raven-js';
+    import Raven = require('raven-js');
     import { bootstrap } from 'angular2/platform/browser';
     import { MainApp } from './app.component';
     import { provide, ExceptionHandler } from 'angular2/core';
