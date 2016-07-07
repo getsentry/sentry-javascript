@@ -363,8 +363,6 @@ Raven.prototype = {
                 ex = ex1;
             }
 
-            console.log(ex.stack);
-
             // null exception name so `Error` isn't prefixed to msg
             ex.name = null;
 
