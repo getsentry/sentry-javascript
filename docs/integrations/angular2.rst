@@ -52,7 +52,7 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
 
 .. code-block:: js
 
-    import Raven = require('raven-js');
+    import Raven from 'raven-js';
     import { bootstrap } from 'angular2/platform/browser';
     import { MainApp } from './app.component';
     import { provide, ExceptionHandler } from 'angular2/core';
@@ -72,3 +72,14 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
     ]);
 
 Once you've completed these two steps, you are done.
+
+Webpack and Other Module Loaders
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Webpack and other module loaders, you may need to use the require keyword to load Raven:
+
+.. code-block:: js
+
+    import Raven = require('raven-js');
+      .config('__PUBLIC_DSN__')
+      .install();
