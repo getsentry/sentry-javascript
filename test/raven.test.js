@@ -2042,10 +2042,10 @@ describe('Raven (public API)', function() {
 
             // Raven.captureMessage
             var last = frames[frames.length - 1];
-            console.log(last.function);
-            assert.isTrue(/captureMessage/.test(last.function)); // loose equality check because differs per-browser
+            assert.isTrue(/(captureMessage|^\?)$/.test(last.function)); // loose equality check because differs per-browser
             assert.equal(last.in_app, false);
 
+            // foo
             var secondLast = frames[frames.length - 2];
             assert.equal(secondLast.function, 'foo');
             assert.equal(secondLast.in_app, true);
