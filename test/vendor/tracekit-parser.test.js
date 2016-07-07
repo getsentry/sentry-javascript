@@ -262,5 +262,11 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack[1], { url: 'http://path/to/file.js', func: 'foo', args: [], line: 52, column: 15 });
             assert.deepEqual(stackFrames.stack[2], { url: 'http://path/to/file.js', func: 'bar', args: [], line: 108, column: 168 });
         });
+
+        it('should parse PhantomJS 1.19 error', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.PHANTOMJS_1_19);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 3);
+        });
     });
 });

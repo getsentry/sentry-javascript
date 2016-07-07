@@ -333,4 +333,11 @@ CapturedExceptions.CHROME_48_BLOB = {
     "    at n.handle (blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379:7:2863)"
 };
 
+CapturedExceptions.PHANTOMJS_1_19 = {
+    stack: "Error: foo\n" +
+    "    at file:///path/to/file.js:878\n" +
+    "    at foo (http://path/to/file.js:4283)\n" +
+    "    at http://path/to/file.js:4287"
+};
+
 module.exports = CapturedExceptions;
