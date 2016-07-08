@@ -4,9 +4,9 @@
 
 declare var Raven: RavenStatic;
 
-export default Raven;
+export = Raven;
 
-export interface RavenOptions {
+interface RavenOptions {
     /** The log level associated with this event. Default: error */
     level?: string;
 
@@ -54,7 +54,7 @@ export interface RavenOptions {
     transport?: (options: RavenTransportOptions) => void;
 }
 
-export interface RavenStatic {
+interface RavenStatic {
 
     /** Raven.js version. */
     VERSION: string;

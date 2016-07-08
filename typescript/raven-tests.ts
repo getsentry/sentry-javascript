@@ -1,8 +1,8 @@
-import Raven, {RavenOptions} from '..';
+import Raven = require('..');
 
 Raven.config('https://public@getsentry.com/1').install();
 
-var options: RavenOptions = {
+var options = {
     logger: 'my-logger',
     ignoreUrls: [
         /graph\.facebook\.com/i,
@@ -22,7 +22,7 @@ var options: RavenOptions = {
     ]
 };
 
-Raven.config('https://public@getsentry.com/1', 1).install();
+Raven.config('https://public@getsentry.com/1', options).install();
 
 var throwsError = () => {
     throw new Error('broken');
