@@ -58,7 +58,7 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
     import { provide, ExceptionHandler } from 'angular2/core';
 
     Raven
-      .config('__PUBLIC_DSN__')
+      .config('___PUBLIC_DSN___')
       .install();
 
     class RavenExceptionHandler {
@@ -81,5 +81,5 @@ In Webpack and other module loaders, you may need to use the require keyword to 
 .. code-block:: js
 
     import Raven = require('raven-js');
-      .config('__PUBLIC_DSN__')
+      .config('___PUBLIC_DSN___')
       .install();
