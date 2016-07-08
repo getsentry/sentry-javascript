@@ -1113,7 +1113,9 @@ Raven.prototype = {
         // For now, we only want to truncate the two different messages
         // but this could/should be expanded to just trim everything
         var max = this._globalOptions.maxMessageLength;
-        data.message = truncate(data.message, max);
+        if (data.message) {
+            data.message = truncate(data.message, max);
+        }
         if (data.exception) {
             var exception = data.exception.values[0];
             exception.value = truncate(exception.value, max);
