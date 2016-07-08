@@ -78,6 +78,29 @@ describe('integration', function () {
                 }
             );
         });
+
+        it('should capture an Error object passed to Raven.captureException w/ maxMessageLength set (#647)', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    Raven._globalOptions.maxMessageLength = 100;
+                    Raven.captureException(new Error('lol'), {
+                      level: 'warning',
+                      extra: {
+                        foo: 'bar'
+                      }
+                    });
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    assert.equal(ravenData.exception.type, 'Error');
+                    assert.equal(ravenData.exception.value, 'lol');
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);
+                }
+            );
+        });
     });
 
     describe('window.onerror', function () {
