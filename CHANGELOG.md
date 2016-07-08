@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.2.1
+* CHANGE: Fixed TypeScript language declaration file for compatibility w/ Webpack loaders. See: https://github.com/getsentry/raven-js/pull/645
+
 ## 3.2.0
 * CHANGE: Callbacks set via `setDataCallback`, `setShouldSendCallback` now receive any prior-set callback as the 2nd argument. See: https://github.com/getsentry/raven-js/pull/636
 * CHANGE: Raven.js no longer passes a 'message' interface for exceptions. See: https://github.com/getsentry/raven-js/pull/632
