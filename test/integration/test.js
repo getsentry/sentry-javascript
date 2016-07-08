@@ -95,8 +95,8 @@ describe('integration', function () {
                 },
                 function () {
                     var ravenData = iframe.contentWindow.ravenData[0];
-                    assert.equal(ravenData.exception.type, 'Error');
-                    assert.equal(ravenData.exception.value, 'lol');
+                    assert.equal(ravenData.exception.values[0].type, 'Error');
+                    assert.equal(ravenData.exception.values[0].value, 'lol');
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);
                 }
             );
