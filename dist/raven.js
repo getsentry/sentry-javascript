@@ -1,4 +1,4 @@
-/*! Raven.js 3.2.0 (d052e7e) | github.com/getsentry/raven-js */
+/*! Raven.js 3.2.1 (bbd229d) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -150,7 +150,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.2.0',
+    VERSION: '3.2.1',
 
     debug: false,
 
@@ -1177,7 +1177,9 @@ Raven.prototype = {
         // For now, we only want to truncate the two different messages
         // but this could/should be expanded to just trim everything
         var max = this._globalOptions.maxMessageLength;
-        data.message = truncate(data.message, max);
+        if (data.message) {
+            data.message = truncate(data.message, max);
+        }
         if (data.exception) {
             var exception = data.exception.values[0];
             exception.value = truncate(exception.value, max);
@@ -2062,7 +2064,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|<anonymous>).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
-            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:ms-appx|https?|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+            winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
             parts,
