@@ -4,6 +4,7 @@
 var TraceKit = require('../vendor/TraceKit/tracekit');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
+var stringify = require('json-stringify-safe');
 
 var isFunction = utils.isFunction;
 var isUndefined = utils.isUndefined;
@@ -428,7 +429,7 @@ Raven.prototype = {
      */
     getContext: function() {
         // lol javascript
-        return JSON.parse(JSON.stringify(this._globalContext));
+        return JSON.parse(stringify(this._globalContext));
     },
 
     /*
@@ -1285,7 +1286,7 @@ Raven.prototype = {
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', url + '?' + urlencode(opts.auth));
-        request.send(JSON.stringify(opts.data));
+        request.send(stringify(opts.data));
     },
 
     // Note: this is shitty, but I can't figure out how to get
