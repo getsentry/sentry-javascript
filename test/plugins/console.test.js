@@ -13,7 +13,8 @@ describe('console plugin', function() {
       debug: function() {},
       info: function() {},
       warn: function() {},
-      error: function() {}
+      error: function() {},
+      assert: function() {}
     };
 
     consolePlugin(Raven, console);
@@ -49,6 +50,56 @@ describe('console plugin', function() {
       extra: {
         arguments: ['Raven should capture console.warn']
       }
+    });
+  });
+
+  describe('console.assert', function() {
+    var console;
+
+    beforeEach(function() {
+      console = {
+        assert: function() {}
+      };
+      consolePlugin(Raven, console);
+      this.sinon.stub(Raven, 'captureMessage');
+    });
+
+    it("shouldn't trigger captureMessage when assertion passes", function() {
+      console.assert(2 + 2 === 4, 'random message');
+      assert.equal(Raven.captureMessage.callCount, 0);
+    });
+
+    it('should trigger captureMessages when assertion fails', function() {
+      console.assert(2 + 2 === 5, 'random message', 'and even more');
+      assert.equal(Raven.captureMessage.callCount, 1);
+      assert.equal(
+        Raven.captureMessage.getCall(0).args[0],
+        'Assertion failed: random message and even more'
+      );
+      assert.deepEqual(Raven.captureMessage.getCall(0).args[1], {
+        level: 'assert',
+        logger: 'console',
+        extra: {
+          arguments: ['random message', 'and even more']
+        }
+      });
+    });
+
+    // As this is default browsers behaviour
+    it("should default to 'console.assert' message for failed assertion", function() {
+      console.assert(2 + 2 === 5);
+      assert.equal(Raven.captureMessage.callCount, 1);
+      assert.equal(
+        Raven.captureMessage.getCall(0).args[0],
+        'Assertion failed: console.assert'
+      );
+      assert.deepEqual(Raven.captureMessage.getCall(0).args[1], {
+        level: 'assert',
+        logger: 'console',
+        extra: {
+          arguments: []
+        }
+      });
     });
   });
 });
