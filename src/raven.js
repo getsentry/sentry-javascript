@@ -55,6 +55,7 @@ function Raven() {
         maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
+        noDefaultIgnoreErrors: false,
         sampleRate: 1
     };
     this._ignoreOnError = 0;
@@ -128,10 +129,12 @@ Raven.prototype = {
 
         self.setDSN(dsn);
 
-        // "Script error." is hard coded into browsers for errors that it can't read.
-        // this is the result of a script being pulled in from an external domain and CORS.
-        globalOptions.ignoreErrors.push(/^Script error\.?$/);
-        globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
+        if (!this._globalOptions.noDefaultIgnoreErrors) {
+          // "Script error." is hard coded into browsers for errors that it can't read.
+          // this is the result of a script being pulled in from an external domain and CORS.
+          globalOptions.ignoreErrors.push(/^Script error\.?$/);
+          globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
+        }
 
         // join regexp rules into one big rule
         globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
