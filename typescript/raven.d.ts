@@ -13,6 +13,9 @@ interface RavenOptions {
     /** The name of the logger used by Sentry. Default: javascript */
     logger?: string;
 
+    /** The environment of the application you are monitoring with Sentry */
+    environment?: string;
+
     /** The release version of the application you are monitoring with Sentry */
     release?: string;
 
