@@ -431,6 +431,19 @@ Raven.prototype = {
         return JSON.parse(JSON.stringify(this._globalContext));
     },
 
+
+    /*
+     * Set environment of application
+     *
+     * @param {string} environment Typically something like 'production'.
+     * @return {Raven}
+     */
+    setEnvironment: function(environment) {
+        this._globalOptions.environment = environment;
+
+        return this;
+    },
+
     /*
      * Set release version of application
      *
@@ -1184,6 +1197,9 @@ Raven.prototype = {
             // sentry.interfaces.User
             data.user = this._globalContext.user;
         }
+
+        // Include the environment if it's defined in globalOptions
+        if (globalOptions.environment) data.environment = globalOptions.environment;
 
         // Include the release if it's defined in globalOptions
         if (globalOptions.release) data.release = globalOptions.release;

@@ -855,6 +855,39 @@ describe('globals', function() {
             });
         });
 
+        it('should attach environment if available', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                environment: 'abc123'
+            };
+
+            Raven._send({message: 'bar'});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                project: '2',
+                environment: 'abc123',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                message: 'bar',
+                extra: {'session:duration': 100}
+            });
+        });
+
         it('should attach release if available', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
@@ -1756,6 +1789,19 @@ describe('Raven (public API)', function() {
             context.tags.a = 2;
             // It shouldn't have mutated the original
             assert.equal(globalContext.tags.a, 1);
+        });
+    });
+
+    describe('.setEnvironment', function() {
+        it('should set the globalOptions.environment attribute', function() {
+            Raven.setEnvironment('abc123');
+            assert.equal(Raven._globalOptions.environment, 'abc123');
+        });
+
+        it('should clear globalOptions.environment with no arguments', function() {
+            Raven._globalOptions.environment = 'abc123';
+            Raven.setEnvironment();
+            assert.isUndefined(Raven._globalOptions.environment);
         });
     });
 
