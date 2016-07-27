@@ -39,12 +39,14 @@ describe('React Native plugin', function () {
                     }],
                 }
             };
-            reactNativePlugin._normalizeData(data);
+            reactNativePlugin._normalizeData(data, function(uri) {
+                return uri.replace(/^.*\//, '');
+            });
 
-            assert.equal(data.culprit, '/app.js');
+            assert.equal(data.culprit, 'app.js');
             var frames = data.exception.values[0].stacktrace.frames;
-            assert.equal(frames[0].filename, '/file1.js');
-            assert.equal(frames[1].filename, '/file2.js');
+            assert.equal(frames[0].filename, 'file1.js');
+            assert.equal(frames[1].filename, 'file2.js');
         });
     });
 

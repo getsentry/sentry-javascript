@@ -12,19 +12,13 @@
  *   pathStrip: A RegExp that matches the portions of a file URI that should be
  *     removed from stacks prior to submission.
  *
+ *   normalizeUrl: A function that is given the file:// URI to a bundle, and
+ *     should return its normalized form (used for release asset lookup).
+ *
  */
 'use strict';
 
-var PATH_STRIP_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
-
-/**
- * Strip device-specific IDs from React Native file:// paths
- */
-function normalizeUrl(url, pathStripRe) {
-    return url
-        .replace(/^file\:\/\//, '')
-        .replace(pathStripRe, '');
-}
+var DEFAULT_PATH_STRIP_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
 
 /**
  * Extract key/value pairs from an object and encode them for
@@ -44,6 +38,18 @@ function urlencode(obj) {
  */
 function reactNativePlugin(Raven, options) {
     options = options || {};
+    if (options.pathStrip && options.normalizeUrl) {
+        throw new TypeError('Please pass either pathStrip or normalizeUrl, not both');
+    }
+    var normalizeUrl = options.normalizeUrl;
+    if (!normalizeUrl) {
+        var pathStripRe = options.pathStripRe || DEFAULT_PATH_STRIP_RE;
+        normalizeUrl = function defaultNormalizeUrl(url) {
+            return url
+                .replace(/^file\:\/\//, '')
+                .replace(pathStripRe, '');
+        };
+    }
 
     // react-native doesn't have a document, so can't use default Image
     // transport - use XMLHttpRequest instead
@@ -51,14 +57,14 @@ function reactNativePlugin(Raven, options) {
 
     // Use data callback to strip device-specific paths from stack traces
     Raven.setDataCallback(function(data) {
-        reactNativePlugin._normalizeData(data, options.pathStrip)
+        reactNativePlugin._normalizeData(data, normalizeUrl);
     });
 
     var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
 
     ErrorUtils.setGlobalHandler(function() {
         var error = arguments[0];
-        defaultHandler.apply(this, arguments)
+        defaultHandler.apply(this, arguments);
         Raven.captureException(error);
     });
 }
@@ -102,19 +108,15 @@ reactNativePlugin._transport = function (options) {
  * Strip device-specific IDs found in culprit and frame filenames
  * when running React Native applications on a physical device.
  */
-reactNativePlugin._normalizeData = function (data, pathStripRe) {
-    if (!pathStripRe) {
-        pathStripRe = PATH_STRIP_RE;
-    }
-
+reactNativePlugin._normalizeData = function (data, normalizeUrl) {
     if (data.culprit) {
-        data.culprit = normalizeUrl(data.culprit, pathStripRe);
+        data.culprit = normalizeUrl(data.culprit);
     }
 
     if (data.exception) {
         // if data.exception exists, all of the other keys are guaranteed to exist
         data.exception.values[0].stacktrace.frames.forEach(function (frame) {
-            frame.filename = normalizeUrl(frame.filename, pathStripRe);
+            frame.filename = normalizeUrl(frame.filename);
         });
     }
 };
