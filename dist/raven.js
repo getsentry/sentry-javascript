@@ -1,4 +1,4 @@
-/*! Raven.js 3.2.1 (bbd229d) | github.com/getsentry/raven-js */
+/*! Raven.js 3.2.1 (492f4bf) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -11,6 +11,35 @@
  */
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+exports = module.exports = stringify
+exports.getSerialize = serializer
+
+function stringify(obj, replacer, spaces, cycleReplacer) {
+  return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces)
+}
+
+function serializer(replacer, cycleReplacer) {
+  var stack = [], keys = []
+
+  if (cycleReplacer == null) cycleReplacer = function(key, value) {
+    if (stack[0] === value) return "[Circular ~]"
+    return "[Circular ~." + keys.slice(0, stack.indexOf(value)).join(".") + "]"
+  }
+
+  return function(key, value) {
+    if (stack.length > 0) {
+      var thisPos = stack.indexOf(this)
+      ~thisPos ? stack.splice(thisPos + 1) : stack.push(this)
+      ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key)
+      if (~stack.indexOf(value)) value = cycleReplacer.call(this, key, value)
+    }
+    else stack.push(value)
+
+    return replacer == null ? value : replacer.call(this, key, value)
+  }
+}
+
+},{}],2:[function(_dereq_,module,exports){
 'use strict';
 
 function RavenConfigError(message) {
@@ -22,7 +51,7 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
-},{}],2:[function(_dereq_,module,exports){
+},{}],3:[function(_dereq_,module,exports){
 'use strict';
 
 var wrapMethod = function(console, level, callback) {
@@ -61,13 +90,14 @@ module.exports = {
     wrapMethod: wrapMethod
 };
 
-},{}],3:[function(_dereq_,module,exports){
+},{}],4:[function(_dereq_,module,exports){
 /*global XDomainRequest:false*/
 'use strict';
 
-var TraceKit = _dereq_(6);
-var RavenConfigError = _dereq_(1);
-var utils = _dereq_(5);
+var TraceKit = _dereq_(7);
+var RavenConfigError = _dereq_(2);
+var utils = _dereq_(6);
+var stringify = _dereq_(1);
 
 var isFunction = utils.isFunction;
 var isUndefined = utils.isUndefined;
@@ -84,7 +114,7 @@ var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
 var isString = utils.isString;
 
-var wrapConsoleMethod = _dereq_(2).wrapMethod;
+var wrapConsoleMethod = _dereq_(3).wrapMethod;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -492,7 +522,20 @@ Raven.prototype = {
      */
     getContext: function() {
         // lol javascript
-        return JSON.parse(JSON.stringify(this._globalContext));
+        return JSON.parse(stringify(this._globalContext));
+    },
+
+
+    /*
+     * Set environment of application
+     *
+     * @param {string} environment Typically something like 'production'.
+     * @return {Raven}
+     */
+    setEnvironment: function(environment) {
+        this._globalOptions.environment = environment;
+
+        return this;
     },
 
     /*
@@ -1249,6 +1292,9 @@ Raven.prototype = {
             data.user = this._globalContext.user;
         }
 
+        // Include the environment if it's defined in globalOptions
+        if (globalOptions.environment) data.environment = globalOptions.environment;
+
         // Include the release if it's defined in globalOptions
         if (globalOptions.release) data.release = globalOptions.release;
 
@@ -1362,7 +1408,7 @@ Raven.prototype = {
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
         //       HTTP header) so as to avoid preflight CORS requests
         request.open('POST', url + '?' + urlencode(opts.auth));
-        request.send(JSON.stringify(opts.data));
+        request.send(stringify(opts.data));
     },
 
     _logDebug: function(level) {
@@ -1391,7 +1437,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 
 module.exports = Raven;
 
-},{"1":1,"2":2,"5":5,"6":6}],4:[function(_dereq_,module,exports){
+},{"1":1,"2":2,"3":3,"6":6,"7":7}],5:[function(_dereq_,module,exports){
 /**
  * Enforces a single instance of the Raven client, and the
  * main entry point for Raven. If you are a consumer of the
@@ -1400,7 +1446,7 @@ module.exports = Raven;
 
 'use strict';
 
-var RavenConstructor = _dereq_(3);
+var RavenConstructor = _dereq_(4);
 
 var _Raven = window.Raven;
 
@@ -1421,7 +1467,7 @@ Raven.afterLoad();
 
 module.exports = Raven;
 
-},{"3":3}],5:[function(_dereq_,module,exports){
+},{"4":4}],6:[function(_dereq_,module,exports){
 /*eslint no-extra-parens:0*/
 'use strict';
 
@@ -1679,10 +1725,10 @@ module.exports = {
     parseUrl: parseUrl
 };
 
-},{}],6:[function(_dereq_,module,exports){
+},{}],7:[function(_dereq_,module,exports){
 'use strict';
 
-var utils = _dereq_(5);
+var utils = _dereq_(6);
 
 var hasKey = utils.hasKey;
 var isString = utils.isString;
@@ -2460,5 +2506,5 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
 module.exports = TraceKit;
 
-},{"5":5}]},{},[4])(4)
+},{"6":6}]},{},[5])(5)
 });

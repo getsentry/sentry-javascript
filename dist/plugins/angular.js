@@ -1,4 +1,4 @@
-/*! Raven.js 3.2.1 (bbd229d) | github.com/getsentry/raven-js */
+/*! Raven.js 3.2.1 (492f4bf) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -50,7 +50,7 @@ function angularPlugin(Raven, angular) {
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
 
-    Raven.setDataCallback(function(data) {
+    Raven.setDataCallback(function(data, original) {
         // We only care about mutating an exception
         var exception = data.exception;
         if (exception) {
@@ -66,6 +66,7 @@ function angularPlugin(Raven, angular) {
                 data.extra.angularDocs = matches[3].substr(0, 250);
             }
         }
+        original && original(data);
     });
 }
 

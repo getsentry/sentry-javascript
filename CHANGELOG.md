@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.3.0
+* NEW: Can now specify `environment` configuration option. See: https://github.com/getsentry/raven-js/pull/661
+* CHANGE: Raven.js now serializes data payload w/ json-stringify-safe to avoid circular references. See: https://github.com/getsentry/raven-js/pull/652
+* BUGFIX: Angular 1.x plugin no longer clobbers user-specified `dataCallback`. See: https://github.com/getsentry/raven-js/pull/658
+
 ## 3.2.1
 * BUGFIX: Fixed error when manually calling captureException with Error objects w/ maxMessageLength > 0. See: https://github.com/getsentry/raven-js/pull/647
 * BUGFIX: Fixed TypeScript language declaration file for compatibility w/ Webpack loaders. See: https://github.com/getsentry/raven-js/pull/645
