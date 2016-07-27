@@ -49,37 +49,72 @@ app, you’ll want to create a new release inside Sentry.  This is for two
 important reasons:
 
 - You can associate errors tracked by Sentry with a particular build
-- You can store your source maps generated for each build inside Sentry
+- You can store your source files/source maps generated for each build inside Sentry
 
 Unlike a normal web application where your JavaScript files (and source
 maps) are served and hosted from a web server, your React Native code is
 being served from the target device’s filesystem. So you’ll need to upload
 both your **source code** AND **source maps** directly to Sentry, so that
 we can generate handy stack traces for you to browse when examining
-exceptions trigged by your application.
+exceptions triggered by your application.
 
 
-Generating source maps
------------------------
+Generating and Uploading Source Files/Source Maps
+-------------------------------------------------
 
-To generate source maps for your project, first start the `React Native Packager`_:
-
-.. _React Native Packager: https://github.com/facebook/react-native/tree/master/packager#react-native-packager
+To generate both an application JavaScript file (main.jsbundle) and source map for your project (main.jsbundle.map), use the react-native CLI tool:
 
 .. code-block:: bash
 
-    $ npm start
+    react-native bundle \
+      --dev false \
+      --platform ios \
+      --entry-file index.ios.js \
+      --bundle-output main.jsbundle \
+      --sourcemap-output main.jsbundle.map
 
-Then, in another tab, curl the packager service for your source map:
-
-.. code-block:: bash
-
-    $ curl http://127.0.0.1:8081/index.ios.map -o index.ios.map
-
-This will write a file index.ios.map to the current directory.
-
-Lastly, you'll need to `create a new release and upload your source code files and source maps as release artifact
+This will write both main.jsbundle and main.jsbundle.map to the current directory. Next, you'll need to `create a new release and upload these files as release artifacts
 <https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry>`__.
+
+Naming your Artifacts
+~~~~~~~~~~~~~~~~~~~~~
+
+In Sentry, artifacts are designed to be "named" using the full URL or path at which that artifact is located (e.g. `https://example.org/app.js` or `/path/to/file.js/`).
+Since React Native applications are installed to a user's device, on a path that includes unique device identifiers (and thus different for every user),
+the React Native plugin strips the entire path leading up to your application root.
+
+This means that although your code may live at the following path:
+
+.. code::
+
+    /var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
+
+The React Native plugin will reduce this to:
+
+.. code::
+
+    /main.jsbundle
+
+Therefore in this example, you should name your artifacts as "/main.jsbundle" and "/main.jsbundle.map".
+
+Source Maps with the Simulator
+------------------------------
+
+When developing with the simulator, it is not necessary to build source maps manually, as they are generated automatically on-demand.
+
+Note however that artifact names are completely different when using the simulator. This is because instead of those files existing
+on a path on a device, they are served over HTTP via the `React Native packager
+<https://github.com/facebook/react-native/tree/master/packager>`__.
+
+Typically, simulator assets are served at the following URLs:
+
+- Bundle: http://localhost:8081/index.ios.bundle?platform=ios&dev=true
+- Source map: http://localhost:8081/index.ios.map?platform=ios&dev=true
+
+If you want to evaluate Sentry's source map support using the simulator, you will need to fetch these assets at these URLs (while the React Native
+packager is running), and upload them to Sentry as artifacts. They should be named using the full URL at which they are located, including
+the query string.
+
 
 Expanded Usage
 --------------
