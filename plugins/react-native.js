@@ -15,7 +15,10 @@
  */
 'use strict';
 
-var PATH_STRIP_RE = /^\/var\/mobile\/Containers\/Bundle\/Application\/[^\/]+\/[^\.]+\.app/;
+// Example React Native path format (iOS):
+// /var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
+
+var PATH_STRIP_RE = /^.*\/[^\.]+\.app/;
 
 /**
  * Strip device-specific IDs from React Native file:// paths

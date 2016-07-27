@@ -24,7 +24,7 @@ describe('React Native plugin', function () {
                     values: [{
                         stacktrace: {
                             frames: [{
-                                filename: 'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/file1.js',
+                                filename: 'file:///var/containers/Bundle/Application/ABC/123.app/file1.js',
                                 lineno: 10,
                                 colno: 11,
                                 'function': 'broken'
