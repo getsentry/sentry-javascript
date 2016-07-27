@@ -13,6 +13,9 @@
     "url": "git://github.com/getsentry/raven-js.git"
   },
   "main": "src/singleton.js",
+  "dependencies": {
+    "json-stringify-safe": "^5.0.1"
+  },
   "devDependencies": {
     "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
