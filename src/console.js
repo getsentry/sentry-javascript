@@ -32,6 +32,24 @@ var wrapMethod = function(console, level, callback) {
     };
 };
 
+var wrapAssert = function(console) {
+    console.assert = function () {
+        var args = [].slice.call(arguments);
+        var result = args.shift();
+        if (!result) {
+            args.unshift('Assertion failed');
+            // IE9 doesn't allow calling apply on console functions directly
+            // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
+            Function.prototype.apply.call(
+                console.error,
+                console,
+                args
+            );
+        }
+    };
+};
+
 module.exports = {
-    wrapMethod: wrapMethod
+    wrapMethod: wrapMethod,
+    wrapAssert: wrapAssert
 };

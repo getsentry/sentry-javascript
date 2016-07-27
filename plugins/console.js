@@ -12,6 +12,7 @@
 'use strict';
 
 var wrapConsoleMethod = require('../src/console').wrapMethod;
+var wrapConsoleAssert = require('../src/console').wrapAssert;
 
 function consolePlugin(Raven, console, pluginOptions) {
     console = console || window.console || {};
@@ -28,20 +29,9 @@ function consolePlugin(Raven, console, pluginOptions) {
         wrapConsoleMethod(console, level, callback);
         level = logLevels.pop();
     }
-    
-    console.assert = function () {
-        var args = [].slice.call(arguments);
-        var result = args.shift();
-        if (!result) {
-            args.unshift("Assertion failed");
-            // IE9 doesn't allow calling apply on console functions directly
-            // See: https://stackoverflow.com/questions/5472938/does-ie9-support-console-log-and-is-it-a-real-function#answer-5473193
-            Function.prototype.apply.call(
-                console.error,
-                console,
-                args
-            );
-        }
+
+    if (console.assert) {
+        wrapConsoleAssert(console);
     }
 }
 
