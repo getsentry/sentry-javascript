@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "cookie": "0.1.0",
+    "json-stringify-safe": "^5.0.1",
     "lsmod": "1.0.0",
     "node-uuid": "~1.4.1",
     "stack-trace": "0.0.7"

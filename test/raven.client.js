@@ -263,20 +263,24 @@ describe('raven.Client', function() {
 
     it('shouldn\'t choke on circular references', function(done) {
       // See: https://github.com/mattrobenolt/raven-node/pull/46
-      var scope = nock('https://app.getsentry.com')
-        .filteringRequestBody(/.*/, '*')
-        .post('/api/269/store/', '*')
-        .reply(200, 'OK');
+      var old = zlib.deflate;
+      zlib.deflate = function mockSend(skwargs) {
+        zlib.deflate = old;
 
-      client.on('logged', function() {
-        scope.done();
+        var kwargs = JSON.parse(skwargs);
+        kwargs.should.have.property('extra', {
+          foo: '[Circular ~]'
+        });
         done();
-      });
+      };
+
       // create circular reference
       var kwargs = {
-        extra: {}
+        extra: {
+          foo: null
+        }
       };
-      kwargs.extra.kwargs = kwargs;
+      kwargs.extra.foo = kwargs;
       client.captureError(new Error('wtf?'), kwargs);
     });
   });
