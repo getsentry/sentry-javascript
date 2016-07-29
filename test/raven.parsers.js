@@ -47,14 +47,14 @@ describe('raven.parsers', function() {
           encrypted: true
         },
         connection: {
-          remoteAddress: '69.69.69.69'
+          remoteAddress: '127.0.0.1'
         }
       };
       var parsed = raven.parsers.parseRequest(mockReq);
       parsed.should.have.property('request');
       parsed.request.url.should.equal('https://mattrobenolt.com/some/path?key=value');
       parsed.request.env.NODE_ENV.should.equal(process.env.NODE_ENV);
-      parsed.request.env.REMOTE_ADDR.should.equal('69.69.69.69');
+      parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
     });
 
     describe('`headers` detection', function() {
@@ -303,12 +303,12 @@ describe('raven.parsers', function() {
           headers: {
             hostname: 'mattrobenolt.com',
           },
-          ip: '69.69.69.69'
+          ip: '127.0.0.1'
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed.request.env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
       });
 
       it('should detect ip via `req.connection.remoteAddress`', function() {
@@ -319,13 +319,13 @@ describe('raven.parsers', function() {
             hostname: 'mattrobenolt.com',
           },
           connection: {
-            remoteAddress: '69.69.69.69'
+            remoteAddress: '127.0.0.1'
           }
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed.request.env.REMOTE_ADDR.should.equal('69.69.69.69');
+        parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
       });
     });
 
@@ -407,6 +407,61 @@ describe('raven.parsers', function() {
 
         var parsed = raven.parsers.parseRequest(mockReq);
         parsed.request.data.should.equal('{\"foo\":true}');
+      });
+    });
+
+    describe('`user` detection', function () {
+      it('should assign req.user to kwargs', function () {
+        var mockReq = {
+          method: 'POST',
+          hostname: 'example.org',
+          url: '/some/path?key=value',
+          user: {
+            username: 'janedoe',
+            email: 'hello@janedoe.com'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+        parsed.should.have.property('user', {
+          username: 'janedoe',
+          email: 'hello@janedoe.com'
+        });
+      });
+
+      it('should NOT assign req.user if already present in kwargs', function () {
+        var mockReq = {
+          method: 'POST',
+          hostname: 'example.org',
+          url: '/some/path?key=value',
+          user: {
+            username: 'janedoe',
+            email: 'hello@janedoe.com'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq, { user: {} });
+        parsed.should.have.property('user', {});
+      });
+
+      it('should add ip address to user if available', function () {
+        var mockReq = {
+          method: 'POST',
+          hostname: 'example.org',
+          url: '/some/path?key=value',
+          ip: '127.0.0.1',
+          user: {
+            username: 'janedoe',
+            email: 'hello@janedoe.com'
+          }
+        };
+
+        var parsed = raven.parsers.parseRequest(mockReq);
+        parsed.should.have.property('user', {
+          username: 'janedoe',
+          email: 'hello@janedoe.com',
+          ip_address: '127.0.0.1'
+        });
       });
     });
   });
