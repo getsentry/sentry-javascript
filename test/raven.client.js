@@ -127,6 +127,20 @@ describe('raven.Client', function() {
     delete process.env.SENTRY_RELEASE;
   });
 
+  it('should pull environment from options if present', function() {
+    var client = new raven.Client(dsn, {
+      environment: 'staging'
+    });
+    client.environment.should.eql('staging');
+  });
+
+  it('should pull SENTRY_ENVIRONMENT from environment', function() {
+    process.env.SENTRY_ENVIRONMENT = 'staging';
+    var client = new raven.Client(dsn);
+    client.environment.should.eql('staging');
+    delete process.env.SENTRY_ENVIRONMENT;
+  });
+
   describe('#getIdent()', function() {
     it('should match', function() {
       var result = {
