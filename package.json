@@ -2,7 +2,7 @@
   "name": "raven-js",
   "version": "3.3.0",
   "license": "BSD-2-Clause",
-  "homepage": "https://getsentry.com",
+  "homepage": "https://github.com/getsentry/raven-js",
   "scripts": {
     "pretest": "npm install",
     "test": "grunt test && npm run-script test-typescript",
