@@ -53,8 +53,7 @@ describe('raven.parsers', function() {
       var parsed = raven.parsers.parseRequest(mockReq);
       parsed.should.have.property('request');
       parsed.request.url.should.equal('https://mattrobenolt.com/some/path?key=value');
-      parsed.request.env.NODE_ENV.should.equal(process.env.NODE_ENV);
-      parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
+      parsed.user.ip_address.should.equal('127.0.0.1');
     });
 
     describe('`headers` detection', function() {
@@ -308,7 +307,7 @@ describe('raven.parsers', function() {
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
+        parsed.user.ip_address.should.equal('127.0.0.1');
       });
 
       it('should detect ip via `req.connection.remoteAddress`', function() {
@@ -325,7 +324,7 @@ describe('raven.parsers', function() {
 
         var parsed = raven.parsers.parseRequest(mockReq);
 
-        parsed.request.env.REMOTE_ADDR.should.equal('127.0.0.1');
+        parsed.user.ip_address.should.equal('127.0.0.1');
       });
     });
 
