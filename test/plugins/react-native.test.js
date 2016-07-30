@@ -10,8 +10,11 @@ describe('React Native plugin', function () {
         Raven.config('http://abc@example.com:80/2');
     });
 
-    describe('_normalizeData()', function () {
+    describe('path normalization', function () {
         it('should normalize culprit and frame filenames/URLs', function () {
+            ErrorUtils.setGlobalHandler = function() {};
+            reactNativePlugin(Raven);
+
             var data = {
                 project: '2',
                 logger: 'javascript',
@@ -39,7 +42,7 @@ describe('React Native plugin', function () {
                     }],
                 }
             };
-            reactNativePlugin._normalizeData(data);
+            data = Raven._defaultDataCallback(data);
 
             assert.equal(data.culprit, '/app.js');
             var frames = data.exception.values[0].stacktrace.frames;

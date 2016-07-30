@@ -9,8 +9,10 @@
  *
  * Options:
  *
- *   pathStrip: A RegExp that matches the portions of a file URI that should be
- *     removed from stacks prior to submission.
+ *   pathStrip: DEPRECATED: Please use Raven's normalizePath option instead.
+ *
+ *     A RegExp that matches the portions of a file URI that should be removed
+ *     from stacks prior to submission.
  *
  */
 'use strict';
@@ -52,10 +54,13 @@ function reactNativePlugin(Raven, options) {
     // transport - use XMLHttpRequest instead
     Raven.setTransport(reactNativePlugin._transport);
 
-    // Use data callback to strip device-specific paths from stack traces
-    Raven.setDataCallback(function(data) {
-        reactNativePlugin._normalizeData(data, options.pathStrip)
-    });
+    if (!Raven._globalOptions.normalizePath) {
+        // Strip device-specific paths from stack traces.
+        var pathStripRe = options.pathStrip || PATH_STRIP_RE;
+        Raven.setNormalizePath(function(filename) {
+            return normalizeUrl(filename, pathStripRe);
+        });
+    }
 
     var defaultHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler() || ErrorUtils._globalHandler;
 
@@ -99,27 +104,6 @@ reactNativePlugin._transport = function (options) {
     // to whitelist specific origins.
     request.setRequestHeader('Origin', 'react-native://');
     request.send(JSON.stringify(options.data));
-};
-
-/**
- * Strip device-specific IDs found in culprit and frame filenames
- * when running React Native applications on a physical device.
- */
-reactNativePlugin._normalizeData = function (data, pathStripRe) {
-    if (!pathStripRe) {
-        pathStripRe = PATH_STRIP_RE;
-    }
-
-    if (data.culprit) {
-        data.culprit = normalizeUrl(data.culprit, pathStripRe);
-    }
-
-    if (data.exception) {
-        // if data.exception exists, all of the other keys are guaranteed to exist
-        data.exception.values[0].stacktrace.frames.forEach(function (frame) {
-            frame.filename = normalizeUrl(frame.filename, pathStripRe);
-        });
-    }
 };
 
 module.exports = reactNativePlugin;
