@@ -1,3 +1,9 @@
+# 0.12.0 - 8/1/2016
+ * Add `environment` config option and `setRelease` method [See #179]
+ * No longer passes `process.env` values [See #182]
+ * Connect/Express middleware now attempts to attach `req.user` as User interface [See #177]
+ * Use json-stringify-safe to prevent circular refs [See #182]
+
 # 0.11.0 - 5/5/2016
  * `captureError` renamed to `captureException` to match raven-js (alias exists for backwards compat)
  * `parsers.parseError` now coerces Error type to string. [See #155]
