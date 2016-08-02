@@ -36,7 +36,7 @@ Optional settings
 
     Track the environment name inside Sentry.
 
-     .. code-block:: javascript
+    .. code-block:: javascript
 
         {
           environment: 'staging'
@@ -93,7 +93,8 @@ Optional settings
             }
         }
 
-    Please see the raven-node source code to see [how transports are implemented](https://github.com/getsentry/raven-node/blob/master/lib/transports.js).
+    Please see the raven-node source code to see `how transports are implemented
+    <https://github.com/getsentry/raven-node/blob/master/lib/transports.js>`__.
 
 Environment Variables
 ---------------------
@@ -104,7 +105,8 @@ Environment Variables
 
 .. describe:: SENTRY_NAME
 
-    Optionally set the name for the client to use. [What is name?](http://raven.readthedocs.org/en/latest/config/index.html#name)
+    Optionally set the name for the client to use. `What is name?
+    <http://raven.readthedocs.org/en/latest/config/index.html#name>`__
 
 .. describe:: SENTRY_RELEASE
 
