@@ -1160,8 +1160,6 @@ Raven.prototype = {
 
 
     _send: function(data) {
-        var self = this;
-
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -1222,6 +1220,13 @@ Raven.prototype = {
             return;
         }
 
+        this._sendProcessedPayload(data);
+    },
+
+    _sendProcessedPayload: function(data, callback) {
+        var self = this;
+        var globalOptions = this._globalOptions;
+
         // Send along an event_id if not explicitly passed.
         // This event_id can be used to reference the error within Sentry itself.
         // Set lastEventId after we know the error should actually be sent
@@ -1264,12 +1269,15 @@ Raven.prototype = {
                     data: data,
                     src: url
                 });
+                callback && callback();
             },
-            onError: function failure() {
+            onError: function failure(error) {
                 self._triggerEvent('failure', {
                     data: data,
                     src: url
                 });
+                error = error || new Error('Raven send failed (no additional details provided)');
+                callback && callback(error);
             }
         });
     },
@@ -1291,7 +1299,7 @@ Raven.prototype = {
                     opts.onSuccess();
                 }
             } else if (opts.onError) {
-                opts.onError();
+                opts.onError(new Error('Sentry error code: ' + request.status));
             }
         }
 
