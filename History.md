@@ -1,3 +1,5 @@
+# 0.12.1 - 8/4/2016
+ * Fix bug where `environment` option was not actually being transmitted to Sentry [See #185]
 # 0.12.0 - 8/1/2016
  * Add `environment` config option and `setRelease` method [See #179]
  * No longer passes `process.env` values [See #182]
