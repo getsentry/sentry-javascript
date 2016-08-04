@@ -395,6 +395,25 @@ describe('raven.Client', function() {
         scope.done();
       });
     });
+
+    it('should attach environment', function (done) {
+      client = new raven.Client(dsn, {
+        environment: 'staging'
+      });
+      client.send = function (kwargs) {
+        kwargs.environment.should.equal('staging');
+      };
+      client.process({message: 'test'});
+
+      client.send = function (kwargs) {
+        kwargs.environment.should.equal('production');
+        done();
+      };
+      client.process({
+        message: 'test',
+        environment: 'production'
+      });
+    });
   });
 
   it('should use a custom transport', function() {
