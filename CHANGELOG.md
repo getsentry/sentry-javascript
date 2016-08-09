@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.4.0
+* CHANGE: React Native plugin now stores errors in AsyncStorage and sends error data on app init. See: https://github.com/getsentry/raven-js/pull/626
+* BUGFIX: React Native path normalization regex has been updated. See: https://github.com/getsentry/raven-js/pull/666
+* BUGFIX: Angular 1 plugin now extracts errors from minified exception strings. See: https://github.com/getsentry/raven-js/pull/667
+
 ## 3.3.0
 * NEW: Can now specify `environment` configuration option. See: https://github.com/getsentry/raven-js/pull/661
 * CHANGE: Raven.js now serializes data payload w/ json-stringify-safe to avoid circular references. See: https://github.com/getsentry/raven-js/pull/652
