@@ -1,4 +1,4 @@
-/*! Raven.js 3.3.0 (74c6c03) | github.com/getsentry/raven-js */
+/*! Raven.js 3.4.0 (4dba6fe) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -180,7 +180,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.3.0',
+    VERSION: '3.4.0',
 
     debug: false,
 
@@ -1253,8 +1253,6 @@ Raven.prototype = {
 
 
     _send: function(data) {
-        var self = this;
-
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -1315,6 +1313,13 @@ Raven.prototype = {
             return;
         }
 
+        this._sendProcessedPayload(data);
+    },
+
+    _sendProcessedPayload: function(data, callback) {
+        var self = this;
+        var globalOptions = this._globalOptions;
+
         // Send along an event_id if not explicitly passed.
         // This event_id can be used to reference the error within Sentry itself.
         // Set lastEventId after we know the error should actually be sent
@@ -1357,12 +1362,15 @@ Raven.prototype = {
                     data: data,
                     src: url
                 });
+                callback && callback();
             },
-            onError: function failure() {
+            onError: function failure(error) {
                 self._triggerEvent('failure', {
                     data: data,
                     src: url
                 });
+                error = error || new Error('Raven send failed (no additional details provided)');
+                callback && callback(error);
             }
         });
     },
@@ -1384,7 +1392,7 @@ Raven.prototype = {
                     opts.onSuccess();
                 }
             } else if (opts.onError) {
-                opts.onError();
+                opts.onError(new Error('Sentry error code: ' + request.status));
             }
         }
 
