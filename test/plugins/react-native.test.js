@@ -17,7 +17,7 @@ describe('React Native plugin', function () {
     });
 
     describe('_normalizeData()', function () {
-        it('should normalize culprit and frame filenames/URLs', function () {
+        it('should normalize culprit and frame filenames/URLs from app', function () {
             var data = {
                 project: '2',
                 logger: 'javascript',
@@ -37,6 +37,42 @@ describe('React Native plugin', function () {
 
                             }, {
                                 filename: 'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/file2.js',
+                                lineno: 12,
+                                colno: 13,
+                                'function': 'lol'
+                            }]
+                        }
+                    }],
+                }
+            };
+            reactNativePlugin._normalizeData(data);
+
+            assert.equal(data.culprit, '/app.js');
+            var frames = data.exception.values[0].stacktrace.frames;
+            assert.equal(frames[0].filename, '/file1.js');
+            assert.equal(frames[1].filename, '/file2.js');
+        });
+
+        it('should normalize culprit and frame filenames/URLs from CodePush', function () {
+            var data = {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+
+                culprit: 'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/app.js',
+                message: 'Error: crap',
+                exception: {
+                    type: 'Error',
+                    values: [{
+                        stacktrace: {
+                            frames: [{
+                                filename: 'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/file1.js',
+                                lineno: 10,
+                                colno: 11,
+                                'function': 'broken'
+
+                            }, {
+                                filename: 'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/file2.js',
                                 lineno: 12,
                                 colno: 13,
                                 'function': 'lol'
