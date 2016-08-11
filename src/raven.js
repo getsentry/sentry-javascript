@@ -1252,7 +1252,7 @@ Raven.prototype = {
         this.captureBreadcrumb({
             category: 'sentry',
             message: exception
-                ? (exception.type ? exception.type + ': ' : '') + exception.message
+                ? (exception.type ? exception.type + ': ' : '') + exception.value
                 : data.message,
             event_id: data.event_id,
             level: data.level || 'error' // presume error unless specified
