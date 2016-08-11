@@ -648,6 +648,22 @@ describe('globals', function() {
                 { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' },
                 { category: 'sentry', message: 'foo', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'warning' }
             ]);
+
+            Raven._send({
+                exception: {
+                    values: [{
+                        type: 'ReferenceError',
+                        value: 'foo is not defined'
+                    }]
+                }
+            });
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'http', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' },
+                { category: 'sentry', message: 'foo', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'warning' },
+                { category: 'sentry', message: 'ReferenceError: foo is not defined', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' }
+            ]);
+
         });
 
         it('should build a good data payload with a User', function() {
