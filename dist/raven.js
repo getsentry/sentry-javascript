@@ -1,4 +1,4 @@
-/*! Raven.js 3.4.0 (4dba6fe) | github.com/getsentry/raven-js */
+/*! Raven.js 3.4.1 (d824691) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -180,7 +180,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.4.0',
+    VERSION: '3.4.1',
 
     debug: false,
 
@@ -1345,7 +1345,7 @@ Raven.prototype = {
         this.captureBreadcrumb({
             category: 'sentry',
             message: exception
-                ? (exception.type ? exception.type + ': ' : '') + exception.message
+                ? (exception.type ? exception.type + ': ' : '') + exception.value
                 : data.message,
             event_id: data.event_id,
             level: data.level || 'error' // presume error unless specified

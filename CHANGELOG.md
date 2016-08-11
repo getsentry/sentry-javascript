@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.4.1
+* BUGFIX: Fix exception breadcrumbs having "undefined" for exception value. See: https://github.com/getsentry/raven-js/pull/681
+
 ## 3.4.0
 * CHANGE: React Native plugin now stores errors in AsyncStorage and sends error data on app init. See: https://github.com/getsentry/raven-js/pull/626
 * BUGFIX: React Native path normalization regex has been updated. See: https://github.com/getsentry/raven-js/pull/666
