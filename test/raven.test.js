@@ -1578,6 +1578,28 @@ describe('Raven (public API)', function() {
                 assert.isFalse(TraceKit.collectWindowErrors);
             });
         });
+
+        describe('maxBreadcrumbs', function () {
+            it('should override the default', function () {
+                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 50 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 50);
+            });
+
+            it('should not permit maxBreadcrumbs above 100', function () {
+                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 200 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
+            });
+
+            it('should not permit maxBreadcrumbs below 0', function () {
+               Raven.config(SENTRY_DSN, { maxBreadcrumbs: -1 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 0);
+            });
+
+            it('should set maxBreadcrumbs to the default if not provided', function () {
+                Raven.config(SENTRY_DSN);
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
+            });
+        });
     });
 
     describe('.wrap', function() {
@@ -2063,7 +2085,7 @@ describe('Raven (public API)', function() {
         });
 
         it('should dequeue the oldest breadcrumb when over limit', function() {
-            Raven._breadcrumbLimit = 5;
+            Raven._globalOptions.maxBreadcrumbs = 5;
             Raven._breadcrumbs = [
                 { message: '1', timestamp: 0.1 },
                 { message: '2', timestamp: 0.1 },
