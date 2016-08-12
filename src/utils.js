@@ -236,6 +236,21 @@ function htmlElementAsString(elem) {
     return out.join('');
 }
 
+/**
+ * Polyfill a method
+ * @param obj object e.g. `document`
+ * @param name method name present on object e.g. `addEventListener`
+ * @param replacement replacement function
+ * @param track {optional} record instrumentation to an array
+ */
+function fill(obj, name, replacement, track) {
+    var orig = obj[name];
+    obj[name] = replacement(orig);
+    if (track) {
+        track.push([obj, name, orig]);
+    }
+}
+
 module.exports = {
     isUndefined: isUndefined,
     isFunction: isFunction,
@@ -252,5 +267,6 @@ module.exports = {
     uuid4: uuid4,
     htmlTreeAsString: htmlTreeAsString,
     htmlElementAsString: htmlElementAsString,
-    parseUrl: parseUrl
+    parseUrl: parseUrl,
+    fill: fill
 };
