@@ -167,6 +167,11 @@ Those configuration options are documented below:
     By default, Raven does not truncate messages. If you need to truncate
     characters for whatever reason, you may set this to limit the length.
 
+.. describe:: maxBreadcrumbs
+
+    By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this
+    number by setting `maxBreadcrumbs`. Note that this number cannot be set higher than the default of 100.
+
 .. describe:: transport
 
     Override the default HTTP data transport handler.

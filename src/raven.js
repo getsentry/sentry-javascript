@@ -65,7 +65,6 @@ function Raven() {
     this._startTime = now();
     this._wrappedBuiltIns = [];
     this._breadcrumbs = [];
-    this._breadcrumbLimit = 20;
     this._lastCapturedEvent = null;
     this._keypressTimeout;
     this._location = window.location;
@@ -137,6 +136,7 @@ Raven.prototype = {
         this._globalOptions.ignoreUrls = this._globalOptions.ignoreUrls.length ? joinRegExp(this._globalOptions.ignoreUrls) : false;
         this._globalOptions.whitelistUrls = this._globalOptions.whitelistUrls.length ? joinRegExp(this._globalOptions.whitelistUrls) : false;
         this._globalOptions.includePaths = joinRegExp(this._globalOptions.includePaths);
+        this._globalOptions.maxBreadcrumbs = Math.max(0, Math.min(this._globalOptions.maxBreadcrumbs || 100, 100)); // default and hard limit is 100
 
         this._globalKey = uri.user;
         this._globalSecret = uri.pass && uri.pass.substr(1);
@@ -358,7 +358,7 @@ Raven.prototype = {
         }, obj);
 
         this._breadcrumbs.push(crumb);
-        if (this._breadcrumbs.length > this._breadcrumbLimit) {
+        if (this._breadcrumbs.length > this._globalOptions.maxBreadcrumbs) {
             this._breadcrumbs.shift();
         }
     },
