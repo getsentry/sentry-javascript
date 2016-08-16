@@ -1,4 +1,4 @@
-/*! Raven.js 3.4.1 (d824691) | github.com/getsentry/raven-js */
+/*! Raven.js 3.5.0 (892008a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -113,6 +113,7 @@ var uuid4 = utils.uuid4;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var parseUrl = utils.parseUrl;
 var isString = utils.isString;
+var fill = utils.fill;
 
 var wrapConsoleMethod = _dereq_(3).wrapMethod;
 
@@ -122,6 +123,7 @@ var dsnKeys = 'source protocol user pass host port path'.split(' '),
 function now() {
     return +new Date();
 }
+
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
@@ -145,7 +147,8 @@ function Raven() {
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
         maxMessageLength: 0,
-        stackTraceLimit: 50
+        stackTraceLimit: 50,
+        autoBreadcrumbs: true
     };
     this._ignoreOnError = 0;
     this._isRavenInstalled = false;
@@ -158,7 +161,6 @@ function Raven() {
     this._startTime = now();
     this._wrappedBuiltIns = [];
     this._breadcrumbs = [];
-    this._breadcrumbLimit = 20;
     this._lastCapturedEvent = null;
     this._keypressTimeout;
     this._location = window.location;
@@ -180,7 +182,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.4.1',
+    VERSION: '3.5.0',
 
     debug: false,
 
@@ -230,6 +232,22 @@ Raven.prototype = {
         this._globalOptions.ignoreUrls = this._globalOptions.ignoreUrls.length ? joinRegExp(this._globalOptions.ignoreUrls) : false;
         this._globalOptions.whitelistUrls = this._globalOptions.whitelistUrls.length ? joinRegExp(this._globalOptions.whitelistUrls) : false;
         this._globalOptions.includePaths = joinRegExp(this._globalOptions.includePaths);
+        this._globalOptions.maxBreadcrumbs = Math.max(0, Math.min(this._globalOptions.maxBreadcrumbs || 100, 100)); // default and hard limit is 100
+
+        var autoBreadcrumbDefaults = {
+            xhr: true,
+            console: true,
+            dom: true,
+            location: true
+        };
+
+        var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
+        if ({}.toString.call(autoBreadcrumbs) === '[object Object]') {
+            autoBreadcrumbs = objectMerge(autoBreadcrumbDefaults, autoBreadcrumbs);
+        } else if (autoBreadcrumbs !== false) {
+            autoBreadcrumbs = autoBreadcrumbDefaults;
+        }
+        this._globalOptions.autoBreadcrumbs = autoBreadcrumbs;
 
         this._globalKey = uri.user;
         this._globalSecret = uri.pass && uri.pass.substr(1);
@@ -260,7 +278,9 @@ Raven.prototype = {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            this._wrapBuiltIns();
+            this._instrumentTryCatch();
+            if (self._globalOptions.autoBreadcrumbs)
+                this._instrumentBreadcrumbs();
 
             // Install all of the plugins
             this._drainPlugins();
@@ -451,7 +471,7 @@ Raven.prototype = {
         }, obj);
 
         this._breadcrumbs.push(crumb);
-        if (this._breadcrumbs.length > this._breadcrumbLimit) {
+        if (this._breadcrumbs.length > this._globalOptions.maxBreadcrumbs) {
             this._breadcrumbs.shift();
         }
     },
@@ -835,16 +855,10 @@ Raven.prototype = {
     /**
      * Install any queued plugins
      */
-    _wrapBuiltIns: function() {
+    _instrumentTryCatch: function() {
         var self = this;
 
-        function fill(obj, name, replacement, noUndo) {
-            var orig = obj[name];
-            obj[name] = replacement(orig);
-            if (!noUndo) {
-                self._wrappedBuiltIns.push([obj, name, orig]);
-            }
-        }
+        var wrappedBuiltIns = self._wrappedBuiltIns;
 
         function wrapTimeFn(orig) {
             return function (fn, t) { // preserve arity
@@ -870,6 +884,8 @@ Raven.prototype = {
             };
         }
 
+        var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
+
         function wrapEventTarget(global) {
             var proto = window[global] && window[global].prototype;
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
@@ -883,10 +899,10 @@ Raven.prototype = {
                             // can sometimes get 'Permission denied to access property "handle Event'
                         }
 
-
-                        // TODO: more than just click
+                        // More breadcrumb DOM capture ... done here and not in `_instrumentBreadcrumbs`
+                        // so that we don't have more than one wrapper function
                         var before;
-                        if (global === 'EventTarget' || global === 'Node') {
+                        if (autoBreadcrumbs && autoBreadcrumbs.dom && (global === 'EventTarget' || global === 'Node')) {
                             if (evtName === 'click'){
                                 before = self._breadcrumbEventHandler(evtName);
                             } else if (evtName === 'keypress') {
@@ -895,46 +911,24 @@ Raven.prototype = {
                         }
                         return orig.call(this, evtName, self.wrap(fn, undefined, before), capture, secure);
                     };
-                });
+                }, wrappedBuiltIns);
                 fill(proto, 'removeEventListener', function (orig) {
                     return function (evt, fn, capture, secure) {
                         fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
                         return orig.call(this, evt, fn, capture, secure);
                     };
-                });
+                }, wrappedBuiltIns);
             }
         }
 
-        function wrapProp(prop, xhr) {
-            if (prop in xhr && isFunction(xhr[prop])) {
-                fill(xhr, prop, function (orig) {
-                    return self.wrap(orig);
-                }, true /* noUndo */); // don't track filled methods on XHR instances
-            }
-        }
-
-        fill(window, 'setTimeout', wrapTimeFn);
-        fill(window, 'setInterval', wrapTimeFn);
+        fill(window, 'setTimeout', wrapTimeFn, wrappedBuiltIns);
+        fill(window, 'setInterval', wrapTimeFn, wrappedBuiltIns);
         if (window.requestAnimationFrame) {
             fill(window, 'requestAnimationFrame', function (orig) {
                 return function (cb) {
                     return orig(self.wrap(cb));
                 };
-            });
-        }
-
-        // Capture breadcrubms from any click that is unhandled / bubbled up all the way
-        // to the document. Do this before we instrument addEventListener.
-        if (this._hasDocument) {
-            if (document.addEventListener) {
-                document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
-                document.addEventListener('keypress', self._keypressEventHandler(), false);
-            }
-            else {
-                // IE8 Compatibility
-                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
-                document.attachEvent('onkeypress', self._keypressEventHandler());
-            }
+            }, wrappedBuiltIns);
         }
 
         // event targets borrowed from bugsnag-js:
@@ -944,7 +938,41 @@ Raven.prototype = {
             wrapEventTarget(eventTargets[i]);
         }
 
-        if ('XMLHttpRequest' in window) {
+        var $ = window.jQuery || window.$;
+        if ($ && $.fn && $.fn.ready) {
+            fill($.fn, 'ready', function (orig) {
+                return function (fn) {
+                    return orig.call(this, self.wrap(fn));
+                };
+            }, wrappedBuiltIns);
+        }
+    },
+
+
+    /**
+     * Instrument browser built-ins w/ breadcrumb capturing
+     *  - XMLHttpRequests
+     *  - DOM interactions (click/typing)
+     *  - window.location changes
+     *  - console
+     *
+     * Can be disabled or individually configured via the `autoBreadcrumbs` config option
+     */
+    _instrumentBreadcrumbs: function () {
+        var self = this;
+        var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
+
+        var wrappedBuiltIns = self._wrappedBuiltIns;
+
+        function wrapProp(prop, xhr) {
+            if (prop in xhr && isFunction(xhr[prop])) {
+                fill(xhr, prop, function (orig) {
+                    return self.wrap(orig);
+                }); // intentionally don't track filled methods on XHR instances
+            }
+        }
+
+        if (autoBreadcrumbs.xhr && 'XMLHttpRequest' in window) {
             var xhrproto = XMLHttpRequest.prototype;
             fill(xhrproto, 'open', function(origOpen) {
                 return function (method, url) { // preserve arity
@@ -960,7 +988,7 @@ Raven.prototype = {
 
                     return origOpen.apply(this, arguments);
                 };
-            });
+            }, wrappedBuiltIns);
 
             fill(xhrproto, 'send', function(origSend) {
                 return function (data) { // preserve arity
@@ -989,7 +1017,7 @@ Raven.prototype = {
                     if ('onreadystatechange' in xhr && isFunction(xhr.onreadystatechange)) {
                         fill(xhr, 'onreadystatechange', function (orig) {
                             return self.wrap(orig, undefined, onreadystatechangeHandler);
-                        }, true /* noUndo */);
+                        } /* intentionally don't track this instrumentation */);
                     } else {
                         // if onreadystatechange wasn't actually set by the page on this xhr, we
                         // are free to set our own and capture the breadcrumb
@@ -998,7 +1026,21 @@ Raven.prototype = {
 
                     return origSend.apply(this, arguments);
                 };
-            });
+            }, wrappedBuiltIns);
+        }
+
+        // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
+        // to the document. Do this before we instrument addEventListener.
+        if (autoBreadcrumbs.dom && this._hasDocument) {
+            if (document.addEventListener) {
+                document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
+                document.addEventListener('keypress', self._keypressEventHandler(), false);
+            }
+            else {
+                // IE8 Compatibility
+                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+                document.attachEvent('onkeypress', self._keypressEventHandler());
+            }
         }
 
         // record navigation (URL) changes
@@ -1008,7 +1050,7 @@ Raven.prototype = {
         var chrome = window.chrome;
         var isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
         var hasPushState = !isChromePackagedApp && window.history && history.pushState;
-        if (hasPushState) {
+        if (autoBreadcrumbs.location && hasPushState) {
             // TODO: remove onpopstate handler on uninstall()
             var oldOnPopState = window.onpopstate;
             window.onpopstate = function () {
@@ -1023,7 +1065,7 @@ Raven.prototype = {
             fill(history, 'pushState', function (origPushState) {
                 // note history.pushState.length is 0; intentionally not declaring
                 // params to preserve 0 arity
-                return function(/* state, title, url */) {
+                return function (/* state, title, url */) {
                     var url = arguments.length > 2 ? arguments[2] : undefined;
 
                     // url argument is optional
@@ -1034,32 +1076,24 @@ Raven.prototype = {
 
                     return origPushState.apply(this, arguments);
                 };
-            });
+            }, wrappedBuiltIns);
         }
 
-        // console
-        var consoleMethodCallback = function (msg, data) {
-            self.captureBreadcrumb({
-                message: msg,
-                level: data.level,
-                category: 'console'
-            });
-        };
+        if (autoBreadcrumbs.console && 'console' in window && console.log) {
+            // console
+            var consoleMethodCallback = function (msg, data) {
+                self.captureBreadcrumb({
+                    message: msg,
+                    level: data.level,
+                    category: 'console'
+                });
+            };
 
-        if ('console' in window && console.log) {
             each(['debug', 'info', 'warn', 'error', 'log'], function (_, level) {
                 wrapConsoleMethod(console, level, consoleMethodCallback);
             });
         }
 
-        var $ = window.jQuery || window.$;
-        if ($ && $.fn && $.fn.ready) {
-            fill($.fn, 'ready', function (orig) {
-                return function (fn) {
-                    return orig.call(this, self.wrap(fn));
-                };
-            });
-        }
     },
 
     _restoreBuiltIns: function () {
@@ -1714,6 +1748,21 @@ function htmlElementAsString(elem) {
     return out.join('');
 }
 
+/**
+ * Polyfill a method
+ * @param obj object e.g. `document`
+ * @param name method name present on object e.g. `addEventListener`
+ * @param replacement replacement function
+ * @param track {optional} record instrumentation to an array
+ */
+function fill(obj, name, replacement, track) {
+    var orig = obj[name];
+    obj[name] = replacement(orig);
+    if (track) {
+        track.push([obj, name, orig]);
+    }
+}
+
 module.exports = {
     isUndefined: isUndefined,
     isFunction: isFunction,
@@ -1730,7 +1779,8 @@ module.exports = {
     uuid4: uuid4,
     htmlTreeAsString: htmlTreeAsString,
     htmlElementAsString: htmlElementAsString,
-    parseUrl: parseUrl
+    parseUrl: parseUrl,
+    fill: fill
 };
 
 },{}],7:[function(_dereq_,module,exports){
