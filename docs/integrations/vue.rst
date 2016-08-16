@@ -26,7 +26,7 @@ Example:
 
 .. sourcecode:: html
 
-    <script src="http://builds.emberjs.com/tags/v2.3.1/ember.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/vue/2.0.0-rc/vue.min.js"></script>
     <script src="https://cdn.ravenjs.com/3.4.1/vue/raven.min.js"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
