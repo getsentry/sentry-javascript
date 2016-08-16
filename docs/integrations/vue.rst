@@ -1,6 +1,11 @@
 Vue.js (2.0)
 ============
 
+.. sentry:support-warning::
+
+    This plugin only works with Vue 2.0 or greater.
+
+
 To use Sentry with your Vue application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Vue plugin.
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
