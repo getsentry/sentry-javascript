@@ -175,7 +175,7 @@ Those configuration options are documented below:
     * `false` - all automatic breadcrumb collection disabled
     * A dictionary of individual breadcrumb types that can be enabled/disabled:
 
-    ..code-block:: javascript
+    .. code-block:: javascript
 
         autoBreadcrumbs: {
             'xhr': false,      // XMLHttpRequest
