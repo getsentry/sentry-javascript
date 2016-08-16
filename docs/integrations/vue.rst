@@ -35,32 +35,7 @@ Note that this CDN build auto-initializes the Vue plugin.
 Using package managers
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Pre-built distributions of Raven.js and the Raven.js Vue plugin are available via both Bower and npm for importing in your ``ember-cli-build.js`` file.
-
-Bower
-`````
-
-.. code
-
-.. code-block:: sh
-
-    $ bower install raven-js --save
-
-.. code-block:: javascript
-
-    app.import('bower_components/raven-js/dist/raven.js');
-    app.import('bower_components/raven-js/dist/plugins/vue.js');
-
-.. code-block:: html
-
-    <script src="assets/vendor.js"></script>
-    <script>
-      Raven
-        .config('___PUBLIC_DSN___')
-        .addPlugin(Raven.Plugins.Vue)
-        .install();
-    </script>
-    <script src="assets/your-app.js"></script>
+Both Raven.js and the Raven.js Vue plugin can be installed via npm and Bower.
 
 npm
 ````
@@ -69,24 +44,22 @@ npm
 
     $ npm install raven-js --save
 
-.. code-block:: javascript
 
-    app.import('bower_components/raven-js/dist/raven.js');
-    app.import('bower_components/raven-js/dist/plugins/vue.js');
+Bower
+`````
 
-.. code-block:: html
+.. code-block:: sh
 
-    <script src="assets/vendor.js"></script>
-    <script>
-      Raven
+    $ bower install raven-js --save
+
+In your main application file, import and configure both Raven.js and the Raven.js Vue plugin as follows:
+
+.. code-block:: js
+
+    import Raven from 'raven-js';
+    import RavenVue from 'raven-js/plugins/vue';
+
+    Raven
         .config('___PUBLIC_DSN___')
-        .addPlugin(Raven.Plugins.Vue)
+        .addPlugin(RavenVue)
         .install();
-    </script>
-    <script src="assets/your-app.js"></script>
-
-These examples assume that Vue is exported globally as ``window.Vue``. You can alternatively pass a reference to the ``Vue`` object directly as the second argument to ``addPlugin``:
-
-.. code-block:: javascript
-
-    Raven.addPlugin(Raven.Plugins.Vue, Vue);
