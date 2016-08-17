@@ -55,6 +55,14 @@
         "integrations/react#installation",
         "integrations/react#configuring-the-client"
       ]
+    },
+    "javascript.vue": {
+      "name": "Vue",
+      "type": "framework",
+      "doc_link": "integrations/vue/",
+      "wizard": [
+        "integrations/vue#installation"
+      ]
     }
   }
 }
