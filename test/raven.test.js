@@ -648,6 +648,22 @@ describe('globals', function() {
                 { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' },
                 { category: 'sentry', message: 'foo', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'warning' }
             ]);
+
+            Raven._send({
+                exception: {
+                    values: [{
+                        type: 'ReferenceError',
+                        value: 'foo is not defined'
+                    }]
+                }
+            });
+            assert.deepEqual(Raven._breadcrumbs, [
+                { type: 'http', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/' }},
+                { category: 'sentry', message: 'bar', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' },
+                { category: 'sentry', message: 'foo', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'warning' },
+                { category: 'sentry', message: 'ReferenceError: foo is not defined', timestamp: 0.1, /* 100ms */ event_id: 'abc123', level: 'error' }
+            ]);
+
         });
 
         it('should build a good data payload with a User', function() {
@@ -1073,7 +1089,7 @@ describe('globals', function() {
                 extra: {'session:duration': 100},
             });
             assert.deepEqual(opts.auth, {
-                sentry_client: 'raven-js/3.3.0',
+                sentry_client: 'raven-js/3.5.0',
                 sentry_key: 'abc',
                 sentry_version: '7'
             });
@@ -1120,7 +1136,7 @@ describe('globals', function() {
                 extra: {'session:duration': 100},
             });
             assert.deepEqual(opts.auth, {
-                sentry_client: 'raven-js/3.3.0',
+                sentry_client: 'raven-js/3.5.0',
                 sentry_key: 'abc',
                 sentry_secret: 'def',
                 sentry_version: '7'
@@ -1643,6 +1659,61 @@ describe('Raven (public API)', function() {
                 assert.isFalse(TraceKit.collectWindowErrors);
             });
         });
+
+        describe('maxBreadcrumbs', function () {
+            it('should override the default', function () {
+                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 50 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 50);
+            });
+
+            it('should not permit maxBreadcrumbs above 100', function () {
+                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 200 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
+            });
+
+            it('should not permit maxBreadcrumbs below 0', function () {
+               Raven.config(SENTRY_DSN, { maxBreadcrumbs: -1 });
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 0);
+            });
+
+            it('should set maxBreadcrumbs to the default if not provided', function () {
+                Raven.config(SENTRY_DSN);
+                assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
+            });
+        });
+
+        describe('autoBreadcrumbs', function () {
+            it('should convert `true` to a dictionary of enabled breadcrumb features', function () {
+                Raven.config(SENTRY_DSN);
+                assert.deepEqual(Raven._globalOptions.autoBreadcrumbs, {
+                    xhr: true,
+                    console: true,
+                    dom: true,
+                    location: true
+                });
+            });
+
+            it('should leave false as-is', function () {
+                Raven.config(SENTRY_DSN, {
+                    autoBreadcrumbs: false
+                });
+                assert.equal(Raven._globalOptions.autoBreadcrumbs, false);
+            });
+
+            it('should merge objects with the default autoBreadcrumb settings', function () {
+                Raven.config(SENTRY_DSN, {
+                    autoBreadcrumbs: {
+                        location: false
+                    }
+                });
+                assert.deepEqual(Raven._globalOptions.autoBreadcrumbs, {
+                    xhr: true,
+                    console: true,
+                    dom: true,
+                    location: false /* ! */
+                });
+            });
+        });
     });
 
     describe('.wrap', function() {
@@ -2128,7 +2199,7 @@ describe('Raven (public API)', function() {
         });
 
         it('should dequeue the oldest breadcrumb when over limit', function() {
-            Raven._breadcrumbLimit = 5;
+            Raven._globalOptions.maxBreadcrumbs = 5;
             Raven._breadcrumbs = [
                 { message: '1', timestamp: 0.1 },
                 { message: '2', timestamp: 0.1 },
@@ -2268,9 +2339,12 @@ describe('install/uninstall', function () {
    });
 
    describe('.install', function() {
+        beforeEach(function () {
+            this.sinon.stub(TraceKit.report, 'subscribe');
+        });
+
         it('should check `Raven.isSetup`', function() {
             this.sinon.stub(Raven, 'isSetup').returns(false);
-            this.sinon.stub(TraceKit.report, 'subscribe');
             Raven.install();
             assert.isTrue(Raven.isSetup.calledOnce);
             assert.isFalse(TraceKit.report.subscribe.calledOnce);
@@ -2278,7 +2352,6 @@ describe('install/uninstall', function () {
 
         it('should register itself with TraceKit', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
-            this.sinon.stub(TraceKit.report, 'subscribe');
             this.sinon.stub(Raven, '_handleStackInfo');
             assert.equal(Raven, Raven.install());
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
@@ -2292,19 +2365,21 @@ describe('install/uninstall', function () {
 
         it('should not register itself more than once', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
-            this.sinon.stub(TraceKit.report, 'subscribe');
             Raven.install();
             Raven.install();
             assert.isTrue(TraceKit.report.subscribe.calledOnce);
         });
 
-        it('should use attachEvent instead of addEventListener in IE8', function () {
+        it('_instrumentBreadcrumbs should use attachEvent instead of addEventListener in IE8', function () {
+            Raven._globalOptions.autoBreadcrumbs = {
+                dom: true
+            };
+
             // Maintain a ref to the old function so we can restore it later.
             var temp = document.addEventListener;
 
             // Test setup.
             this.sinon.stub(Raven, 'isSetup').returns(true);
-            this.sinon.stub(TraceKit.report, 'subscribe');
 
             document.addEventListener = false;
             document.attachEvent = this.sinon.stub();
@@ -2315,6 +2390,30 @@ describe('install/uninstall', function () {
 
             // Cleanup.
             document.addEventListener = temp;
+        });
+
+        it('should instrument breadcrumbs by default', function () {
+            this.sinon.stub(Raven, '_instrumentBreadcrumbs');
+            Raven.config(SENTRY_DSN).install();
+            assert.isTrue(Raven._instrumentBreadcrumbs.calledOnce);
+        });
+
+        it('should instrument breadcrumbs if autoBreadcrumbs is an object', function () {
+            this.sinon.stub(Raven, '_instrumentBreadcrumbs');
+            Raven.config(SENTRY_DSN, {
+                dom: true,
+                location: false
+            }).install();
+
+            assert.isTrue(Raven._instrumentBreadcrumbs.calledOnce);
+        });
+
+        it('should not instrument breadcrumbs if autoBreadcrumbs is false', function () {
+            this.sinon.stub(Raven, '_instrumentBreadcrumbs');
+            Raven.config(SENTRY_DSN, {
+                autoBreadcrumbs: false
+            }).install();
+            assert.isFalse(Raven._instrumentBreadcrumbs.called);
         });
     });
 

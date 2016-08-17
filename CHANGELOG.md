@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.5.0
+* NEW: Can now disable automatic collection of breadcrumbs via `autoBreadcrumbs` config option. See: https://github.com/getsentry/raven-js/pull/686
+* NEW: Can now configure max number of breadcrumbs to collect via `maxBreadcrumbs`. See: https://github.com/getsentry/raven-js/pull/685
+* NEW: Added Vue.js plugin. See: https://github.com/getsentry/raven-js/pull/688
+* CHANGE: Raven.js now collects 100 breadcrumbs by default. See: https://github.com/getsentry/raven-js/pull/685
+* CHANGE: React Native plugin now also normalizes paths from CodePush. See: https://github.com/getsentry/raven-js/pull/683
+
+## 3.4.1
+* BUGFIX: Fix exception breadcrumbs having "undefined" for exception value. See: https://github.com/getsentry/raven-js/pull/681
+
+## 3.4.0
+* CHANGE: React Native plugin now stores errors in AsyncStorage and sends error data on app init. See: https://github.com/getsentry/raven-js/pull/626
+* BUGFIX: React Native path normalization regex has been updated. See: https://github.com/getsentry/raven-js/pull/666
+* BUGFIX: Angular 1 plugin now extracts errors from minified exception strings. See: https://github.com/getsentry/raven-js/pull/667
+
 ## 3.3.0
 * NEW: Can now specify `environment` configuration option. See: https://github.com/getsentry/raven-js/pull/661
 * CHANGE: Raven.js now serializes data payload w/ json-stringify-safe to avoid circular references. See: https://github.com/getsentry/raven-js/pull/652
