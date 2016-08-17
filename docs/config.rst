@@ -167,6 +167,28 @@ Those configuration options are documented below:
     By default, Raven does not truncate messages. If you need to truncate
     characters for whatever reason, you may set this to limit the length.
 
+.. describe:: autoBreadcrumbs
+
+    Enables/disables automatic collection of breadcrumbs. Possible values are:
+
+    * `true` (default)
+    * `false` - all automatic breadcrumb collection disabled
+    * A dictionary of individual breadcrumb types that can be enabled/disabled:
+
+    ..code-block:: javascript
+
+        autoBreadcrumbs: {
+            'xhr': false,      // XMLHttpRequest
+            'console': false,  // console logging
+            'dom': true,       // DOM interactions, i.e. clicks/typing
+            'location': false  // url changes, including pushState/popState
+        }
+
+.. describe:: maxBreadcrumbs
+
+    By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this
+    number by setting `maxBreadcrumbs`. Note that this number cannot be set higher than the default of 100.
+
 .. describe:: transport
 
     Override the default HTTP data transport handler.
@@ -237,7 +259,7 @@ Putting it all together
     <body>
         ...
         <script src="jquery.min.js"></script>
-        <script src="https://cdn.ravenjs.com/3.3.0/raven.min.js"></script>
+        <script src="https://cdn.ravenjs.com/3.5.0/raven.min.js"></script>
         <script>
             Raven.config('___PUBLIC_DSN___', {
                 logger: 'my-logger',

@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "3.3.0",
+  "version": "3.5.0",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
   "scripts": {
@@ -17,6 +17,7 @@
     "json-stringify-safe": "^5.0.1"
   },
   "devDependencies": {
+    "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
     "chai": "2.3.0",
