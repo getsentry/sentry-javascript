@@ -3,6 +3,7 @@
 module.exports = function(grunt) {
     var _ = require('lodash');
     var path = require('path');
+    var os = require('os');
     var through = require('through2');
     var proxyquire = require('proxyquireify');
     var versionify = require('browserify-versionify');
@@ -163,9 +164,10 @@ module.exports = function(grunt) {
     });
 
 
+    var awsConfigPath = path.join(os.homedir(), '.aws', 'raven-js.json');
     var gruntConfig = {
         pkg: grunt.file.readJSON('package.json'),
-        aws: grunt.file.exists('aws.json') ? grunt.file.readJSON('aws.json'): {},
+        aws: grunt.file.exists(awsConfigPath) ? grunt.file.readJSON(awsConfigPath): {},
 
         clean: ['build'],
 
