@@ -44,6 +44,16 @@ Those configuration options are documented below:
 
     Can also be defined with ``Raven.setRelease('721e41770371db95eee98ca2707686226b993eda')``.
 
+.. describe:: environment
+
+    Track the environment name inside Sentry.
+
+    .. code-block:: javascript
+
+        {
+          environment: 'production'
+        }
+
 .. describe:: serverName
 
     .. versionadded:: 1.3.0
