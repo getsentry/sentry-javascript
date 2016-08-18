@@ -86,7 +86,7 @@ function reactNativePlugin(Raven, options) {
 
     Raven.setShouldSendCallback(function(data, originalCallback) {
         if (!(FATAL_ERROR_KEY in data)) {
-            return originalCallback.call(this, data);
+            return originalCallback && originalCallback.call(this, data);
         }
 
         var origError = data[FATAL_ERROR_KEY];
