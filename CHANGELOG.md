@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.5.1
+* BUGFIX: Fix non-fatals crashing React Native plugin unless `shouldSendCallback` is specified. See: https://github.com/getsentry/raven-js/pull/694
+
 ## 3.5.0
 * NEW: Can now disable automatic collection of breadcrumbs via `autoBreadcrumbs` config option. See: https://github.com/getsentry/raven-js/pull/686
 * NEW: Can now configure max number of breadcrumbs to collect via `maxBreadcrumbs`. See: https://github.com/getsentry/raven-js/pull/685
