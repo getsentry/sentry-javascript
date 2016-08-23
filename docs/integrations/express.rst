@@ -14,14 +14,14 @@ Express
     }
 
     // The request handler must be the first item
-    app.use(raven.middleware.express.requestHandler('{{ SENTRY_DSN }}'));
+    app.use(raven.middleware.express.requestHandler('___DSN___'));
 
     app.get('/', function mainHandler(req, res) {
         throw new Error('Broke!');
     });
 
     // The error handler must be before any other error middleware
-    app.use(raven.middleware.express.errorHandler('{{ SENTRY_DSN }}'));
+    app.use(raven.middleware.express.errorHandler('___DSN___'));
 
     // Optional fallthrough error handler
     app.use(onError);
