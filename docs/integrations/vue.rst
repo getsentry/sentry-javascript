@@ -56,10 +56,11 @@ In your main application file, import and configure both Raven.js and the Raven.
 
 .. code-block:: js
 
+    import Vue from 'vue';
     import Raven from 'raven-js';
     import RavenVue from 'raven-js/plugins/vue';
 
     Raven
         .config('___PUBLIC_DSN___')
-        .addPlugin(RavenVue)
+        .addPlugin(RavenVue, Vue)
         .install();
