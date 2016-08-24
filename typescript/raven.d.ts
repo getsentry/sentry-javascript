@@ -154,6 +154,9 @@ interface RavenStatic {
      */
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
+    /** Log a breadcrumb */
+    captureBreadcrumb(crumb: Object): RavenStatic;
+
     /**
      * Clear the user context, removing the user data that would be sent to Sentry.
      */
@@ -171,8 +174,29 @@ interface RavenStatic {
         email?: string;
     }): RavenStatic;
 
+    /** Merge extra attributes to be sent along with the payload. */
+    setExtraContext(context: Object): RavenStatic;
+
+    /** Merge tags to be sent along with the payload. */
+    setTagsContext(tags: Object): RavenStatic;
+
+    /** Clear all of the context. */
+    clearContext(): RavenStatic;
+
+    /** Get a copy of the current context. This cannot be mutated.*/
+    getContext(): Object;
+
     /** Override the default HTTP data transport handler. */
     setTransport(transportFunction: (options: RavenTransportOptions) => void): RavenStatic;
+
+    /** Set environment of application */
+    setEnvironment(environment: string): RavenStatic;
+
+    /** Set release version of application */
+    setRelease(release: string): RavenStatic;
+
+    /** Get the latest raw exception that was captured by Raven.*/
+    lastException(): Error;
 
     /** An event id is a globally unique id for the event that was just sent. This event id can be used to find the exact event from within Sentry. */
     lastEventId(): string;
@@ -185,6 +209,9 @@ interface RavenStatic {
 
     /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
+
+    /** Show Sentry user feedback dialog */
+    showReportDialog(options: Object);
 }
 
 interface RavenTransportOptions {

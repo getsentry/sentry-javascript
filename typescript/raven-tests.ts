@@ -46,10 +46,24 @@ Raven.setUserContext({
     id: '123'
 });
 
+Raven.setExtraContext({foo: 'bar'});
+Raven.setTagsContext({env: 'prod'});
+Raven.clearContext();
+var obj:Object = Raven.getContext();
+var err:Error = Raven.lastException();
+
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
+Raven.captureBreadcrumb({});
+
+Raven.setRelease('abc123');
+Raven.setEnvironment('production');
 
 Raven.setDataCallback(function (data) {});
 Raven.setDataCallback(function (data, original) {});
 Raven.setShouldSendCallback(function (data) {});
 Raven.setShouldSendCallback(function (data, original) {});
+
+Raven.showReportDialog({
+    eventId: 'abcdef123456'
+});
