@@ -381,6 +381,7 @@ Raven.prototype = {
         if (this._breadcrumbs.length > this._globalOptions.maxBreadcrumbs) {
             this._breadcrumbs.shift();
         }
+        return this;
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
