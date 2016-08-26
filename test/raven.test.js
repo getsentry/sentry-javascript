@@ -1758,8 +1758,7 @@ describe('Raven (public API)', function() {
             }, error);
             assert.isTrue(Raven.captureException.called);
             assert.deepEqual(Raven.captureException.lastCall.args, [error, {
-                'foo': 'bar',
-                trimTailFrames: 1 // because wrap
+                'foo': 'bar'
             }]);
         });
 
@@ -1771,9 +1770,7 @@ describe('Raven (public API)', function() {
                 Raven.context(broken);
             }, error);
             assert.isTrue(Raven.captureException.called);
-            assert.deepEqual(Raven.captureException.lastCall.args, [error, {
-                trimTailFrames: 1 // because wrap
-            }]);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
         });
 
         it('should execute the callback without arguments', function() {

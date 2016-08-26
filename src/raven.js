@@ -1129,7 +1129,7 @@ Raven.prototype = {
 
             // e.g. frames captured via captureMessage throw
             if (options && options.trimHeadFrames) {
-                for (var j = frames.length - options.trimHeadFrames; j < frames.length; j++) {
+                for (var j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
                     frames[j].in_app = false;
                 }
                 // ... delete to prevent from appearing in outbound payload
