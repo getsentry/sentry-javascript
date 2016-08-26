@@ -386,9 +386,8 @@ Raven.prototype = {
             ex.name = null;
 
             options = objectMerge({
-                // fingerprint on msg, not stack trace
-                // NOTE: need also to do this because stack could include Raven.wrap,
-                //       which may create inconsistent traces if only using window.onerror
+                // fingerprint on msg, not stack trace (legacy behavior, could be
+                // revisited)
                 fingerprint: msg,
                 trimHeadFrames: (options.trimHeadFrames || 0) + 1
             }, options);
