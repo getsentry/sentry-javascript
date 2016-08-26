@@ -278,9 +278,7 @@ Raven.prototype = {
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();
-                self.captureException(e, objectMerge({
-                    trimTailFrames: 1
-                }, options));
+                self.captureException(e, options);
                 throw e;
             }
         }
@@ -392,7 +390,7 @@ Raven.prototype = {
                 // NOTE: need also to do this because stack could include Raven.wrap,
                 //       which may create inconsistent traces if only using window.onerror
                 fingerprint: msg,
-                trimTailFrames: (options.trimHeadFrames || 0) + 1
+                trimHeadFrames: (options.trimHeadFrames || 0) + 1
             }, options);
 
             var stack = TraceKit.computeStackTrace(ex);
@@ -1131,18 +1129,12 @@ Raven.prototype = {
             });
 
             // e.g. frames captured via captureMessage throw
-            var j;
-            if (options && options.trimTailFrames) {
-                for (j = 0; j < options.trimTailFrames && j < frames.length; j++) {
-                    frames[j].in_app = false;
-                }
-            }
-
-            // e.g. try/catch (wrapper) frames
             if (options && options.trimHeadFrames) {
-                for (j = frames.length - options.trimHeadFrames; j < frames.length; j++) {
+                for (var j = frames.length - options.trimHeadFrames; j < frames.length; j++) {
                     frames[j].in_app = false;
                 }
+                // ... delete to prevent from appearing in outbound payload
+                delete options.trimHeadFrames;
             }
         }
         frames = frames.slice(0, this._globalOptions.stackTraceLimit);
