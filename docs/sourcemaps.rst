@@ -116,11 +116,19 @@ Alternatively, during source map generation you can specify a fully qualified UR
 
     //# sourceMappingURL=http://example.org/js/app.js.map
 
+Secure access to source maps.
+
+If you want to keep your source maps secret and don't upload your source maps directly you can set the Security Token
+option in your project. It will cause outbound requests matching Allowed Domains to have the header "X-Sentry-Token: {token}".
+You can then check for this token in your web server.
+
 While making source maps available to Sentry from your servers is the easiest integration, it is not always advisable:
 
 * Sentry may not always be able to reach your servers.
 * If you do not specify versions in your asset URLs, there may be a version mismatch
 * The additional latency may mean that source mappings are not available for all errors.
+
+
 
 For these reasons, it is recommended to upload source maps to Sentry beforehand (see below).
 
