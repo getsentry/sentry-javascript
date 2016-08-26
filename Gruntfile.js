@@ -132,7 +132,7 @@ module.exports = function(grunt) {
             dest: 'build/raven.test.js',
             options: {
                 browserifyOptions: {
-                    debug: true // source maps
+                    debug: false// source maps
                 },
                 ignore: ['react-native'],
                 plugin: [proxyquire.plugin]

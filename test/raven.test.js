@@ -1757,7 +1757,9 @@ describe('Raven (public API)', function() {
                 Raven.context({foo: 'bar'}, broken);
             }, error);
             assert.isTrue(Raven.captureException.called);
-            assert.deepEqual(Raven.captureException.lastCall.args, [error, {'foo': 'bar'}]);
+            assert.deepEqual(Raven.captureException.lastCall.args, [error, {
+                'foo': 'bar'
+            }]);
         });
 
         it('should capture the exception without options', function() {
@@ -2022,6 +2024,29 @@ describe('Raven (public API)', function() {
             });
         });
 
+        it('should include a synthetic stacktrace if stacktrace:true is passed', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_send');
+
+            function foo() {
+                Raven.captureMessage('foo', {
+                    stacktrace: true
+                });
+            }
+
+            foo();
+            var frames = Raven._send.lastCall.args[0].stacktrace.frames;
+
+            // Raven.captureMessage
+            var last = frames[frames.length - 1];
+            assert.isTrue(/(captureMessage|^\?)$/.test(last.function)); // loose equality check because differs per-browser
+            assert.equal(last.in_app, false);
+
+            // foo
+            var secondLast = frames[frames.length - 2];
+            assert.equal(secondLast.function, 'foo');
+            assert.equal(secondLast.in_app, true);
+        });
     });
 
     describe('.captureException', function() {

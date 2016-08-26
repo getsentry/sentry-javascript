@@ -325,7 +325,12 @@ Raven.prototype = {
      */
     captureException: function(ex, options) {
         // If not an Error is passed through, recall as a message instead
-        if (!isError(ex)) return this.captureMessage(ex, options);
+        if (!isError(ex)) {
+            return this.captureMessage(ex, objectMerge({
+                trimHeadFrames: 1,
+                stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
+            }, options));
+        }
 
         // Store the raw exception object for potential debugging and introspection
         this._lastCapturedException = ex;
@@ -362,12 +367,41 @@ Raven.prototype = {
             return;
         }
 
+        var data = objectMerge({
+            message: msg + ''  // Make sure it's actually a string
+        }, options);
+
+        if (options && options.stacktrace) {
+            var ex;
+            // create a stack trace from this point; just trim
+            // off extra frames so they don't include this function call (or
+            // earlier Raven.js library fn calls)
+            try {
+                throw new Error(msg);
+            } catch (ex1) {
+                ex = ex1;
+            }
+
+            // null exception name so `Error` isn't prefixed to msg
+            ex.name = null;
+
+            options = objectMerge({
+                // fingerprint on msg, not stack trace (legacy behavior, could be
+                // revisited)
+                fingerprint: msg,
+                trimHeadFrames: (options.trimHeadFrames || 0) + 1
+            }, options);
+
+            var stack = TraceKit.computeStackTrace(ex);
+            var frames = this._prepareFrames(stack, options);
+            data.stacktrace = {
+                // Sentry expects frames oldest to newest
+                frames: frames.reverse()
+            }
+        }
+
         // Fire away!
-        this._send(
-            objectMerge({
-                message: msg + ''  // Make sure it's actually a string
-            }, options)
-        );
+        this._send(data);
 
         return this;
     },
@@ -1066,17 +1100,7 @@ Raven.prototype = {
     },
 
     _handleStackInfo: function(stackInfo, options) {
-        var self = this;
-        var frames = [];
-
-        if (stackInfo.stack && stackInfo.stack.length) {
-            each(stackInfo.stack, function(i, stack) {
-                var frame = self._normalizeFrame(stack);
-                if (frame) {
-                    frames.push(frame);
-                }
-            });
-        }
+        var frames = this._prepareFrames(stackInfo, options);
 
         this._triggerEvent('handle', {
             stackInfo: stackInfo,
@@ -1088,10 +1112,35 @@ Raven.prototype = {
             stackInfo.message,
             stackInfo.url,
             stackInfo.lineno,
-            frames.slice(0, this._globalOptions.stackTraceLimit),
+            frames,
             options
         );
     },
+
+    _prepareFrames: function(stackInfo, options) {
+        var self = this;
+        var frames = [];
+        if (stackInfo.stack && stackInfo.stack.length) {
+            each(stackInfo.stack, function(i, stack) {
+                var frame = self._normalizeFrame(stack);
+                if (frame) {
+                    frames.push(frame);
+                }
+            });
+
+            // e.g. frames captured via captureMessage throw
+            if (options && options.trimHeadFrames) {
+                for (var j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
+                    frames[j].in_app = false;
+                }
+                // ... delete to prevent from appearing in outbound payload
+                delete options.trimHeadFrames;
+            }
+        }
+        frames = frames.slice(0, this._globalOptions.stackTraceLimit);
+        return frames;
+    },
+
 
     _normalizeFrame: function(frame) {
         if (!frame.url) return;
@@ -1118,7 +1167,6 @@ Raven.prototype = {
 
     _processException: function(type, message, fileurl, lineno, frames, options) {
         var stacktrace;
-
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(message)) return;
 
         message += '';
