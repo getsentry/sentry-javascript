@@ -71,7 +71,7 @@ Those configuration options are documented below:
 
 .. describe:: tags
 
-    Additional `tags <https://www.getsentry.com/docs/tags/>`__ to assign to each event.
+    Additional `tags <https://www.sentry.io/docs/tags/>`__ to assign to each event.
 
     .. code-block:: javascript
 

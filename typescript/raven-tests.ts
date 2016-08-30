@@ -1,6 +1,6 @@
 import Raven = require('..');
 
-Raven.config('https://public@getsentry.com/1').install();
+Raven.config('https://public@sentry.io/1').install();
 
 var options = {
     logger: 'my-logger',
@@ -14,7 +14,7 @@ var options = {
     ],
     includePaths: [
         /https?:\/\/(www\.)?getsentry\.com/,
-        'https://www.getsentry.com'
+        'https://www.sentry.io'
     ],
     whitelistUrls: [
         /https?:\/\/google\.com/,
@@ -22,7 +22,7 @@ var options = {
     ]
 };
 
-Raven.config('https://public@getsentry.com/1', options).install();
+Raven.config('https://public@sentry.io/1', options).install();
 
 var throwsError = () => {
     throw new Error('broken');

@@ -91,8 +91,8 @@ $ grunt run:docs
 * `$ npm publish` to push to npm.
 * Confirm that the new version exists behind `cdn.ravenjs.com`
 * Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.
-* Bump marketing pages on getsentry.com, e.g. https://getsentry.com/for/javascript/
-* Bump getsentry.com `<script>` tag of raven.js
+* Bump marketing pages on sentry.io, e.g. https://sentry.io/for/javascript/
+* Bump sentry.io `<script>` tag of raven.js
 * Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/master/package.json
 * Bump version for Segment integration since they don't: https://github.com/segment-integrations/analytics.js-integration-sentry
 * glhf
