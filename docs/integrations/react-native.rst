@@ -74,7 +74,7 @@ To generate both an application JavaScript file (main.jsbundle) and source map f
       --sourcemap-output main.jsbundle.map
 
 This will write both main.jsbundle and main.jsbundle.map to the current directory. Next, you'll need to `create a new release and upload these files as release artifacts
-<https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry>`__.
+<https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry>`__.
 
 Naming your Artifacts
 ~~~~~~~~~~~~~~~~~~~~~

@@ -33,7 +33,7 @@ Configuring the Client
 ----------------------
 
 Now you need to set up Raven.js to use your `Sentry DSN
-<https://docs.getsentry.com/hosted/quickstart/#configure-the-dsn>`_:
+<https://docs.sentry.io/hosted/quickstart/#configure-the-dsn>`_:
 
 .. code-block:: javascript
 
