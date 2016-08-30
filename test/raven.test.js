@@ -1460,6 +1460,18 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.setDSN', function() {
+        it('should work with a DSN after Raven has been configured', function() {
+            Raven.config('//def@lol.com/3');
+            Raven.setDSN(SENTRY_DSN)
+
+            assert.equal(Raven._globalKey, 'abc');
+            assert.equal(Raven._globalSecret, '');
+            assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
+            assert.equal(Raven._globalProject, '2');
+        });
+    });
+
     describe('.config', function() {
         it('should work with a DSN', function() {
             assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');

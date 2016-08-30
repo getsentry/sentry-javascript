@@ -123,11 +123,7 @@ Raven.prototype = {
             });
         }
 
-        var uri = this._parseDSN(dsn),
-            lastSlash = uri.path.lastIndexOf('/'),
-            path = uri.path.substr(1, lastSlash);
-
-        this._dsn = dsn;
+        this.setDSN(dsn);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
@@ -155,15 +151,6 @@ Raven.prototype = {
             autoBreadcrumbs = autoBreadcrumbDefaults;
         }
         this._globalOptions.autoBreadcrumbs = autoBreadcrumbs;
-
-        this._globalKey = uri.user;
-        this._globalSecret = uri.pass && uri.pass.substr(1);
-        this._globalProject = uri.path.substr(lastSlash + 1);
-
-        this._globalServer = this._getGlobalServer(uri);
-
-        this._globalEndpoint = this._globalServer +
-            '/' + path + 'api/' + this._globalProject + '/store/';
 
         TraceKit.collectWindowErrors = !!this._globalOptions.collectWindowErrors;
 
@@ -199,6 +186,27 @@ Raven.prototype = {
         return this;
     },
 
+    /*
+     * Set the DSN (can be called multiple time unlike config)
+     *
+     * @param {string} dsn The public Sentry DSN
+     */
+    setDSN: function(dsn) {
+        var uri = this._parseDSN(dsn),
+          lastSlash = uri.path.lastIndexOf('/'),
+          path = uri.path.substr(1, lastSlash);
+
+        this._dsn = dsn;
+        this._globalKey = uri.user;
+        this._globalSecret = uri.pass && uri.pass.substr(1);
+        this._globalProject = uri.path.substr(lastSlash + 1);
+
+        this._globalServer = this._getGlobalServer(uri);
+
+        this._globalEndpoint = this._globalServer +
+            '/' + path + 'api/' + this._globalProject + '/store/';
+    },
+    
     /*
      * Wrap code within a context so Raven can capture errors
      * reliably across domains that is executed immediately.
