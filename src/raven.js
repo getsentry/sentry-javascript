@@ -89,7 +89,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.5.1',
+    VERSION: '3.6.0',
 
     debug: false,
 
@@ -206,7 +206,7 @@ Raven.prototype = {
         this._globalEndpoint = this._globalServer +
             '/' + path + 'api/' + this._globalProject + '/store/';
     },
-    
+
     /*
      * Wrap code within a context so Raven can capture errors
      * reliably across domains that is executed immediately.
