@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.6.1
+## 3.6.0
 * NEW: `Raven.captureMessage` will generate synthetic stacktraces if passed `stacktrace: true` via options. See: https://github.com/getsentry/raven-js/pull/582
 * NEW: Added `Raven.setDSN` for changing target DSN after Raven has been configured. See: https://github.com/getsentry/raven-js/pull/706
 * CHANGE: Added missing TypeScript type declarations for Raven API methods. See: https://github.com/getsentry/raven-js/pull/698
