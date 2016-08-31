@@ -126,7 +126,7 @@ functions all allow passing additional data to be tagged onto the error.
 
 .. describe:: tags
 
-    `Tags <https://www.sentry.io/docs/tags/>`__ to assign to the event.
+    `Tags <https://docs.sentry.io/hosted/learn/context/#tagging-events>`__ to assign to the event.
 
     .. code-block:: javascript
 
