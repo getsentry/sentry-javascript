@@ -211,7 +211,7 @@ interface RavenStatic {
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
 
     /** Show Sentry user feedback dialog */
-    showReportDialog(options: Object);
+    showReportDialog(options: Object): void;
 }
 
 interface RavenTransportOptions {
