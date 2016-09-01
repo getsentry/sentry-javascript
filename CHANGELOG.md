@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.6.1
+* BUGFIX: Fix `trimHeadFrames` appearing in some data payloads when using synthetic traces. See: https://github.com/getsentry/raven-js/pull/714
+
 ## 3.6.0
 * NEW: `Raven.captureMessage` will generate synthetic stacktraces if passed `stacktrace: true` via options. See: https://github.com/getsentry/raven-js/pull/582
 * NEW: Added `Raven.setDSN` for changing target DSN after Raven has been configured. See: https://github.com/getsentry/raven-js/pull/706
