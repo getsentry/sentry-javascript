@@ -1141,8 +1141,6 @@ Raven.prototype = {
                 for (var j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
                     frames[j].in_app = false;
                 }
-                // ... delete to prevent from appearing in outbound payload
-                delete options.trimHeadFrames;
             }
         }
         frames = frames.slice(0, this._globalOptions.stackTraceLimit);
@@ -1262,6 +1260,9 @@ Raven.prototype = {
         if (httpData) {
             baseData.request = httpData;
         }
+
+        // HACK: delete `trimHeadFrames` to prevent from appearing in outbound payload
+        if (data.trimHeadFrames) delete data.trimHeadFrames;
 
         data = objectMerge(baseData, data);
 
