@@ -79,6 +79,25 @@ describe('integration', function () {
             );
         });
 
+        it('should generate a synthetic trace for captureException w/ non-errors', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+
+                    Raven.captureException({foo:'bar'});
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    assert.isAbove(ravenData.stacktrace.frames.length, 1);
+
+                    // verify trimHeadFrames hasn't slipped into final payload
+                    assert.isUndefined(ravenData.trimHeadFrames);
+                }
+            );
+        });
+
         it('should capture an Error object passed to Raven.captureException w/ maxMessageLength set (#647)', function (done) {
             var iframe = this.iframe;
             iframeExecute(iframe, done,
