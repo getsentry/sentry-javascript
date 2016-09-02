@@ -258,16 +258,16 @@ Raven.prototype = {
             if (func.__raven__) {
                 return func;
             }
+
+            // If this has already been wrapped in the past, return that
+            if (func.__raven_wrapper__ ){
+                return func.__raven_wrapper__ ;
+            }
         } catch (e) {
-            // Just accessing the __raven__ prop in some Selenium environments
+            // Just accessing custom props in some Selenium environments
             // can cause a "Permission denied" exception (see raven-js#495).
             // Bail on wrapping and return the function as-is (defers to window.onerror).
             return func;
-        }
-
-        // If this has already been wrapped in the past, return that
-        if (func.__raven_wrapper__ ){
-            return func.__raven_wrapper__ ;
         }
 
         function wrapped() {
@@ -864,7 +864,11 @@ Raven.prototype = {
                 }, wrappedBuiltIns);
                 fill(proto, 'removeEventListener', function (orig) {
                     return function (evt, fn, capture, secure) {
-                        fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
+                        try {
+                            fn = fn && (fn.__raven_wrapper__ ? fn.__raven_wrapper__  : fn);
+                        } catch (e) {
+                            // ignore, accessing __raven_wrapper__ will throw in some Selenium environments
+                        }
                         return orig.call(this, evt, fn, capture, secure);
                     };
                 }, wrappedBuiltIns);
