@@ -1735,6 +1735,19 @@ describe('Raven (public API)', function() {
             assert.equal(fn, wrapped);
         });
 
+        it('should return input funciton as-is if accessing __raven_wrapper__ prop throws exception', function (){
+            // see raven-js#495
+            var fn = function () {};
+            Object.defineProperty(fn, '__raven_wrapper__', {
+              get: function () {
+                  throw new Error('Permission denied')
+              }
+            });
+            assert.throw(function () { fn.__raven_wrapper__; }, 'Permission denied');
+            var wrapped = Raven.wrap(fn);
+            assert.equal(fn, wrapped);
+        });
+
     });
 
     describe('.context', function() {
