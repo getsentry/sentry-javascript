@@ -14,6 +14,8 @@ function now() {
     return +new Date();
 }
 
+var _window = typeof window !== 'undefined' ? window : undefined;
+var _document = _window && _window.document;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
@@ -21,7 +23,7 @@ function now() {
 function Raven() {
     this._hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
     // Raven can run in contexts where there's no document (react-native)
-    this._hasDocument = typeof document !== 'undefined';
+    this._hasDocument = !isUndefined(_document);
     this._lastCapturedException = null;
     this._lastEventId = null;
     this._globalServer = null;
@@ -45,7 +47,7 @@ function Raven() {
     this._originalErrorStackTraceLimit = Error.stackTraceLimit;
     // capture references to window.console *and* all its methods first
     // before the console plugin has a chance to monkey patch
-    this._originalConsole = window.console || {};
+    this._originalConsole = _window.console || {};
     this._originalConsoleMethods = {};
     this._plugins = [];
     this._startTime = now();
@@ -53,7 +55,7 @@ function Raven() {
     this._breadcrumbs = [];
     this._lastCapturedEvent = null;
     this._keypressTimeout;
-    this._location = window.location;
+    this._location = _window.location;
     this._lastHref = this._location && this._location.href;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
@@ -88,11 +90,13 @@ Raven.prototype = {
     config: function(dsn, options) {
         var self = this;
 
-        if (this._globalServer) {
+        if (self._globalServer) {
                 this._logDebug('error', 'Error: Raven has already been configured');
-            return this;
+            return self;
         }
-        if (!dsn) return this;
+        if (!dsn) return self;
+
+        var globalOptions = self._globalOptions;
 
         // merge in options
         if (options) {
@@ -101,24 +105,24 @@ Raven.prototype = {
                 if (key === 'tags' || key === 'extra') {
                     self._globalContext[key] = value;
                 } else {
-                    self._globalOptions[key] = value;
+                    globalOptions[key] = value;
                 }
             });
         }
 
-        this.setDSN(dsn);
+        self.setDSN(dsn);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
-        this._globalOptions.ignoreErrors.push(/^Script error\.?$/);
-        this._globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
+        globalOptions.ignoreErrors.push(/^Script error\.?$/);
+        globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
 
         // join regexp rules into one big rule
-        this._globalOptions.ignoreErrors = joinRegExp(this._globalOptions.ignoreErrors);
-        this._globalOptions.ignoreUrls = this._globalOptions.ignoreUrls.length ? joinRegExp(this._globalOptions.ignoreUrls) : false;
-        this._globalOptions.whitelistUrls = this._globalOptions.whitelistUrls.length ? joinRegExp(this._globalOptions.whitelistUrls) : false;
-        this._globalOptions.includePaths = joinRegExp(this._globalOptions.includePaths);
-        this._globalOptions.maxBreadcrumbs = Math.max(0, Math.min(this._globalOptions.maxBreadcrumbs || 100, 100)); // default and hard limit is 100
+        globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
+        globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
+        globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
+        globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
+        globalOptions.maxBreadcrumbs = Math.max(0, Math.min(globalOptions.maxBreadcrumbs || 100, 100)); // default and hard limit is 100
 
         var autoBreadcrumbDefaults = {
             xhr: true,
@@ -127,18 +131,18 @@ Raven.prototype = {
             location: true
         };
 
-        var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
+        var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
         if ({}.toString.call(autoBreadcrumbs) === '[object Object]') {
             autoBreadcrumbs = objectMerge(autoBreadcrumbDefaults, autoBreadcrumbs);
         } else if (autoBreadcrumbs !== false) {
             autoBreadcrumbs = autoBreadcrumbDefaults;
         }
-        this._globalOptions.autoBreadcrumbs = autoBreadcrumbs;
+        globalOptions.autoBreadcrumbs = autoBreadcrumbs;
 
-        TraceKit.collectWindowErrors = !!this._globalOptions.collectWindowErrors;
+        TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
-        return this;
+        return self;
     },
 
     /*
@@ -151,21 +155,21 @@ Raven.prototype = {
      */
     install: function() {
         var self = this;
-        if (this.isSetup() && !this._isRavenInstalled) {
+        if (self.isSetup() && !self._isRavenInstalled) {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            this._instrumentTryCatch();
+            self._instrumentTryCatch();
             if (self._globalOptions.autoBreadcrumbs)
-                this._instrumentBreadcrumbs();
+                self._instrumentBreadcrumbs();
 
             // Install all of the plugins
-            this._drainPlugins();
+            self._drainPlugins();
 
-            this._isRavenInstalled = true;
+            self._isRavenInstalled = true;
         }
 
-        Error.stackTraceLimit = this._globalOptions.stackTraceLimit;
+        Error.stackTraceLimit = self._globalOptions.stackTraceLimit;
         return this;
     },
 
@@ -175,19 +179,20 @@ Raven.prototype = {
      * @param {string} dsn The public Sentry DSN
      */
     setDSN: function(dsn) {
-        var uri = this._parseDSN(dsn),
+        var self = this,
+            uri = self._parseDSN(dsn),
           lastSlash = uri.path.lastIndexOf('/'),
           path = uri.path.substr(1, lastSlash);
 
-        this._dsn = dsn;
-        this._globalKey = uri.user;
-        this._globalSecret = uri.pass && uri.pass.substr(1);
-        this._globalProject = uri.path.substr(lastSlash + 1);
+        self._dsn = dsn;
+        self._globalKey = uri.user;
+        self._globalSecret = uri.pass && uri.pass.substr(1);
+        self._globalProject = uri.path.substr(lastSlash + 1);
 
-        this._globalServer = this._getGlobalServer(uri);
+        self._globalServer = self._getGlobalServer(uri);
 
-        this._globalEndpoint = this._globalServer +
-            '/' + path + 'api/' + this._globalProject + '/store/';
+        self._globalEndpoint = self._globalServer +
+            '/' + path + 'api/' + self._globalProject + '/store/';
     },
 
     /*
@@ -410,7 +415,7 @@ Raven.prototype = {
     },
 
     addPlugin: function(plugin /*arg1, arg2, ... argN*/) {
-        var pluginArgs = Array.prototype.slice.call(arguments, 1);
+        var pluginArgs = [].slice.call(arguments, 1);
 
         this._plugins.push([plugin, pluginArgs]);
         if (this._isRavenInstalled) {
@@ -589,14 +594,14 @@ Raven.prototype = {
         // TODO: remove window dependence?
 
         // Attempt to initialize Raven on load
-        var RavenConfig = window.RavenConfig;
+        var RavenConfig = _window.RavenConfig;
         if (RavenConfig) {
             this.config(RavenConfig.dsn, RavenConfig.config).install();
         }
     },
 
     showReportDialog: function (options) {
-        if (!window.document) // doesn't work without a document (React native)
+        if (!_document) // doesn't work without a document (React native)
             return;
 
         options = options || {};
@@ -624,10 +629,10 @@ Raven.prototype = {
 
         var globalServer = this._getGlobalServer(this._parseDSN(dsn));
 
-        var script = document.createElement('script');
+        var script = _document.createElement('script');
         script.async = true;
         script.src = globalServer + '/api/embed/error-page/' + qs;
-        (document.head || document.body).appendChild(script);
+        (_document.head || _document.body).appendChild(script);
     },
 
     /**** Private functions ****/
@@ -651,11 +656,11 @@ Raven.prototype = {
 
         eventType = 'raven' + eventType.substr(0,1).toUpperCase() + eventType.substr(1);
 
-        if (document.createEvent) {
-            evt = document.createEvent('HTMLEvents');
+        if (_document.createEvent) {
+            evt = _document.createEvent('HTMLEvents');
             evt.initEvent(eventType, true, true);
         } else {
-            evt = document.createEventObject();
+            evt = _document.createEventObject();
             evt.eventType = eventType;
         }
 
@@ -663,14 +668,14 @@ Raven.prototype = {
             evt[key] = options[key];
         }
 
-        if (document.createEvent) {
+        if (_document.createEvent) {
             // IE9 if standards
-            document.dispatchEvent(evt);
+            _document.dispatchEvent(evt);
         } else {
             // IE8 regardless of Quirks or Standards
             // IE9 if quirks
             try {
-                document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
+                _document.fireEvent('on' + evt.eventType.toLowerCase(), evt);
             } catch(e) {
                 // Do nothing
             }
@@ -820,7 +825,7 @@ Raven.prototype = {
         var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
 
         function wrapEventTarget(global) {
-            var proto = window[global] && window[global].prototype;
+            var proto = _window[global] && _window[global].prototype;
             if (proto && proto.hasOwnProperty && proto.hasOwnProperty('addEventListener')) {
                 fill(proto, 'addEventListener', function(orig) {
                     return function (evtName, fn, capture, secure) { // preserve arity
@@ -854,10 +859,10 @@ Raven.prototype = {
             }
         }
 
-        fill(window, 'setTimeout', wrapTimeFn, wrappedBuiltIns);
-        fill(window, 'setInterval', wrapTimeFn, wrappedBuiltIns);
-        if (window.requestAnimationFrame) {
-            fill(window, 'requestAnimationFrame', function (orig) {
+        fill(_window, 'setTimeout', wrapTimeFn, wrappedBuiltIns);
+        fill(_window, 'setInterval', wrapTimeFn, wrappedBuiltIns);
+        if (_window.requestAnimationFrame) {
+            fill(_window, 'requestAnimationFrame', function (orig) {
                 return function (cb) {
                     return orig(self.wrap(cb));
                 };
@@ -871,7 +876,7 @@ Raven.prototype = {
             wrapEventTarget(eventTargets[i]);
         }
 
-        var $ = window.jQuery || window.$;
+        var $ = _window.jQuery || _window.$;
         if ($ && $.fn && $.fn.ready) {
             fill($.fn, 'ready', function (orig) {
                 return function (fn) {
@@ -905,7 +910,7 @@ Raven.prototype = {
             }
         }
 
-        if (autoBreadcrumbs.xhr && 'XMLHttpRequest' in window) {
+        if (autoBreadcrumbs.xhr && 'XMLHttpRequest' in _window) {
             var xhrproto = XMLHttpRequest.prototype;
             fill(xhrproto, 'open', function(origOpen) {
                 return function (method, url) { // preserve arity
@@ -965,14 +970,14 @@ Raven.prototype = {
         // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
         // to the document. Do this before we instrument addEventListener.
         if (autoBreadcrumbs.dom && this._hasDocument) {
-            if (document.addEventListener) {
-                document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
-                document.addEventListener('keypress', self._keypressEventHandler(), false);
+            if (_document.addEventListener) {
+                _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
+                _document.addEventListener('keypress', self._keypressEventHandler(), false);
             }
             else {
                 // IE8 Compatibility
-                document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
-                document.attachEvent('onkeypress', self._keypressEventHandler());
+                _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+                _document.attachEvent('onkeypress', self._keypressEventHandler());
             }
         }
 
@@ -980,13 +985,13 @@ Raven.prototype = {
         // NOTE: in Chrome App environment, touching history.pushState, *even inside
         //       a try/catch block*, will cause Chrome to output an error to console.error
         // borrowed from: https://github.com/angular/angular.js/pull/13945/files
-        var chrome = window.chrome;
+        var chrome = _window.chrome;
         var isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
-        var hasPushState = !isChromePackagedApp && window.history && history.pushState;
+        var hasPushState = !isChromePackagedApp && _window.history && history.pushState;
         if (autoBreadcrumbs.location && hasPushState) {
             // TODO: remove onpopstate handler on uninstall()
-            var oldOnPopState = window.onpopstate;
-            window.onpopstate = function () {
+            var oldOnPopState = _window.onpopstate;
+            _window.onpopstate = function () {
                 var currentHref = self._location.href;
                 self._captureUrlChange(self._lastHref, currentHref);
 
@@ -1012,7 +1017,7 @@ Raven.prototype = {
             }, wrappedBuiltIns);
         }
 
-        if (autoBreadcrumbs.console && 'console' in window && console.log) {
+        if (autoBreadcrumbs.console && 'console' in _window && console.log) {
             // console
             var consoleMethodCallback = function (msg, data) {
                 self.captureBreadcrumb({
@@ -1211,7 +1216,7 @@ Raven.prototype = {
     },
 
     _getHttpData: function() {
-        if (!this._hasDocument || !document.location || !document.location.href) {
+        if (!this._hasDocument || !_document.location || !_document.location.href) {
             return;
         }
 
@@ -1221,10 +1226,10 @@ Raven.prototype = {
             }
         };
 
-        httpData.url = document.location.href;
+        httpData.url = _document.location.href;
 
-        if (document.referrer) {
-            httpData.headers.Referer = document.referrer;
+        if (_document.referrer) {
+            httpData.headers.Referer = _document.referrer;
         }
 
         return httpData;
