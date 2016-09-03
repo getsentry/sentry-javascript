@@ -196,7 +196,7 @@ module.exports = function(grunt) {
                     unused: true,
 
                     global_defs: {
-                        '__DEV__': 'production'
+                        '__DEV__': false
                     }
                 }
             },
