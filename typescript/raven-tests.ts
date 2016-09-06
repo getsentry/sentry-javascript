@@ -59,10 +59,10 @@ Raven.captureBreadcrumb({});
 Raven.setRelease('abc123');
 Raven.setEnvironment('production');
 
-Raven.setDataCallback(function (data) {});
-Raven.setDataCallback(function (data, original) {});
-Raven.setShouldSendCallback(function (data) {});
-Raven.setShouldSendCallback(function (data, original) {});
+Raven.setDataCallback(function (data: any) {});
+Raven.setDataCallback(function (data: any, original: any) {});
+Raven.setShouldSendCallback(function (data: any) {});
+Raven.setShouldSendCallback(function (data: any, original: any) {});
 
 Raven.showReportDialog({
     eventId: 'abcdef123456'
