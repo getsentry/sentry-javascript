@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.7.0
+* BUGFIX: Add missing return types from TypeScript declaration file. See: https://github.com/getsentry/raven-js/pull/718
+* BUGFIX: Fix "Permission denied" error in Firefox via WebDriver. See: https://github.com/getsentry/raven-js/pull/720
+* REMOVED: Legacy stack trace parsing from Opera 9, 10. See: https://github.com/getsentry/raven-js/pull/716
+
 ## 3.6.1
 * BUGFIX: Fix `trimHeadFrames` appearing in some data payloads when using synthetic traces. See: https://github.com/getsentry/raven-js/pull/714
 
