@@ -24,7 +24,7 @@ Additionally, it is helpful if you can let us know:
 * If you are using [hosted Sentry](https://sentry.io) or on-premises, and if the latter, which version (e.g. 8.7.0)
 * If you are using the Raven CDN (http://ravenjs.com)
 
-Lastly, it is strongly encouraged to provide a small project reproducing your issue. You can put your code on JSBin or, for bigger projects, on GitHub. Make sure all the necessary dependencies are declared in package.json so anyone can run npm install && npm start and reproduce your issue.
+Lastly, it is strongly encouraged to provide a small project reproducing your issue. You can put your code on [JSFiddle](https://jsfiddle.net/) or, for bigger projects, on GitHub. Make sure all the necessary dependencies are declared in package.json so anyone can run npm install && npm start and reproduce your issue.
 
 ## Development
 
@@ -109,20 +109,20 @@ $ grunt run:docs
 
 _This is a checklist for core contributors when releasing a new version._
 
-  * [ ] Verify TypeScript [language definition file](https://github.com/getsentry/  * raven-js/blob/master/typescript/raven.d.ts) is up to date
+  * [ ] Verify TypeScript [language definition file](https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts) is up to date
   * [ ] Bump version numbers in both `package.json` and `bower.json`.
   * [ ] Bump version across all docs under `docs/`
-  * [ ] Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/  * CHANGELOG.md)
-  * [ ]`$ grunt dist` This will compile a new version and update it in the `dist/`   * folder.
+  * [ ] Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
+  * [ ] `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
   * [ ] Confirm that build was fine, etc.
   * [ ] Commit new version, create a tag. Push to GitHub.
-  * [ ] Copy CHANGELOG entry into a new GH Release: https://github.com/getsentry/  * raven-js/releases
-  * [ ] `$ grunt publish` to recompile all plugins and all permutations and upload to   * S3.
+  * [ ] Copy CHANGELOG entry into a new GH Release: https://github.com/getsentry/raven-js/releases
+  * [ ] `$ grunt publish` to recompile all plugins and all permutations and upload to S3.
   * [ ] `$ npm publish` to push to npm.
   * [ ] Confirm that the new version exists behind `cdn.ravenjs.com`
   * [ ] Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.
   * [ ] Bump marketing pages on sentry.io, e.g. https://sentry.io/for/javascript/
   * [ ] Bump sentry.io `<script>` tag of raven.js
-  * [ ] Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/  * master/package.json
-  * [ ] Bump version for Segment integration since they don't: https://github.com/  * segment-integrations/analytics.js-integration-sentry
+  * [ ] Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/master/package.json
+  * [ ] Bump version for Segment integration since they don't: https://github.com/segment-integrations/analytics.js-integration-sentry
   * [ ] glhf
