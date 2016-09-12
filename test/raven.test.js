@@ -7,19 +7,16 @@ var proxyquire = require('proxyquireify')(require);
 var TraceKit = require('../vendor/TraceKit/tracekit');
 
 var _Raven = proxyquire('../src/raven', {
-    './utils': {
-        // patched to return a predictable result
-        uuid4: function () {
-            return 'abc123';
-        }
-    },
-
     // Ensure same TraceKit obj is shared (without specifying this, proxyquire
     // seems to clone dependencies or something weird)
     '../vendor/TraceKit/tracekit': TraceKit
 });
 
-var joinRegExp = require('../src/utils').joinRegExp;
+_Raven.prototype._getUuid = function () {
+    return 'abc123';
+};
+
+var joinRegExp = _Raven.utils.joinRegExp;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -31,7 +28,6 @@ var SENTRY_DSN = 'http://abc@example.com:80/2';
 function setupRaven() {
     Raven.config(SENTRY_DSN);
 }
-
 
 var Raven;
 

@@ -1,11 +1,5 @@
 'use strict';
 
-var utils = require('../../src/utils');
-
-var hasKey = utils.hasKey;
-var isString = utils.isString;
-var isUndefined = utils.isUndefined;
-
 /*
  TraceKit - Cross brower stack traces - github.com/occ/TraceKit
  MIT license
@@ -114,7 +108,7 @@ TraceKit.report = (function reportModuleWrapper() {
           return;
         }
         for (var i in handlers) {
-            if (hasKey(handlers, i)) {
+            if (handlers.hasOwnProperty(i)) {
                 try {
                     handlers[i].apply(null, [stack].concat(_slice.call(arguments, 2)));
                 } catch (inner) {
@@ -163,7 +157,7 @@ TraceKit.report = (function reportModuleWrapper() {
             var name = undefined;
             var msg = message; // must be new var or will modify original `arguments`
             var groups;
-            if (isString(message)) {
+            if ({}.toString.call(message) === '[object String]') {
                 var groups = message.match(ERROR_TYPES_RE);
                 if (groups) {
                     name = groups[1];
@@ -244,7 +238,7 @@ TraceKit.report = (function reportModuleWrapper() {
         // slow slow IE to see if onerror occurs or not before reporting
         // this exception; otherwise, we will end up with an incomplete
         // stack trace
-        window.setTimeout(function () {
+        setTimeout(function () {
             if (lastException === ex) {
                 processLastException();
             }
@@ -378,7 +372,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
      * @return {?Object.<string, *>} Stack trace information.
      */
     function computeStackTraceFromStackProp(ex) {
-        if (isUndefined(ex.stack) || !ex.stack) return;
+        if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|<anonymous>).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
@@ -430,7 +424,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             return null;
         }
 
-        if (!stack[0].column && !isUndefined(ex.columnNumber)) {
+        if (!stack[0].column && typeof ex.columnNumber !== 'undefined') {
             // FireFox uses this awesome columnNumber property for its top frame
             // Also note, Firefox's column number is 0-based and everything else expects 1-based,
             // so adding 1
