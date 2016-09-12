@@ -41,7 +41,6 @@
     "istanbul": "^0.4.3",
     "koa": "*",
     "mocha": "*",
-    "mock-udp": "*",
     "nock": "~0.28.2",
     "should": "~3.3.1"
   }

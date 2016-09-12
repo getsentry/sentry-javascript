@@ -3,7 +3,6 @@
 
 var raven = require('../'),
   nock = require('nock'),
-  mockudp = require('mock-udp'),
   zlib = require('zlib');
 
 var dsn = 'https://public:private@app.getsentry.com/269';
@@ -249,18 +248,6 @@ describe('raven.Client', function() {
       client.captureError(new Error('wtf?'));
     });
 
-    it('should send an Error to Sentry server over UDP', function(done) {
-      var scope = mockudp('app.getsentry.com:1234');
-
-      var dsn = 'udp://public:private@app.getsentry.com:1234/269';
-      var client = new raven.Client(dsn);
-      client.on('logged', function() {
-        scope.done();
-        done();
-      });
-      client.captureError(new Error('wtf?'));
-    });
-
     it('shouldn\'t choke on circular references', function(done) {
       // See: https://github.com/mattrobenolt/raven-node/pull/46
       var old = zlib.deflate;
@@ -418,7 +405,7 @@ describe('raven.Client', function() {
 
   it('should use a custom transport', function() {
     var expected = {
-      protocol: 'udp',
+      protocol: 'https',
       public_key: 'public',
       private_key: 'private',
       host: 'app.getsentry.com',
@@ -426,7 +413,7 @@ describe('raven.Client', function() {
       project_id: 269,
       port: 443
     };
-    var dsn = 'heka+udp://public:private@app.getsentry.com/269';
+    var dsn = 'heka+https://public:private@app.getsentry.com/269';
     var client = new raven.Client(dsn, {
       transport: 'some_heka_instance'
     });

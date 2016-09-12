@@ -51,20 +51,6 @@ describe('raven.utils', function() {
       raven.utils.parseDSN('').should.eql(false);
     });
 
-    it('should parse UDP DSN', function() {
-      var dsn = raven.utils.parseDSN('udp://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:1234/some/other/path/269');
-      var expected = {
-        protocol: 'udp',
-        public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
-        private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
-        host: 'mysentry.com',
-        path: '/some/other/path/',
-        project_id: 269,
-        port: 1234
-      };
-      dsn.should.eql(expected);
-    });
-
     it('show throw an Error on invalid transport protocol', function() {
       (function() {
         raven.utils.parseDSN('noop://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@mysentry.com:1234/some/other/path/269');
