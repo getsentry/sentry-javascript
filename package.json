@@ -26,11 +26,11 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
-    "cookie": "0.1.0",
-    "json-stringify-safe": "^5.0.1",
+    "cookie": "0.3.1",
+    "json-stringify-safe": "5.0.1",
     "lsmod": "1.0.0",
-    "node-uuid": "~1.4.1",
-    "stack-trace": "0.0.7"
+    "node-uuid": "1.4.7",
+    "stack-trace": "0.0.9"
   },
   "devDependencies": {
     "coffee-script": "~1.10.0",
