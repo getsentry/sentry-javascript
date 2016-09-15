@@ -5,14 +5,14 @@ var raven = require('../');
 
 raven.parsers = require('../lib/parsers');
 
-describe('raven.parsers', function() {
-  describe('#parseText()', function() {
-    it('should parse some text without kwargs', function() {
+describe('raven.parsers', function () {
+  describe('#parseText()', function () {
+    it('should parse some text without kwargs', function () {
       var parsed = raven.parsers.parseText('Howdy');
       parsed.message.should.equal('Howdy');
     });
 
-    it('should parse some text with kwargs', function() {
+    it('should parse some text with kwargs', function () {
       var parsed = raven.parsers.parseText('Howdy', {
         'foo': 'bar'
       });
@@ -21,8 +21,8 @@ describe('raven.parsers', function() {
     });
   });
 
-  describe('#parseQuery()', function() {
-    it('should parse a query', function() {
+  describe('#parseQuery()', function () {
+    it('should parse a query', function () {
       var query = 'SELECT * FROM `something`';
       var engine = 'mysql';
       var parsed = raven.parsers.parseQuery(query, engine);
@@ -33,8 +33,8 @@ describe('raven.parsers', function() {
     });
   });
 
-  describe('#parseRequest()', function() {
-    it('should parse a request object', function() {
+  describe('#parseRequest()', function () {
+    it('should parse a request object', function () {
       var mockReq = {
         method: 'GET',
         url: '/some/path?key=value',
@@ -56,8 +56,8 @@ describe('raven.parsers', function() {
       parsed.user.ip_address.should.equal('127.0.0.1');
     });
 
-    describe('`headers` detection', function() {
-      it('should detect headers via `req.headers`', function() {
+    describe('`headers` detection', function () {
+      it('should detect headers via `req.headers`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -74,7 +74,7 @@ describe('raven.parsers', function() {
         });
       });
 
-      it('should detect headers via `req.header`', function() {
+      it('should detect headers via `req.header`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -92,8 +92,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`method` detection', function() {
-      it('should detect method via `req.method`', function() {
+    describe('`method` detection', function () {
+      it('should detect method via `req.method`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -106,8 +106,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`host` detection', function() {
-      it('should detect host via `req.hostname`', function() {
+    describe('`host` detection', function () {
+      it('should detect host via `req.hostname`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -119,7 +119,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect host via deprecated `req.host`', function() {
+      it('should detect host via deprecated `req.host`', function () {
         var mockReq = {
           method: 'GET',
           host: 'mattrobenolt.com',
@@ -131,7 +131,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect host via `req.header.host`', function() {
+      it('should detect host via `req.header.host`', function () {
         var mockReq = {
           method: 'GET',
           header: {
@@ -145,7 +145,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect host via `req.headers.host`', function() {
+      it('should detect host via `req.headers.host`', function () {
         var mockReq = {
           method: 'GET',
           headers: {
@@ -159,7 +159,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('http://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should fallback to <no host> if host is not available', function() {
+      it('should fallback to <no host> if host is not available', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value'
@@ -171,8 +171,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`protocol` detection', function() {
-      it('should detect protocol via `req.protocol`', function() {
+    describe('`protocol` detection', function () {
+      it('should detect protocol via `req.protocol`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -190,7 +190,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect protocol via `req.secure`', function() {
+      it('should detect protocol via `req.secure`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -208,7 +208,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect protocol via `req.socket.encrypted`', function() {
+      it('should detect protocol via `req.socket.encrypted`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -226,8 +226,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`cookie` detection', function() {
-      it('should parse `req.headers.cookie`', function() {
+    describe('`cookie` detection', function () {
+      it('should parse `req.headers.cookie`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -243,7 +243,7 @@ describe('raven.parsers', function() {
         });
       });
 
-      it('should parse `req.header.cookie`', function() {
+      it('should parse `req.header.cookie`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -261,8 +261,8 @@ describe('raven.parsers', function() {
 
     });
 
-    describe('`query` detection', function() {
-      it('should detect query via `req.query`', function() {
+    describe('`query` detection', function () {
+      it('should detect query via `req.query`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -279,7 +279,7 @@ describe('raven.parsers', function() {
         });
       });
 
-      it('should detect query via `req.url`', function() {
+      it('should detect query via `req.url`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -294,8 +294,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`ip` detection', function() {
-      it('should detect ip via `req.ip`', function() {
+    describe('`ip` detection', function () {
+      it('should detect ip via `req.ip`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -310,7 +310,7 @@ describe('raven.parsers', function() {
         parsed.user.ip_address.should.equal('127.0.0.1');
       });
 
-      it('should detect ip via `req.connection.remoteAddress`', function() {
+      it('should detect ip via `req.connection.remoteAddress`', function () {
         var mockReq = {
           method: 'GET',
           url: '/some/path?key=value',
@@ -328,8 +328,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`url` detection', function() {
-      it('should detect url via `req.originalUrl`', function() {
+    describe('`url` detection', function () {
+      it('should detect url via `req.originalUrl`', function () {
         var mockReq = {
           method: 'GET',
           protocol: 'https',
@@ -342,7 +342,7 @@ describe('raven.parsers', function() {
         parsed.request.url.should.equal('https://mattrobenolt.com/some/path?key=value');
       });
 
-      it('should detect url via `req.url`', function() {
+      it('should detect url via `req.url`', function () {
         var mockReq = {
           method: 'GET',
           protocol: 'https',
@@ -356,8 +356,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    describe('`body` detection', function() {
-      it('should detect body via `req.body`', function() {
+    describe('`body` detection', function () {
+      it('should detect body via `req.body`', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -370,7 +370,7 @@ describe('raven.parsers', function() {
         parsed.request.data.should.equal('foo=bar');
       });
 
-      it('should fallback to <unavailable> if body is not available', function() {
+      it('should fallback to <unavailable> if body is not available', function () {
         var mockReq = {
           method: 'POST',
           hostname: 'mattrobenolt.com',
@@ -382,7 +382,7 @@ describe('raven.parsers', function() {
         parsed.request.data.should.equal('<unavailable>');
       });
 
-      it('should not fallback to <unavailable> if GET', function() {
+      it('should not fallback to <unavailable> if GET', function () {
         var mockReq = {
           method: 'GET',
           hostname: 'mattrobenolt.com',
@@ -394,7 +394,7 @@ describe('raven.parsers', function() {
         (typeof parsed.request.data === 'undefined').should.be.ok;
       });
 
-      it('should make sure that body is a string', function() {
+      it('should make sure that body is a string', function () {
         var mockReq = {
           method: 'POST',
           hostname: 'mattrobenolt.com',
@@ -405,7 +405,7 @@ describe('raven.parsers', function() {
         };
 
         var parsed = raven.parsers.parseRequest(mockReq);
-        parsed.request.data.should.equal('{\"foo\":true}');
+        parsed.request.data.should.equal('{"foo":true}');
       });
     });
 
@@ -465,9 +465,9 @@ describe('raven.parsers', function() {
     });
   });
 
-  describe('#parseError()', function() {
-    it('should parse plain Error object', function(done) {
-      raven.parsers.parseError(new Error(), {}, function(parsed) {
+  describe('#parseError()', function () {
+    it('should parse plain Error object', function (done) {
+      raven.parsers.parseError(new Error(), {}, function (parsed) {
         parsed.message.should.equal('Error: <no message>');
         parsed.should.have.property('exception');
         parsed.exception[0].type.should.equal('Error');
@@ -477,8 +477,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    it('should parse Error with message', function(done) {
-      raven.parsers.parseError(new Error('Crap'), {}, function(parsed) {
+    it('should parse Error with message', function (done) {
+      raven.parsers.parseError(new Error('Crap'), {}, function (parsed) {
         parsed.message.should.equal('Error: Crap');
         parsed.should.have.property('exception');
         parsed.exception[0].type.should.equal('Error');
@@ -488,8 +488,8 @@ describe('raven.parsers', function() {
       });
     });
 
-    it('should parse TypeError with message', function(done) {
-      raven.parsers.parseError(new TypeError('Crap'), {}, function(parsed) {
+    it('should parse TypeError with message', function (done) {
+      raven.parsers.parseError(new TypeError('Crap'), {}, function (parsed) {
         parsed.message.should.equal('TypeError: Crap');
         parsed.should.have.property('exception');
         parsed.exception[0].type.should.equal('TypeError');
@@ -499,10 +499,10 @@ describe('raven.parsers', function() {
       });
     });
 
-    it('should parse Error with non-string type', function(done) {
+    it('should parse Error with non-string type', function (done) {
       var err = new Error();
       err.name = {};
-      raven.parsers.parseError(err, {}, function(parsed) {
+      raven.parsers.parseError(err, {}, function (parsed) {
         parsed.message.should.equal('[object Object]: <no message>');
         parsed.should.have.property('exception');
         parsed.exception[0].type.should.equal('[object Object]');
@@ -512,11 +512,11 @@ describe('raven.parsers', function() {
       });
     });
 
-    it('should parse thrown Error', function(done) {
+    it('should parse thrown Error', function (done) {
       try {
         throw new Error('Derp');
       } catch (e) {
-        raven.parsers.parseError(e, {}, function(parsed) {
+        raven.parsers.parseError(e, {}, function (parsed) {
           parsed.message.should.equal('Error: Derp');
           parsed.should.have.property('exception');
           parsed.exception[0].type.should.equal('Error');
@@ -527,37 +527,37 @@ describe('raven.parsers', function() {
       }
     });
 
-    it('should allow specifying a custom `culprit`', function(done) {
+    it('should allow specifying a custom `culprit`', function (done) {
       try {
         throw new Error('Foobar');
       } catch (e) {
         raven.parsers.parseError(e, {
           culprit: 'foobar'
-        }, function(parsed) {
+        }, function (parsed) {
           parsed.culprit.should.equal('foobar');
           done();
         });
       }
     });
 
-    it('should have a string stack after parsing', function(done) {
+    it('should have a string stack after parsing', function (done) {
       try {
         throw new Error('Derp');
       } catch (e) {
-        raven.parsers.parseError(e, {}, function(parsed) {
+        raven.parsers.parseError(e, {}, function (parsed) {
           e.stack.should.be.a.String;
           done();
         });
       }
     });
 
-    it('should parse caught real error', function(done) {
-      /*eslint new-cap:0*/
+    it('should parse caught real error', function (done) {
+      /* eslint new-cap:0 */
       try {
         var o = {};
         o['...'].Derp();
       } catch (e) {
-        raven.parsers.parseError(e, {}, function(parsed) {
+        raven.parsers.parseError(e, {}, function (parsed) {
           parsed.message.should.containEql('TypeError');
           parsed.message.should.containEql('Derp');
           parsed.should.have.property('exception');
@@ -569,11 +569,11 @@ describe('raven.parsers', function() {
       }
     });
 
-    it('should parse an error with additional information', function(done) {
+    it('should parse an error with additional information', function (done) {
       try {
         assert.strictEqual(1, 2);
       } catch (e) {
-        raven.parsers.parseError(e, {}, function(parsed) {
+        raven.parsers.parseError(e, {}, function (parsed) {
           parsed.should.have.property('exception');
           parsed.exception[0].stacktrace.should.have.property('frames');
           parsed.should.have.property('extra');

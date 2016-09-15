@@ -3,7 +3,7 @@
 module.exports = require('./lib/client');
 module.exports.utils = require('./lib/utils');
 module.exports.middleware = {
-    connect: require('./lib/middleware/connect')
+  connect: require('./lib/middleware/connect')
 };
 // friendly alias for "raven.middleware.express"
 module.exports.middleware.express = module.exports.middleware.connect;

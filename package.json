@@ -35,7 +35,7 @@
   "devDependencies": {
     "coffee-script": "~1.10.0",
     "connect": "*",
-    "eslint": "1.10.3",
+    "eslint": "2.13.1",
     "express": "*",
     "glob": "~3.1.13",
     "istanbul": "^0.4.3",
