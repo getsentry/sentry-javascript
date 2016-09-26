@@ -60,8 +60,8 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
 
     import Raven = require('raven-js');
     import { BrowserModule } from '@angular/platform-browser';
+    import { NgModule, ErrorHandler } from '@angular/core';
     import { AppComponent } from './app.component';
-    import { NgModule, ErrorHandler } from 'angular2/core';
 
     Raven
       .config('___PUBLIC_DSN___')
@@ -77,7 +77,7 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
       imports: [ BrowserModule ],
       declarations: [ AppComponent ],
       bootstrap: [ AppComponent ],
-      providers: [ {provide: ErrorHandler, useClass: RavenErrorHandler}]
+      providers: [ { provide: ErrorHandler, useClass: RavenErrorHandler } ]
     })
     export class AppModule { }
 
