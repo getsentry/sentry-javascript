@@ -54,55 +54,31 @@ First, configure SystemJS to locate the Raven.js package:
       }
     });
 
-Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts):
+Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.ts):
 
 .. code-block:: js
 
-    import Raven from 'raven-js';
-    import { bootstrap } from 'angular2/platform/browser';
-    import { MainApp } from './app.component';
-    import { provide, ErrorHandler } from 'angular2/core';
+    import Raven = require('raven-js');
+    import { BrowserModule } from '@angular/platform-browser';
+    import { AppComponent } from './app.component';
+    import { NgModule, ErrorHandler } from 'angular2/core';
 
     Raven
       .config('___PUBLIC_DSN___')
       .install();
 
-    class RavenErrorHandler {
-      call(err:any) {
-        Raven.captureException(err.originalException);
+    class RavenErrorHandler implements ErrorHandler {
+      handleError(err:any) : void {
+        Raven.captureException(err.originalError);
       }
     }
 
-    bootstrap(MainApp, [
-      provide(ErrorHandler, {useClass: RavenErrorHandler})
-    ]);
+    @NgModule({
+      imports: [ BrowserModule ],
+      declarations: [ AppComponent ],
+      bootstrap: [ AppComponent ],
+      providers: [ {provide: ErrorHandler, useClass: RavenErrorHandler}]
+    })
+    export class AppModule { }
 
 Once you've completed these two steps, you are done.
-
-Webpack, Angular CLI, and Other Module Loaders
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In Webpack, Angular CLI, and other module loaders/packagers, you may need to use the **require** keyword as
-part of your `import` statement:
-
-.. code-block:: js
-
-    import Raven = require('raven-js');  // NOTE: "require" not "from"
-    import { bootstrap } from 'angular2/platform/browser';
-    import { MainApp } from './app.component';
-    import { provide, ErrorHandler } from 'angular2/core';
-
-    Raven
-      .config('___PUBLIC_DSN___')
-      .install();
-
-    class RavenErrorHandler {
-      call(err:any) {
-        Raven.captureException(err.originalException);
-      }
-    }
-
-    bootstrap(MainApp, [
-      provide(ErrorHandler, {useClass: RavenErrorHandler})
-    ]);
-
