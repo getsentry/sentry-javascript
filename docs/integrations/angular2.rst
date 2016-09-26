@@ -3,8 +3,8 @@ Angular 2
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-Additionally, Raven.js can be configured to catch any Angular 2-specific exceptions reported through the `angular2/core/ExceptionHandler
-<https://angular.io/docs/js/latest/api/core/index/ExceptionHandler-class.html>`_ component.
+Additionally, Raven.js can be configured to catch any Angular 2-specific exceptions reported through the `angular2/core/ErrorHandler
+<https://angular.io/docs/js/latest/api/core/index/ErrorHandler-class.html>`_ component.
 
 
 TypeScript Support
@@ -61,20 +61,20 @@ Then, in your main application file (where ``bootstrap`` is called, e.g. main.ts
     import Raven from 'raven-js';
     import { bootstrap } from 'angular2/platform/browser';
     import { MainApp } from './app.component';
-    import { provide, ExceptionHandler } from 'angular2/core';
+    import { provide, ErrorHandler } from 'angular2/core';
 
     Raven
       .config('___PUBLIC_DSN___')
       .install();
 
-    class RavenExceptionHandler {
+    class RavenErrorHandler {
       call(err:any) {
         Raven.captureException(err.originalException);
       }
     }
 
     bootstrap(MainApp, [
-      provide(ExceptionHandler, {useClass: RavenExceptionHandler})
+      provide(ErrorHandler, {useClass: RavenErrorHandler})
     ]);
 
 Once you've completed these two steps, you are done.
@@ -90,19 +90,19 @@ part of your `import` statement:
     import Raven = require('raven-js');  // NOTE: "require" not "from"
     import { bootstrap } from 'angular2/platform/browser';
     import { MainApp } from './app.component';
-    import { provide, ExceptionHandler } from 'angular2/core';
+    import { provide, ErrorHandler } from 'angular2/core';
 
     Raven
       .config('___PUBLIC_DSN___')
       .install();
 
-    class RavenExceptionHandler {
+    class RavenErrorHandler {
       call(err:any) {
         Raven.captureException(err.originalException);
       }
     }
 
     bootstrap(MainApp, [
-      provide(ExceptionHandler, {useClass: RavenExceptionHandler})
+      provide(ErrorHandler, {useClass: RavenErrorHandler})
     ]);
 
