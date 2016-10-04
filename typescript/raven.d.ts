@@ -2,10 +2,11 @@
 // Project: https://github.com/getsentry/raven-js
 // Definitions by: Santi Albo <https://github.com/santialbo/>, Benjamin Pannell <http://github.com/spartan563>
 
-declare var Raven: RavenStatic;
+declare var Raven: Raven.RavenStatic;
 
 export = Raven;
 
+module Raven {
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
     level?: string;
@@ -228,4 +229,5 @@ interface RavenTransportOptions {
 
 interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
+}
 }
