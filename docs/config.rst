@@ -269,7 +269,8 @@ Putting it all together
     <body>
         ...
         <script src="jquery.min.js"></script>
-        <script src="https://cdn.ravenjs.com/3.7.0/raven.min.js"></script>
+        <script src="https://cdn.ravenjs.com/3.7.0/raven.min.js"
+            crossorigin="anonymous"></script>
         <script>
             Raven.config('___PUBLIC_DSN___', {
                 logger: 'my-logger',

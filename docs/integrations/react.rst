@@ -8,7 +8,8 @@ Start by adding the ``raven.js`` script tag to your page. It should be loaded as
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/3.7.0/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/3.7.0/raven.min.js"
+        crossorigin="anonymous"></script>
 
 Configuring the Client
 ----------------------
