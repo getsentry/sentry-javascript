@@ -227,10 +227,10 @@ describe('raven.Client', function () {
         kwargs.message.should.equal('Error: wtf?');
         kwargs.should.have.property('exception');
         var stack = kwargs.exception[0].stacktrace;
-        stack.frames[stack.frames.length - 1].function.should.equal('Client.captureError');
+        stack.frames[stack.frames.length - 1].function.should.equal('Client.captureException');
         done();
       };
-      client.captureError('wtf?');
+      client.captureException('wtf?');
     });
 
     it('should send an Error to Sentry server on another port', function (done) {
