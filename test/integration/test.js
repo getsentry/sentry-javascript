@@ -405,6 +405,7 @@ describe('integration', function () {
                     assert.equal(breadcrumbs.length, 1);
 
                     assert.equal(breadcrumbs[0].type, 'http');
+                    assert.equal(breadcrumbs[0].category, 'xhr');
                     assert.equal(breadcrumbs[0].data.method, 'GET');
                     // NOTE: not checking status code because we seem to get
                     //       statusCode 0/undefined from Phantom when fetching
@@ -438,6 +439,46 @@ describe('integration', function () {
 
                    assert.equal(breadcrumbs.length, 0);
               }
+            );
+        });
+
+        it('should record a fetch request', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    fetch('/test/integration/example.json').then(function () {
+                        setTimeout(done);
+                    }, function () {
+                        setTimeout(done);
+                    });
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    if ('fetch' in window) {
+                        assert.equal(breadcrumbs.length, 1);
+
+                        assert.equal(breadcrumbs[0].type, 'http');
+                        assert.equal(breadcrumbs[0].category, 'fetch');
+                        assert.equal(breadcrumbs[0].data.method, 'GET');
+                    } else {
+                        // otherwise we use a fetch polyfill based on xhr
+                        assert.equal(breadcrumbs.length, 2);
+
+                        assert.equal(breadcrumbs[0].type, 'http');
+                        assert.equal(breadcrumbs[0].category, 'fetch');
+                        assert.equal(breadcrumbs[0].data.method, 'GET');
+
+                        assert.equal(breadcrumbs[1].type, 'http');
+                        assert.equal(breadcrumbs[1].category, 'xhr');
+                        assert.equal(breadcrumbs[1].data.method, 'GET');
+                    }
+                }
             );
         });
 
