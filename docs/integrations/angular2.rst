@@ -82,3 +82,35 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
     export class AppModule { }
 
 Once you've completed these two steps, you are done.
+
+Angular CLI
+~~~~~~~~
+
+Angular CLI now uses Webpack to build instead of SystemJS. All you need to do is modify your main module file (where ``@NgModule`` is called, e.g. app.module.ts):
+
+.. code-block:: js
+
+    import * as Raven from 'raven-js';
+    import { BrowserModule } from '@angular/platform-browser';
+    import { NgModule, ErrorHandler } from '@angular/core';
+    import { AppComponent } from './app.component';
+
+    Raven
+      .config('___PUBLIC_DSN___')
+      .install();
+
+    class RavenErrorHandler implements ErrorHandler {
+      handleError(err:any) : void {
+        Raven.captureException(err.originalError);
+      }
+    }
+
+    @NgModule({
+      imports: [ BrowserModule ],
+      declarations: [ AppComponent ],
+      bootstrap: [ AppComponent ],
+      providers: [ { provide: ErrorHandler, useClass: RavenErrorHandler } ]
+    })
+    export class AppModule { }
+
+Once you've completed that step, you are done.
