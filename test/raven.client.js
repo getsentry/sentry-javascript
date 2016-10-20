@@ -5,6 +5,8 @@ var raven = require('../'),
     nock = require('nock'),
     zlib = require('zlib');
 
+raven.utils.disableConsoleAlerts();
+
 var dsn = 'https://public:private@app.getsentry.com/269';
 
 var _oldConsoleWarn = console.warn;
@@ -142,9 +144,7 @@ describe('raven.Client', function () {
 
   describe('#getIdent()', function () {
     it('should match', function () {
-      var result = {
-        id: 'c988bf5cb7db4653825c92f6864e7206',
-      };
+      var result = 'c988bf5cb7db4653825c92f6864e7206';
       client.getIdent(result).should.equal('c988bf5cb7db4653825c92f6864e7206');
     });
   });
@@ -227,7 +227,7 @@ describe('raven.Client', function () {
         kwargs.message.should.equal('Error: wtf?');
         kwargs.should.have.property('exception');
         var stack = kwargs.exception[0].stacktrace;
-        stack.frames[stack.frames.length - 1].function.should.equal('Client.captureException');
+        stack.frames[stack.frames.length - 1].function.should.equal('Raven.captureException');
         done();
       };
       client.captureException('wtf?');
@@ -348,7 +348,6 @@ describe('raven.Client', function () {
 
   describe('#process()', function () {
     it('should respect dataCallback', function (done) {
-      var client = new raven.Client(dsn);
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')

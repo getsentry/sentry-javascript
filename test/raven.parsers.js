@@ -286,11 +286,11 @@ describe('raven.parsers', function () {
           url: '/some/path?foo=bar',
         };
 
+        // doing assertion backwards here because query_string has no prototype
+        // https://github.com/nodejs/node/pull/6289
         var parsed = raven.parsers.parseRequest(mockReq);
-
-        parsed.request.query_string.should.eql({
-          foo: 'bar'
-        });
+        var expected = { foo: 'bar' };
+        expected.should.eql(parsed.request.query_string);
       });
     });
 
