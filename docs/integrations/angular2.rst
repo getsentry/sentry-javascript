@@ -84,7 +84,7 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
 Once you've completed these two steps, you are done.
 
 Angular CLI
-~~~~~~~~
+~~~~~~~~~~~
 
 Angular CLI now uses Webpack to build instead of SystemJS. All you need to do is modify your main module file (where ``@NgModule`` is called, e.g. app.module.ts):
 
