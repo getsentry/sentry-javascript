@@ -382,6 +382,24 @@ describe('raven.Client', function () {
       });
     });
 
+    it('should respect shouldSendCallback', function (done) {
+      client = new raven.Client(dsn, {
+        shouldSendCallback: function (data) {
+          return false;
+        }
+      });
+
+      // neither of these should fire, so report err to done if they do
+      client.on('logged', done);
+      client.on('error', done);
+
+      client.process({
+        message: 'test'
+      }, function (err, eventId) {
+        setTimeout(done, 10);
+      });
+    });
+
     it('should call the callback after sending', function (done) {
       var firedCallback = false;
       var sentResponse = false;
