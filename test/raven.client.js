@@ -280,10 +280,11 @@ describe('raven.Client', function () {
     });
 
     afterEach(function () {
+      process.removeAllListeners('uncaughtException');
       var uncaughtBefore = this.uncaughtBefore;
       // restore things to how they were
       for (var i = 0; i < uncaughtBefore.length; i++) {
-        process.addListener('uncaughtException', uncaughtBefore[i]);
+        process.on('uncaughtException', uncaughtBefore[i]);
       }
     });
 
@@ -397,6 +398,80 @@ describe('raven.Client', function () {
         message: 'test'
       }, function (err, eventId) {
         setTimeout(done, 10);
+      });
+    });
+
+    it('should pass original shouldSendCallback to newer shouldSendCallback', function (done) {
+      var cb1 = function (data) {
+        return false;
+      };
+
+      var cb2 = function (data, original) {
+        original.should.equal(cb1);
+        return original(data);
+      };
+
+      var cb3 = function (data, original) {
+        return original(data);
+      };
+
+      client = new raven.Client(dsn, {
+        shouldSendCallback: cb1,
+      });
+
+      client.setShouldSendCallback(cb2);
+      client.setShouldSendCallback(cb3);
+
+      // neither of these should fire, so report err to done if they do
+      client.on('logged', done);
+      client.on('error', done);
+
+      client.process({
+        message: 'test'
+      }, function (err, eventId) {
+        setTimeout(done, 10);
+      });
+    });
+
+    it('should pass original dataCallback to newer dataCallback', function (done) {
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function (uri, body, cb) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+            msg.extra.foo.should.equal('bar');
+            cb(null, 'OK');
+          });
+        });
+
+      var cb1 = function (data) {
+        data.extra = { foo: 'bar' };
+        return data;
+      };
+
+      var cb2 = function (data, original) {
+        original.should.equal(cb1);
+        return original(data);
+      };
+
+      var cb3 = function (data, original) {
+        return original(data);
+      };
+
+      client = new raven.Client(dsn, {
+        dataCallback: cb1,
+      });
+
+      client.setDataCallback(cb2);
+      client.setDataCallback(cb3);
+
+      client.process({
+        message: 'test'
+      }, function (err, eventId) {
+        scope.done();
+        done();
       });
     });
 
