@@ -382,6 +382,36 @@ describe('raven.Client', function () {
       });
     });
 
+    it('should call the callback after sending', function (done) {
+      var firedCallback = false;
+      var sentResponse = false;
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .delay(10)
+        .reply(200, function (uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+            msg.message.should.equal('test');
+          });
+          firedCallback.should.equal(false);
+          sentResponse = true;
+          return 'OK';
+        });
+
+      client = new raven.Client(dsn);
+
+      client.process({
+        message: 'test',
+      }, function () {
+        firedCallback = true;
+        sentResponse.should.equal(true);
+        scope.done();
+        done();
+      });
+    });
+
     it('should attach environment', function (done) {
       client = new raven.Client(dsn, {
         environment: 'staging'
