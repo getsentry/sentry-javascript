@@ -39,6 +39,9 @@ interface RavenOptions {
         [id: string]: string;
     };
 
+    /** set to true to get the strack trace of your message */
+    stacktrace?: boolean;
+
     extra?: any;
 
     /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
