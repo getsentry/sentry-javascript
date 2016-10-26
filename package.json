@@ -22,6 +22,7 @@
     "bundle-collapser": "^1.2.1",
     "chai": "2.3.0",
     "derequire": "2.0.3",
+    "es6-promise": "^4.0.5",
     "grunt": "^0.4.5",
     "grunt-browserify": "^4.0.1",
     "grunt-cli": "^0.1.13",
@@ -43,7 +44,8 @@
     "proxyquireify": "^3.0.2",
     "sinon": "1.7.3",
     "through2": "^2.0.0",
-    "typescript": "^1.8.10"
+    "typescript": "^1.8.10",
+    "whatwg-fetch": "^1.0.0"
   },
   "keywords": [
     "exceptions",

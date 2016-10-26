@@ -128,7 +128,7 @@ Raven.prototype = {
             xhr: true,
             console: true,
             dom: true,
-            location: true
+            location: true,
         };
 
         var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
@@ -967,6 +967,43 @@ Raven.prototype = {
                     }
 
                     return origSend.apply(this, arguments);
+                };
+            }, wrappedBuiltIns);
+        }
+
+        if (autoBreadcrumbs.xhr && 'fetch' in _window) {
+            fill(_window, 'fetch', function(origFetch) {
+                return function (fn, t) { // preserve arity
+                    // Make a copy of the arguments to prevent deoptimization
+                    // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
+                    var args = new Array(arguments.length);
+                    for(var i = 0; i < args.length; ++i) {
+                        args[i] = arguments[i];
+                    }
+
+                    var method = 'GET';
+
+                    if (args[1] && args[1].method) {
+                        method = args[1].method;
+                    }
+
+                    var fetchData = {
+                        method: method,
+                        url: args[0],
+                        status_code: null
+                    };
+
+                    self.captureBreadcrumb({
+                        type: 'http',
+                        category: 'fetch',
+                        data: fetchData
+                    });
+
+                    return origFetch.apply(this, args).then(function (response) {
+                        fetchData.status_code = response.status;
+
+                        return response;
+                    });
                 };
             }, wrappedBuiltIns);
         }
