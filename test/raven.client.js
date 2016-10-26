@@ -1,4 +1,5 @@
 /* eslint no-shadow:0, consistent-return:0, no-console:0 */
+/* global Promise */
 'use strict';
 
 var raven = require('../'),
@@ -269,6 +270,51 @@ describe('raven.Client', function () {
       };
       kwargs.extra.foo = kwargs;
       client.captureError(new Error('wtf?'), kwargs);
+    });
+  });
+
+  describe('#install()', function () {
+    beforeEach(function () {
+      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners('unhandledRejection');
+    });
+
+    afterEach(function () {
+      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners('unhandledRejection');
+    });
+
+    it('should not listen for unhandledRejection unless told to', function () {
+      var listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(0);
+
+      client.install();
+
+      listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(0);
+    });
+
+    it('should catch an unhandledRejection', function (done) {
+      var listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(0);
+
+      client.install({ unhandledRejection: true }, function (sent, reason) {
+        reason.message.should.equal('rejected!');
+        done();
+      });
+
+      listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(1);
+
+      // promises didn't fire unhandledRejection until 1.4.1
+      if (process.version >= 'v1.4.1') {
+        // eslint-disable-next-line no-new
+        new Promise(function (resolve, reject) {
+          reject(new Error('rejected!'));
+        });
+      } else {
+        process.emit('unhandledRejection', new Error('rejected!'));
+      }
     });
   });
 
