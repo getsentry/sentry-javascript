@@ -742,7 +742,7 @@ Raven.prototype = {
             // only consider keypress events on actual input elements
             // this will disregard keypresses targeting body (e.g. tabbing
             // through elements, hotkeys, etc)
-            if (!tagName || tagName !== 'INPUT' && tagName !== 'TEXTAREA')
+            if (!tagName || tagName !== 'INPUT' && tagName !== 'TEXTAREA' && !target.isContentEditable)
                 return;
 
             // record first keypress in a series, but ignore subsequent

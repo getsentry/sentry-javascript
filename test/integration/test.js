@@ -735,6 +735,39 @@ describe('integration', function () {
             );
         });
 
+        it('should record consecutive keypress events in a contenteditable into a single "input" breadcrumb', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    // some browsers trigger onpopstate for load / reset breadcrumb state
+                    Raven._breadcrumbs = [];
+
+                    // keypress <input/> twice
+                    var keypress1 = document.createEvent('KeyboardEvent');
+                    keypress1.initKeyboardEvent("keypress", true, true, window, "b", 66, 0, "", false);
+
+                    var keypress2 = document.createEvent('KeyboardEvent');
+                    keypress2.initKeyboardEvent("keypress", true, true, window, "a", 65, 0, "", false);
+
+                    var div = document.querySelector('[contenteditable]');
+                    div.dispatchEvent(keypress1);
+                    div.dispatchEvent(keypress2);
+                },
+                function () {
+                    var Raven = iframe.contentWindow.Raven,
+                        breadcrumbs = Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 1);
+
+                    assert.equal(breadcrumbs[0].category, 'ui.input');
+                    assert.equal(breadcrumbs[0].message, 'body > form#foo-form > div.contenteditable');
+                }
+            );
+        });
+
         it('should record history.[pushState|back] changes as navigation breadcrumbs', function (done) {
             var iframe = this.iframe;
 
