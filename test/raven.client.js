@@ -836,4 +836,61 @@ describe('raven.Client', function () {
       client._globalContext.tags.should.have.property('platform', 'OS X');
     });
   });
+
+  describe('#intercept()', function () {
+    it('should catch an err param', function (done) {
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function (uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+            msg.message.indexOf('foo').should.not.equal(-1);
+            done();
+          });
+          return 'OK';
+        });
+
+      client.on('logged', function () {
+        scope.done();
+      });
+
+      client.interceptErr(function (err) {
+        done(new Error('called wrapped function'));
+      })(new Error('foo'));
+    });
+
+    it('should pass options to captureException', function (done) {
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function (uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+            msg.message.indexOf('foo').should.not.equal(-1);
+            msg.extra.foo.should.equal('bar');
+            done();
+          });
+          return 'OK';
+        });
+
+      client.on('logged', function () {
+        scope.done();
+      });
+
+      client.interceptErr({ extra: { foo: 'bar' } }, function (err) {
+        done(new Error('called wrapped function'));
+      })(new Error('foo'));
+    });
+
+    it('should call original when no err', function (done) {
+      client.interceptErr(function (err, result) {
+        if (err != null) return done(err);
+        result.should.equal('result');
+        done();
+      })(null, 'result');
+    });
+  });
 });
