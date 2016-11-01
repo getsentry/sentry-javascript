@@ -26,7 +26,7 @@ scripts.  For all details see :doc:`install`.
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/3.7.0/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/3.8.0/raven.min.js"></script>
 
 
 Configuring the Client

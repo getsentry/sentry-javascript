@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.8.0
+* NEW: Record fetch request breadcrumbs. See: https://github.com/getsentry/raven-js/pull/744
+* NEW: Record contentEditable input event breadcrumbs. See: https://github.com/getsentry/raven-js/pull/748
+* BUGFIX: Updated Typescript declaration file. See: https://github.com/getsentry/raven-js/pull/746
+* NEW: File size improvements for raven.min.js  See: https://github.com/getsentry/raven-js/pull/721
+
 ## 3.7.0
 * BUGFIX: Add missing return types from TypeScript declaration file. See: https://github.com/getsentry/raven-js/pull/718
 * BUGFIX: Fix "Permission denied" error in Firefox via WebDriver. See: https://github.com/getsentry/raven-js/pull/720
