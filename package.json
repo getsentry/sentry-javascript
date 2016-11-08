@@ -9,7 +9,7 @@
     "debugging",
     "exceptions"
   ],
-  "version": "0.12.1",
+  "version": "1.0.0-beta.0",
   "repository": "git://github.com/getsentry/raven-node.git",
   "author": "Matt Robenolt <matt@ydekproductions.com>",
   "license": "BSD-2-Clause",

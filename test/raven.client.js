@@ -25,7 +25,7 @@ function restoreConsoleWarn() {
 
 describe('raven.version', function () {
   it('should be valid', function () {
-    raven.version.should.match(/^\d+\.\d+\.\d+(-\w+)?$/);
+    raven.version.should.match(/^\d+\.\d+\.\d+(-\w+(\.\d+)?)?$/);
   });
 
   it('should match package.json', function () {
