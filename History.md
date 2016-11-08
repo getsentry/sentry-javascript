@@ -2,7 +2,7 @@
  * Fix bug where `environment` option was not actually being transmitted to Sentry [See #185]
 # 0.12.0 - 8/1/2016
  * Add `environment` config option and `setRelease` method [See #179]
- * No longer passes `process.env` values [See #182]
+ * No longer passes `process.env` values [See #181]
  * Connect/Express middleware now attempts to attach `req.user` as User interface [See #177]
  * Use json-stringify-safe to prevent circular refs [See #182]
 
