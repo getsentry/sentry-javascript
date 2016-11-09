@@ -85,7 +85,7 @@ would only really be useful in a large web app where the user logs in/out
 without a page reload.*
 
 This data is generally submitted with each error or message and allows you
-to figure out which errors are affected by problems.
+to figure out which users are affected by problems.
 
 Capturing Messages
 ------------------
