@@ -1535,6 +1535,20 @@ describe('Raven (public API)', function() {
             assert.isTrue(Raven._logDebug.called);
         });
 
+        it('should populate global context for tags, extra, and user', function() {
+            Raven.config('//abc@example.com/sentry/2', {
+                tags: {tag1: 'tagValue1'},
+                extra: {extra1: 'extraValue1'},
+                user: {name: 'Matt'},
+                whitelistUrls: ['not-a-context-value']
+            });
+            assert.deepEqual(Raven._globalContext, {
+                tags: {tag1: 'tagValue1'},
+                extra: {extra1: 'extraValue1'},
+                user: {name: 'Matt'},
+            });
+        });
+
         describe('whitelistUrls', function() {
             it('should be false if none are passed', function() {
                 Raven.config('//abc@example.com/2');
