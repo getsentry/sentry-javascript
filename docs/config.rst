@@ -244,7 +244,7 @@ Those configuration options are documented below:
     onSuccess
         Callback to be invoked upon a successful request.
 
-    onFailure
+    onError
         Callback to be invoked upon a failed request.
 
 .. describe:: allowSecretKey
