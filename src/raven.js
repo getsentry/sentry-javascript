@@ -102,7 +102,7 @@ Raven.prototype = {
         if (options) {
             each(options, function(key, value){
                 // tags and extra are special and need to be put into context
-                if (key === 'tags' || key === 'extra') {
+                if (key === 'tags' || key === 'extra' || key === 'user') {
                     self._globalContext[key] = value;
                 } else {
                     globalOptions[key] = value;
