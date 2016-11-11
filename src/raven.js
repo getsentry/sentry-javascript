@@ -363,11 +363,13 @@ Raven.prototype = {
             return;
         }
 
+        options = options || {};
+
         var data = objectMerge({
             message: msg + ''  // Make sure it's actually a string
         }, options);
 
-        if (options && options.stacktrace) {
+        if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
             var ex;
             // create a stack trace from this point; just trim
             // off extra frames so they don't include this function call (or
