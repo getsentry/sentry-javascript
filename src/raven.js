@@ -734,7 +734,6 @@ Raven.prototype = {
         // TODO: if somehow user switches keypress target before
         //       debounce timeout is triggered, we will only capture
         //       a single breadcrumb from the FIRST target (acceptable?)
-
         return function (evt) {
             var target = evt.target,
                 tagName = target && target.tagName;
@@ -753,7 +752,7 @@ Raven.prototype = {
             }
             clearTimeout(timeout);
             self._keypressTimeout = setTimeout(function () {
-               self._keypressTimeout = null;
+                self._keypressTimeout = null;
             }, debounceDuration);
         };
     },
@@ -839,13 +838,24 @@ Raven.prototype = {
 
                         // More breadcrumb DOM capture ... done here and not in `_instrumentBreadcrumbs`
                         // so that we don't have more than one wrapper function
-                        var before;
+                        var before,
+                            clickHandler,
+                            keypressHandler;
+
                         if (autoBreadcrumbs && autoBreadcrumbs.dom && (global === 'EventTarget' || global === 'Node')) {
-                            if (evtName === 'click'){
-                                before = self._breadcrumbEventHandler(evtName);
-                            } else if (evtName === 'keypress') {
-                                before = self._keypressEventHandler();
-                            }
+                            // NOTE: generating multiple handlers per addEventListener invocation, should
+                            //       revisit and verify we can just use one (almost certainly)
+                            clickHandler = self._breadcrumbEventHandler('click');
+                            keypressHandler = self._keypressEventHandler();
+                            before = function (evt) {
+                                // need to intercept every DOM event in `before` argument, in case that
+                                // same wrapped method is re-used for different events (e.g. mousemove THEN click)
+                                // see #724
+                                if (evt.type === 'click')
+                                    return clickHandler(evt);
+                                else if (evt.type === 'keypress')
+                                    return keypressHandler(evt);
+                            };
                         }
                         return orig.call(this, evtName, self.wrap(fn, undefined, before), capture, secure);
                     };
