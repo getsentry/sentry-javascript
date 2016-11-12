@@ -580,6 +580,10 @@ describe('integration', function () {
                     var clickHandler = function (evt) {
                         //evt.stopPropagation();
                     };
+
+                    // mousemove event shouldnt clobber subsequent "breadcrumbed" events (see #724)
+                    document.querySelector('.a').addEventListener('mousemove', clickHandler);
+
                     document.querySelector('.a').addEventListener('click', clickHandler);
                     document.querySelector('.b').addEventListener('click', clickHandler);
                     document.querySelector('.c').addEventListener('click', clickHandler);
