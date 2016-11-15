@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.8.1
+* BUGFIX: Fix dangling comma affecting IE8. See: https://github.com/getsentry/raven-js/pull/769
+
 ## 3.8.0
 * NEW: Record fetch request breadcrumbs. See: https://github.com/getsentry/raven-js/pull/744
 * NEW: Record contentEditable input event breadcrumbs. See: https://github.com/getsentry/raven-js/pull/748

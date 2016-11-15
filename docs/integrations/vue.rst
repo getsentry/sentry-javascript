@@ -27,7 +27,7 @@ Example:
 .. sourcecode:: html
 
     <script src="https://cdn.jsdelivr.net/vue/2.0.0-rc/vue.min.js"></script>
-    <script src="https://cdn.ravenjs.com/3.8.0/vue/raven.min.js"
+    <script src="https://cdn.ravenjs.com/3.8.1/vue/raven.min.js"
         crossorigin="anonymous"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
