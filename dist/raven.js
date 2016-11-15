@@ -1,4 +1,4 @@
-/*! Raven.js 3.8.0 (d78f15c) | github.com/getsentry/raven-js */
+/*! Raven.js 3.8.1 (4043fd3) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -167,7 +167,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.8.0',
+    VERSION: '3.8.1',
 
     debug: false,
 
@@ -221,7 +221,7 @@ Raven.prototype = {
             xhr: true,
             console: true,
             dom: true,
-            location: true,
+            location: true
         };
 
         var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
