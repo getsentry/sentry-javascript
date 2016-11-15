@@ -128,7 +128,7 @@ Raven.prototype = {
             xhr: true,
             console: true,
             dom: true,
-            location: true,
+            location: true
         };
 
         var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
