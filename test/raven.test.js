@@ -2174,6 +2174,57 @@ describe('Raven (public API)', function() {
         });
       });
     });
+
+    describe('maxEventsPerPage', function(){
+      it('allows many events when maxEventsPerPage is undefined', function () {
+        var stub = this.sinon.stub(Raven,'_sendProcessedPayload')
+        this.sinon.spy(stub)
+
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+
+        assert.equal(Raven._sendProcessedPayload.callCount, 5);
+      });
+
+      it('should only allow up to maxEventsPerPage requests', function () {
+        var stub = this.sinon.stub(Raven,'_sendProcessedPayload')
+        this.sinon.spy(stub)
+
+        Raven._globalOptions.maxEventsPerPage = 3;
+
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+
+        assert.equal(Raven._sendProcessedPayload.callCount, 3);
+      });
+
+      it('should reset maxErrors on SPA page change', function () {
+        var stub = this.sinon.stub(Raven,'_sendProcessedPayload')
+        this.sinon.spy(stub)
+
+        Raven._globalOptions.maxEventsPerPage = 3;
+
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+
+        assert.equal(Raven._sendProcessedPayload.callCount, 3);
+
+        Raven._captureUrlChange('/foo', '/bar');
+
+        Raven.captureException(new Error('foo'))
+        Raven.captureException(new Error('foo'))
+
+        assert.equal(Raven._sendProcessedPayload.callCount, 5);
+      });
+    });
   });
 
   describe('.wrap', function() {

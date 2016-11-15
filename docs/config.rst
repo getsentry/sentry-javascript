@@ -299,7 +299,6 @@ Those configuration options are documented below:
 
     If set to `true`, Raven.js outputs some light debugging information onto the console.
 
-
 .. describe:: instrument
 
     Enables/disables instrumentation of globals. Possible values are:
@@ -313,6 +312,11 @@ Those configuration options are documented below:
         instrument: {
             'tryCatch': true, // Instruments timers and event targets
         }
+
+.. describe:: maxEventsPerPage
+
+    By default, Raven captures as many events as possible. If you want to reduce this number, you can change
+    it by setting `maxEventsPerPage`. The counter will automatically restart on every page change.
 
 Putting it all together
 -----------------------
