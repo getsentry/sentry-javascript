@@ -11,6 +11,7 @@
   },
   "rules": {
     "block-scoped-var": 2,
+    "comma-dangle": [2, "never"],
     "dot-notation": [
       2,
       {
