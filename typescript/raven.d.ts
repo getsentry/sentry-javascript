@@ -6,7 +6,7 @@ declare var Raven: Raven.RavenStatic;
 
 export = Raven;
 
-module Raven {
+declare module Raven {
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
     level?: string;
