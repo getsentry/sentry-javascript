@@ -214,9 +214,10 @@ reactNativePlugin._normalizeData = function (data, pathStripRe) {
         data.culprit = normalizeUrl(data.culprit, pathStripRe);
     }
 
-    if (data.exception) {
+    var stacktrace = data.stacktrace || data.exception && data.exception.values[0].stacktrace;
+    if (stacktrace) {
         // if data.exception exists, all of the other keys are guaranteed to exist
-        data.exception.values[0].stacktrace.frames.forEach(function (frame) {
+        stacktrace.frames.forEach(function (frame) {
             frame.filename = normalizeUrl(frame.filename, pathStripRe);
         });
     }
