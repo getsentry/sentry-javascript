@@ -10,29 +10,28 @@
     JavaScript
     ==========
 
-Raven.js is a tiny standalone JavaScript client for Sentry. It can be
-used to report errors from a web browser. The quality of reporting will
-heavily depend on the environment the data is submitted from.
+Raven.js is the official browser JavaScript client for Sentry. It automatically reports uncaught JavaScript exceptions
+triggered from a browser environment, and provides a rich API for reporting your own errors.
 
-**Note**: If you're using Node on the server, you'll need
-`raven-node <https://github.com/getsentry/raven-node>`_.
+**Note**: If you're using Node.js on the server, you'll need
+`raven-node <https://docs.sentry.io/clients/node/>`_.
 
 Installation
 ------------
 
-Raven.js is distributed in a few different methods, and should get
-included after any other libraries are included, but before your own
-scripts.  For all details see :doc:`install`.
+The easiest way to load Raven.js is to load it directly from our CDN. This script tag should
+be included after other libraries are loaded, but before your main application code (e.g. app.js):
 
 .. sourcecode:: html
 
     <script src="https://cdn.ravenjs.com/3.8.1/raven.min.js"></script>
 
+For installation using npm or other package managers, see :doc:`install`.
 
 Configuring the Client
 ----------------------
 
-Now you need to set up Raven.js to use your `Sentry DSN
+Next you need to configure Raven.js to use your `Sentry DSN
 <https://docs.sentry.io/hosted/quickstart/#configure-the-dsn>`_:
 
 .. code-block:: javascript
@@ -42,10 +41,10 @@ Now you need to set up Raven.js to use your `Sentry DSN
 At this point, Raven is ready to capture any uncaught exception.
 
 Once you have Raven up and running, it is highly recommended to check out :doc:`config`
-and :doc:`usage` to improve your results.
+and :doc:`usage`.
 
-Reporting Errors
-----------------
+Manually Reporting Errors
+-------------------------
 
 By default, Raven makes a best effort to capture any uncaught exception.
 
