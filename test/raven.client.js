@@ -616,7 +616,7 @@ describe('raven.Client', function () {
           var modules = msg.modules;
 
           modules.should.have.property('lsmod');
-          modules.should.have.property('node-uuid');
+          modules.should.have.property('uuid');
           done();
         });
         return 'OK';
