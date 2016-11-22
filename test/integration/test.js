@@ -425,11 +425,11 @@ describe('integration', function () {
                   // onreadystatechange fires), so enough to just verify that
                   // __raven_xhr wasn't set on xhr object
 
-                  window.ravenData = '__raven_xhr' in xhr;
+                  window.ravenData = xhr.hasOwnProperty('__raven_xhr');
                   setTimeout(done);
               },
               function () {
-                  assert.equal(iframe.contentWindow.ravenData, false);
+                  assert.isFalse(iframe.contentWindow.ravenData);
               }
             );
         });
