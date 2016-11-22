@@ -255,6 +255,9 @@ Those configuration options are documented below:
     where your application is running "natively" on a device and not accessed at a web address, you may need
     to use your secret DSN string. To do so, set ``allowPrivateKey: true`` during configuration.
 
+.. describe:: debug
+
+    If set to `true`, Raven.js outputs some light debugging information onto the console.
 
 Putting it all together
 -----------------------
