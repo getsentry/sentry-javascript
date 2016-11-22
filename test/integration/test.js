@@ -414,30 +414,22 @@ describe('integration', function () {
             );
         });
 
-        it('should NOT capture breadcrumbs from XMLHttpRequests to the Sentry store endpoint', function (done) {
+        it('should NOT denote XMLHttpRequests to the Sentry store endpoint as requiring breadcrumb capture', function (done) {
             var iframe = this.iframe;
             iframeExecute(iframe, done,
               function () {
-                  // some browsers trigger onpopstate for load / reset breadcrumb state
-                  Raven._breadcrumbs = [];
-
                   var xhr = new XMLHttpRequest();
-                  xhr.open('GET', 'https://example.com/api/1/store/?sentry_key=public');
-                  xhr.setRequestHeader('Content-type', 'application/json');
-                  xhr.onreadystatechange = function () {
-                      // don't fire `done` handler until at least *one* onreadystatechange
-                      // has occurred (doesn't actually need to finish)
-                      if (xhr.readyState === 4) {
-                          setTimeout(done);
-                      }
-                  };
-                  xhr.send();
+                  xhr.open('GET', 'http://example.com/api/1/store/?sentry_key=public');
+
+                  // can't actually transmit an XHR (breadcrumb isnt recorded until
+                  // onreadystatechange fires), so enough to just verify that
+                  // __raven_xhr wasn't set on xhr object
+
+                  window.ravenData = xhr.hasOwnProperty('__raven_xhr');
+                  setTimeout(done);
               },
               function () {
-                  var Raven = iframe.contentWindow.Raven,
-                      breadcrumbs = Raven._breadcrumbs;
-
-                   assert.equal(breadcrumbs.length, 0);
+                  assert.isFalse(iframe.contentWindow.ravenData);
               }
             );
         });
