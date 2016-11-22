@@ -780,6 +780,87 @@ describe('globals', function() {
             });
         });
 
+        it('should honor normalizePath for stack frames', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                normalizePath: function(path) {
+                    return '/foo' + path;
+                }
+            };
+
+            Raven._send({
+                exception: {
+                    values: [{
+                        type: 'BadaBoom',
+                        value: 'boom',
+                        stacktrace: {
+                            frames: [
+                                {
+                                    filename: '/bar.js',
+                                    lineno: 123,
+                                    colno: 456,
+                                    in_app: true
+                                },
+                                {
+                                    filename: '/baz.js',
+                                    lineno: 1,
+                                    in_app: false
+                                },
+                            ],
+                        }
+                    }]
+                }
+            });
+
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data.exception, {
+                values: [{
+                    type: 'BadaBoom',
+                    value: 'boom',
+                    stacktrace: {
+                        frames: [
+                            {
+                                filename: '/foo/bar.js',
+                                lineno: 123,
+                                colno: 456,
+                                in_app: true
+                            },
+                            {
+                                filename: '/foo/baz.js',
+                                lineno: 1,
+                                in_app: false
+                            },
+                        ],
+                    }
+                }]
+            });
+        });
+
+        it('should honor normalizePath for culprits', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                normalizePath: function(path) {
+                    return '/foo' + path;
+                }
+            };
+
+            Raven._send({
+                message: 'boom',
+                culprit: '/bar.js',
+            });
+
+            assert.equal(Raven._makeRequest.lastCall.args[0].data.culprit, '/foo/bar.js');
+        });
+
         it('should let dataCallback override everything', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');

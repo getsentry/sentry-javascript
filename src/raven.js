@@ -527,6 +527,23 @@ Raven.prototype = {
     },
 
     /*
+     * Set the normalizePath option
+     *
+     * Note that setting dataCallback overrides this option.
+     *
+     * @param {function} callback A callback that is given a file path and can
+     *                            return an alternate representation of it. This
+     *                            is called for all frames in the stack.
+     *
+     * @return {Raven}
+     */
+    setNormalizePath: function(callback) {
+        this._globalOptions.normalizePath = callback;
+
+        return this;
+    },
+
+    /*
      * Set the shouldSendCallback option
      *
      * @param {function} callback The callback to run which allows
@@ -1341,6 +1358,8 @@ Raven.prototype = {
 
         if (isFunction(globalOptions.dataCallback)) {
             data = globalOptions.dataCallback(data) || data;
+        } else {
+            data = this._defaultDataCallback(data);
         }
 
         // Why??????????
@@ -1480,6 +1499,27 @@ Raven.prototype = {
         } else {
             this._globalContext[key] = objectMerge(this._globalContext[key] || {}, context);
         }
+    },
+
+    /*
+     * Processes all file names via the `normalizePath` Raven option.
+     */
+    _defaultDataCallback: function(data) {
+        var normalizePath = this._globalOptions.normalizePath;
+        if (!normalizePath) return data;
+
+        if (data.culprit) {
+            data.culprit = normalizePath(data.culprit);
+        }
+
+        if (data.exception) {
+            // if data.exception exists, all of the other keys are guaranteed to exist
+            data.exception.values[0].stacktrace.frames.forEach(function (frame) {
+                frame.filename = normalizePath(frame.filename);
+            });
+        }
+
+        return data;
     }
 };
 

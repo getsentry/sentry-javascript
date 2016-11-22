@@ -16,8 +16,11 @@ describe('React Native plugin', function () {
         reactNativePlugin._clearPayload = self.sinon.stub().returns(Promise.resolve());
     });
 
-    describe('_normalizeData()', function () {
+    describe('path normalization', function () {
         it('should normalize culprit and frame filenames/URLs from app', function () {
+            ErrorUtils.setGlobalHandler = function() {};
+            reactNativePlugin(Raven);
+
             var data = {
                 project: '2',
                 logger: 'javascript',
@@ -45,7 +48,7 @@ describe('React Native plugin', function () {
                     }],
                 }
             };
-            reactNativePlugin._normalizeData(data);
+            data = Raven._defaultDataCallback(data);
 
             assert.equal(data.culprit, '/app.js');
             var frames = data.exception.values[0].stacktrace.frames;
@@ -54,6 +57,9 @@ describe('React Native plugin', function () {
         });
 
         it('should normalize culprit and frame filenames/URLs from CodePush', function () {
+            ErrorUtils.setGlobalHandler = function() {};
+            reactNativePlugin(Raven);
+            
             var data = {
                 project: '2',
                 logger: 'javascript',
@@ -81,7 +87,7 @@ describe('React Native plugin', function () {
                     }],
                 }
             };
-            reactNativePlugin._normalizeData(data);
+            data = Raven._defaultDataCallback(data);
 
             assert.equal(data.culprit, '/app.js');
             var frames = data.exception.values[0].stacktrace.frames;

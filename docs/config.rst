@@ -145,6 +145,22 @@ Those configuration options are documented below:
             includePaths: [/https?:\/\/getsentry\.com/, /https?:\/\/cdn\.getsentry\.com/]
         }
 
+.. describe:: normalizePath
+
+    A callback that is given a file path and can return an alternate
+    representation of it. This is called for all frames in the stack. Helpful
+    for cleaning up your stack trace.
+
+    Note that if you provide a custom dataCallback, this _will not_ be called.
+
+    .. code-block:: javascript
+
+        {
+            normalizePath: function(path) {
+                return path.replace(/^.*\/[^\.]+\.app/, '');
+            }
+        }
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
