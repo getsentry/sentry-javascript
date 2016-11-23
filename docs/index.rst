@@ -83,6 +83,22 @@ Other similar methods are ``Raven.setExtraContext`` and
 ``Raven.setTagsContext`` as well as ``Raven.context``.  See
 :ref:`raven-js-additional-context` for more info.
 
+Breadcrumbs
+-----------
+
+Breadcrumbs are browser and application lifecycle events that are helpful in understanding the state of the application
+leading up to a crash.
+
+By default, Raven.js instruments the DOM to automatically collect a few useful breadcrumbs for you:
+
+  * XMLHttpRequests
+  * URL / address bar changes
+  * UI clicks and keypress DOM events
+  * console log statements
+  * previous errors
+
+You can also record your own breadcrumbs. For more information, see :ref:`raven-js-recording-breadcrumbs`.
+
 Dealing with Minified Source Code
 ---------------------------------
 
