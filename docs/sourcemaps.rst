@@ -366,3 +366,13 @@ For an individual artifact, Sentry accepts a max filesize of **40 MB**.
 
 Often users hit this limit because they are transmitting source files at an interim build stage. For example, after Webpack/Browserify has combined all
 your source files, but before minification has taken place. If possible, send the original source files.
+
+Verify artifacts are not compressed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Sentry API currently only works with source maps and source files that are uploaded as plain text (UTF-8 encoded). If the files are uploaded in a
+compressed format (e.g. gzip), they will be not be interpreted correctly.
+
+This sometimes occurs with build scripts and plugins that produce pre-compressed minified files. For example, Webpack's `compression plugin
+<https://github.com/webpack/compression-webpack-plugin>`_. You'll need to disable such plugins and perform the compression _after_
+the generated source maps / source files have been uploaded to Sentry.
