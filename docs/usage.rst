@@ -184,17 +184,21 @@ You can also record your own breadcrumbs:
 
    Raven.captureBreadcrumb({
      message: 'Item added to shopping cart',
+     category: 'action',
      data: {
         isbn: '978-1617290541',
         cartSize: '3'
      }
    });
 
-You can disable automatic breadcrumb collection entirely or disable specific collectors:
+To learn more about what types of data can be collected via breadcrumbs, see the `breadcrumbs client API specification
+<https://docs.sentry.io/learn/breadcrumbs/>`_.
+
+Note that you can also disable automatic breadcrumb collection entirely or disable specific collectors:
 
 .. code-block:: javascript
 
-  Raven.config('your-dsn', {
+  Raven.config('___PUBLIC_DSN___', {
     autoBreadcrumbs: {
       xhr: false
     }
