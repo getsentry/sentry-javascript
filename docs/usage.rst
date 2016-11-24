@@ -161,6 +161,51 @@ functions all allow passing additional data to be tagged onto the error.
         Raven.setExtraContext({ foo: "bar" })
 
 
+.. _raven-js-recording-breadcrumbs:
+
+Recording Breadcrumbs
+---------------------
+
+Breadcrumbs are browser and application lifecycle events that are helpful in understanding the state of the application
+leading up to a crash.
+
+By default, Raven.js instruments browser built-ins and DOM events to automatically collect a few useful breadcrumbs
+for you:
+
+  * XMLHttpRequests
+  * URL / address bar changes
+  * UI clicks and keypress DOM events
+  * console log statements
+  * previous errors
+
+You can also record your own breadcrumbs:
+
+.. code-block:: javascript
+
+   Raven.captureBreadcrumb({
+     message: 'Item added to shopping cart',
+     category: 'action',
+     data: {
+        isbn: '978-1617290541',
+        cartSize: '3'
+     }
+   });
+
+To learn more about what types of data can be collected via breadcrumbs, see the `breadcrumbs client API specification
+<https://docs.sentry.io/learn/breadcrumbs/>`_.
+
+Note that you can also disable automatic breadcrumb collection entirely or disable specific collectors:
+
+.. code-block:: javascript
+
+  Raven.config('___PUBLIC_DSN___', {
+    autoBreadcrumbs: {
+      xhr: false
+    }
+  });
+
+For more on configuring breadcrumbs, see :doc:`config`.
+
 Getting Back an Event ID
 ------------------------
 
