@@ -163,13 +163,13 @@ functions all allow passing additional data to be tagged onto the error.
 
 .. _raven-js-recording-breadcrumbs:
 
-Capturing Messages
-------------------
+Recording Breadcrumbs
+---------------------
 
 Breadcrumbs are browser and application lifecycle events that are helpful in understanding the state of the application
 leading up to a crash.
 
-By default, Raven.js instruments the DOM to automatically collect a few useful breadcrumbs
+By default, Raven.js instruments browser built-ins and DOM events to automatically collect a few useful breadcrumbs
 for you:
 
   * XMLHttpRequests

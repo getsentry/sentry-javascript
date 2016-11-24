@@ -89,7 +89,8 @@ Breadcrumbs
 Breadcrumbs are browser and application lifecycle events that are helpful in understanding the state of the application
 leading up to a crash.
 
-By default, Raven.js instruments the DOM to automatically collect a few useful breadcrumbs for you:
+By default, Raven.js instruments browser built-ins and DOM events to automatically collect a few useful breadcrumbs
+for you:
 
   * XMLHttpRequests
   * URL / address bar changes
