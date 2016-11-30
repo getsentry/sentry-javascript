@@ -14,8 +14,11 @@ function now() {
     return +new Date();
 }
 
-var _window = typeof window !== 'undefined' ? window : undefined;
-var _document = _window && _window.document;
+var _window = typeof window !== 'undefined' ? window
+            : typeof global !== 'undefined' ? global
+            : typeof self !== 'undefined' ? self
+            : {};
+var _document = _window.document;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
