@@ -8,7 +8,12 @@
 
 var RavenConstructor = require('./raven');
 
-var _Raven = window.Raven;
+// This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
+var _window = typeof window !== 'undefined' ? window
+            : typeof global !== 'undefined' ? global
+            : typeof self !== 'undefined' ? self
+            : {};
+var _Raven = _window.Raven;
 
 var Raven = new RavenConstructor();
 
@@ -19,7 +24,7 @@ var Raven = new RavenConstructor();
  * @return {Raven}
  */
 Raven.noConflict = function () {
-	window.Raven = _Raven;
+	_window.Raven = _Raven;
 	return Raven;
 };
 

@@ -14,8 +14,12 @@ function now() {
     return +new Date();
 }
 
-var _window = typeof window !== 'undefined' ? window : undefined;
-var _document = _window && _window.document;
+// This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
+var _window = typeof window !== 'undefined' ? window
+            : typeof global !== 'undefined' ? global
+            : typeof self !== 'undefined' ? self
+            : {};
+var _document = _window.document;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven

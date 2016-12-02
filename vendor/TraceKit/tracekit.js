@@ -10,6 +10,12 @@ var TraceKit = {
     debug: false
 };
 
+// This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
+var _window = typeof window !== 'undefined' ? window
+            : typeof global !== 'undefined' ? global
+            : typeof self !== 'undefined' ? self
+            : {};
+
 // global reference to slice
 var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
@@ -188,8 +194,8 @@ TraceKit.report = (function reportModuleWrapper() {
         if (_onErrorHandlerInstalled) {
             return;
         }
-        _oldOnerrorHandler = window.onerror;
-        window.onerror = traceKitWindowOnError;
+        _oldOnerrorHandler = _window.onerror;
+        _window.onerror = traceKitWindowOnError;
         _onErrorHandlerInstalled = true;
     }
 
@@ -198,7 +204,7 @@ TraceKit.report = (function reportModuleWrapper() {
         if (!_onErrorHandlerInstalled) {
             return;
         }
-        window.onerror = _oldOnerrorHandler;
+        _window.onerror = _oldOnerrorHandler;
         _onErrorHandlerInstalled = false;
         _oldOnerrorHandler = undefined;
     }
