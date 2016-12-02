@@ -10,6 +10,7 @@ var TraceKit = {
     debug: false
 };
 
+// This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
 var _window = typeof window !== 'undefined' ? window
             : typeof global !== 'undefined' ? global
             : typeof self !== 'undefined' ? self
