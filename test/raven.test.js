@@ -1961,23 +1961,23 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('.setShouldSendBreadcrumbCallback', function() {
-        it('should set the globalOptions.shouldSendBreadcrumbCallback attribute', function() {
+    describe('.setBreadcrumbCallback', function() {
+        it('should set the globalOptions.breadcrumbCallback attribute', function() {
             var foo = sinon.stub();
-            Raven.setShouldSendBreadcrumbCallback(foo);
+            Raven.setBreadcrumbCallback(foo);
 
-            // note that shouldSendBreadcrumbCallback creates a callback/closure around
+            // note that breadcrumbCallback creates a callback/closure around
             // foo, so can't test for equality - just verify that calling the wrapper
             // also calls foo
-            Raven._globalOptions.shouldSendBreadcrumbCallback();
+            Raven._globalOptions.breadcrumbCallback();
             assert.isTrue(foo.calledOnce);
         });
 
-        it('should clear globalOptions.shouldSendBreadcrumbCallback with no arguments', function() {
+        it('should clear globalOptions.breadcrumbCallback with no arguments', function() {
             var foo = function(){};
-            Raven._globalOptions.shouldSendBreadcrumbCallback = foo;
-            Raven.setShouldSendBreadcrumbCallback();
-            assert.isUndefined(Raven._globalOptions.shouldSendBreadcrumbCallback);
+            Raven._globalOptions.breadcrumbCallback = foo;
+            Raven.setBreadcrumbCallback();
+            assert.isUndefined(Raven._globalOptions.breadcrumbCallback);
         });
 
         it('should generate a wrapper that passes the prior callback as the 2nd argument', function () {
@@ -1986,9 +1986,9 @@ describe('Raven (public API)', function() {
                 assert.equal(orig, foo);
                 foo();
             });
-            Raven._globalOptions.shouldSendBreadcrumbCallback = foo;
-            Raven.setShouldSendBreadcrumbCallback(bar);
-            Raven._globalOptions.shouldSendBreadcrumbCallback({
+            Raven._globalOptions.breadcrumbCallback = foo;
+            Raven.setBreadcrumbCallback(bar);
+            Raven._globalOptions.breadcrumbCallback({
                 'a': 1 // "data"
             });
             assert.isTrue(bar.calledOnce);
@@ -2252,9 +2252,9 @@ describe('Raven (public API)', function() {
             ]);
         });
 
-        describe('shouldSendBreadcrumbCallback', function() {
+        describe('breadcrumbCallback', function() {
             it('should filter the breadcrumb if it returns false', function() {
-                Raven.setShouldSendBreadcrumbCallback(function() {
+                Raven.setBreadcrumbCallback(function() {
                     return false;
                 });
 
@@ -2269,9 +2269,10 @@ describe('Raven (public API)', function() {
                 assert.strictEqual(Raven._breadcrumbs.length, 0);
             });
 
-            it('should not filter the breadcrumb if it returns true', function() {
-                Raven.setShouldSendBreadcrumbCallback(function() {
-                    return true;
+            it('should mutate the breadcrumb if it returns an object', function() {
+                Raven.setBreadcrumbCallback(function(crumb) {
+                    crumb.type = 'whee';
+                    return crumb;
                 });
 
                 Raven.captureBreadcrumb({
@@ -2283,7 +2284,7 @@ describe('Raven (public API)', function() {
                 });
 
                 assert.deepEqual(Raven._breadcrumbs[0], {
-                    type: 'http',
+                    type: 'whee',
                     timestamp: 0.1,
                     data: {
                         url: 'http://example.org/api/0/auth/',
@@ -2292,9 +2293,29 @@ describe('Raven (public API)', function() {
                 });
             });
 
+            it('should enable replacing the breadcrumb', function() {
+                Raven.setBreadcrumbCallback(function(crumb) {
+                    return {
+                        foo: 'bar'
+                    }
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs[0], {
+                    foo: 'bar'
+                });
+            });
+
             it('should call the callback with the breadcrumb object', function() {
-                var callback = this.sinon.stub().returns(true);
-                Raven.setShouldSendBreadcrumbCallback(callback);
+                var callback = this.sinon.stub().returnsArg(0);
+                Raven.setBreadcrumbCallback(callback);
 
                 Raven.captureBreadcrumb({
                     type: 'http',
@@ -2320,10 +2341,10 @@ describe('Raven (public API)', function() {
                         return false;
                     }
 
-                    return true;
+                    return data;
                 }
 
-                Raven.setShouldSendBreadcrumbCallback(callback);
+                Raven.setBreadcrumbCallback(callback);
                 Raven.captureBreadcrumb({
                     type: 'http',
                     data: {

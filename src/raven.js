@@ -413,8 +413,12 @@ Raven.prototype = {
             timestamp: now() / 1000
         }, obj);
 
-        if (isFunction(this._globalOptions.shouldSendBreadcrumbCallback)) {
-            if (!this._globalOptions.shouldSendBreadcrumbCallback(crumb)) {
+        if (isFunction(this._globalOptions.breadcrumbCallback)) {
+            var result = this._globalOptions.breadcrumbCallback(crumb);
+
+            if (result) {
+                crumb = result;
+            } else {
                 return this;
             }
         }
@@ -537,6 +541,22 @@ Raven.prototype = {
     },
 
     /*
+     * Set the breadcrumbCallback option
+     *
+     * @param {function} callback The callback to run which allows filtering
+     *                            or mutating breadcrumbs
+     * @return {Raven}
+     */
+    setBreadcrumbCallback: function(callback) {
+        var original = this._globalOptions.breadcrumbCallback;
+        this._globalOptions.breadcrumbCallback = isFunction(callback)
+          ? function (data) { return callback(data, original); }
+          : callback;
+
+        return this;
+    },
+
+    /*
      * Set the shouldSendCallback option
      *
      * @param {function} callback The callback to run which allows
@@ -548,22 +568,6 @@ Raven.prototype = {
         this._globalOptions.shouldSendCallback = isFunction(callback)
             ? function (data) { return callback(data, original); }
             : callback;
-
-        return this;
-    },
-
-    /*
-     * Set the shouldSendBreadcrumbCallback option
-     *
-     * @param {function} callback The callback to run which allows
-     *                            introspecting breadcrumbs before sending
-     * @return {Raven}
-     */
-    setShouldSendBreadcrumbCallback: function(callback) {
-        var original = this._globalOptions.shouldSendBreadcrumbCallback;
-        this._globalOptions.shouldSendBreadcrumbCallback = isFunction(callback)
-          ? function (data) { return callback(data, original); }
-          : callback;
 
         return this;
     },
