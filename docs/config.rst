@@ -159,6 +159,23 @@ Those configuration options are documented below:
             }
         }
 
+.. describe:: breadcrumbCallback
+
+    A function that allows filtering or mutating breadcrumb payloads.
+    Return false to throw away the breadcrumb.
+
+    .. code-block:: javascript
+
+        {
+            breadcrumbCallback: function(crumb) {
+              if (crumb.type === 'http') {
+                return crumb;
+              }
+
+              return false;
+            }
+        }
+
 .. describe:: shouldSendCallback
 
     A callback function that allows you to apply your own filters to
