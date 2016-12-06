@@ -416,9 +416,9 @@ Raven.prototype = {
         if (isFunction(this._globalOptions.breadcrumbCallback)) {
             var result = this._globalOptions.breadcrumbCallback(crumb);
 
-            if (result) {
+            if (isObject(result) && !isEmptyObject(result)) {
                 crumb = result;
-            } else {
+            } else if (result === false) {
                 return this;
             }
         }
