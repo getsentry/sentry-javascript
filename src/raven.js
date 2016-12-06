@@ -413,6 +413,12 @@ Raven.prototype = {
             timestamp: now() / 1000
         }, obj);
 
+        if (isFunction(this._globalOptions.shouldSendBreadcrumbCallback)) {
+            if (!this._globalOptions.shouldSendBreadcrumbCallback(crumb)) {
+                return this;
+            }
+        }
+
         this._breadcrumbs.push(crumb);
         if (this._breadcrumbs.length > this._globalOptions.maxBreadcrumbs) {
             this._breadcrumbs.shift();
@@ -542,6 +548,22 @@ Raven.prototype = {
         this._globalOptions.shouldSendCallback = isFunction(callback)
             ? function (data) { return callback(data, original); }
             : callback;
+
+        return this;
+    },
+
+    /*
+     * Set the shouldSendBreadcrumbCallback option
+     *
+     * @param {function} callback The callback to run which allows
+     *                            introspecting breadcrumbs before sending
+     * @return {Raven}
+     */
+    setShouldSendBreadcrumbCallback: function(callback) {
+        var original = this._globalOptions.shouldSendBreadcrumbCallback;
+        this._globalOptions.shouldSendBreadcrumbCallback = isFunction(callback)
+          ? function (data) { return callback(data, original); }
+          : callback;
 
         return this;
     },

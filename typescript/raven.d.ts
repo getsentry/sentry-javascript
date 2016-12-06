@@ -213,6 +213,9 @@ interface RavenStatic {
     /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
 
+    /** Specify a callback function that allows you to apply your own filters to determine if a breadcrumb should be sent to Sentry. */
+    setShouldSendBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+
     /** Show Sentry user feedback dialog */
     showReportDialog(options: Object): void;
 }
