@@ -21,18 +21,6 @@ describe('raven.parsers', function () {
     });
   });
 
-  describe('#parseQuery()', function () {
-    it('should parse a query', function () {
-      var query = 'SELECT * FROM `something`';
-      var engine = 'mysql';
-      var parsed = raven.parsers.parseQuery(query, engine);
-      parsed.message.should.equal('SELECT * FROM `something`');
-      parsed.should.have.property('query');
-      parsed.query.query.should.equal('SELECT * FROM `something`');
-      parsed.query.engine.should.equal('mysql');
-    });
-  });
-
   describe('#parseRequest()', function () {
     it('should parse a request object', function () {
       var mockReq = {
