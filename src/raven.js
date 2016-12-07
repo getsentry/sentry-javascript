@@ -413,6 +413,16 @@ Raven.prototype = {
             timestamp: now() / 1000
         }, obj);
 
+        if (isFunction(this._globalOptions.breadcrumbCallback)) {
+            var result = this._globalOptions.breadcrumbCallback(crumb);
+
+            if (isObject(result) && !isEmptyObject(result)) {
+                crumb = result;
+            } else if (result === false) {
+                return this;
+            }
+        }
+
         this._breadcrumbs.push(crumb);
         if (this._breadcrumbs.length > this._globalOptions.maxBreadcrumbs) {
             this._breadcrumbs.shift();
@@ -524,6 +534,22 @@ Raven.prototype = {
     setDataCallback: function(callback) {
         var original = this._globalOptions.dataCallback;
         this._globalOptions.dataCallback = isFunction(callback)
+          ? function (data) { return callback(data, original); }
+          : callback;
+
+        return this;
+    },
+
+    /*
+     * Set the breadcrumbCallback option
+     *
+     * @param {function} callback The callback to run which allows filtering
+     *                            or mutating breadcrumbs
+     * @return {Raven}
+     */
+    setBreadcrumbCallback: function(callback) {
+        var original = this._globalOptions.breadcrumbCallback;
+        this._globalOptions.breadcrumbCallback = isFunction(callback)
           ? function (data) { return callback(data, original); }
           : callback;
 

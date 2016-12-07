@@ -210,6 +210,9 @@ interface RavenStatic {
     /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
     setDataCallback(data: any, orig?: any): RavenStatic;
 
+    /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
+    setBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+
     /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
 

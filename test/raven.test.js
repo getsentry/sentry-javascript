@@ -1961,6 +1961,41 @@ describe('Raven (public API)', function() {
         });
     });
 
+    describe('.setBreadcrumbCallback', function() {
+        it('should set the globalOptions.breadcrumbCallback attribute', function() {
+            var foo = sinon.stub();
+            Raven.setBreadcrumbCallback(foo);
+
+            // note that breadcrumbCallback creates a callback/closure around
+            // foo, so can't test for equality - just verify that calling the wrapper
+            // also calls foo
+            Raven._globalOptions.breadcrumbCallback();
+            assert.isTrue(foo.calledOnce);
+        });
+
+        it('should clear globalOptions.breadcrumbCallback with no arguments', function() {
+            var foo = function(){};
+            Raven._globalOptions.breadcrumbCallback = foo;
+            Raven.setBreadcrumbCallback();
+            assert.isUndefined(Raven._globalOptions.breadcrumbCallback);
+        });
+
+        it('should generate a wrapper that passes the prior callback as the 2nd argument', function () {
+            var foo = sinon.stub();
+            var bar = sinon.spy(function(data, orig) {
+                assert.equal(orig, foo);
+                foo();
+            });
+            Raven._globalOptions.breadcrumbCallback = foo;
+            Raven.setBreadcrumbCallback(bar);
+            Raven._globalOptions.breadcrumbCallback({
+                'a': 1 // "data"
+            });
+            assert.isTrue(bar.calledOnce);
+            assert.isTrue(foo.calledOnce);
+        });
+    });
+
     describe('.setShouldSendCallback', function() {
         it('should set the globalOptions.shouldSendCallback attribute', function() {
             var foo = sinon.stub();
@@ -2215,6 +2250,193 @@ describe('Raven (public API)', function() {
                 { message: '5', timestamp: 0.1 },
                 { message: 'lol', timestamp: 0.1 }
             ]);
+        });
+
+        describe('breadcrumbCallback', function() {
+            it('should filter the breadcrumb if it returns false', function() {
+                Raven.setBreadcrumbCallback(function() {
+                    return false;
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.strictEqual(Raven._breadcrumbs.length, 0);
+            });
+
+            it('should not filter the breadcrumb if callback returns undefined', function() {
+                Raven.setBreadcrumbCallback(function() {});
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs, [{
+                    type: 'http',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                }]);
+            });
+
+            it('should mutate the breadcrumb if it returns an object', function() {
+                Raven.setBreadcrumbCallback(function(crumb) {
+                    crumb.type = 'whee';
+                    return crumb;
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs, [{
+                    type: 'whee',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                }]);
+            });
+
+            it('should enable replacing the breadcrumb', function() {
+                Raven.setBreadcrumbCallback(function() {
+                    return {
+                        foo: 'bar'
+                    }
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs[0], {
+                    foo: 'bar'
+                });
+            });
+
+            it('should not replace the breadcrumb if a non object is returned', function() {
+                Raven.setBreadcrumbCallback(function() {
+                    return 'foo';
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs, [{
+                    type: 'http',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                }]);
+            });
+
+            it('should not replace the breadcrumb if an empty object is returned', function() {
+                Raven.setBreadcrumbCallback(function() {
+                    return {};
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs, [{
+                    type: 'http',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                }]);
+            });
+
+            it('should call the callback with the breadcrumb object', function() {
+                var callback = this.sinon.stub().returnsArg(0);
+                Raven.setBreadcrumbCallback(callback);
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                });
+
+                assert.isTrue(callback.calledWith({
+                    type: 'http',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'http://example.org/api/0/auth/',
+                        status_code: 200
+                    }
+                }));
+            });
+
+            it('should enable filtering one breadcrumb but not another', function() {
+                function callback(data) {
+                    if (data.data.url === 'example') {
+                        return false;
+                    }
+
+                    return data;
+                }
+
+                Raven.setBreadcrumbCallback(callback);
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'example',
+                        status_code: 200
+                    }
+                });
+
+                Raven.captureBreadcrumb({
+                    type: 'http',
+                    data: {
+                        url: 'foo',
+                        status_code: 301
+                    }
+                });
+
+                assert.deepEqual(Raven._breadcrumbs, [{
+                    type: 'http',
+                    timestamp: 0.1,
+                    data: {
+                        url: 'foo',
+                        status_code: 301
+                    }
+                }]);
+            });
         });
     });
 
