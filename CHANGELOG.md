@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.9.0
+* NEW: `breadcrumbCallback` and `setBreadcrumbCallback` for filtering/mutating breadcrumbs. See: https://github.com/getsentry/raven-js/pull/788
+* NEW: Can enable synthetic traces globally via `stacktrace: true` config option. See: https://github.com/getsentry/raven-js/pull/763
+* CHANGE: Can set user context via `config` under `user` key. See: https://github.com/getsentry/raven-js/pull/762
+* CHANGE: Unit and integration tests now run on PhantomJS 2. See: https://github.com/getsentry/raven-js/pull/777
+* BUGFIX: Fix mouse click breadcrumbs not captured in some scenarios. See: https://github.com/getsentry/raven-js/pull/766
+* BUGFIX: React Native plugin normalizes paths in stacktraces generated via `captureMessage`. See: https://github.com/getsentry/raven-js/pull/778
+* BUGFIX: Doesn't break when window is absent (e.g. inside web workers). See: https://github.com/getsentry/raven-js/pull/785
+
 ## 3.8.1
 * BUGFIX: Fix dangling comma affecting IE8. See: https://github.com/getsentry/raven-js/pull/769
 
