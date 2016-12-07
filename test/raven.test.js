@@ -2290,10 +2290,9 @@ describe('Raven (public API)', function() {
                 }]);
             });
 
-            it('should mutate the breadcrumb if it returns an object', function() {
+            it('should be able to mutate the breadcrumb', function() {
                 Raven.setBreadcrumbCallback(function(crumb) {
                     crumb.type = 'whee';
-                    return crumb;
                 });
 
                 Raven.captureBreadcrumb({
