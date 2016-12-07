@@ -1644,7 +1644,7 @@ function parseUrl(url) {
     };
 }
 function uuid4() {
-    var crypto = window.crypto || window.msCrypto;
+    var crypto = _window.crypto || _window.msCrypto;
 
     if (!isUndefined(crypto) && crypto.getRandomValues) {
         // Use window.crypto API if available
