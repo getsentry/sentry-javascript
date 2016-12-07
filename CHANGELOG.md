@@ -5,6 +5,7 @@
 * NEW: Can enable synthetic traces globally via `stacktrace: true` config option. See: https://github.com/getsentry/raven-js/pull/763
 * CHANGE: Can set user context via `config` under `user` key. See: https://github.com/getsentry/raven-js/pull/762
 * CHANGE: Unit and integration tests now run on PhantomJS 2. See: https://github.com/getsentry/raven-js/pull/777
+* BUGFIX: Fix mouse click breadcrumbs not captured in some scenarios. See: https://github.com/getsentry/raven-js/pull/766
 * BUGFIX: React Native plugin normalizes paths in stacktraces generated via `captureMessage`. See: https://github.com/getsentry/raven-js/pull/778
 * BUGFIX: Doesn't break when window is absent (e.g. inside web workers). See: https://github.com/getsentry/raven-js/pull/785
 
