@@ -10,3 +10,4 @@ node_js:
   - "node"
 before_install:
   - "npm install --upgrade npm -g"
+script: npm run test-full

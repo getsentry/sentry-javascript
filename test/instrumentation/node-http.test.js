@@ -25,5 +25,18 @@ testFiles.forEach(function (filename) {
 });
 
 console.log('Finished, failures: ' + failedTests.length + ', successes: ' + numSuccesses);
-console.log(failedTests);
-console.log('Note: we are not worried about test-http-pipeline-flood.js failing.');
+
+var knownFailures = [
+  'test-http-pipeline-flood.js'
+];
+
+var didPass = failedTests.every(function (filename) {
+  return knownFailures.indexOf(filename) !== -1;
+});
+if (!didPass) {
+  console.log('Some unexpected failures, failing...')
+  process.exit(1);
+} else {
+  console.log('All failures were known/expected, passing...')
+  process.exit(0);
+}

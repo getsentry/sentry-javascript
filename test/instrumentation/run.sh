@@ -1,11 +1,11 @@
 # /bin/sh
 version=`node -v`
-version2=`echo $version | cut -c 2-`
-folder="node-$version2"
+versionMinusV=`echo $version | cut -c 2-`
+nodeRoot="node-$versionMinusV"
 
-if [ ! -d $folder ]; then
+if [ ! -d $nodeRoot ]; then
   url="https://codeload.github.com/nodejs/node/tar.gz/$version"
   curl $url -o "$version.tar.gz"
-  tar -xvf "$version.tar.gz"
+  tar -xf "$version.tar.gz"
 fi
-node "node-http.test.js" `pwd`/$folder
+node "node-http.test.js" `pwd`/$nodeRoot
