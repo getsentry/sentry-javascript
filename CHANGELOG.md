@@ -2,6 +2,7 @@
 
 ## 3.9.1
 * BUGFIX: Fix TypeError triggered by some event listeners. See: https://github.com/getsentry/raven-js/issues/793
+* BUGFIX: Fix bad `window` access in web worker environments. See: https://github.com/getsentry/raven-js/pull/792
 
 ## 3.9.0
 * NEW: `breadcrumbCallback` and `setBreadcrumbCallback` for filtering/mutating breadcrumbs. See: https://github.com/getsentry/raven-js/pull/788
