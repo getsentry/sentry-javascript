@@ -1,2 +1,2 @@
 coverage/
-test/instrumentation/
+test/instrumentation/node-*

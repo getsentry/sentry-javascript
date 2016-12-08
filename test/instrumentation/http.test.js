@@ -17,7 +17,12 @@ var numSuccesses = 0;
 testFiles.forEach(function (filename) {
   var testModulePath = path.join(testRoot, filename);
   try {
-    child_process.execFileSync('node', ['--allow-natives-syntax', '--expose_gc', 'run-node-http-test.js', testModulePath], { stdio: 'ignore' });
+    child_process.execFileSync('node', [
+      '--allow-natives-syntax',
+      '--expose_gc',
+      'run-node-http-test.js',
+      testModulePath
+    ], { stdio: 'ignore' });
     console.log('✓ ' + filename);
     numSuccesses++;
   } catch (e) {
@@ -41,9 +46,9 @@ var didPass = failedTests.every(function (filename) {
   return knownFailures.indexOf(filename) !== -1;
 });
 if (!didPass) {
-  console.log('Some unexpected failures, failing...')
+  console.log('Some unexpected failures, failing...');
   process.exit(1);
 } else {
-  console.log('All failures were known/expected, passing...')
+  console.log('All failures were known/expected, passing...');
   process.exit(0);
 }
