@@ -883,6 +883,8 @@ Raven.prototype = {
                                 // need to intercept every DOM event in `before` argument, in case that
                                 // same wrapped method is re-used for different events (e.g. mousemove THEN click)
                                 // see #724
+                                if (!evt) return;
+
                                 if (evt.type === 'click')
                                     return clickHandler(evt);
                                 else if (evt.type === 'keypress')
