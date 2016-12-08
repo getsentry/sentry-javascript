@@ -8,4 +8,4 @@ if [ ! -d $nodeRoot ]; then
   curl $url -o "$version.tar.gz"
   tar -xf "$version.tar.gz"
 fi
-node "node-http.test.js" `pwd`/$nodeRoot
+node "http.test.js" `pwd`/$nodeRoot
