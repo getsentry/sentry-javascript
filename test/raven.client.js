@@ -4,6 +4,7 @@
 
 var raven = require('../'),
     nock = require('nock'),
+    url = require('url'),
     zlib = require('zlib');
 
 raven.utils.disableConsoleAlerts();
@@ -896,6 +897,72 @@ describe('raven.Client', function () {
         result.should.equal('result');
         done();
       })(null, 'result');
+    });
+  });
+
+  describe('#captureBreadcrumb', function () {
+    beforeEach(function () {
+      mockConsoleWarn();
+    });
+
+    afterEach(function () {
+      client.uninstall();
+      restoreConsoleWarn();
+    });
+
+    it('should instrument console to capture breadcrumbs', function (done) {
+      client = new raven.Client(dsn, { autoBreadcrumbs: { console: true } });
+      client.install();
+
+      client.context(function () {
+        console.warn('breadcrumb!');
+        client.getContext().breadcrumbs[0].message.should.equal('breadcrumb!');
+        done();
+      });
+    });
+
+    it('should instrument http to capture breadcrumbs', function (done) {
+      client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
+      client.install();
+
+      var testUrl = 'http://example.com/';
+      var scope = nock(testUrl)
+        .get('/')
+        .reply(200, 'OK');
+
+      client.context(function () {
+        var http = require('http');
+        http.get(url.parse(testUrl), function (response) {
+          // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+          setTimeout(function () {
+            client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+            scope.done();
+            done();
+          }, 0);
+        });
+      });
+    });
+
+    it('should instrument https to capture breadcrumbs', function (done) {
+      client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
+      client.install();
+
+      var testUrl = 'https://example.com/';
+      var scope = nock(testUrl)
+        .get('/')
+        .reply(200, 'OK');
+
+      client.context(function () {
+        var https = require('https');
+        https.get(url.parse(testUrl), function (response) {
+          // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+          setTimeout(function () {
+            client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+            scope.done();
+            done();
+          }, 0);
+        });
+      });
     });
   });
 });
