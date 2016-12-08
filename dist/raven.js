@@ -1,4 +1,4 @@
-/*! Raven.js 3.9.0 (8bbd939) | github.com/getsentry/raven-js */
+/*! Raven.js 3.9.1 (7bbae7d) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -172,7 +172,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.9.0',
+    VERSION: '3.9.1',
 
     debug: false,
 
@@ -977,6 +977,8 @@ Raven.prototype = {
                                 // need to intercept every DOM event in `before` argument, in case that
                                 // same wrapped method is re-used for different events (e.g. mousemove THEN click)
                                 // see #724
+                                if (!evt) return;
+
                                 if (evt.type === 'click')
                                     return clickHandler(evt);
                                 else if (evt.type === 'keypress')
@@ -1738,7 +1740,7 @@ function parseUrl(url) {
     };
 }
 function uuid4() {
-    var crypto = window.crypto || window.msCrypto;
+    var crypto = _window.crypto || _window.msCrypto;
 
     if (!isUndefined(crypto) && crypto.getRandomValues) {
         // Use window.crypto API if available
