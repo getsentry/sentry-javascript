@@ -64,5 +64,8 @@
         "integrations/vue#installation"
       ]
     }
+  },
+  "vars": {
+    "RAVEN_VERSION": "3.9.1"
   }
 }

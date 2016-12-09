@@ -24,7 +24,7 @@ Example:
 .. sourcecode:: html
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
-    <script src="https://cdn.ravenjs.com/3.9.1/angular/raven.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/angular/raven.min.js" crossorigin="anonymous"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
 Note that this CDN build auto-initializes the Angular plugin.

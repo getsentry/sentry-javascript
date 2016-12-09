@@ -289,7 +289,7 @@ Putting it all together
     <body>
         ...
         <script src="jquery.min.js"></script>
-        <script src="https://cdn.ravenjs.com/3.9.1/raven.min.js"
+        <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js"
             crossorigin="anonymous"></script>
         <script>
             Raven.config('___PUBLIC_DSN___', {
