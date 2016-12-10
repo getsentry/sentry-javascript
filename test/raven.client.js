@@ -910,6 +910,19 @@ describe('raven.Client', function () {
       restoreConsoleWarn();
     });
 
+    it('should capture a breadcrumb', function (done) {
+      var message = 'test breadcrumb';
+      client.install();
+      client.context(function () {
+        client.captureBreadcrumb({
+          category: 'test',
+          message: message
+        });
+        client.getContext().breadcrumbs[0].message.should.equal(message);
+        done();
+      });
+    });
+
     it('should instrument console to capture breadcrumbs', function (done) {
       client = new raven.Client(dsn, { autoBreadcrumbs: { console: true } });
       client.install();
@@ -921,46 +934,71 @@ describe('raven.Client', function () {
       });
     });
 
-    it('should instrument http to capture breadcrumbs', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
+    it('should not die trying to instrument a missing module', function (done) {
+      client = new raven.Client(dsn, { autoBreadcrumbs: { postgres: true } });
       client.install();
-
-      var testUrl = 'http://example.com/';
-      var scope = nock(testUrl)
-        .get('/')
-        .reply(200, 'OK');
-
-      client.context(function () {
-        var http = require('http');
-        http.get(url.parse(testUrl), function (response) {
-          // need to wait a tick because the response handler that captures the breadcrumb might run after this one
-          setTimeout(function () {
-            client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
-            scope.done();
-            done();
-          }, 0);
-        });
-      });
+      done();
     });
 
-    it('should instrument https to capture breadcrumbs', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
-      client.install();
+    describe('http breadcrumbs', function () {
+      beforeEach(function () {
+        client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
+        client.install();
+      });
 
-      var testUrl = 'https://example.com/';
-      var scope = nock(testUrl)
-        .get('/')
-        .reply(200, 'OK');
+      it('should instrument http to capture breadcrumbs', function (done) {
+        var testUrl = 'http://example.com/';
+        var scope = nock(testUrl)
+          .get('/')
+          .reply(200, 'OK');
 
-      client.context(function () {
-        var https = require('https');
-        https.get(url.parse(testUrl), function (response) {
-          // need to wait a tick because the response handler that captures the breadcrumb might run after this one
-          setTimeout(function () {
-            client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
-            scope.done();
-            done();
-          }, 0);
+        client.context(function () {
+          var http = require('http');
+          http.get(url.parse(testUrl), function (response) {
+            // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+            setTimeout(function () {
+              client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              scope.done();
+              done();
+            }, 0);
+          });
+        });
+      });
+
+      it('should instrument https to capture breadcrumbs', function (done) {
+        var testUrl = 'https://example.com/';
+        var scope = nock(testUrl)
+          .get('/')
+          .reply(200, 'OK');
+
+        client.context(function () {
+          var https = require('https');
+          https.get(url.parse(testUrl), function (response) {
+            // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+            setTimeout(function () {
+              client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              scope.done();
+              done();
+            }, 0);
+          });
+        });
+      });
+
+      it('should not capture breadcrumbs for requests to sentry', function (done) {
+        var scope = nock('https://app.getsentry.com')
+          .filteringRequestBody(/.*/, '*')
+          .post('/api/269/store/', '*')
+          .reply(200, 'OK');
+
+        client.context(function () {
+          client.captureException(new Error('test'), function () {
+            // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+            setTimeout(function () {
+              client.getContext().should.not.have.key('breadcrumbs');
+              scope.done();
+              done();
+            }, 0);
+          });
         });
       });
     });
