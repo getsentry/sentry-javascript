@@ -2049,7 +2049,17 @@ describe('Raven (public API)', function() {
             Raven.captureMessage({});
             assert.isTrue(Raven._send.called);
             assert.deepEqual(Raven._send.lastCall.args, [{
-                message: '[object Object]'
+                message: '{}'
+            }]);
+        });
+        
+        it('should stringify when message is of type object', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_send');
+            Raven.captureMessage({msg: 'lunar landing was faked'});
+            assert.isTrue(Raven._send.called);
+            assert.deepEqual(Raven._send.lastCall.args, [{
+                message: '{"msg":"lunar landing was faked"}'
             }]);
         });
 
