@@ -366,6 +366,16 @@ Raven.prototype = {
         if (!!this._globalOptions.ignoreErrors.test && this._globalOptions.ignoreErrors.test(msg)) {
             return;
         }
+        
+        // Ensure that msg is a string. 
+        if (typeof msg !== 'string'){
+            try {
+                // Attempt to stringify so that msg isn't masked as `[object Object]`
+                msg = JSON.stringify(msg);
+            } catch (ex) {
+                //Do nothing
+            }
+        }
 
         options = options || {};
 
