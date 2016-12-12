@@ -371,7 +371,7 @@ Raven.prototype = {
         if (typeof msg !== 'string'){
             try {
                 // Attempt to stringify so that msg isn't masked as `[object Object]`
-                msg = JSON.stringify(msg);
+                msg = JSON.stringify(msg) || msg;
             } catch (ex) {
                 //Do nothing
             }
