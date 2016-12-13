@@ -1,4 +1,4 @@
-# /bin/sh
+# /bin/bash
 version=`node -v`
 versionMinusV=`echo $version | cut -c 2-`
 nodeRoot="node-$versionMinusV"
@@ -8,4 +8,4 @@ if [ ! -d $nodeRoot ]; then
   curl $url -o "$version.tar.gz"
   tar -xf "$version.tar.gz"
 fi
-node "http.test.js" `pwd`/$nodeRoot
+exec node http.test.js `pwd`/$nodeRoot
