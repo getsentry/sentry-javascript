@@ -298,7 +298,8 @@ describe('raven.Client', function () {
       var listeners = process.listeners('unhandledRejection');
       listeners.length.should.equal(0);
 
-      client.install({ unhandledRejection: true }, function (sent, reason) {
+      client = new raven.Client(dsn, { captureUnhandledRejections: true });
+      client.install(function (sent, reason) {
         reason.message.should.equal('rejected!');
         done();
       });
