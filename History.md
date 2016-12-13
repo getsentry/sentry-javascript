@@ -1,5 +1,35 @@
+# 1.1.0 - 12/12/2016
+- Added support for (automatic) breadcrumbs [See #240]
+  - `Raven.captureBreadcrumb` manual method
+  - `autoBreadcrumbs` config field to automatically capture breadcrumbs for:
+    - console logs
+    - http requests
+    - postgres queries
+- Deprecate `captureQuery` [See #239]
+
+# 1.0.0 - 12/12/2016
+- `Raven.config(...)` instead of `new raven.Client(...)`
+- `Raven.install()` instead of `client.patchGlobal()`
+- The callback to `Raven.captureException` now fires after transmission [See #217]
+- Added `captureUnhandledRejections` option for Promise rejections
+- Introduced contexts and associated `set/merge/getContext` methods [See #207]
+- Added `shouldSendCallback` config option and `set*Callback` methods [See #220]
+- Added `intercept()` method [See #225]
+- Backwards compatibility was mostly maintained, but lots of stuff was deprecated
+  - We'll print console messages if you're doing anything the old way
+  - We'll also print console messages in certain situations where behavior might be surprising, like if no DSN is configured
+  - You can disable these alerts with `Raven.disableConsoleAlerts();`
+
+# 0.12.3 - 11/21/2016
+ * Replace `node-uuid` dependency with `uuid` [See #236]
+
+# 0.12.2 - 11/17/2016
+ * Add column number to stack frames [See #235]
+ * Check that `require.main.filename` is defined [See #233]
+
 # 0.12.1 - 8/4/2016
  * Fix bug where `environment` option was not actually being transmitted to Sentry [See #185]
+
 # 0.12.0 - 8/1/2016
  * Add `environment` config option and `setRelease` method [See #179]
  * No longer passes `process.env` values [See #181]
