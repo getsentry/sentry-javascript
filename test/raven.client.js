@@ -1004,3 +1004,18 @@ describe('raven.Client', function () {
     });
   });
 });
+
+describe('raven.middleware', function () {
+  it('should use an instance passed to it instead of making a new one', function () {
+    var client = new raven.Client(dsn);
+    raven.middleware.express.getClient(client).should.equal(client);
+  });
+
+  it('should make a new instance when passed a DSN string', function () {
+    var client1 = new raven.Client(dsn);
+    var client2 = raven.middleware.express.getClient(dsn);
+    client2.should.not.equal(raven);
+    client2.should.not.equal(client1);
+    client2.should.be.an.instanceof(raven.constructor);
+  });
+});
