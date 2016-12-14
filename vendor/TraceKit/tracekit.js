@@ -24,7 +24,7 @@ var UNKNOWN_FUNCTION = '?';
 var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error): ?(.*)$/;
 
 function getLocationHref() {
-    if (typeof document === 'undefined')
+    if (typeof document === 'undefined' || typeof document.location === 'undefined')
         return '';
 
     return document.location.href;
