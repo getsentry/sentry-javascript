@@ -1,3 +1,6 @@
+# 1.1.1 and 1.0.1 - 12/13/2016
+- Fix middleware backwards compatibility [See #246]
+
 # 1.1.0 - 12/12/2016
 - Added support for (automatic) breadcrumbs [See #240]
   - `Raven.captureBreadcrumb` manual method
