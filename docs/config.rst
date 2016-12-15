@@ -159,6 +159,20 @@ Those configuration options are documented below:
             }
         }
 
+.. describe:: errorCallback
+
+    A function that allows mutation of the data payload with the original Error object.
+    Only executed for error handling and not for ``captureMessage``.
+
+    .. code-block:: javascript
+
+        {
+            errorCallback: function(data, error) {
+              // do something to data with the original errror
+              return data;
+            }
+        }
+
 .. describe:: breadcrumbCallback
 
     A function that allows filtering or mutating breadcrumb payloads.
