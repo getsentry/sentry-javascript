@@ -4,7 +4,10 @@ Connect
 .. code-block:: javascript
 
   var connect = require('connect');
-  var raven = require('raven');
+  var Raven = require('raven');
+
+  // Must configure Raven before doing anything else with it
+  Raven.config('___DSN___').install();
 
   function mainHandler(req, res) {
       throw new Error('Broke!');
@@ -14,19 +17,19 @@ Connect
       // The error id is attached to `res.sentry` to be returned
       // and optionally displayed to the user for support.
       res.statusCode = 500;
-      res.end(res.sentry+'\n');
+      res.end(res.sentry + '\n');
   }
 
   connect(
       // The request handler be the first item
-      raven.middleware.connect.requestHandler('___DSN___'),
+      Raven.requestHandler(),
 
       connect.bodyParser(),
       connect.cookieParser(),
       mainHandler,
 
       // The error handler must be before any other error middleware
-      raven.middleware.connect.errorHandler('___DSN___'),
+      Raven.errorHandler(),
 
       // Optional fallthrough error handler
       onError,

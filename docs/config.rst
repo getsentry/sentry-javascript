@@ -1,16 +1,27 @@
 Configuration
 =============
 
-Configuration is passed as the second argument of the ``raven.Client`` constructor:
+To get started, you need to configure Raven to use your Sentry DSN:
 
-.. code-block:: javascript
+.. sourcecode:: javascript
 
-    var raven = require("raven");
+    var Raven = require('raven');
+    Raven.config('___PUBLIC_DSN___').install()
 
-    new raven.Client(String dsn[, Object options])
+At this point, Raven is ready to capture any uncaught exceptions.
 
 Optional settings
 -----------------
+
+``Raven.config()`` can optionally be passed an additional argument for extra configuration:
+
+.. sourcecode:: javascript
+
+    Raven.config('___PUBLIC_DSN___', {
+        release: '1.3.0'
+    }).install()
+
+Those configuration options are documented below:
 
 .. describe:: logger
 
@@ -80,6 +91,47 @@ Optional settings
                 return data;
             }
         }
+
+.. describe:: shouldSendCallback
+
+    A callback function that allows you to apply your own filters to determine if the event should be sent to Sentry.
+
+    .. code-block:: javascript
+
+        {
+            shouldSendCallback: function (data) {
+                // randomly omit half of events
+                return Math.random() > 0.5;
+            }
+        }
+
+.. describe:: autoBreadcrumbs
+
+  Enables/disables automatic collection of breadcrumbs. Possible values are:
+
+  * `false` - all automatic breadcrumb collection disabled (default)
+  * `true` - all automatic breadcrumb collection enabled
+  * A dictionary of individual breadcrumb types that can be enabled/disabled:
+
+  .. code-block:: javascript
+
+      autoBreadcrumbs: {
+          'console': false,  // console logging
+          'http': true,     // http and https requests
+          'postgres': true,  // postgresql queries from pg module
+      }
+
+.. describe:: maxBreadcrumbs
+
+  Raven captures up to 30 breadcrumb entries by default. You can increase this to
+  be as high as 100, or reduce it if you find 30 is too noisy, by setting `maxBreadcrumbs`.
+
+  Note that in very high-concurrency situations where you might have a large number of
+  long-lived contexts each with a large number of associated breadcrumbs, there is potential
+  for significant memory usage. 10,000 contexts with 10kB of breadcrumb data each will use
+  around 120mB of memory. Most applications will be nowhere close to either of these numbers,
+  but if yours might be, you can use the `maxBreadcrumbs` parameter to limit the amount of
+  breadcrumb data each context will keep around.
 
 .. describe:: transport
 
