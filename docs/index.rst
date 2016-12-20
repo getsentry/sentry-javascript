@@ -122,7 +122,7 @@ Middleware and Integrations
 ---------------------------
 
 If you're using Node.js with a web server framework/library like Connect, Express, or Koa, it is recommended
-to configure one of Raven's server middleware integrations. See doc:`integrations/index`.
+to configure one of Raven's server middleware integrations. See :doc:`integrations/index`.
 
 Deep Dive
 ---------
