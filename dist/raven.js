@@ -1,4 +1,4 @@
-/*! Raven.js 3.9.1 (7bbae7d) | github.com/getsentry/raven-js */
+/*! Raven.js 3.9.1 (79bc1ae) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -544,6 +544,19 @@ Raven.prototype = {
     setUserContext: function(user) {
         // Intentionally do not merge here since that's an unexpected behavior.
         this._globalContext.user = user;
+
+        return this;
+    },
+
+    /*
+     * Set/clear Contexts interface to be sent along with the payload.
+     *
+     * @param {object} contexts An object representing Contexts data [optional]
+     * @return {Raven}
+     */
+    setContextsInterface: function(contexts) {
+        // Intentionally do not merge here since that's an unexpected behavior.
+        this._globalContext.contexts = contexts;
 
         return this;
     },
@@ -1454,6 +1467,11 @@ Raven.prototype = {
         if (this._globalContext.user) {
             // sentry.interfaces.User
             data.user = this._globalContext.user;
+        }
+
+        if (this._globalContext.contexts) {
+            // sentry.interfaces.Contexts
+            data.contexts = this._globalContext.contexts;
         }
 
         // Include the environment if it's defined in globalOptions
