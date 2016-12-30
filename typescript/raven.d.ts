@@ -112,6 +112,15 @@ interface RavenWrapOptions extends RavenOptions {
     deep?: boolean;
 }
 
+/**
+ * General details about the user to be logged to Sentry.
+ */
+interface RavenUserContext {
+    id?: string;
+    username?: string;
+    email?: string;
+}
+
 interface RavenStatic {
 
     /** Raven.js version. */
@@ -223,11 +232,7 @@ interface RavenStatic {
      * @param {object} user An object representing user data [optional]
      * @return {Raven}
      */
-    setUserContext(user: {
-        id?: string;
-        username?: string;
-        email?: string;
-    }): RavenStatic;
+    setUserContext(user: RavenUserContext): RavenStatic;
 
     /** Merge extra attributes to be sent along with the payload. */
     setExtraContext(context: Object): RavenStatic;
@@ -269,7 +274,11 @@ interface RavenStatic {
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
 
     /** Show Sentry user feedback dialog */
-    showReportDialog(options: Object): void;
+    showReportDialog(options?: {
+        eventId?: number,
+        dsn?: string,
+        user?: RavenUserContext,
+    }): void;
 }
 
 interface RavenTransportOptions {
