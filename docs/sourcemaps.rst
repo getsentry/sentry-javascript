@@ -27,8 +27,8 @@ that maps the minified code back to the original source:
 
     node_modules/uglify-js/bin/uglifyjs {input} \
       --source-map-root={relroot}/ \
-      --source-map-url={name}.map.js \
-      --source-map={relpath}/{name}.map.js \
+      --source-map-url={name}.js.map \
+      --source-map={relpath}/{name}.js.map \
       --source-map-include-sources \
       -o {output}
 
@@ -52,7 +52,7 @@ Webpack can be configured to output source maps by editing webpack.config.js.
         output: {
           path: path.join(__dirname, 'dist'),
           filename: "[name].js",
-          sourceMapFilename: "[name].map.js",
+          sourceMapFilename: "[name].js.map",
         }
     };
 
@@ -106,15 +106,15 @@ on the last line, the following directive is found:
 
 .. code-block:: javascript
 
-    //# sourceMappingURL=app.map.js
+    //# sourceMappingURL=app.js.map
 
-Sentry will attempt to fetch ``app.map.js`` from http://example.org/js/app.map.js.
+Sentry will attempt to fetch ``app.js.map`` from http://example.org/js/app.js.map.
 
 Alternatively, during source map generation you can specify a fully qualified URL where your source maps are located:
 
 .. code-block:: javascript
 
-    //# sourceMappingURL=http://example.org/js/app.map.js
+    //# sourceMappingURL=http://example.org/js/app.js.map
 
 While making source maps available to Sentry from your servers is the easiest integration, it is not always advisable:
 
@@ -172,7 +172,7 @@ if a browser (or filesystem) had to resolve its path. So for example, if your so
 reference is just a relative path, it's **relative to the location of the referencing file**.
 
 So for example, if you have ``http://example.com/app.min.js``, and the file contains the
-reference to ``app.map.js``, the name of the uploaded file should be ``http://example.com/app.map.js``.
+reference to ``app.js.map``, the name of the uploaded file should be ``http://example.com/app.js.map``.
 
 .. code-block:: bash
 
