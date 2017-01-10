@@ -14,8 +14,33 @@ function angularPlugin(Raven, angular) {
 
     if (!angular) return;
 
+    var _development = false;
+
     function RavenProvider() {
-        this.$get = ['$window', function($window) {
+        Raven.setDataCallback(function(data, original) {
+            angularPlugin._normalizeData(data);
+
+            original && original(data);
+        });
+
+        this.setTagsContext = function(opts) {
+            return Raven.setTagsContext(opts);
+        };
+
+        this.development = function(config) {
+            _development = config || _development;
+            return this;
+        };
+
+        this.config = function(configuration) {
+            return Raven.config(configuration);
+        };
+
+        this.install = function() {
+            return Raven.install();
+        };
+
+        this.$get = [function() {
             return Raven;
         }];
     }
@@ -27,9 +52,11 @@ function angularPlugin(Raven, angular) {
 
     function exceptionHandler(R, $delegate) {
         return function (ex, cause) {
-            R.captureException(ex, {
-                extra: { cause: cause }
-            });
+            if(!_development) {
+                R.captureException(ex, {
+                    extra: { cause: cause }
+                });
+            }
             $delegate(ex, cause);
         };
     }
@@ -37,12 +64,6 @@ function angularPlugin(Raven, angular) {
     angular.module('ngRaven', [])
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
-
-    Raven.setDataCallback(function(data, original) {
-        angularPlugin._normalizeData(data);
-
-        original && original(data);
-    });
 }
 
 angularPlugin._normalizeData = function (data) {
@@ -65,3 +86,5 @@ angularPlugin._normalizeData = function (data) {
 };
 
 module.exports = angularPlugin;
+// Install plugin when included
+angularPlugin(window.Raven);
