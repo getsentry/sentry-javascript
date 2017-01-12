@@ -1,4 +1,4 @@
-// Type definitions for Raven.js
+﻿// Type definitions for Raven.js
 // Project: https://github.com/getsentry/raven-js
 // Original Definitions by: Santi Albo <https://github.com/santialbo>, Benjamin Pannell 
 //   <http://github.com/spartan563>; DefinitelyTyped
@@ -8,8 +8,8 @@
 //   <https://github.com/combmag>, Luca Vazzano <https://github.com/LucaVazz>
 
 
-declare var Raven: RavenStatic;
-export = Raven;
+declare let Raven: RavenStatic;
+export default Raven;
 
 interface RavenStatic {
     /** Raven.js version. */
@@ -43,7 +43,7 @@ interface RavenStatic {
      *
      * @param dsn The public Sentry DSN
      */
-    setDSN(dsn: string);
+    setDSN(dsn: string): RavenStatic;
 
     /**
      * Installs a global window.onerror error handler to capture and report uncaught exceptions.
