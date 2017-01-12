@@ -331,6 +331,7 @@ interface RavenUserContext {
     username?: string;
     email?: string;
     ip_address?: string;
+    extra?: { [prop: string]: any };
 }
 
 interface RavenBreadcrumb {
