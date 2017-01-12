@@ -67,7 +67,7 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
       .config('___PUBLIC_DSN___')
       .install();
 
-    class RavenErrorHandler implements ErrorHandler {
+    export class RavenErrorHandler implements ErrorHandler {
       handleError(err:any) : void {
         Raven.captureException(err.originalError);
       }
@@ -99,7 +99,7 @@ Angular CLI now uses Webpack to build instead of SystemJS. All you need to do is
       .config('___PUBLIC_DSN___')
       .install();
 
-    class RavenErrorHandler implements ErrorHandler {
+    export class RavenErrorHandler implements ErrorHandler {
       handleError(err:any) : void {
         Raven.captureException(err.originalError);
       }
