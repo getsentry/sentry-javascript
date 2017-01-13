@@ -32,8 +32,8 @@ function angularPlugin(Raven, angular) {
             return this;
         };
 
-        this.config = function(configuration) {
-            return Raven.config(configuration);
+        this.config = function() {
+            return Raven.config.apply(Raven, arguments);
         };
 
         this.install = function() {
