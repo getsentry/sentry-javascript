@@ -1,11 +1,7 @@
-﻿// Type definitions for Raven.js
+// Type definitions for Raven.js
 // Project: https://github.com/getsentry/raven-js
-// Original Definitions by: Santi Albo <https://github.com/santialbo>, Benjamin Pannell 
-//   <http://github.com/spartan563>; DefinitelyTyped
-// Updated by: Ben Vinegar <https://github.com/benvinegar>, Ilya Pirogov 
-//   <https://github.com/ilya-pirogov>, Eli White <https://github.com/TheSavior>, David Cramer
-//   <https://github.com/dcramer>, Connor Peet <https://github.com/connor4312>, comaz 
-//   <https://github.com/combmag>, Luca Vazzano <https://github.com/LucaVazz>
+// Definitions by: Santi Albo <https://github.com/santialbo/>, Benjamin Pannell <http://github.com/spartan563>, Gary Blackwood <http://github.com/Garee>, Rich Rout <http://github.com/richrout>, Ben Vinegar <https://github.com/benvinegar>, Ilya Pirogov <https://github.com/ilya-pirogov>, Eli White <https://github.com/TheSavior>, David Cramer <https://github.com/dcramer>, Connor Peet <https://github.com/connor4312>, comaz <https://github.com/combmag>, Luca Vazzano <https://github.com/LucaVazz>
+// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
 
 declare let Raven: RavenStatic;
@@ -200,7 +196,7 @@ interface RavenStatic {
 
 
 // --- Helper Interfaces for Options --------------
-interface RavenBreadcrumOptions {
+export interface RavenBreadcrumOptions {
     /** Whether to collect XHR calls, defaults to true */
     xhr?: boolean;
 
@@ -214,7 +210,7 @@ interface RavenBreadcrumOptions {
     location?: boolean;
 }
 
-interface CommonRavenOptions {
+export interface CommonRavenOptions {
     /** The environment of the application you are monitoring with Sentry */
     environment?: string;
 
@@ -234,7 +230,7 @@ interface CommonRavenOptions {
     stacktrace?: boolean;
 }
 
-interface RavenOptions extends CommonRavenOptions {
+export interface RavenOptions extends CommonRavenOptions {
     /** The name of the server or device that the client is running on */
     server_name?: string;
 
@@ -253,7 +249,7 @@ interface RavenOptions extends CommonRavenOptions {
     platform?: string;
 }
 
-interface RavenGlobalOptions extends CommonRavenOptions  {
+export interface RavenGlobalOptions extends CommonRavenOptions  {
     /** The name of the server or device that the client is running on */
     serverName?: string;
 
@@ -294,12 +290,12 @@ interface RavenGlobalOptions extends CommonRavenOptions  {
     dataCallback?: (data: any) => any;
 }
 
-interface RavenWrapOptions extends RavenOptions {
+export interface RavenWrapOptions extends RavenOptions {
     /** Whether to run the wrap recursively. Default: false. */
     deep?: boolean;
 }
 
-interface RavenTransportOptions {
+export interface RavenTransportOptions {
     url: string;
     data: any;
     auth: {
@@ -311,7 +307,7 @@ interface RavenTransportOptions {
     onFailure: () => void;
 }
 
-interface RavenReportDialogOptions {
+export interface RavenReportDialogOptions {
     eventId?: number,
     dsn?: string,
     user?: {
@@ -322,11 +318,11 @@ interface RavenReportDialogOptions {
 
 
 // --- Helper Interfaces for complex Data Structures --------------
-interface RavenPlugin {
+export interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
 }
 
-interface RavenUserContext {
+export interface RavenUserContext {
     id?: string;
     username?: string;
     email?: string;
@@ -334,7 +330,7 @@ interface RavenUserContext {
     extra?: { [prop: string]: any };
 }
 
-interface RavenBreadcrumb {
+export interface RavenBreadcrumb {
     message: string;
     data: { [id: string]: string };
     category: string;

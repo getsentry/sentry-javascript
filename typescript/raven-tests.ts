@@ -1,28 +1,24 @@
-import Raven = require('..');
+import RavenJS from 'raven-js';
 
-Raven.config('https://public@sentry.io/1').install();
+RavenJS.config('https://public@getsentry.com/1').install();
 
-var options = {
-    logger: 'my-logger',
-    ignoreUrls: [
-        /graph\.facebook\.com/i,
-        'graph.facebook.com'
-    ],
-    ignoreErrors: [
-        /fb_xd_fragment/,
-        'fb_xd_fragment'
-    ],
-    includePaths: [
-        /https?:\/\/(www\.)?getsentry\.com/,
-        'https://www.sentry.io'
-    ],
-    whitelistUrls: [
-        /https?:\/\/google\.com/,
-        'https://www.google.com'
-    ]
-};
 
-Raven.config('https://public@sentry.io/1', options).install();
+RavenJS.config(
+    'https://public@getsentry.com/1', 
+    {
+        logger: 'my-logger',
+        ignoreUrls: [
+            /graph\.facebook\.com/i
+        ],
+        ignoreErrors: [
+            'fb_xd_fragment'
+        ],
+        includePaths: [
+            /https?:\/\/(www\.)?getsentry\.com/,
+            /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
+        ]
+    }
+).install();
 
 var throwsError = () => {
     throw new Error('broken');
@@ -31,40 +27,35 @@ var throwsError = () => {
 try {
     throwsError();
 } catch(e) {
-    Raven.captureException(e);
-    Raven.captureException(e, {tags: { key: "value" }});
+    RavenJS.captureException(e);
+    RavenJS.captureException(e, {tags: { key: "value" }});
 }
 
-Raven.context(throwsError);
-Raven.context({tags: { key: "value" }}, throwsError);
+RavenJS.context(throwsError);
+RavenJS.context({tags: { key: "value" }}, throwsError);
+RavenJS.context({extra: {planet: {name: 'Earth'}}}, throwsError);
 
-setTimeout(Raven.wrap(throwsError), 1000);
-Raven.wrap({logger: "my.module"}, throwsError)();
+setTimeout(RavenJS.wrap(throwsError), 1000);
+RavenJS.wrap({logger: "my.module"}, throwsError)();
+RavenJS.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
 
-Raven.setUserContext({
+RavenJS.setUserContext({
     email: 'matt@example.com',
     id: '123'
 });
 
-Raven.setExtraContext({foo: 'bar'});
-Raven.setTagsContext({env: 'prod'});
-Raven.clearContext();
-var obj:Object = Raven.getContext();
-var err:Error = Raven.lastException();
+RavenJS.captureMessage('Broken!');
+RavenJS.captureMessage('Broken!', {tags: { key: "value" }});
 
-Raven.captureMessage('Broken!');
-Raven.captureMessage('Broken!', {tags: { key: "value" }});
-+Raven.captureMessage('Broken!', { stacktrace: true });
-Raven.captureBreadcrumb({});
-
-Raven.setRelease('abc123');
-Raven.setEnvironment('production');
-
-Raven.setDataCallback(function (data: any) {});
-Raven.setDataCallback(function (data: any, original: any) {});
-Raven.setShouldSendCallback(function (data: any) {});
-Raven.setShouldSendCallback(function (data: any, original: any) {});
-
-Raven.showReportDialog({
-    eventId: 'abcdef123456'
+RavenJS.showReportDialog({
+    eventId: 0815,
+    dsn:'1337asdf',
+    user: {
+        name: 'DefenitelyTyped',
+        email: 'df@ts.ms'
+    }
 });
+
+RavenJS.setTagsContext({ key: "value" });
+
+RavenJS.setExtraContext({ foo: "bar" });
