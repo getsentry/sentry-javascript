@@ -117,7 +117,7 @@ interface RavenWrapOptions extends RavenOptions {
  */
 interface RavenUserContext {
     id?: string;
-    username?: string;
+    name?: string;
     email?: string;
 }
 
