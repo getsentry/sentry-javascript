@@ -1434,7 +1434,7 @@ describe('Raven (public API)', function() {
     describe('callback function', function() {
         it('should callback a function if it is global', function() {
             window.RavenConfig = {
-                dsn: "http://random@some.other.server:80/2",
+                dsn: 'http://random@some.other.server:80/2',
                 config: {some: 'config'}
             };
 
@@ -1570,7 +1570,7 @@ describe('Raven (public API)', function() {
                 Raven.config('//abc@example.com/2', {
                     whitelistUrls: [
                         /my.app/i,
-                        "stringy.app"
+                        'stringy.app'
                     ]
                 });
 
@@ -1839,6 +1839,25 @@ describe('Raven (public API)', function() {
             Raven._globalContext.user = {name: 'Matt'};
             Raven.setUserContext();
             assert.isUndefined(Raven._globalContext.user);
+        });
+    });
+
+    describe('.setContextsInterface', function() {
+        it('should set the globalContext.contexts object', function() {
+            Raven.setContextsInterface({device: {family: 'asus', type: 'device'}});
+            assert.deepEqual(Raven._globalContext.contexts, {device: {family: 'asus', type: 'device'}});
+        });
+
+        it('should not merge globalContext.device object, but rewrite', function () {
+            Raven._globalContext.contexts = {device: {family: 'asus', type: 'device'}};
+            Raven.setContextsInterface({os: {name: 'Android'}});
+            assert.deepEqual(Raven._globalContext.contexts, {os: {name: 'Android'}});
+        });
+
+        it('should clear the globalContext.device with no arguments', function() {
+            Raven._globalContext.contexts = {device: {family: 'asus', type: 'device'}};
+            Raven.setContextsInterface();
+            assert.isUndefined(Raven._globalContext.contexts);
         });
     });
 
@@ -2190,8 +2209,8 @@ describe('Raven (public API)', function() {
 
         it('should capture custom errors that extend the Error prototype', function() {
             function NotImplementedError(message) {
-                this.name = "NotImplementedError";
-                this.message = message || "";
+                this.name = 'NotImplementedError';
+                this.message = message || '';
             }
             NotImplementedError.prototype = Error.prototype;
 

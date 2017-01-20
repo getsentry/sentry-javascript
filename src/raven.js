@@ -455,6 +455,19 @@ Raven.prototype = {
     },
 
     /*
+     * Set/clear Contexts interface to be sent along with the payload.
+     *
+     * @param {object} contexts An object representing Contexts data [optional]
+     * @return {Raven}
+     */
+    setContextsInterface: function(contexts) {
+        // Intentionally do not merge here since that's an unexpected behavior.
+        this._globalContext.contexts = contexts;
+
+        return this;
+    },
+
+    /*
      * Merge extra attributes to be sent along with the payload.
      *
      * @param {object} extra An object representing extra data [optional]
@@ -1360,6 +1373,11 @@ Raven.prototype = {
         if (this._globalContext.user) {
             // sentry.interfaces.User
             data.user = this._globalContext.user;
+        }
+
+        if (this._globalContext.contexts) {
+            // sentry.interfaces.Contexts
+            data.contexts = this._globalContext.contexts;
         }
 
         // Include the environment if it's defined in globalOptions
