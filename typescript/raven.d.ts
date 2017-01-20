@@ -6,79 +6,24 @@ declare var Raven: RavenStatic;
 
 export = Raven;
 
-interface BreadcrumbSettings {
-    /* Whether to collect XHR calls, defaults to true */
-    xhr?: boolean;
+interface RavenOptions {
+    /** The log level associated with this event. Default: error */
+    level?: string;
 
-    /* Whether to collect console logs, defaults to true */
-    console?: boolean;
+    /** The name of the logger used by Sentry. Default: javascript */
+    logger?: string;
 
-    /* Whether to collect dom events, defaults to true */
-    dom?: boolean;
-
-    /* Whether to record window location and navigation, defaults to true */
-    location?: boolean;
-}
-
-interface CommonRavenOptions {
     /** The environment of the application you are monitoring with Sentry */
     environment?: string;
 
     /** The release version of the application you are monitoring with Sentry */
     release?: string;
 
-    /** Additional data to be tagged onto the error. */
-    tags?: {
-        [id: string]: string;
-    };
-
-    /** Exra metadata to collect */
-    extra?: any;
-
-    /** The name of the logger used by Sentry. Default: javascript */
-    logger?: string;
-}
-
-interface RavenOptions extends CommonRavenOptions {
-
-    /** The name of the server or device that the client is running on */
-    server_name?: string;
-
-    /** The log level associated with this event. Default: error */
-    level?: string;
-
-    /** set to true to get the strack trace of your message */
-    stacktrace?: boolean;
-
-    /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
-    fingerprint?: string[];
-
-    /** Number of frames to trim off the stacktrace, defaults to 1 */
-    trimHeadFrames?: number;
-
-    /** The name of the device platform. Default: "javascript" */
-    platform?: string;
-}
-
-interface RavenGlobalOptions extends CommonRavenOptions  {
-
     /** The name of the server or device that the client is running on */
     serverName?: string;
 
-    /** set to true to get the strack trace of your message */
-    stacktrace?: boolean;
-
     /** List of messages to be fitlered out before being sent to Sentry. */
     ignoreErrors?: (RegExp | string)[];
-
-    /** Configures which breadcrumbs are collected automatically */
-    autoBreadcrumbs?: boolean | BreadcrumbSettings;
-
-    /** Whether to collect errors on the window via TraceKit.collectWindowErrors. Defaults to true. */
-    collectWindowErrors?: boolean;
-
-    /** Max number of breadcrumbs to collect, defaults to 100 */
-    maxBreadcrumbs?: number;
 
     /** Similar to ignoreErrors, but will ignore errors from whole urls patching a regex pattern. */
     ignoreUrls?: (RegExp | string)[];
@@ -89,36 +34,30 @@ interface RavenGlobalOptions extends CommonRavenOptions  {
     /** An array of regex patterns to indicate which urls are a part of your app. */
     includePaths?: (RegExp | string)[];
 
-    /** Maximum amount of stack frames to collect, defaults to infinity */
-    stackTraceLimit?: number;
+    /** Additional data to be tagged onto the error. */
+    tags?: {
+        [id: string]: string;
+    };
 
-    /** Override the default HTTP data transport handler. */
-    transport?: (options: RavenTransportOptions) => void;
+    /** set to true to get the strack trace of your message */
+    stacktrace?: boolean;
 
-    /** By default, Raven does not truncate messages. If you need to truncate characters for whatever reason, you may set this to limit the length. */
-    maxMessageLength?: number;
+    extra?: any;
+
+    /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
+    fingerprint?: string[];
+
+    /** A function which allows mutation of the data payload right before being sent to Sentry */
+    dataCallback?: (data: any) => any;
 
     /** A callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
     shouldSendCallback?: (data: any) => boolean;
 
-    /** A function which allows mutation of the data payload right before being sent to Sentry */
-    dataCallback?: (data: any) => any;
-}
+    /** By default, Raven does not truncate messages. If you need to truncate characters for whatever reason, you may set this to limit the length. */
+    maxMessageLength?: number;
 
-interface RavenWrapOptions extends RavenOptions {
-    /**
-     * Whether to run the wrap recursively, defaults to false.
-     */
-    deep?: boolean;
-}
-
-/**
- * General details about the user to be logged to Sentry.
- */
-interface RavenUserContext {
-    id?: string;
-    username?: string;
-    email?: string;
+    /** Override the default HTTP data transport handler. */
+    transport?: (options: RavenTransportOptions) => void;
 }
 
 interface RavenStatic {
@@ -151,7 +90,7 @@ interface RavenStatic {
      * @param {object} options Optional set of of global options [optional]
      * @return {Raven}
      */
-    config(dsn: string, options?: RavenGlobalOptions): RavenStatic;
+    config(dsn: string, options?: RavenOptions): RavenStatic;
 
     /*
      * Installs a global window.onerror error handler
@@ -179,7 +118,7 @@ interface RavenStatic {
      * @param {array} args An array of arguments to be called with the callback [optional]
      */
     context(func: Function, ...args: any[]): void;
-    context(options: RavenWrapOptions, func: Function, ...args: any[]): void;
+    context(options: RavenOptions, func: Function, ...args: any[]): void;
 
     /*
      * Wrap code within a context and returns back a new function to be executed
@@ -189,9 +128,9 @@ interface RavenStatic {
      * @return {function} The newly wrapped functions with a context
      */
     wrap(func: Function): Function;
-    wrap(options: RavenWrapOptions, func: Function): Function;
+    wrap(options: RavenOptions, func: Function): Function;
     wrap<T extends Function>(func: T): T;
-    wrap<T extends Function>(options: RavenWrapOptions, func: T): T;
+    wrap<T extends Function>(options: RavenOptions, func: T): T;
 
     /*
      * Uninstalls the global error handler.
@@ -232,7 +171,11 @@ interface RavenStatic {
      * @param {object} user An object representing user data [optional]
      * @return {Raven}
      */
-    setUserContext(user: RavenUserContext): RavenStatic;
+    setUserContext(user: {
+        id?: string;
+        username?: string;
+        email?: string;
+    }): RavenStatic;
 
     /** Merge extra attributes to be sent along with the payload. */
     setExtraContext(context: Object): RavenStatic;
@@ -274,11 +217,7 @@ interface RavenStatic {
     setShouldSendCallback(data: any, orig?: any): RavenStatic;
 
     /** Show Sentry user feedback dialog */
-    showReportDialog(options?: {
-        eventId?: number,
-        dsn?: string,
-        user?: RavenUserContext,
-    }): void;
+    showReportDialog(options: Object): void;
 }
 
 interface RavenTransportOptions {
