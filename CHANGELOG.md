@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.2
+* BUGFIX: Use json-stringify-safe in React Native plugin to avoid circular refs. See: https://github.com/getsentry/raven-js/pull/829
+* BUGFIX: Avoid document.location access in React Native plugin. See: https://github.com/getsentry/raven-js/issues/800
+
 ## 3.9.1
 * BUGFIX: Fix TypeError triggered by some event listeners. See: https://github.com/getsentry/raven-js/issues/793
 * BUGFIX: Fix bad `window` access in web worker environments. See: https://github.com/getsentry/raven-js/pull/792
