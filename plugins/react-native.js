@@ -22,7 +22,7 @@
 // Example React Native path format (iOS):
 // /var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
 
-var PATH_STRIP_RE = /^.*\/[^\.]+(\.app|CodePush)/;
+var PATH_STRIP_RE = /^.*\/[^\.]+(\.app|CodePush|CodePush|.*(?=\/))/;
 var stringify = require('json-stringify-safe');
 var FATAL_ERROR_KEY = '--rn-fatal--';
 var ASYNC_STORAGE_KEY = '--raven-js-global-error-payload--';
