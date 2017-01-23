@@ -340,4 +340,15 @@ CapturedExceptions.PHANTOMJS_1_19 = {
     "    at http://path/to/file.js:4287"
 };
 
+CapturedExceptions.FIREFOX_50_RESOURCE_URL= {
+    stack: 'render@resource://path/data/content/bundle.js:5529:16\n' +
+    'dispatchEvent@resource://path/data/content/vendor.bundle.js:18:23028\n' +
+    'wrapped@resource://path/data/content/bundle.js:7270:25',
+    fileName: 'resource://path/data/content/bundle.js',
+    lineNumber: 5529,
+    columnNumber: 16,
+    message: 'this.props.raw[this.state.dataSource].rows is undefined',
+    name: 'TypeError'
+};
+
 module.exports = CapturedExceptions;
