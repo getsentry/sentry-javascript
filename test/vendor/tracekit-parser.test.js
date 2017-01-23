@@ -209,5 +209,13 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack[1], { url: 'http://path/to/file.js', func: 'foo', args: [], line: 4283, column: null });
             assert.deepEqual(stackFrames.stack[2], { url: 'http://path/to/file.js', func: '?', args: [], line: 4287, column: null });
         });
+
+        it('should parse Firefox errors with resource: URLs', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.FIREFOX_50_RESOURCE_URL);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 3);
+            assert.deepEqual(stackFrames.stack[0], { url: 'resource://path/data/content/bundle.js', func: 'render', args: [], line: 5529, column: 16 });
+        });
+
     });
 });
