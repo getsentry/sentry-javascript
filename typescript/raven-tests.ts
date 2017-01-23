@@ -1,9 +1,9 @@
-import RavenJS from 'raven-js';
-
-RavenJS.config('https://public@getsentry.com/1').install();
+import Raven from "./raven"
 
 
-RavenJS.config(
+Raven.config('https://public@getsentry.com/1').install();
+
+Raven.config(
     'https://public@getsentry.com/1', 
     {
         logger: 'my-logger',
@@ -27,27 +27,27 @@ var throwsError = () => {
 try {
     throwsError();
 } catch(e) {
-    RavenJS.captureException(e);
-    RavenJS.captureException(e, {tags: { key: "value" }});
+    Raven.captureException(e);
+    Raven.captureException(e, {tags: { key: "value" }});
 }
 
-RavenJS.context(throwsError);
-RavenJS.context({tags: { key: "value" }}, throwsError);
-RavenJS.context({extra: {planet: {name: 'Earth'}}}, throwsError);
+Raven.context(throwsError);
+Raven.context({tags: { key: "value" }}, throwsError);
+Raven.context({extra: {planet: {name: 'Earth'}}}, throwsError);
 
-setTimeout(RavenJS.wrap(throwsError), 1000);
-RavenJS.wrap({logger: "my.module"}, throwsError)();
-RavenJS.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
+setTimeout(Raven.wrap(throwsError), 1000);
+Raven.wrap({logger: "my.module"}, throwsError)();
+Raven.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
 
-RavenJS.setUserContext({
+Raven.setUserContext({
     email: 'matt@example.com',
     id: '123'
 });
 
-RavenJS.captureMessage('Broken!');
-RavenJS.captureMessage('Broken!', {tags: { key: "value" }});
+Raven.captureMessage('Broken!');
+Raven.captureMessage('Broken!', {tags: { key: "value" }});
 
-RavenJS.showReportDialog({
+Raven.showReportDialog({
     eventId: 0815,
     dsn:'1337asdf',
     user: {
@@ -56,6 +56,6 @@ RavenJS.showReportDialog({
     }
 });
 
-RavenJS.setTagsContext({ key: "value" });
+Raven.setTagsContext({ key: "value" });
 
-RavenJS.setExtraContext({ foo: "bar" });
+Raven.setExtraContext({ foo: "bar" });
