@@ -364,7 +364,7 @@ export interface RavenOutgoingData {
     breadcrumbs: {
         values: [RavenBreadcrumb]
     },
-    user: any,
+    user: RavenUserContext,
     environment: string,
     release: string,
     server_name: string,
