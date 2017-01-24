@@ -152,7 +152,7 @@ interface RavenStatic {
      * Specify a callback function that can mutate or filter breadcrumbs when they are captured.
      * @param callback The function which applies the filter
      */
-    setBreadcrumbCallback(callback :(data: any, orig?: string) => any):RavenStatic;
+    setBreadcrumbCallback(callback :(data: RavenBreadcrumb, orig?: string) => RavenBreadcrumb):RavenStatic;
 
     /**
      * Specify a function that can mutate the payload right before it is being sent to Sentry.
