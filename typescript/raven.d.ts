@@ -334,7 +334,8 @@ export interface RavenBreadcrumb {
     message: string;
     data: { [id: string]: string };
     category: string;
-    level: string; 
+    level: string;
+    timestamp: number;
 }
 
 export interface RavenOutgoingData {
@@ -353,8 +354,24 @@ export interface RavenOutgoingData {
         }]
     }
     culprit?: string,
+    request?: {  /* maybe not included */
+        headers: {
+            'User-Agent': string,
+            Referer: string
+        },
+        url: string
+    },
+    breadcrumbs: {
+        values: [RavenBreadcrumb]
+    },
+    user: any,
+    environment: string,
+    release: string,
+    server_name: string,
     level: string,
+    project: string,
     logger: string,
+    platform: string,
     tags: { [id: string]: string },
     extra: { [prop: string]: any },
     event_id: string,
