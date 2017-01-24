@@ -148,23 +148,23 @@ interface RavenStatic {
      */
     setRelease(release: string): RavenStatic;
 
-    /**
-     * Specify a function that can mutate the payload right before it is being sent to Sentry.
-     * @param callback The function which can mutate the data
-     */
-    setDataCallback(callback: (data: any, orig?: string) => any): RavenStatic;
-
     /** 
      * Specify a callback function that can mutate or filter breadcrumbs when they are captured.
      * @param callback The function which applies the filter
      */
-    setBreadcrumbCallback(callback :(data: any, orig?: string) => any): RavenStatic;
+    setBreadcrumbCallback(callback :(data: any, orig?: string) => any):RavenStatic;
+
+    /**
+     * Specify a function that can mutate the payload right before it is being sent to Sentry.
+     * @param callback The function which can mutate the data
+     */
+    setDataCallback(callback: (data: RavenOutgoingData, orig?: string) => RavenOutgoingData): RavenStatic;
 
     /**
      * Specify a callback function that determines if the given message should be sent to Sentry.
      * @param callback The function which determines if the given blob should be sent
      */
-    setShouldSendCallback(callback: (data: any, orig?: string) => boolean): RavenStatic;
+    setShouldSendCallback(callback: (data: RavenOutgoingData, orig?: string) => RavenOutgoingData): RavenStatic;
 
     /**
      * Override the default HTTP data transport handler.
@@ -284,10 +284,10 @@ export interface RavenGlobalOptions extends CommonRavenOptions  {
     maxMessageLength?: number;
 
     /** Allows you to apply your own filters to determine if the message should be sent to Sentry. */
-    shouldSendCallback?: (data: any) => boolean;
+    shouldSendCallback?: (data: RavenOutgoingData) => boolean;
 
     /** A function which allows mutation of the data payload right before being sent to Sentry */
-    dataCallback?: (data: any) => any;
+    dataCallback?: (data: RavenOutgoingData) => RavenOutgoingData;
 }
 
 export interface RavenWrapOptions extends RavenOptions {
@@ -335,4 +335,36 @@ export interface RavenBreadcrumb {
     data: { [id: string]: string };
     category: string;
     level: string; 
+}
+
+export interface RavenOutgoingData {
+    /* either message + stacktrace or exception + culprit */
+    message?: string,
+    stacktrace?: {
+        frames: [RavenStacktraceFrame]
+    },
+    exception?: {
+        values: [{
+            type: string,
+            value: string,
+            stacktrace: {
+                frames: [RavenStacktraceFrame]
+            }
+        }]
+    }
+    culprit?: string,
+    level: string,
+    logger: string,
+    tags: { [id: string]: string },
+    extra: { [prop: string]: any },
+    event_id: string,
+    fingerprint: string
+}
+
+export interface RavenStacktraceFrame {
+     filename: string,
+     lineno:number,
+     colno: string,
+     function:string,
+     in_app: boolean
 }
