@@ -308,12 +308,12 @@ export interface RavenTransportFunctionOptions {
 }
 
 export interface RavenReportDialogOptions {
-    eventId?: number,
-    dsn?: string,
+    eventId?: number;
+    dsn?: string;
     user?: {
-        name?: string,
-        email?: string
-    }
+        name?: string;
+        email?: string;
+    };
 }
 
 
@@ -340,48 +340,48 @@ export interface RavenBreadcrumb {
 
 export interface RavenOutgoingData {
     /* either message + stacktrace or exception + culprit */
-    message?: string,
+    message?: string;
     stacktrace?: {
         frames: [RavenStacktraceFrame]
-    },
+    };
     exception?: {
         values: [{
-            type: string,
-            value: string,
+            type: string;
+            value: string;
             stacktrace: {
-                frames: [RavenStacktraceFrame]
-            }
-        }]
-    }
-    culprit?: string,
+                frames: [RavenStacktraceFrame];
+            };
+        }];
+    };
+    culprit?: string;
     request?: {  /* maybe not included */
         headers: {
-            'User-Agent': string,
-            Referer: string
-        },
-        url: string
-    },
+            'User-Agent': string;
+            Referer: string;
+        };
+        url: string;
+    };
     breadcrumbs: {
-        values: [RavenBreadcrumb]
-    },
-    user: RavenUserContext,
-    environment: string,
-    release: string,
-    server_name: string,
-    level: string,
-    project: string,
-    logger: string,
-    platform: string,
-    tags: { [id: string]: string },
-    extra: { [prop: string]: any },
-    event_id: string,
-    fingerprint: string
+        values: [RavenBreadcrumb];
+    };
+    user: RavenUserContext;
+    level: string;
+    environment: string;
+    release: string;
+    server_name: string;
+    project: string;
+    logger: string;
+    platform: string;
+    tags: { [id: string]: string };
+    extra: { [prop: string]: any };
+    event_id: string;
+    fingerprint: string;
 }
 
 export interface RavenStacktraceFrame {
-     filename: string,
-     lineno:number,
-     colno: string,
-     function:string,
-     in_app: boolean
+     filename: string;
+     lineno:number;
+     colno: string;
+     function:string;
+     in_app: boolean;
 }
