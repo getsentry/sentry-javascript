@@ -170,7 +170,7 @@ interface RavenStatic {
      * Override the default HTTP data transport handler.
      * @param transport The function which will be invoked to handle the data transmission
      */
-    setTransport(transport: (options: RavenTransportOptions) => void): RavenStatic;
+    setTransport(transport: (options: RavenTransportFunctionOptions) => void): RavenStatic;
 
     /**
      * Get the latest raw exception that was captured by Raven.
@@ -295,9 +295,9 @@ export interface RavenWrapOptions extends RavenOptions {
     deep?: boolean;
 }
 
-export interface RavenTransportOptions {
+export interface RavenTransportFunctionOptions {
     url: string;
-    data: any;
+    data: RavenOutgoingData;
     auth: {
         sentry_version: string;
         sentry_client: string;
