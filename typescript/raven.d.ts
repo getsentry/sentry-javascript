@@ -278,7 +278,7 @@ export interface RavenGlobalOptions extends CommonRavenOptions  {
     stackTraceLimit?: number;
 
     /** Override the default HTTP data transport handler. */
-    transport?: (options: RavenTransportOptions) => void;
+    transport?: (options: RavenTransportFunctionOptions) => void;
 
     /** Limit the maxium length of a message to this number of characters. Default: Infinity */
     maxMessageLength?: number;
