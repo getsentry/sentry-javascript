@@ -1,10 +1,10 @@
-/*! Raven.js 3.9.1 (7bbae7d) | github.com/getsentry/raven-js */
+/*! Raven.js 3.9.2 (5286373) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2016 Matt Robenolt and other contributors
+ * Copyright 2017 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -172,7 +172,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.9.1',
+    VERSION: '3.9.2',
 
     debug: false,
 
@@ -1960,7 +1960,7 @@ var UNKNOWN_FUNCTION = '?';
 var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error): ?(.*)$/;
 
 function getLocationHref() {
-    if (typeof document === 'undefined')
+    if (typeof document === 'undefined' || typeof document.location === 'undefined')
         return '';
 
     return document.location.href;
