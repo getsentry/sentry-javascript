@@ -10,7 +10,7 @@ Koa
     Raven.config('___DSN___').install();
 
     app.on('error', function (err) {
-        sentry.captureException(err, function (err, eventId) {
+        Raven.captureException(err, function (err, eventId) {
             console.log('Reported error ' + eventId);
         });
     });
