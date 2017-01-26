@@ -1326,6 +1326,36 @@ Raven.prototype = {
         return this._backoffDuration && now() - this._backoffStart < this._backoffDuration;
     },
 
+    _setBackoffState: function(request) {
+        // if we are already in a backoff state, don't change anything
+        if (this._shouldBackoff())
+            return;
+
+        var status = request.status;
+
+        // 400 - project_id doesn't exist or some other fatal
+        // 401 - nvalid/revoked dsn
+        // 429 - too many requests
+        if (!(status === 400 || status === 401 || status === 429))
+            return;
+
+        var retry;
+        try {
+            // If Retry-After is not in Access-Control-Allow-Headers, most
+            // browsers will throw an exception trying to access it
+            retry = request.getResponseHeader('Retry-After');
+            retry = parseInt(retry, 10);
+        } catch (e) {
+            /* eslint no-empty:0 */
+        }
+
+        this._backoffDuration = retry
+            ? retry
+            : this._backoffDuration * 2 || 1000;
+
+        this._backoffStart = now();
+    },
+
     _send: function(data) {
         if (this._shouldBackoff()) {
             return;
@@ -1453,10 +1483,8 @@ Raven.prototype = {
                 callback && callback();
             },
             onError: function failure(error) {
-                // too many requests
-                if (!self._shouldBackoff() && error.request && error.request.status === 429) {
-                    self._backoffDuration = self._backoffDuration * 2 || 1000;
-                    self._backoffStart = now();
+                if (error.request) {
+                    self._setBackoffState(error.request);
                 }
 
                 self._triggerEvent('failure', {
