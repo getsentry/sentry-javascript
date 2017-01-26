@@ -1396,6 +1396,8 @@ Raven.prototype = {
         var self = this;
         var globalOptions = this._globalOptions;
 
+        if (!this.isSetup()) return;
+
         // Send along an event_id if not explicitly passed.
         // This event_id can be used to reference the error within Sentry itself.
         // Set lastEventId after we know the error should actually be sent
@@ -1405,8 +1407,6 @@ Raven.prototype = {
         data = this._trimPacket(data);
 
         this._logDebug('debug', 'Raven about to send:', data);
-
-        if (!this.isSetup()) return;
 
         var auth = {
             sentry_version: '7',
