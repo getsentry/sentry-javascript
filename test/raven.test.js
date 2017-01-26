@@ -1137,6 +1137,77 @@ describe('globals', function() {
             assert.equal(data.message, shortMessage);
             assert.equal(data.exception.values[0].value, shortMessage);
         });
+
+        it('should bail out if time elapsed does not exceed backoffDuration', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._backoffDuration = 1000;
+            Raven._backoffStart = 100;
+            this.clock.tick(100); // tick 100 ms - NOT past backoff duration
+
+            Raven._send({message: 'bar'});
+            assert.isFalse(Raven._makeRequest.called);
+        });
+
+        it('should proceed if time elapsed exceeds backoffDuration', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._backoffDuration = 1000;
+            Raven._backoffStart = 100;
+            this.clock.tick(1000); // advance clock 1000 ms - past backoff duration
+
+            Raven._send({message: 'bar'});
+            assert.isTrue(Raven._makeRequest.called);
+        });
+
+        it('should set backoffDuration and backoffStart if onError is fired w/ 429 response', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._send({message: 'bar'});
+            var opts = Raven._makeRequest.lastCall.args[0];
+            var mockError = new Error('429: Too many requests');
+            mockError.request = {
+                status: 429
+            };
+            opts.onError(mockError);
+
+            assert.equal(Raven._backoffStart, 100); // clock is at 100ms
+            assert.equal(Raven._backoffDuration, 1000);
+
+            this.clock.tick(1); // only 1ms
+            opts.onError(mockError);
+
+            // since the backoff has started, a subsequent 429 within the backoff period
+            // should not not the start/duration
+            assert.equal(Raven._backoffStart, 100);
+            assert.equal(Raven._backoffDuration, 1000);
+
+            this.clock.tick(1000); // move past backoff period
+            opts.onError(mockError);
+
+            // another failure has occurred, this time *after* the backoff period - should increase
+            assert.equal(Raven._backoffStart, 1101);
+            assert.equal(Raven._backoffDuration, 2000);
+        });
+
+        it('should reset backoffDuration and backoffStart if onSuccess is fired (200)', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._backoffDuration = 1000;
+            Raven._backoffStart = 0;
+            this.clock.tick(1001); // tick clock just past time necessary
+
+            Raven._send({message: 'bar'});
+            var opts = Raven._makeRequest.lastCall.args[0];
+            opts.onSuccess({});
+
+            assert.equal(Raven._backoffStart, null); // clock is at 100ms
+            assert.equal(Raven._backoffDuration, 0);
+        });
     });
 
     describe('makeRequest', function() {
@@ -1187,6 +1258,24 @@ describe('globals', function() {
             assert.equal(this.requests[0].readyState, 0);
 
             window.XDomainRequest = oldXDR
+        });
+
+        it('should pass a request object to onError', function (done) {
+            XMLHttpRequest.prototype.withCredentials = true;
+
+            Raven._makeRequest({
+                url: 'http://localhost/',
+                auth: {a: '1', b: '2'},
+                data: {foo: 'bar'},
+                options: Raven._globalOptions,
+                onError: function (error) {
+                    assert.equal(error.request.status, 429);
+                    done();
+                }
+            });
+
+            var lastXhr = this.requests[this.requests.length - 1];
+            lastXhr.respond(429, {'Content-Type': 'text/html'}, 'Too many requests');
         });
     });
 
