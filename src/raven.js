@@ -1327,7 +1327,7 @@ Raven.prototype = {
     },
 
     _setBackoffState: function(request) {
-        // if we are already in a backoff state, don't change anything
+        // If we are already in a backoff state, don't change anything
         if (this._shouldBackoff()) {
             return;
         }
@@ -1335,14 +1335,14 @@ Raven.prototype = {
         var status = request.status;
 
         // 400 - project_id doesn't exist or some other fatal
-        // 401 - nvalid/revoked dsn
+        // 401 - invalid/revoked dsn
         // 429 - too many requests
         if (!(status === 400 || status === 401 || status === 429))
             return;
 
         var retry;
         try {
-            // If Retry-After is not in Access-Control-Allow-Headers, most
+            // If Retry-After is not in Access-Control-Expose-Headers, most
             // browsers will throw an exception trying to access it
             retry = request.getResponseHeader('Retry-After');
             retry = parseInt(retry, 10);
@@ -1350,8 +1350,11 @@ Raven.prototype = {
             /* eslint no-empty:0 */
         }
 
+
         this._backoffDuration = retry
+            // If Sentry server returned a Retry-After value, use it
             ? retry
+            // Otherwise, double the last backoff duration (starts at 1 sec)
             : this._backoffDuration * 2 || 1000;
 
         this._backoffStart = now();
