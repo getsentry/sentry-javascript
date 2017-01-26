@@ -1328,8 +1328,9 @@ Raven.prototype = {
 
     _setBackoffState: function(request) {
         // if we are already in a backoff state, don't change anything
-        if (this._shouldBackoff())
+        if (this._shouldBackoff()) {
             return;
+        }
 
         var status = request.status;
 
@@ -1357,10 +1358,6 @@ Raven.prototype = {
     },
 
     _send: function(data) {
-        if (this._shouldBackoff()) {
-            return;
-        }
-
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -1424,6 +1421,13 @@ Raven.prototype = {
             return;
         }
 
+        // Backoff state: Sentry server previously responded w/ an error (e.g. 429 - too many requests),
+        // so drop requests until "cool-off" period has elapsed.
+        if (this._shouldBackoff()) {
+            this._logDebug('warn', 'Raven dropped error due to backoff: ', data);
+            return;
+        }
+
         this._sendProcessedPayload(data);
     },
 
@@ -1483,6 +1487,8 @@ Raven.prototype = {
                 callback && callback();
             },
             onError: function failure(error) {
+                self._logDebug('error', 'Raven transport failed to send: ', error);
+
                 if (error.request) {
                     self._setBackoffState(error.request);
                 }
