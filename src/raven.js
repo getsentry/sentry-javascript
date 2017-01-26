@@ -61,6 +61,8 @@ function Raven() {
     this._keypressTimeout;
     this._location = _window.location;
     this._lastHref = this._location && this._location.href;
+    this._backoffDuration = 0;
+    this._backoffStart = null;
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -1320,8 +1322,15 @@ Raven.prototype = {
         return httpData;
     },
 
+    _shouldBackoff: function() {
+        return this._backoffDuration && now() - this._backoffStart < this._backoffDuration;
+    },
 
     _send: function(data) {
+        if (this._shouldBackoff()) {
+            return;
+        }
+
         var globalOptions = this._globalOptions;
 
         var baseData = {
@@ -1434,6 +1443,9 @@ Raven.prototype = {
             data: data,
             options: globalOptions,
             onSuccess: function success() {
+                self._backoffDuration = 0;
+                self._backoffStart = null;
+
                 self._triggerEvent('success', {
                     data: data,
                     src: url
@@ -1441,6 +1453,12 @@ Raven.prototype = {
                 callback && callback();
             },
             onError: function failure(error) {
+                // too many requests
+                if (!self._shouldBackoff() && error.request && error.request.status === 429) {
+                    self._backoffDuration = self._backoffDuration * 2 || 1000;
+                    self._backoffStart = now();
+                }
+
                 self._triggerEvent('failure', {
                     data: data,
                     src: url
@@ -1468,7 +1486,9 @@ Raven.prototype = {
                     opts.onSuccess();
                 }
             } else if (opts.onError) {
-                opts.onError(new Error('Sentry error code: ' + request.status));
+                var err = new Error('Sentry error code: ' + request.status);
+                err.request = request;
+                opts.onError(err);
             }
         }
 
