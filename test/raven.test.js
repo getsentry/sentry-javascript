@@ -1193,6 +1193,24 @@ describe('globals', function() {
             assert.equal(Raven._backoffDuration, 2000);
         });
 
+
+        it('should set backoffDuration to value of Retry-If header if present', function () {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._send({message: 'bar'});
+            var opts = Raven._makeRequest.lastCall.args[0];
+            var mockError = new Error('401: Unauthorized');
+            mockError.request = {
+                status: 401,
+                getResponseHeader: sinon.stub().withArgs('Retry-After').returns('1337')
+            };
+            opts.onError(mockError);
+
+            assert.equal(Raven._backoffStart, 100); // clock is at 100ms
+            assert.equal(Raven._backoffDuration, 1337); // converted to int
+        });
+
         it('should reset backoffDuration and backoffStart if onSuccess is fired (200)', function () {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
