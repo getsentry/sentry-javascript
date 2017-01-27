@@ -1573,6 +1573,18 @@ describe('Raven (public API)', function() {
             assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
             assert.equal(Raven._globalProject, '2');
         });
+
+        it('should reset the backoff state', function() {
+            Raven.config('//def@lol.com/3');
+
+            Raven._backoffStart = 100;
+            Raven._backoffDuration = 2000;
+
+            Raven.setDSN(SENTRY_DSN);
+
+            assert.equal(Raven._backoffStart, null);
+            assert.equal(Raven._backoffDuration, 0);
+        });
     });
 
     describe('.config', function() {
