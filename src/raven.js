@@ -61,8 +61,7 @@ function Raven() {
     this._keypressTimeout;
     this._location = _window.location;
     this._lastHref = this._location && this._location.href;
-    this._backoffDuration = 0;
-    this._backoffStart = null;
+    this._resetBackoff();
 
     for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
       this._originalConsoleMethods[method] = this._originalConsole[method];
@@ -199,6 +198,10 @@ Raven.prototype = {
 
         self._globalEndpoint = self._globalServer +
             '/' + path + 'api/' + self._globalProject + '/store/';
+
+        // Reset backoff state since we may be pointing at a
+        // new project/server
+        this._resetBackoff();
     },
 
     /*
@@ -1322,6 +1325,11 @@ Raven.prototype = {
         return httpData;
     },
 
+    _resetBackoff: function() {
+        this._backoffDuration = 0;
+        this._backoffStart = null;
+    },
+
     _shouldBackoff: function() {
         return this._backoffDuration && now() - this._backoffStart < this._backoffDuration;
     },
@@ -1480,8 +1488,7 @@ Raven.prototype = {
             data: data,
             options: globalOptions,
             onSuccess: function success() {
-                self._backoffDuration = 0;
-                self._backoffStart = null;
+                self._resetBackoff();
 
                 self._triggerEvent('success', {
                     data: data,
