@@ -174,8 +174,10 @@ describe('React Native plugin', function () {
             var lastXhr = this.requests.shift();
             lastXhr.respond(401);
 
-            assert.isTrue(onError.calledOnce);
             assert.isFalse(onSuccess.calledOnce);
+            assert.isTrue(onError.calledOnce);
+            assert.isTrue(onError.lastCall.args[0] instanceof Error);
+            assert.equal(onError.lastCall.args[0].request.status, 401);
         });
 
         it('should call onSuccess callback on success', function () {
