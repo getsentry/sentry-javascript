@@ -182,7 +182,9 @@ reactNativePlugin._transport = function (options) {
             }
         } else {
             if (options.onError) {
-                options.onError(new Error('Sentry error code: ' + request.status));
+                var err = new Error('Sentry error code: ' + request.status);
+                err.request = request;
+                options.onError(err);
             }
         }
     };
