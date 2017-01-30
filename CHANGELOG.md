@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.10.0
+
+* NEW: Raven.js will exponentially back off if server returns a 400-level error (e.g. 429 too many requests). See: https://github.com/getsentry/raven-js/pull/839
+* CHANGE: Raven.js will not set lastEventId if transmission failed because Raven is not configured. See: https://github.com/getsentry/raven-js/pull/839
+* BUGFIX: Raven.js now properly handles Firefox resource:// URLs (extensions). See: https://github.com/getsentry/raven-js/pull/837
+
 ## 3.9.2
 * BUGFIX: Use json-stringify-safe in React Native plugin to avoid circular refs. See: https://github.com/getsentry/raven-js/pull/829
 * BUGFIX: Avoid document.location access in React Native plugin. See: https://github.com/getsentry/raven-js/issues/800
