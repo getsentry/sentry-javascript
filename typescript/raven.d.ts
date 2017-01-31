@@ -152,19 +152,19 @@ interface RavenStatic {
      * Specify a callback function that can mutate or filter breadcrumbs when they are captured.
      * @param callback The function which applies the filter
      */
-    setBreadcrumbCallback(callback :(data: RavenBreadcrumb, orig?: string) => RavenBreadcrumb):RavenStatic;
+    setBreadcrumbCallback(callback: (data: RavenBreadcrumb, original?: string) => RavenBreadcrumb):RavenStatic;
 
     /**
      * Specify a function that can mutate the payload right before it is being sent to Sentry.
      * @param callback The function which can mutate the data
      */
-    setDataCallback(callback: (data: RavenOutgoingData, orig?: string) => RavenOutgoingData): RavenStatic;
+    setDataCallback(callback: (data: RavenOutgoingData, original?: string) => RavenOutgoingData): RavenStatic;
 
     /**
      * Specify a callback function that determines if the given message should be sent to Sentry.
      * @param callback The function which determines if the given blob should be sent
      */
-    setShouldSendCallback(callback: (data: RavenOutgoingData, orig?: string) => RavenOutgoingData): RavenStatic;
+    setShouldSendCallback(callback: (data: RavenOutgoingData, original?: string) => RavenOutgoingData): RavenStatic;
 
     /**
      * Override the default HTTP data transport handler.

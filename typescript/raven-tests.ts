@@ -1,6 +1,6 @@
-import Raven from "./raven"
+import Raven, {RavenOutgoingData} from "./raven"
 
-
+// configuring:
 Raven.config('https://public@getsentry.com/1').install();
 
 Raven.config(
@@ -20,6 +20,40 @@ Raven.config(
     }
 ).install();
 
+Raven.setDataCallback((data: RavenOutgoingData) => {return data});
+Raven.setDataCallback(function (data: RavenOutgoingData, original: string) {return data});
+
+Raven.setShouldSendCallback((data: RavenOutgoingData)  => {return data});
+Raven.setShouldSendCallback(function (data: RavenOutgoingData, original: string) {return data});
+
+
+// context:
+Raven.context(throwsError);
+Raven.context({tags: { key: "value" }}, throwsError);
+Raven.context({extra: {planet: {name: 'Earth'}}}, throwsError);
+
+Raven.setUserContext({
+    email: 'matt@example.com',
+    id: '123'
+});
+
+Raven.setExtraContext({foo: 'bar'});
+
+Raven.setTagsContext({env: 'prod'});
+
+Raven.clearContext();
+
+var obj:Object = Raven.getContext();
+
+Raven.setRelease('abc123');
+Raven.setEnvironment('production');
+
+setTimeout(Raven.wrap(throwsError), 1000);
+Raven.wrap({logger: "my.module"}, throwsError)();
+Raven.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
+
+
+// reporting:
 var throwsError = () => {
     throw new Error('broken');
 };
@@ -31,21 +65,9 @@ try {
     Raven.captureException(e, {tags: { key: "value" }});
 }
 
-Raven.context(throwsError);
-Raven.context({tags: { key: "value" }}, throwsError);
-Raven.context({extra: {planet: {name: 'Earth'}}}, throwsError);
-
-setTimeout(Raven.wrap(throwsError), 1000);
-Raven.wrap({logger: "my.module"}, throwsError)();
-Raven.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
-
-Raven.setUserContext({
-    email: 'matt@example.com',
-    id: '123'
-});
-
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
+Raven.captureMessage('Broken!', { stacktrace: true });
 
 Raven.showReportDialog({
     eventId: 0815,
@@ -56,6 +78,5 @@ Raven.showReportDialog({
     }
 });
 
-Raven.setTagsContext({ key: "value" });
 
-Raven.setExtraContext({ foo: "bar" });
+var err:Error = Raven.lastException();
