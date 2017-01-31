@@ -14,9 +14,10 @@
 
 
 ***Checklist:***
-- [ ] I have included appropriate Tests and have run `npm test` without errors
+- [ ] I have included appropriate Tests
 - [ ] I have updated the Documentation accordingly
-- [ ] I updated typings/raven.d.ts if I added to or changed the API and have run `tsc --noEmit --noImplicitAny typescript/raven-tests.ts` without errors
+- [ ] I updated typings/raven.d.ts if I added to or changed the API
+- [X] I have verifyed that `npm test` exits without errors (Note: This is also being checked by our CI)
 
 Please note: If you are not able to fulfill these points by yourself, leave them unchecked. We are happy to help you with them.
 
