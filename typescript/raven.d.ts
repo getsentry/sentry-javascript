@@ -196,7 +196,7 @@ interface RavenStatic {
 
 
 // --- Helper Interfaces for Options --------------
-export interface RavenBreadcrumOptions {
+export interface RavenBreadcrumbOptions {
     /** Whether to collect XHR calls, defaults to true */
     xhr?: boolean;
 
@@ -254,7 +254,7 @@ export interface RavenGlobalOptions extends CommonRavenOptions  {
     serverName?: string;
 
     /** Configures which breadcrumbs are collected automatically */
-    autoBreadcrumbs?: boolean | RavenBreadcrumOptions;
+    autoBreadcrumbs?: boolean | RavenBreadcrumbOptions;
 
     /** Whether to collect errors on the window via TraceKit.collectWindowErrors. Default: true. */
     collectWindowErrors?: boolean;
