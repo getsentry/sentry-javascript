@@ -280,6 +280,10 @@ Raven.prototype = {
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
+                // Attempt to invoke user-land function
+                // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
+                //       means Raven caught an error invoking your application code. This is
+                //       expected behavior and NOT indicative of a bug with Raven.js.
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();
