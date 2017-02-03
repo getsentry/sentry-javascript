@@ -69,7 +69,7 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
 
     export class RavenErrorHandler implements ErrorHandler {
       handleError(err:any) : void {
-        Raven.captureException(err);
+        Raven.captureException(err.originalError || err);
       }
     }
 
