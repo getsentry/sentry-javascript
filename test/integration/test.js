@@ -320,25 +320,6 @@ describe('integration', function () {
               }
             );
         });
-
-        it('should capture exceptions from $.fn.ready (jQuery)', function (done) {
-            var iframe = this.iframe;
-
-            iframeExecute(iframe, done,
-                function () {
-                    setTimeout(done);
-
-                    $(function () {
-                        foo();
-                    });
-                },
-                function () {
-                    var ravenData = iframe.contentWindow.ravenData[0];
-                    // # of frames alter significantly between chrome/firefox & safari
-                    assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 2);
-                }
-            );
-        });
     });
 
     describe('breadcrumbs', function () {
