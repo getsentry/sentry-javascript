@@ -12,12 +12,7 @@ describe('Vue plugin', function () {
         beforeEach(function () {
             this.sinon.stub(Raven, 'captureException');
             this.MockVue = {
-                config: {},
-                util: {
-                    formatComponentName: function() {
-                        return '<root component>'
-                    }
-                }
+                config: {}
             };
         });
 
@@ -38,7 +33,7 @@ describe('Vue plugin', function () {
                 propsData: {
                     foo: 'bar'
                 },
-                componentName: '<root component>'
+                componentName: 'anonymous component'
             });
         });
 
