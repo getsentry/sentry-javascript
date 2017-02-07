@@ -20,6 +20,7 @@
   "scripts": {
     "pretest": "npm install && npm run lint",
     "test": "NODE_ENV=test istanbul cover _mocha  -- --reporter dot && NODE_ENV=test node_modules/coffee-script/bin/coffee ./test/run.coffee",
+    "test-mocha": "NODE_ENV=test mocha",
     "test-full": "npm run test && cd test/instrumentation && ./run.sh",
     "lint": "node_modules/eslint/bin/eslint.js ."
   },

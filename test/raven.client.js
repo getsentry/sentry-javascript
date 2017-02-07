@@ -918,9 +918,26 @@ describe('raven.Client', function () {
           category: 'test',
           message: message
         });
+        client.getContext().should.not.equal(client._globalContext);
         client.getContext().breadcrumbs[0].message.should.equal(message);
-        done();
       });
+      done();
+    });
+
+    it('should capture breadcrumbs at global context level', function (done) {
+      var message = 'test breadcrumb';
+      client = new raven.Client(dsn, {
+        shouldSendCallback: function (data) {
+          data.breadcrumbs.values.length.should.equal(1);
+          done();
+        }
+      });
+      client.install();
+      client.captureBreadcrumb({
+        category: 'test',
+        message: message
+      });
+      client.captureException(new Error('oh no'));
     });
 
     it('should instrument console to capture breadcrumbs', function (done) {
