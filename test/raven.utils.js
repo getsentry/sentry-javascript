@@ -98,9 +98,9 @@ describe('raven.utils', function () {
       }], callback);
     });
 
-    it('should extract context from last stack line', function(done){
+    it('should extract context from last stack line', function (done) {
       var parseStack = raven.utils.parseStack;
-      var callback = function(frames) {
+      var callback = function (frames) {
         var frame = frames.pop();
         frame.pre_context.should.be.an.instanceOf(Array);
         frame.context_line.should.be.type('string');
@@ -109,10 +109,32 @@ describe('raven.utils', function () {
         done();
       };
       try {
+        // eslint-disable-next-line no-undef
         undeclared_function();
-      } catch(e) {
+      } catch (e) {
         parseStack(e, callback);
       }
+    });
+
+    it('should treat windows files as being in app: in_app should be true', function (done) {
+      var parseStack = raven.utils.parseStack;
+      var callback = function (frames) {
+        var frame = frames.pop();
+        frame.filename.should.be.type('string');
+        frame.filename.should.startWith('C:\\');
+        frame.in_app.should.be.true;
+        done();
+      };
+      var err = new Error('some error message');
+      // get first line of err stack (line after err message)
+      var firstFileLine = err.stack.split('\n')[1];
+      // replace first occurrence of "/" with C:\ to mock windows style
+      var winFirstFileLine = firstFileLine.replace(/[/]/, 'C:\\');
+      // replace all remaining "/" with "\"
+      winFirstFileLine = winFirstFileLine.replace(/[/]/g, '\\');
+      // create a "win-style" stack replacing the first err.stack line with our above win-style line
+      err.stack = err.stack.replace(firstFileLine, winFirstFileLine);
+      parseStack(err, callback);
     });
   });
 
