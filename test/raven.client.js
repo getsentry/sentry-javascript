@@ -935,7 +935,7 @@ describe('raven.Client', function () {
     });
 
     it('should not die trying to instrument a missing module', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { postgres: true } });
+      client = new raven.Client(dsn, { autoBreadcrumbs: { pg: true } });
       client.install();
       done();
     });
