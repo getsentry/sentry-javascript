@@ -1021,13 +1021,16 @@ describe('raven.middleware', function () {
 
   it('should explicitly add req and res to the domain', function (done) {
     var client = new raven.Client(dsn).install();
+    var message = 'test breadcrumb';
 
     var EventEmitter = require('events');
+    if (process.version <= 'v0.11') EventEmitter = EventEmitter.EventEmitter; // node 0.10 compat
     var e = new EventEmitter();
     e.on('done', function () {
       // Context won't propagate here without the explicit binding of req/res done in the middleware
       setTimeout(function () {
         client.getContext().breadcrumbs.length.should.equal(1);
+        client.getContext().breadcrumbs[0].message.should.equal(message);
         done();
       }, 0);
     });
@@ -1035,7 +1038,7 @@ describe('raven.middleware', function () {
     // Pass e as the req/res, so e will be added to the domain
     client.requestHandler()(e, e, function () {
       client.captureBreadcrumb({
-        message: 'test breadcrumb',
+        message: message,
         category: 'log'
       });
       setTimeout(function () {
