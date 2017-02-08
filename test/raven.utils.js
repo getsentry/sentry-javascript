@@ -102,10 +102,15 @@ describe('raven.utils', function () {
       var parseStack = raven.utils.parseStack;
       var callback = function (frames) {
         var frame = frames.pop();
+
+        /* verify that the frame has the properties: pre_context, context_line
+        and post_context, which are valid for in-app stack lines only.*/
         frame.pre_context.should.be.an.instanceOf(Array);
         frame.context_line.should.be.type('string');
         frame.context_line.trim().should.endWith('undeclared_function();');
         frame.post_context.should.be.an.instanceOf(Array);
+
+        frame.in_app.should.be.true;
         done();
       };
       try {
