@@ -1018,4 +1018,29 @@ describe('raven.middleware', function () {
     client2.should.not.equal(client1);
     client2.should.be.an.instanceof(raven.constructor);
   });
+
+  it('should explicitly add req and res to the domain', function (done) {
+    var client = new raven.Client(dsn).install();
+
+    var EventEmitter = require('events');
+    var e = new EventEmitter();
+    e.on('done', function () {
+      // Context won't propagate here without the explicit binding of req/res done in the middleware
+      setTimeout(function () {
+        client.getContext().breadcrumbs.length.should.equal(1);
+        done();
+      }, 0);
+    });
+
+    // Pass e as the req/res, so e will be added to the domain
+    client.requestHandler()(e, e, function () {
+      client.captureBreadcrumb({
+        message: 'test breadcrumb',
+        category: 'log'
+      });
+      setTimeout(function () {
+        e.emit('done');
+      }, 0);
+    });
+  });
 });
