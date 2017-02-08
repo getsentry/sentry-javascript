@@ -121,7 +121,7 @@ describe('raven.utils', function () {
       var callback = function (frames) {
         var frame = frames.pop();
         frame.filename.should.be.type('string');
-        frame.filename.should.startWith('C:\\');
+        frame.filename.trim().should.startWith('C:\\');
         frame.in_app.should.be.true;
         done();
       };
