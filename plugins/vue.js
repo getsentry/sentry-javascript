@@ -4,6 +4,17 @@
  */
 'use strict';
 
+function formatComponentName (vm) {
+    if (vm.$root === vm) {
+        return 'root instance'
+    }
+    var name = vm._isVue
+        ? vm.$options.name || vm.$options._componentTag
+        : vm.name
+    return (name ? 'component <' + name + '>' : 'anonymous component') +
+        (vm._isVue && vm.$options.__file ? ' at ' + vm.$options.__file  : '')
+}
+
 function vuePlugin(Raven, Vue) {
     Vue = Vue || window.Vue;
 
@@ -14,7 +25,7 @@ function vuePlugin(Raven, Vue) {
     Vue.config.errorHandler = function VueErrorHandler(error, vm) {
         Raven.captureException(error, {
           extra: {
-            componentName: Vue.util.formatComponentName(vm),
+            componentName: formatComponentName(vm),
             propsData: vm.$options.propsData
           }
         });
