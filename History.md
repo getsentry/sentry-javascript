@@ -1,3 +1,10 @@
+# 1.1.2 - 2/8/2017
+- Send kwargs to `shouldSendCallback` [See #251]
+- Capture breadcrumbs from global context [See #267]
+- Make stack parsing native-frame-check work on Windows paths [See #268]
+- Bind req/res to context domain in express requestHandler [See #269]
+- Fix postgres/pg name mismatch [See #270]
+
 # 1.1.1 and 1.0.1 - 12/13/2016
 - Fix middleware backwards compatibility [See #246]
 
