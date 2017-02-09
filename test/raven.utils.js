@@ -141,6 +141,33 @@ describe('raven.utils', function () {
       err.stack = err.stack.replace(firstFileLine, winFirstFileLine);
       parseStack(err, callback);
     });
+
+    it('should mark node core library frames as not being in app', function (done) {
+      var qsStringify = require('querystring').stringify;
+      var parseStack = raven.utils.parseStack;
+
+      var callback = function (frames) {
+        // querystring was different back in old node, compat hack
+        if (process.version < 'v4') frames.pop();
+
+        var frame1 = frames.pop();
+        frame1.in_app.should.be.false;
+        frame1.filename.should.equal('querystring.js');
+
+        var frame2 = frames.pop();
+        frame2.in_app.should.be.false;
+        frame2.filename.should.equal('querystring.js');
+
+        done();
+      };
+
+      try {
+        // Incomplete surrogate pair will cause qs.encode (used by qs.stringify) to throw
+        qsStringify({ a: '\uDCA9' });
+      } catch (e) {
+        parseStack(e, callback);
+      }
+    });
   });
 
   describe('#getCulprit()', function () {
