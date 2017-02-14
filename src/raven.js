@@ -1800,7 +1800,7 @@ function htmlElementAsString(elem) {
 
     className = elem.className;
     if (className && isString(className)) {
-        classes = className.split(' ');
+        classes = className.split(/\s+/);
         for (i = 0; i < classes.length; i++) {
             out.push('.' + classes[i]);
         }
