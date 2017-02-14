@@ -48,11 +48,11 @@ describe('globals', function() {
     describe('getHttpData', function() {
         var data;
 
-        beforeEach(function () {
-            data = Raven._getHttpData();
-        });
+        describe('with document and navigator', function() {
+            beforeEach(function () {
+                data = Raven._getHttpData();
+            });
 
-        describe('with document', function() {
             it('should have a url', function() {
                 assert.equal(data.url, window.location.href);
             });
@@ -71,13 +71,17 @@ describe('globals', function() {
             });
         });
 
-        // describe('without document', function () {
-        //     it('should return undefined if no document', function () {
-        //         hasDocument = false;
-        //         var data = getHttpData();
-        //         assert.isUndefined(data);
-        //     });
-        // });
+        it('without document but with navigator should return user-agent', function () {
+            Raven._hasDocument = false;
+            data = Raven._getHttpData();
+            assert.equal(data.headers['User-Agent'], navigator.userAgent);
+        });
+
+        it('with neither document nor navigator should return undefined', function () {
+          Raven._hasDocument = false;
+          Raven._hasNavigator = false;
+          assert.isUndefined(Raven._getHttpData());
+        });
     });
 
     describe('trimPacket', function() {
