@@ -4,7 +4,7 @@
 
 declare var Raven: RavenStatic;
 
-export = Raven;
+export default Raven;
 
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
