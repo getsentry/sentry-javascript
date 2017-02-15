@@ -1,7 +1,13 @@
 # Changelog
 
-## 3.10.0
+## 3.11.0
+* CHANGE: Raven.js no longer auto-wraps jQuery.ready (if present); fixes jQuery deprecation warnings. See: https://github.com/getsentry/raven-js/pull/849
+* BUGFIX: Fix User-Agent not collected in web worker environment. See: https://github.com/getsentry/raven-js/issues/853
+* BUGFIX: Fix DOM tree summarizer (breadcrumbs) not splitting on breadcrumbs effectively. See: https://github.com/getsentry/raven-js/pull/852
+* BUGFIX: Fix Vue plugin breaking on production builds. See: https://github.com/getsentry/raven-js/pull/848
+* NEW: Added comment to Raven.wrap to indicate stack traces containing this frame are not indicative of a bug. See: https://github.com/getsentry/raven-js/pull/847
 
+## 3.10.0
 * NEW: Raven.js will exponentially back off if server returns a 400-level error (e.g. 429 too many requests). See: https://github.com/getsentry/raven-js/pull/839
 * CHANGE: Raven.js will not set lastEventId if transmission failed because Raven is not configured. See: https://github.com/getsentry/raven-js/pull/839
 * BUGFIX: Raven.js now properly handles Firefox resource:// URLs (extensions). See: https://github.com/getsentry/raven-js/pull/837
