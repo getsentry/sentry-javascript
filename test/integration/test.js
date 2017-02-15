@@ -604,8 +604,8 @@ describe('integration', function () {
                         Raven._breadcrumbs = [];
 
                         // click <input/>
-                        var evt = {};//document.createEvent('MouseEvent');
-                        MouseEvent.prototype.initMouseEvent.call(evt,
+                        var evt = document.createEvent('MouseEvent');
+                        evt.initMouseEvent(evt,
                             "click",
                             true /* bubble */,
                             true /* cancelable */,
