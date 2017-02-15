@@ -20,6 +20,7 @@ var _window = typeof window !== 'undefined' ? window
             : typeof self !== 'undefined' ? self
             : {};
 var _document = _window.document;
+var _navigator = _window.navigator;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
@@ -28,6 +29,7 @@ function Raven() {
     this._hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
     // Raven can run in contexts where there's no document (react-native)
     this._hasDocument = !isUndefined(_document);
+    this._hasNavigator = !isUndefined(_navigator);
     this._lastCapturedException = null;
     this._lastEventId = null;
     this._globalServer = null;
@@ -1301,20 +1303,23 @@ Raven.prototype = {
     },
 
     _getHttpData: function() {
-        if (!this._hasDocument || !_document.location || !_document.location.href) {
-            return;
+        if (!this._hasNavigator && !this._hasDocument) return;
+        var httpData = {};
+
+        if (this._hasNavigator && _navigator.userAgent) {
+            httpData.headers = {
+              'User-Agent': navigator.userAgent
+            };
         }
 
-        var httpData = {
-            headers: {
-                'User-Agent': navigator.userAgent
+        if (this._hasDocument) {
+            if (_document.location && _document.location.href) {
+                httpData.url = _document.location.href;
             }
-        };
-
-        httpData.url = _document.location.href;
-
-        if (_document.referrer) {
-            httpData.headers.Referer = _document.referrer;
+            if (_document.referrer) {
+                if (!httpData.headers) httpData.headers = {};
+                httpData.headers.Referer = _document.referrer;
+            }
         }
 
         return httpData;
