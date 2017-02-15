@@ -590,6 +590,52 @@ describe('integration', function () {
             );
         });
 
+        // doesn't work in PhantomJS
+        if (!/PhantomJS/.test(window.navigator.userAgent)) {
+            it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function (done) {
+                // see: https://github.com/getsentry/raven-js/issues/768
+                var iframe = this.iframe;
+
+                iframeExecute(iframe, done,
+                    function () {
+                        setTimeout(done);
+
+                        // some browsers trigger onpopstate for load / reset breadcrumb state
+                        Raven._breadcrumbs = [];
+
+                        // click <input/>
+                        var evt = {};//document.createEvent('MouseEvent');
+                        MouseEvent.prototype.initMouseEvent.call(evt,
+                            "click",
+                            true /* bubble */,
+                            true /* cancelable */,
+                            window,
+                            null,
+                            0, 0, 0, 0, /* coordinates */
+                            false, false, false, false, /* modifier keys */
+                            0 /*left*/,
+                            null
+                        );
+
+                        function kaboom() { throw new Error('lol'); };
+                        Object.defineProperty(evt, 'type', { get: kaboom });
+                        Object.defineProperty(evt, 'target', { get: kaboom });
+
+                        var input = document.querySelector('.a'); // leaf node
+                        input.dispatchEvent(evt);
+                    },
+                    function () {
+                        var Raven = iframe.contentWindow.Raven,
+                            breadcrumbs = Raven._breadcrumbs;
+
+                        assert.equal(breadcrumbs.length, 1);
+                        assert.equal(breadcrumbs[0].category, 'ui.click');
+                        assert.equal(breadcrumbs[0].message, '<unknown>');
+                    }
+                );
+            });
+        } // if PhantomJS
+
         it('should record consecutive keypress events into a single "input" breadcrumb', function (done) {
             var iframe = this.iframe;
 
