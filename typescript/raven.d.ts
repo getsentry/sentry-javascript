@@ -335,7 +335,7 @@ export interface RavenBreadcrumb {
     data?: { [id: string]: string };
     category?: string;
     level?: string;
-    timestamp: number;
+    timestamp?: number;
 }
 
 export interface RavenOutgoingData {
