@@ -331,10 +331,10 @@ export interface RavenUserContext {
 }
 
 export interface RavenBreadcrumb {
-    message: string;
-    data: { [id: string]: string };
-    category: string;
-    level: string;
+    message?: string;
+    data?: { [id: string]: string };
+    category?: string;
+    level?: string;
     timestamp: number;
 }
 
