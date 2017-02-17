@@ -746,14 +746,14 @@ Raven.prototype = {
                 return;
 
             self._lastCapturedEvent = evt;
-            var elem = evt.target;
 
+            // try/catch both:
+            // - accessing evt.target (see getsentry/raven-js#838, #768)
+            // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
+            //   can throw an exception in some circumstances.
             var target;
-
-            // try/catch htmlTreeAsString because it's particularly complicated, and
-            // just accessing the DOM incorrectly can throw an exception in some circumstances.
             try {
-                target = htmlTreeAsString(elem);
+                target = htmlTreeAsString(evt.target);
             } catch (e) {
                 target = '<unknown>';
             }
@@ -778,8 +778,15 @@ Raven.prototype = {
         //       debounce timeout is triggered, we will only capture
         //       a single breadcrumb from the FIRST target (acceptable?)
         return function (evt) {
-            var target = evt.target,
-                tagName = target && target.tagName;
+            var target;
+            try {
+                target = evt.target;
+            } catch (e) {
+                // just accessing event properties can throw an exception in some rare circumstances
+                // see: https://github.com/getsentry/raven-js/issues/838
+                return;
+            }
+            var tagName = target && target.tagName;
 
             // only consider keypress events on actual input elements
             // this will disregard keypresses targeting body (e.g. tabbing
@@ -896,9 +903,17 @@ Raven.prototype = {
                                 // see #724
                                 if (!evt) return;
 
-                                if (evt.type === 'click')
+                                var eventType;
+                                try {
+                                    eventType = evt.type
+                                } catch (e) {
+                                    // just accessing event properties can throw an exception in some rare circumstances
+                                    // see: https://github.com/getsentry/raven-js/issues/838
+                                    return;
+                                }
+                                if (eventType === 'click')
                                     return clickHandler(evt);
-                                else if (evt.type === 'keypress')
+                                else if (eventType === 'keypress')
                                     return keypressHandler(evt);
                             };
                         }
