@@ -1,4 +1,4 @@
-/*! Raven.js 3.10.0 (d7e787e) | github.com/getsentry/raven-js */
+/*! Raven.js 3.11.0 (c2f43d7) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -114,6 +114,7 @@ var _window = typeof window !== 'undefined' ? window
             : typeof self !== 'undefined' ? self
             : {};
 var _document = _window.document;
+var _navigator = _window.navigator;
 
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
@@ -122,6 +123,7 @@ function Raven() {
     this._hasJSON = !!(typeof JSON === 'object' && JSON.stringify);
     // Raven can run in contexts where there's no document (react-native)
     this._hasDocument = !isUndefined(_document);
+    this._hasNavigator = !isUndefined(_navigator);
     this._lastCapturedException = null;
     this._lastEventId = null;
     this._globalServer = null;
@@ -173,7 +175,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.10.0',
+    VERSION: '3.11.0',
 
     debug: false,
 
@@ -374,6 +376,10 @@ Raven.prototype = {
             while(i--) args[i] = deep ? self.wrap(options, arguments[i]) : arguments[i];
 
             try {
+                // Attempt to invoke user-land function
+                // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
+                //       means Raven caught an error invoking your application code. This is
+                //       expected behavior and NOT indicative of a bug with Raven.js.
                 return func.apply(this, args);
             } catch(e) {
                 self._ignoreNextOnError();
@@ -1022,15 +1028,6 @@ Raven.prototype = {
         for (var i = 0; i < eventTargets.length; i++) {
             wrapEventTarget(eventTargets[i]);
         }
-
-        var $ = _window.jQuery || _window.$;
-        if ($ && $.fn && $.fn.ready) {
-            fill($.fn, 'ready', function (orig) {
-                return function (fn) {
-                    return orig.call(this, self.wrap(fn));
-                };
-            }, wrappedBuiltIns);
-        }
     },
 
 
@@ -1400,20 +1397,23 @@ Raven.prototype = {
     },
 
     _getHttpData: function() {
-        if (!this._hasDocument || !_document.location || !_document.location.href) {
-            return;
+        if (!this._hasNavigator && !this._hasDocument) return;
+        var httpData = {};
+
+        if (this._hasNavigator && _navigator.userAgent) {
+            httpData.headers = {
+              'User-Agent': navigator.userAgent
+            };
         }
 
-        var httpData = {
-            headers: {
-                'User-Agent': navigator.userAgent
+        if (this._hasDocument) {
+            if (_document.location && _document.location.href) {
+                httpData.url = _document.location.href;
             }
-        };
-
-        httpData.url = _document.location.href;
-
-        if (_document.referrer) {
-            httpData.headers.Referer = _document.referrer;
+            if (_document.referrer) {
+                if (!httpData.headers) httpData.headers = {};
+                httpData.headers.Referer = _document.referrer;
+            }
         }
 
         return httpData;
@@ -1899,7 +1899,7 @@ function htmlElementAsString(elem) {
 
     className = elem.className;
     if (className && isString(className)) {
-        classes = className.split(' ');
+        classes = className.split(/\s+/);
         for (i = 0; i < classes.length; i++) {
             out.push('.' + classes[i]);
         }
