@@ -69,6 +69,10 @@ Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
 Raven.captureMessage('Broken!', { stacktrace: true });
 
+Raven.captureBreadcrumb({ message: 'message' });
+Raven.captureBreadcrumb({ category: 'category', message: 'message' });
+Raven.captureBreadcrumb({ category: 'category', message: 'message', data: { id: '42' }, level: 'level' });
+
 Raven.showReportDialog({
     eventId: 0815,
     dsn:'1337asdf',
