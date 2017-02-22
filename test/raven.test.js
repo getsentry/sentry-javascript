@@ -1207,12 +1207,12 @@ describe('globals', function() {
             var mockError = new Error('401: Unauthorized');
             mockError.request = {
                 status: 401,
-                getResponseHeader: sinon.stub().withArgs('Retry-After').returns('1337')
+                getResponseHeader: sinon.stub().withArgs('Retry-After').returns('2')
             };
             opts.onError(mockError);
 
             assert.equal(Raven._backoffStart, 100); // clock is at 100ms
-            assert.equal(Raven._backoffDuration, 1337); // converted to int
+            assert.equal(Raven._backoffDuration, 2000); // converted to ms, int
         });
 
         it('should reset backoffDuration and backoffStart if onSuccess is fired (200)', function () {
