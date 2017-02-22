@@ -26,7 +26,9 @@ if (typeof window.console === 'undefined') {
 var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
-    Raven.config(SENTRY_DSN);
+    Raven.config(SENTRY_DSN, {
+        allowDuplicates: true
+    });
 }
 
 var Raven;

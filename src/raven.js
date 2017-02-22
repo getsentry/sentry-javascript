@@ -31,6 +31,7 @@ function Raven() {
     this._hasDocument = !isUndefined(_document);
     this._hasNavigator = !isUndefined(_navigator);
     this._lastCapturedException = null;
+    this._lastData = null;
     this._lastEventId = null;
     this._globalServer = null;
     this._globalKey = null;
@@ -1334,6 +1335,55 @@ Raven.prototype = {
         return this._backoffDuration && now() - this._backoffStart < this._backoffDuration;
     },
 
+    /**
+     * Returns true if the in-process data payload matches the signature
+     * of the previously-sent data
+     * 
+     * NOTE: This has to be done at this level because TraceKit can generate
+     *       data from window.onerror WITHOUT an exception object (IE8, IE9, 
+     *       other old browsers). This can take the form of an "exception"
+     *       data object with a single frame (derived from the onerror args).
+     */
+    _isRepeatData: function (current) {
+        var last = this._lastData;
+        
+        if (!last ||
+            current.message !== last.message ||
+            current.culprit !== last.culprit)
+            return false;
+        
+        // If there's no stacktrace, at this point we consider
+        // them the same event (e.g. captureMessage)
+        if (!(current.exception && last.exception))
+            return true;
+
+        var currentException = current.exception.values[0];
+        var lastException = last.exception.values[0];
+        
+        if (currentException.type !== lastException.type ||
+            currentException.value !== lastException.value)
+            return false;
+
+        var currentFrames = currentException.stacktrace;
+        var lastFrames = lastException.stacktrace;
+
+        if (currentFrames.length !== lastFrames.length)
+            return false;
+        
+        // Iterate through every frame; bail out if anything differs
+        var a, b;
+        for (var i = 0; i < currentFrames.length; i++) {
+            a = currentFrames[i];
+            b = lastFrames[i];
+            if (a.filename !== b.filename ||
+                a.lineno !== b.lineno ||
+                a.colno !== b.colno ||
+                a['function'] !== b['function'])
+                return false;
+        }
+        return true;
+    },
+
     _setBackoffState: function(request) {
         // If we are already in a backoff state, don't change anything
         if (this._shouldBackoff()) {
@@ -1459,6 +1509,14 @@ Raven.prototype = {
 
         // Try and clean up the packet before sending by truncating long values
         data = this._trimPacket(data);
+
+        if (!this._globalOptions.allowDuplicates && this._isRepeatData(data)) {
+            this._logDebug('warn', 'Raven dropped repeat event: ', data);
+            return;
+        }
+
+        // Store outbound payload after trim
+        this._lastData = data;
 
         this._logDebug('debug', 'Raven about to send:', data);
 
