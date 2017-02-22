@@ -1338,49 +1338,29 @@ Raven.prototype = {
     /**
      * Returns true if the in-process data payload matches the signature
      * of the previously-sent data
-     * 
+     *
      * NOTE: This has to be done at this level because TraceKit can generate
-     *       data from window.onerror WITHOUT an exception object (IE8, IE9, 
+     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
      *       other old browsers). This can take the form of an "exception"
      *       data object with a single frame (derived from the onerror args).
      */
     _isRepeatData: function (current) {
         var last = this._lastData;
-        
+
         if (!last ||
-            current.message !== last.message ||
-            current.culprit !== last.culprit)
-            return false;
-        
-        // If there's no stacktrace, at this point we consider
-        // them the same event (e.g. captureMessage)
-        if (!(current.exception && last.exception))
-            return true;
-
-        var currentException = current.exception.values[0];
-        var lastException = last.exception.values[0];
-        
-        if (currentException.type !== lastException.type ||
-            currentException.value !== lastException.value)
+            current.message !== last.message || // defined for captureMessage
+            current.culprit !== last.culprit)   // defined for captureException/onerror
             return false;
 
-        var currentFrames = currentException.stacktrace;
-        var lastFrames = lastException.stacktrace;
-
-        if (currentFrames.length !== lastFrames.length)
-            return false;
-        
-        // Iterate through every frame; bail out if anything differs
-        var a, b;
-        for (var i = 0; i < currentFrames.length; i++) {
-            a = currentFrames[i];
-            b = lastFrames[i];
-            if (a.filename !== b.filename ||
-                a.lineno !== b.lineno ||
-                a.colno !== b.colno ||
-                a['function'] !== b['function'])
-                return false;
+        // Stacktrace interface (i.e. from captureMessage)
+        if (current.stacktrace || last.stacktrace) {
+            return isSameStacktrace(current.stacktrace, last.stacktrace);
         }
+        // Exception interface (i.e. from captureException/onerror)
+        else if (current.exception || last.exception) {
+            return isSameException(current.exception, last.exception);
+        }
+
         return true;
     },
 
@@ -1877,6 +1857,56 @@ function htmlElementAsString(elem) {
         }
     }
     return out.join('');
+}
+
+
+function isOnlyOneTruthy(a, b) {
+    return a && !b || b && !a;
+}
+
+/**
+ * Returns true if the two input exception interfaces have the same content
+ */
+function isSameException(ex1, ex2) {
+    if (isOnlyOneTruthy(ex1, ex2))
+        return false;
+
+    ex1 = ex1.values[0];
+    ex2 = ex2.values[0];
+
+    if (ex1.type !== ex2.type ||
+        ex1.value !== ex2.value)
+        return false;
+
+    return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
+}
+
+/**
+ * Returns true if the two input stack trace interfaces have the same content
+ */
+function isSameStacktrace(stack1, stack2) {
+    if (isOnlyOneTruthy(stack1, stack2))
+        return false;
+
+    var frames1 = stack1.frames;
+    var frames2 = stack2.frames;
+
+    // Exit early if frame count differs
+    if (frames1.length !== frames2.length)
+        return false;
+
+    // Iterate through every frame; bail out if anything differs
+    var a, b;
+    for (var i = 0; i < frames1.length; i++) {
+        a = frames1[i];
+        b = frames2[i];
+        if (a.filename !== b.filename ||
+            a.lineno !== b.lineno ||
+            a.colno !== b.colno ||
+            a['function'] !== b['function'])
+            return false;
+    }
+    return true;
 }
 
 /**
