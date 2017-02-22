@@ -64,6 +64,12 @@ Raven is also available as an npm package, `raven-js
 .. code-block:: sh
 
     $ npm install raven-js --save
+    
+In order to use it, just require the module:
+
+.. code-block:: javascript
+
+    var Raven = require('ravenjs');
 
 .. code-block:: html
 
