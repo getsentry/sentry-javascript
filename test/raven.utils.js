@@ -13,7 +13,7 @@ describe('raven.utils', function () {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'app.getsentry.com',
         path: '/',
-        project_id: 269,
+        project_id: '269',
         port: 443
       };
       dsn.should.eql(expected);
@@ -27,7 +27,7 @@ describe('raven.utils', function () {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
         path: '/some/other/path/',
-        project_id: 269,
+        project_id: '269',
         port: 80
       };
       dsn.should.eql(expected);
@@ -41,7 +41,7 @@ describe('raven.utils', function () {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
         path: '/some/other/path/',
-        project_id: 269,
+        project_id: '269',
         port: 8443
       };
       dsn.should.eql(expected);
@@ -66,7 +66,7 @@ describe('raven.utils', function () {
         private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
         host: 'mysentry.com',
         path: '/some/other/path/',
-        project_id: 269,
+        project_id: '269',
         port: 8443
       };
       dsn.should.eql(expected);
