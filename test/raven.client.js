@@ -972,9 +972,13 @@ describe('raven.Client', function () {
         client.context(function () {
           var http = require('http');
           http.get(url.parse(testUrl), function (response) {
-            // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+            response._readableState.should.have.property('flowing', null);
+            // need to wait a tick here because nock will make this callback fire
+            // before our req.emit monkeypatch captures the breadcrumb :/
             setTimeout(function () {
+              response._readableState.should.have.property('flowing', null);
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
               done();
             }, 0);
@@ -991,9 +995,13 @@ describe('raven.Client', function () {
         client.context(function () {
           var https = require('https');
           https.get(url.parse(testUrl), function (response) {
-            // need to wait a tick because the response handler that captures the breadcrumb might run after this one
+            response._readableState.should.have.property('flowing', null);
+            // need to wait a tick here because nock will make this callback fire
+            // before our req.emit monkeypatch captures the breadcrumb :/
             setTimeout(function () {
+              response._readableState.should.have.property('flowing', null);
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
               done();
             }, 0);
