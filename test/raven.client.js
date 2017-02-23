@@ -958,6 +958,9 @@ describe('raven.Client', function () {
     });
 
     describe('http breadcrumbs', function () {
+      // prior to streams3 _readableState.flowing started as false, now starts as null
+      var initialFlowingState = process.version < 'v0.12' ? false : null;
+
       beforeEach(function () {
         client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
         client.install();
@@ -972,11 +975,11 @@ describe('raven.Client', function () {
         client.context(function () {
           var http = require('http');
           http.get(url.parse(testUrl), function (response) {
-            response._readableState.should.have.property('flowing', null);
+            response._readableState.should.have.property('flowing', initialFlowingState);
             // need to wait a tick here because nock will make this callback fire
             // before our req.emit monkeypatch captures the breadcrumb :/
             setTimeout(function () {
-              response._readableState.should.have.property('flowing', null);
+              response._readableState.should.have.property('flowing', initialFlowingState);
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
@@ -995,11 +998,11 @@ describe('raven.Client', function () {
         client.context(function () {
           var https = require('https');
           https.get(url.parse(testUrl), function (response) {
-            response._readableState.should.have.property('flowing', null);
+            response._readableState.should.have.property('flowing', initialFlowingState);
             // need to wait a tick here because nock will make this callback fire
             // before our req.emit monkeypatch captures the breadcrumb :/
             setTimeout(function () {
-              response._readableState.should.have.property('flowing', null);
+              response._readableState.should.have.property('flowing', initialFlowingState);
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
