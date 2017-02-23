@@ -416,21 +416,6 @@ describe('raven.parsers', function () {
         });
       });
 
-      it('should NOT assign req.user if already present in kwargs', function () {
-        var mockReq = {
-          method: 'POST',
-          hostname: 'example.org',
-          url: '/some/path?key=value',
-          user: {
-            username: 'janedoe',
-            email: 'hello@janedoe.com'
-          }
-        };
-
-        var parsed = raven.parsers.parseRequest(mockReq, { user: {} });
-        parsed.should.have.property('user', {});
-      });
-
       it('should add ip address to user if available', function () {
         var mockReq = {
           method: 'POST',
@@ -448,6 +433,63 @@ describe('raven.parsers', function () {
           username: 'janedoe',
           email: 'hello@janedoe.com',
           ip_address: '127.0.0.1'
+        });
+      });
+
+      describe('parseUser option', function () {
+        var mockReq = {
+          method: 'POST',
+          hostname: 'example.org',
+          url: '/some/path?key=value',
+          ip: '127.0.0.1',
+          user: {
+            username: 'janedoe',
+            email: 'hello@janedoe.com',
+            random: 'random'
+          }
+        };
+
+        it('should limit to default whitelisted fields', function () {
+          var parsed = raven.parsers.parseRequest(mockReq);
+          parsed.should.have.property('user', {
+            username: 'janedoe',
+            email: 'hello@janedoe.com',
+            ip_address: '127.0.0.1'
+          });
+        });
+
+        it('should limit to provided whitelisted fields array', function () {
+          var parsed = raven.parsers.parseRequest(mockReq, ['username', 'random']);
+          parsed.should.have.property('user', {
+            username: 'janedoe',
+            random: 'random',
+            ip_address: '127.0.0.1'
+          });
+        });
+
+        it('should parse all fields when passed true', function () {
+          var parsed = raven.parsers.parseRequest(mockReq, true);
+          parsed.should.have.property('user', {
+            username: 'janedoe',
+            email: 'hello@janedoe.com',
+            random: 'random',
+            ip_address: '127.0.0.1'
+          });
+        });
+
+        it('should parse nothing when passed false', function () {
+          var parsed = raven.parsers.parseRequest(mockReq, false);
+          parsed.should.not.have.property('user');
+        });
+
+        it('should take a custom parsing function', function () {
+          var parsed = raven.parsers.parseRequest(mockReq, function (req) {
+            return { user: req.user.username };
+          });
+          parsed.should.have.property('user', {
+            user: 'janedoe',
+            ip_address: '127.0.0.1'
+          });
         });
       });
     });

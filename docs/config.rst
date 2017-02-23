@@ -73,6 +73,29 @@ Those configuration options are documented below:
             extra: {planet: {name: 'Earth'}}
         }
 
+.. describe:: parseUser
+
+    Controls how Raven tries to parse user context when parsing a request object.
+
+    An array of strings will serve as a whitelist for fields to grab from ``req.user``.
+    ``true`` will collect all keys from ``req.user``. ``false`` will collect nothing.
+
+    Defaults to ``['id', 'username', 'email']``.
+
+    Alternatively, a function can be provided for fully custom parsing:
+
+    .. code-block:: javascript
+
+        {
+            parseUser: function (req) {
+                // custom user parsing logic
+                return {
+                    username: req.specialUserField.username,
+                    id: req.specialUserField.getId()
+                };
+            }
+        }
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
