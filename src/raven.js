@@ -1368,7 +1368,7 @@ Raven.prototype = {
             // If Retry-After is not in Access-Control-Expose-Headers, most
             // browsers will throw an exception trying to access it
             retry = request.getResponseHeader('Retry-After');
-            retry = parseInt(retry, 10);
+            retry = parseInt(retry, 10) * 1000; // Retry-After is returned in seconds
         } catch (e) {
             /* eslint no-empty:0 */
         }
