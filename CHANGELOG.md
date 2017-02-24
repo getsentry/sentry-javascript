@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.12.0
+* NEW: Raven.js now attempts to suppress back-to-back duplicate errors by default. See: https://github.com/getsentry/raven-js/pull/861
+* BUGFIX: Fix case where breadcrumb instrumention could sometimes throw errors on custom DOM events. See: https://github.com/getsentry/raven-js/pull/857
+* BUGFIX: Fix Raven.js incorrectly interpreting Retry-After header in ms; should be seconds. See: https://github.com/getsentry/raven-js/pull/862
+
 ## 3.11.0
 * CHANGE: Raven.js no longer auto-wraps jQuery.ready (if present); fixes jQuery deprecation warnings. See: https://github.com/getsentry/raven-js/pull/849
 * BUGFIX: Fix User-Agent not collected in web worker environment. See: https://github.com/getsentry/raven-js/issues/853
