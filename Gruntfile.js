@@ -256,6 +256,11 @@ module.exports = function(grunt) {
                     src: 'build/**/*',
                     dest: '<%= pkg.release %>/',
                     rel: 'build/'
+                },
+                {
+                    src: 'build/**/*',
+                    dest: 'latest/',
+                    rel: 'build/'
                 }]
             }
         },
