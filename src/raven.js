@@ -1490,6 +1490,9 @@ Raven.prototype = {
         // Try and clean up the packet before sending by truncating long values
         data = this._trimPacket(data);
 
+        // ideally duplicate error testing should occur *before* dataCallback/shouldSendCallback,
+        // but this would require copying an un-truncated copy of the data packet, which can be
+        // arbitrarily deep (extra_data) -- could be worthwhile? will revisit
         if (!this._globalOptions.allowDuplicates && this._isRepeatData(data)) {
             this._logDebug('warn', 'Raven dropped repeat event: ', data);
             return;
@@ -1859,9 +1862,11 @@ function htmlElementAsString(elem) {
     return out.join('');
 }
 
-
+/**
+ * Returns true if either a OR b is truthy, but not both
+ */
 function isOnlyOneTruthy(a, b) {
-    return a && !b || b && !a;
+    return !!(!!a ^ !!b);
 }
 
 /**

@@ -72,6 +72,12 @@
     function foo() {
       bar();
     }
+
+    function foo2() {
+      // identical to foo, but meant for testing
+      // different stack frame fns w/ same stack length
+      bar();
+    }
   </script>
 </head>
 <body>
