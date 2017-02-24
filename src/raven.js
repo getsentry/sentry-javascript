@@ -31,6 +31,7 @@ function Raven() {
     this._hasDocument = !isUndefined(_document);
     this._hasNavigator = !isUndefined(_navigator);
     this._lastCapturedException = null;
+    this._lastData = null;
     this._lastEventId = null;
     this._globalServer = null;
     this._globalKey = null;
@@ -1349,6 +1350,35 @@ Raven.prototype = {
         return this._backoffDuration && now() - this._backoffStart < this._backoffDuration;
     },
 
+    /**
+     * Returns true if the in-process data payload matches the signature
+     * of the previously-sent data
+     *
+     * NOTE: This has to be done at this level because TraceKit can generate
+     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
+     *       other old browsers). This can take the form of an "exception"
+     *       data object with a single frame (derived from the onerror args).
+     */
+    _isRepeatData: function (current) {
+        var last = this._lastData;
+
+        if (!last ||
+            current.message !== last.message || // defined for captureMessage
+            current.culprit !== last.culprit)   // defined for captureException/onerror
+            return false;
+
+        // Stacktrace interface (i.e. from captureMessage)
+        if (current.stacktrace || last.stacktrace) {
+            return isSameStacktrace(current.stacktrace, last.stacktrace);
+        }
+        // Exception interface (i.e. from captureException/onerror)
+        else if (current.exception || last.exception) {
+            return isSameException(current.exception, last.exception);
+        }
+
+        return true;
+    },
+
     _setBackoffState: function(request) {
         // If we are already in a backoff state, don't change anything
         if (this._shouldBackoff()) {
@@ -1474,6 +1504,17 @@ Raven.prototype = {
 
         // Try and clean up the packet before sending by truncating long values
         data = this._trimPacket(data);
+
+        // ideally duplicate error testing should occur *before* dataCallback/shouldSendCallback,
+        // but this would require copying an un-truncated copy of the data packet, which can be
+        // arbitrarily deep (extra_data) -- could be worthwhile? will revisit
+        if (!this._globalOptions.allowDuplicates && this._isRepeatData(data)) {
+            this._logDebug('warn', 'Raven dropped repeat event: ', data);
+            return;
+        }
+
+        // Store outbound payload after trim
+        this._lastData = data;
 
         this._logDebug('debug', 'Raven about to send:', data);
 
@@ -1834,6 +1875,58 @@ function htmlElementAsString(elem) {
         }
     }
     return out.join('');
+}
+
+/**
+ * Returns true if either a OR b is truthy, but not both
+ */
+function isOnlyOneTruthy(a, b) {
+    return !!(!!a ^ !!b);
+}
+
+/**
+ * Returns true if the two input exception interfaces have the same content
+ */
+function isSameException(ex1, ex2) {
+    if (isOnlyOneTruthy(ex1, ex2))
+        return false;
+
+    ex1 = ex1.values[0];
+    ex2 = ex2.values[0];
+
+    if (ex1.type !== ex2.type ||
+        ex1.value !== ex2.value)
+        return false;
+
+    return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
+}
+
+/**
+ * Returns true if the two input stack trace interfaces have the same content
+ */
+function isSameStacktrace(stack1, stack2) {
+    if (isOnlyOneTruthy(stack1, stack2))
+        return false;
+
+    var frames1 = stack1.frames;
+    var frames2 = stack2.frames;
+
+    // Exit early if frame count differs
+    if (frames1.length !== frames2.length)
+        return false;
+
+    // Iterate through every frame; bail out if anything differs
+    var a, b;
+    for (var i = 0; i < frames1.length; i++) {
+        a = frames1[i];
+        b = frames2[i];
+        if (a.filename !== b.filename ||
+            a.lineno !== b.lineno ||
+            a.colno !== b.colno ||
+            a['function'] !== b['function'])
+            return false;
+    }
+    return true;
 }
 
 /**

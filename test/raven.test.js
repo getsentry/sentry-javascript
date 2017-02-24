@@ -26,7 +26,9 @@ if (typeof window.console === 'undefined') {
 var SENTRY_DSN = 'http://abc@example.com:80/2';
 
 function setupRaven() {
-    Raven.config(SENTRY_DSN);
+    Raven.config(SENTRY_DSN, {
+        allowDuplicates: true
+    });
 }
 
 var Raven;
@@ -2562,26 +2564,6 @@ describe('Raven (public API)', function() {
         });
     });
 
-    describe('._captureUrlChange', function () {
-        it('should create a new breadcrumb from its "from" and "to" arguments', function () {
-            Raven._breadcrumbs = [];
-            Raven._captureUrlChange('/foo', '/bar');
-            assert.deepEqual(Raven._breadcrumbs, [
-                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
-            ]);
-        });
-
-        it('should strip protocol/host if passed URLs share the same origin as location.href', function () {
-            Raven._location = { href: 'http://example.com/foo' };
-            Raven._breadcrumbs = [];
-
-            Raven._captureUrlChange('http://example.com/foo', 'http://example.com/bar');
-            assert.deepEqual(Raven._breadcrumbs, [
-                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
-            ]);
-        });
-    });
-
     describe('.Raven.isSetup', function() {
         it('should work as advertised', function() {
             var isSetup = this.sinon.stub(Raven, 'isSetup');
@@ -2668,6 +2650,143 @@ describe('Raven (public API)', function() {
 
                 var script = this.appendChildStub.getCall(0).args[0];
                 assert.equal(script.src, 'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson%202&email=an2%40example.com');
+            });
+        });
+    });
+});
+
+describe('Raven (private methods)', function () {
+    beforeEach(function () {
+        this.clock = sinon.useFakeTimers();
+        this.clock.tick(0); // Raven initialized at time "0"
+        Raven = new _Raven();
+    });
+    
+   afterEach(function () {
+        this.clock.restore();
+    });
+
+    describe('._captureUrlChange', function () {
+        it('should create a new breadcrumb from its "from" and "to" arguments', function () {
+            this.clock.tick(100);
+            Raven._breadcrumbs = [];
+            Raven._captureUrlChange('/foo', '/bar');
+            assert.deepEqual(Raven._breadcrumbs, [
+                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+            ]);
+        });
+
+        it('should strip protocol/host if passed URLs share the same origin as location.href', function () {
+            this.clock.tick(100);
+            Raven._location = { href: 'http://example.com/foo' };
+            Raven._breadcrumbs = [];
+
+            Raven._captureUrlChange('http://example.com/foo', 'http://example.com/bar');
+            assert.deepEqual(Raven._breadcrumbs, [
+                { category: 'navigation', timestamp: 0.1, data: { from: '/foo', to: '/bar' }}
+            ]);
+        });
+    });
+
+    describe('._isRepeatData', function () {
+        describe('from captureMessage', function () {
+            beforeEach(function () {
+                Raven._lastData = {
+                    message: 'the thing broke'
+                }
+            });
+
+            it('should return true for duplicate captureMessage payloads', function () {
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                assert.isTrue(Raven._isRepeatData(data));
+            });
+
+            it('should return true for duplicate captureMessage payloads w/ synthetic traces', function () {
+                Raven._lastData.stacktrace = {
+                    frames: [{
+                        lineno: 100,
+                        colno: 1337,
+                        'function': 'lol',
+                        filename: 'https://example.com/js/foo.js'
+                    }]
+                };
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                assert.isTrue(Raven._isRepeatData(data));
+            });
+
+            it('should return false for different messages', function () {
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.message = 'the other thing broke';
+
+                assert.isFalse(Raven._isRepeatData(data));
+            });
+
+            it('should return false for different captureMessage payloads w/ synthetic traces', function () {
+                Raven._lastData.stacktrace = {
+                    frames: [{
+                        lineno: 100,
+                        colno: 1337,
+                        'function': 'lol',
+                        filename: 'https://example.com/js/foo.js'
+                    }, {
+                        lineno: 200,
+                        colno: 1338,
+                        'function': 'woo',
+                        filename: 'https://example.com/js/bar.js'
+                    }]
+                };
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.stacktrace.frames[0].lineno = 101;
+                assert.isFalse(Raven._isRepeatData(data));
+
+                data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.stacktrace.frames.shift(); // different frame count
+                assert.isFalse(Raven._isRepeatData(data));
+
+                data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.stacktrace = undefined; // no stacktrace, same msg
+                assert.isFalse(Raven._isRepeatData(data));
+            });
+        });
+
+        describe('from captureException/onerror', function () {
+            beforeEach(function () {
+                Raven._lastData = {
+                    culprit: 'https://example.com/js/foo.js',
+                    exception: {
+                        type: 'TypeError',
+                        value: 'foo is not defined',
+                        values: [{
+                            stacktrace: {
+                                frames: [{
+                                    lineno: 100,
+                                    colno: 1337,
+                                    'function': 'lol',
+                                    filename: 'https://example.com/js/foo.js'
+                                }]
+                            }
+                        }]
+                    }
+                }
+            });
+
+            it('should return true for duplicate exceptions', function () {
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                assert.isTrue(Raven._isRepeatData(data));
+            });
+
+            it('should return false for different exceptions', function () {
+                var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.culprit = 'https://example.com/js/bar.js';
+                assert.isFalse(Raven._isRepeatData(data));
+
+                data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.exception.values[0].stacktrace.frames[0].lineno = 101;
+                assert.isFalse(Raven._isRepeatData(data));
+
+                data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+                data.exception.values[0].stacktrace.frames = [];
+                assert.isFalse(Raven._isRepeatData(data));
             });
         });
     });

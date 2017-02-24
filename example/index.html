@@ -15,12 +15,9 @@ Raven.config('http://50dbe04cd1224d439e9c49bf1d0464df@localhost:8000/1', {
     whitelistUrls: [
         /localhost/,
         /127\.0\.0\.1/
-    ],
-    dataCallback: function(data) {
-        console.log(data);
-        return data;
-    }
+    ]
 }).install();
+Raven.debug = true;
 
 Raven.setUserContext({
     email: 'me@example.com',

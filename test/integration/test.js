@@ -85,7 +85,6 @@ describe('integration', function () {
                 function () {
                     setTimeout(done);
 
-
                     Raven.captureException({foo:'bar'});
                 },
                 function () {
@@ -117,6 +116,124 @@ describe('integration', function () {
                     assert.equal(ravenData.exception.values[0].type, 'Error');
                     assert.equal(ravenData.exception.values[0].value, 'lol');
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);
+                }
+            );
+        });
+
+        it('should reject duplicate, back-to-back errors from captureError', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    Raven._breadcrumbs = [];
+
+                    var count = 5;
+                    setTimeout(function invoke() {
+                        // use setTimeout to capture new error objects that have
+                        // identical stack traces (can't call sequentially or callsite
+                        // line number will change)
+                        //
+                        // order:
+                        //   Error: foo
+                        //   Error: foo (suppressed)
+                        //   Error: foo (suppressed)
+                        //   Error: bar
+                        //   Error: foo
+                        if (count === 2) {
+                            Raven.captureException(new Error('bar'));
+                        }
+                        else {
+                            Raven.captureException(new Error('foo'));
+                        }
+
+                        if (count-- === 0) return void done();
+                        else setTimeout(invoke);
+                    });
+                },
+                function () {
+                    var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+                    // use breadcrumbs to evaluate which errors were sent
+                    // NOTE: can't use ravenData because duplicate error suppression occurs
+                    //       AFTER dataCallback/shouldSendCallback (dataCallback will record
+                    //       duplicates but they ultimately won't be sent)
+                    assert.equal(breadcrumbs.length, 3);
+                    assert.equal(breadcrumbs[0].message, 'Error: foo');
+                    assert.equal(breadcrumbs[1].message, 'Error: bar');
+                    assert.equal(breadcrumbs[2].message, 'Error: foo');
+                }
+            );
+        });
+
+        it('should not reject back-to-back errors with different stack traces', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+                    Raven._breadcrumbs = [];
+
+                    // same error message, but different stacks means that these are considered
+                    // different errors
+                    // NOTE: PhantomJS can't derive function/lineno/colno from evaled frames, must
+                    //       use frames declared in frame.html (foo(), bar())
+
+                    // stack:
+                    //   bar
+                    try {
+                        bar(); // declared in frame.html
+                    } catch (e) {
+                        Raven.captureException(e);
+                    }
+
+                    // stack (different # frames):
+                    //   bar
+                    //   foo
+                    try {
+                        foo(); // declared in frame.html
+                    } catch (e) {
+                        Raven.captureException(e);
+                    }
+
+                    // stack (same # frames, different frames):
+                    //   bar
+                    //   foo2
+                    try {
+                        foo2(); // declared in frame.html
+                    } catch (e) {
+                        Raven.captureException(e);
+                    }
+                },
+                function () {
+                    var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+                    assert.equal(breadcrumbs.length, 3);
+                    // NOTE: regex because exact error message differs per-browser
+                    assert.match(breadcrumbs[0].message, /^ReferenceError.*baz/);
+                    assert.match(breadcrumbs[1].message, /^ReferenceError.*baz/);
+                    assert.match(breadcrumbs[2].message, /^ReferenceError.*baz/);
+                }
+            );
+        });
+
+        it('should reject duplicate, back-to-back messages from captureMessage', function (done) {
+            var iframe = this.iframe;
+            iframeExecute(iframe, done,
+                function () {
+                    setTimeout(done);
+
+                    Raven._breadcrumbs = [];
+
+                    Raven.captureMessage('this is fine');
+                    Raven.captureMessage('this is fine'); // suppressed
+                    Raven.captureMessage('this is fine', { stacktrace: true });
+                    Raven.captureMessage('i\'m okay with the events that are unfolding currently');
+                    Raven.captureMessage('that\'s okay, things are going to be okay');
+                },
+                function () {
+                    var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+
+                    assert.equal(breadcrumbs.length, 4);
+                    assert.equal(breadcrumbs[0].message, 'this is fine');
+                    assert.equal(breadcrumbs[1].message, 'this is fine'); // with stacktrace
+                    assert.equal(breadcrumbs[2].message, 'i\'m okay with the events that are unfolding currently');
+                    assert.equal(breadcrumbs[3].message, 'that\'s okay, things are going to be okay');
                 }
             );
         });
