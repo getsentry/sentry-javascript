@@ -359,6 +359,43 @@ Sentry expects that source code and source maps in a given release are uploaded 
 
 If you upload artifacts **after** an error is captured by Sentry, Sentry will not go back and retroactively apply any source annotations to those errors. Only new errors triggered after the artifact was uploaded will be affected.
 
+Verify your source maps work locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you find that Sentry is not mapping filename, line, or column mappings correctly, you should verify that your source maps are functioning locally. To do so, you can use Node.js coupled with Mozilla's `source-map library <https://github.com/mozilla/source-map>`_.
+
+First, install ``source-map`` globally as an npm module:
+
+.. code-block:: bash
+
+    npm install -g source-map
+
+Then, write a script that reads your source map file and tests a mapping. Here's an example:
+
+.. code-block:: JavaScript
+
+    var fs        = require('fs'),
+        path      = require('path'),
+        sourceMap = require('source-map');
+
+    // file output by Webpack, Uglify, etc.
+    var GENERATED_FILE = path.join('.', 'app.min.js.map');
+
+    // line and column located in your generated file (e.g. source of your error
+    // from your minified file)
+    var GENERATED_LINE_AND_COLUMN = {line: 1, column: 1000};
+
+    var rawSourceMap = fs.readFileSync(GENERATED_FILE).toString();
+    var smc = new sourceMap.SourceMapConsumer(rawSourceMap);
+
+    var pos = smc.originalPositionFor(GENERATED_LINE_AND_COLUMN);
+
+    // should see something like:
+    // { source: 'original.js', line: 57, column: 9, name: 'myfunc' }
+    console.log(pos);
+
+If you have the same (incorrect) results locally as you do via Sentry, double-check your source map generation configuration.
+
 Verify your source files are not too large
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
