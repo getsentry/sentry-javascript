@@ -204,9 +204,10 @@ describe('integration', function () {
                 function () {
                     var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
                     assert.equal(breadcrumbs.length, 3);
-                    assert.equal(breadcrumbs[0].message, 'ReferenceError: Can\'t find variable: baz');
-                    assert.equal(breadcrumbs[1].message, 'ReferenceError: Can\'t find variable: baz');
-                    assert.equal(breadcrumbs[2].message, 'ReferenceError: Can\'t find variable: baz');
+                    // NOTE: regex because exact error message differs per-browser
+                    assert.match(breadcrumbs[0].message, /^ReferenceError.*baz/);
+                    assert.match(breadcrumbs[1].message, /^ReferenceError.*baz/);
+                    assert.match(breadcrumbs[2].message, /^ReferenceError.*baz/);
                 }
             );
         });
