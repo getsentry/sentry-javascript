@@ -1,3 +1,8 @@
+# 1.1.3 - 2/27/2017
+- Add `parseUser` option to control user parsing behavior [See #274]
+- Make http instrumentation use `req.emit` instead of response event handler [See #276]
+- Add alert about raven-node vs raven-js when it seems like a browser env [See #277]
+
 # 1.1.2 - 2/8/2017
 - Send kwargs to `shouldSendCallback` [See #251]
 - Capture breadcrumbs from global context [See #267]
