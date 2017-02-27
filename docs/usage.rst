@@ -165,7 +165,7 @@ All optional attributes are passed as part of the options to ``captureException`
 
 .. describe:: fingerprint
 
-    The fingerprint for grouping this event.
+    The fingerprint for grouping this event. Learn more how `Sentry groups errors <https://docs.sentry.io/learn/rollups/>`__.
 
     .. code-block:: javascript
 
