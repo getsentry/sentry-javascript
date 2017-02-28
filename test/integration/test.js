@@ -256,6 +256,57 @@ describe('integration', function () {
             );
         });
 
+        it('should catch thrown strings', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    // intentionally loading this error via a script file to make
+                    // sure it is 1) not caught by instrumentation 2) doesn't trigger
+                    // "Script error"
+                    var script = document.createElement('script');
+                    script.src = 'throw-string.js';
+                    script.onload = function () {
+                        done();
+                    };
+                    document.head.appendChild(script);
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    assert.match(ravenData.exception.values[0].value, /stringError$/);
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);  // always 1 because thrown strings can't provide > 1 frame
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\/throw-string\.js/)
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0]['function'], /\?|global code/);
+                }
+            );
+        });
+
+        it('should catch thrown errors', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    // intentionally loading this error via a script file to make
+                    // sure it is 1) not caught by instrumentation 2) doesn't trigger
+                    // "Script error"
+                    var script = document.createElement('script');
+                    script.src = 'throw-error.js';
+                    script.onload = function () {
+                        done();
+                    };
+                    document.head.appendChild(script);
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    assert.match(ravenData.exception.values[0].type, /^Error/);
+                    assert.match(ravenData.exception.values[0].value, /realError$/);
+                    assert.isAbove(ravenData.exception.values[0].stacktrace.frames.length, 0); // 1 or 2 depending on platform
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\/throw-error\.js/)
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0]['function'], /\?|global code/);
+                }
+            );
+        });
+
         it('should NOT catch an exception already caught via Raven.wrap', function (done) {
             var iframe = this.iframe;
 

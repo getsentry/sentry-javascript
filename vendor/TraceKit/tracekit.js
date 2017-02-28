@@ -26,7 +26,7 @@ var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error#Error_types
-var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error): ?(.*)$/;
+var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): ?(.*)$/;
 
 function getLocationHref() {
     if (typeof document === 'undefined' || typeof document.location === 'undefined')
@@ -152,7 +152,11 @@ TraceKit.report = (function reportModuleWrapper() {
         if (lastExceptionStack) {
             TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
             processLastException();
-        } else if (ex) {
+        } else if (ex && typeof ex === 'object') {
+            // intentionally a "weak" object check here - want to accept
+            // Error-like objects just in case (previously *any* truthy ex value)
+            // triggered this branch
+
             // New chrome and blink send along a real error object
             // Let's just report that like a normal error.
             // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
@@ -595,7 +599,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 throw e;
             }
         }
-
         return {
             'name': ex.name,
             'message': ex.message,
