@@ -340,7 +340,7 @@ CapturedExceptions.PHANTOMJS_1_19 = {
     "    at http://path/to/file.js:4287"
 };
 
-CapturedExceptions.FIREFOX_50_RESOURCE_URL= {
+CapturedExceptions.FIREFOX_50_RESOURCE_URL = {
     stack: 'render@resource://path/data/content/bundle.js:5529:16\n' +
     'dispatchEvent@resource://path/data/content/vendor.bundle.js:18:23028\n' +
     'wrapped@resource://path/data/content/bundle.js:7270:25',
@@ -349,6 +349,21 @@ CapturedExceptions.FIREFOX_50_RESOURCE_URL= {
     columnNumber: 16,
     message: 'this.props.raw[this.state.dataSource].rows is undefined',
     name: 'TypeError'
+};
+
+CapturedExceptions.ANDROID_REACT_NATIVE = {
+    message: 'Error: test',
+    name: 'Error',
+    stack: 'Error: test\n' +
+    'at render(/home/username/sample-workspace/sampleapp.collect.react/src/components/GpsMonitorScene.js:78:24)\n' +
+    'at _renderValidatedComponentWithoutOwnerOrContext(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactCompositeComponent.js:1050:29)\n' +
+    'at _renderValidatedComponent(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactCompositeComponent.js:1075:15)\n' +
+    'at renderedElement(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactCompositeComponent.js:484:29)\n' +
+    'at _currentElement(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactCompositeComponent.js:346:40)\n' +
+    'at child(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactReconciler.js:68:25)\n' +
+    'at children(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/shared/stack/reconciler/ReactMultiChild.js:264:10)\n' +
+    'at this(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/native/ReactNativeBaseComponent.js:74:41)\n'
+
 };
 
 module.exports = CapturedExceptions;

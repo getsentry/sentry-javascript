@@ -216,6 +216,12 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack.length, 3);
             assert.deepEqual(stackFrames.stack[0], { url: 'resource://path/data/content/bundle.js', func: 'render', args: [], line: 5529, column: 16 });
         });
-
+        it('should parse React Native errors on Android', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.ANDROID_REACT_NATIVE);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 8);
+            assert.deepEqual(stackFrames.stack[0], { url: '/home/username/sample-workspace/sampleapp.collect.react/src/components/GpsMonitorScene.js', func: 'render', args: [], line: 78, column: 24 });
+            assert.deepEqual(stackFrames.stack[7], { url: '/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/native/ReactNativeBaseComponent.js', func: 'this', args: [], line: 74, column: 41 });
+        });
     });
 });

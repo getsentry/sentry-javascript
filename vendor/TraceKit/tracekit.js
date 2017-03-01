@@ -385,7 +385,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     function computeStackTraceFromStackProp(ex) {
         if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
-        var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|<anonymous>).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+        var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|resource|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
@@ -396,7 +396,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         for (var i = 0, j = lines.length; i < j; ++i) {
             if ((parts = chrome.exec(lines[i]))) {
-                var isNative = parts[2] && parts[2].indexOf('native') !== -1;
+                var isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
                 element = {
                     'url': !isNative ? parts[2] : null,
                     'func': parts[1] || UNKNOWN_FUNCTION,
