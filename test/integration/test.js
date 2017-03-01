@@ -275,7 +275,39 @@ describe('integration', function () {
                     var ravenData = iframe.contentWindow.ravenData[0];
                     assert.match(ravenData.exception.values[0].value, /stringError$/);
                     assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);  // always 1 because thrown strings can't provide > 1 frame
-                    assert.match(ravenData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\/throw-string\.js/)
+
+                    // some browsers extract proper url, line, and column for thrown strings
+                    // but not all - falls back to frame url
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0]['function'], /\?|global code/);
+                }
+            );
+        });
+
+        it('should catch thrown objects', function (done) {
+            var iframe = this.iframe;
+
+            iframeExecute(iframe, done,
+                function () {
+                    // intentionally loading this error via a script file to make
+                    // sure it is 1) not caught by instrumentation 2) doesn't trigger
+                    // "Script error"
+                    var script = document.createElement('script');
+                    script.src = 'throw-object.js';
+                    script.onload = function () {
+                        done();
+                    };
+                    document.head.appendChild(script);
+                },
+                function () {
+                    var ravenData = iframe.contentWindow.ravenData[0];
+                    assert.equal(ravenData.exception.values[0].type, undefined);
+                    assert.equal(ravenData.exception.values[0].value, '[object Object]');
+                    assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
+
+                    // some browsers extract proper url, line, and column for thrown objects
+                    // but not all - falls back to frame url
+                    assert.match(ravenData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
                     assert.match(ravenData.exception.values[0].stacktrace.frames[0]['function'], /\?|global code/);
                 }
             );

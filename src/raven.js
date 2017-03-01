@@ -3,6 +3,11 @@
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
 var RavenConfigError = require('./configError');
+var utils = require('./utils');
+
+var isError = utils.isError,
+    isObject = utils.isObject;
+
 var stringify = require('json-stringify-safe');
 
 var wrapConsoleMethod = require('./console').wrapMethod;
@@ -1655,23 +1660,10 @@ function isString(what) {
     return objectPrototype.toString.call(what) === '[object String]';
 }
 
-function isObject(what) {
-    return typeof what === 'object' && what !== null;
-}
 
 function isEmptyObject(what) {
     for (var _ in what) return false;  // eslint-disable-line guard-for-in, no-unused-vars
     return true;
-}
-
-// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
-// with some tiny modifications
-function isError(what) {
-    var toString = objectPrototype.toString.call(what);
-    return isObject(what) &&
-        toString === '[object Error]' ||
-        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
-        what instanceof Error;
 }
 
 function each(obj, callback) {
