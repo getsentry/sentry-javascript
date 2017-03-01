@@ -35,6 +35,7 @@ function getLocationHref() {
     return document.location.href;
 }
 
+
 /**
  * TraceKit.report: cross-browser processing of unhandled exceptions
  *
@@ -152,10 +153,8 @@ TraceKit.report = (function reportModuleWrapper() {
         if (lastExceptionStack) {
             TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
             processLastException();
-        } else if (ex && typeof ex === 'object') {
-            // intentionally a "weak" object check here - want to accept
-            // Error-like objects just in case (previously *any* truthy ex value)
-            // triggered this branch
+        } else if (ex && {}.toString.call(ex) !== '[object String]') {
+            // non-string `ex` arg; attempt to extract stack trace
 
             // New chrome and blink send along a real error object
             // Let's just report that like a normal error.
