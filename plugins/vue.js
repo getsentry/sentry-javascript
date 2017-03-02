@@ -27,12 +27,17 @@ function vuePlugin(Raven, Vue) {
             ? vm.$store.state
             : null
         
-        Raven.captureException(error, {
-          extra: {
-            state: state,
+        var extra = {
             componentName: formatComponentName(vm),
             propsData: vm.$options.propsData
-          }
+        };
+        
+        if (state) {
+            extra.state = state;
+        }
+        
+        Raven.captureException(error, {
+          extra: extra
         });
 
         if (typeof _oldOnError === 'function') {
