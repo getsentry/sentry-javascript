@@ -23,7 +23,9 @@ function vuePlugin(Raven, Vue) {
 
     var _oldOnError = Vue.config.errorHandler;
     Vue.config.errorHandler = function VueErrorHandler(error, vm) {
-        var state = vm.$store.state
+        var state = vm.$store 
+            ? vm.$store.state
+            : null
         
         Raven.captureException(error, {
           extra: {
