@@ -951,6 +951,21 @@ describe('raven.Client', function () {
       });
     });
 
+    it('should not die to console log of prototypeless object', function (done) {
+      client = new raven.Client(dsn, { autoBreadcrumbs: { console: true } });
+      client.install();
+
+      client.context(function () {
+        var x = Object.create(null);
+        x.a = 'b';
+        var y = Object.create(null);
+        y.c = 'd';
+        console.log(x, y);
+        client.getContext().breadcrumbs[0].message.should.equal('{ a: \'b\' } { c: \'d\' }');
+        done();
+      });
+    });
+
     it('should not die trying to instrument a missing module', function (done) {
       client = new raven.Client(dsn, { autoBreadcrumbs: { pg: true } });
       client.install();
