@@ -110,8 +110,8 @@ $ grunt run:docs
 _This is a checklist for core contributors when releasing a new version._
 
   * [ ] Verify TypeScript [language definition file](https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts) is up to date
-  * [ ] Bump version numbers in both `package.json` and `bower.json`.
-  * [ ] Bump version across all docs under `docs/`
+  * [ ] Bump version numbers in `package.json`, `bower.json`, and `docs/sentry-doc-config.json`.
+  * [ ] Bump version numbers in `src/raven.js`, and `test/raven.test.js`.
   * [ ] Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
   * [ ] `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
   * [ ] Confirm that build was fine, etc.
@@ -119,9 +119,9 @@ _This is a checklist for core contributors when releasing a new version._
   * [ ] Copy CHANGELOG entry into a new GH Release: https://github.com/getsentry/raven-js/releases
   * [ ] `$ grunt publish` to recompile all plugins and all permutations and upload to S3.
   * [ ] `$ npm publish` to push to npm.
+  * [ ] Deploy [docs](https://github.com/getsentry/sentry-docs) so that docs, code examples display the latest version change.
   * [ ] Confirm that the new version exists behind `cdn.ravenjs.com`
   * [ ] Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.
-  * [ ] Bump marketing pages on sentry.io, e.g. https://sentry.io/for/javascript/
   * [ ] Bump sentry.io `<script>` tag of raven.js
   * [ ] Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/master/package.json
   * [ ] Bump version for Segment integration since they don't: https://github.com/segment-integrations/analytics.js-integration-sentry
