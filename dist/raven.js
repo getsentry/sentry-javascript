@@ -1,4 +1,4 @@
-/*! Raven.js 3.11.0 (cb87941) | github.com/getsentry/raven-js */
+/*! Raven.js 3.12.1 (3600a05) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -95,8 +95,13 @@ module.exports = {
 /*global XDomainRequest:false, __DEV__:false*/
 'use strict';
 
-var TraceKit = _dereq_(6);
+var TraceKit = _dereq_(7);
 var RavenConfigError = _dereq_(2);
+var utils = _dereq_(6);
+
+var isError = utils.isError,
+    isObject = utils.isObject;
+
 var stringify = _dereq_(1);
 
 var wrapConsoleMethod = _dereq_(3).wrapMethod;
@@ -176,7 +181,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.11.0',
+    VERSION: '3.12.1',
 
     debug: false,
 
@@ -1749,23 +1754,10 @@ function isString(what) {
     return objectPrototype.toString.call(what) === '[object String]';
 }
 
-function isObject(what) {
-    return typeof what === 'object' && what !== null;
-}
 
 function isEmptyObject(what) {
     for (var _ in what) return false;  // eslint-disable-line guard-for-in, no-unused-vars
     return true;
-}
-
-// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
-// with some tiny modifications
-function isError(what) {
-    var toString = objectPrototype.toString.call(what);
-    return isObject(what) &&
-        toString === '[object Error]' ||
-        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
-        what instanceof Error;
 }
 
 function each(obj, callback) {
@@ -2067,7 +2059,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 module.exports = Raven;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"1":1,"2":2,"3":3,"6":6}],5:[function(_dereq_,module,exports){
+},{"1":1,"2":2,"3":3,"6":6,"7":7}],5:[function(_dereq_,module,exports){
 (function (global){
 /**
  * Enforces a single instance of the Raven client, and the
@@ -2105,8 +2097,31 @@ module.exports = Raven;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"4":4}],6:[function(_dereq_,module,exports){
+'use strict';
+
+function isObject(what) {
+    return typeof what === 'object' && what !== null;
+}
+
+// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
+// with some tiny modifications
+function isError(what) {
+    var toString = {}.toString.call(what);
+    return isObject(what) &&
+        toString === '[object Error]' ||
+        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
+        what instanceof Error;
+}
+
+module.exports = {
+    isObject: isObject,
+    isError: isError
+};
+},{}],7:[function(_dereq_,module,exports){
 (function (global){
 'use strict';
+
+var utils = _dereq_(6);
 
 /*
  TraceKit - Cross brower stack traces
@@ -2134,7 +2149,7 @@ var _slice = [].slice;
 var UNKNOWN_FUNCTION = '?';
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error#Error_types
-var ERROR_TYPES_RE = /^(?:Uncaught (?:exception: )?)?((?:Eval|Internal|Range|Reference|Syntax|Type|URI)Error): ?(.*)$/;
+var ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/;
 
 function getLocationHref() {
     if (typeof document === 'undefined' || typeof document.location === 'undefined')
@@ -2142,6 +2157,7 @@ function getLocationHref() {
 
     return document.location.href;
 }
+
 
 /**
  * TraceKit.report: cross-browser processing of unhandled exceptions
@@ -2260,7 +2276,9 @@ TraceKit.report = (function reportModuleWrapper() {
         if (lastExceptionStack) {
             TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
             processLastException();
-        } else if (ex) {
+        } else if (ex && utils.isError(ex)) {
+            // non-string `ex` arg; attempt to extract stack trace
+
             // New chrome and blink send along a real error object
             // Let's just report that like a normal error.
             // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
@@ -2703,7 +2721,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                 throw e;
             }
         }
-
         return {
             'name': ex.name,
             'message': ex.message,
@@ -2720,5 +2737,5 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 module.exports = TraceKit;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[5])(5)
+},{"6":6}]},{},[5])(5)
 });

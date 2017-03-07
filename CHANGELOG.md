@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.12.1
+* BUGFIX: Fix Raven.js not properly catching some thrown messages, objects. See: https://github.com/getsentry/raven-js/pull/872
+
 ## 3.12.0
 * NEW: Raven.js now attempts to suppress back-to-back duplicate errors by default. See: https://github.com/getsentry/raven-js/pull/861
 * BUGFIX: Fix case where breadcrumb instrumention could sometimes throw errors on custom DOM events. See: https://github.com/getsentry/raven-js/pull/857
