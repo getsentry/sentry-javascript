@@ -1,3 +1,6 @@
+# 1.1.4 - 3/6/2017
+- Use `util.format` to get message string in `console` instrumentation [See #289]
+
 # 1.1.3 - 2/27/2017
 - Add `parseUser` option to control user parsing behavior [See #274]
 - Make http instrumentation use `req.emit` instead of response event handler [See #276]
