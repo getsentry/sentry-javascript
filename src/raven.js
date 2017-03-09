@@ -2,13 +2,12 @@
 'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
+var stringify = require('../vendor/json-stringify-safe/stringify');
 var RavenConfigError = require('./configError');
 var utils = require('./utils');
 
 var isError = utils.isError,
     isObject = utils.isObject;
-
-var stringify = require('json-stringify-safe');
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
