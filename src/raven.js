@@ -1240,7 +1240,7 @@ Raven.prototype = {
 
     _normalizeUrl: function(url) {
         return url
-            .replace(/^chrome-extension\:\/\/[A-z]*\//, '');
+            .replace(/^chrome-extension\:\/\/[A-z]*\//, 'app:///');
     },
 
     _normalizeFrame: function(frame) {
