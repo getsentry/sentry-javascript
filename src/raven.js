@@ -1584,24 +1584,18 @@ Raven.prototype = {
         if (!hasCORS) return;
 
         var url = opts.url;
-        function handler() {
-            if (request.status === 200) {
-                if (opts.onSuccess) {
-                    opts.onSuccess();
-                }
-            } else if (opts.onError) {
-                var err = new Error('Sentry error code: ' + request.status);
-                err.request = request;
-                opts.onError(err);
-            }
-        }
 
         if ('withCredentials' in request) {
             request.onreadystatechange = function () {
                 if (request.readyState !== 4) {
                     return;
+                } else if (request.status === 200) {
+                    opts.onSuccess && opts.onSuccess();
+                } else if (opts.onError) {
+                    var err = new Error('Sentry error code: ' + request.status);
+                    err.request = request;
+                    opts.onError(err);
                 }
-                handler();
             };
         } else {
             request = new XDomainRequest();
@@ -1610,7 +1604,16 @@ Raven.prototype = {
             url = url.replace(/^https?:/, '');
 
             // onreadystatechange not supported by XDomainRequest
-            request.onload = handler;
+            if (opts.onSuccess) {
+                request.onload = opts.onSuccess;
+            }
+            if (opts.onError) {
+                request.onerror = function () {
+                    var err = new Error('Sentry error code: XDomainRequest');
+                    err.request = request;
+                    opts.onError(err);
+                }
+            }
         }
 
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
