@@ -1,5 +1,7 @@
+/*global Mocha, assert*/
 var Sinon = require("sinon")
-var stringify = require("..")
+var stringify = require('../../vendor/json-stringify-safe/stringify');
+
 function jsonify(obj) { return JSON.stringify(obj, null, 2) }
 
 describe("Stringify", function() {
@@ -7,21 +9,21 @@ describe("Stringify", function() {
     var obj = {name: "Alice"}
     obj.self = obj
     var json = stringify(obj, null, 2)
-    json.must.eql(jsonify({name: "Alice", self: "[Circular ~]"}))
+    assert.deepEqual(json, jsonify({name: "Alice", self: "[Circular ~]"}))
   })
 
   it("must stringify circular objects with intermediaries", function() {
     var obj = {name: "Alice"}
     obj.identity = {self: obj}
     var json = stringify(obj, null, 2)
-    json.must.eql(jsonify({name: "Alice", identity: {self: "[Circular ~]"}}))
+    assert.deepEqual(json, jsonify({name: "Alice", identity: {self: "[Circular ~]"}}))
   })
 
   it("must stringify circular objects deeper", function() {
     var obj = {name: "Alice", child: {name: "Bob"}}
     obj.child.self = obj.child
 
-    stringify(obj, null, 2).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2), jsonify({
       name: "Alice",
       child: {name: "Bob", self: "[Circular ~.child]"}
     }))
@@ -31,7 +33,7 @@ describe("Stringify", function() {
     var obj = {name: "Alice", child: {name: "Bob"}}
     obj.child.identity = {self: obj.child}
 
-    stringify(obj, null, 2).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2), jsonify({
       name: "Alice",
       child: {name: "Bob", identity: {self: "[Circular ~.child]"}}
     }))
@@ -41,7 +43,7 @@ describe("Stringify", function() {
     var obj = {name: "Alice"}
     obj.self = [obj, obj]
 
-    stringify(obj, null, 2).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2), jsonify({
       name: "Alice", self: ["[Circular ~]", "[Circular ~]"]
     }))
   })
@@ -51,7 +53,7 @@ describe("Stringify", function() {
     obj.children[0].self = obj.children[0]
     obj.children[1].self = obj.children[1]
 
-    stringify(obj, null, 2).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2), jsonify({
       name: "Alice",
       children: [
         {name: "Bob", self: "[Circular ~.children.0]"},
@@ -65,7 +67,7 @@ describe("Stringify", function() {
     obj.push(obj)
     obj.push(obj)
     var json = stringify(obj, null, 2)
-    json.must.eql(jsonify(["[Circular ~]", "[Circular ~]"]))
+    assert.deepEqual(json, jsonify(["[Circular ~]", "[Circular ~]"]))
   })
 
   it("must stringify circular arrays with intermediaries", function() {
@@ -73,7 +75,7 @@ describe("Stringify", function() {
     obj.push({name: "Alice", self: obj})
     obj.push({name: "Bob", self: obj})
 
-    stringify(obj, null, 2).must.eql(jsonify([
+    assert.deepEqual(stringify(obj, null, 2), jsonify([
       {name: "Alice", self: "[Circular ~]"},
       {name: "Bob", self: "[Circular ~]"}
     ]))
@@ -85,7 +87,7 @@ describe("Stringify", function() {
     obj.alice1 = alice
     obj.alice2 = alice
 
-    stringify(obj, null, 2).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2), jsonify({
       alice1: {name: "Alice"},
       alice2: {name: "Alice"}
     }))
@@ -95,7 +97,7 @@ describe("Stringify", function() {
     var alice = {name: "Alice"}
     var obj = [alice, alice]
     var json = stringify(obj, null, 2)
-    json.must.eql(jsonify([{name: "Alice"}, {name: "Alice"}]))
+    assert.deepEqual(json, jsonify([{name: "Alice"}, {name: "Alice"}]))
   })
 
   it("must call given decycler and use its output", function() {
@@ -105,15 +107,15 @@ describe("Stringify", function() {
 
     var decycle = Sinon.spy(function() { return decycle.callCount })
     var json = stringify(obj, null, 2, decycle)
-    json.must.eql(jsonify({a: 1, b: 2}, null, 2))
+    assert.deepEqual(json, jsonify({a: 1, b: 2}, null, 2))
 
-    decycle.callCount.must.equal(2)
-    decycle.thisValues[0].must.equal(obj)
-    decycle.args[0][0].must.equal("a")
-    decycle.args[0][1].must.equal(obj)
-    decycle.thisValues[1].must.equal(obj)
-    decycle.args[1][0].must.equal("b")
-    decycle.args[1][1].must.equal(obj)
+    assert.strictEqual(decycle.callCount, 2)
+    assert.strictEqual(decycle.thisValues[0], obj)
+    assert.strictEqual(decycle.args[0][0], "a")
+    assert.strictEqual(decycle.args[0][1], obj)
+    assert.strictEqual(decycle.thisValues[1], obj)
+    assert.strictEqual(decycle.args[1][0], "b")
+    assert.strictEqual(decycle.args[1][1], obj)
   })
 
   it("must call replacer and use its output", function() {
@@ -121,20 +123,20 @@ describe("Stringify", function() {
 
     var replacer = Sinon.spy(bangString)
     var json = stringify(obj, replacer, 2)
-    json.must.eql(jsonify({name: "Alice!", child: {name: "Bob!"}}))
+    assert.deepEqual(json, jsonify({name: "Alice!", child: {name: "Bob!"}}))
 
-    replacer.callCount.must.equal(4)
-    replacer.args[0][0].must.equal("")
-    replacer.args[0][1].must.equal(obj)
-    replacer.thisValues[1].must.equal(obj)
-    replacer.args[1][0].must.equal("name")
-    replacer.args[1][1].must.equal("Alice")
-    replacer.thisValues[2].must.equal(obj)
-    replacer.args[2][0].must.equal("child")
-    replacer.args[2][1].must.equal(obj.child)
-    replacer.thisValues[3].must.equal(obj.child)
-    replacer.args[3][0].must.equal("name")
-    replacer.args[3][1].must.equal("Bob")
+    assert.strictEqual(replacer.callCount, 4)
+    assert.strictEqual(replacer.args[0][0], "")
+    assert.strictEqual(replacer.args[0][1], obj)
+    assert.strictEqual(replacer.thisValues[1], obj)
+    assert.strictEqual(replacer.args[1][0], "name")
+    assert.strictEqual(replacer.args[1][1], "Alice")
+    assert.strictEqual(replacer.thisValues[2], obj)
+    assert.strictEqual(replacer.args[2][0], "child")
+    assert.strictEqual(replacer.args[2][1], obj.child)
+    assert.strictEqual(replacer.thisValues[3], obj.child)
+    assert.strictEqual(replacer.args[3][0], "name")
+    assert.strictEqual(replacer.args[3][1], "Bob")
   })
 
   it("must call replacer after describing circular references", function() {
@@ -143,17 +145,17 @@ describe("Stringify", function() {
 
     var replacer = Sinon.spy(bangString)
     var json = stringify(obj, replacer, 2)
-    json.must.eql(jsonify({name: "Alice!", self: "[Circular ~]!"}))
+    assert.deepEqual(json, jsonify({name: "Alice!", self: "[Circular ~]!"}))
 
-    replacer.callCount.must.equal(3)
-    replacer.args[0][0].must.equal("")
-    replacer.args[0][1].must.equal(obj)
-    replacer.thisValues[1].must.equal(obj)
-    replacer.args[1][0].must.equal("name")
-    replacer.args[1][1].must.equal("Alice")
-    replacer.thisValues[2].must.equal(obj)
-    replacer.args[2][0].must.equal("self")
-    replacer.args[2][1].must.equal("[Circular ~]")
+    assert.strictEqual(replacer.callCount, 3)
+    assert.strictEqual(replacer.args[0][0], "")
+    assert.strictEqual(replacer.args[0][1], obj)
+    assert.strictEqual(replacer.thisValues[1], obj)
+    assert.strictEqual(replacer.args[1][0], "name")
+    assert.strictEqual(replacer.args[1][1], "Alice")
+    assert.strictEqual(replacer.thisValues[2], obj)
+    assert.strictEqual(replacer.args[2][0], "self")
+    assert.strictEqual(replacer.args[2][1], "[Circular ~]")
   })
 
   it("must call given decycler and use its output for nested objects",
@@ -164,13 +166,13 @@ describe("Stringify", function() {
 
     var decycle = Sinon.spy(function() { return decycle.callCount })
     var json = stringify(obj, null, 2, decycle)
-    json.must.eql(jsonify({a: 1, b: {self: 2}}))
+    assert.deepEqual(json, jsonify({a: 1, b: {self: 2}}))
 
-    decycle.callCount.must.equal(2)
-    decycle.args[0][0].must.equal("a")
-    decycle.args[0][1].must.equal(obj)
-    decycle.args[1][0].must.equal("self")
-    decycle.args[1][1].must.equal(obj)
+    assert.strictEqual(decycle.callCount, 2)
+    assert.strictEqual(decycle.args[0][0], "a")
+    assert.strictEqual(decycle.args[0][1], obj)
+    assert.strictEqual(decycle.args[1][0], "self")
+    assert.strictEqual(decycle.args[1][1], obj)
   })
 
   it("must use decycler's output when it returned null", function() {
@@ -179,7 +181,7 @@ describe("Stringify", function() {
     obj.selves = [obj, obj]
 
     function decycle() { return null }
-    stringify(obj, null, 2, decycle).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2, decycle), jsonify({
       a: "b",
       self: null,
       selves: [null, null]
@@ -192,7 +194,7 @@ describe("Stringify", function() {
     obj.selves = [obj, obj]
 
     function decycle() {}
-    stringify(obj, null, 2, decycle).must.eql(jsonify({
+    assert.deepEqual(stringify(obj, null, 2, decycle), jsonify({
       a: "b",
       selves: [null, null]
     }))
@@ -204,7 +206,7 @@ describe("Stringify", function() {
     var err
     function identity(key, value) { return value }
     try { stringify(obj, null, 2, identity) } catch (ex) { err = ex }
-    err.must.be.an.instanceof(TypeError)
+    assert.ok(err instanceof TypeError)
   })
 
   describe(".getSerialize", function() {
@@ -214,7 +216,7 @@ describe("Stringify", function() {
       obj.list = [obj, obj]
 
       var json = JSON.stringify(obj, stringify.getSerialize(), 2)
-      json.must.eql(jsonify({
+      assert.deepEqual(json, jsonify({
         "a": "b",
         "circularRef": "[Circular ~]",
         "list": ["[Circular ~]", "[Circular ~]"]
@@ -233,10 +235,10 @@ describe("Stringify", function() {
       var serializer = stringify.getSerialize()
 
       json = JSON.stringify(obj, serializer, 2)
-      json.must.eql(jsonify({name: "Alice", self: "[Circular ~]"}))
+      assert.deepEqual(json, jsonify({name: "Alice", self: "[Circular ~]"}))
 
       json = JSON.stringify(obj, serializer, 2)
-      json.must.eql(jsonify({name: "Alice", self: "[Circular ~]"}))
+      assert.deepEqual(json, jsonify({name: "Alice", self: "[Circular ~]"}))
     })
   })
 })
