@@ -145,6 +145,17 @@ Those configuration options are documented below:
             includePaths: [/https?:\/\/getsentry\.com/, /https?:\/\/cdn\.getsentry\.com/]
         }
 
+.. describe:: sampleRate
+
+    A sampling rate to apply to events. A value of 0.0 will send no events,
+    and a value of 1.0 will send all events (default).
+
+    .. code-block:: javascript
+
+        {
+            sampleRate: 0.5 // send 50% of events, drop the other half
+        }
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
