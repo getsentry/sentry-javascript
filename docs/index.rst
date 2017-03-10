@@ -146,6 +146,8 @@ The table below describes what features are available in each supported browser:
 | Android Browser 4 - 4.3 | ✓            |                |             |
 +-------------------------+--------------+----------------+-------------+
 
+For browsers with Web Worker support, Raven.js is designed to work inside a Web Worker context.
+
 For unlisted browsers (e.g. IE7), Raven.js is designed to fail gracefully. Including
 it on your page should have no effect on your page; it will just not collect
 and report uncaught exceptions.

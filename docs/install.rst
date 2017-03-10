@@ -99,10 +99,14 @@ To use Raven with ES2015 (ES6) imports:
 Requirements
 ~~~~~~~~~~~~
 
-Raven expects the browser to provide `window.JSON` and
-`window.JSON.stringify`. In Internet Explorer 8+ these are available in
-`standards mode
-<http://msdn.microsoft.com/en-us/library/cc288325(VS.85).aspx>`_.  You can
-also use `json2.js <https://github.com/douglascrockford/JSON-js>`_ to
-provide the JSON implementation in browsers/modes which don't support
-native JSON.
+Raven supports IE8+ and all other modern browsers, and works in Web Workers.
+
+Raven requires the browser JavaScript environment to provide:
+- Either `XHR Level 2 <http://caniuse.com/#feat=xhr2>`_ (IE10+, all other modern browsers)
+  or `XDomainRequest <https://developer.mozilla.org/en-US/docs/Web/API/XDomainRequest>`_ (IE8, IE9)
+- A global ``JSON`` object with ``JSON.stringify`` (IE8+ `standards mode
+<http://msdn.microsoft.com/en-us/library/cc288325(VS.85).aspx>`_, all other modern browsers)
+
+Raven does not support IE 7 or other older browsers which do not provide the required features listed above.
+On those older browsers, Raven.js is designed to fail gracefully; including it on your page
+will have no effect, but it won't collect and report uncaught exceptions.
