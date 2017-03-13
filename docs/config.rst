@@ -276,7 +276,7 @@ Those configuration options are documented below:
     When using Raven.js with a web application accessed via a browser over the web, you should
     only use your public DSN. But if you are using Raven.js in an environment like React Native or Electron,
     where your application is running "natively" on a device and not accessed at a web address, you may need
-    to use your secret DSN string. To do so, set ``allowPrivateKey: true`` during configuration.
+    to use your secret DSN string. To do so, set ``allowSecretKey: true`` during configuration.
 
 .. describe:: debug
 
