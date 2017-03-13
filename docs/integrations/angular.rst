@@ -95,7 +95,7 @@ Raven and the Raven Angular plugin can be loaded using a module loader like Brow
       .addPlugin(require('raven-js/plugins/angular'), angular)
       .install();
 
-Note that when using CommonJS-style imports, you must pass a reference to the `angular` as the second argument to `addPlugin`.
+Note that when using CommonJS-style imports, you must pass a reference to `angular` as the second argument to `addPlugin`.
 
 Angular Configuration
 ---------------------
