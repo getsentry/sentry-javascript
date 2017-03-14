@@ -1,11 +1,21 @@
+.. _react-native-pure-js:
+
 React Native
 ============
 
-React Native for Raven.js is a pure JavaScript error reporting solution. The plugin will report errors originating from React Native's
-JavaScript engine (e.g. programming errors like "x is undefined"), but might not catch errors that originate from the underlying
-operating system (iOS / Android) unless they happen to be transmitted to React Native's global error handler.
+React Native for Raven.js is a pure JavaScript error reporting solution.
+The plugin will report errors originating from React Native's JavaScript
+engine (e.g. programming errors like "x is undefined"), but might not
+catch errors that originate from the underlying operating system (iOS /
+Android) unless they happen to be transmitted to React Native's global
+error handler.
 
-Errors caught via the React Native plugin include stack traces, breadcrumbs, and allow for unminification via source maps.
+.. admonition:: Note
+
+    Unless you have specific reasons not to, it's recommended to instead
+    the new :ref:`react-native` client instead which supports native and
+    JavaScript crashes as well as an improved integration into the Xcode
+    build process.
 
 Installation
 ------------
