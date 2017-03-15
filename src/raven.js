@@ -52,7 +52,8 @@ function Raven() {
         collectWindowErrors: true,
         maxMessageLength: 0,
         stackTraceLimit: 50,
-        autoBreadcrumbs: true
+        autoBreadcrumbs: true,
+        sampleRate: 1
     };
     this._ignoreOnError = 0;
     this._isRavenInstalled = false;
@@ -1489,7 +1490,13 @@ Raven.prototype = {
             return;
         }
 
-        this._sendProcessedPayload(data);
+        if (typeof globalOptions.sampleRate === 'number') {
+            if (Math.random() < globalOptions.sampleRate) {
+                this._sendProcessedPayload(data);
+            }
+        } else {
+            this._sendProcessedPayload(data);
+        }
     },
 
     _getUuid: function () {
