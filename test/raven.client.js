@@ -523,6 +523,85 @@ describe('raven.Client', function () {
       });
     });
 
+    describe('sampleRate', function () {
+      var origRandom;
+      beforeEach(function () {
+        origRandom = Math.random;
+        Math.random = function () {
+          return 0.5;
+        };
+      });
+
+      afterEach(function () {
+        Math.random = origRandom;
+      });
+
+      it('should respect sampleRate to omit event', function (done) {
+        client = new raven.Client(dsn, {
+          sampleRate: 0.3
+        });
+
+        client.process({
+          message: 'test'
+        }, function (err, eventId) {
+          setTimeout(done, 10);
+        });
+      });
+
+      it('should respect sampleRate to include event', function (done) {
+        var scope = nock('https://app.getsentry.com')
+          .filteringRequestBody(/.*/, '*')
+          .post('/api/269/store/', '*')
+          .reply(200, function (uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+              var extra = msg.extra;
+
+              extra.should.have.property('foo');
+              done();
+            });
+            return 'OK';
+          });
+
+        client = new raven.Client(dsn, {
+          sampleRate: 0.8
+        });
+
+        client.process({
+          message: 'test',
+          extra: {
+            foo: 'bar'
+          }
+        });
+
+        client.on('logged', function () {
+          scope.done();
+        });
+      });
+
+      it('should always send if sampleRate is omitted', function (done) {
+        var scope = nock('https://app.getsentry.com')
+          .filteringRequestBody(/.*/, '*')
+          .post('/api/269/store/', '*')
+          .reply(200, function (uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+              if (err) return done(err);
+              done();
+            });
+            return 'OK';
+          });
+
+        client.process({
+          message: 'test'
+        });
+
+        client.on('logged', function () {
+          scope.done();
+        });
+      });
+    });
+
     it('should call the callback after sending', function (done) {
       var firedCallback = false;
       var sentResponse = false;
