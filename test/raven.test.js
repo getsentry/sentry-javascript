@@ -841,6 +841,28 @@ describe('globals', function() {
             });
         });
 
+        it('should respect `globalOptions.sampleRate` to omit event', function() {
+            Raven._globalOptions.sampleRate = 0.5;
+            this.sinon.stub(Math, 'random').returns(0.8);
+            this.sinon.stub(Raven, '_sendProcessedPayload');
+            Raven._send({message: 'bar'});
+            assert.isFalse(Raven._sendProcessedPayload.called);
+        });
+
+        it('should respect `globalOptions.sampleRate` to include event', function() {
+            Raven._globalOptions.sampleRate = 0.5;
+            this.sinon.stub(Math, 'random').returns(0.3);
+            this.sinon.stub(Raven, '_sendProcessedPayload');
+            Raven._send({message: 'bar'});
+            assert.isTrue(Raven._sendProcessedPayload.called);
+        });
+
+        it('should always send if `globalOptions.sampleRate` is omitted', function() {
+            this.sinon.stub(Raven, '_makeRequest');
+            Raven._send({message: 'bar'});
+            assert.isTrue(Raven._makeRequest.called);
+        });
+
         it('should strip empty tags', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');

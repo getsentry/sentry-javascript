@@ -1490,10 +1490,13 @@ Raven.prototype = {
             return;
         }
 
-        if (Math.random() < globalOptions.sampleRate) {
+        if (typeof globalOptions.sampleRate === 'number') {
+            if (Math.random() < globalOptions.sampleRate) {
+                this._sendProcessedPayload(data);
+            }
+        } else {
             this._sendProcessedPayload(data);
         }
-
     },
 
     _getUuid: function () {
