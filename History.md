@@ -1,3 +1,6 @@
+# 1.2.0 - 3/16/2017
+- Add sampleRate config option [See #292]
+
 # 1.1.5 - 3/16/2017
 - Fix memory leak in http autoBreadcrumb instrumentation [See #296]
 
