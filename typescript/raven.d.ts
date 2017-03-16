@@ -5,6 +5,7 @@
 declare var Raven: RavenStatic;
 
 export = Raven;
+export as namespace Raven;
 
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
