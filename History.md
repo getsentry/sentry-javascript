@@ -1,3 +1,6 @@
+# 1.1.5 - 3/16/2017
+- Fix memory leak in http autoBreadcrumb instrumentation [See #296]
+
 # 1.1.4 - 3/6/2017
 - Use `util.format` to get message string in `console` instrumentation [See #289]
 
