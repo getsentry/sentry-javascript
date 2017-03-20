@@ -53,7 +53,7 @@ interface RavenStatic {
     addPlugin(plugin: RavenPlugin, ...pluginArgs: any[]): RavenStatic;
 
     /**
-     * Wrap code within a context so Raven can capture errors reliably across domains that is 
+     * Wrap code within a context so Raven can capture errors reliably across domains that is
      * executed immediately.
      *
      * @param options A specific set of options for this context
@@ -96,7 +96,7 @@ interface RavenStatic {
      */
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
-    /** 
+    /**
      * Add a breadcrumb
      * @param crumb The trail which should be added to the trail
      */
@@ -114,29 +114,29 @@ interface RavenStatic {
      */
     setUserContext(): RavenStatic;
 
-    /** 
+    /**
      * Add arbitrary data to be sent along with the payload.
      * @param extra data of an arbitrary, nested type which will be added
      */
     setExtraContext(extra: { [prop: string]: any }): RavenStatic;
 
-    /** 
+    /**
      * Add additional tags to be sent along with payloads.
      * @param tags A key/value-pair which will be added
      */
     setTagsContext(tags: { [id: string]: string }): RavenStatic;
 
-    /** 
+    /**
      * Clear the whole currently set context.
      */
     clearContext(): RavenStatic;
 
-    /** 
+    /**
      * Get a copy of the current context.
      */
     getContext(): Object;
 
-    /** 
+    /**
      * Set environment of application
      * @param environment Typically something like 'production'
      */
@@ -148,7 +148,7 @@ interface RavenStatic {
      */
     setRelease(release: string): RavenStatic;
 
-    /** 
+    /**
      * Specify a callback function that can mutate or filter breadcrumbs when they are captured.
      * @param callback The function which applies the filter
      */
@@ -182,7 +182,7 @@ interface RavenStatic {
      */
     lastEventId(): string;
 
-    /** 
+    /**
      * Determine if Raven is setup and ready to go.
      */
     isSetup(): boolean;
@@ -237,8 +237,8 @@ export interface RavenOptions extends CommonRavenOptions {
     /** The log level associated with this event. Default: error */
     level?: string;
 
-    /** In some cases you may see issues where Sentry groups multiple events together when they 
-     * should be separate entities. In other cases, Sentry simply doesn’t group events together 
+    /** In some cases you may see issues where Sentry groups multiple events together when they
+     * should be separate entities. In other cases, Sentry simply doesn’t group events together
      * because they’re so sporadic that they never look the same. */
     fingerprint?: string[];
 
@@ -288,6 +288,12 @@ export interface RavenGlobalOptions extends CommonRavenOptions  {
 
     /** A function which allows mutation of the data payload right before being sent to Sentry */
     dataCallback?: (data: RavenOutgoingData) => RavenOutgoingData;
+
+    /** A function that allows filtering or mutating breadcrumb payloads. Return false to throw away the breadcrumb. */
+    breadcrumbCallback?: (data: RavenBreadcrumb) => RavenBreadcrumb;
+
+    /** A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default). */
+    sampleRate?: number;
 }
 
 export interface RavenWrapOptions extends RavenOptions {

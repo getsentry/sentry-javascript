@@ -1,4 +1,4 @@
-import Raven, {RavenOutgoingData} from "./raven"
+import Raven, {RavenOutgoingData, RavenBreadcrumb} from "./raven"
 
 // configuring:
 Raven.config('https://public@getsentry.com/1').install();
@@ -16,7 +16,8 @@ Raven.config(
         includePaths: [
             /https?:\/\/(www\.)?getsentry\.com/,
             /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
-        ]
+        ],
+        sampleRate: 0.5
     }
 ).install();
 
@@ -26,6 +27,8 @@ Raven.setDataCallback(function (data: RavenOutgoingData, original: string) {retu
 Raven.setShouldSendCallback((data: RavenOutgoingData)  => {return data});
 Raven.setShouldSendCallback(function (data: RavenOutgoingData, original: string) {return data});
 
+Raven.setBreadcrumbCallback(function (crumb: RavenBreadcrumb) {return crumb;});
+Raven.setBreadcrumbCallback(function (crumb: RavenBreadcrumb) {return false;});
 
 // context:
 Raven.context(throwsError);
