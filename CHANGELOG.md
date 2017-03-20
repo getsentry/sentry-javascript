@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.12.2
+* BUGFIX: Fix Raven.js not capturing IE8 errors. See: https://github.com/getsentry/raven-js/pull/883
+
 ## 3.12.1
 * BUGFIX: Fix Raven.js not properly catching some thrown messages, objects. See: https://github.com/getsentry/raven-js/pull/872
 
