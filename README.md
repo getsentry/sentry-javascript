@@ -1,4 +1,4 @@
-# Raven.js [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js)
+# Raven.js [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js) [![npm](https://img.shields.io/npm/v/raven-js.svg)](https://www.npmjs.com/package/raven-js) [![npm](https://img.shields.io/npm/dm/raven-js.svg)](https://www.npmjs.com/package/raven-js)
 
 Raven.js is the official browser JavaScript client for [Sentry](https://sentry.io/).
 
