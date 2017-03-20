@@ -68,6 +68,14 @@ function blobExample() {
     xhr.send();
 }
 
+function captureMessage() {
+  Raven.captureMessage('lol did it broke');
+}
+
+function captureException() {
+  Raven.captureException(new Error('lol did it broke'));
+}
+
 function a() { b(); }
 function b() { c(); }
 function c() { d(); }
