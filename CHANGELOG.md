@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.13.1
+* BUGFIX: Revert TypeScript declaration changes from 3.13.0 that resulted in bad imports. See: https://github.com/getsentry/raven-js/issues/898
+
 ## 3.13.0
 * NEW: Added new `sampleRate` config option. See: https://github.com/getsentry/raven-js/pull/885
 * CHANGE: TypeScript declaration file (raven.d.ts) has been improved considerably. See: https://github.com/getsentry/raven-js/pull/827
