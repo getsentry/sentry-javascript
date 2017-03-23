@@ -392,9 +392,10 @@ Raven.prototype = {
 
         if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
             var ex;
-            // create a stack trace from this point; just trim
-            // off extra frames so they don't include this function call (or
-            // earlier Raven.js library fn calls)
+            // Generate a "synthetic" stack trace from this point.
+            // NOTE: If you are a Sentry user, and you are seeing this stack frame, it is NOT indicative
+            //       of a bug with Raven.js. Sentry generates synthetic traces either by configuration,
+            //       or if it catches a thrown object without a "stack" property.
             try {
                 throw new Error(msg);
             } catch (ex1) {
@@ -408,6 +409,9 @@ Raven.prototype = {
                 // fingerprint on msg, not stack trace (legacy behavior, could be
                 // revisited)
                 fingerprint: msg,
+                // since we know this is a synthetic trace, the top N-most frames
+                // MUST be from Raven.js, so mark them as in_app later by setting
+                // trimHeadFrames
                 trimHeadFrames: (options.trimHeadFrames || 0) + 1
             }, options);
 
