@@ -1,29 +1,59 @@
-import Raven = require('..');
+import Raven, {RavenOutgoingData} from "./raven"
 
-Raven.config('https://public@sentry.io/1').install();
+// configuring:
+Raven.config('https://public@getsentry.com/1').install();
 
-var options = {
-    logger: 'my-logger',
-    ignoreUrls: [
-        /graph\.facebook\.com/i,
-        'graph.facebook.com'
-    ],
-    ignoreErrors: [
-        /fb_xd_fragment/,
-        'fb_xd_fragment'
-    ],
-    includePaths: [
-        /https?:\/\/(www\.)?getsentry\.com/,
-        'https://www.sentry.io'
-    ],
-    whitelistUrls: [
-        /https?:\/\/google\.com/,
-        'https://www.google.com'
-    ]
-};
+Raven.config(
+    'https://public@getsentry.com/1', 
+    {
+        logger: 'my-logger',
+        ignoreUrls: [
+            /graph\.facebook\.com/i
+        ],
+        ignoreErrors: [
+            'fb_xd_fragment'
+        ],
+        includePaths: [
+            /https?:\/\/(www\.)?getsentry\.com/,
+            /https?:\/\/d3nslu0hdya83q\.cloudfront\.net/
+        ]
+    }
+).install();
 
-Raven.config('https://public@sentry.io/1', options).install();
+Raven.setDataCallback((data: RavenOutgoingData) => {return data});
+Raven.setDataCallback(function (data: RavenOutgoingData, original: string) {return data});
 
+Raven.setShouldSendCallback((data: RavenOutgoingData)  => {return data});
+Raven.setShouldSendCallback(function (data: RavenOutgoingData, original: string) {return data});
+
+
+// context:
+Raven.context(throwsError);
+Raven.context({tags: { key: "value" }}, throwsError);
+Raven.context({extra: {planet: {name: 'Earth'}}}, throwsError);
+
+Raven.setUserContext({
+    email: 'matt@example.com',
+    id: '123'
+});
+
+Raven.setExtraContext({foo: 'bar'});
+
+Raven.setTagsContext({env: 'prod'});
+
+Raven.clearContext();
+
+var obj:Object = Raven.getContext();
+
+Raven.setRelease('abc123');
+Raven.setEnvironment('production');
+
+setTimeout(Raven.wrap(throwsError), 1000);
+Raven.wrap({logger: "my.module"}, throwsError)();
+Raven.wrap({tags: {git_commit: 'c0deb10c4'}}, throwsError)();
+
+
+// reporting:
 var throwsError = () => {
     throw new Error('broken');
 };
@@ -35,36 +65,22 @@ try {
     Raven.captureException(e, {tags: { key: "value" }});
 }
 
-Raven.context(throwsError);
-Raven.context({tags: { key: "value" }}, throwsError);
-
-setTimeout(Raven.wrap(throwsError), 1000);
-Raven.wrap({logger: "my.module"}, throwsError)();
-
-Raven.setUserContext({
-    email: 'matt@example.com',
-    id: '123'
-});
-
-Raven.setExtraContext({foo: 'bar'});
-Raven.setTagsContext({env: 'prod'});
-Raven.clearContext();
-var obj:Object = Raven.getContext();
-var err:Error = Raven.lastException();
-
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
-+Raven.captureMessage('Broken!', { stacktrace: true });
-Raven.captureBreadcrumb({});
+Raven.captureMessage('Broken!', { stacktrace: true });
 
-Raven.setRelease('abc123');
-Raven.setEnvironment('production');
-
-Raven.setDataCallback(function (data: any) {});
-Raven.setDataCallback(function (data: any, original: any) {});
-Raven.setShouldSendCallback(function (data: any) {});
-Raven.setShouldSendCallback(function (data: any, original: any) {});
+Raven.captureBreadcrumb({ message: 'message' });
+Raven.captureBreadcrumb({ category: 'category', message: 'message' });
+Raven.captureBreadcrumb({ category: 'category', message: 'message', data: { id: '42' }, level: 'level' });
 
 Raven.showReportDialog({
-    eventId: 'abcdef123456'
+    eventId: 0815,
+    dsn:'1337asdf',
+    user: {
+        name: 'DefenitelyTyped',
+        email: 'df@ts.ms'
+    }
 });
+
+
+var err:Error = Raven.lastException();
