@@ -128,6 +128,13 @@ For these reasons, it is recommended to upload source maps to Sentry beforehand 
 
     While the recommended solution is to upload your source artifacts to Sentry, sometimes it’s necessary to allow communication from Sentry’s internal IPs. For more information on Sentry’s public IPs, :ref:`ip-ranges`.
 
+.. admonition:: Secure Access to Source Maps
+
+    If you want to keep your source maps secret and choose not to upload your source maps directly to Sentry, you can enable the "Security Token"
+    option in your project settings. This will cause outbound requests from Sentry's servers to URLs originating from your "Allowed Domains" to have
+    the HTTP header "X-Sentry-Token: {token}" appended, where {token} is a secure value you define. You can then configure your web server to allow access to your source maps when
+    this header/token pair is present. You can alternatively override the default header name (X-Sentry-Token) and use HTTP Basic Authentication, e.g. by passing "Authorization: Basic {encoded_password}".
+
 Uploading Source Maps to Sentry
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
