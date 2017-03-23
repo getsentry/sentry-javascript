@@ -392,9 +392,11 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
+            geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
             lines = ex.stack.split('\n'),
             stack = [],
+            submatch,
             parts,
             element,
             reference = /^(.*) is undefined$/.exec(ex.message);
@@ -402,6 +404,13 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         for (var i = 0, j = lines.length; i < j; ++i) {
             if ((parts = chrome.exec(lines[i]))) {
                 var isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
+                var isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
+                if (isEval && (submatch = /\((\S*)(?::(\d+))(?::(\d+))\)/.exec(parts[2]))) {
+                    // throw out eval line/column and use top-most line/column number
+                    parts[2] = submatch[1]; // url
+                    parts[3] = submatch[2]; // line
+                    parts[4] = submatch[3]; // column
+                }
                 element = {
                     'url': !isNative ? parts[2] : null,
                     'func': parts[1] || UNKNOWN_FUNCTION,
@@ -418,6 +427,19 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
                     'column': parts[4] ? +parts[4] : null
                 };
             } else if ((parts = gecko.exec(lines[i]))) {
+                var isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
+                if (isEval && (submatch = geckoEval.exec(parts[3]))) {
+                    // throw out eval line/column and use top-most line number
+                    parts[3] = submatch[1];
+                    parts[4] = submatch[2];
+                    parts[5] = null; // no column when eval
+                } else if (i === 0 && !parts[5] && typeof ex.columnNumber !== 'undefined') {
+                    // FireFox uses this awesome columnNumber property for its top frame
+                    // Also note, Firefox's column number is 0-based and everything else expects 1-based,
+                    // so adding 1
+                    // NOTE: this hack doesn't work if top-most frame is eval
+                    stack[0].column = ex.columnNumber + 1;
+                }
                 element = {
                     'url': parts[3],
                     'func': parts[1] || UNKNOWN_FUNCTION,
@@ -438,13 +460,6 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         if (!stack.length) {
             return null;
-        }
-
-        if (!stack[0].column && typeof ex.columnNumber !== 'undefined') {
-            // FireFox uses this awesome columnNumber property for its top frame
-            // Also note, Firefox's column number is 0-based and everything else expects 1-based,
-            // so adding 1
-            stack[0].column = ex.columnNumber + 1;
         }
 
         return {

@@ -41,6 +41,10 @@ function throwString() {
     throw 'oops';
 }
 
+function throwEval() {
+    eval('derp();');
+}
+
 function showDialog() {
     broken();
     Raven.showReportDialog();

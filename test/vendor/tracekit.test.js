@@ -73,9 +73,9 @@ describe('TraceKit', function(){
 
             assert.equal(trace.stack[2].func, 'eval');
             // TODO: fix nested evals
-            assert.equal(trace.stack[2].url, 'eval at <anonymous> (http://example.com/js/test.js:26:5), <anonymous>');
-            assert.equal(trace.stack[2].line, 1); // second set of line/column numbers used
-            assert.equal(trace.stack[2].column, 26);
+            assert.equal(trace.stack[2].url, 'http://example.com/js/test.js');
+            assert.equal(trace.stack[2].line, 26);
+            assert.equal(trace.stack[2].column, 5);
         });
     });
 
