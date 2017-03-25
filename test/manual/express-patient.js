@@ -4,7 +4,8 @@
 console.log = function () {};
 
 var Raven = require('../../');
-var sentryDsn = 'https://523d0dad9d3f4632b0ead708edc84399:2f37f2629851455f9df44d48cfc23dc1@app.getsentry.com/93926';
+
+var sentryDsn = 'https://public:private@app.getsentry.com/269';
 Raven.config(sentryDsn, {
   autoBreadcrumbs: true
 }).install();
@@ -13,11 +14,10 @@ var util = require('util');
 var http = require('http');
 var nock = require('nock');
 
-
 // eslint-disable-next-line no-unused-vars
 var sentryScope = nock('https://app.getsentry.com')
   .filteringRequestBody(/.*/, '*')
-  .post('/api/93926/store/', '*')
+  .post('/api/269/store/', '*')
   .reply(200, 'OK');
 
 var memwatch = require('memwatch-next');
@@ -75,7 +75,7 @@ app.get('/breadcrumbs/auto/http', function (req, res, next) {
     .get('/hello')
     .reply(200, 'hello world');
 
-  http.get('http://example.com/hello', function (nockRes) {
+  http.get('http://www.example.com/hello', function (nockRes) {
     scope.done();
     res.textToSend = 'hello there! we got hello world from example.com';
     next();
@@ -93,6 +93,23 @@ app.get('/gc', function (req, res, next) {
   next();
 });
 
+app.get('/shutdown', function (req, res, next) {
+  setTimeout(function () {
+    server.close(function () { // eslint-disable-line no-use-before-define
+      process.exit();
+    });
+  }, 100);
+  return res.send('shutting down');
+});
+
+app.get('/capture', function (req, res, next) {
+  for (var i = 0; i < 1000; ++i) {
+    Raven.captureException(new Error('oh no an exception to capture'));
+  }
+  res.textToSend = 'capturing an exception!';
+  next();
+});
+
 app.use(function (req, res, next) {
   if (req.query.doError) {
     return next(new Error(res.textToSend));
@@ -103,13 +120,10 @@ app.use(function (req, res, next) {
 app.use(Raven.errorHandler());
 
 app.use(function (err, req, res, next) {
-  // todo probably comment out this rawDebug
-  // process._rawDebug('got an error');
-  // console.error(err);
   return res.status(500).send('oh no there was an error: ' + err.message);
 });
 
-app.listen(3000, function () {
+var server = app.listen(3000, function () {
   process._rawDebug('patient is waiting to be poked on port 3000');
   memwatch.gc();
 });
