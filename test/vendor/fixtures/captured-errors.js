@@ -173,6 +173,17 @@ CapturedExceptions.CHROME_36 = {
     "    at I.e.fn.(anonymous function) [as index] (http://localhost:8080/file.js:10:3651)"
 };
 
+// can be generated when Webpack is built with { devtool: eval }
+CapturedExceptions.CHROME_XX_WEBPACK = {
+    message: "Cannot read property 'error' of undefined",
+    name: "TypeError",
+    stack: "TypeError: Cannot read property 'error' of undefined\n" +
+    "   at TESTTESTTEST.eval(webpack:///./src/components/test/test.jsx?:295:108)\n" +
+    "   at TESTTESTTEST.render(webpack:///./src/components/test/test.jsx?:272:32)\n" +
+    "   at TESTTESTTEST.tryRender(webpack:///./~/react-transform-catch-errors/lib/index.js?:34:31)\n" +
+    "   at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)"
+};
+
 CapturedExceptions.FIREFOX_3 = {
     fileName: "http://127.0.0.1:8000/js/stacktrace.js",
     lineNumber: 44,
