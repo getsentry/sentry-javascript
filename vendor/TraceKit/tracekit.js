@@ -392,8 +392,12 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
             gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
-            geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+
+            // Used to additionally parse URL/line/column from eval frames
+            geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
+            chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/,
+
             lines = ex.stack.split('\n'),
             stack = [],
             submatch,
@@ -405,7 +409,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             if ((parts = chrome.exec(lines[i]))) {
                 var isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
                 var isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
-                if (isEval && (submatch = /\((\S*)(?::(\d+))(?::(\d+))\)/.exec(parts[2]))) {
+                if (isEval && (submatch = chromeEval.exec(parts[2]))) {
                     // throw out eval line/column and use top-most line/column number
                     parts[2] = submatch[1]; // url
                     parts[3] = submatch[2]; // line
