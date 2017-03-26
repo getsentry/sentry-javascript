@@ -123,6 +123,16 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack[2], { url: 'http://localhost:8080/file.js', func: 'I.e.fn.(anonymous function) [as index]', args: [], line: 10, column: 3651 });
         });
 
+        it('should parse Chrome error with webpack URLs', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_XX_WEBPACK);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 4);
+            assert.deepEqual(stackFrames.stack[0], { url: 'webpack:///./src/components/test/test.jsx?', func: 'TESTTESTTEST.eval', args: [], line: 295, column: 108 });
+            assert.deepEqual(stackFrames.stack[1], { url: 'webpack:///./src/components/test/test.jsx?', func: 'TESTTESTTEST.render', args: [], line: 272, column: 32 });
+            assert.deepEqual(stackFrames.stack[2], { url: 'webpack:///./~/react-transform-catch-errors/lib/index.js?', func: 'TESTTESTTEST.tryRender', args: [], line: 34, column: 31 });
+            assert.deepEqual(stackFrames.stack[3], { url: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?', func: 'TESTTESTTEST.proxiedMethod', args: [], line: 44, column: 30 });
+        });
+
         it('should parse Chrome error with blob URLs', function () {
             var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_48_BLOB);
             assert.ok(stackFrames);
