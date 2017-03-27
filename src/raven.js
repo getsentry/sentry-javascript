@@ -50,6 +50,9 @@ function Raven() {
         crossOrigin: 'anonymous',
         collectWindowErrors: true,
         maxMessageLength: 0,
+
+        // By default, truncates URL values to 250 chars
+        maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
         sampleRate: 1
@@ -1324,7 +1327,44 @@ Raven.prototype = {
             exception.value = truncate(exception.value, max);
         }
 
+        var request = data.request;
+        if (request) {
+            if (request.url) {
+                request.url = truncate(request.url, this._globalOptions.maxUrlLength);
+            }
+            if (request.Referer) {
+                request.Referer = truncate(request.Referer, this._globalOptions.maxUrlLength);
+            }
+        }
+
+        if (data.breadcrumbs && data.breadcrumbs.values)
+            this._trimBreadcrumbs(data.breadcrumbs);
+
         return data;
+    },
+
+    /**
+     * Truncate breadcrumb values (right now just URLs)
+     */
+    _trimBreadcrumbs: function (breadcrumbs) {
+        // known breadcrumb properties with urls
+        // TODO: also consider arbitrary prop values that start with (https?)?://
+        var urlprops = {to: 1, from: 1, url: 1},
+            crumb,
+            data;
+
+        for (var i = 0; i < breadcrumbs.values.length; i++) {
+            crumb = breadcrumbs.values[i];
+            if (!crumb.hasOwnProperty('data'))
+                continue;
+
+            data = crumb.data;
+            for (var prop in urlprops) {
+                if (data.hasOwnProperty(prop)) {
+                    data[prop] = truncate(data[prop], this._globalOptions.maxUrlLength);
+                }
+            }
+        }
     },
 
     _getHttpData: function() {

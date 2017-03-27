@@ -205,6 +205,12 @@ Those configuration options are documented below:
     By default, Raven does not truncate messages. If you need to truncate
     characters for whatever reason, you may set this to limit the length.
 
+.. describe:: maxUrlLength
+
+    By default, Raven will truncate URLs as they appear in breadcrumbs and other meta
+    interfaces to 250 characters in order to minimize bytes over the wire. This does *not*
+    affect URLs in stack traces.
+
 .. describe:: autoBreadcrumbs
 
     Enables/disables automatic collection of breadcrumbs. Possible values are:

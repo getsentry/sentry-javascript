@@ -88,6 +88,7 @@ describe('globals', function() {
 
     describe('trimPacket', function() {
         it('should work as advertised', function() {
+            // message/excepion value (maxMessageLength)
             Raven._globalOptions.maxMessageLength = 3;
             assert.deepEqual(
                 Raven._trimPacket({message: 'lol'}),
@@ -105,6 +106,51 @@ describe('globals', function() {
                 Raven._trimPacket({message: 'lolol', exception: {values: [{value: 'lolol'}]}}),
                 {message: 'lol\u2026', exception: {values: [{value: 'lol\u2026'}]}}
             );
+
+            // request URLs (maxUrlLength)
+            Raven._globalOptions.maxUrlLength = 20;
+            assert.deepEqual(
+                Raven._trimPacket({request: {url: 'http://example.com/foo/bar/baz.js', Referer: 'http://example.com/f\u2026'}}),
+                {request: {url: 'http://example.com/f\u2026', Referer: 'http://example.com/f\u2026'}}
+            )
+        });
+    });
+
+    describe('_trimBreadcrumbs', function() {
+        it('should work as expected', function() {
+            Raven._globalOptions.maxUrlLength = 20;
+
+            var breadcrumbs = {
+                values: [{
+                    data: {
+                        donttouch: 'this-is-not-a-url-field-and-should-not-be-touched',
+                        to: 'http://example.com/foo/bar/baz.js',
+                        from: 'http://example.com/foo/bar/baz.js'
+                    }
+                }, {
+                    data: {
+                        donttouch: 'this-is-not-a-url-field-and-should-not-be-touched',
+                        url: 'http://example.com/foo/bar/baz.js'
+                    }
+                }]
+            };
+
+            // NOTE: _trimBreadcrumbs mutates data in-place
+            Raven._trimBreadcrumbs(breadcrumbs);
+            assert.deepEqual(breadcrumbs, {
+                values: [{
+                    data: {
+                        donttouch: 'this-is-not-a-url-field-and-should-not-be-touched',
+                        to: 'http://example.com/f\u2026', // 20 chars
+                        from: 'http://example.com/f\u2026'
+                    }
+                }, {
+                    data: {
+                        donttouch: 'this-is-not-a-url-field-and-should-not-be-touched',
+                        url: 'http://example.com/f\u2026'
+                    }
+                }]
+            });
         });
     });
 
