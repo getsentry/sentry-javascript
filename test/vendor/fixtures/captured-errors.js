@@ -234,6 +234,18 @@ CapturedExceptions.FIREFOX_31 = {
     columnNumber: 12
 };
 
+CapturedExceptions.FIREFOX_43_EVAL = {
+    columnNumber: 30,
+    fileName: 'http://localhost:8080/file.js line 25 > eval line 2 > eval',
+    lineNumber: 1,
+    message: 'message string',
+    stack: 'baz@http://localhost:8080/file.js line 26 > eval line 2 > eval:1:30\n' +
+    'foo@http://localhost:8080/file.js line 26 > eval:2:96\n' +
+    '@http://localhost:8080/file.js line 26 > eval:4:18\n' +
+    'speak@http://localhost:8080/file.js:26:17\n' +
+    '@http://localhost:8080/file.js:33:9'
+};
+
 // Internal errors sometimes thrown by Firefox
 // More here: https://developer.mozilla.org/en-US/docs/Mozilla/Errors
 //
@@ -250,6 +262,17 @@ CapturedExceptions.FIREFOX_44_NS_EXCEPTION = {
     columnNumber: 0,
     lineNumber: 703,
     result: 2147500037
+};
+
+CapturedExceptions.FIREFOX_50_RESOURCE_URL = {
+    stack: 'render@resource://path/data/content/bundle.js:5529:16\n' +
+    'dispatchEvent@resource://path/data/content/vendor.bundle.js:18:23028\n' +
+    'wrapped@resource://path/data/content/bundle.js:7270:25',
+    fileName: 'resource://path/data/content/bundle.js',
+    lineNumber: 5529,
+    columnNumber: 16,
+    message: 'this.props.raw[this.state.dataSource].rows is undefined',
+    name: 'TypeError'
 };
 
 CapturedExceptions.SAFARI_6 = {
@@ -344,22 +367,22 @@ CapturedExceptions.CHROME_48_BLOB = {
     "    at n.handle (blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379:7:2863)"
 };
 
+CapturedExceptions.CHROME_48_EVAL = {
+    message: 'message string',
+    name: 'Error',
+    stack: 'Error: message string\n' +
+    'at baz (eval at foo (eval at speak (http://localhost:8080/file.js:21:17)), <anonymous>:1:30)\n' +
+    'at foo (eval at speak (http://localhost:8080/file.js:21:17), <anonymous>:2:96)\n' +
+    'at eval (eval at speak (http://localhost:8080/file.js:21:17), <anonymous>:4:18)\n' +
+    'at Object.speak (http://localhost:8080/file.js:21:17)\n' +
+    'at http://localhost:8080/file.js:31:13\n'
+};
+
 CapturedExceptions.PHANTOMJS_1_19 = {
     stack: "Error: foo\n" +
     "    at file:///path/to/file.js:878\n" +
     "    at foo (http://path/to/file.js:4283)\n" +
     "    at http://path/to/file.js:4287"
-};
-
-CapturedExceptions.FIREFOX_50_RESOURCE_URL = {
-    stack: 'render@resource://path/data/content/bundle.js:5529:16\n' +
-    'dispatchEvent@resource://path/data/content/vendor.bundle.js:18:23028\n' +
-    'wrapped@resource://path/data/content/bundle.js:7270:25',
-    fileName: 'resource://path/data/content/bundle.js',
-    lineNumber: 5529,
-    columnNumber: 16,
-    message: 'this.props.raw[this.state.dataSource].rows is undefined',
-    name: 'TypeError'
 };
 
 CapturedExceptions.ANDROID_REACT_NATIVE = {

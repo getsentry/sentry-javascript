@@ -123,6 +123,7 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack[2], { url: 'http://localhost:8080/file.js', func: 'I.e.fn.(anonymous function) [as index]', args: [], line: 10, column: 3651 });
         });
 
+
         it('should parse Chrome error with webpack URLs', function () {
             var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_XX_WEBPACK);
             assert.ok(stackFrames);
@@ -131,6 +132,17 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack[1], { url: 'webpack:///./src/components/test/test.jsx?', func: 'TESTTESTTEST.render', args: [], line: 272, column: 32 });
             assert.deepEqual(stackFrames.stack[2], { url: 'webpack:///./~/react-transform-catch-errors/lib/index.js?', func: 'TESTTESTTEST.tryRender', args: [], line: 34, column: 31 });
             assert.deepEqual(stackFrames.stack[3], { url: 'webpack:///./~/react-proxy/modules/createPrototypeProxy.js?', func: 'TESTTESTTEST.proxiedMethod', args: [], line: 44, column: 30 });
+        });
+
+        it('should parse nested eval() from Chrome', function() {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_48_EVAL);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 5);
+            assert.deepEqual(stackFrames.stack[0], { url: 'http://localhost:8080/file.js', func: 'baz', args: [], line: 21, column: 17});
+            assert.deepEqual(stackFrames.stack[1], { url: 'http://localhost:8080/file.js', func: 'foo', args: [], line: 21, column: 17});
+            assert.deepEqual(stackFrames.stack[2], { url: 'http://localhost:8080/file.js', func: 'eval', args: [], line: 21, column: 17});
+            assert.deepEqual(stackFrames.stack[3], { url: 'http://localhost:8080/file.js', func: 'Object.speak', args: [], line: 21, column: 17});
+            assert.deepEqual(stackFrames.stack[4], { url: 'http://localhost:8080/file.js', func: '?', args: [], line: 31, column: 13});
         });
 
         it('should parse Chrome error with blob URLs', function () {
@@ -226,6 +238,18 @@ describe('TraceKit', function () {
             assert.deepEqual(stackFrames.stack.length, 3);
             assert.deepEqual(stackFrames.stack[0], { url: 'resource://path/data/content/bundle.js', func: 'render', args: [], line: 5529, column: 16 });
         });
+
+        it('should parse Firefox errors with eval URLs', function () {
+            var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.FIREFOX_43_EVAL);
+            assert.ok(stackFrames);
+            assert.deepEqual(stackFrames.stack.length, 5);
+            assert.deepEqual(stackFrames.stack[0], { url: 'http://localhost:8080/file.js', func: 'baz', args:[], line: 26, column: null});
+            assert.deepEqual(stackFrames.stack[1], { url: 'http://localhost:8080/file.js', func: 'foo', args:[], line: 26, column: null});
+            assert.deepEqual(stackFrames.stack[2], { url: 'http://localhost:8080/file.js', func: '?', args:[], line: 26, column: null});
+            assert.deepEqual(stackFrames.stack[3], { url: 'http://localhost:8080/file.js', func: 'speak', args:[], line: 26, column: 17});
+            assert.deepEqual(stackFrames.stack[4], { url: 'http://localhost:8080/file.js', func: '?', args:[], line: 33, column: 9});
+        });
+
         it('should parse React Native errors on Android', function () {
             var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.ANDROID_REACT_NATIVE);
             assert.ok(stackFrames);
