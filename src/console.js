@@ -1,4 +1,5 @@
 'use strict';
+var utils = require('./utils');
 
 var wrapMethod = function(console, level, callback) {
     var originalConsoleLevel = console[level];
@@ -15,7 +16,19 @@ var wrapMethod = function(console, level, callback) {
     console[level] = function () {
         var args = [].slice.call(arguments);
 
-        var msg = '' + args.join(' ');
+        var msg = args.map(function(x) {
+            var str;
+            if (utils.isObject(x)) {
+                try {
+                    str = JSON.stringify(x);
+                } catch (e) {
+                    str = str + ' (could not stringify: ' + e + ')';
+                }
+            } else {
+                str = '' + x;
+            }
+            return str;
+        }).join(' ');
         var data = {level: sentryLevel, logger: 'console', extra: {'arguments': args}};
         callback && callback(msg, data);
 
