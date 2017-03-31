@@ -66,6 +66,7 @@
     "wrap-iife": [
       2,
       "inside"
-    ]
+    ],
+    "eol-last": 2
   }
 }
