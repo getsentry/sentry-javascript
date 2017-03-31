@@ -23,7 +23,7 @@
 // /var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
 
 var PATH_STRIP_RE = /^.*\/[^\.]+(\.app|CodePush)/;
-var stringify = require('json-stringify-safe');
+var stringify = require('../vendor/json-stringify-safe/stringify');
 var FATAL_ERROR_KEY = '--rn-fatal--';
 var ASYNC_STORAGE_KEY = '--raven-js-global-error-payload--';
 
