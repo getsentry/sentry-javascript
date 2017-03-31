@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.14.0
+* NEW: URL values captured in http + breadcrumb interfaces are now trimmed to new `maxUrlLength` config (default 250). See: https://github.com/getsentry/raven-js/pull/906
+* CHANGE: Better extraction of URLs from eval frames on Chrome, Firefox. This may affect issue grouping of some events. See: https://github.com/getsentry/raven-js/pull/907
+* BUGFIX: Raven.js now parses webpack:// URLs (generated when using devtool: eval). See: https://github.com/getsentry/raven-js/pull/908
+* BUGFIX: React Native frames on Android no longer show [native code]. See: https://github.com/getsentry/raven-js/pull/875
+
+
 ## 3.13.1
 * BUGFIX: Revert TypeScript declaration changes from 3.13.0 that resulted in bad imports. See: https://github.com/getsentry/raven-js/issues/898
 
