@@ -1349,19 +1349,21 @@ Raven.prototype = {
     _trimBreadcrumbs: function (breadcrumbs) {
         // known breadcrumb properties with urls
         // TODO: also consider arbitrary prop values that start with (https?)?://
-        var urlprops = {to: 1, from: 1, url: 1},
+        var urlProps = ['to', 'from', 'url'],
+            urlProp,
             crumb,
             data;
 
-        for (var i = 0; i < breadcrumbs.values.length; i++) {
+        for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
             if (!crumb.hasOwnProperty('data'))
                 continue;
 
             data = crumb.data;
-            for (var prop in urlprops) {
-                if (data.hasOwnProperty(prop)) {
-                    data[prop] = truncate(data[prop], this._globalOptions.maxUrlLength);
+            for (var j = 0; j < urlProps.length; ++j) {
+                urlProp = urlProps[j];
+                if (data.hasOwnProperty(urlProp)) {
+                    data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
         }
