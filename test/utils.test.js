@@ -66,11 +66,39 @@ describe('utils', function () {
     });
 
     describe('isError', function() {
+      function testErrorFromDifferentContext(createError) {
+          var iframe = document.createElement('iframe');
+          document.body.appendChild(iframe);
+          try {
+              return createError(iframe.contentWindow);
+          } finally {
+              iframe.parentElement.removeChild(iframe);
+          }
+      }
+
+      function fromContext(win) {
+          return new win.Error();
+      }
+
+      function domException(win) {
+          try {
+              win.document.querySelectorAll('');
+          } catch(e) {
+              return e;
+          }
+      }
+
         it('should work as advertised', function() {
             assert.isTrue(isError(new Error()));
             assert.isTrue(isError(new ReferenceError()));
             assert.isTrue(isError(new RavenConfigError()));
+            assert.isTrue(isError(testErrorFromDifferentContext(fromContext)));
+            assert.isTrue(isError(testErrorFromDifferentContext(domException)));
             assert.isFalse(isError({}));
+            assert.isFalse(isError({
+              message: 'A fake error',
+              stack: 'no stack here'
+            }));
             assert.isFalse(isError(''));
             assert.isFalse(isError(true));
         });
