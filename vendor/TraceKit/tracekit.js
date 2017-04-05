@@ -323,27 +323,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    /**
-     * Escapes special characters, except for whitespace, in a string to be
-     * used inside a regular expression as a string literal.
-     * @param {string} text The string.
-     * @return {string} The escaped string literal.
-     */
-    function escapeRegExp(text) {
-        return text.replace(/[\-\[\]{}()*+?.,\\\^$|#]/g, '\\$&');
-    }
-
-    /**
-     * Escapes special characters in a string to be used inside a regular
-     * expression as a string literal. Also ensures that HTML entities will
-     * be matched the same as their literal friends.
-     * @param {string} body The string.
-     * @return {string} The escaped string.
-     */
-    function escapeCodeAsRegExpForMatchingInsideHTML(body) {
-        return escapeRegExp(body).replace('<', '(?:<|&lt;)').replace('>', '(?:>|&gt;)').replace('&', '(?:&|&amp;)').replace('"', '(?:"|&quot;)').replace(/\s+/g, '\\s+');
-    }
-
     // Contents of Exception in various browsers.
     //
     // SAFARI:
