@@ -3,6 +3,7 @@
 'use strict';
 
 var Raven = require('../src/raven');
+var wrappedCallback = require('../src/utils').wrappedCallback;
 var utils = Raven.utils;
 var RavenConfigError = require('../src/configError');
 
@@ -288,6 +289,64 @@ describe('utils', function () {
                 // this is correct! pushState({}, '', 'example.com/foo') would take you
                 // from example.com => example.com/example.com/foo (valid url).
             });
+        });
+    });
+
+    describe('wrappedCallback', function () {
+        it('should return data from callback', function () {
+            var expected = 'yup';
+            var cb = wrappedCallback(function() {
+              return expected;
+            });
+            assert.equal(cb(), expected);
+        });
+
+        it('should return mutated data from callback', function () {
+            var cb = wrappedCallback(function(data) {
+                data.mutated = true;
+            });
+            assert.deepEqual(cb({}), {mutated: true});
+        });
+
+        it('should return data from original', function () {
+            var expected = 'yup';
+            var cb = wrappedCallback(function(data) {
+                return 'nope';
+            });
+
+            function original() {
+                return expected;
+            }
+            assert.equal(cb({}, original), expected);
+        });
+
+        it('should return mutated data from original', function () {
+            var cb = wrappedCallback(function(data) {
+                data.mutatedSomeMore = true;
+            });
+
+            function original(data) {
+                data.mutated = true;
+            }
+            assert.deepEqual(cb({}, original), {
+                mutated: true,
+                mutatedSomeMore: true
+            });
+        });
+
+        it('should call callback and original in the right order', function () {
+            var cb = wrappedCallback(function(data) {
+                return data + 'callback first, ';
+            });
+
+            function original(data) {
+                return data + 'then the original.';
+            }
+
+            assert.equal(
+                cb('it will run the ', original),
+                'it will run the callback first, then the original.'
+            );
         });
     });
 });

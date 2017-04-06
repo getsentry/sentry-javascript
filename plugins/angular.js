@@ -5,6 +5,8 @@
  */
 'use strict';
 
+var wrappedCallback = require('../src/utils').wrappedCallback;
+
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
 
@@ -38,11 +40,9 @@ function angularPlugin(Raven, angular) {
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
 
-    Raven.setDataCallback(function(data, original) {
-        angularPlugin._normalizeData(data);
-
-        original && original(data);
-    });
+    Raven.setDataCallback(wrappedCallback(function(data) {
+        return angularPlugin._normalizeData(data);
+    }));
 }
 
 angularPlugin._normalizeData = function (data) {
@@ -62,6 +62,8 @@ angularPlugin._normalizeData = function (data) {
             data.extra.angularDocs = matches[3].substr(0, 250);
         }
     }
+
+    return data;
 };
 
 module.exports = angularPlugin;
