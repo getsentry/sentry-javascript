@@ -1,6 +1,6 @@
 'use strict';
 
-// make console log not print so when we hammer the console log endpoint we don't flood the terminal
+// make console log not print so when we hammer the console endpoint we don't flood the terminal
 console.log = function () {};
 
 var Raven = require('../../');
@@ -14,11 +14,13 @@ var util = require('util');
 var http = require('http');
 var nock = require('nock');
 
-// eslint-disable-next-line no-unused-vars
-var sentryScope = nock('https://app.getsentry.com')
-  .filteringRequestBody(/.*/, '*')
-  .post('/api/269/store/', '*')
-  .reply(200, 'OK');
+// have to call this for each request :/ ref https://github.com/node-nock/nock#read-this---about-interceptors
+function nockRequest() {
+  nock('https://app.getsentry.com')
+    .filteringRequestBody(/.*/, '*')
+    .post('/api/269/store/', '*')
+    .reply(200, 'OK');
+}
 
 var memwatch = require('memwatch-next');
 memwatch.on('stats', function (stats) {
@@ -104,14 +106,17 @@ app.get('/shutdown', function (req, res, next) {
 
 app.get('/capture', function (req, res, next) {
   for (var i = 0; i < 1000; ++i) {
+    nockRequest();
     Raven.captureException(new Error('oh no an exception to capture'));
   }
+  memwatch.gc();
   res.textToSend = 'capturing an exception!';
   next();
 });
 
 app.use(function (req, res, next) {
   if (req.query.doError) {
+    nockRequest();
     return next(new Error(res.textToSend));
   }
   return res.send(res.textToSend);
