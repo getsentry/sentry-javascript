@@ -20,6 +20,14 @@ We also have a `/gc` endpoint for forcing a garbage collection; this is used at 
 
 Note: there's a `/capture` endpoint which does a basic `captureException` call 1000 times. That's our current problem child requiring some more investigation on its memory usage.
 
+## How to run it
+```bash
+npm install memwatch-next
+node manager.js
+# in another tab send some traffic at it:
+curl localhost:3000/capture
+```
+
 ## Why this can't be more automated
 Some objects can have long lifecycles or not be cleaned up by GC when you think they would be, and so it isn't straightforward to make the assertion "memory usage should have returned to baseline by now". Also, when the numbers look bad, it's pretty obvious to a trained eye that they're bad, but it can be hard to quantify an exact threshold of pass or fail.
 

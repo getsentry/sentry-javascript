@@ -42,7 +42,6 @@
     "glob": "~3.1.13",
     "istanbul": "^0.4.3",
     "koa": "*",
-    "memwatch-next": "^0.3.0",
     "mocha": "~3.1.2",
     "nock": "~9.0.0",
     "should": "11.2.0"
