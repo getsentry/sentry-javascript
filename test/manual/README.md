@@ -25,6 +25,7 @@ Some objects can have long lifecycles or not be cleaned up by GC when you think 
 
 ## Interpreting results
 Starting the manager and then running `ab -c 5 -n 5000 /context/basic && sleep 1 && curl localhost:3000/gc` will get us this output:
+<details>
 ```
 :[/Users/lewis/dev/raven-node/test/manual]#memleak-tests?$ node manager.js
 starting child
@@ -39,11 +40,12 @@ hit /gc for first time
 gc #6: min 12115288, max 16864536, est base 12115288, curr base 12115288
 gc #7: min 11673824, max 16864536, est base 11673824, curr base 11673824
 ```
+</details>
 This test stores some basic data in the request's Raven context, with the hope being for that context data to go out of scope and be garbage collected after the request is over. We can see that we start at a base of ~11.6MB, go up to ~16.8MB during the test, and then return to ~11.6MB. Everything checks out, no memory leak issue here.
 
-If we start the manager and run:
+Back when we had a memory leak in `captureException`, if we started the manager and ran:
 ```shell
-ab -c 5 -n 5000 localhost:3000/context/basic?doError=true
+ab -c 5 -n 5000 localhost:3000/context/basic?doError=true && sleep 5 && curl localhost:3000/gc
 sleep 5
 curl localhost:3000/gc
 sleep 10
@@ -51,7 +53,8 @@ curl localhost:3000/gc
 sleep 15
 curl localhost:3000/gc
 ```
-we'll get this output:
+we'd get this output:
+<details>
 ```
 [/Users/lewis/dev/raven-node/test/manual]#memleak-tests?$ node manager.js
 starting child
@@ -124,4 +127,5 @@ gc #63: min 19085432, max 57831608, est base 41850385, curr base 39371848
 gc #64: min 19085432, max 57831608, est base 41606578, curr base 39412320
 gc #65: min 19085432, max 57831608, est base 41386124, curr base 39402040
 ```
-This test, after storing some basic data in the request's Raven context, generates an error which Raven's express error handling middleware will capture. We can see that we start at a base of ~11.6MB and climb steadily throughout the test to ~40-50MB toward the end, return to ~39.4MB after the test ends, and then are still at ~39.4MB after 30 seconds and more GCing. This is worrysome - we're nearly 30MB over our baseline! Something's up with capturing exceptions.
+</details>
+This test, after storing some basic data in the request's Raven context, generates an error which Raven's express error handling middleware will capture. We can see that we started at a base of ~11.6MB, climbed steadily throughout the test to ~40-50MB toward the end, returned to ~39.4MB after the test ends, and were then still at ~39.4MB after 30 seconds and more GCing. This was worrysome, being 30MB over our baseline after 1000 captures. Something was up with capturing exceptions and we uncovered and fixed a memory leak as a result. Now the test returns to a baseline of ~13MB; the slight increase over 11.6MB is due to some warmup costs, but the marginal cost of additional capturing is zero (i.e. we return to that ~13MB baseline whether we do 1000 captures or 5000).
