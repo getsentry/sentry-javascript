@@ -1,3 +1,6 @@
+# 1.1.6, 1.2.1 - 4/7/2017
+- Fix memory leak in `consoleAlert` (and thus, if not disabled, in `captureException`) [See #300]
+
 # 1.2.0 - 3/16/2017
 - Add sampleRate config option [See #292]
 
