@@ -14,7 +14,8 @@ describe('raven.utils', function () {
         host: 'app.getsentry.com',
         path: '/',
         project_id: '269',
-        port: 443
+        port: 443,
+        timeout: 1
       };
       dsn.should.eql(expected);
     });
@@ -28,7 +29,8 @@ describe('raven.utils', function () {
         host: 'mysentry.com',
         path: '/some/other/path/',
         project_id: '269',
-        port: 80
+        port: 80,
+        timeout: 1
       };
       dsn.should.eql(expected);
     });
@@ -42,7 +44,23 @@ describe('raven.utils', function () {
         host: 'mysentry.com',
         path: '/some/other/path/',
         project_id: '269',
-        port: 8443
+        port: 8443,
+        timeout: 1
+      };
+      dsn.should.eql(expected);
+    });
+
+    it('should parse DSN with querystring timeout param', function () {
+      var dsn = raven.utils.parseDSN('https://8769c40cf49c4cc58b51fa45d8e2d166:296768aa91084e17b5ac02d3ad5bc7e7@app.getsentry.com/269?timeout=5');
+      var expected = {
+        protocol: 'https',
+        public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
+        private_key: '296768aa91084e17b5ac02d3ad5bc7e7',
+        host: 'app.getsentry.com',
+        path: '/',
+        project_id: '269',
+        port: 443,
+        timeout: 5
       };
       dsn.should.eql(expected);
     });
@@ -67,7 +85,8 @@ describe('raven.utils', function () {
         host: 'mysentry.com',
         path: '/some/other/path/',
         project_id: '269',
-        port: 8443
+        port: 8443,
+        timeout: 1
       };
       dsn.should.eql(expected);
     });

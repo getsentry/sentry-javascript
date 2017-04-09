@@ -32,7 +32,8 @@
     "json-stringify-safe": "5.0.1",
     "lsmod": "1.0.0",
     "uuid": "3.0.0",
-    "stack-trace": "0.0.9"
+    "stack-trace": "0.0.9",
+    "timed-out": "4.0.1"
   },
   "devDependencies": {
     "coffee-script": "~1.10.0",

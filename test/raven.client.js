@@ -49,7 +49,8 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
-      port: 443
+      port: 443,
+      timeout: 1
     };
     var client = new raven.Client(dsn, {
       name: 'YAY!'
@@ -66,7 +67,8 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
-      port: 443
+      port: 443,
+      timeout: 1
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client();
@@ -82,7 +84,8 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
-      port: 443
+      port: 443,
+      timeout: 1
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client({
@@ -660,7 +663,8 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
-      port: 443
+      port: 443,
+      timeout: 1
     };
     var dsn = 'heka+https://public:private@app.getsentry.com/269';
     var client = new raven.Client(dsn, {
