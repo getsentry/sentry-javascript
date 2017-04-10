@@ -61,6 +61,9 @@ interface RavenOptions {
 
     /** Override the default HTTP data transport handler. */
     transport?: (options: RavenTransportOptions) => void;
+
+    /** By default, Raven will ignore "Script error" emitted by the browser for errors that it can't read. You may override this behavior by setting this flag. */
+    noDefaultIgnoreErrors?: boolean;
 }
 
 interface RavenStatic {

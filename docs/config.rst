@@ -299,6 +299,19 @@ Those configuration options are documented below:
 
     If set to `true`, Raven.js outputs some light debugging information onto the console.
 
+.. describe:: noDefaultIgnoreErrors
+
+    By default, Raven.js ignores the "Script error" emitted by the browsers for errors that it can't read.
+    Those can happen as a the result of a script being pulled in from an external domain and CORS.
+
+    To disable this behavior, set ``noDefaultIgnoreErrors: true`` during configuration.
+
+    .. code-block:: javascript
+
+        {
+            noDefaultIgnoreErrors: true
+        }
+
 Putting it all together
 -----------------------
 
