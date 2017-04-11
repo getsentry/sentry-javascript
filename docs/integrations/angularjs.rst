@@ -1,13 +1,13 @@
-Angular 1
+AngularJS 
 =========
 
-To use Sentry with your Angular 1.x application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Angular plugin.
+To use Sentry with your AngularJS (1.x) application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js AngularJS plugin.
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-Additionally, the Raven.js Angular plugin will catch any Angular-specific exceptions reported through Angular's ``$exceptionHandler`` interface.
+Additionally, the Raven.js AngularJS plugin will catch any AngularJS-specific exceptions reported through AngularJS's ``$exceptionHandler`` interface.
 
-**Note**: This documentation is for Angular 1.x. See also: :doc:`Angular 2.x <angular2>`
+**Note**: This documentation is for Angular 1.x. See also: :doc:`Angular 2.x <angular>`
 
 Installation
 ------------
@@ -17,7 +17,7 @@ Raven.js and the Raven.js Angular plugin are distributed using a few different m
 Using our CDN
 ~~~~~~~~~~~~~
 
-For convenience, our CDN serves a single, minified JavaScript file containing both Raven.js and the Raven.js Angular plugin. It should be included **after** Angular, but **before** your application code.
+For convenience, our CDN serves a single, minified JavaScript file containing both Raven.js and the Raven.js AngularJS plugin. It should be included **after** Angular, but **before** your application code.
 
 Example:
 
@@ -32,7 +32,7 @@ Note that this CDN build auto-initializes the Angular plugin.
 Using package managers
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Pre-built distributions of Raven.js and the Raven.js Angular plugin are available via both Bower and npm.
+Pre-built distributions of Raven.js and the Raven.js AngularJS plugin are available via both Bower and npm.
 
 Bower
 `````
@@ -74,7 +74,7 @@ npm
         .install();
     </script>
 
-These examples assume that Angular is exported globally as `window.angular`. You can alternatively pass a reference to the `angular` object directly as the second argument to `addPlugin`:
+These examples assume that AngularJS is exported globally as `window.angular`. You can alternatively pass a reference to the `angular` object directly as the second argument to `addPlugin`:
 
 .. code-block:: javascript
 
@@ -83,7 +83,7 @@ These examples assume that Angular is exported globally as `window.angular`. You
 Module loaders (CommonJS)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Raven and the Raven Angular plugin can be loaded using a module loader like Browserify or Webpack.
+Raven and the Raven AngularJS plugin can be loaded using a module loader like Browserify or Webpack.
 
 .. code-block:: javascript
 
@@ -97,10 +97,10 @@ Raven and the Raven Angular plugin can be loaded using a module loader like Brow
 
 Note that when using CommonJS-style imports, you must pass a reference to `angular` as the second argument to `addPlugin`.
 
-Angular Configuration
+AngularJS Configuration
 ---------------------
 
-Inside your main Angular application module, you need to declare `ngRaven` as a module dependency:
+Inside your main AngularJS application module, you need to declare `ngRaven` as a module dependency:
 
 .. code-block:: javascript
 
