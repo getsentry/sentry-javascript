@@ -1,9 +1,9 @@
-Angular 2
+Angular
 =========
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-Additionally, Raven.js can be configured to catch any Angular 2-specific exceptions reported through the `angular2/core/ErrorHandler
+Additionally, Raven.js can be configured to catch any Angular-specific exceptions reported through the `@angular/core/ErrorHandler
 <https://angular.io/docs/js/latest/api/core/index/ErrorHandler-class.html>`_ component.
 
 
@@ -28,7 +28,7 @@ Raven.js should be installed via npm.
 Configuration
 -------------
 
-Configuration depends on which module loader/packager you are using to build your Angular 2 application.
+Configuration depends on which module loader/packager you are using to build your Angular application.
 
 Below are instructions for `SystemJS
 <https://github.com/systemjs/systemjs>`__, followed by instructions for `Webpack
