@@ -1360,6 +1360,9 @@ Raven.prototype = {
                 continue;
 
             data = crumb.data;
+            if (!data)
+                continue;
+
             for (var j = 0; j < urlProps.length; ++j) {
                 urlProp = urlProps[j];
                 if (data.hasOwnProperty(urlProp)) {

@@ -151,6 +151,20 @@ describe('globals', function() {
                     }
                 }]
             });
+
+           breadcrumbs = {
+               values: [{
+                   data: undefined
+               }]
+           };
+
+           // see: https://github.com/getsentry/raven-js/issues/925
+           Raven._trimBreadcrumbs(breadcrumbs);
+           assert.deepEqual(breadcrumbs, {
+              values: [{
+                   data: undefined
+               }]
+            });
         });
     });
 
