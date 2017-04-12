@@ -3,7 +3,7 @@ Angular
 
 On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-Additionally, Raven.js can be configured to catch any Angular-specific exceptions reported through the `@angular/core/ErrorHandler
+Additionally, Raven.js can be configured to catch any Angular-specific (2.x) exceptions reported through the `@angular/core/ErrorHandler
 <https://angular.io/docs/js/latest/api/core/index/ErrorHandler-class.html>`_ component.
 
 
