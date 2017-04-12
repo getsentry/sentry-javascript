@@ -1356,7 +1356,7 @@ Raven.prototype = {
 
         for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
-            if (!crumb.hasOwnProperty('data'))
+            if (!crumb.hasOwnProperty('data') || !isObject(crumb.data))
                 continue;
 
             data = crumb.data;
