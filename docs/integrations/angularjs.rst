@@ -98,7 +98,7 @@ Raven and the Raven AngularJS plugin can be loaded using a module loader like Br
 Note that when using CommonJS-style imports, you must pass a reference to `angular` as the second argument to `addPlugin`.
 
 AngularJS Configuration
----------------------
+-----------------------
 
 Inside your main AngularJS application module, you need to declare `ngRaven` as a module dependency:
 
