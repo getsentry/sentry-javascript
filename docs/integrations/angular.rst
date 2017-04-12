@@ -1,112 +1,116 @@
-Angular 1
+Angular
 =========
 
-To use Sentry with your Angular 1.x application, you will need to use both Raven.js (Sentry's browser JavaScript SDK) and the Raven.js Angular plugin.
+This document uses Angular to refer to Angular 2+. On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
 
-On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
+Additionally, Raven.js can be configured to catch any Angular-specific (2.x) exceptions reported through the `@angular/core/ErrorHandler
+<https://angular.io/docs/js/latest/api/core/index/ErrorHandler-class.html>`_ component.
 
-Additionally, the Raven.js Angular plugin will catch any Angular-specific exceptions reported through Angular's ``$exceptionHandler`` interface.
 
-**Note**: This documentation is for Angular 1.x. See also: :doc:`Angular 2.x <angular2>`
+TypeScript Support
+------------------
+
+Raven.js ships with a `TypeScript declaration file
+<https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts>`_, which helps static checking correctness of
+Raven.js API calls, and facilitates auto-complete in TypeScript-aware IDEs like Visual Studio Code.
+
 
 Installation
 ------------
 
-Raven.js and the Raven.js Angular plugin are distributed using a few different methods.
-
-Using our CDN
-~~~~~~~~~~~~~
-
-For convenience, our CDN serves a single, minified JavaScript file containing both Raven.js and the Raven.js Angular plugin. It should be included **after** Angular, but **before** your application code.
-
-Example:
-
-.. sourcecode:: html
-
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
-    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/angular/raven.min.js" crossorigin="anonymous"></script>
-    <script>Raven.config('___PUBLIC_DSN___').install();</script>
-
-Note that this CDN build auto-initializes the Angular plugin.
-
-Using package managers
-~~~~~~~~~~~~~~~~~~~~~~
-
-Pre-built distributions of Raven.js and the Raven.js Angular plugin are available via both Bower and npm.
-
-Bower
-`````
-
-.. code
-
-.. code-block:: sh
-
-    $ bower install raven-js --save
-
-.. code-block:: html
-
-    <script src="/bower_components/angular/angular.js"></script>
-    <script src="/bower_components/raven-js/dist/raven.js"></script>
-    <script src="/bower_components/raven-js/dist/plugins/angular.js"></script>
-    <script>
-      Raven
-        .config('___PUBLIC_DSN___')
-        .addPlugin(Raven.Plugins.Angular)
-        .install();
-    </script>
-
-npm
-````
+Raven.js should be installed via npm.
 
 .. code-block:: sh
 
     $ npm install raven-js --save
 
-.. code-block:: html
 
-    <script src="/node_modules/angular/angular.js"></script>
-    <script src="/node_modules/raven-js/dist/raven.js"></script>
-    <script src="/node_modules/raven-js/dist/plugins/angular.js"></script>
-    <script>
-      Raven
-        .config('___PUBLIC_DSN___')
-        .addPlugin(Raven.Plugins.Angular)
-        .install();
-    </script>
+Configuration
+-------------
 
-These examples assume that Angular is exported globally as `window.angular`. You can alternatively pass a reference to the `angular` object directly as the second argument to `addPlugin`:
+Configuration depends on which module loader/packager you are using to build your Angular application.
 
-.. code-block:: javascript
+Below are instructions for `SystemJS
+<https://github.com/systemjs/systemjs>`__, followed by instructions for `Webpack
+<https://webpack.github.io/>`__, Angular CLI, and other module loaders/packagers.
 
-  Raven.addPlugin(Raven.Plugins.Angular, angular);
+SystemJS
+~~~~~~~~
 
-Module loaders (CommonJS)
-~~~~~~~~~~~~~~~~~~~~~~~~~
+First, configure SystemJS to locate the Raven.js package:
 
-Raven and the Raven Angular plugin can be loaded using a module loader like Browserify or Webpack.
+.. code-block:: js
 
-.. code-block:: javascript
+    System.config({
+      packages: {
+        /* ... existing packages above ... */
+        'raven-js': {
+          main: 'dist/raven.js'
+        }
+      },
+      paths: {
+        /* ... existing paths above ... */
+        'raven-js': 'node_modules/raven-js'
+      }
+    });
 
-    var angular = require('angular');
-    var Raven = require('raven-js');
+Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.ts):
+
+.. code-block:: js
+
+    import Raven = require('raven-js');
+    import { BrowserModule } from '@angular/platform-browser';
+    import { NgModule, ErrorHandler } from '@angular/core';
+    import { AppComponent } from './app.component';
 
     Raven
       .config('___PUBLIC_DSN___')
-      .addPlugin(require('raven-js/plugins/angular'), angular)
       .install();
 
-Note that when using CommonJS-style imports, you must pass a reference to `angular` as the second argument to `addPlugin`.
+    export class RavenErrorHandler implements ErrorHandler {
+      handleError(err:any) : void {
+        Raven.captureException(err.originalError || err);
+      }
+    }
 
-Angular Configuration
----------------------
+    @NgModule({
+      imports: [ BrowserModule ],
+      declarations: [ AppComponent ],
+      bootstrap: [ AppComponent ],
+      providers: [ { provide: ErrorHandler, useClass: RavenErrorHandler } ]
+    })
+    export class AppModule { }
 
-Inside your main Angular application module, you need to declare `ngRaven` as a module dependency:
+Once you've completed these two steps, you are done.
 
-.. code-block:: javascript
+Angular CLI
+~~~~~~~~~~~
 
-    var myApp = angular.module('myApp', [
-      'ngRaven',
-      'ngRoute',
-      'myAppControllers',
-      'myAppFilters'
-    ]);
+Angular CLI now uses Webpack to build instead of SystemJS. All you need to do is modify your main module file (where ``@NgModule`` is called, e.g. app.module.ts):
+
+.. code-block:: js
+
+    import * as Raven from 'raven-js';
+    import { BrowserModule } from '@angular/platform-browser';
+    import { NgModule, ErrorHandler } from '@angular/core';
+    import { AppComponent } from './app.component';
+
+    Raven
+      .config('___PUBLIC_DSN___')
+      .install();
+
+    export class RavenErrorHandler implements ErrorHandler {
+      handleError(err:any) : void {
+        Raven.captureException(err.originalError);
+      }
+    }
+
+    @NgModule({
+      imports: [ BrowserModule ],
+      declarations: [ AppComponent ],
+      bootstrap: [ AppComponent ],
+      providers: [ { provide: ErrorHandler, useClass: RavenErrorHandler } ]
+    })
+    export class AppModule { }
+
+Once you've completed that step, you are done.
