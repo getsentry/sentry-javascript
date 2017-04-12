@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.14.1
+* BUGFIX: Fix TypeError caused by breadcrumb URL truncation in some situations. See: https://github.com/getsentry/raven-js/issues/925
+* BUGFIX: Made URL truncation more defensive for some rare cases. See: https://github.com/getsentry/raven-js/pull/918
+* BUGFIX: Raven.js now treats DOMExceptions as "Error" objects w/ traces. See: https://github.com/getsentry/raven-js/pull/919/
+* CHANGE: Remove unused/deprecated escape functions in vendored TraceKit.js. See: https://github.com/getsentry/raven-js/pull/923
+* CHANGE: Removed json-stringify-safe from package.json (was already vendored). See: https://github.com/getsentry/raven-js/pull/917
+
 ## 3.14.0
 * NEW: URL values captured in http + breadcrumb interfaces are now trimmed to new `maxUrlLength` config (default 250). See: https://github.com/getsentry/raven-js/pull/906
 * CHANGE: Better extraction of URLs from eval frames on Chrome, Firefox. This may affect issue grouping of some events. See: https://github.com/getsentry/raven-js/pull/907

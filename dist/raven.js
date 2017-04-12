@@ -1,4 +1,4 @@
-/*! Raven.js 3.14.0 (6b817d7) | github.com/getsentry/raven-js */
+/*! Raven.js 3.14.1 (21187de) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -155,7 +155,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.14.0',
+    VERSION: '3.14.1',
 
     debug: false,
 
@@ -1414,19 +1414,21 @@ Raven.prototype = {
     _trimBreadcrumbs: function (breadcrumbs) {
         // known breadcrumb properties with urls
         // TODO: also consider arbitrary prop values that start with (https?)?://
-        var urlprops = {to: 1, from: 1, url: 1},
+        var urlProps = ['to', 'from', 'url'],
+            urlProp,
             crumb,
             data;
 
-        for (var i = 0; i < breadcrumbs.values.length; i++) {
+        for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
-            if (!crumb.hasOwnProperty('data'))
+            if (!crumb.hasOwnProperty('data') || !isObject(crumb.data))
                 continue;
 
             data = crumb.data;
-            for (var prop in urlprops) {
-                if (data.hasOwnProperty(prop)) {
-                    data[prop] = truncate(data[prop], this._globalOptions.maxUrlLength);
+            for (var j = 0; j < urlProps.length; ++j) {
+                urlProp = urlProps[j];
+                if (data.hasOwnProperty(urlProp)) {
+                    data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
         }
@@ -2127,20 +2129,22 @@ function isObject(what) {
     return typeof what === 'object' && what !== null;
 }
 
-// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
+// Yanked from https://git.io/vS8DV re-used under CC0
 // with some tiny modifications
-function isError(what) {
-    var toString = {}.toString.call(what);
-    return isObject(what) &&
-        toString === '[object Error]' ||
-        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
-        what instanceof Error;
+function isError(value) {
+  switch ({}.toString.call(value)) {
+    case '[object Error]': return true;
+    case '[object Exception]': return true;
+    case '[object DOMException]': return true;
+    default: return value instanceof Error;
+  }
 }
 
 module.exports = {
     isObject: isObject,
     isError: isError
 };
+
 },{}],6:[function(_dereq_,module,exports){
 (function (global){
 'use strict';
@@ -2468,27 +2472,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    /**
-     * Escapes special characters, except for whitespace, in a string to be
-     * used inside a regular expression as a string literal.
-     * @param {string} text The string.
-     * @return {string} The escaped string literal.
-     */
-    function escapeRegExp(text) {
-        return text.replace(/[\-\[\]{}()*+?.,\\\^$|#]/g, '\\$&');
-    }
-
-    /**
-     * Escapes special characters in a string to be used inside a regular
-     * expression as a string literal. Also ensures that HTML entities will
-     * be matched the same as their literal friends.
-     * @param {string} body The string.
-     * @return {string} The escaped string.
-     */
-    function escapeCodeAsRegExpForMatchingInsideHTML(body) {
-        return escapeRegExp(body).replace('<', '(?:<|&lt;)').replace('>', '(?:>|&gt;)').replace('&', '(?:&|&amp;)').replace('"', '(?:"|&quot;)').replace(/\s+/g, '\\s+');
-    }
-
     // Contents of Exception in various browsers.
     //
     // SAFARI:
