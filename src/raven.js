@@ -1051,11 +1051,22 @@ Raven.prototype = {
                     // Make a copy of the arguments to prevent deoptimization
                     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
                     var args = new Array(arguments.length);
-                    for(var i = 0; i < args.length; ++i) {
+                    for (var i = 0; i < args.length; ++i) {
                         args[i] = arguments[i];
                     }
 
+                    var fetchInput = args[0];
                     var method = 'GET';
+                    var url;
+
+                    if (typeof fetchInput === 'string') {
+                        url = fetchInput;
+                    } else {
+                        url = fetchInput.url;
+                        if (fetchInput.method) {
+                            method = fetchInput.method;
+                        }
+                    }
 
                     if (args[1] && args[1].method) {
                         method = args[1].method;
@@ -1063,7 +1074,7 @@ Raven.prototype = {
 
                     var fetchData = {
                         method: method,
-                        url: args[0],
+                        url: url,
                         status_code: null
                     };
 
