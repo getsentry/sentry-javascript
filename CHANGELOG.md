@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.14.2
+* BUGFIX: Fix bug in breadcrumb URL truncation when `fetch` is used with a `Request` argument. See: https://github.com/getsentry/raven-js/issues/924
+
 ## 3.14.1
 * BUGFIX: Fix TypeError caused by breadcrumb URL truncation in some situations. See: https://github.com/getsentry/raven-js/issues/925
 * BUGFIX: Made URL truncation more defensive for some rare cases. See: https://github.com/getsentry/raven-js/pull/918
