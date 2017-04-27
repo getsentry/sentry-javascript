@@ -299,6 +299,12 @@ Those configuration options are documented below:
 
     If set to `true`, Raven.js outputs some light debugging information onto the console.
 
+.. describe:: stringifyErrorMessages
+
+    By default, Raven.js will try to output any object that might come as an error to ``captureException`` as string.
+    This can result in ``[object Object]`` issues in Sentry. You might want to disable this behavior and
+    show those objects in JSON format in Sentry issues. To do so, set ``stringifyErrorMessages: true`` during configuration.
+
 Putting it all together
 -----------------------
 

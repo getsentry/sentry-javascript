@@ -55,7 +55,8 @@ function Raven() {
         maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
-        sampleRate: 1
+        sampleRate: 1,
+        stringifyErrorMessages: false
     };
     this._ignoreOnError = 0;
     this._isRavenInstalled = false;
@@ -388,10 +389,10 @@ Raven.prototype = {
         }
 
         options = options || {};
-        
+
         // Convert '[object Object]' error reports into something that can really help.
-        if (isObject(msg) && !isEmptyObject(msg)) {
-            msg = 'error object: ' + stringify(msg)
+        if (this._globalOptions.stringifyErrorMessages && isObject(msg) && !isEmptyObject(msg)) {
+            msg = 'error object: ' + stringify(msg);
         }
 
         var data = objectMerge({

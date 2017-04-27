@@ -61,6 +61,9 @@ interface RavenOptions {
 
     /** Override the default HTTP data transport handler. */
     transport?: (options: RavenTransportOptions) => void;
+
+    /** Set true to stringify error messages. Useful to solve [object Object] issues.  */
+    stringifyErrorMessages?: boolean;
 }
 
 interface RavenStatic {
