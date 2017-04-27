@@ -2259,6 +2259,18 @@ describe('Raven (public API)', function() {
                 message: '[object Object]'
             }]);
         });
+        
+        it('should convert error objects to a json', function() {
+            var errorObject = {test: 'error'};
+            
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_send');
+            Raven.captureMessage(errorObject);
+            assert.isTrue(Raven._send.called);
+            assert.deepEqual(Raven._send.lastCall.args, [{
+                message: 'error object: ' + JSON.stringify(errorObject)
+            }]);
+        });
 
         it('should work as advertised #integration', function() {
             var imageCache = [];
