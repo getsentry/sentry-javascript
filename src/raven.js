@@ -388,6 +388,11 @@ Raven.prototype = {
         }
 
         options = options || {};
+        
+        // Convert '[object Object]' error reports into something that can really help.
+        if (isObject(msg) && !isEmptyObject(msg)) {
+            msg = 'Got error object: ' + stringify(msg)
+        }
 
         var data = objectMerge({
             message: msg + ''  // Make sure it's actually a string
