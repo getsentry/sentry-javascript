@@ -391,7 +391,7 @@ Raven.prototype = {
         
         // Convert '[object Object]' error reports into something that can really help.
         if (isObject(msg) && !isEmptyObject(msg)) {
-            msg = 'Got error object: ' + stringify(msg)
+            msg = 'error object: ' + stringify(msg)
         }
 
         var data = objectMerge({
