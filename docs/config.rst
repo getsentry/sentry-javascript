@@ -107,6 +107,20 @@ Those configuration options are documented below:
             sampleRate: 0.5 // send 50% of events, drop the other half
         }
 
+.. describe:: sendTimeout
+
+    The time to wait to connect to the server or receive a response when capturing an exception, in seconds.
+
+    If it takes longer, the transport considers it a failed request and will pass back a timeout error.
+
+    Defaults to 1 second.
+
+    .. code-block:: javascript
+
+        {
+            sendTimeout: 5 // wait 5 seconds before considering the capture to have failed
+        }
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
