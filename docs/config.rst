@@ -113,7 +113,7 @@ Those configuration options are documented below:
 
     If it takes longer, the transport considers it a failed request and will pass back a timeout error.
 
-    Defaults to 1 second.
+    Defaults to 1 second. Make it longer if you run into timeout problems when sending exceptions to Sentry.
 
     .. code-block:: javascript
 
