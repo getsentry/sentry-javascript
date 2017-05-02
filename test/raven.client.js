@@ -5,7 +5,8 @@
 var raven = require('../'),
     nock = require('nock'),
     url = require('url'),
-    zlib = require('zlib');
+    zlib = require('zlib'),
+    child_process = require('child_process');
 
 raven.utils.disableConsoleAlerts();
 
@@ -321,80 +322,74 @@ describe('raven.Client', function () {
         process.emit('unhandledRejection', new Error('rejected!'));
       }
     });
-  });
-
-  describe('#patchGlobal()', function () {
-    beforeEach(function () {
-      // remove existing uncaughtException handlers
-      this.uncaughtBefore = process.listeners('uncaughtException');
-      process.removeAllListeners('uncaughtException');
-    });
-
-    afterEach(function () {
-      process.removeAllListeners('uncaughtException');
-      var uncaughtBefore = this.uncaughtBefore;
-      // restore things to how they were
-      for (var i = 0; i < uncaughtBefore.length; i++) {
-        process.on('uncaughtException', uncaughtBefore[i]);
-      }
-    });
 
     it('should add itself to the uncaughtException event list', function () {
       var listeners = process.listeners('uncaughtException');
       listeners.length.should.equal(0);
 
-      client.patchGlobal();
+      client.install();
 
       listeners = process.listeners('uncaughtException');
       listeners.length.should.equal(1);
     });
 
-    it('should send an uncaughtException to Sentry server', function (done) {
-      var scope = nock('https://app.getsentry.com')
-        .filteringRequestBody(/.*/, '*')
-        .post('/api/269/store/', '*')
-        .reply(200, 'OK');
-
-      client.on('logged', function () {
-        scope.done();
-        done();
-      });
-      client.patchGlobal();
-      process.emit('uncaughtException', new Error('derp'));
-    });
-
-    it('should trigger a callback after an uncaughtException', function (done) {
-      var scope = nock('https://app.getsentry.com')
-        .filteringRequestBody(/.*/, '*')
-        .post('/api/269/store/', '*')
-        .reply(200, 'OK');
-
-      client.patchGlobal(function () {
-        scope.done();
-        done();
-      });
-      process.emit('uncaughtException', new Error('derp'));
-    });
-
-    it('should not enter in recursion when an error is thrown on client request', function (done) {
-      var transportBefore = client.transport.send;
-
-      client.transport.send = function () {
-        throw new Error('foo');
-      };
-
-      client.patchGlobal(function (success, err) {
-        success.should.eql(false);
-        err.should.be.instanceOf(Error);
-        err.message.should.equal('foo');
-
-        client.transport.send = transportBefore;
-
-        done();
+    describe('exit conditions', function () {
+      var exitStr = 'exit test assertions complete\n';
+      it('should catch an uncaughtException and capture it before exiting', function (done) {
+        child_process.exec('node test/exit/capture.js', function (err, stdout, stderr) {
+          console.log('hey there');
+          console.log(stdout);
+          console.log('that was stdout');
+          console.log(stderr);
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: derp');
+          done();
+        });
       });
 
+      it('should catch an uncaughtException and capture it before calling a provided callback', function (done) {
+        child_process.exec('node test/exit/capture_callback.js', function (err, stdout, stderr) {
+          err.code.should.equal(20);
+          stdout.should.equal(exitStr);
+          stderr.should.equal('');
+          done();
+        });
+      });
 
-      process.emit('uncaughtException', new Error('derp'));
+      it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function (done) {
+        child_process.exec('node test/exit/throw_on_send.js', function (err, stdout, stderr) {
+          err.code.should.equal(20);
+          stdout.should.equal(exitStr);
+          stderr.should.equal('');
+          done();
+        });
+      });
+
+      it('should catch a domain exception and capture it before exiting', function (done) {
+        child_process.exec('node test/exit/domain_capture.js', function (err, stdout, stderr) {
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: derp');
+          done();
+        });
+      });
+
+      it('should catch a domain exception and capture it before calling a provided callback', function (done) {
+        child_process.exec('node test/exit/domain_capture_callback.js', function (err, stdout, stderr) {
+          err.code.should.equal(20);
+          stdout.should.equal(exitStr);
+          stderr.should.equal('');
+          done();
+        });
+      });
+
+      it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function (done) {
+        child_process.exec('node test/exit/domain_throw_on_send.js', function (err, stdout, stderr) {
+          err.code.should.equal(20);
+          stdout.should.equal(exitStr);
+          stderr.should.equal('');
+          done();
+        });
+      });
     });
   });
 
