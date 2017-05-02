@@ -51,7 +51,6 @@ describe('raven.Client', function () {
       path: '/',
       project_id: '269',
       port: 443,
-      timeout: 1
     };
     var client = new raven.Client(dsn, {
       name: 'YAY!'
@@ -69,7 +68,6 @@ describe('raven.Client', function () {
       path: '/',
       project_id: '1',
       port: 443,
-      timeout: 1
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client();
@@ -86,7 +84,6 @@ describe('raven.Client', function () {
       path: '/',
       project_id: '1',
       port: 443,
-      timeout: 1
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client({
@@ -337,10 +334,6 @@ describe('raven.Client', function () {
       var exitStr = 'exit test assertions complete\n';
       it('should catch an uncaughtException and capture it before exiting', function (done) {
         child_process.exec('node test/exit/capture.js', function (err, stdout, stderr) {
-          console.log('hey there');
-          console.log(stdout);
-          console.log('that was stdout');
-          console.log(stderr);
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
@@ -658,8 +651,7 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
-      port: 443,
-      timeout: 1
+      port: 443
     };
     var dsn = 'heka+https://public:private@app.getsentry.com/269';
     var client = new raven.Client(dsn, {
