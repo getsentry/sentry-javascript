@@ -61,6 +61,13 @@ interface RavenOptions {
 
     /** Override the default HTTP data transport handler. */
     transport?: (options: RavenTransportOptions) => void;
+
+    /** Enables/disables instrumentation of globals. */
+    instrument?: boolean | RavenInstrumentationOptions;
+}
+
+interface RavenInstrumentationOptions {
+    tryCatch?: boolean;
 }
 
 interface RavenStatic {

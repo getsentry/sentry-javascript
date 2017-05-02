@@ -1830,6 +1830,33 @@ describe('Raven (public API)', function() {
             });
         });
 
+        describe('instrument', function () {
+            it('should convert `true` to a dictionary of enabled instrument features', function () {
+                Raven.config(SENTRY_DSN);
+                assert.deepEqual(Raven._globalOptions.instrument, {
+                    tryCatch: true,
+                });
+            });
+
+            it('should leave false as-is', function () {
+                Raven.config(SENTRY_DSN, {
+                    instrument: false
+                });
+                assert.equal(Raven._globalOptions.instrument, false);
+            });
+
+            it('should merge objects with the default instrument settings', function () {
+                Raven.config(SENTRY_DSN, {
+                    instrument: {
+                        tryCatch: false
+                    }
+                });
+                assert.deepEqual(Raven._globalOptions.instrument, {
+                    tryCatch: false,
+                });
+            });
+        });
+
         describe('autoBreadcrumbs', function () {
             it('should convert `true` to a dictionary of enabled breadcrumb features', function () {
                 Raven.config(SENTRY_DSN);
@@ -2934,6 +2961,30 @@ describe('install/uninstall', function () {
 
             // Cleanup.
             document.addEventListener = temp;
+        });
+
+        it('should instrument try/catch by default', function () {
+            this.sinon.stub(Raven, '_instrumentTryCatch');
+            Raven.config(SENTRY_DSN).install();
+            assert.isTrue(Raven._instrumentTryCatch.calledOnce);
+        });
+
+        it('should not instrument try/catch if instrument is false', function () {
+            this.sinon.stub(Raven, '_instrumentTryCatch');
+            Raven.config(SENTRY_DSN, {
+                instrument: false
+            }).install();
+            assert.isFalse(Raven._instrumentTryCatch.called);
+        });
+
+        it('should not instrument try/catch if instrument.tryCatch is false', function () {
+            this.sinon.stub(Raven, '_instrumentTryCatch');
+            Raven.config(SENTRY_DSN, {
+                instrument: {
+                    tryCatch: false
+                }
+            }).install();
+            assert.isFalse(Raven._instrumentTryCatch.called);
         });
 
         it('should instrument breadcrumbs by default', function () {
