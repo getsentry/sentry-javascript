@@ -267,17 +267,33 @@ By default, Raven does not capture unhandled promise rejections. You can have it
     captureUnhandledRejections: true
   }).install();
 
-Global Error Handler
---------------------
+Global Fatal Error Handler
+--------------------------
 
-The ``install`` method sets up a global listener for uncaught exceptions, and possibly
-also for unhandled rejections. You generally shouldn't carry on after receiving an `uncaughtException`
-(see `Node docs <http://nodejs.org/api/process.html#process_event_uncaughtexception>`_),
-so you can provide a callback which will be invoked **after** Raven has sent the event to Sentry:
+The ``install`` method sets up a global listener for uncaught exceptions, and ``context`` and ``wrap`` can catch exceptions as well.
+These are situations where Raven catches what would otherwise be a fatal process-ending exception, and we generally shouldn't keep our
+program running after such events (see `Node docs <http://nodejs.org/api/process.html#process_event_uncaughtexception>`_),
+so Raven has a concept of a "fatal error handler". When Raven catches what would otherwise be a fatal process-ending exception, we
+capture it and then call the fatal error handler.
+
+By default, we make the fatal error handler print the error and then exit the process. If you want to do your own clean-up,
+pre-exit logging, or other shutdown procedures, you can provide your own fatal error handler as a parameter to ``install()``.
+
+The fatal error hander callback will be the last thing called before the process should shut down.
+It can do anything necessary, including asynchronous operations, to make a best effort to clean up and shut down the process, but it should
+not throw, and it absolutely must not allow the process to keep running indefinitely.
+
+After catching a fatal exception, Raven will first attempt to send it to Sentry before it calls the fatal exception handler.
+If sending fails, a ``sendErr`` will be passed, and otherwise the ``eventId`` will be provided. In either case, the fatal exception
+resulting in the shutdown is passed as the first parameter.
 
 .. code-block:: javascript
 
-    Raven.install(function() {
+    Raven.install(function (err, sendErr, eventId) {
+      if (!sendErr) {
+        console.log('Successfully sent fatal error with eventId ' + eventId + ' to Sentry:');
+        console.error(err.stack);
+      }
       console.log('This is thy sheath; there rust, and let me die.');
       process.exit(1);
     });
