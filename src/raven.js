@@ -55,6 +55,7 @@ function Raven() {
         maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
+        instrument: true,
         sampleRate: 1
     };
     this._ignoreOnError = 0;
@@ -155,6 +156,18 @@ Raven.prototype = {
         }
         globalOptions.autoBreadcrumbs = autoBreadcrumbs;
 
+        var instrumentDefaults = {
+            tryCatch: true
+        };
+
+        var instrument = globalOptions.instrument;
+        if ({}.toString.call(instrument) === '[object Object]') {
+            instrument = objectMerge(instrumentDefaults, instrument);
+        } else if (instrument !== false) {
+            instrument = instrumentDefaults;
+        }
+        globalOptions.instrument = instrument;
+
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
@@ -175,7 +188,10 @@ Raven.prototype = {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            self._instrumentTryCatch();
+            if (self._globalOptions.instrument && self._globalOptions.instrument.tryCatch) {
+              self._instrumentTryCatch();
+            }
+
             if (self._globalOptions.autoBreadcrumbs)
                 self._instrumentBreadcrumbs();
 
@@ -853,7 +869,8 @@ Raven.prototype = {
     },
 
     /**
-     * Install any queued plugins
+     * Wrap timer functions and event targets to catch errors and provide
+     * better metadata.
      */
     _instrumentTryCatch: function() {
         var self = this;

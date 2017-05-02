@@ -299,6 +299,21 @@ Those configuration options are documented below:
 
     If set to `true`, Raven.js outputs some light debugging information onto the console.
 
+
+.. describe:: instrument
+
+    Enables/disables instrumentation of globals. Possible values are:
+
+    * `true` (default)
+    * `false` - all instrumentation disabled
+    * A dictionary of individual instrumentation types that can be enabled/disabled:
+
+    .. code-block:: javascript
+
+        instrument: {
+            'tryCatch': true, // Instruments timers and event targets
+        }
+
 Putting it all together
 -----------------------
 
