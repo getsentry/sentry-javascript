@@ -300,9 +300,16 @@ describe('raven.Client', function () {
       var listeners = process.listeners('unhandledRejection');
       listeners.length.should.equal(0);
 
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, 'OK');
+
       client = new raven.Client(dsn, { captureUnhandledRejections: true });
-      client.install(function (sent, reason) {
-        reason.message.should.equal('rejected!');
+      client.install();
+
+      client.on('logged', function () {
+        scope.done();
         done();
       });
 
