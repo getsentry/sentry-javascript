@@ -7,6 +7,7 @@
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
+var moduleName = 'ngRaven';
 
 
 function angularPlugin(Raven, angular) {
@@ -34,7 +35,7 @@ function angularPlugin(Raven, angular) {
         };
     }
 
-    angular.module('ngRaven', [])
+    angular.module(moduleName, [])
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
 
@@ -63,5 +64,7 @@ angularPlugin._normalizeData = function (data) {
         }
     }
 };
+
+angularPlugin.moduleName = moduleName;
 
 module.exports = angularPlugin;
