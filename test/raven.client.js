@@ -416,6 +416,14 @@ describe('raven.Client', function () {
           done();
         });
       });
+
+      it('should catch an uncaughtException and capture it and failsafe shutdown if onFatalError throws', function (done) {
+        child_process.exec('node test/exit/throw_on_fatal.js', function (err, stdout, stderr) {
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: fatal derp');
+          done();
+        });
+      });
     });
   });
 
