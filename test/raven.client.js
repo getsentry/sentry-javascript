@@ -356,7 +356,16 @@ describe('raven.Client', function () {
         });
       });
 
+      it('should catch an uncaughtException and capture it without a second followup exception causing premature shutdown', function (done) {
+        child_process.exec('node test/exit/capture_with_second_error.js', function (err, stdout, stderr) {
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: derp');
+          done();
+        });
+      });
+
       it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function (done) {
+        this.timeout(4000);
         child_process.exec('node test/exit/throw_on_send.js', function (err, stdout, stderr) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
@@ -382,7 +391,16 @@ describe('raven.Client', function () {
         });
       });
 
+      it('should catch a domain exception and capture it without a second followup exception causing premature shutdown', function (done) {
+        child_process.exec('node test/exit/domain_capture_with_second_error.js', function (err, stdout, stderr) {
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: derp');
+          done();
+        });
+      });
+
       it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function (done) {
+        this.timeout(4000);
         child_process.exec('node test/exit/domain_throw_on_send.js', function (err, stdout, stderr) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
