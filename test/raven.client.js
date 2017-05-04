@@ -408,6 +408,14 @@ describe('raven.Client', function () {
           done();
         });
       });
+
+      it('should catch an uncaughtException and capture it without a second followup domain exception causing premature shutdown', function (done) {
+        child_process.exec('node test/exit/capture_with_second_domain_error.js', function (err, stdout, stderr) {
+          stdout.should.equal(exitStr);
+          stderr.should.startWith('Error: derp');
+          done();
+        });
+      });
     });
   });
 
