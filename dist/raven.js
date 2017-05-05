@@ -1,4 +1,4 @@
-/*! Raven.js 3.14.2 (5cf57e1) | github.com/getsentry/raven-js */
+/*! Raven.js 3.15.0 (d49a1b8) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -120,6 +120,7 @@ function Raven() {
         maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
+        instrument: true,
         sampleRate: 1
     };
     this._ignoreOnError = 0;
@@ -155,7 +156,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.14.2',
+    VERSION: '3.15.0',
 
     debug: false,
 
@@ -220,6 +221,18 @@ Raven.prototype = {
         }
         globalOptions.autoBreadcrumbs = autoBreadcrumbs;
 
+        var instrumentDefaults = {
+            tryCatch: true
+        };
+
+        var instrument = globalOptions.instrument;
+        if ({}.toString.call(instrument) === '[object Object]') {
+            instrument = objectMerge(instrumentDefaults, instrument);
+        } else if (instrument !== false) {
+            instrument = instrumentDefaults;
+        }
+        globalOptions.instrument = instrument;
+
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
@@ -240,7 +253,10 @@ Raven.prototype = {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            self._instrumentTryCatch();
+            if (self._globalOptions.instrument && self._globalOptions.instrument.tryCatch) {
+              self._instrumentTryCatch();
+            }
+
             if (self._globalOptions.autoBreadcrumbs)
                 self._instrumentBreadcrumbs();
 
@@ -918,7 +934,8 @@ Raven.prototype = {
     },
 
     /**
-     * Install any queued plugins
+     * Wrap timer functions and event targets to catch errors and provide
+     * better metadata.
      */
     _instrumentTryCatch: function() {
         var self = this;
@@ -1116,11 +1133,22 @@ Raven.prototype = {
                     // Make a copy of the arguments to prevent deoptimization
                     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
                     var args = new Array(arguments.length);
-                    for(var i = 0; i < args.length; ++i) {
+                    for (var i = 0; i < args.length; ++i) {
                         args[i] = arguments[i];
                     }
 
+                    var fetchInput = args[0];
                     var method = 'GET';
+                    var url;
+
+                    if (typeof fetchInput === 'string') {
+                        url = fetchInput;
+                    } else {
+                        url = fetchInput.url;
+                        if (fetchInput.method) {
+                            method = fetchInput.method;
+                        }
+                    }
 
                     if (args[1] && args[1].method) {
                         method = args[1].method;
@@ -1128,7 +1156,7 @@ Raven.prototype = {
 
                     var fetchData = {
                         method: method,
-                        url: args[0],
+                        url: url,
                         status_code: null
                     };
 

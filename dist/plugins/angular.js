@@ -1,4 +1,4 @@
-/*! Raven.js 3.14.2 (5cf57e1) | github.com/getsentry/raven-js */
+/*! Raven.js 3.15.0 (d49a1b8) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -20,6 +20,7 @@
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
+var moduleName = 'ngRaven';
 
 
 function angularPlugin(Raven, angular) {
@@ -47,7 +48,7 @@ function angularPlugin(Raven, angular) {
         };
     }
 
-    angular.module('ngRaven', [])
+    angular.module(moduleName, [])
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
 
@@ -76,6 +77,8 @@ angularPlugin._normalizeData = function (data) {
         }
     }
 };
+
+angularPlugin.moduleName = moduleName;
 
 module.exports = angularPlugin;
 

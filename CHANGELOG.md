@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.15.0
+* NEW: Added new `instrument` config option for disabling portions of instrumentation. See: https://github.com/getsentry/raven-js/pull/938
+* NEW: Support CJS use of AngularJS module. See documentation: https://docs.sentry.io/clients/javascript/integrations/angularjs/
+
 ## 3.14.2
 * BUGFIX: Fix bug in breadcrumb URL truncation when `fetch` is used with a `Request` argument. See: https://github.com/getsentry/raven-js/issues/924
 
