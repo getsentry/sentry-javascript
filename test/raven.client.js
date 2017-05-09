@@ -952,6 +952,48 @@ describe('raven.Client', function () {
         });
       });
     });
+
+    it('should parse a req property from context', function (done) {
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function (uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+
+            msg.request.method.should.equal('GET');
+            msg.request.url.should.equal('https://sentry.io/hello');
+            msg.user.should.eql({
+              username: 'lewis'
+            });
+
+            done();
+          });
+          return 'OK';
+        });
+
+
+      client.context(function () {
+        client.setContext({
+          req: {
+            protocol: 'https',
+            hostname: 'sentry.io',
+            url: '/hello',
+            method: 'GET',
+            user: {
+              username: 'lewis'
+            }
+          }
+        });
+
+        setTimeout(function () {
+          client.captureException(new Error('foo'), function () {
+            scope.done();
+          });
+        }, 0);
+      });
+    });
   });
 
   describe('#intercept()', function () {
