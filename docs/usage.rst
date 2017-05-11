@@ -134,7 +134,22 @@ All optional attributes are passed as part of the options to ``captureException`
             user: { name: 'matt' }
         }
 
-    If you're inside a context and your context data includes a `user` key, that data will be merged into this.
+    If you're inside a context and your context data includes a ``user`` key, that data will be merged into this.
+
+.. describe:: req
+
+    The ``req`` object associated with this event, from a Node http server, Express, Koa, or similar.
+    Will be parsed for request details and user context from ``req.user`` if present.
+
+    .. code-block:: javascript
+
+        app.use(function (req, res, next) {
+            if (someError) {
+                Raven.captureException(someError, { req: req });
+            }
+        });
+
+    Note that the ``Raven.requestHandler()`` Express middleware adds the ``req`` object to the context for you automatically, so you won't need to provide it manually.
 
 .. describe:: tags
 
