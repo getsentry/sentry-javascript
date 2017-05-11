@@ -1,3 +1,18 @@
+# 2.0.0 - 5/10/2017
+- Properly surface errors to preserve process exit conditions [See #308, #257]
+  - Node processes with raven will now exit in exactly the same situations as if raven were not present
+    - Previously, there were failure scenarios where raven would erroneously cause the process to continue to run when it should have shut down
+    - **Be aware when upgrading:** it is possible that with raven-node 2.0, your node process will shut down from exceptions where it previously did not
+  - This also includes changes to more reliably finish capturing the exception that induces process shutdown
+- Don't include `domain` property as extra property on `Error` objects [See #309]
+- Parse `req` object from context or kwargs [See #310]
+  - For Express middleware users in particular, raven will now automatically report request details and user context in situations where it previously did not
+- Tidied up `.npmignore` to exclude unnecessary files in npm package [See #311]
+  - Install size reduced from 484kB to 84kB, which should save npm ~100GB/month in bandwidth
+- Removed various deprecated methods [See #313]
+- Removed postgres autoBreadcrumbs to avoid webpack dependency issue [See #315, #254]
+  - postgres (and more) autoBreadcrumbs will return in version 2.1
+
 # 1.1.6, 1.2.1 - 4/7/2017
 - Fix memory leak in `consoleAlert` (and thus, if not disabled, in `captureException`) [See #300]
 
