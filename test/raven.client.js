@@ -145,13 +145,6 @@ describe('raven.Client', function () {
     delete process.env.SENTRY_ENVIRONMENT;
   });
 
-  describe('#getIdent()', function () {
-    it('should match', function () {
-      var result = 'c988bf5cb7db4653825c92f6864e7206';
-      client.getIdent(result).should.equal('c988bf5cb7db4653825c92f6864e7206');
-    });
-  });
-
   describe('#captureMessage()', function () {
     it('should send a plain text message to Sentry server', function (done) {
       var scope = nock('https://app.getsentry.com')
@@ -208,7 +201,7 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#captureError()', function () {
+  describe('#captureException()', function () {
     it('should send an Error to Sentry server', function (done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
@@ -219,7 +212,7 @@ describe('raven.Client', function () {
         scope.done();
         done();
       });
-      client.captureError(new Error('wtf?'));
+      client.captureException(new Error('wtf?'));
     });
 
     it('should send a plain text "error" with a synthesized stack', function (done) {
@@ -248,7 +241,7 @@ describe('raven.Client', function () {
         scope.done();
         done();
       });
-      client.captureError(new Error('wtf?'));
+      client.captureException(new Error('wtf?'));
     });
 
     it('shouldn\'t choke on circular references', function (done) {
@@ -271,7 +264,7 @@ describe('raven.Client', function () {
         }
       };
       kwargs.extra.foo = kwargs;
-      client.captureError(new Error('wtf?'), kwargs);
+      client.captureException(new Error('wtf?'), kwargs);
     });
   });
 
@@ -738,7 +731,7 @@ describe('raven.Client', function () {
     client.on('logged', function () {
       scope.done();
     });
-    client.captureError(new Error('wtf?'));
+    client.captureException(new Error('wtf?'));
   });
 
   it('should capture extra data', function (done) {
@@ -1201,20 +1194,7 @@ describe('raven.Client', function () {
   });
 });
 
-describe('raven.middleware', function () {
-  it('should use an instance passed to it instead of making a new one', function () {
-    var client = new raven.Client(dsn);
-    raven.middleware.express.getClient(client).should.equal(client);
-  });
-
-  it('should make a new instance when passed a DSN string', function () {
-    var client1 = new raven.Client(dsn);
-    var client2 = raven.middleware.express.getClient(dsn);
-    client2.should.not.equal(raven);
-    client2.should.not.equal(client1);
-    client2.should.be.an.instanceof(raven.constructor);
-  });
-
+describe('raven requestHandler/errorHandler middleware', function () {
   it('should explicitly add req and res to the domain', function (done) {
     var client = new raven.Client(dsn).install();
     var message = 'test breadcrumb';
