@@ -166,7 +166,6 @@ Those configuration options are documented below:
       autoBreadcrumbs: {
           'console': false,  // console logging
           'http': true,     // http and https requests
-          'pg': true,  // postgresql queries from pg module
       }
 
 .. describe:: maxBreadcrumbs
