@@ -31,9 +31,10 @@
     "cookie": "0.3.1",
     "json-stringify-safe": "5.0.1",
     "lsmod": "1.0.0",
-    "uuid": "3.0.0",
+    "promise": "^7.1.1",
     "stack-trace": "0.0.9",
-    "timed-out": "4.0.1"
+    "timed-out": "4.0.1",
+    "uuid": "3.0.0"
   },
   "devDependencies": {
     "coffee-script": "~1.10.0",
