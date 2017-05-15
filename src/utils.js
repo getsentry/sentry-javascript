@@ -15,7 +15,20 @@ function isError(value) {
   }
 }
 
+function wrappedCallback(callback) {
+    function dataCallback(data, original) {
+      var normalizedData = callback(data) || data;
+      if (original) {
+          return original(normalizedData) || normalizedData;
+      }
+      return normalizedData;
+    }
+
+    return dataCallback;
+}
+
 module.exports = {
     isObject: isObject,
-    isError: isError
+    isError: isError,
+    wrappedCallback: wrappedCallback
 };

@@ -19,6 +19,8 @@
  */
 'use strict';
 
+var wrappedCallback = require('../src/utils').wrappedCallback;
+
 // Example React Native path format (iOS):
 // /var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
 
@@ -60,9 +62,9 @@ function reactNativePlugin(Raven, options) {
     Raven.setTransport(reactNativePlugin._transport);
 
     // Use data callback to strip device-specific paths from stack traces
-    Raven.setDataCallback(function(data) {
-        reactNativePlugin._normalizeData(data, options.pathStrip)
-    });
+    Raven.setDataCallback(wrappedCallback(function(data) {
+        return reactNativePlugin._normalizeData(data, options.pathStrip);
+    }));
 
     // Check for a previously persisted payload, and report it.
     reactNativePlugin._restorePayload()
@@ -224,6 +226,7 @@ reactNativePlugin._normalizeData = function (data, pathStripRe) {
             frame.filename = normalizeUrl(frame.filename, pathStripRe);
         });
     }
+    return data;
 };
 
 module.exports = reactNativePlugin;

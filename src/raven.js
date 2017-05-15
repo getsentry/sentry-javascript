@@ -26,6 +26,13 @@ var _window = typeof window !== 'undefined' ? window
 var _document = _window.document;
 var _navigator = _window.navigator;
 
+
+function keepOriginalCallback(original, callback) {
+    return isFunction(callback) ?
+    function (data) { return callback(data, original) } :
+    callback;
+}
+
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
@@ -573,10 +580,8 @@ Raven.prototype = {
      */
     setDataCallback: function(callback) {
         var original = this._globalOptions.dataCallback;
-        this._globalOptions.dataCallback = isFunction(callback)
-          ? function (data) { return callback(data, original); }
-          : callback;
-
+        this._globalOptions.dataCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
@@ -589,10 +594,8 @@ Raven.prototype = {
      */
     setBreadcrumbCallback: function(callback) {
         var original = this._globalOptions.breadcrumbCallback;
-        this._globalOptions.breadcrumbCallback = isFunction(callback)
-          ? function (data) { return callback(data, original); }
-          : callback;
-
+        this._globalOptions.breadcrumbCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
@@ -605,10 +608,8 @@ Raven.prototype = {
      */
     setShouldSendCallback: function(callback) {
         var original = this._globalOptions.shouldSendCallback;
-        this._globalOptions.shouldSendCallback = isFunction(callback)
-            ? function (data) { return callback(data, original); }
-            : callback;
-
+        this._globalOptions.shouldSendCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
