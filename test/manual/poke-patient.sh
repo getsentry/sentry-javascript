@@ -19,6 +19,11 @@ curl localhost:3000/capture
 gc
 gc_restart
 
+curl localhost:3000/capture_large_source
+gc
+gc
+gc_restart
+
 ab -c 5 -n 5000 localhost:3000/hello
 gc_restart
 

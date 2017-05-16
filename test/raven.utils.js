@@ -192,6 +192,7 @@ describe('raven.utils', function () {
         });
         filesRead.length.should.equal(uniqueFilesRead.length);
 
+        fs.readFile = origReadFile;
         done();
       }
 
