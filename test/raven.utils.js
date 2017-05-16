@@ -168,6 +168,43 @@ describe('raven.utils', function () {
         parseStack(e, callback);
       }
     });
+
+    it('should not read the same source file multiple times when getting source context lines', function (done) {
+      var fs = require('fs');
+      var origReadFile = fs.readFile;
+      var filesRead = [];
+
+      fs.readFile = function (file) {
+        filesRead.push(file);
+        origReadFile.apply(this, arguments);
+      };
+
+      function parseCallback(frames) {
+        // first two frames will both be from this file, but we should have only read this file once
+        var frame1 = frames.pop();
+        var frame2 = frames.pop();
+        frame1.context_line.trim().should.endWith("throw new Error('error');");
+        frame2.context_line.trim().should.endWith('nestedThrow();');
+        frame1.filename.should.equal(frame2.filename);
+
+        var uniqueFilesRead = filesRead.filter(function (filename, idx, arr) {
+          return arr.indexOf(filename) === idx;
+        });
+        filesRead.length.should.equal(uniqueFilesRead.length);
+
+        done();
+      }
+
+      function nestedThrow() {
+        throw new Error('error');
+      }
+
+      try {
+        nestedThrow();
+      } catch (e) {
+        raven.utils.parseStack(e, parseCallback);
+      }
+    });
   });
 
   describe('#getCulprit()', function () {
