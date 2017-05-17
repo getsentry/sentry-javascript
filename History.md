@@ -1,3 +1,6 @@
+# 2.0.1 - 5/16/2017
+- Fix memory explosion when parsing stack for large files [See #320]
+
 # 2.0.0 - 5/10/2017
 - Properly surface errors to preserve process exit conditions [See #308, #257]
   - Node processes with raven will now exit in exactly the same situations as if raven were not present
