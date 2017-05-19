@@ -1388,13 +1388,14 @@ Raven.prototype = {
             if (!crumb.hasOwnProperty('data') || !isObject(crumb.data))
                 continue;
 
-            data = crumb.data;
+            data = Object.assign({}, crumb.data);
             for (var j = 0; j < urlProps.length; ++j) {
                 urlProp = urlProps[j];
                 if (data.hasOwnProperty(urlProp)) {
                     data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
+            breadcrumbs.values[i] = {'data': data};
         }
     },
 
