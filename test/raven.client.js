@@ -1161,6 +1161,10 @@ describe('raven.Client', function () {
         client.install();
       });
 
+      afterEach(function () {
+        client.uninstall();
+      });
+
       it('should instrument http to capture breadcrumbs', function (done) {
         var testUrl = 'http://example.com/';
         var scope = nock(testUrl)
