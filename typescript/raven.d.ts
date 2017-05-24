@@ -64,6 +64,8 @@ interface RavenOptions {
 
     /** Enables/disables instrumentation of globals. */
     instrument?: boolean | RavenInstrumentationOptions;
+
+    autoBreadcrumbs?: boolean | AutoBreadCrumbOptions
 }
 
 interface RavenInstrumentationOptions {
@@ -255,4 +257,12 @@ interface BreadCrumb {
 }
 
 type BreadCrumbType = "navigation" | "http";
+
+interface AutoBreadCrumbOptions {
+    xhr?: boolean;
+    console?: boolean;
+    dom?: boolean;
+    location?: boolean;
+}
+
 type LogLevel = "critical" | "error" | "warn" | "info" | "debug";
