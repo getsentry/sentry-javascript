@@ -66,7 +66,7 @@ interface RavenOptions {
     instrument?: boolean | RavenInstrumentationOptions;
 
     /** Enables/disables automatic collection of breadcrumbs. */
-    autoBreadcrumbs?: boolean | AutoBreadCrumbOptions
+    autoBreadcrumbs?: boolean | AutoBreadcrumbOptions
 }
 
 interface RavenInstrumentationOptions {
@@ -171,7 +171,7 @@ interface RavenStatic {
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
     /** Log a breadcrumb */
-    captureBreadcrumb(crumb: BreadCrumb): RavenStatic;
+    captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
     /**
      * Clear the user context, removing the user data that would be sent to Sentry.
@@ -249,17 +249,17 @@ interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
 }
 
-interface BreadCrumb {
+interface Breadcrumb {
     message?: string;
     category?: string;
     level?: LogLevel;
     data?: any;
-    type?: BreadCrumbType
+    type?: BreadcrumbType
 }
 
-type BreadCrumbType = "navigation" | "http";
+type BreadcrumbType = "navigation" | "http";
 
-interface AutoBreadCrumbOptions {
+interface AutoBreadcrumbOptions {
     xhr?: boolean;
     console?: boolean;
     dom?: boolean;
