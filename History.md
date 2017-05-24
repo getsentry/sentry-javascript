@@ -1,3 +1,6 @@
+# 2.0.2 - 5/24/2017
+- Fix issue with sending empty request details when no request is present [See #324]
+
 # 2.0.1 - 5/16/2017
 - Fix memory explosion when parsing stack for large files [See #320]
 
