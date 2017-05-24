@@ -8,7 +8,7 @@ export = Raven;
 
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
-    level?: string;
+    level?: LogLevel;
 
     /** The name of the logger used by Sentry. Default: javascript */
     logger?: string;
@@ -168,7 +168,7 @@ interface RavenStatic {
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
     /** Log a breadcrumb */
-    captureBreadcrumb(crumb: Object): RavenStatic;
+    captureBreadcrumb(crumb: BreadCrumb): RavenStatic;
 
     /**
      * Clear the user context, removing the user data that would be sent to Sentry.
@@ -245,3 +245,14 @@ interface RavenTransportOptions {
 interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
 }
+
+interface BreadCrumb {
+    message?: string;
+    category?: string;
+    level?: LogLevel;
+    data?: any;
+    type?: BreadCrumbType
+}
+
+type BreadCrumbType = "navigation" | "http";
+type LogLevel = "critical" | "error" | "warn" | "info" | "debug";
