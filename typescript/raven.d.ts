@@ -65,6 +65,7 @@ interface RavenOptions {
     /** Enables/disables instrumentation of globals. */
     instrument?: boolean | RavenInstrumentationOptions;
 
+    /** Enables/disables automatic collection of breadcrumbs. */
     autoBreadcrumbs?: boolean | AutoBreadCrumbOptions
 }
 
