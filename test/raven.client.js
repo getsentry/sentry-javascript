@@ -675,6 +675,82 @@ describe('raven.Client', function () {
         environment: 'production'
       });
     });
+
+    describe('context parsing', function () {
+      afterEach(function () {
+        process.domain && process.domain.exit();
+      });
+
+      it('should parse a req property from context', function (done) {
+        var scope = nock('https://app.getsentry.com')
+          .filteringRequestBody(/.*/, '*')
+          .post('/api/269/store/', '*')
+          .reply(200, function (uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+
+              msg.request.method.should.equal('GET');
+              msg.request.url.should.equal('https://sentry.io/hello');
+              msg.user.should.eql({
+                username: 'lewis'
+              });
+
+              done();
+            });
+            return 'OK';
+          });
+
+
+        client.context(function () {
+          client.setContext({
+            req: {
+              protocol: 'https',
+              hostname: 'sentry.io',
+              url: '/hello',
+              method: 'GET',
+              user: {
+                username: 'lewis'
+              }
+            }
+          });
+
+          setTimeout(function () {
+            client.captureException(new Error('foo'), function () {
+              scope.done();
+            });
+          }, 0);
+        });
+      });
+
+      it('should not attempt to parse an empty req', function (done) {
+        var scope = nock('https://app.getsentry.com')
+          .filteringRequestBody(/.*/, '*')
+          .post('/api/269/store/', '*')
+          .reply(200, function (uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+              if (err) return done(err);
+              var msg = JSON.parse(dec.toString());
+
+              msg.message.should.equal('Error: foo');
+              Object.keys(msg.request).should.have.length(0);
+
+              done();
+            });
+            return 'OK';
+          });
+
+
+        client.context(function () {
+          // no req set on context
+          setTimeout(function () {
+            client.captureException(new Error('foo'), function () {
+              scope.done();
+            });
+          }, 0);
+        });
+      });
+    });
   });
 
   it('should use a custom transport', function () {
@@ -943,48 +1019,6 @@ describe('raven.Client', function () {
         }, function () {
           scope.done();
         });
-      });
-    });
-
-    it('should parse a req property from context', function (done) {
-      var scope = nock('https://app.getsentry.com')
-        .filteringRequestBody(/.*/, '*')
-        .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
-            if (err) return done(err);
-            var msg = JSON.parse(dec.toString());
-
-            msg.request.method.should.equal('GET');
-            msg.request.url.should.equal('https://sentry.io/hello');
-            msg.user.should.eql({
-              username: 'lewis'
-            });
-
-            done();
-          });
-          return 'OK';
-        });
-
-
-      client.context(function () {
-        client.setContext({
-          req: {
-            protocol: 'https',
-            hostname: 'sentry.io',
-            url: '/hello',
-            method: 'GET',
-            user: {
-              username: 'lewis'
-            }
-          }
-        });
-
-        setTimeout(function () {
-          client.captureException(new Error('foo'), function () {
-            scope.done();
-          });
-        }, 0);
       });
     });
   });
