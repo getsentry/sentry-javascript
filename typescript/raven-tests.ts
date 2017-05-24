@@ -19,7 +19,13 @@ var options = {
     whitelistUrls: [
         /https?:\/\/google\.com/,
         'https://www.google.com'
-    ]
+    ],
+    autoBreadcrumbs: {
+        xhr: false,
+        console: false,
+        dom: true,
+        location: false
+    }
 };
 
 Raven.config('https://public@sentry.io/1', options).install();
