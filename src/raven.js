@@ -1395,7 +1395,7 @@ Raven.prototype = {
                     data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
-            breadcrumbs.values[i] = {'data': data};
+            breadcrumbs.values[i].data = data;
         }
     },
 
