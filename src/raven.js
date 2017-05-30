@@ -1385,10 +1385,10 @@ Raven.prototype = {
 
         for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
-            if (!crumb.hasOwnProperty('data') || !isObject(crumb.data))
+            if (!crumb.hasOwnProperty('data') || !isObject(crumb.data) || objectFrozen(crumb.data))
                 continue;
 
-            data = Object.assign({}, crumb.data);
+            data = objectMerge({}, crumb.data);
             for (var j = 0; j < urlProps.length; ++j) {
                 urlProp = urlProps[j];
                 if (data.hasOwnProperty(urlProp)) {
@@ -1778,6 +1778,13 @@ function objectMerge(obj1, obj2) {
         obj1[key] = value;
     });
     return obj1;
+}
+
+function objectFrozen(obj) {
+    if (!Object.isFrozen) {
+        return false;
+    }
+    return Object.isFrozen(obj);
 }
 
 function truncate(str, max) {
