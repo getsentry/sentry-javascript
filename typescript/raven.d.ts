@@ -61,6 +61,9 @@ interface RavenOptions {
 
     /** Override the default HTTP data transport handler. */
     transport?: (options: RavenTransportOptions) => void;
+    
+    /** Allow use of private/secretKey. */
+    allowSecretKey?: boolean;
 
     /** Enables/disables instrumentation of globals. */
     instrument?: boolean | RavenInstrumentationOptions;
