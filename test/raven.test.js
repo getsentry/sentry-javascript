@@ -1314,6 +1314,90 @@ describe('globals', function() {
             assert.equal(Raven._backoffStart, null); // clock is at 100ms
             assert.equal(Raven._backoffDuration, 0);
         });
+        it('should truncate url in breadcrumb', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 100
+            };
+            Raven._globalOptions.maxUrlLength = 30;
+
+            var longUrl = new Array(50).join('a');
+            var obj = {method: 'POST', url: 'http://example.org/api/0/auth/' + longUrl};
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: obj}];
+
+            Raven._send({message: 'bar'});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                message: 'bar',
+                extra: {'session:duration': 100},
+                breadcrumbs: {
+                    values: [
+                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/…' }}
+                    ]
+                }
+            });
+        });
+
+        it('should skip truncating url in breadcrumb if object is frozen', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 100
+            };
+            Raven._globalOptions.maxUrlLength = 35;
+
+            var longUrl = new Array(50).join('a');
+            var obj = {method: 'POST', url: 'http://example.org/api/0/auth/' + longUrl};
+            Object.freeze(obj);
+
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: obj}];
+
+            Raven._send({message: 'bar'});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                message: 'bar',
+                extra: {'session:duration': 100},
+                breadcrumbs: {
+                    values: [
+                        { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }}
+                    ]
+                }
+            });
+        });
+
     });
 
     describe('makeRequest', function() {
@@ -2770,7 +2854,7 @@ describe('Raven (private methods)', function () {
         this.clock.tick(0); // Raven initialized at time "0"
         Raven = new _Raven();
     });
-    
+
    afterEach(function () {
         this.clock.restore();
     });
