@@ -1181,6 +1181,32 @@ describe('raven.Client', function () {
               response._readableState.should.have.property('flowing', initialFlowingState);
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
+              client.getContext().breadcrumbs.length.should.equal(1);
+              scope.done();
+              done();
+            }, 0);
+          });
+        });
+      });
+
+      it('should not double-instrument http', function (done) {
+        var testUrl = 'http://example.com/';
+        var scope = nock(testUrl)
+          .get('/')
+          .reply(200, 'OK');
+
+        client.context(function () {
+          var http = require('http');
+          require('http');
+          http.get(url.parse(testUrl), function (response) {
+            response._readableState.should.have.property('flowing', initialFlowingState);
+            // need to wait a tick here because nock will make this callback fire
+            // before our req.emit monkeypatch captures the breadcrumb :/
+            setTimeout(function () {
+              response._readableState.should.have.property('flowing', initialFlowingState);
+              client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
+              client.getContext().breadcrumbs.length.should.equal(1);
               scope.done();
               done();
             }, 0);
