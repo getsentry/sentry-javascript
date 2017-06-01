@@ -1780,6 +1780,14 @@ function objectMerge(obj1, obj2) {
     return obj1;
 }
 
+/**
+ * This function is only used for react-native.
+ * react-native freezes object that have already been sent over the
+ * js bridge. We need this function in order to check if the object is frozen.
+ * So it's ok that objectFrozen returns false if Object.isFrozen is not
+ * supported because it's not relevant for other "platforms". See related issue:
+ * https://github.com/getsentry/react-native-sentry/issues/57
+ */
 function objectFrozen(obj) {
     if (!Object.isFrozen) {
         return false;
