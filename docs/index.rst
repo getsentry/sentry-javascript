@@ -24,7 +24,7 @@ be included after other libraries are loaded, but before your main application c
 
 .. sourcecode:: html
 
-    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js"></script>
+    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js" crossorigin="anonymous"></script>
 
 For installation using npm or other package managers, see :doc:`install`.
 
