@@ -1,3 +1,4 @@
 coverage/
 test/instrumentation/node-*
 test/manual/largeModule.js
+test/fixtures/*

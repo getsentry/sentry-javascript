@@ -121,6 +121,34 @@ describe('raven.utils', function () {
       }
     });
 
+    it('should trim long source line in surrounding source context', function (done) {
+      var parseStack = raven.utils.parseStack;
+      var callback = function (frames) {
+        var frame = frames.pop();
+        frame.in_app.should.be.true;
+
+        var lineBefore = frame.pre_context[frame.pre_context.length - 1].trim();
+        lineBefore.should.not.startWith('{snip}');
+        lineBefore.should.endWith('{snip}');
+
+        var lineOf = frame.context_line.trim();
+        lineOf.should.startWith('{snip}');
+        lineOf.should.endWith('{snip}');
+        lineOf.length.should.equal(154); // 140 limit + 7 for `{snip} ` and ` {snip}`
+        lineOf.should.containEql("throw new Error('boom');");
+
+        var lineAfter = frame.post_context[0].trim();
+        lineAfter.should.not.startWith('{snip}');
+        lineAfter.should.endWith('{snip}');
+        done();
+      };
+      try {
+        require('./fixtures/long-line')();
+      } catch (e) {
+        parseStack(e, callback);
+      }
+    });
+
     it('should treat windows files as being in app: in_app should be true', function (done) {
       var parseStack = raven.utils.parseStack;
       var callback = function (frames) {
