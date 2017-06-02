@@ -38,6 +38,15 @@ Next you need to configure Raven.js to use your `Sentry DSN
 
     Raven.config('___PUBLIC_DSN___').install()
 
+It is additionally recommended (but not required) to wrap your application start using `Raven.context`.
+This can help surface additional errors in some execution contexts.
+
+.. code-block:: javascript
+
+    Raven.context(function () {
+        initMyApp();
+    });
+
 At this point, Raven is ready to capture any uncaught exception.
 
 Once you have Raven up and running, it is highly recommended to check out :doc:`config`
