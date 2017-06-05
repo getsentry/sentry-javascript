@@ -846,6 +846,79 @@ describe('globals', function() {
             });
         });
 
+        it('should let errorCallback override everything', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                errorCallback: function() {
+                    return {message: 'ibrokeit'};
+                }
+            };
+            Raven._globalContext = {user: {name: 'Matt'}};
+
+            Raven._send({message: 'bar', stacktrace: true});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                message: 'ibrokeit',
+                event_id: 'abc123'
+            });
+        });
+
+        it('should not call errorCallback for non error messages', function(done) {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+
+            Raven._globalOptions = {
+                projectId: 2,
+                logger: 'javascript',
+                maxMessageLength: 100,
+                errorCallback: function() {
+                  done(new Error("errorCallback should not be executed"));
+                }
+            };
+            Raven._globalContext = {user: {name: 'Matt'}};
+            Raven._send({message: 'bar'});
+            done();
+        });
+
+        it('should ignore errorCallback if it does not return anything', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 100,
+                errorCallback: function() {
+                    return;
+                }
+            };
+
+            Raven._send({message: 'bar', stacktrace: true});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                message: 'bar',
+                stacktrace: true,
+                extra: {'session:duration': 100}
+            });
+        });
+
         it('should let dataCallback override everything', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
