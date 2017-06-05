@@ -96,6 +96,12 @@ To use Raven with ES2015 (ES6) imports:
 	    .config('___PUBLIC_DSN___')
 	    .install();
 
+CommonJS
+~~~~~~~~
+
+If you load and install Raven using commonJS you should be aware that multiple require's will overwrite the `window.Raven` instance and thus give you a Raven instance that is not configured.
+
+
 Requirements
 ~~~~~~~~~~~~
 
