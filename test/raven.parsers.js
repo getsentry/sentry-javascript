@@ -601,19 +601,17 @@ describe('raven.parsers', function () {
 
     it('should parse an error with additional information', function (done) {
       try {
-        assert.strictEqual(1, 2);
+        var err = new Error('boom');
+        err.prop = 'value';
+        throw err;
       } catch (e) {
         raven.parsers.parseError(e, {}, function (parsed) {
           parsed.should.have.property('exception');
           parsed.exception[0].stacktrace.should.have.property('frames');
           parsed.should.have.property('extra');
-          parsed.extra.should.have.property('AssertionError');
-          parsed.extra.AssertionError.should.have.property('actual');
-          parsed.extra.AssertionError.actual.should.equal(1);
-          parsed.extra.AssertionError.should.have.property('expected');
-          parsed.extra.AssertionError.expected.should.equal(2);
-          parsed.extra.AssertionError.should.have.property('operator');
-          parsed.extra.AssertionError.operator.should.equal('===');
+          parsed.extra.should.have.property('Error');
+          parsed.extra.Error.should.have.property('prop');
+          parsed.extra.Error.prop.should.equal('value');
           done();
         });
       }
