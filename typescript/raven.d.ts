@@ -53,6 +53,9 @@ interface RavenOptions {
     /** A callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
     shouldSendCallback?: (data: any) => boolean;
 
+    /** A callback function that allows you to define some options to be sent to Sentry, based on the captured exception. */
+    optionsFromException?: (ex: Error, options?: RavenOptions) => RavenOptions;
+
     /** By default, Raven does not truncate messages. If you need to truncate characters for whatever reason, you may set this to limit the length. */
     maxMessageLength?: number;
 

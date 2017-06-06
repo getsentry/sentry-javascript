@@ -4,6 +4,8 @@
 
 var proxyquire = require('proxyquireify')(require);
 
+var _ = require('lodash');
+
 var TraceKit = require('../vendor/TraceKit/tracekit');
 
 var _Raven = proxyquire('../src/raven', {
@@ -2527,6 +2529,30 @@ describe('Raven (public API)', function() {
             assert.doesNotThrow(function() {
                 Raven.captureException(new Error('err'));
             });
+        });
+
+        it('should use optionsFromException', function() {
+            var error = new Error('crap');
+            error.extra = {foo: 'bar'}
+
+            Raven._globalOptions.optionsFromException = function(ex, options) {
+                options = _.assign({}, options)
+
+                options.extra = _.assign({}, ex.extra, options.extra)
+
+                return options
+            }
+
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_handleStackInfo');
+
+            Raven.captureException(error);
+
+            assert.isTrue(Raven._handleStackInfo.calledWith(
+                // sinon sandbox does not exposes match property before sinon 2.0
+                sinon.match.any,
+                {extra: {foo: 'bar'}}
+            ));
         });
     });
 
