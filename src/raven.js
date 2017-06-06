@@ -882,10 +882,7 @@ Raven.prototype = {
             return function (fn, t) { // preserve arity
                 // Make a copy of the arguments to prevent deoptimization
                 // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
-                var args = new Array(arguments.length);
-                for(var i = 0; i < args.length; ++i) {
-                    args[i] = arguments[i];
-                }
+                var args = [].slice.call(arguments)
                 var originalCallback = args[0];
                 if (isFunction(originalCallback)) {
                     args[0] = self.wrap(originalCallback);
@@ -1068,10 +1065,7 @@ Raven.prototype = {
                 return function (fn, t) { // preserve arity
                     // Make a copy of the arguments to prevent deoptimization
                     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
-                    var args = new Array(arguments.length);
-                    for (var i = 0; i < args.length; ++i) {
-                        args[i] = arguments[i];
-                    }
+                    var args = [].slice.call(arguments)
 
                     var fetchInput = args[0];
                     var method = 'GET';
