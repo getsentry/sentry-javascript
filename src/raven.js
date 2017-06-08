@@ -26,6 +26,7 @@ var _window = typeof window !== 'undefined' ? window
 var _document = _window.document;
 var _navigator = _window.navigator;
 
+var offlineStorageKey = 'raven-js';
 
 function keepOriginalCallback(original, callback) {
     return isFunction(callback) ?
@@ -176,6 +177,16 @@ Raven.prototype = {
         globalOptions.instrument = instrument;
 
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
+
+        // If payload offline storage
+        if (globalOptions.allowOfflineStorage) {
+            // Process queue on start
+            this.processOfflineQueue();
+
+            // Add event listener on online or custom event to trigger offline queue sending
+            window.addEventListener(globalOptions.onlineEventName || 'online',  this.processOfflineQueue);
+        }
+
 
         // return for chaining
         return self;
@@ -706,6 +717,51 @@ Raven.prototype = {
         script.async = true;
         script.src = globalServer + '/api/embed/error-page/' + qs;
         (_document.head || _document.body).appendChild(script);
+    },
+
+    /**
+     * Stores a passed data payload or the last one on local storage
+     */
+    storePayloadOffline: function(data) {
+        var self = this;
+        try {
+            var queue = JSON.parse(localStorage.getItem(offlineStorageKey)) || [];
+            queue.push(data || this._lastData);
+            localStorage.setItem(offlineStorageKey, JSON.stringify(queue));
+        } catch (e) {
+            self._logDebug('error', 'Raven failed to store payload offline: ', e);
+        }
+    },
+
+    /**
+     * Process the queue if the browser is online
+     */
+    processOfflineQueue: function() {
+        var self = this;
+
+        // Let's stop here if there's no connection
+        if (!navigator.onLine) {
+            return;
+        }
+
+        try {
+            // Get the queue
+            var queue = JSON.parse(localStorage.getItem(offlineStorageKey)) || [];
+
+            // Store an empty queue. If processing these one fails they get back to the queue
+            localStorage.setItem(offlineStorageKey, JSON.stringify([]));
+            
+            queue.forEach(function processOfflinePayload(data) {
+                // Avoid duplication verification for offline stored
+                // as they may try multiple times to be processed
+                data.extra.storedOffline = true;
+
+                // Try to process it again
+                self._sendProcessedPayload(data);
+            });
+        } catch (e) {
+            self._logDebug('error', 'Raven transport failed to store offline: ', e);
+        }
     },
 
     /**** Private functions ****/
@@ -1595,7 +1651,7 @@ Raven.prototype = {
         // ideally duplicate error testing should occur *before* dataCallback/shouldSendCallback,
         // but this would require copying an un-truncated copy of the data packet, which can be
         // arbitrarily deep (extra_data) -- could be worthwhile? will revisit
-        if (!this._globalOptions.allowDuplicates && this._isRepeatData(data)) {
+        if (!this._globalOptions.allowDuplicates && this._isRepeatData(data) && !this._globalOptions.allowOfflineStorage && !data.extra.storedOffline) {
             this._logDebug('warn', 'Raven dropped repeat event: ', data);
             return;
         }
@@ -1641,6 +1697,11 @@ Raven.prototype = {
             },
             onError: function failure(error) {
                 self._logDebug('error', 'Raven transport failed to send: ', error);
+
+                // Store the error on local storage to try to send it later
+                if (globalOptions.allowOfflineStorage) {
+                    self.storePayloadOffline();
+                }
 
                 if (error.request) {
                     self._setBackoffState(error.request);
