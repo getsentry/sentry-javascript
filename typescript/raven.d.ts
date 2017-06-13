@@ -269,4 +269,4 @@ interface AutoBreadcrumbOptions {
     location?: boolean;
 }
 
-type LogLevel = "critical" | "error" | "warn" | "info" | "debug";
+type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
