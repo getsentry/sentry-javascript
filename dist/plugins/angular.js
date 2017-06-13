@@ -1,4 +1,4 @@
-/*! Raven.js 3.15.0 (d49a1b8) | github.com/getsentry/raven-js */
+/*! Raven.js 3.16.0 (a8e28af) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -17,6 +17,8 @@
  * Provides an $exceptionHandler for Angular.js
  */
 'use strict';
+
+var wrappedCallback = _dereq_(2).wrappedCallback;
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
@@ -52,11 +54,9 @@ function angularPlugin(Raven, angular) {
         .provider('Raven',  RavenProvider)
         .config(['$provide', ExceptionHandlerProvider]);
 
-    Raven.setDataCallback(function(data, original) {
-        angularPlugin._normalizeData(data);
-
-        original && original(data);
-    });
+    Raven.setDataCallback(wrappedCallback(function(data) {
+        return angularPlugin._normalizeData(data);
+    }));
 }
 
 angularPlugin._normalizeData = function (data) {
@@ -76,11 +76,49 @@ angularPlugin._normalizeData = function (data) {
             data.extra.angularDocs = matches[3].substr(0, 250);
         }
     }
+
+    return data;
 };
 
 angularPlugin.moduleName = moduleName;
 
 module.exports = angularPlugin;
+
+},{"2":2}],2:[function(_dereq_,module,exports){
+'use strict';
+
+function isObject(what) {
+    return typeof what === 'object' && what !== null;
+}
+
+// Yanked from https://git.io/vS8DV re-used under CC0
+// with some tiny modifications
+function isError(value) {
+  switch ({}.toString.call(value)) {
+    case '[object Error]': return true;
+    case '[object Exception]': return true;
+    case '[object DOMException]': return true;
+    default: return value instanceof Error;
+  }
+}
+
+function wrappedCallback(callback) {
+    function dataCallback(data, original) {
+      var normalizedData = callback(data) || data;
+      if (original) {
+          return original(normalizedData) || normalizedData;
+      }
+      return normalizedData;
+    }
+
+    return dataCallback;
+}
+
+module.exports = {
+    isObject: isObject,
+    isError: isError,
+    wrappedCallback: wrappedCallback
+};
 
 },{}]},{},[1])(1)
 });

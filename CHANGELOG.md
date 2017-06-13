@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.16.0
+* CHANGE: Plugins no longer disrupt data callback behavior. See: https://github.com/getsentry/raven-js/pull/891
+* BUGFIX: Fixed event object copying in React Native. See: https://github.com/getsentry/raven-js/pull/960
+* BUGFIX: More TypeScript definitions for API properties and methods. See: https://github.com/getsentry/raven-js/pull/968, https://github.com/getsentry/raven-js/pull/963
+
 ## 3.15.0
 * NEW: Added new `instrument` config option for disabling portions of instrumentation. See: https://github.com/getsentry/raven-js/pull/938
 * NEW: Support CJS use of AngularJS module. See documentation: https://docs.sentry.io/clients/javascript/integrations/angularjs/
