@@ -61,6 +61,7 @@ var err:Error = Raven.lastException();
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
 +Raven.captureMessage('Broken!', { stacktrace: true });
+Raven.captureMessage('Warning', { level: 'warning' });
 Raven.captureBreadcrumb({
     message: "This is a breadcrumb message."
 });
