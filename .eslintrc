@@ -34,7 +34,7 @@
     "no-unused-vars": [2, {"args": "none"}],
     "no-with": 2,
     "semi": [0, "never"],
-    "strict": [2, "global"],
+    "strict": [2, "never"],
     "valid-typeof": 2
   },
   "extends": [
