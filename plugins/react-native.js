@@ -17,8 +17,6 @@
  *     data payload will be passed as the first argument of the callback.
  *
  */
-'use strict';
-
 var wrappedCallback = require('../src/utils').wrappedCallback;
 
 // Example React Native path format (iOS):

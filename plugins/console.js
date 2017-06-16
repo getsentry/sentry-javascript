@@ -9,8 +9,6 @@
  *   `levels`: An array of levels (methods on `console`) to report to Sentry.
  *     Defaults to debug, info, warn, and error.
  */
-'use strict';
-
 var wrapConsoleMethod = require('../src/console').wrapMethod;
 
 function consolePlugin(Raven, console, pluginOptions) {

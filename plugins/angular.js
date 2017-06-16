@@ -3,8 +3,6 @@
  *
  * Provides an $exceptionHandler for Angular.js
  */
-'use strict';
-
 var wrappedCallback = require('../src/utils').wrappedCallback;
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js

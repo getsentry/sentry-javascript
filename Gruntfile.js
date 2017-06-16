@@ -1,5 +1,4 @@
-'use strict';
-
+'use strict'; // eslint-disable-line
 module.exports = function(grunt) {
   var path = require('path');
   var os = require('os');
