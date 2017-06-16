@@ -1,5 +1,3 @@
-'use strict';
-
 /*
  json-stringify-safe
  Like JSON.stringify, but doesn't throw on circular references.

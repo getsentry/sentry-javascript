@@ -1,5 +1,3 @@
-'use strict';
-
 function isObject(what) {
   return typeof what === 'object' && what !== null;
 }
