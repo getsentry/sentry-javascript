@@ -110,3 +110,27 @@ Inside your main AngularJS application module, you need to declare `ngRaven` as 
       'myAppControllers',
       'myAppFilters'
     ]);
+
+Module loaders (CommonJS)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The raven angular module can be loaded using a module loader like Browserify or Webpack.
+
+.. code-block:: javascript
+
+    var angular = require('angular');
+    var ngRaven = require('raven-js/plugins/angular').moduleName;
+    var ngRoute = require('angular-route');
+
+    var myAppFilters = require('./myAppFilters');
+    var myAppControllers = require('./myAppControllers');
+    var moduleName = 'myApp';
+
+    angular.module(moduleName, [
+      ngRaven,
+      ngRoute,
+      myAppControllers,
+      myAppFilters,
+    ]);
+
+    module.exports = moduleName;

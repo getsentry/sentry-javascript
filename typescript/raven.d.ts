@@ -8,7 +8,7 @@ export = Raven;
 
 interface RavenOptions {
     /** The log level associated with this event. Default: error */
-    level?: string;
+    level?: LogLevel;
 
     /** The name of the logger used by Sentry. Default: javascript */
     logger?: string;
@@ -61,10 +61,16 @@ interface RavenOptions {
 
     /** Override the default HTTP data transport handler. */
     transport?: (options: RavenTransportOptions) => void;
+    
+    /** Allow use of private/secretKey. */
+    allowSecretKey?: boolean;
 
     /** Enables/disables instrumentation of globals. */
     instrument?: boolean | RavenInstrumentationOptions;
-  
+
+    /** Enables/disables automatic collection of breadcrumbs. */
+    autoBreadcrumbs?: boolean | AutoBreadcrumbOptions
+
     /** Set true to stringify error messages. Useful to solve [object Object] issues.  */
     stringifyErrorMessages?: boolean;
 }
@@ -171,7 +177,7 @@ interface RavenStatic {
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
     /** Log a breadcrumb */
-    captureBreadcrumb(crumb: Object): RavenStatic;
+    captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
     /**
      * Clear the user context, removing the user data that would be sent to Sentry.
@@ -248,3 +254,22 @@ interface RavenTransportOptions {
 interface RavenPlugin {
     (raven: RavenStatic, ...args: any[]): RavenStatic;
 }
+
+interface Breadcrumb {
+    message?: string;
+    category?: string;
+    level?: LogLevel;
+    data?: any;
+    type?: BreadcrumbType
+}
+
+type BreadcrumbType = "navigation" | "http";
+
+interface AutoBreadcrumbOptions {
+    xhr?: boolean;
+    console?: boolean;
+    dom?: boolean;
+    location?: boolean;
+}
+
+type LogLevel = "critical" | "error" | "warning" | "info" | "debug";

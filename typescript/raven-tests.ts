@@ -19,7 +19,13 @@ var options = {
     whitelistUrls: [
         /https?:\/\/google\.com/,
         'https://www.google.com'
-    ]
+    ],
+    autoBreadcrumbs: {
+        xhr: false,
+        console: false,
+        dom: true,
+        location: false
+    }
 };
 
 Raven.config('https://public@sentry.io/1', options).install();
@@ -55,7 +61,10 @@ var err:Error = Raven.lastException();
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
 +Raven.captureMessage('Broken!', { stacktrace: true });
-Raven.captureBreadcrumb({});
+Raven.captureMessage('Warning', { level: 'warning' });
+Raven.captureBreadcrumb({
+    message: "This is a breadcrumb message."
+});
 
 Raven.setRelease('abc123');
 Raven.setEnvironment('production');
