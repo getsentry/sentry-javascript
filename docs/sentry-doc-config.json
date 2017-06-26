@@ -11,7 +11,7 @@
         "index#reporting-errors"
       ]
     },
-    "javascript.angular": {
+    "javascript.angularjs": {
       "name": "AngularJS",
       "type": "framework",
       "doc_link": "integrations/angularjs/",
