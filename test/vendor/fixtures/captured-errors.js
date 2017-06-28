@@ -400,4 +400,48 @@ CapturedExceptions.ANDROID_REACT_NATIVE = {
 
 };
 
+CapturedExceptions.ANDROID_REACT_NATIVE_PROD = {
+    message: 'Error: test',
+    name: 'Error',
+    stack: 'value@index.android.bundle:12:1917\n' +
+    'onPress@index.android.bundle:12:2336\n' +
+    'touchableHandlePress@index.android.bundle:258:1497\n' +
+    '[native code]\n' +
+    '_performSideEffectsForTransition@index.android.bundle:252:8508\n' +
+    '[native code]\n' +
+    '_receiveSignal@index.android.bundle:252:7291\n' +
+    '[native code]\n' +
+    'touchableHandleResponderRelease@index.android.bundle:252:4735\n' +
+    '[native code]\n' +
+    'u@index.android.bundle:79:142\n' +
+    'invokeGuardedCallback@index.android.bundle:79:459\n' +
+    'invokeGuardedCallbackAndCatchFirstError@index.android.bundle:79:580\n' +
+    'c@index.android.bundle:95:365\n' +
+    'a@index.android.bundle:95:567\n' +
+    'v@index.android.bundle:146:501\n' +
+    'g@index.android.bundle:146:604\n' +
+    'forEach@[native code]\n' +
+    'i@index.android.bundle:149:80\n' +
+    'processEventQueue@index.android.bundle:146:1432\n' +
+    's@index.android.bundle:157:88\n' +
+    'handleTopLevel@index.android.bundle:157:174\n' +
+    'index.android.bundle:156:572\n' +
+    'a@index.android.bundle:93:276\n' +
+    'c@index.android.bundle:93:60\n' +
+    'perform@index.android.bundle:177:596\n' +
+    'batchedUpdates@index.android.bundle:188:464\n' +
+    'i@index.android.bundle:176:358\n' +
+    'i@index.android.bundle:93:90\n' +
+    'u@index.android.bundle:93:150\n' +
+    '_receiveRootNodeIDEvent@index.android.bundle:156:544\n' +
+    'receiveTouches@index.android.bundle:156:918\n' +
+    'value@index.android.bundle:29:3016\n' +
+    'index.android.bundle:29:955\n' +
+    'value@index.android.bundle:29:2417\n' +
+    'value@index.android.bundle:29:927\n' +
+    '[native code]'
+};
+
+
+
 module.exports = CapturedExceptions;
