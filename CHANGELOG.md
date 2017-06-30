@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.16.1
+* BUGFIX: Fixed stacktrace on Android for React Native release builds. See: https://github.com/getsentry/raven-js/pull/985
+* BUGFIX: TypeScript: Change loglevel option "warn" to "warning".
+
 ## 3.16.0
 * CHANGE: Plugins no longer disrupt data callback behavior. See: https://github.com/getsentry/raven-js/pull/891
 * BUGFIX: Fixed event object copying in React Native. See: https://github.com/getsentry/raven-js/pull/960
@@ -144,7 +148,7 @@
 * BUGFIX: Remove errant `throw` call in _makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
 
 ## 3.0.3
-* BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569  
+* BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569
 
 ## 3.0.2
 * BUGFIX: Fix XMLHttpRequest.prototype.open breaking on non-string `url` arguments. See: https://github.com/getsentry/raven-js/issues/567

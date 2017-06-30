@@ -1,4 +1,4 @@
-/*! Raven.js 3.16.0 (a8e28af) | github.com/getsentry/raven-js */
+/*! Raven.js 3.16.1 (41af72e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -163,7 +163,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.16.0',
+    VERSION: '3.16.1',
 
     debug: false,
 
@@ -2577,7 +2577,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
 
             // Used to additionally parse URL/line/column from eval frames
