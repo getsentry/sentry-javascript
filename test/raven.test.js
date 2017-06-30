@@ -2371,6 +2371,33 @@ describe('Raven (public API)', function() {
             }]);
         });
 
+        it('should not convert error objects to json by default', function() {
+            var errorObject = {test: 'error'};
+
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_send');
+
+            Raven.captureMessage(errorObject);
+            assert.isTrue(Raven._send.called);
+            assert.deepEqual(Raven._send.lastCall.args, [{
+                message: '[object Object]'
+            }]);
+        });
+
+        it('should convert error objects to json when stringifyErrorMessages option set', function() {
+            var errorObject = {test: 'error'};
+
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_send');
+
+            Raven._globalOptions.stringifyErrorMessages = true;
+            Raven.captureMessage(errorObject);
+            assert.isTrue(Raven._send.called);
+            assert.deepEqual(Raven._send.lastCall.args, [{
+                message: 'error object: ' + JSON.stringify(errorObject)
+            }]);
+        });
+
         it('should work as advertised #integration', function() {
             var imageCache = [];
 

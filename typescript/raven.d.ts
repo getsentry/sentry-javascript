@@ -70,6 +70,9 @@ interface RavenOptions {
 
     /** Enables/disables automatic collection of breadcrumbs. */
     autoBreadcrumbs?: boolean | AutoBreadcrumbOptions
+
+    /** Set true to stringify error messages. Useful to solve [object Object] issues.  */
+    stringifyErrorMessages?: boolean;
 }
 
 interface RavenInstrumentationOptions {
