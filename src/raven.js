@@ -375,6 +375,10 @@ Raven.prototype = {
             }, options));
         }
 
+        if (isFunction(this._globalOptions.optionsFromException)) {
+            options = this._globalOptions.optionsFromException(ex, options)
+        }
+
         // Store the raw exception object for potential debugging and introspection
         this._lastCapturedException = ex;
 

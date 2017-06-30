@@ -200,6 +200,25 @@ Those configuration options are documented below:
             }
         }
 
+.. describe:: optionsFromException
+
+    A callback function that allows you to define some options to be
+    sent to Sentry, based on the captured exception.
+
+    .. code-block:: javascript
+
+        {
+            optionsFromException: function(ex, options) {
+              options = Object.assign({}, options)
+
+              if (ex.level) {
+                options.level = ex.level
+              }
+
+              return options;
+            }
+        }
+
 .. describe:: maxMessageLength
 
     By default, Raven does not truncate messages. If you need to truncate
