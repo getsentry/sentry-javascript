@@ -101,7 +101,7 @@ Angular CLI now uses Webpack to build instead of SystemJS. All you need to do is
 
     export class RavenErrorHandler implements ErrorHandler {
       handleError(err:any) : void {
-        Raven.captureException(err.originalError);
+        Raven.captureException(err);
       }
     }
 
