@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.17.0
+* CHANGE: Export TypeScript definitions as a CommonJS module. See: https://github.com/getsentry/raven-js/pull/977
+
+## 3.16.1
+* BUGFIX: Fixed stacktrace on Android for React Native release builds. See: https://github.com/getsentry/raven-js/pull/985
+* BUGFIX: TypeScript: Change loglevel option "warn" to "warning".
+
+## 3.16.0
+* CHANGE: Plugins no longer disrupt data callback behavior. See: https://github.com/getsentry/raven-js/pull/891
+* BUGFIX: Fixed event object copying in React Native. See: https://github.com/getsentry/raven-js/pull/960
+* BUGFIX: More TypeScript definitions for API properties and methods. See: https://github.com/getsentry/raven-js/pull/968, https://github.com/getsentry/raven-js/pull/963
+
+## 3.15.0
+* NEW: Added new `instrument` config option for disabling portions of instrumentation. See: https://github.com/getsentry/raven-js/pull/938
+* NEW: Support CJS use of AngularJS module. See documentation: https://docs.sentry.io/clients/javascript/integrations/angularjs/
+
+## 3.14.2
+* BUGFIX: Fix bug in breadcrumb URL truncation when `fetch` is used with a `Request` argument. See: https://github.com/getsentry/raven-js/issues/924
+
+## 3.14.1
+* BUGFIX: Fix TypeError caused by breadcrumb URL truncation in some situations. See: https://github.com/getsentry/raven-js/issues/925
+* BUGFIX: Made URL truncation more defensive for some rare cases. See: https://github.com/getsentry/raven-js/pull/918
+* BUGFIX: Raven.js now treats DOMExceptions as "Error" objects w/ traces. See: https://github.com/getsentry/raven-js/pull/919/
+* CHANGE: Remove unused/deprecated escape functions in vendored TraceKit.js. See: https://github.com/getsentry/raven-js/pull/923
+* CHANGE: Removed json-stringify-safe from package.json (was already vendored). See: https://github.com/getsentry/raven-js/pull/917
+
 ## 3.14.0
 * NEW: URL values captured in http + breadcrumb interfaces are now trimmed to new `maxUrlLength` config (default 250). See: https://github.com/getsentry/raven-js/pull/906
 * CHANGE: Better extraction of URLs from eval frames on Chrome, Firefox. This may affect issue grouping of some events. See: https://github.com/getsentry/raven-js/pull/907
@@ -125,7 +151,7 @@
 * BUGFIX: Remove errant `throw` call in _makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
 
 ## 3.0.3
-* BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569  
+* BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569
 
 ## 3.0.2
 * BUGFIX: Fix XMLHttpRequest.prototype.open breaking on non-string `url` arguments. See: https://github.com/getsentry/raven-js/issues/567

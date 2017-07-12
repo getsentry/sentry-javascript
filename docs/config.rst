@@ -312,6 +312,20 @@ Those configuration options are documented below:
             noDefaultIgnoreErrors: true
         }
 
+.. describe:: instrument
+
+    Enables/disables instrumentation of globals. Possible values are:
+
+    * `true` (default)
+    * `false` - all instrumentation disabled
+    * A dictionary of individual instrumentation types that can be enabled/disabled:
+
+    .. code-block:: javascript
+
+        instrument: {
+            'tryCatch': true, // Instruments timers and event targets
+        }
+
 Putting it all together
 -----------------------
 

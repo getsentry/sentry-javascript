@@ -33,10 +33,15 @@ To install a plugin just include the plugin **after** Raven has been loaded and 
 .. toctree::
    :maxdepth: 1
 
+   angularjs
    angular
-   angular2
    backbone
    ember
    react
-   react-native
    vue
+
+
+.. toctree::
+   :hidden:
+
+   react-native

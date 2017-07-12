@@ -1,4 +1,4 @@
-/*! Raven.js 3.14.0 (6b817d7) | github.com/getsentry/raven-js */
+/*! Raven.js 3.17.0 (6384830) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -91,6 +91,13 @@ var _window = typeof window !== 'undefined' ? window
 var _document = _window.document;
 var _navigator = _window.navigator;
 
+
+function keepOriginalCallback(original, callback) {
+    return isFunction(callback) ?
+    function (data) { return callback(data, original) } :
+    callback;
+}
+
 // First, check for JSON support
 // If there is no JSON, we no-op the core features of Raven
 // since JSON is required to encode the payload
@@ -120,6 +127,7 @@ function Raven() {
         maxUrlLength: 250,
         stackTraceLimit: 50,
         autoBreadcrumbs: true,
+        instrument: true,
         sampleRate: 1
     };
     this._ignoreOnError = 0;
@@ -155,7 +163,7 @@ Raven.prototype = {
     // webpack (using a build step causes webpack #1617). Grunt verifies that
     // this value matches package.json during build.
     //   See: https://github.com/getsentry/raven-js/issues/465
-    VERSION: '3.14.0',
+    VERSION: '3.17.0',
 
     debug: false,
 
@@ -220,6 +228,18 @@ Raven.prototype = {
         }
         globalOptions.autoBreadcrumbs = autoBreadcrumbs;
 
+        var instrumentDefaults = {
+            tryCatch: true
+        };
+
+        var instrument = globalOptions.instrument;
+        if ({}.toString.call(instrument) === '[object Object]') {
+            instrument = objectMerge(instrumentDefaults, instrument);
+        } else if (instrument !== false) {
+            instrument = instrumentDefaults;
+        }
+        globalOptions.instrument = instrument;
+
         TraceKit.collectWindowErrors = !!globalOptions.collectWindowErrors;
 
         // return for chaining
@@ -240,7 +260,10 @@ Raven.prototype = {
             TraceKit.report.subscribe(function () {
                 self._handleOnErrorStackInfo.apply(self, arguments);
             });
-            self._instrumentTryCatch();
+            if (self._globalOptions.instrument && self._globalOptions.instrument.tryCatch) {
+              self._instrumentTryCatch();
+            }
+
             if (self._globalOptions.autoBreadcrumbs)
                 self._instrumentBreadcrumbs();
 
@@ -622,10 +645,8 @@ Raven.prototype = {
      */
     setDataCallback: function(callback) {
         var original = this._globalOptions.dataCallback;
-        this._globalOptions.dataCallback = isFunction(callback)
-          ? function (data) { return callback(data, original); }
-          : callback;
-
+        this._globalOptions.dataCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
@@ -638,10 +659,8 @@ Raven.prototype = {
      */
     setBreadcrumbCallback: function(callback) {
         var original = this._globalOptions.breadcrumbCallback;
-        this._globalOptions.breadcrumbCallback = isFunction(callback)
-          ? function (data) { return callback(data, original); }
-          : callback;
-
+        this._globalOptions.breadcrumbCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
@@ -654,10 +673,8 @@ Raven.prototype = {
      */
     setShouldSendCallback: function(callback) {
         var original = this._globalOptions.shouldSendCallback;
-        this._globalOptions.shouldSendCallback = isFunction(callback)
-            ? function (data) { return callback(data, original); }
-            : callback;
-
+        this._globalOptions.shouldSendCallback =
+          keepOriginalCallback(original, callback);
         return this;
     },
 
@@ -918,7 +935,8 @@ Raven.prototype = {
     },
 
     /**
-     * Install any queued plugins
+     * Wrap timer functions and event targets to catch errors and provide
+     * better metadata.
      */
     _instrumentTryCatch: function() {
         var self = this;
@@ -1116,11 +1134,22 @@ Raven.prototype = {
                     // Make a copy of the arguments to prevent deoptimization
                     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
                     var args = new Array(arguments.length);
-                    for(var i = 0; i < args.length; ++i) {
+                    for (var i = 0; i < args.length; ++i) {
                         args[i] = arguments[i];
                     }
 
+                    var fetchInput = args[0];
                     var method = 'GET';
+                    var url;
+
+                    if (typeof fetchInput === 'string') {
+                        url = fetchInput;
+                    } else {
+                        url = fetchInput.url;
+                        if (fetchInput.method) {
+                            method = fetchInput.method;
+                        }
+                    }
 
                     if (args[1] && args[1].method) {
                         method = args[1].method;
@@ -1128,7 +1157,7 @@ Raven.prototype = {
 
                     var fetchData = {
                         method: method,
-                        url: args[0],
+                        url: url,
                         status_code: null
                     };
 
@@ -1414,21 +1443,24 @@ Raven.prototype = {
     _trimBreadcrumbs: function (breadcrumbs) {
         // known breadcrumb properties with urls
         // TODO: also consider arbitrary prop values that start with (https?)?://
-        var urlprops = {to: 1, from: 1, url: 1},
+        var urlProps = ['to', 'from', 'url'],
+            urlProp,
             crumb,
             data;
 
-        for (var i = 0; i < breadcrumbs.values.length; i++) {
+        for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
-            if (!crumb.hasOwnProperty('data'))
+            if (!crumb.hasOwnProperty('data') || !isObject(crumb.data) || objectFrozen(crumb.data))
                 continue;
 
-            data = crumb.data;
-            for (var prop in urlprops) {
-                if (data.hasOwnProperty(prop)) {
-                    data[prop] = truncate(data[prop], this._globalOptions.maxUrlLength);
+            data = objectMerge({}, crumb.data);
+            for (var j = 0; j < urlProps.length; ++j) {
+                urlProp = urlProps[j];
+                if (data.hasOwnProperty(urlProp)) {
+                    data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
+            breadcrumbs.values[i].data = data;
         }
     },
 
@@ -1813,6 +1845,21 @@ function objectMerge(obj1, obj2) {
     return obj1;
 }
 
+/**
+ * This function is only used for react-native.
+ * react-native freezes object that have already been sent over the
+ * js bridge. We need this function in order to check if the object is frozen.
+ * So it's ok that objectFrozen returns false if Object.isFrozen is not
+ * supported because it's not relevant for other "platforms". See related issue:
+ * https://github.com/getsentry/react-native-sentry/issues/57
+ */
+function objectFrozen(obj) {
+    if (!Object.isFrozen) {
+        return false;
+    }
+    return Object.isFrozen(obj);
+}
+
 function truncate(str, max) {
     return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
@@ -2127,20 +2174,35 @@ function isObject(what) {
     return typeof what === 'object' && what !== null;
 }
 
-// Sorta yanked from https://github.com/joyent/node/blob/aa3b4b4/lib/util.js#L560
+// Yanked from https://git.io/vS8DV re-used under CC0
 // with some tiny modifications
-function isError(what) {
-    var toString = {}.toString.call(what);
-    return isObject(what) &&
-        toString === '[object Error]' ||
-        toString === '[object Exception]' || // Firefox NS_ERROR_FAILURE Exceptions
-        what instanceof Error;
+function isError(value) {
+  switch ({}.toString.call(value)) {
+    case '[object Error]': return true;
+    case '[object Exception]': return true;
+    case '[object DOMException]': return true;
+    default: return value instanceof Error;
+  }
+}
+
+function wrappedCallback(callback) {
+    function dataCallback(data, original) {
+      var normalizedData = callback(data) || data;
+      if (original) {
+          return original(normalizedData) || normalizedData;
+      }
+      return normalizedData;
+    }
+
+    return dataCallback;
 }
 
 module.exports = {
     isObject: isObject,
-    isError: isError
+    isError: isError,
+    wrappedCallback: wrappedCallback
 };
+
 },{}],6:[function(_dereq_,module,exports){
 (function (global){
 'use strict';
@@ -2468,27 +2530,6 @@ TraceKit.report = (function reportModuleWrapper() {
  *
  */
 TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
-    /**
-     * Escapes special characters, except for whitespace, in a string to be
-     * used inside a regular expression as a string literal.
-     * @param {string} text The string.
-     * @return {string} The escaped string literal.
-     */
-    function escapeRegExp(text) {
-        return text.replace(/[\-\[\]{}()*+?.,\\\^$|#]/g, '\\$&');
-    }
-
-    /**
-     * Escapes special characters in a string to be used inside a regular
-     * expression as a string literal. Also ensures that HTML entities will
-     * be matched the same as their literal friends.
-     * @param {string} body The string.
-     * @return {string} The escaped string.
-     */
-    function escapeCodeAsRegExpForMatchingInsideHTML(body) {
-        return escapeRegExp(body).replace('<', '(?:<|&lt;)').replace('>', '(?:>|&gt;)').replace('&', '(?:&|&amp;)').replace('"', '(?:"|&quot;)').replace(/\s+/g, '\\s+');
-    }
-
     // Contents of Exception in various browsers.
     //
     // SAFARI:
@@ -2536,7 +2577,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
         var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
-            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?)(?::(\d+))?(?::(\d+))?\s*$/i,
+            gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
             winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
 
             // Used to additionally parse URL/line/column from eval frames

@@ -11,22 +11,22 @@
         "index#reporting-errors"
       ]
     },
+    "javascript.angularjs": {
+      "name": "AngularJS",
+      "type": "framework",
+      "doc_link": "integrations/angularjs/",
+      "wizard": [
+        "integrations/angularjs#installation",
+        "integrations/angularjs#configuring-the-client"
+      ]
+    },
     "javascript.angular": {
-      "name": "Angular 1",
+      "name": "Angular",
       "type": "framework",
       "doc_link": "integrations/angular/",
       "wizard": [
         "integrations/angular#installation",
-        "integrations/angular#configuring-the-client"
-      ]
-    },
-    "javascript.angular2": {
-      "name": "Angular 2",
-      "type": "framework",
-      "doc_link": "integrations/angular2/",
-      "wizard": [
-        "integrations/angular2#installation",
-        "integrations/angular2#configuration"
+        "integrations/angular#configuration"
       ]
     },
     "javascript.backbone": {
@@ -66,6 +66,6 @@
     }
   },
   "vars": {
-    "RAVEN_VERSION": "3.14.0"
+    "RAVEN_VERSION": "3.17.0"
   }
 }

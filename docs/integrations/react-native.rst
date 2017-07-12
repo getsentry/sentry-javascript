@@ -1,14 +1,15 @@
-.. _react-native-pure-js:
+Deprecated React Native
+=======================
 
-React Native
-============
+The deprecated plugin "React Native for Raven.js" is a pure JavaScript
+error reporting solution.  The plugin will report errors originating from
+React Native's JavaScript engine (e.g. programming errors like "x is
+undefined"), but might not catch errors that originate from the underlying
+operating system (iOS / Android) unless they happen to be transmitted to
+React Native's global error handler.
 
-React Native for Raven.js is a pure JavaScript error reporting solution.
-The plugin will report errors originating from React Native's JavaScript
-engine (e.g. programming errors like "x is undefined"), but might not
-catch errors that originate from the underlying operating system (iOS /
-Android) unless they happen to be transmitted to React Native's global
-error handler.
+**Do not use this plugin for new code but instead use the new
+:ref:`react-native` client integration instead**.
 
 .. admonition:: Note
 

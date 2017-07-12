@@ -2,242 +2,276 @@
 // Project: https://github.com/getsentry/raven-js
 // Definitions by: Santi Albo <https://github.com/santialbo/>, Benjamin Pannell <http://github.com/spartan563>
 
-declare var Raven: RavenStatic;
+declare var Raven: Raven.RavenStatic;
 
 export = Raven;
 
-interface RavenOptions {
-    /** The log level associated with this event. Default: error */
-    level?: string;
+declare module Raven {
+    interface RavenOptions {
+        /** The log level associated with this event. Default: error */
+        level?: LogLevel;
 
-    /** The name of the logger used by Sentry. Default: javascript */
-    logger?: string;
+        /** The name of the logger used by Sentry. Default: javascript */
+        logger?: string;
 
-    /** The environment of the application you are monitoring with Sentry */
-    environment?: string;
+        /** The environment of the application you are monitoring with Sentry */
+        environment?: string;
 
-    /** The release version of the application you are monitoring with Sentry */
-    release?: string;
+        /** The release version of the application you are monitoring with Sentry */
+        release?: string;
 
-    /** The name of the server or device that the client is running on */
-    serverName?: string;
+        /** The name of the server or device that the client is running on */
+        serverName?: string;
 
-    /** List of messages to be fitlered out before being sent to Sentry. */
-    ignoreErrors?: (RegExp | string)[];
+        /** List of messages to be filtered out before being sent to Sentry. */
+        ignoreErrors?: (RegExp | string)[];
 
-    /** Similar to ignoreErrors, but will ignore errors from whole urls patching a regex pattern. */
-    ignoreUrls?: (RegExp | string)[];
+        /** Similar to ignoreErrors, but will ignore errors from whole urls patching a regex pattern. */
+        ignoreUrls?: (RegExp | string)[];
 
-    /** The inverse of ignoreUrls. Only report errors from whole urls matching a regex pattern. */
-    whitelistUrls?: (RegExp | string)[];
+        /** The inverse of ignoreUrls. Only report errors from whole urls matching a regex pattern. */
+        whitelistUrls?: (RegExp | string)[];
 
-    /** An array of regex patterns to indicate which urls are a part of your app. */
-    includePaths?: (RegExp | string)[];
+        /** By default, Raven will ignore "Script error" emitted by the browser for errors that it can't read. You may override this behavior by setting this flag. */
+        noDefaultIgnoreErrors?: boolean;
 
-    /** Additional data to be tagged onto the error. */
-    tags?: {
-        [id: string]: string;
-    };
+        /** An array of regex patterns to indicate which urls are a part of your app. */
+        includePaths?: (RegExp | string)[];
 
-    /** set to true to get the strack trace of your message */
-    stacktrace?: boolean;
+        /** Additional data to be tagged onto the error. */
+        tags?: {
+            [id: string]: string;
+        };
 
-    extra?: any;
+        /** set to true to get the stack trace of your message */
+        stacktrace?: boolean;
 
-    /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
-    fingerprint?: string[];
+        extra?: any;
 
-    /** A function which allows mutation of the data payload right before being sent to Sentry */
-    dataCallback?: (data: any) => any;
+        /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
+        fingerprint?: string[];
 
-    /** A callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
-    shouldSendCallback?: (data: any) => boolean;
+        /** A function which allows mutation of the data payload right before being sent to Sentry */
+        dataCallback?: (data: any) => any;
 
-    /** By default, Raven does not truncate messages. If you need to truncate characters for whatever reason, you may set this to limit the length. */
-    maxMessageLength?: number;
+        /** A callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
+        shouldSendCallback?: (data: any) => boolean;
 
-    /** By default, Raven will truncate URLs as they appear in breadcrumbs and other meta interfaces to 250 characters in order to minimize bytes over the wire. This does *not* affect URLs in stack traces. */
-    maxUrlLength?: number;
+        /** By default, Raven does not truncate messages. If you need to truncate characters for whatever reason, you may set this to limit the length. */
+        maxMessageLength?: number;
 
-    /** Override the default HTTP data transport handler. */
-    transport?: (options: RavenTransportOptions) => void;
+        /** By default, Raven will truncate URLs as they appear in breadcrumbs and other meta interfaces to 250 characters in order to minimize bytes over the wire. This does *not* affect URLs in stack traces. */
+        maxUrlLength?: number;
 
-    /** By default, Raven will ignore "Script error" emitted by the browser for errors that it can't read. You may override this behavior by setting this flag. */
-    noDefaultIgnoreErrors?: boolean;
-}
+        /** Override the default HTTP data transport handler. */
+        transport?: (options: RavenTransportOptions) => void;
 
-interface RavenStatic {
+        /** Allow use of private/secretKey. */
+        allowSecretKey?: boolean;
 
-    /** Raven.js version. */
-    VERSION: string;
+        /** Enables/disables instrumentation of globals. */
+        instrument?: boolean | RavenInstrumentationOptions;
 
-    Plugins: { [id: string]: RavenPlugin };
+        /** Enables/disables automatic collection of breadcrumbs. */
+        autoBreadcrumbs?: boolean | AutoBreadcrumbOptions
+    }
 
-    /*
-     * Allow Raven to be configured as soon as it is loaded
-     * It uses a global RavenConfig = {dsn: '...', config: {}}
-     *
-     * @return undefined
-     */
-    afterLoad(): void;
+    interface RavenInstrumentationOptions {
+        tryCatch?: boolean;
+    }
 
-    /*
-     * Allow multiple versions of Raven to be installed.
-     * Strip Raven from the global context and returns the instance.
-     *
-     * @return {Raven}
-     */
-    noConflict(): RavenStatic;
+    interface RavenStatic {
 
-    /*
-     * Configure Raven with a DSN and extra options
-     *
-     * @param {string} dsn The public Sentry DSN
-     * @param {object} options Optional set of of global options [optional]
-     * @return {Raven}
-     */
-    config(dsn: string, options?: RavenOptions): RavenStatic;
+        /** Raven.js version. */
+        VERSION: string;
 
-    /*
-     * Installs a global window.onerror error handler
-     * to capture and report uncaught exceptions.
-     * At this point, install() is required to be called due
-     * to the way TraceKit is set up.
-     *
-     * @return {Raven}
-     */
-    install(): RavenStatic;
+        Plugins: { [id: string]: RavenPlugin };
 
-    /*
-     * Adds a plugin to Raven
-     *
-     * @return {Raven}
-     */
-    addPlugin(plugin: RavenPlugin, ...pluginArgs: any[]): RavenStatic;
+        /*
+        * Allow Raven to be configured as soon as it is loaded
+        * It uses a global RavenConfig = {dsn: '...', config: {}}
+        *
+        * @return undefined
+        */
+        afterLoad(): void;
 
-    /*
-     * Wrap code within a context so Raven can capture errors
-     * reliably across domains that is executed immediately.
-     *
-     * @param {object} options A specific set of options for this context [optional]
-     * @param {function} func The callback to be immediately executed within the context
-     * @param {array} args An array of arguments to be called with the callback [optional]
-     */
-    context(func: Function, ...args: any[]): void;
-    context(options: RavenOptions, func: Function, ...args: any[]): void;
+        /*
+        * Allow multiple versions of Raven to be installed.
+        * Strip Raven from the global context and returns the instance.
+        *
+        * @return {Raven}
+        */
+        noConflict(): RavenStatic;
 
-    /*
-     * Wrap code within a context and returns back a new function to be executed
-     *
-     * @param {object} options A specific set of options for this context [optional]
-     * @param {function} func The function to be wrapped in a new context
-     * @return {function} The newly wrapped functions with a context
-     */
-    wrap(func: Function): Function;
-    wrap(options: RavenOptions, func: Function): Function;
-    wrap<T extends Function>(func: T): T;
-    wrap<T extends Function>(options: RavenOptions, func: T): T;
+        /*
+        * Configure Raven with a DSN and extra options
+        *
+        * @param {string} dsn The public Sentry DSN
+        * @param {object} options Optional set of of global options [optional]
+        * @return {Raven}
+        */
+        config(dsn: string, options?: RavenOptions): RavenStatic;
 
-    /*
-     * Uninstalls the global error handler.
-     *
-     * @return {Raven}
-     */
-    uninstall(): RavenStatic;
+        /*
+        * Installs a global window.onerror error handler
+        * to capture and report uncaught exceptions.
+        * At this point, install() is required to be called due
+        * to the way TraceKit is set up.
+        *
+        * @return {Raven}
+        */
+        install(): RavenStatic;
 
-    /*
-     * Manually capture an exception and send it over to Sentry
-     *
-     * @param {error} ex An exception to be logged
-     * @param {object} options A specific set of options for this error [optional]
-     * @return {Raven}
-     */
-    captureException(ex: Error, options?: RavenOptions): RavenStatic;
+        /*
+        * Adds a plugin to Raven
+        *
+        * @return {Raven}
+        */
+        addPlugin(plugin: RavenPlugin, ...pluginArgs: any[]): RavenStatic;
 
-    /*
-     * Manually send a message to Sentry
-     *
-     * @param {string} msg A plain message to be captured in Sentry
-     * @param {object} options A specific set of options for this message [optional]
-     * @return {Raven}
-     */
-    captureMessage(msg: string, options?: RavenOptions): RavenStatic;
+        /*
+        * Wrap code within a context so Raven can capture errors
+        * reliably across domains that is executed immediately.
+        *
+        * @param {object} options A specific set of options for this context [optional]
+        * @param {function} func The callback to be immediately executed within the context
+        * @param {array} args An array of arguments to be called with the callback [optional]
+        */
+        context(func: Function, ...args: any[]): void;
+        context(options: RavenOptions, func: Function, ...args: any[]): void;
 
-    /** Log a breadcrumb */
-    captureBreadcrumb(crumb: Object): RavenStatic;
+        /*
+        * Wrap code within a context and returns back a new function to be executed
+        *
+        * @param {object} options A specific set of options for this context [optional]
+        * @param {function} func The function to be wrapped in a new context
+        * @return {function} The newly wrapped functions with a context
+        */
+        wrap(func: Function): Function;
+        wrap(options: RavenOptions, func: Function): Function;
+        wrap<T extends Function>(func: T): T;
+        wrap<T extends Function>(options: RavenOptions, func: T): T;
 
-    /**
-     * Clear the user context, removing the user data that would be sent to Sentry.
-     */
-    setUserContext(): RavenStatic;
+        /*
+        * Uninstalls the global error handler.
+        *
+        * @return {Raven}
+        */
+        uninstall(): RavenStatic;
 
-    /*
-     * Set a user to be sent along with the payload.
-     *
-     * @param {object} user An object representing user data [optional]
-     * @return {Raven}
-     */
-    setUserContext(user: {
-        id?: string;
-        username?: string;
-        email?: string;
-    }): RavenStatic;
+        /*
+        * Manually capture an exception and send it over to Sentry
+        *
+        * @param {error} ex An exception to be logged
+        * @param {object} options A specific set of options for this error [optional]
+        * @return {Raven}
+        */
+        captureException(ex: Error, options?: RavenOptions): RavenStatic;
 
-    /** Merge extra attributes to be sent along with the payload. */
-    setExtraContext(context: Object): RavenStatic;
+        /*
+        * Manually send a message to Sentry
+        *
+        * @param {string} msg A plain message to be captured in Sentry
+        * @param {object} options A specific set of options for this message [optional]
+        * @return {Raven}
+        */
+        captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
-    /** Merge tags to be sent along with the payload. */
-    setTagsContext(tags: Object): RavenStatic;
+        /** Log a breadcrumb */
+        captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
-    /** Clear all of the context. */
-    clearContext(): RavenStatic;
+        /**
+         * Clear the user context, removing the user data that would be sent to Sentry.
+         */
+        setUserContext(): RavenStatic;
 
-    /** Get a copy of the current context. This cannot be mutated.*/
-    getContext(): Object;
+        /*
+        * Set a user to be sent along with the payload.
+        *
+        * @param {object} user An object representing user data [optional]
+        * @return {Raven}
+        */
+        setUserContext(user: {
+            id?: string;
+            username?: string;
+            email?: string;
+        }): RavenStatic;
 
-    /** Override the default HTTP data transport handler. */
-    setTransport(transportFunction: (options: RavenTransportOptions) => void): RavenStatic;
+        /** Merge extra attributes to be sent along with the payload. */
+        setExtraContext(context: Object): RavenStatic;
 
-    /** Set environment of application */
-    setEnvironment(environment: string): RavenStatic;
+        /** Merge tags to be sent along with the payload. */
+        setTagsContext(tags: Object): RavenStatic;
 
-    /** Set release version of application */
-    setRelease(release: string): RavenStatic;
+        /** Clear all of the context. */
+        clearContext(): RavenStatic;
 
-    /** Get the latest raw exception that was captured by Raven.*/
-    lastException(): Error;
+        /** Get a copy of the current context. This cannot be mutated.*/
+        getContext(): Object;
 
-    /** An event id is a globally unique id for the event that was just sent. This event id can be used to find the exact event from within Sentry. */
-    lastEventId(): string;
+        /** Override the default HTTP data transport handler. */
+        setTransport(transportFunction: (options: RavenTransportOptions) => void): RavenStatic;
 
-    /** If you need to conditionally check if raven needs to be initialized or not, you can use the isSetup function. It will return true if Raven is already initialized. */
-    isSetup(): boolean;
+        /** Set environment of application */
+        setEnvironment(environment: string): RavenStatic;
 
-    /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
-    setDataCallback(data: any, orig?: any): RavenStatic;
+        /** Set release version of application */
+        setRelease(release: string): RavenStatic;
 
-    /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
-    setBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+        /** Get the latest raw exception that was captured by Raven.*/
+        lastException(): Error;
 
-    /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
-    setShouldSendCallback(data: any, orig?: any): RavenStatic;
+        /** An event id is a globally unique id for the event that was just sent. This event id can be used to find the exact event from within Sentry. */
+        lastEventId(): string;
 
-    /** Show Sentry user feedback dialog */
-    showReportDialog(options: Object): void;
-}
+        /** If you need to conditionally check if raven needs to be initialized or not, you can use the isSetup function. It will return true if Raven is already initialized. */
+        isSetup(): boolean;
 
-interface RavenTransportOptions {
-    url: string;
-    data: any;
-    auth: {
-        sentry_version: string;
-        sentry_client: string;
-        sentry_key: string;
-    };
-    onSuccess: () => void;
-    onFailure: () => void;
-}
+        /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
+        setDataCallback(data: any, orig?: any): RavenStatic;
 
-interface RavenPlugin {
-    (raven: RavenStatic, ...args: any[]): RavenStatic;
+        /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
+        setBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+
+        /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
+        setShouldSendCallback(data: any, orig?: any): RavenStatic;
+
+        /** Show Sentry user feedback dialog */
+        showReportDialog(options: Object): void;
+    }
+
+    interface RavenTransportOptions {
+        url: string;
+        data: any;
+        auth: {
+            sentry_version: string;
+            sentry_client: string;
+            sentry_key: string;
+        };
+        onSuccess: () => void;
+        onFailure: () => void;
+    }
+
+    interface RavenPlugin {
+        (raven: RavenStatic, ...args: any[]): RavenStatic;
+    }
+
+    interface Breadcrumb {
+        message?: string;
+        category?: string;
+        level?: LogLevel;
+        data?: any;
+        type?: BreadcrumbType
+    }
+
+    type BreadcrumbType = "navigation" | "http";
+
+    interface AutoBreadcrumbOptions {
+        xhr?: boolean;
+        console?: boolean;
+        dom?: boolean;
+        location?: boolean;
+    }
+
+    type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
 }
