@@ -137,7 +137,7 @@ Raven.prototype = {
         }
 
         // join regexp rules into one big rule
-        globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
+        globalOptions.ignoreErrors = globalOptions.ignoreErrors.length ? joinRegExp(globalOptions.ignoreErrors) : false;
         globalOptions.ignoreUrls = globalOptions.ignoreUrls.length ? joinRegExp(globalOptions.ignoreUrls) : false;
         globalOptions.whitelistUrls = globalOptions.whitelistUrls.length ? joinRegExp(globalOptions.whitelistUrls) : false;
         globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
