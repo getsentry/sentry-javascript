@@ -240,9 +240,8 @@ declare module Raven {
          * Configure Raven DSN
          *
          * @param {string} dsn The public Sentry DSN
-         * @return {Raven}
          */
-        setDSN(dsn: string): RavenStatic;
+        setDSN(dsn: string): void;
     }
 
     interface RavenTransportOptions {
