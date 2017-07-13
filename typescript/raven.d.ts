@@ -235,6 +235,14 @@ declare module Raven {
 
         /** Show Sentry user feedback dialog */
         showReportDialog(options: Object): void;
+
+        /*
+         * Configure Raven DSN
+         *
+         * @param {string} dsn The public Sentry DSN
+         * @return {Raven}
+         */
+        setDSN(dsn: string): RavenStatic;
     }
 
     interface RavenTransportOptions {

@@ -77,3 +77,5 @@ Raven.setShouldSendCallback(function (data: any, original: any) {});
 Raven.showReportDialog({
     eventId: 'abcdef123456'
 });
+
+Raven.setDSN('https://public@sentry.io/2');
