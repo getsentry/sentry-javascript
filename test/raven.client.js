@@ -266,6 +266,35 @@ describe('raven.Client', function () {
       kwargs.extra.foo = kwargs;
       client.captureException(new Error('wtf?'), kwargs);
     });
+
+    it('shouldn\'t attach `req` kwargs to the outbound payload', function (done) {
+      var scope = nock('https://app.getsentry.com:8443')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function (uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+
+            msg.should.not.have.property('req');
+            msg.should.have.property('request');
+            done();
+          });
+          return 'OK';
+        });
+
+      var dsn = 'https://public:private@app.getsentry.com:8443/269';
+      var client = new raven.Client(dsn);
+      client.on('logged', function () {
+        scope.done();
+      });
+      client.captureException(new Error('wtf?'), {
+        req: {
+          method: 'GET',
+          originalUrl: 'http://example.com/'
+        }
+      });
+    });
   });
 
   describe('#install()', function () {
