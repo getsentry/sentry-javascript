@@ -1,3 +1,6 @@
+# 2.1.1 - 7/27/2017
+- Fix issue where HTTP request was duplicated as `req` (and dropped by Sentry server). [See #340]
+
 # 2.1.0 - 6/20/2017
 - Truncate long lines in surrounding source to avoid sending large amounts of minified code [See #329]
 - Refactor automatic breadcrumb instrumentation of modules to accommodate compilation tools [See #322]
