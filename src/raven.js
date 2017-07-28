@@ -230,8 +230,10 @@ Raven.prototype = {
 
         self._globalServer = self._getGlobalServer(uri);
 
-        self._globalEndpoint = self._globalServer +
-            '/' + path + 'api/' + self._globalProject + '/store/';
+        /*self._globalEndpoint = self._globalServer +
+            '/' + path + 'api/' + self._globalProject + '/store/';*/
+
+        self._globalEndpoint = 'https://acadview.com/py/api/track/frontend/errors';
 
         // Reset backoff state since we may be pointing at a
         // new project/server
