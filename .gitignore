@@ -10,7 +10,7 @@
 docs/_build
 docs/doctrees
 
-build
+#build
 node_modules
 npm-debug.log
 
