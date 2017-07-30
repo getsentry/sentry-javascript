@@ -11,6 +11,7 @@ var isError = utils.isError,
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
+// DSN use
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
     dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
 
@@ -45,8 +46,8 @@ function Raven() {
     this._lastData = null;
     this._lastEventId = null;
     this._globalServer = null;
-    this._globalKey = null;
-    this._globalProject = null;
+    // this._globalKey = null;
+    // this._globalProject = null;
     this._globalContext = {};
     this._globalOptions = {
         logger: 'javascript',
@@ -105,20 +106,20 @@ Raven.prototype = {
     TraceKit: TraceKit, // alias to TraceKit
 
     /*
-     * Configure Raven with a DSN and extra options
+     * Configure Raven with a Host API(POST) and extra options
      *
-     * @param {string} dsn The public Sentry DSN
+     * @param {string} API url, The API to make post request to the server
      * @param {object} options Optional set of of global options [optional]
      * @return {Raven}
      */
-    config: function(dsn, options) {
+    config: function(url, options) {
         var self = this;
 
         if (self._globalServer) {
                 this._logDebug('error', 'Error: Raven has already been configured');
             return self;
         }
-        if (!dsn) return self;
+        if (!url) return self;
 
         var globalOptions = self._globalOptions;
 
@@ -134,7 +135,7 @@ Raven.prototype = {
             });
         }
 
-        self.setDSN(dsn);
+        self.setURL(url);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
@@ -217,23 +218,26 @@ Raven.prototype = {
      *
      * @param {string} dsn The public Sentry DSN
      */
-    setDSN: function(dsn) {
-        var self = this,
-            uri = self._parseDSN(dsn),
-          lastSlash = uri.path.lastIndexOf('/'),
-          path = uri.path.substr(1, lastSlash);
+    setURL: function(url) {
+        var self = this
+        /*,
+        uri = self._parseDSN(url),
+        lastSlash = uri.path.lastIndexOf('/'),
+        path = uri.path.substr(1, lastSlash);
 
-        self._dsn = dsn;
+        self._dsn = url;
         self._globalKey = uri.user;
         self._globalSecret = uri.pass && uri.pass.substr(1);
         self._globalProject = uri.path.substr(lastSlash + 1);
 
         self._globalServer = self._getGlobalServer(uri);
 
-        /*self._globalEndpoint = self._globalServer +
-            '/' + path + 'api/' + self._globalProject + '/store/';*/
+        self._globalEndpoint = self._globalServer +
+            '/' + path + 'api/' + self._globalProject + '/store/';
+        */
 
-        self._globalEndpoint = 'https://acadview.com/py/api/track/frontend/errors';
+        self._globalServer = self._getGlobalServer(url);
+        self._globalEndpoint = url;
 
         // Reset backoff state since we may be pointing at a
         // new project/server
@@ -1013,8 +1017,9 @@ Raven.prototype = {
             fill(xhrproto, 'open', function(origOpen) {
                 return function (method, url) { // preserve arity
 
-                    // if Sentry key appears in URL, don't capture
-                    if (isString(url) && url.indexOf(self._globalKey) === -1) {
+                    // if the url is the same as the error reporting APIs, don't capture it
+                    // TODO: Check for a slash at the end
+                    if (isString(url) && url.indexOf(self._globalEndpoint) === -1) {
                         this.__raven_xhr = {
                             method: method,
                             url: url,
@@ -1223,15 +1228,18 @@ Raven.prototype = {
         return dsn;
     },
 
-    _getGlobalServer: function(uri) {
-        // assemble the endpoint from the uri pieces
+    _getGlobalServer: function(url) {
+        // Can be used if the format of the url changes
+        /*// assemble the endpoint from the uri pieces
         var globalServer = '//' + uri.host +
             (uri.port ? ':' + uri.port : '');
 
         if (uri.protocol) {
             globalServer = uri.protocol + ':' + globalServer;
         }
-        return globalServer;
+        return globalServer;*/
+
+        return url;
     },
 
     _handleOnErrorStackInfo: function() {
@@ -1500,7 +1508,8 @@ Raven.prototype = {
         var globalOptions = this._globalOptions;
 
         var baseData = {
-            project: this._globalProject,
+            // Use this if need multiple projects, url also need to change then
+            // project: this._globalProject,
             logger: globalOptions.logger,
             platform: 'javascript'
         }, httpData = this._getHttpData();
@@ -1607,14 +1616,13 @@ Raven.prototype = {
 
         this._logDebug('debug', 'Raven about to send:', data);
 
-        var auth = {
-            sentry_version: '7',
-            sentry_client: 'raven-js/' + this.VERSION,
-            sentry_key: this._globalKey
+        /*var auth = {
+            initiator: 'raven-js/' + this.VERSION,
+            auth_key: this._globalKey
         };
         if (this._globalSecret) {
             auth.sentry_secret = this._globalSecret;
-        }
+        }*/
 
         var exception = data.exception && data.exception.values[0];
         this.captureBreadcrumb({
@@ -1629,7 +1637,7 @@ Raven.prototype = {
         var url = this._globalEndpoint;
         (globalOptions.transport || this._makeRequest).call(this, {
             url: url,
-            auth: auth,
+            // auth: auth,
             data: data,
             options: globalOptions,
             onSuccess: function success() {
@@ -1703,7 +1711,11 @@ Raven.prototype = {
 
         // NOTE: auth is intentionally sent as part of query string (NOT as custom
         //       HTTP header) so as to avoid preflight CORS requests
-        request.open('POST', url + '?' + urlencode(opts.auth));
+
+        // Use this if want to send query params
+        // request.open('POST', url + '?' + urlencode(opts.auth));
+
+        request.open('POST', url);
         request.send(stringify(opts.data));
     },
 
