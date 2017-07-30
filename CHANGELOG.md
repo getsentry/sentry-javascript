@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.17.0
+* CHANGE: Export TypeScript definitions as a CommonJS module. See: https://github.com/getsentry/raven-js/pull/977
+
 ## 3.16.1
 * BUGFIX: Fixed stacktrace on Android for React Native release builds. See: https://github.com/getsentry/raven-js/pull/985
 * BUGFIX: TypeScript: Change loglevel option "warn" to "warning".

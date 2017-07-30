@@ -67,8 +67,8 @@ npm
 
 .. code-block:: javascript
 
-    app.import('bower_components/raven-js/dist/raven.js');
-    app.import('bower_components/raven-js/dist/plugins/ember.js');
+    app.import('node_modules/raven-js/dist/raven.js');
+    app.import('node_modules/raven-js/dist/plugins/ember.js');
 
 .. code-block:: html
 

@@ -312,6 +312,18 @@ Troubleshooting
 
 Source maps can sometimes be tricky to get going. If you're having trouble, try the following tips.
 
+Verify you have specified the release in your client config
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You must specify the active release in your Raven.js client configuration:
+
+.. code-block:: javascript
+
+  Raven.config('your-dsn', {
+    release: '1.2.3-beta'
+  }).install();
+  
+Sentry needs this to associate ingested event data with the release and artifacts you've created via the API.
 
 Verify your source maps are built correctly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

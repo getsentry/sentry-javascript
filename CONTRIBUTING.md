@@ -111,6 +111,7 @@ _This is a checklist for core contributors when releasing a new version._
 
   * [ ] Verify TypeScript [language definition file](https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts) is up to date
   * [ ] Bump version numbers in `package.json`, `bower.json`, and `docs/sentry-doc-config.json`.
+  * ⚠ WARNING: once `docs/sentry-doc-config.json` is bumped on master, it can be pulled by a docs deploy at any time, so complete this process up to `grunt publish` and `npm publish` immediately to ensure docs don't reference a non-existent version link ⚠
   * [ ] Bump version numbers in `src/raven.js`, and `test/raven.test.js`.
   * [ ] Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
   * [ ] `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
