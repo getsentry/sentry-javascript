@@ -199,7 +199,7 @@ Raven.prototype = {
             });
         }
 
-        self.setDSN(dsn);
+        self.setURL(dsn);
 
         // "Script error." is hard coded into browsers for errors that it can't read.
         // this is the result of a script being pulled in from an external domain and CORS.
@@ -282,7 +282,7 @@ Raven.prototype = {
      *
      * @param {string} dsn The public Sentry DSN
      */
-    setDSN: function(dsn) {
+    setURL: function(dsn) {
         var self = this,
             uri = self._parseDSN(dsn),
           lastSlash = uri.path.lastIndexOf('/'),

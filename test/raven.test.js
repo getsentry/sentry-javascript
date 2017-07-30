@@ -23,10 +23,10 @@ if (typeof window.console === 'undefined') {
     console = {error: function(){}};
 }
 
-var SENTRY_DSN = 'http://abc@example.com:80/2';
+var SENTRY_URL = 'http://some.server.com';
 
 function setupRaven() {
-    Raven.config(SENTRY_DSN, {
+    Raven.config(SENTRY_URL, {
         allowDuplicates: true
     });
 }
@@ -653,7 +653,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -662,7 +662,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -690,7 +690,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -736,7 +736,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -745,7 +745,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -771,7 +771,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -780,7 +780,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar', tags: {tag2: 'value2'}});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -813,7 +813,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -822,7 +822,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar', extra: {key2: 'value2'}});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -875,7 +875,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100,
@@ -886,7 +886,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -932,7 +932,7 @@ describe('globals', function() {
             });
 
             Raven._globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 tags: {}
@@ -940,7 +940,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar', tags: {}, extra: {}});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -964,7 +964,7 @@ describe('globals', function() {
             });
 
             Raven._globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 environment: 'abc123'
@@ -972,7 +972,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 environment: 'abc123',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -997,7 +997,7 @@ describe('globals', function() {
             });
 
             Raven._globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 release: 'abc123'
@@ -1005,7 +1005,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 release: 'abc123',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1030,7 +1030,7 @@ describe('globals', function() {
             });
 
             Raven._globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 serverName: 'abc123',
@@ -1038,7 +1038,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 server_name: 'abc123',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1063,7 +1063,7 @@ describe('globals', function() {
             });
 
             var globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 release: 'abc123',
@@ -1077,7 +1077,7 @@ describe('globals', function() {
             var opts = args[0];
             assert.equal(opts.url, 'http://localhost/store/');
             assert.deepEqual(opts.data, {
-                project: '2',
+                // project: '2',
                 release: 'abc123',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1091,11 +1091,11 @@ describe('globals', function() {
                 message: 'bar',
                 extra: {'session:duration': 100},
             });
-            assert.deepEqual(opts.auth, {
+            /*assert.deepEqual(opts.auth, {
                 sentry_client: 'raven-js/3.17.0',
                 sentry_key: 'abc',
                 sentry_version: '7'
-            });
+            });*/
             assert.deepEqual(opts.options, globalOptions);
             assert.isFunction(opts.onSuccess);
             assert.isFunction(opts.onError);
@@ -1111,7 +1111,7 @@ describe('globals', function() {
 
             Raven._globalEndpoint = 'http://localhost/store/';
             Raven._globalOptions = {
-                projectId: 2,
+                // projectId: 2,
                 logger: 'javascript',
                 maxMessageLength: 100,
                 release: 'abc123'
@@ -1124,7 +1124,7 @@ describe('globals', function() {
             var opts = args[0];
             assert.equal(opts.url, 'http://localhost/store/');
             assert.deepEqual(opts.data, {
-                project: '2',
+                // project: '2',
                 release: 'abc123',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -1138,12 +1138,12 @@ describe('globals', function() {
                 message: 'bar',
                 extra: {'session:duration': 100},
             });
-            assert.deepEqual(opts.auth, {
+            /*assert.deepEqual(opts.auth, {
                 sentry_client: 'raven-js/3.17.0',
                 sentry_key: 'abc',
                 sentry_secret: 'def',
                 sentry_version: '7'
-            });
+            });*/
         });
 
         it('should call globalOptions.transport if specified', function() {
@@ -1159,12 +1159,12 @@ describe('globals', function() {
                 transport: sinon.stub()
             };
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = globalOptions;
 
             Raven._send({message: 'bar'});
             assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -1322,7 +1322,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -1335,7 +1335,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -1363,7 +1363,7 @@ describe('globals', function() {
                 headers: {'User-Agent': 'lolbrowser'}
             });
 
-            Raven._globalProject = '2';
+            // Raven._globalProject = '2';
             Raven._globalOptions = {
                 logger: 'javascript',
                 maxMessageLength: 100
@@ -1378,7 +1378,7 @@ describe('globals', function() {
 
             Raven._send({message: 'bar'});
             assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
-                project: '2',
+                // project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
                 request: {
@@ -1421,14 +1421,14 @@ describe('globals', function() {
 
             Raven._makeRequest({
                 url: 'http://localhost/',
-                auth: {a: '1', b: '2'},
+                // auth: {a: '1', b: '2'},
                 data: {foo: 'bar'},
                 options: Raven._globalOptions
             });
 
             var lastXhr = this.requests[this.requests.length - 1];
             assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
-            assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
+            assert.equal(lastXhr.url, 'http://localhost/');
         });
 
         it('should no-op if CORS is not supported', function () {
@@ -1713,7 +1713,7 @@ describe('Raven (public API)', function() {
     describe('callback function', function() {
         it('should callback a function if it is global', function() {
             window.RavenConfig = {
-                dsn: "http://random@some.other.server:80/2",
+                url: "http://some.server.com",
                 config: {some: 'config'}
             };
 
@@ -1722,11 +1722,11 @@ describe('Raven (public API)', function() {
 
             Raven.afterLoad();
 
-            assert.equal(Raven._globalKey, 'random');
-            assert.equal(Raven._globalEndpoint, 'http://some.other.server:80/api/2/store/');
+            // assert.equal(Raven._globalKey, 'random');
+            assert.equal(Raven._globalEndpoint, "http://some.server.com");
 
             assert.equal(Raven._globalOptions.some, 'config');
-            assert.equal(Raven._globalProject, '2');
+            // assert.equal(Raven._globalProject, '2');
 
             assert.isTrue(Raven.isSetup.calledOnce);
             assert.isFalse(TraceKit.report.subscribe.calledOnce);
@@ -1738,12 +1738,12 @@ describe('Raven (public API)', function() {
     describe('.setDSN', function() {
         it('should work with a DSN after Raven has been configured', function() {
             Raven.config('//def@lol.com/3');
-            Raven.setDSN(SENTRY_DSN)
+            Raven.setURL(SENTRY_URL)
 
-            assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalSecret, '');
-            assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
-            assert.equal(Raven._globalProject, '2');
+            // assert.equal(Raven._globalKey, 'abc');
+            // assert.equal(Raven._globalSecret, '');
+            assert.equal(Raven._globalEndpoint, SENTRY_URL);
+            // assert.equal(Raven._globalProject, '2');
         });
 
         it('should reset the backoff state', function() {
@@ -1752,7 +1752,7 @@ describe('Raven (public API)', function() {
             Raven._backoffStart = 100;
             Raven._backoffDuration = 2000;
 
-            Raven.setDSN(SENTRY_DSN);
+            Raven.setURL(SENTRY_URL);
 
             assert.equal(Raven._backoffStart, null);
             assert.equal(Raven._backoffDuration, 0);
@@ -1761,23 +1761,23 @@ describe('Raven (public API)', function() {
 
     describe('.config', function() {
         it('should work with a DSN', function() {
-            assert.equal(Raven, Raven.config(SENTRY_DSN, {foo: 'bar'}), 'it should return Raven');
+            assert.equal(Raven, Raven.config(SENTRY_URL, {foo: 'bar'}), 'it should return Raven');
 
-            assert.equal(Raven._globalKey, 'abc');
-            assert.equal(Raven._globalSecret, '');
-            assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
+            // assert.equal(Raven._globalKey, 'abc');
+            // assert.equal(Raven._globalSecret, '');
+            assert.equal(Raven._globalEndpoint, SENTRY_URL);
             assert.equal(Raven._globalOptions.foo, 'bar');
-            assert.equal(Raven._globalProject, '2');
+            // assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
         });
 
-        it('throw an Error if the DSN contains a private/secret key', function () {
+        /*it('throw an Error if the DSN contains a private/secret key', function () {
             assert.throws(function () {
                 Raven.config('http://abc:def@example.com:80/2');
             }, Error);
-        });
+        });*/
 
-        it('will NOT throw an Error if the DSN contains a private/secret key AND allowSecretKey is true', function () {
+        /*it('will NOT throw an Error if the DSN contains a private/secret key AND allowSecretKey is true', function () {
             assert.equal(
                 Raven,
                 Raven.config('http://abc:def@example.com:80/2', {allowSecretKey: true}),
@@ -1789,24 +1789,24 @@ describe('Raven (public API)', function() {
             assert.equal(Raven._globalEndpoint, 'http://example.com:80/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
-        });
+        });*/
 
-        it('should work with a protocol relative DSN', function() {
+        /*it('should work with a protocol relative DSN', function() {
             Raven.config('//abc@example.com/2');
 
             assert.equal(Raven._globalKey, 'abc');
             assert.equal(Raven._globalEndpoint, '//example.com/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
-        });
+        });*/
 
-        it('should work should work at a non root path', function() {
+        /*it('should work should work at a non root path', function() {
             Raven.config('//abc@example.com/sentry/2');
             assert.equal(Raven._globalKey, 'abc');
             assert.equal(Raven._globalEndpoint, '//example.com/sentry/api/2/store/');
             assert.equal(Raven._globalProject, '2');
             assert.isTrue(Raven.isSetup());
-        });
+        });*/
 
         it('should noop a falsey dsn', function() {
             Raven.config('');
@@ -1817,14 +1817,14 @@ describe('Raven (public API)', function() {
             assert.equal(Raven.config(''), Raven);
         });
 
-        it('should not set global options more than once', function() {
+        /*it('should not set global options more than once', function() {
             this.sinon.spy(Raven, '_parseDSN');
             this.sinon.stub(Raven, '_logDebug');
             setupRaven();
             setupRaven();
-            assert.isTrue(Raven._parseDSN.calledOnce);
+            // assert.isTrue(Raven._parseDSN.calledOnce);
             assert.isTrue(Raven._logDebug.called);
-        });
+        });*/
 
         it('should populate global context for tags, extra, and user', function() {
             Raven.config('//abc@example.com/sentry/2', {
@@ -1871,12 +1871,12 @@ describe('Raven (public API)', function() {
 
         describe('collectWindowErrors', function() {
             it('should be true by default', function() {
-                Raven.config(SENTRY_DSN);
+                Raven.config(SENTRY_URL);
                 assert.isTrue(TraceKit.collectWindowErrors);
             });
 
             it('should be true if set to true', function() {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     collectWindowErrors: true
                 });
 
@@ -1884,7 +1884,7 @@ describe('Raven (public API)', function() {
             });
 
             it('should be false if set to false', function() {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     collectWindowErrors: false
                 });
 
@@ -1894,43 +1894,43 @@ describe('Raven (public API)', function() {
 
         describe('maxBreadcrumbs', function () {
             it('should override the default', function () {
-                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 50 });
+                Raven.config(SENTRY_URL, { maxBreadcrumbs: 50 });
                 assert.equal(Raven._globalOptions.maxBreadcrumbs, 50);
             });
 
             it('should not permit maxBreadcrumbs above 100', function () {
-                Raven.config(SENTRY_DSN, { maxBreadcrumbs: 200 });
+                Raven.config(SENTRY_URL, { maxBreadcrumbs: 200 });
                 assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
             });
 
             it('should not permit maxBreadcrumbs below 0', function () {
-               Raven.config(SENTRY_DSN, { maxBreadcrumbs: -1 });
+               Raven.config(SENTRY_URL, { maxBreadcrumbs: -1 });
                 assert.equal(Raven._globalOptions.maxBreadcrumbs, 0);
             });
 
             it('should set maxBreadcrumbs to the default if not provided', function () {
-                Raven.config(SENTRY_DSN);
+                Raven.config(SENTRY_URL);
                 assert.equal(Raven._globalOptions.maxBreadcrumbs, 100);
             });
         });
 
         describe('instrument', function () {
             it('should convert `true` to a dictionary of enabled instrument features', function () {
-                Raven.config(SENTRY_DSN);
+                Raven.config(SENTRY_URL);
                 assert.deepEqual(Raven._globalOptions.instrument, {
                     tryCatch: true,
                 });
             });
 
             it('should leave false as-is', function () {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     instrument: false
                 });
                 assert.equal(Raven._globalOptions.instrument, false);
             });
 
             it('should merge objects with the default instrument settings', function () {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     instrument: {
                         tryCatch: false
                     }
@@ -1943,7 +1943,7 @@ describe('Raven (public API)', function() {
 
         describe('autoBreadcrumbs', function () {
             it('should convert `true` to a dictionary of enabled breadcrumb features', function () {
-                Raven.config(SENTRY_DSN);
+                Raven.config(SENTRY_URL);
                 assert.deepEqual(Raven._globalOptions.autoBreadcrumbs, {
                     xhr: true,
                     console: true,
@@ -1953,14 +1953,14 @@ describe('Raven (public API)', function() {
             });
 
             it('should leave false as-is', function () {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     autoBreadcrumbs: false
                 });
                 assert.equal(Raven._globalOptions.autoBreadcrumbs, false);
             });
 
             it('should merge objects with the default autoBreadcrumb settings', function () {
-                Raven.config(SENTRY_DSN, {
+                Raven.config(SENTRY_URL, {
                     autoBreadcrumbs: {
                         location: false
                     }
@@ -2771,11 +2771,11 @@ describe('Raven (public API)', function() {
         it('should throw a RavenConfigError if no eventId', function () {
             assert.throws(function () {
                 Raven.showReportDialog({
-                    dsn: SENTRY_DSN // dsn specified via options
+                    dsn: SENTRY_URL // dsn specified via options
                 });
             }, 'Missing eventId');
 
-            Raven.config(SENTRY_DSN);
+            Raven.config(SENTRY_URL);
             assert.throws(function () {
                 Raven.showReportDialog(); // dsn specified via Raven.config
             }, 'Missing eventId');
@@ -2799,7 +2799,7 @@ describe('Raven (public API)', function() {
 
                 Raven.showReportDialog({
                     eventId: 'abc123',
-                    dsn: SENTRY_DSN
+                    dsn: SENTRY_URL
                 });
 
                 var script = this.appendChildStub.getCall(0).args[0];
@@ -2808,7 +2808,7 @@ describe('Raven (public API)', function() {
                 this.appendChildStub.reset();
 
                 Raven
-                    .config(SENTRY_DSN)
+                    .config(SENTRY_URL)
                     .captureException(new Error('foo')) // generates lastEventId
                     .showReportDialog();
 
@@ -2821,7 +2821,7 @@ describe('Raven (public API)', function() {
 
                 Raven.showReportDialog({
                     eventId: 'abc123',
-                    dsn: SENTRY_DSN,
+                    dsn: SENTRY_URL,
                     user: {
                         name: 'Average Normalperson',
                         email: 'an@example.com'
@@ -2833,7 +2833,7 @@ describe('Raven (public API)', function() {
 
                 this.appendChildStub.reset();
                 Raven
-                    .config(SENTRY_DSN)
+                    .config(SENTRY_URL)
                     .captureException(new Error('foo')) // generates lastEventId
                     .setUserContext({
                         name: 'Average Normalperson 2',
@@ -3049,13 +3049,13 @@ describe('install/uninstall', function () {
 
         it('should instrument try/catch by default', function () {
             this.sinon.stub(Raven, '_instrumentTryCatch');
-            Raven.config(SENTRY_DSN).install();
+            Raven.config(SENTRY_URL).install();
             assert.isTrue(Raven._instrumentTryCatch.calledOnce);
         });
 
         it('should not instrument try/catch if instrument is false', function () {
             this.sinon.stub(Raven, '_instrumentTryCatch');
-            Raven.config(SENTRY_DSN, {
+            Raven.config(SENTRY_URL, {
                 instrument: false
             }).install();
             assert.isFalse(Raven._instrumentTryCatch.called);
@@ -3063,7 +3063,7 @@ describe('install/uninstall', function () {
 
         it('should not instrument try/catch if instrument.tryCatch is false', function () {
             this.sinon.stub(Raven, '_instrumentTryCatch');
-            Raven.config(SENTRY_DSN, {
+            Raven.config(SENTRY_URL, {
                 instrument: {
                     tryCatch: false
                 }
@@ -3073,13 +3073,13 @@ describe('install/uninstall', function () {
 
         it('should instrument breadcrumbs by default', function () {
             this.sinon.stub(Raven, '_instrumentBreadcrumbs');
-            Raven.config(SENTRY_DSN).install();
+            Raven.config(SENTRY_URL).install();
             assert.isTrue(Raven._instrumentBreadcrumbs.calledOnce);
         });
 
         it('should instrument breadcrumbs if autoBreadcrumbs is an object', function () {
             this.sinon.stub(Raven, '_instrumentBreadcrumbs');
-            Raven.config(SENTRY_DSN, {
+            Raven.config(SENTRY_URL, {
                 dom: true,
                 location: false
             }).install();
@@ -3089,7 +3089,7 @@ describe('install/uninstall', function () {
 
         it('should not instrument breadcrumbs if autoBreadcrumbs is false', function () {
             this.sinon.stub(Raven, '_instrumentBreadcrumbs');
-            Raven.config(SENTRY_DSN, {
+            Raven.config(SENTRY_URL, {
                 autoBreadcrumbs: false
             }).install();
             assert.isFalse(Raven._instrumentBreadcrumbs.called);

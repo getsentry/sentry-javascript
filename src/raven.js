@@ -675,7 +675,7 @@ Raven.prototype = {
         // Attempt to initialize Raven on load
         var RavenConfig = _window.RavenConfig;
         if (RavenConfig) {
-            this.config(RavenConfig.dsn, RavenConfig.config).install();
+            this.config(RavenConfig.url, RavenConfig.config).install();
         }
     },
 
