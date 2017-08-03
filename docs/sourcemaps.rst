@@ -25,12 +25,9 @@ that maps the minified code back to the original source:
 
 ::
 
-    node_modules/uglify-js/bin/uglifyjs {input} \
-      --source-map-root={relroot}/ \
-      --source-map-url={name}.js.map \
-      --source-map={relpath}/{name}.js.map \
-      --source-map-include-sources \
-      -o {output}
+    uglifyjs app.js \
+      -o app.min.js.map \
+      --source-map url=app.min.js.map,includeSources
 
 
 Webpack
@@ -55,6 +52,7 @@ Webpack can be configured to output source maps by editing webpack.config.js.
           sourceMapFilename: "[name].js.map",
         }
     };
+
 
 SystemJS
 ~~~~~~~~
@@ -322,7 +320,7 @@ You must specify the active release in your Raven.js client configuration:
   Raven.config('your-dsn', {
     release: '1.2.3-beta'
   }).install();
-  
+
 Sentry needs this to associate ingested event data with the release and artifacts you've created via the API.
 
 Verify your source maps are built correctly
