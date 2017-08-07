@@ -108,6 +108,11 @@ describe('React Native plugin', function () {
                                 lineno: 12,
                                 colno: 13,
                                 'function': 'lol'
+                            }, {
+                                filename: 'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/5c5f606315aa4ab04ac04068b3149b785e5e487e9081bfc25b6e44a353182a5e/file3.js',
+                                lineno: 12,
+                                colno: 13,
+                                'function': 'lol'
                             }]
                         }
                     }],
@@ -119,6 +124,7 @@ describe('React Native plugin', function () {
             var frames = data.exception.values[0].stacktrace.frames;
             assert.equal(frames[0].filename, '/file1.js');
             assert.equal(frames[1].filename, '/file2.js');
+            assert.equal(frames[2].filename, '/file3.js');
         });
     });
 
