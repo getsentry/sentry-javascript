@@ -1,3 +1,6 @@
+# 2.1.2 - 8/16/2017
+- Remove errant large file that accidentally got published in 2.1.1. [See #361]
+
 # 2.1.1 - 7/27/2017
 - Fix issue where HTTP request was duplicated as `req` (and dropped by Sentry server). [See #340]
 
