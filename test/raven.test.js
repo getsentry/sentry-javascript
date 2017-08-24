@@ -1314,6 +1314,7 @@ describe('globals', function() {
             assert.equal(Raven._backoffStart, null); // clock is at 100ms
             assert.equal(Raven._backoffDuration, 0);
         });
+
         it('should truncate url in breadcrumb', function() {
             this.sinon.stub(Raven, 'isSetup').returns(true);
             this.sinon.stub(Raven, '_makeRequest');
@@ -1393,6 +1394,45 @@ describe('globals', function() {
                 breadcrumbs: {
                     values: [
                         { type: 'request', timestamp: 0.1, data: { method: 'POST', url: 'http://example.org/api/0/auth/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }}
+                    ]
+                }
+            });
+        });
+
+        it('should truncate message in breadcrumb', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 30
+            };
+
+            var longMessage = new Array(150).join('a');
+            Raven._breadcrumbs = [{type: 'sentry', timestamp: 0.1, message: longMessage}];
+
+            Raven._send({message: 'bar'});
+            assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
+                project: '2',
+                logger: 'javascript',
+                platform: 'javascript',
+                request: {
+                    url: 'http://localhost/?a=b',
+                    headers: {
+                        'User-Agent': 'lolbrowser'
+                    }
+                },
+                event_id: 'abc123',
+                message: 'bar',
+                extra: {'session:duration': 100},
+                breadcrumbs: {
+                    values: [
+                        { type: 'sentry', timestamp: 0.1, message: new Array(31).join('a')+'…' }
                     ]
                 }
             });

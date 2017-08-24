@@ -1373,7 +1373,7 @@ Raven.prototype = {
     },
 
     /**
-     * Truncate breadcrumb values (right now just URLs)
+     * Truncate breadcrumb values (right now just URLs and message)
      */
     _trimBreadcrumbs: function (breadcrumbs) {
         // known breadcrumb properties with urls
@@ -1385,6 +1385,11 @@ Raven.prototype = {
 
         for (var i = 0; i < breadcrumbs.values.length; ++i) {
             crumb = breadcrumbs.values[i];
+
+            if (crumb.hasOwnProperty('message')) {
+                breadcrumbs.values[i].message = truncate(crumb.message, this._globalOptions.maxMessageLength);
+            }
+
             if (!crumb.hasOwnProperty('data') || !isObject(crumb.data) || objectFrozen(crumb.data))
                 continue;
 
