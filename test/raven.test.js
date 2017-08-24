@@ -1398,6 +1398,31 @@ describe('globals', function() {
             });
         });
 
+        it('should not throw error when url in breadcrumb is undefined', function() {
+            this.sinon.stub(Raven, 'isSetup').returns(true);
+            this.sinon.stub(Raven, '_makeRequest');
+            this.sinon.stub(Raven, '_getHttpData').returns({
+                url: 'http://localhost/?a=b',
+                headers: {'User-Agent': 'lolbrowser'}
+            });
+
+            Raven._globalProject = '2';
+            Raven._globalOptions = {
+                logger: 'javascript',
+                maxMessageLength: 100
+            };
+            Raven._globalOptions.maxUrlLength = 35;
+
+            var obj = {method: 'POST', url: undefined};
+            // Do not freeze crumb data
+
+            Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: obj}];
+
+            assert.doesNotThrow(function() {
+              Raven._send({message: 'bar'});
+            }, TypeError)
+        });
+
     });
 
     describe('makeRequest', function() {

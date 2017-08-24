@@ -1391,7 +1391,7 @@ Raven.prototype = {
             data = objectMerge({}, crumb.data);
             for (var j = 0; j < urlProps.length; ++j) {
                 urlProp = urlProps[j];
-                if (data.hasOwnProperty(urlProp)) {
+                if (data.hasOwnProperty(urlProp) && data[urlProp]) {
                     data[urlProp] = truncate(data[urlProp], this._globalOptions.maxUrlLength);
                 }
             }
