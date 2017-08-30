@@ -12,6 +12,7 @@
 'use strict';
 
 var wrapConsoleMethod = require('../src/console').wrapMethod;
+var wrapConsoleAssert = require('../src/console').wrapAssert;
 
 function consolePlugin(Raven, console, pluginOptions) {
     console = console || window.console || {};
@@ -27,6 +28,10 @@ function consolePlugin(Raven, console, pluginOptions) {
     while(level) {
         wrapConsoleMethod(console, level, callback);
         level = logLevels.pop();
+    }
+
+    if (console.assert) {
+        wrapConsoleAssert(console);
     }
 }
 
