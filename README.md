@@ -1,6 +1,12 @@
-# raven-node [![Build Status](https://travis-ci.org/getsentry/raven-node.svg?branch=master)](https://travis-ci.org/getsentry/raven-node)
+<p align="center">
+    <a href="https://sentry.io" target="_blank" align="center">
+        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+    </a>
+    <br/>
+    <h1>Raven-node - Sentry SDK for Node.js</h1>
+</p>
 
-raven-node is a Node.js client for [Sentry](https://getsentry.com/).
+[![Build Status](https://travis-ci.org/getsentry/raven-node.svg?branch=master)](https://travis-ci.org/getsentry/raven-node)
 
 ## Resources
 
