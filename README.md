@@ -1,6 +1,12 @@
-# Raven.js [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js) [![npm](https://img.shields.io/npm/v/raven-js.svg)](https://www.npmjs.com/package/raven-js) [![npm](https://img.shields.io/npm/dm/raven-js.svg)](https://www.npmjs.com/package/raven-js)
+<p align="center">
+    <a href="https://sentry.io" target="_blank" align="center">
+        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+    </a>
+<br/>
+    <h1>Raven.js - Sentry SDK for JavaScript</h1>
+</p>
 
-Raven.js is the official browser JavaScript client for [Sentry](https://sentry.io/).
+[![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js) [![npm](https://img.shields.io/npm/v/raven-js.svg)](https://www.npmjs.com/package/raven-js) [![npm](https://img.shields.io/npm/dm/raven-js.svg)](https://www.npmjs.com/package/raven-js)
 
 ## Requirements
 
