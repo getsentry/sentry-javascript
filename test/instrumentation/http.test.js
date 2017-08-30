@@ -12,17 +12,33 @@ var testFiles = fs.readdirSync(testRoot).filter(function (filename) {
   return filename.indexOf('test-http') === 0;
 });
 
+var defaultFlags = [
+  '--allow-natives-syntax',
+  '--expose-gc',
+  '--expose-internals'
+];
+
+if (process.version >= 'v8') defaultFlags.push('--expose-http2');
+
 var failedTests = [];
 var numSuccesses = 0;
 testFiles.forEach(function (filename) {
   var testModulePath = path.join(testRoot, filename);
+  var singleTestFlags = defaultFlags.concat([
+    'run-node-http-test.js',
+    testModulePath
+  ]);
+
+  // this is the only test, that actually asserts the lack of http2 flag
+  // therefore we have to remove it from the process we are about to run
+  if (filename === 'test-http2-noflag.js') {
+    singleTestFlags = singleTestFlags.filter(function (flag) {
+      return flag !== '--expose-http2';
+    });
+  }
+
   try {
-    child_process.execFileSync('node', [
-      '--allow-natives-syntax',
-      '--expose_gc',
-      'run-node-http-test.js',
-      testModulePath
-    ], { stdio: 'ignore' });
+    child_process.execFileSync('node', singleTestFlags, { stdio: 'ignore' });
     console.log('✓ ' + filename);
     numSuccesses++;
   } catch (e) {
