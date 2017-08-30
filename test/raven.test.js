@@ -304,6 +304,23 @@ describe('globals', function() {
         });
     });
 
+    describe('normalizeUrl', function(){
+      it('should handle a normal frame', function() {
+          var url= 'http://example.com/path/file.js';
+          assert.equal(Raven._normalizeUrl(url),url);
+      });
+
+      it('should normalize chrome-extension paths', function() {
+          var url= 'chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/file.js';
+          assert.equal(Raven._normalizeUrl(url), 'app:///file.js');
+      });
+
+      it('should normalize chrome-extension full paths', function() {
+          var url= 'chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/path/file.js';
+          assert.equal(Raven._normalizeUrl(url), 'app:///path/file.js');
+      });
+    });
+
     describe('normalizeFrame', function() {
         it('should handle a normal frame', function() {
             var frame = {
@@ -439,6 +456,23 @@ describe('globals', function() {
 
             assert.deepEqual(Raven._normalizeFrame(frame), {
                 filename: 'http://lol.com/path/file.js',
+                lineno: 10,
+                colno: 11,
+                'function': 'TraceKit.lol',
+                in_app: false
+            });
+        });
+
+        it('should normalizeUrls', function() {
+            var frame = {
+                url: 'chrome-extension://cjpalhdlnbpafiamejdnhcphjbkeiagm/path/file.js',
+                line: 10,
+                column: 11,
+                func: 'TraceKit.lol'
+            };
+
+            assert.deepEqual(Raven._normalizeFrame(frame), {
+                filename: 'app:///path/file.js',
                 lineno: 10,
                 colno: 11,
                 'function': 'TraceKit.lol',
@@ -636,6 +670,12 @@ describe('globals', function() {
             }]);
         });
 
+        it('should normalize culprit', function() {
+            this.sinon.stub(Raven, '_send');
+
+            Raven._processException('Error', 'lol', 'chrome-extension://asdasdasd/file1.js', 10, [], {});
+            assert.equal(Raven._send.lastCall.args[0].culprit, 'app:///file1.js');
+        });
         it('should not blow up with `undefined` message', function() {
             this.sinon.stub(Raven, '_send');
 

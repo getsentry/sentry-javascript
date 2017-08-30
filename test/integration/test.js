@@ -377,7 +377,7 @@ describe('integration', function () {
                 }
             );
         });
-    });
+
 
     describe('wrapped built-ins', function () {
         it('should capture exceptions from event listeners', function (done) {

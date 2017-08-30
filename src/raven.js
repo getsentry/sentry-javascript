@@ -1279,13 +1279,17 @@ Raven.prototype = {
         return frames;
     },
 
+    _normalizeUrl: function(url) {
+        return url
+            .replace(/^chrome-extension\:\/\/[A-z]*\//, 'app:///');
+    },
 
     _normalizeFrame: function(frame) {
         if (!frame.url) return;
 
         // normalize the frames data
         var normalized = {
-            filename:   frame.url,
+            filename:   this._normalizeUrl(frame.url),
             lineno:     frame.line,
             colno:      frame.column,
             'function': frame.func || '?'
@@ -1337,7 +1341,7 @@ Raven.prototype = {
                     stacktrace: stacktrace
                 }]
             },
-            culprit: fileurl
+            culprit: this._normalizeUrl(fileurl)
         }, options);
 
         // Fire away!
