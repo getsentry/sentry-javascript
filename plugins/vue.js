@@ -23,11 +23,21 @@ function vuePlugin(Raven, Vue) {
 
     var _oldOnError = Vue.config.errorHandler;
     Vue.config.errorHandler = function VueErrorHandler(error, vm) {
-        Raven.captureException(error, {
-          extra: {
+        var state = vm.$store 
+            ? vm.$store.state
+            : null
+        
+        var extra = {
             componentName: formatComponentName(vm),
             propsData: vm.$options.propsData
-          }
+        };
+        
+        if (state) {
+            extra.state = state;
+        }
+        
+        Raven.captureException(error, {
+          extra: extra
         });
 
         if (typeof _oldOnError === 'function') {
