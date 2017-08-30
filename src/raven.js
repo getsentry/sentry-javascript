@@ -1164,11 +1164,21 @@ Raven.prototype = {
         if (autoBreadcrumbs.console && 'console' in _window && console.log) {
             // console
             var consoleMethodCallback = function (msg, data) {
-                self.captureBreadcrumb({
-                    message: msg,
-                    level: data.level,
-                    category: 'console'
-                });
+              if (data.level == 'error') {
+                  self.captureException(new Error(msg), {
+                      message: msg,
+                      level: data.level,
+                      category: 'console',
+                      trimHeadFrames: 2,
+                      stacktrace: true,
+                  });
+              } else {
+                  self.captureBreadcrumb({
+                      message: msg,
+                      level: data.level,
+                      category: 'console'
+                  });
+              }
             };
 
             each(['debug', 'info', 'warn', 'error', 'log'], function (_, level) {
