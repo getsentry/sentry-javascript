@@ -32,6 +32,9 @@ declare module Raven {
         /** The inverse of ignoreUrls. Only report errors from whole urls matching a regex pattern. */
         whitelistUrls?: (RegExp | string)[];
 
+        /** By default, Raven will ignore "Script error" emitted by the browser for errors that it can't read. You may override this behavior by setting this flag. */
+        noDefaultIgnoreErrors?: boolean;
+
         /** An array of regex patterns to indicate which urls are a part of your app. */
         includePaths?: (RegExp | string)[];
 
