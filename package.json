@@ -1,18 +1,25 @@
 {
   "name": "raven-js",
+  "description": "JavaScript client for Sentry",
+  "keywords": [
+    "debugging",
+    "errors",
+    "exceptions",
+    "logging",
+    "raven",
+    "sentry"
+  ],
   "version": "3.17.0",
+  "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
+  "main": "src/singleton.js",
   "scripts": {
+    "precommit": "lint-staged",
     "pretest": "npm install",
     "test": "grunt test && npm run-script test-typescript",
     "test-typescript": "node_modules/typescript/bin/tsc --noEmit --noImplicitAny typescript/raven-tests.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/getsentry/raven-js.git"
-  },
-  "main": "src/singleton.js",
   "devDependencies": {
     "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
@@ -35,22 +42,20 @@
     "grunt-release": "^0.13.0",
     "grunt-s3": "0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
+    "husky": "^0.14.3",
     "jquery": "^2.1.4",
+    "lint-staged": "^4.0.4",
     "lodash": "^3.10.1",
     "mocha": "2.5.3",
+    "prettier": "^1.6.1",
     "proxyquireify": "^3.0.2",
     "sinon": "1.7.3",
     "through2": "^2.0.0",
     "typescript": "^1.8.10",
     "whatwg-fetch": "^1.0.0"
   },
-  "keywords": [
-    "exceptions",
-    "debugging",
-    "logging",
-    "errors",
-    "sentry",
-    "raven"
-  ],
+  "lint-staged": {
+    "*.{js,json}": ["prettier --write --single-quote", "git add"]
+  },
   "typings": "typescript/raven.d.ts"
 }

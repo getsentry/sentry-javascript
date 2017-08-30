@@ -108,7 +108,7 @@ Raven.prototype = {
      * Configure Raven with a DSN and extra options
      *
      * @param {string} dsn The public Sentry DSN
-     * @param {object} options Optional set of of global options [optional]
+     * @param {object} options Set of global options [optional]
      * @return {Raven}
      */
     config: function(dsn, options) {
