@@ -82,7 +82,8 @@ function Raven() {
     this._lastHref = this._location && this._location.href;
     this._resetBackoff();
 
-    for (var method in this._originalConsole) {  // eslint-disable-line guard-for-in
+    // eslint-disable-next-line guard-for-in
+    for (var method in this._originalConsole) {
       this._originalConsoleMethods[method] = this._originalConsole[method];
     }
 }
@@ -1862,6 +1863,7 @@ function uuid4() {
 
     if (!isUndefined(crypto) && crypto.getRandomValues) {
         // Use window.crypto API if available
+        // eslint-disable-next-line no-undef
         var arr = new Uint16Array(8);
         crypto.getRandomValues(arr);
 
