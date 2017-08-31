@@ -1,5 +1,5 @@
 function throwRealError() {
-    throw new Error('realError');
+  throw new Error('realError');
 }
 
 throwRealError();
