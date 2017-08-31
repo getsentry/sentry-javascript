@@ -1,18 +1,26 @@
 {
   "name": "raven-js",
+  "description": "JavaScript client for Sentry",
+  "keywords": [
+    "debugging",
+    "errors",
+    "exceptions",
+    "logging",
+    "raven",
+    "sentry"
+  ],
   "version": "3.17.0",
+  "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
+  "main": "src/singleton.js",
   "scripts": {
+    "lint": "eslint .",
+    "precommit": "lint-staged",
     "pretest": "npm install",
     "test": "grunt test && npm run-script test-typescript",
     "test-typescript": "node_modules/typescript/bin/tsc --noEmit --noImplicitAny typescript/raven-tests.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/getsentry/raven-js.git"
-  },
-  "main": "src/singleton.js",
   "devDependencies": {
     "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
@@ -20,6 +28,7 @@
     "chai": "2.3.0",
     "derequire": "2.0.3",
     "es6-promise": "^4.0.5",
+    "eslint-config-prettier": "^2.3.0",
     "grunt": "^0.4.5",
     "grunt-browserify": "^4.0.1",
     "grunt-cli": "^0.1.13",
@@ -29,28 +38,34 @@
     "grunt-contrib-copy": "^0.8.2",
     "grunt-contrib-jshint": "^0.11.3",
     "grunt-contrib-uglify": "^0.11.0",
-    "grunt-eslint": "^17.3.1",
+    "grunt-eslint": "^20.0.0",
     "grunt-gitinfo": "^0.1.7",
     "grunt-mocha": "1.0.4",
     "grunt-release": "^0.13.0",
     "grunt-s3": "0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
+    "husky": "^0.14.3",
     "jquery": "^2.1.4",
+    "lint-staged": "^4.0.4",
     "lodash": "^3.10.1",
     "mocha": "2.5.3",
+    "prettier": "^1.6.1",
     "proxyquireify": "^3.0.2",
     "sinon": "1.7.3",
     "through2": "^2.0.0",
     "typescript": "^1.8.10",
     "whatwg-fetch": "^1.0.0"
   },
-  "keywords": [
-    "exceptions",
-    "debugging",
-    "logging",
-    "errors",
-    "sentry",
-    "raven"
-  ],
+  "prettier": {
+    "singleQuote": true,
+    "bracketSpacing": false,
+    "printWidth": 90
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ]
+  },
   "typings": "typescript/raven.d.ts"
 }
