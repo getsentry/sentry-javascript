@@ -203,7 +203,7 @@ module.exports = function(grunt) {
     },
 
     eslint: {
-      target: ['Gruntfile.js', 'src/**/*.js', 'plugins/**/*.js']
+      target: ['.']
     },
 
     mocha: {
