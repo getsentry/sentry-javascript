@@ -14,20 +14,20 @@
 var wrapConsoleMethod = require('../src/console').wrapMethod;
 
 function consolePlugin(Raven, console, pluginOptions) {
-    console = console || window.console || {};
-    pluginOptions = pluginOptions || {};
+  console = console || window.console || {};
+  pluginOptions = pluginOptions || {};
 
-    var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
-        level = logLevels.pop();
+  var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
+    level = logLevels.pop();
 
-    var callback = function (msg, data) {
-        Raven.captureMessage(msg, data);
-    };
+  var callback = function(msg, data) {
+    Raven.captureMessage(msg, data);
+  };
 
-    while(level) {
-        wrapConsoleMethod(console, level, callback);
-        level = logLevels.pop();
-    }
+  while (level) {
+    wrapConsoleMethod(console, level, callback);
+    level = logLevels.pop();
+  }
 }
 
 module.exports = consolePlugin;
