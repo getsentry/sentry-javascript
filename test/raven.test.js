@@ -1609,6 +1609,8 @@ describe('globals', function() {
 
     it('should no-op if CORS is not supported', function() {
       delete XMLHttpRequest.prototype.withCredentials;
+      var oldSupportsCORS = sinon.xhr.supportsCORS;
+      sinon.xhr.supportsCORS = false;
 
       var oldXDR = window.XDomainRequest;
       window.XDomainRequest = undefined;
@@ -1623,6 +1625,7 @@ describe('globals', function() {
       assert.equal(this.requests.length, 1); // the "test" xhr
       assert.equal(this.requests[0].readyState, 0);
 
+      sinon.xhr.supportsCORS = oldSupportsCORS;
       window.XDomainRequest = oldXDR;
     });
 
