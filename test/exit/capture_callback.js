@@ -9,7 +9,7 @@ var scope = nock('https://app.getsentry.com')
   .post('/api/269/store/', '*')
   .reply(200, 'OK');
 
-Raven.config(dsn).install(function (err, sendErr, eventId) {
+Raven.config(dsn).install(function(err, sendErr, eventId) {
   scope.done();
   assert.equal(sendErr, null);
   assert.ok(err instanceof Error);
@@ -18,6 +18,6 @@ Raven.config(dsn).install(function (err, sendErr, eventId) {
   process.exit(20);
 });
 
-setImmediate(function () {
+setImmediate(function() {
   throw new Error('derp');
 });

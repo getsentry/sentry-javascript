@@ -3,10 +3,10 @@
 'use strict';
 
 var raven = require('../'),
-    nock = require('nock'),
-    url = require('url'),
-    zlib = require('zlib'),
-    child_process = require('child_process');
+  nock = require('nock'),
+  url = require('url'),
+  zlib = require('zlib'),
+  child_process = require('child_process');
 
 raven.utils.disableConsoleAlerts();
 
@@ -15,7 +15,7 @@ var dsn = 'https://public:private@app.getsentry.com/269';
 var _oldConsoleWarn = console.warn;
 
 function mockConsoleWarn() {
-  console.warn = function () {
+  console.warn = function() {
     console.warn._called = true;
   };
   console.warn._called = false;
@@ -25,24 +25,24 @@ function restoreConsoleWarn() {
   console.warn = _oldConsoleWarn;
 }
 
-describe('raven.version', function () {
-  it('should be valid', function () {
+describe('raven.version', function() {
+  it('should be valid', function() {
     raven.version.should.match(/^\d+\.\d+\.\d+(-\w+(\.\d+)?)?$/);
   });
 
-  it('should match package.json', function () {
+  it('should match package.json', function() {
     var version = require('../package.json').version;
     raven.version.should.equal(version);
   });
 });
 
-describe('raven.Client', function () {
+describe('raven.Client', function() {
   var client;
-  beforeEach(function () {
+  beforeEach(function() {
     client = new raven.Client(dsn);
   });
 
-  it('should parse the DSN with options', function () {
+  it('should parse the DSN with options', function() {
     var expected = {
       protocol: 'https',
       public_key: 'public',
@@ -50,7 +50,7 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
-      port: 443,
+      port: 443
     };
     var client = new raven.Client(dsn, {
       name: 'YAY!'
@@ -59,7 +59,7 @@ describe('raven.Client', function () {
     client.name.should.equal('YAY!');
   });
 
-  it('should pull SENTRY_DSN from environment', function () {
+  it('should pull SENTRY_DSN from environment', function() {
     var expected = {
       protocol: 'https',
       public_key: 'abc',
@@ -67,7 +67,7 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
-      port: 443,
+      port: 443
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client();
@@ -75,7 +75,7 @@ describe('raven.Client', function () {
     delete process.env.SENTRY_DSN; // gotta clean up so it doesn't leak into other tests
   });
 
-  it('should pull SENTRY_DSN from environment when passing options', function () {
+  it('should pull SENTRY_DSN from environment when passing options', function() {
     var expected = {
       protocol: 'https',
       public_key: 'abc',
@@ -83,7 +83,7 @@ describe('raven.Client', function () {
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
-      port: 443,
+      port: 443
     };
     process.env.SENTRY_DSN = 'https://abc:123@app.getsentry.com/1';
     var client = new raven.Client({
@@ -94,7 +94,7 @@ describe('raven.Client', function () {
     delete process.env.SENTRY_DSN; // gotta clean up so it doesn't leak into other tests
   });
 
-  it('should be disabled when no DSN specified', function () {
+  it('should be disabled when no DSN specified', function() {
     mockConsoleWarn();
     var client = new raven.Client();
     client._enabled.should.eql(false);
@@ -102,14 +102,14 @@ describe('raven.Client', function () {
     restoreConsoleWarn();
   });
 
-  it('should pull SENTRY_NAME from environment', function () {
+  it('should pull SENTRY_NAME from environment', function() {
     process.env.SENTRY_NAME = 'new_name';
     var client = new raven.Client(dsn);
     client.name.should.eql('new_name');
     delete process.env.SENTRY_NAME;
   });
 
-  it('should be disabled for a falsey DSN', function () {
+  it('should be disabled for a falsey DSN', function() {
     mockConsoleWarn();
     var client = new raven.Client(false);
     client._enabled.should.eql(false);
@@ -117,62 +117,62 @@ describe('raven.Client', function () {
     restoreConsoleWarn();
   });
 
-  it('should pull release from options if present', function () {
+  it('should pull release from options if present', function() {
     var client = new raven.Client(dsn, {
       release: 'version1'
     });
     client.release.should.eql('version1');
   });
 
-  it('should pull SENTRY_RELEASE from environment', function () {
+  it('should pull SENTRY_RELEASE from environment', function() {
     process.env.SENTRY_RELEASE = 'version1';
     var client = new raven.Client(dsn);
     client.release.should.eql('version1');
     delete process.env.SENTRY_RELEASE;
   });
 
-  it('should pull environment from options if present', function () {
+  it('should pull environment from options if present', function() {
     var client = new raven.Client(dsn, {
       environment: 'staging'
     });
     client.environment.should.eql('staging');
   });
 
-  it('should pull SENTRY_ENVIRONMENT from environment', function () {
+  it('should pull SENTRY_ENVIRONMENT from environment', function() {
     process.env.SENTRY_ENVIRONMENT = 'staging';
     var client = new raven.Client(dsn);
     client.environment.should.eql('staging');
     delete process.env.SENTRY_ENVIRONMENT;
   });
 
-  describe('#captureMessage()', function () {
-    it('should send a plain text message to Sentry server', function (done) {
+  describe('#captureMessage()', function() {
+    it('should send a plain text message to Sentry server', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, 'OK');
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
         done();
       });
       client.captureMessage('Hey!');
     });
 
-    it('should emit error when request returns non 200', function (done) {
+    it('should emit error when request returns non 200', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(500, 'Oops!');
 
-      client.on('error', function () {
+      client.on('error', function() {
         scope.done();
         done();
       });
       client.captureMessage('Hey!');
     });
 
-    it('shouldn\'t shit it\'s pants when error is emitted without a listener', function () {
+    it("shouldn't shit it's pants when error is emitted without a listener", function() {
       nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
@@ -181,7 +181,7 @@ describe('raven.Client', function () {
       client.captureMessage('Hey!');
     });
 
-    it('should attach an Error object when emitting error', function (done) {
+    it('should attach an Error object when emitting error', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
@@ -189,7 +189,7 @@ describe('raven.Client', function () {
           'x-sentry-error': 'Oops!'
         });
 
-      client.on('error', function (e) {
+      client.on('error', function(e) {
         e.statusCode.should.eql(500);
         e.reason.should.eql('Oops!');
         e.response.should.be.ok;
@@ -201,21 +201,21 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#captureException()', function () {
-    it('should send an Error to Sentry server', function (done) {
+  describe('#captureException()', function() {
+    it('should send an Error to Sentry server', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, 'OK');
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
         done();
       });
       client.captureException(new Error('wtf?'));
     });
 
-    it('should send a plain text "error" with a synthesized stack', function (done) {
+    it('should send a plain text "error" with a synthesized stack', function(done) {
       var old = client.send;
       client.send = function mockSend(kwargs) {
         client.send = old;
@@ -223,13 +223,15 @@ describe('raven.Client', function () {
         kwargs.message.should.equal('Error: wtf?');
         kwargs.should.have.property('exception');
         var stack = kwargs.exception[0].stacktrace;
-        stack.frames[stack.frames.length - 1].function.should.equal('Raven.captureException');
+        stack.frames[stack.frames.length - 1].function.should.equal(
+          'Raven.captureException'
+        );
         done();
       };
       client.captureException('wtf?');
     });
 
-    it('should send an Error to Sentry server on another port', function (done) {
+    it('should send an Error to Sentry server on another port', function(done) {
       var scope = nock('https://app.getsentry.com:8443')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
@@ -237,14 +239,14 @@ describe('raven.Client', function () {
 
       var dsn = 'https://public:private@app.getsentry.com:8443/269';
       var client = new raven.Client(dsn);
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
         done();
       });
       client.captureException(new Error('wtf?'));
     });
 
-    it('shouldn\'t choke on circular references', function (done) {
+    it("shouldn't choke on circular references", function(done) {
       // See: https://github.com/mattrobenolt/raven-node/pull/46
       var old = zlib.deflate;
       zlib.deflate = function mockSend(skwargs) {
@@ -267,12 +269,12 @@ describe('raven.Client', function () {
       client.captureException(new Error('wtf?'), kwargs);
     });
 
-    it('shouldn\'t attach `req` kwargs to the outbound payload', function (done) {
+    it("shouldn't attach `req` kwargs to the outbound payload", function(done) {
       var scope = nock('https://app.getsentry.com:8443')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
 
@@ -285,7 +287,7 @@ describe('raven.Client', function () {
 
       var dsn = 'https://public:private@app.getsentry.com:8443/269';
       var client = new raven.Client(dsn);
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
       });
       client.captureException(new Error('wtf?'), {
@@ -297,18 +299,18 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#install()', function () {
-    beforeEach(function () {
+  describe('#install()', function() {
+    beforeEach(function() {
       process.removeAllListeners('uncaughtException');
       process.removeAllListeners('unhandledRejection');
     });
 
-    afterEach(function () {
+    afterEach(function() {
       process.removeAllListeners('uncaughtException');
       process.removeAllListeners('unhandledRejection');
     });
 
-    it('should not listen for unhandledRejection unless told to', function () {
+    it('should not listen for unhandledRejection unless told to', function() {
       var listeners = process.listeners('unhandledRejection');
       listeners.length.should.equal(0);
 
@@ -318,7 +320,7 @@ describe('raven.Client', function () {
       listeners.length.should.equal(0);
     });
 
-    it('should catch an unhandledRejection', function (done) {
+    it('should catch an unhandledRejection', function(done) {
       var listeners = process.listeners('unhandledRejection');
       listeners.length.should.equal(0);
 
@@ -327,10 +329,10 @@ describe('raven.Client', function () {
         .post('/api/269/store/', '*')
         .reply(200, 'OK');
 
-      client = new raven.Client(dsn, { captureUnhandledRejections: true });
+      client = new raven.Client(dsn, {captureUnhandledRejections: true});
       client.install();
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
         done();
       });
@@ -341,7 +343,7 @@ describe('raven.Client', function () {
       // promises didn't fire unhandledRejection until 1.4.1
       if (process.version >= 'v1.4.1') {
         // eslint-disable-next-line no-new
-        new Promise(function (resolve, reject) {
+        new Promise(function(resolve, reject) {
           reject(new Error('rejected!'));
         });
       } else {
@@ -349,7 +351,7 @@ describe('raven.Client', function () {
       }
     });
 
-    it('should add itself to the uncaughtException event list', function () {
+    it('should add itself to the uncaughtException event list', function() {
       var listeners = process.listeners('uncaughtException');
       listeners.length.should.equal(0);
 
@@ -359,18 +361,26 @@ describe('raven.Client', function () {
       listeners.length.should.equal(1);
     });
 
-    describe('exit conditions', function () {
+    describe('exit conditions', function() {
       var exitStr = 'exit test assertions complete\n';
-      it('should catch an uncaughtException and capture it before exiting', function (done) {
-        child_process.exec('node test/exit/capture.js', function (err, stdout, stderr) {
+      it('should catch an uncaughtException and capture it before exiting', function(
+        done
+      ) {
+        child_process.exec('node test/exit/capture.js', function(err, stdout, stderr) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
         });
       });
 
-      it('should catch an uncaughtException and capture it before calling a provided callback', function (done) {
-        child_process.exec('node test/exit/capture_callback.js', function (err, stdout, stderr) {
+      it('should catch an uncaughtException and capture it before calling a provided callback', function(
+        done
+      ) {
+        child_process.exec('node test/exit/capture_callback.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
           stderr.should.equal('');
@@ -378,17 +388,29 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should catch an uncaughtException and capture it without a second followup exception causing premature shutdown', function (done) {
-        child_process.exec('node test/exit/capture_with_second_error.js', function (err, stdout, stderr) {
+      it('should catch an uncaughtException and capture it without a second followup exception causing premature shutdown', function(
+        done
+      ) {
+        child_process.exec('node test/exit/capture_with_second_error.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
         });
       });
 
-      it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function (done) {
+      it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function(
+        done
+      ) {
         this.timeout(4000);
-        child_process.exec('node test/exit/throw_on_send.js', function (err, stdout, stderr) {
+        child_process.exec('node test/exit/throw_on_send.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
           stderr.should.equal('');
@@ -396,16 +418,26 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should catch a domain exception and capture it before exiting', function (done) {
-        child_process.exec('node test/exit/domain_capture.js', function (err, stdout, stderr) {
+      it('should catch a domain exception and capture it before exiting', function(done) {
+        child_process.exec('node test/exit/domain_capture.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
         });
       });
 
-      it('should catch a domain exception and capture it before calling a provided callback', function (done) {
-        child_process.exec('node test/exit/domain_capture_callback.js', function (err, stdout, stderr) {
+      it('should catch a domain exception and capture it before calling a provided callback', function(
+        done
+      ) {
+        child_process.exec('node test/exit/domain_capture_callback.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
           stderr.should.equal('');
@@ -413,17 +445,29 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should catch a domain exception and capture it without a second followup exception causing premature shutdown', function (done) {
-        child_process.exec('node test/exit/domain_capture_with_second_error.js', function (err, stdout, stderr) {
+      it('should catch a domain exception and capture it without a second followup exception causing premature shutdown', function(
+        done
+      ) {
+        child_process.exec('node test/exit/domain_capture_with_second_error.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
         });
       });
 
-      it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function (done) {
+      it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function(
+        done
+      ) {
         this.timeout(4000);
-        child_process.exec('node test/exit/domain_throw_on_send.js', function (err, stdout, stderr) {
+        child_process.exec('node test/exit/domain_throw_on_send.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           err.code.should.equal(20);
           stdout.should.equal(exitStr);
           stderr.should.equal('');
@@ -431,16 +475,28 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should catch an uncaughtException and capture it without a second followup domain exception causing premature shutdown', function (done) {
-        child_process.exec('node test/exit/capture_with_second_domain_error.js', function (err, stdout, stderr) {
+      it('should catch an uncaughtException and capture it without a second followup domain exception causing premature shutdown', function(
+        done
+      ) {
+        child_process.exec('node test/exit/capture_with_second_domain_error.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
           done();
         });
       });
 
-      it('should catch an uncaughtException and capture it and failsafe shutdown if onFatalError throws', function (done) {
-        child_process.exec('node test/exit/throw_on_fatal.js', function (err, stdout, stderr) {
+      it('should catch an uncaughtException and capture it and failsafe shutdown if onFatalError throws', function(
+        done
+      ) {
+        child_process.exec('node test/exit/throw_on_fatal.js', function(
+          err,
+          stdout,
+          stderr
+        ) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: fatal derp');
           done();
@@ -449,13 +505,13 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#process()', function () {
-    it('should respect dataCallback', function (done) {
+  describe('#process()', function() {
+    it('should respect dataCallback', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             var extra = msg.extra;
@@ -467,7 +523,7 @@ describe('raven.Client', function () {
         });
 
       client = new raven.Client(dsn, {
-        dataCallback: function (data) {
+        dataCallback: function(data) {
           delete data.extra.foo;
           return data;
         }
@@ -480,14 +536,14 @@ describe('raven.Client', function () {
         }
       });
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
       });
     });
 
-    it('should respect shouldSendCallback', function (done) {
+    it('should respect shouldSendCallback', function(done) {
       client = new raven.Client(dsn, {
-        shouldSendCallback: function (data) {
+        shouldSendCallback: function(data) {
           return false;
         }
       });
@@ -496,29 +552,34 @@ describe('raven.Client', function () {
       client.on('logged', done);
       client.on('error', done);
 
-      client.process({
-        message: 'test'
-      }, function (err, eventId) {
-        setTimeout(done, 10);
-      });
+      client.process(
+        {
+          message: 'test'
+        },
+        function(err, eventId) {
+          setTimeout(done, 10);
+        }
+      );
     });
 
-    it('should pass original shouldSendCallback to newer shouldSendCallback', function (done) {
-      var cb1 = function (data) {
+    it('should pass original shouldSendCallback to newer shouldSendCallback', function(
+      done
+    ) {
+      var cb1 = function(data) {
         return false;
       };
 
-      var cb2 = function (data, original) {
+      var cb2 = function(data, original) {
         original.should.equal(cb1);
         return original(data);
       };
 
-      var cb3 = function (data, original) {
+      var cb3 = function(data, original) {
         return original(data);
       };
 
       client = new raven.Client(dsn, {
-        shouldSendCallback: cb1,
+        shouldSendCallback: cb1
       });
 
       client.setShouldSendCallback(cb2);
@@ -528,19 +589,22 @@ describe('raven.Client', function () {
       client.on('logged', done);
       client.on('error', done);
 
-      client.process({
-        message: 'test'
-      }, function (err, eventId) {
-        setTimeout(done, 10);
-      });
+      client.process(
+        {
+          message: 'test'
+        },
+        function(err, eventId) {
+          setTimeout(done, 10);
+        }
+      );
     });
 
-    it('should pass original dataCallback to newer dataCallback', function (done) {
+    it('should pass original dataCallback to newer dataCallback', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body, cb) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body, cb) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.extra.foo.should.equal('bar');
@@ -548,66 +612,72 @@ describe('raven.Client', function () {
           });
         });
 
-      var cb1 = function (data) {
-        data.extra = { foo: 'bar' };
+      var cb1 = function(data) {
+        data.extra = {foo: 'bar'};
         return data;
       };
 
-      var cb2 = function (data, original) {
+      var cb2 = function(data, original) {
         original.should.equal(cb1);
         return original(data);
       };
 
-      var cb3 = function (data, original) {
+      var cb3 = function(data, original) {
         return original(data);
       };
 
       client = new raven.Client(dsn, {
-        dataCallback: cb1,
+        dataCallback: cb1
       });
 
       client.setDataCallback(cb2);
       client.setDataCallback(cb3);
 
-      client.process({
-        message: 'test'
-      }, function (err, eventId) {
-        scope.done();
-        done();
-      });
+      client.process(
+        {
+          message: 'test'
+        },
+        function(err, eventId) {
+          scope.done();
+          done();
+        }
+      );
     });
 
-    describe('sampleRate', function () {
+    describe('sampleRate', function() {
       var origRandom;
-      beforeEach(function () {
+      beforeEach(function() {
         origRandom = Math.random;
-        Math.random = function () {
+        Math.random = function() {
           return 0.5;
         };
       });
 
-      afterEach(function () {
+      afterEach(function() {
         Math.random = origRandom;
       });
 
-      it('should respect sampleRate to omit event', function (done) {
+      it('should respect sampleRate to omit event', function(done) {
         client = new raven.Client(dsn, {
           sampleRate: 0.3
         });
 
-        client.process({
-          message: 'test'
-        }, function (err, eventId) {
-          setTimeout(done, 10);
-        });
+        client.process(
+          {
+            message: 'test'
+          },
+          function(err, eventId) {
+            setTimeout(done, 10);
+          }
+        );
       });
 
-      it('should respect sampleRate to include event', function (done) {
+      it('should respect sampleRate to include event', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
-          .reply(200, function (uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+          .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
               var extra = msg.extra;
@@ -629,17 +699,17 @@ describe('raven.Client', function () {
           }
         });
 
-        client.on('logged', function () {
+        client.on('logged', function() {
           scope.done();
         });
       });
 
-      it('should always send if sampleRate is omitted', function (done) {
+      it('should always send if sampleRate is omitted', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
-          .reply(200, function (uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+          .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               done();
             });
@@ -650,21 +720,21 @@ describe('raven.Client', function () {
           message: 'test'
         });
 
-        client.on('logged', function () {
+        client.on('logged', function() {
           scope.done();
         });
       });
     });
 
-    it('should call the callback after sending', function (done) {
+    it('should call the callback after sending', function(done) {
       var firedCallback = false;
       var sentResponse = false;
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .delay(10)
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.should.equal('test');
@@ -676,26 +746,29 @@ describe('raven.Client', function () {
 
       client = new raven.Client(dsn);
 
-      client.process({
-        message: 'test',
-      }, function () {
-        firedCallback = true;
-        sentResponse.should.equal(true);
-        scope.done();
-        done();
-      });
+      client.process(
+        {
+          message: 'test'
+        },
+        function() {
+          firedCallback = true;
+          sentResponse.should.equal(true);
+          scope.done();
+          done();
+        }
+      );
     });
 
-    it('should attach environment', function (done) {
+    it('should attach environment', function(done) {
       client = new raven.Client(dsn, {
         environment: 'staging'
       });
-      client.send = function (kwargs) {
+      client.send = function(kwargs) {
         kwargs.environment.should.equal('staging');
       };
-      client.process({ message: 'test' });
+      client.process({message: 'test'});
 
-      client.send = function (kwargs) {
+      client.send = function(kwargs) {
         kwargs.environment.should.equal('production');
         done();
       };
@@ -705,17 +778,17 @@ describe('raven.Client', function () {
       });
     });
 
-    describe('context parsing', function () {
-      afterEach(function () {
+    describe('context parsing', function() {
+      afterEach(function() {
         process.domain && process.domain.exit();
       });
 
-      it('should parse a req property from context', function (done) {
+      it('should parse a req property from context', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
-          .reply(200, function (uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+          .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
 
@@ -730,8 +803,7 @@ describe('raven.Client', function () {
             return 'OK';
           });
 
-
-        client.context(function () {
+        client.context(function() {
           client.setContext({
             req: {
               protocol: 'https',
@@ -744,20 +816,20 @@ describe('raven.Client', function () {
             }
           });
 
-          setTimeout(function () {
-            client.captureException(new Error('foo'), function () {
+          setTimeout(function() {
+            client.captureException(new Error('foo'), function() {
               scope.done();
             });
           }, 0);
         });
       });
 
-      it('should not attempt to parse an empty req', function (done) {
+      it('should not attempt to parse an empty req', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
-          .reply(200, function (uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+          .reply(200, function(uri, body) {
+            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
 
@@ -769,11 +841,10 @@ describe('raven.Client', function () {
             return 'OK';
           });
 
-
-        client.context(function () {
+        client.context(function() {
           // no req set on context
-          setTimeout(function () {
-            client.captureException(new Error('foo'), function () {
+          setTimeout(function() {
+            client.captureException(new Error('foo'), function() {
               scope.done();
             });
           }, 0);
@@ -782,7 +853,7 @@ describe('raven.Client', function () {
     });
   });
 
-  it('should use a custom transport', function () {
+  it('should use a custom transport', function() {
     var expected = {
       protocol: 'https',
       public_key: 'public',
@@ -800,7 +871,7 @@ describe('raven.Client', function () {
     client.transport.should.equal('some_heka_instance');
   });
 
-  it('should use a DSN subpath when sending requests', function (done) {
+  it('should use a DSN subpath when sending requests', function(done) {
     var dsn = 'https://public:private@app.getsentry.com/some/path/269';
     var client = new raven.Client(dsn);
 
@@ -809,19 +880,19 @@ describe('raven.Client', function () {
       .post('/some/path/api/269/store/', '*')
       .reply(200, 'OK');
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
       done();
     });
     client.captureMessage('Hey!');
   });
 
-  it('should capture module information', function (done) {
+  it('should capture module information', function(done) {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
-      .reply(200, function (uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var modules = msg.modules;
@@ -833,13 +904,13 @@ describe('raven.Client', function () {
         return 'OK';
       });
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.captureException(new Error('wtf?'));
   });
 
-  it('should capture extra data', function (done) {
+  it('should capture extra data', function(done) {
     client = new raven.Client(dsn, {
       extra: {
         globalContextKey: 'globalContextValue'
@@ -849,8 +920,8 @@ describe('raven.Client', function () {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
-      .reply(200, function (uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var extra = msg.extra;
@@ -865,7 +936,7 @@ describe('raven.Client', function () {
         return 'OK';
       });
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.process({
@@ -876,7 +947,7 @@ describe('raven.Client', function () {
     });
   });
 
-  it('should capture tags', function (done) {
+  it('should capture tags', function(done) {
     client = new raven.Client(dsn, {
       tags: {
         globalContextKey: 'globalContextValue'
@@ -885,8 +956,8 @@ describe('raven.Client', function () {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
-      .reply(200, function (uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var tags = msg.tags;
@@ -901,7 +972,7 @@ describe('raven.Client', function () {
         return 'OK';
       });
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.process({
@@ -912,12 +983,12 @@ describe('raven.Client', function () {
     });
   });
 
-  it('should capture fingerprint', function (done) {
+  it('should capture fingerprint', function(done) {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
-      .reply(200, function (uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
 
@@ -929,7 +1000,7 @@ describe('raven.Client', function () {
         return 'OK';
       });
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.process({
@@ -938,22 +1009,22 @@ describe('raven.Client', function () {
     });
   });
 
-  it('should capture user', function (done) {
+  it('should capture user', function(done) {
     var scope = nock('https://app.getsentry.com')
-        .filteringRequestBody(/.*/, '*')
-        .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
-            if (err) return done(err);
-            var msg = JSON.parse(dec.toString());
+      .filteringRequestBody(/.*/, '*')
+      .post('/api/269/store/', '*')
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          if (err) return done(err);
+          var msg = JSON.parse(dec.toString());
 
-            msg.user.should.have.property('email', 'matt@example.com');
-            msg.user.should.have.property('id', '123');
+          msg.user.should.have.property('email', 'matt@example.com');
+          msg.user.should.have.property('id', '123');
 
-            done();
-          });
-          return 'OK';
+          done();
         });
+        return 'OK';
+      });
 
     var client = new raven.Client(dsn, {
       release: 'version1'
@@ -966,7 +1037,7 @@ describe('raven.Client', function () {
       }
     });
 
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.process({
@@ -974,12 +1045,12 @@ describe('raven.Client', function () {
     });
   });
 
-  it('should capture release', function (done) {
+  it('should capture release', function(done) {
     var scope = nock('https://app.getsentry.com')
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
-      .reply(200, function (uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+      .reply(200, function(uri, body) {
+        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
 
@@ -993,7 +1064,7 @@ describe('raven.Client', function () {
     var client = new raven.Client(dsn, {
       release: 'version1'
     });
-    client.on('logged', function () {
+    client.on('logged', function() {
       scope.done();
     });
     client.process({
@@ -1001,17 +1072,17 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#setContext', function () {
-    afterEach(function () {
+  describe('#setContext', function() {
+    afterEach(function() {
       process.domain && process.domain.exit();
     });
 
-    it('should merge contexts in correct hierarchy', function (done) {
+    it('should merge contexts in correct hierarchy', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
 
@@ -1034,31 +1105,35 @@ describe('raven.Client', function () {
         }
       });
 
-      client.context(function () {
+      client.context(function() {
         client.setContext({
           user: {
             b: 2,
             c: 2
           }
         });
-        client.captureException(new Error('foo'), {
-          user: {
-            c: 3
+        client.captureException(
+          new Error('foo'),
+          {
+            user: {
+              c: 3
+            }
+          },
+          function() {
+            scope.done();
           }
-        }, function () {
-          scope.done();
-        });
+        );
       });
     });
   });
 
-  describe('#intercept()', function () {
-    it('should catch an err param', function (done) {
+  describe('#intercept()', function() {
+    it('should catch an err param', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.indexOf('foo').should.not.equal(-1);
@@ -1067,21 +1142,21 @@ describe('raven.Client', function () {
           return 'OK';
         });
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
       });
 
-      client.interceptErr(function (err) {
+      client.interceptErr(function(err) {
         done(new Error('called wrapped function'));
       })(new Error('foo'));
     });
 
-    it('should pass options to captureException', function (done) {
+    it('should pass options to captureException', function(done) {
       var scope = nock('https://app.getsentry.com')
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
-        .reply(200, function (uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function (err, dec) {
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.indexOf('foo').should.not.equal(-1);
@@ -1091,17 +1166,17 @@ describe('raven.Client', function () {
           return 'OK';
         });
 
-      client.on('logged', function () {
+      client.on('logged', function() {
         scope.done();
       });
 
-      client.interceptErr({ extra: { foo: 'bar' } }, function (err) {
+      client.interceptErr({extra: {foo: 'bar'}}, function(err) {
         done(new Error('called wrapped function'));
       })(new Error('foo'));
     });
 
-    it('should call original when no err', function (done) {
-      client.interceptErr(function (err, result) {
+    it('should call original when no err', function(done) {
+      client.interceptErr(function(err, result) {
         if (err != null) return done(err);
         result.should.equal('result');
         done();
@@ -1109,20 +1184,20 @@ describe('raven.Client', function () {
     });
   });
 
-  describe('#captureBreadcrumb', function () {
-    beforeEach(function () {
+  describe('#captureBreadcrumb', function() {
+    beforeEach(function() {
       mockConsoleWarn();
     });
 
-    afterEach(function () {
+    afterEach(function() {
       client.uninstall();
       restoreConsoleWarn();
     });
 
-    it('should capture a breadcrumb', function (done) {
+    it('should capture a breadcrumb', function(done) {
       var message = 'test breadcrumb';
       client.install();
-      client.context(function () {
+      client.context(function() {
         client.captureBreadcrumb({
           category: 'test',
           message: message
@@ -1133,10 +1208,10 @@ describe('raven.Client', function () {
       done();
     });
 
-    it('should capture breadcrumbs at global context level', function (done) {
+    it('should capture breadcrumbs at global context level', function(done) {
       var message = 'test breadcrumb';
       client = new raven.Client(dsn, {
-        shouldSendCallback: function (data) {
+        shouldSendCallback: function(data) {
           data.breadcrumbs.values.length.should.equal(1);
           done();
         }
@@ -1149,65 +1224,68 @@ describe('raven.Client', function () {
       client.captureException(new Error('oh no'));
     });
 
-    it('should instrument console to capture breadcrumbs', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { console: true } });
+    it('should instrument console to capture breadcrumbs', function(done) {
+      client = new raven.Client(dsn, {autoBreadcrumbs: {console: true}});
       client.install();
 
-      client.context(function () {
+      client.context(function() {
         console.warn('breadcrumb!');
         client.getContext().breadcrumbs[0].message.should.equal('breadcrumb!');
         done();
       });
     });
 
-    it('should not die to console log of prototypeless object', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { console: true } });
+    it('should not die to console log of prototypeless object', function(done) {
+      client = new raven.Client(dsn, {autoBreadcrumbs: {console: true}});
       client.install();
 
-      client.context(function () {
+      client.context(function() {
         var x = Object.create(null);
         x.a = 'b';
         var y = Object.create(null);
         y.c = 'd';
         console.log(x, y);
-        client.getContext().breadcrumbs[0].message.should.equal('{ a: \'b\' } { c: \'d\' }');
+        client.getContext().breadcrumbs[0].message.should.equal("{ a: 'b' } { c: 'd' }");
         done();
       });
     });
 
-    it('should not die trying to instrument a missing module', function (done) {
-      client = new raven.Client(dsn, { autoBreadcrumbs: { pg: true } });
+    it('should not die trying to instrument a missing module', function(done) {
+      client = new raven.Client(dsn, {autoBreadcrumbs: {pg: true}});
       client.install();
       done();
     });
 
-    describe('http breadcrumbs', function () {
+    describe('http breadcrumbs', function() {
       // prior to streams3 _readableState.flowing started as false, now starts as null
       var initialFlowingState = process.version < 'v0.12' ? false : null;
 
-      beforeEach(function () {
-        client = new raven.Client(dsn, { autoBreadcrumbs: { http: true } });
+      beforeEach(function() {
+        client = new raven.Client(dsn, {autoBreadcrumbs: {http: true}});
         client.install();
       });
 
-      afterEach(function () {
+      afterEach(function() {
         client.uninstall();
       });
 
-      it('should instrument http to capture breadcrumbs', function (done) {
+      it('should instrument http to capture breadcrumbs', function(done) {
         var testUrl = 'http://example.com/';
         var scope = nock(testUrl)
           .get('/')
           .reply(200, 'OK');
 
-        client.context(function () {
+        client.context(function() {
           var http = require('http');
-          http.get(url.parse(testUrl), function (response) {
+          http.get(url.parse(testUrl), function(response) {
             response._readableState.should.have.property('flowing', initialFlowingState);
             // need to wait a tick here because nock will make this callback fire
             // before our req.emit monkeypatch captures the breadcrumb :/
-            setTimeout(function () {
-              response._readableState.should.have.property('flowing', initialFlowingState);
+            setTimeout(function() {
+              response._readableState.should.have.property(
+                'flowing',
+                initialFlowingState
+              );
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               client.getContext().breadcrumbs.length.should.equal(1);
@@ -1218,21 +1296,24 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should not double-instrument http', function (done) {
+      it('should not double-instrument http', function(done) {
         var testUrl = 'http://example.com/';
         var scope = nock(testUrl)
           .get('/')
           .reply(200, 'OK');
 
-        client.context(function () {
+        client.context(function() {
           var http = require('http');
           require('http');
-          http.get(url.parse(testUrl), function (response) {
+          http.get(url.parse(testUrl), function(response) {
             response._readableState.should.have.property('flowing', initialFlowingState);
             // need to wait a tick here because nock will make this callback fire
             // before our req.emit monkeypatch captures the breadcrumb :/
-            setTimeout(function () {
-              response._readableState.should.have.property('flowing', initialFlowingState);
+            setTimeout(function() {
+              response._readableState.should.have.property(
+                'flowing',
+                initialFlowingState
+              );
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               client.getContext().breadcrumbs.length.should.equal(1);
@@ -1243,20 +1324,23 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should instrument https to capture breadcrumbs', function (done) {
+      it('should instrument https to capture breadcrumbs', function(done) {
         var testUrl = 'https://example.com/';
         var scope = nock(testUrl)
           .get('/')
           .reply(200, 'OK');
 
-        client.context(function () {
+        client.context(function() {
           var https = require('https');
-          https.get(url.parse(testUrl), function (response) {
+          https.get(url.parse(testUrl), function(response) {
             response._readableState.should.have.property('flowing', initialFlowingState);
             // need to wait a tick here because nock will make this callback fire
             // before our req.emit monkeypatch captures the breadcrumb :/
-            setTimeout(function () {
-              response._readableState.should.have.property('flowing', initialFlowingState);
+            setTimeout(function() {
+              response._readableState.should.have.property(
+                'flowing',
+                initialFlowingState
+              );
               client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
               client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
@@ -1266,16 +1350,16 @@ describe('raven.Client', function () {
         });
       });
 
-      it('should not capture breadcrumbs for requests to sentry', function (done) {
+      it('should not capture breadcrumbs for requests to sentry', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
           .reply(200, 'OK');
 
-        client.context(function () {
-          client.captureException(new Error('test'), function () {
+        client.context(function() {
+          client.captureException(new Error('test'), function() {
             // need to wait a tick because the response handler that captures the breadcrumb might run after this one
-            setTimeout(function () {
+            setTimeout(function() {
               client.getContext().should.not.have.key('breadcrumbs');
               scope.done();
               done();
@@ -1287,17 +1371,17 @@ describe('raven.Client', function () {
   });
 });
 
-describe('raven requestHandler/errorHandler middleware', function () {
-  it('should explicitly add req and res to the domain', function (done) {
+describe('raven requestHandler/errorHandler middleware', function() {
+  it('should explicitly add req and res to the domain', function(done) {
     var client = new raven.Client(dsn).install();
     var message = 'test breadcrumb';
 
     var EventEmitter = require('events');
     if (process.version <= 'v0.11') EventEmitter = EventEmitter.EventEmitter; // node 0.10 compat
     var e = new EventEmitter();
-    e.on('done', function () {
+    e.on('done', function() {
       // Context won't propagate here without the explicit binding of req/res done in the middleware
-      setTimeout(function () {
+      setTimeout(function() {
         client.getContext().breadcrumbs.length.should.equal(1);
         client.getContext().breadcrumbs[0].message.should.equal(message);
         done();
@@ -1305,12 +1389,12 @@ describe('raven requestHandler/errorHandler middleware', function () {
     });
 
     // Pass e as the req/res, so e will be added to the domain
-    client.requestHandler()(e, e, function () {
+    client.requestHandler()(e, e, function() {
       client.captureBreadcrumb({
         message: message,
         category: 'log'
       });
-      setTimeout(function () {
+      setTimeout(function() {
         e.emit('done');
       }, 0);
     });

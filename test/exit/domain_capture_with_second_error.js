@@ -13,18 +13,18 @@ Raven.config(dsn).install();
 
 var uncaughts = 0;
 
-process.on('exit', function () {
+process.on('exit', function() {
   scope.done();
   assert.equal(uncaughts, 2);
   console.log('exit test assertions complete');
 });
 
-Raven.context(function () {
-  process.domain.on('error', function () {
+Raven.context(function() {
+  process.domain.on('error', function() {
     uncaughts++;
   });
-  setImmediate(function () {
-    setImmediate(function () {
+  setImmediate(function() {
+    setImmediate(function() {
       throw new Error('herp');
     });
     throw new Error('derp');

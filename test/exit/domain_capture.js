@@ -10,13 +10,13 @@ var scope = nock('https://app.getsentry.com')
 
 Raven.config(dsn).install();
 
-process.on('exit', function () {
+process.on('exit', function() {
   scope.done();
   console.log('exit test assertions complete');
 });
 
-Raven.context(function () {
-  setImmediate(function () {
+Raven.context(function() {
+  setImmediate(function() {
     throw new Error('derp');
   });
 });

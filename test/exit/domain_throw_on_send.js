@@ -3,7 +3,7 @@ var Raven = require('../../');
 var assert = require('assert');
 var dsn = 'https://public:private@app.getsentry.com/269';
 
-Raven.config(dsn).install(function (err, sendErr) {
+Raven.config(dsn).install(function(err, sendErr) {
   assert.ok(err instanceof Error);
   assert.ok(sendErr instanceof Error);
   assert.equal(err.message, 'derp');
@@ -12,12 +12,12 @@ Raven.config(dsn).install(function (err, sendErr) {
   process.exit(20);
 });
 
-Raven.transport.send = function () {
+Raven.transport.send = function() {
   throw new Error('foo');
 };
 
-Raven.context(function () {
-  setImmediate(function () {
+Raven.context(function() {
+  setImmediate(function() {
     throw new Error('derp');
   });
 });

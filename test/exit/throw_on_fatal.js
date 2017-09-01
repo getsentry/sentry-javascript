@@ -9,17 +9,17 @@ var scope = nock('https://app.getsentry.com')
   .reply(200, 'OK');
 
 Raven.disableConsoleAlerts();
-Raven.config(dsn).install(function () {
-  setImmediate(function () {
+Raven.config(dsn).install(function() {
+  setImmediate(function() {
     throw new Error('fatal derp');
   });
 });
 
-process.on('exit', function () {
+process.on('exit', function() {
   scope.done();
   console.log('exit test assertions complete');
 });
 
-setImmediate(function () {
+setImmediate(function() {
   throw new Error('derp');
 });

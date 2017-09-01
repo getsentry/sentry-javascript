@@ -12,18 +12,18 @@ var scope = nock('https://app.getsentry.com')
 Raven.config(dsn).install();
 
 var uncaughts = 0;
-process.on('uncaughtException', function () {
+process.on('uncaughtException', function() {
   uncaughts++;
 });
 
-process.on('exit', function () {
+process.on('exit', function() {
   scope.done();
   assert.equal(uncaughts, 2);
   console.log('exit test assertions complete');
 });
 
-setImmediate(function () {
-  setImmediate(function () {
+setImmediate(function() {
+  setImmediate(function() {
     throw new Error('herp');
   });
   throw new Error('derp');
