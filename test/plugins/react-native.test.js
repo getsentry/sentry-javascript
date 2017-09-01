@@ -172,7 +172,10 @@ describe('React Native plugin', function() {
       );
       assert.equal(lastXhr.method, 'POST');
       assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
-      assert.equal(lastXhr.requestHeaders['Content-type'], 'application/json');
+      assert.equal(
+        lastXhr.requestHeaders['Content-type'],
+        'application/json;charset=utf-8'
+      );
       assert.equal(lastXhr.requestHeaders['Origin'], 'react-native://');
     });
 
@@ -257,7 +260,7 @@ describe('React Native plugin', function() {
     it('clears persisted errors after they are reported', function() {
       var payload = {abc: 123};
       var callback;
-      self.sinon.stub(Raven, '_sendProcessedPayload', function(p, cb) {
+      self.sinon.stub(Raven, '_sendProcessedPayload').callsFake(function(p, cb) {
         callback = cb;
       });
       reactNativePlugin._restorePayload = self.sinon
@@ -276,7 +279,7 @@ describe('React Native plugin', function() {
     it('does not clear persisted errors if there is an error reporting', function() {
       var payload = {abc: 123};
       var callback;
-      self.sinon.stub(Raven, '_sendProcessedPayload', function(p, cb) {
+      self.sinon.stub(Raven, '_sendProcessedPayload').callsFake(function(p, cb) {
         callback = cb;
       });
       reactNativePlugin._restorePayload = self.sinon
