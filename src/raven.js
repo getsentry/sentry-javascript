@@ -1791,7 +1791,8 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
-    var request = new XMLHttpRequest();
+    var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
+    if (!request) return;
 
     // if browser doesn't support CORS (e.g. IE7), we are out of luck
     var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
