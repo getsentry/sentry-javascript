@@ -3,9 +3,6 @@ var fs = require('fs');
 var path = require('path');
 var child_process = require('child_process');
 
-// running on pre-4.0 is hard, somewhat different test scheme
-if (process.version < 'v4') process.exit(0);
-
 var nodeRoot = process.argv[2];
 var testRoot = path.join(nodeRoot, 'test/parallel');
 var testFiles = fs.readdirSync(testRoot).filter(function (filename) {

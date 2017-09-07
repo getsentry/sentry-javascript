@@ -27,7 +27,7 @@
     "test-full": "npm run test && cd test/instrumentation && ./run.sh"
   },
   "engines": {
-    "node": ">= 0.8.0"
+    "node": ">= 4.0.0"
   },
   "dependencies": {
     "cookie": "0.3.1",
