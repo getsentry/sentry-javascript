@@ -228,7 +228,8 @@ module.exports = function(grunt) {
             ['macOS 10.12', 'safari', '10'],
             ['macOS 10.12', 'chrome', 'latest'],
             ['macOS 10.12', 'chrome', 'latest-1'],
-            ['macOS 10.12', 'firefox', 'latest'][('macOS 10.12', 'firefox', 'latest-1')]
+            ['macOS 10.12', 'firefox', 'latest'],
+            ['macOS 10.12', 'firefox', 'latest-1']
           ],
           public: 'public',
           tunnelArgs: ['--verbose']
