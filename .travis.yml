@@ -1,6 +1,12 @@
 sudo: false
 language: node_js
 node_js:
-    - "4"
+  - "8"
+dist: trusty
+addons:
+  chrome: stable
+cache:
+  directories:
+    - node_modules
 script:
-    - npm test
+  - npm test
