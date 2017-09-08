@@ -5,6 +5,7 @@
 declare var Raven: Raven.RavenStatic;
 
 export = Raven;
+export as namespace Raven;
 
 declare module Raven {
     interface RavenOptions {
