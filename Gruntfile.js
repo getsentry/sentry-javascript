@@ -197,6 +197,32 @@ module.exports = function(grunt) {
       }
     },
 
+    'saucelabs-mocha': {
+      all: {
+        options: {
+          urls: [
+            'http://127.0.0.1:9999/test/index.html',
+            'http://127.0.0.1:9999/test/integration/index.html'
+          ],
+          sauceConfig: {
+            'record-video': false,
+            'record-screenshots': false
+          },
+          build: process.env.TRAVIS_BUILD_NUMBER,
+          testname:
+            'Raven.js' +
+            (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
+          browsers: [
+            ['macOS 10.12', 'chrome', 'latest'],
+            ['macOS 10.12', 'firefox', 'latest'],
+            ['macOS 10.12', 'safari', '10.0']
+          ],
+          public: 'public',
+          tunnelArgs: ['--verbose']
+        }
+      }
+    },
+
     release: {
       options: {
         npm: false,
@@ -229,6 +255,12 @@ module.exports = function(grunt) {
     },
 
     connect: {
+      ci: {
+        options: {
+          port: 9999
+        }
+      },
+
       test: {
         options: {
           port: 8000,
@@ -301,6 +333,14 @@ module.exports = function(grunt) {
     grunt.config.set('pkg', pkg);
   });
 
+  grunt.registerTask('config:ci', 'Verify CI config', function() {
+    if (!process.env.SAUCE_USERNAME)
+      console.warn('No SAUCE_USERNAME env variable defined.');
+    if (!process.env.SAUCE_ACCESS_KEY)
+      console.warn('No SAUCE_ACCESS_KEY env variable defined.');
+    if (!process.env.SAUCE_USERNAME || !process.env.SAUCE_ACCESS_KEY) process.exit(1);
+  });
+
   // Grunt contrib tasks
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-clean');
@@ -313,6 +353,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-s3');
   grunt.loadNpmTasks('grunt-gitinfo');
   grunt.loadNpmTasks('grunt-sri');
+  grunt.loadNpmTasks('grunt-saucelabs');
 
   // Build tasks
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
@@ -334,6 +375,13 @@ module.exports = function(grunt) {
   ]);
   grunt.registerTask('build', ['build.plugins-combined']);
   grunt.registerTask('dist', ['build.core', 'copy:dist']);
+
+  grunt.registerTask('test:ci', [
+    'config:ci',
+    'build.test',
+    'connect:ci',
+    'saucelabs-mocha'
+  ]);
 
   // Webserver tasks
   grunt.registerTask('run:test', ['connect:test']);
