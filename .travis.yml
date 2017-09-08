@@ -1,20 +1,20 @@
 sudo: false
 language: node_js
 node_js:
-  - "8"
+- '8'
 dist: trusty
 cache:
   directories:
-    - node_modules
+  - node_modules
 addons:
   chrome: stable
   sauce_connect: true
 before_install:
-  - npm i -g npm@5.3.0
+- npm i -g npm@5.3.0
 script:
-  - npm run test
-  - npm run test:ci
+- npm run test
+- npm run test:ci
 env:
   global:
-  - secure: iHuXK1dZnoxh7Jm15eRcAG7qxaMbkhxB7qJuvlYL6sucpYdDWYDmmQxWdbU7BxWFlqq05eyRjQqTK342Z2I7ScsZLGCjW7vUPsluYjx+LKuMN0kHY5ayqur4pX8pgOn+faTzSWfP44R1YO0DTM15idcgu7uMC1KvXdiC6ayrp+U=
-  - secure: DsLP1gfQVVs8ZGECQl8YcIqXU/ADRoQLEp3tVuKg3suOYcqsJSXmozQajO8ld/PXQZgWODNDfeK0AzaKNVWsVhdflaGbXpE6Gzdr6F+zTkU3Ma0HZ3HPTQP5o9qraGbG5JFKqtHPek/7BeZ4aC6ReY63d846+L2Ev7he5QvSCHE=
+  - secure: HbIEuZjOG0bvzoTRci1s9yt9uAYazj/72NWUFYW6doGkzdrmiR+/uzD+JL8x4iE4WERtYGUyIDUmvkXtlRnOj+2WtSexIDBvZBCTFGhkw/kV2CF0l1Cdr0RKeC32NuccPtcYt3dWK9cGwbD0GjkWza9gLiwcSPYJj7WCKRKmBbk=
+  - secure: YFHBu05fF9Y6gJ+oma0tFKp/pqV4b4xL4odMtJryU8x+JiC+zcmsAalESOO1uFaIow/qz4foRBiDDqJdQnO5K5p6pBKxb+eZgb9/08rm9e8J8XXqYTqtysHupUMduHA/RBDgyKyPN8sIF5vNMD6yB4HddvaXFSBCUefcaTg3v8s=

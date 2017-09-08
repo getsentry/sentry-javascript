@@ -213,9 +213,15 @@ module.exports = function(grunt) {
             'Raven.js' +
             (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
           browsers: [
+            // latest version of Edge (v15) can't reach the server
+            // will investigate it later
+            // ['Windows 10', 'microsoftedge', 'latest'],
+            ['Windows 10', 'microsoftedge', 'latest-1'],
+            ['Windows 10', 'chrome', 'latest'],
+            ['Windows 10', 'firefox', 'latest'],
+            ['macOS 10.12', 'safari', '10'],
             ['macOS 10.12', 'chrome', 'latest'],
-            ['macOS 10.12', 'firefox', 'latest'],
-            ['macOS 10.12', 'safari', '10.0']
+            ['macOS 10.12', 'firefox', 'latest']
           ],
           public: 'public',
           tunnelArgs: ['--verbose']
