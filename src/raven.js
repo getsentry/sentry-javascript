@@ -1369,7 +1369,7 @@ Raven.prototype = {
     var frames = [];
     if (stackInfo.stack && stackInfo.stack.length) {
       each(stackInfo.stack, function(i, stack) {
-        var frame = self._normalizeFrame(stack);
+        var frame = self._normalizeFrame(stack, stackInfo.url);
         if (frame) {
           frames.push(frame);
         }
@@ -1386,9 +1386,7 @@ Raven.prototype = {
     return frames;
   },
 
-  _normalizeFrame: function(frame) {
-    if (!frame.url) return;
-
+  _normalizeFrame: function(frame, stackInfoUrl) {
     // normalize the frames data
     var normalized = {
       filename: frame.url,
@@ -1396,6 +1394,15 @@ Raven.prototype = {
       colno: frame.column,
       function: frame.func || '?'
     };
+
+    // Case when we don't have any information about the error
+    // E.g. throwing a string or raw object, instead of an `Error` in Firefox
+    // Generating synthetic error doesn't add any value here
+    //
+    // We should probably somehow let a user know that they should fix their code
+    if (!frame.url) {
+      normalized.filename = stackInfoUrl; // fallback to whole stacks url from onerror handler
+    }
 
     normalized.in_app = !// determine if an exception came from outside of our app
     // first we check the global includePaths list.
