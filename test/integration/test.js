@@ -97,7 +97,7 @@ describe('integration', function() {
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAbove(ravenData.stacktrace.frames.length, 1);
+          assert.isAbove(ravenData.stacktrace.frames.length, 0);
 
           // verify trimHeadFrames hasn't slipped into final payload
           assert.isUndefined(ravenData.trimHeadFrames);
@@ -458,14 +458,8 @@ describe('integration', function() {
             false
           );
 
-          var evt;
-          if (document.createEvent) {
-            evt = document.createEvent('MouseEvents');
-            evt.initEvent('click', true, false);
-            div.dispatchEvent(evt);
-          } else if (document.createEventObject) {
-            div.fireEvent('onclick');
-          }
+          var click = createMouseEvent();
+          div.dispatchEvent(click);
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
@@ -828,24 +822,7 @@ describe('integration', function() {
           input.addEventListener('click', clickHandler);
 
           // click <input/>
-          var evt = document.createEvent('MouseEvent');
-          evt.initMouseEvent(
-            'click',
-            true /* bubble */,
-            true /* cancelable */,
-            window,
-            null,
-            0,
-            0,
-            0,
-            0 /* coordinates */,
-            false,
-            false,
-            false,
-            false /* modifier keys */,
-            0 /*left*/,
-            null
-          );
+          var evt = createMouseEvent();
           input.dispatchEvent(evt);
         },
         function() {
@@ -878,24 +855,7 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // click <input/>
-          var evt = document.createEvent('MouseEvent');
-          evt.initMouseEvent(
-            'click',
-            true /* bubble */,
-            true /* cancelable */,
-            window,
-            null,
-            0,
-            0,
-            0,
-            0 /* coordinates */,
-            false,
-            false,
-            false,
-            false /* modifier keys */,
-            0 /*left*/,
-            null
-          );
+          var evt = createMouseEvent();
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(evt);
@@ -941,24 +901,7 @@ describe('integration', function() {
           document.querySelector('.c').addEventListener('click', clickHandler);
 
           // click <input/>
-          var evt = document.createEvent('MouseEvent');
-          evt.initMouseEvent(
-            'click',
-            true /* bubble */,
-            true /* cancelable */,
-            window,
-            null,
-            0,
-            0,
-            0,
-            0 /* coordinates */,
-            false,
-            false,
-            false,
-            false /* modifier keys */,
-            0 /*left*/,
-            null
-          );
+          var evt = createMouseEvent();
 
           var input = document.querySelector('.a'); // leaf node
           input.dispatchEvent(evt);
@@ -993,25 +936,7 @@ describe('integration', function() {
             Raven._breadcrumbs = [];
 
             // click <input/>
-            var evt = document.createEvent('MouseEvent');
-            evt.initMouseEvent(
-              evt,
-              'click',
-              true /* bubble */,
-              true /* cancelable */,
-              window,
-              null,
-              0,
-              0,
-              0,
-              0 /* coordinates */,
-              false,
-              false,
-              false,
-              false /* modifier keys */,
-              0 /*left*/,
-              null
-            );
+            var evt = createMouseEvent();
 
             function kaboom() {
               throw new Error('lol');
@@ -1049,31 +974,8 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/> twice
-          var keypress1 = document.createEvent('KeyboardEvent');
-          keypress1.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'b',
-            66,
-            0,
-            '',
-            false
-          );
-
-          var keypress2 = document.createEvent('KeyboardEvent');
-          keypress2.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'a',
-            65,
-            0,
-            '',
-            false
-          );
+          var keypress1 = createKeyboardEvent('a');
+          var keypress2 = createKeyboardEvent('b');
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress1);
@@ -1107,18 +1009,7 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/>
-          var keypress = document.createEvent('KeyboardEvent');
-          keypress.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'b',
-            66,
-            0,
-            '',
-            false
-          );
+          var keypress = createKeyboardEvent();
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress);
@@ -1156,52 +1047,11 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // 1st keypress <input/>
-          var keypress1 = document.createEvent('KeyboardEvent');
-          keypress1.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'b',
-            66,
-            0,
-            '',
-            false
-          );
-
+          var keypress1 = createKeyboardEvent('a');
           // click <input/>
-          var click = document.createEvent('MouseEvent');
-          click.initMouseEvent(
-            'click',
-            true /* bubble */,
-            true /* cancelable */,
-            window,
-            null,
-            0,
-            0,
-            0,
-            0 /* coordinates */,
-            false,
-            false,
-            false,
-            false /* modifier keys */,
-            0 /*left*/,
-            null
-          );
-
+          var click = createMouseEvent();
           // 2nd keypress
-          var keypress2 = document.createEvent('KeyboardEvent');
-          keypress2.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'a',
-            65,
-            0,
-            '',
-            false
-          );
+          var keypress2 = createKeyboardEvent('b');
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress1);
@@ -1251,31 +1101,8 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/> twice
-          var keypress1 = document.createEvent('KeyboardEvent');
-          keypress1.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'b',
-            66,
-            0,
-            '',
-            false
-          );
-
-          var keypress2 = document.createEvent('KeyboardEvent');
-          keypress2.initKeyboardEvent(
-            'keypress',
-            true,
-            true,
-            window,
-            'a',
-            65,
-            0,
-            '',
-            false
-          );
+          var keypress1 = createKeyboardEvent('a');
+          var keypress2 = createKeyboardEvent('b');
 
           var div = document.querySelector('[contenteditable]');
           div.dispatchEvent(keypress1);
