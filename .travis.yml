@@ -12,8 +12,8 @@ addons:
 before_install:
   - npm i -g npm@5.3.0
 script:
-  - npm test
-  - npm test:ci
+  - npm run test
+  - npm run test:ci
 env:
   global:
   - secure: iHuXK1dZnoxh7Jm15eRcAG7qxaMbkhxB7qJuvlYL6sucpYdDWYDmmQxWdbU7BxWFlqq05eyRjQqTK342Z2I7ScsZLGCjW7vUPsluYjx+LKuMN0kHY5ayqur4pX8pgOn+faTzSWfP44R1YO0DTM15idcgu7uMC1KvXdiC6ayrp+U=
