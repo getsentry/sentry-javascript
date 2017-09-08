@@ -4,61 +4,52 @@
     <title>Raven.js Test Suite</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="stylesheet" href="../../node_modules/mocha/mocha.css" />
-  </head>
-  <body>
-    <div id="mocha"></div>
+
     <!-- Mocha -->
     <script src="../../node_modules/mocha/mocha.js"></script>
     <script src="../../node_modules/chai/chai.js"></script>
     <script>
-        mocha.ui('bdd');
-        mocha.reporter('html');
-        var assert = chai.assert
-    </script>
-
-    <!-- Mocking -->
-    <script src="../../node_modules/sinon/pkg/sinon.js"></script>
-    <script src="../../build/raven.js"></script>
-    <script>
-    beforeEach(function() {
-        this.sinon = sinon.sandbox.create();
-        var xhr = sinon.useFakeXMLHttpRequest();
-        window.requests = this.requests = [];
-
-        xhr.onCreate = function (xhr) {
-          requests.push(xhr);
-        };
-    });
-
-    afterEach(function() {
-        this.sinon.restore();
-    });
+      mocha.ui('bdd');
+      mocha.reporter('html');
+      var assert = chai.assert
     </script>
 
     <!-- Tests -->
+    <script src="../../build/raven.js"></script>
     <script src="test.js"></script>
+  </head>
+  <body>
+    <div id="mocha"></div>
 
     <script>
-      (function (runner) {
-        window.runner = runner;
-        var failed = [];
+      window.onload = function () {
+        var runner = mocha.run();
+        var failedTests = [];
+
+        var flattenTitles = function (test) {
+          var titles = [];
+          while (test.parent.title){
+            titles.push(test.parent.title);
+            test = test.parent;
+          }
+          return titles.reverse();
+        };
 
         runner.on('fail', function (test, err) {
-          failed.push({
-            title: test.title,
-            fullTitle: test.fullTitle(),
-            error: {
-              message: err.message,
-              stack: err.stack
-            }
+          failedTests.push({
+            name: test.title,
+            result: false,
+            message: err.message,
+            stack: err.stack,
+            titles: flattenTitles(test)
           });
         });
 
         runner.on('end', function () {
-          runner.stats.failed = failed;
           window.mochaResults = runner.stats;
+          window.mochaResults.reports = failedTests;
         });
-      })(mocha.run());
+      };
     </script>
   </body>
 </html>

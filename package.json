@@ -21,7 +21,8 @@
     "test": "npm run lint && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
     "test:unit": "mocha-chrome test/index.html",
     "test:integration": "mocha-chrome test/integration/index.html --chrome-flags '[\"--disable-web-security\"]' --ignore-resource-errors --ignore-exceptions",
-    "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts"
+    "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
+    "test:ci": "npm run lint && grunt test:ci"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
@@ -42,6 +43,7 @@
     "grunt-gitinfo": "^0.1.7",
     "grunt-release": "^0.13.0",
     "grunt-s3": "0.2.0-alpha.3",
+    "grunt-saucelabs": "^9.0.0",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
     "husky": "^0.14.3",
     "lint-staged": "^4.0.4",
