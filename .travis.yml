@@ -3,10 +3,16 @@ language: node_js
 node_js:
   - "8"
 dist: trusty
-addons:
-  chrome: stable
 cache:
   directories:
     - node_modules
+addons:
+  chrome: stable
+  sauce_connect: true
 script:
   - npm test
+  - npm test:ci
+env:
+  global:
+  - secure: iHuXK1dZnoxh7Jm15eRcAG7qxaMbkhxB7qJuvlYL6sucpYdDWYDmmQxWdbU7BxWFlqq05eyRjQqTK342Z2I7ScsZLGCjW7vUPsluYjx+LKuMN0kHY5ayqur4pX8pgOn+faTzSWfP44R1YO0DTM15idcgu7uMC1KvXdiC6ayrp+U=
+  - secure: DsLP1gfQVVs8ZGECQl8YcIqXU/ADRoQLEp3tVuKg3suOYcqsJSXmozQajO8ld/PXQZgWODNDfeK0AzaKNVWsVhdflaGbXpE6Gzdr6F+zTkU3Ma0HZ3HPTQP5o9qraGbG5JFKqtHPek/7BeZ4aC6ReY63d846+L2Ev7he5QvSCHE=
