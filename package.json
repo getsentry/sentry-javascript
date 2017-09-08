@@ -24,6 +24,10 @@
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
     "test:ci": "npm run lint && grunt test:ci"
   },
+  "engines": {
+    "node": "~8.0.0",
+    "npm": "~5.3.0"
+  },
   "devDependencies": {
     "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
