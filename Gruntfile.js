@@ -1,7 +1,6 @@
 'use strict';
 
 module.exports = function(grunt) {
-  var _ = require('lodash');
   var path = require('path');
   var os = require('os');
   var through = require('through2');
@@ -14,7 +13,7 @@ module.exports = function(grunt) {
 
   var plugins = grunt.option('plugins');
   // Create plugin paths and verify they exist
-  plugins = _.map(plugins ? plugins.split(',') : [], function(plugin) {
+  plugins = (plugins ? plugins.split(',') : []).map(function(plugin) {
     var p = 'plugins/' + plugin + '.js';
 
     if (!grunt.file.exists(p))
@@ -51,12 +50,12 @@ module.exports = function(grunt) {
       }
     };
 
-    var excluded = _.map(excludedPlugins, function(plugin) {
+    var excluded = excludedPlugins.map(function(plugin) {
       return 'plugins/' + plugin + '.js';
     });
 
     // Remove the plugins that we don't want to build
-    a = _.filter(a, function(n) {
+    a = a.filter(function(n) {
       return excluded.indexOf(n) === -1;
     });
 
@@ -88,21 +87,17 @@ module.exports = function(grunt) {
   });
 
   var pluginCombinations = combine(plugins);
-  var pluginConcatFiles = _.reduce(
-    pluginCombinations,
-    function(dict, comb) {
-      var key = _.map(comb, function(plugin) {
-        return path.basename(plugin, '.js');
-      });
-      key.sort();
+  var pluginConcatFiles = pluginCombinations.reduce(function(dict, comb) {
+    var key = comb.map(function(plugin) {
+      return path.basename(plugin, '.js');
+    });
+    key.sort();
 
-      var dest = path.join('build/', key.join(','), '/raven.js');
-      dict[dest] = ['src/singleton.js'].concat(comb);
+    var dest = path.join('build/', key.join(','), '/raven.js');
+    dict[dest] = ['src/singleton.js'].concat(comb);
 
-      return dict;
-    },
-    {}
-  );
+    return dict;
+  }, {});
 
   var browserifyConfig = {
     options: {
@@ -199,30 +194,6 @@ module.exports = function(grunt) {
         src: ['build/**/*.js'],
         ext: '.min.js',
         expand: true
-      }
-    },
-
-    eslint: {
-      target: ['.']
-    },
-
-    mocha: {
-      options: {
-        mocha: {
-          ignoreLeaks: true,
-          grep: grunt.option('grep')
-        },
-        log: true,
-        reporter: 'Dot',
-        run: true
-      },
-      unit: {
-        src: ['test/index.html'],
-        nonull: true
-      },
-      integration: {
-        src: ['test/integration/index.html'],
-        nonull: true
       }
     },
 
@@ -338,12 +309,10 @@ module.exports = function(grunt) {
 
   // 3rd party Grunt tasks
   grunt.loadNpmTasks('grunt-browserify');
-  grunt.loadNpmTasks('grunt-mocha');
   grunt.loadNpmTasks('grunt-release');
   grunt.loadNpmTasks('grunt-s3');
   grunt.loadNpmTasks('grunt-gitinfo');
   grunt.loadNpmTasks('grunt-sri');
-  grunt.loadNpmTasks('grunt-eslint');
 
   // Build tasks
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
@@ -355,7 +324,7 @@ module.exports = function(grunt) {
     '_prep',
     'browserify:plugins-combined'
   ]);
-  grunt.registerTask('build.test', ['_prep', 'browserify:test']);
+  grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
   grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
   grunt.registerTask('build.plugins-combined', [
     'browserify.plugins-combined',
@@ -366,13 +335,9 @@ module.exports = function(grunt) {
   grunt.registerTask('build', ['build.plugins-combined']);
   grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
-  // Test task
-  grunt.registerTask('test', ['eslint', 'browserify.core', 'browserify:test', 'mocha']);
-
   // Webserver tasks
   grunt.registerTask('run:test', ['connect:test']);
   grunt.registerTask('run:docs', ['connect:docs']);
 
-  grunt.registerTask('publish', ['test', 'build.plugins-combined', 's3']);
-  grunt.registerTask('default', ['test']);
+  grunt.registerTask('publish', ['build.plugins-combined', 's3']);
 };

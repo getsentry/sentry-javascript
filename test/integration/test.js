@@ -189,8 +189,6 @@ describe('integration', function() {
 
           // same error message, but different stacks means that these are considered
           // different errors
-          // NOTE: PhantomJS can't derive function/lineno/colno from evaled frames, must
-          //       use frames declared in frame.html (foo(), bar())
 
           // stack:
           //   bar
@@ -918,46 +916,43 @@ describe('integration', function() {
       );
     });
 
-    // doesn't work in PhantomJS
-    if (!/PhantomJS/.test(window.navigator.userAgent)) {
-      it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function(
-        done
-      ) {
-        // see: https://github.com/getsentry/raven-js/issues/768
-        var iframe = this.iframe;
+    it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function(
+      done
+    ) {
+      // see: https://github.com/getsentry/raven-js/issues/768
+      var iframe = this.iframe;
 
-        iframeExecute(
-          iframe,
-          done,
-          function() {
-            setTimeout(done);
+      iframeExecute(
+        iframe,
+        done,
+        function() {
+          setTimeout(done);
 
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            Raven._breadcrumbs = [];
+          // some browsers trigger onpopstate for load / reset breadcrumb state
+          Raven._breadcrumbs = [];
 
-            // click <input/>
-            var evt = createMouseEvent();
+          // click <input/>
+          var evt = createMouseEvent();
 
-            function kaboom() {
-              throw new Error('lol');
-            }
-            Object.defineProperty(evt, 'type', {get: kaboom});
-            Object.defineProperty(evt, 'target', {get: kaboom});
-
-            var input = document.querySelector('.a'); // leaf node
-            input.dispatchEvent(evt);
-          },
-          function() {
-            var Raven = iframe.contentWindow.Raven,
-              breadcrumbs = Raven._breadcrumbs;
-
-            assert.equal(breadcrumbs.length, 1);
-            assert.equal(breadcrumbs[0].category, 'ui.click');
-            assert.equal(breadcrumbs[0].message, '<unknown>');
+          function kaboom() {
+            throw new Error('lol');
           }
-        );
-      });
-    } // if PhantomJS
+          Object.defineProperty(evt, 'type', {get: kaboom});
+          Object.defineProperty(evt, 'target', {get: kaboom});
+
+          var input = document.querySelector('.a'); // leaf node
+          input.dispatchEvent(evt);
+        },
+        function() {
+          var Raven = iframe.contentWindow.Raven,
+            breadcrumbs = Raven._breadcrumbs;
+
+          assert.equal(breadcrumbs.length, 1);
+          assert.equal(breadcrumbs[0].category, 'ui.click');
+          assert.equal(breadcrumbs[0].message, '<unknown>');
+        }
+      );
+    });
 
     it('should record consecutive keypress events into a single "input" breadcrumb', function(
       done
@@ -1159,7 +1154,6 @@ describe('integration', function() {
           assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
           assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
 
-          // assert end of string because PhantomJS uses full system path
           assert.ok(
             /\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from),
             "'from' url is incorrect"
