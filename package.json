@@ -25,8 +25,8 @@
     "test:ci": "npm run lint && grunt test:ci"
   },
   "engines": {
-    "node": "~8.0.0",
-    "npm": "~5.3.0"
+    "node": "^8.4.0",
+    "npm": "^5.4.0"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
