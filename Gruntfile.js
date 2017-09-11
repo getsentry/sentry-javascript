@@ -209,6 +209,8 @@ module.exports = function(grunt) {
             'record-screenshots': false
           },
           build: process.env.TRAVIS_BUILD_NUMBER,
+          statusCheckAttempts: 200,
+          pollInterval: 3000,
           testname:
             'Raven.js' +
             (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
