@@ -209,6 +209,11 @@ module.exports = function(grunt) {
             'record-screenshots': false
           },
           build: process.env.TRAVIS_BUILD_NUMBER,
+          // On average, our integration tests take 60s to run
+          // and unit tests about 30s, which gives us 90s in total
+          // And even though we are running 2 tests in parallel, it's safer to assume
+          // 90s * 7 browsers = ~10 minutes (plus some additional time, just in case)
+          // Therefore 200 * 3000ms = 10min
           statusCheckAttempts: 200,
           pollInterval: 3000,
           testname:
@@ -216,7 +221,7 @@ module.exports = function(grunt) {
             (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
           browsers: [
             // Latest version of Edge (v15) can't reach the server
-            // Already reached SauceLabs support
+            // Already notified SauceLabs support about this issue
             // ['Windows 10', 'microsoftedge', 'latest'],
 
             // Commenting out until we fix initial issues
@@ -224,14 +229,10 @@ module.exports = function(grunt) {
             // ['Windows 10', 'internet explorer', '11'],
 
             ['Windows 10', 'chrome', 'latest'],
-            ['Windows 10', 'chrome', 'latest-1'],
             ['Windows 10', 'firefox', 'latest'],
-            ['Windows 10', 'firefox', 'latest-1'],
             ['macOS 10.12', 'safari', '10'],
             ['macOS 10.12', 'chrome', 'latest'],
-            ['macOS 10.12', 'chrome', 'latest-1'],
-            ['macOS 10.12', 'firefox', 'latest'],
-            ['macOS 10.12', 'firefox', 'latest-1']
+            ['macOS 10.12', 'firefox', 'latest']
           ],
           public: 'public',
           tunnelArgs: ['--verbose']
