@@ -220,6 +220,10 @@ Those configuration options are documented below:
     Please see the raven-node source code to see `how transports are implemented
     <https://github.com/getsentry/raven-node/blob/master/lib/transports.js>`__.
 
+.. describe:: maxReqQueueCount
+
+  Controls how many requests can be maximally queued before bailing out and emitting an error. Defaults to `100`.
+
 Environment Variables
 ---------------------
 
