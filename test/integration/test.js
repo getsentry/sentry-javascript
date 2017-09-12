@@ -36,8 +36,6 @@ function parseUrl(url) {
 }
 
 describe('integration', function() {
-  this.timeout(10000);
-
   beforeEach(function(done) {
     this.iframe = createIframe(done);
   });
