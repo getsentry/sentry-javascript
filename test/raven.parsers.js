@@ -1,5 +1,6 @@
 'use strict';
 
+var util = require('util');
 var assert = require('assert');
 var raven = require('../');
 
@@ -528,19 +529,6 @@ describe('raven.parsers', function() {
       });
     });
 
-    it('should parse Error with non-string type', function(done) {
-      var err = new Error();
-      err.name = {};
-      raven.parsers.parseError(err, {}, function(parsed) {
-        parsed.message.should.equal('[object Object]: <no message>');
-        parsed.should.have.property('exception');
-        parsed.exception[0].type.should.equal('[object Object]');
-        parsed.exception[0].value.should.equal('');
-        parsed.exception[0].stacktrace.should.have.property('frames');
-        done();
-      });
-    });
-
     it('should parse thrown Error', function(done) {
       try {
         throw new Error('Derp');
@@ -618,6 +606,72 @@ describe('raven.parsers', function() {
           done();
         });
       }
+    });
+
+    it('should read name from an Error constructor', function(done) {
+      var err = new Error();
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('Error: <no message>');
+        parsed.exception[0].type.should.equal('Error');
+        done();
+      });
+    });
+
+    it('should read name from an Error constructor for custom errors', function(done) {
+      // https://gist.github.com/justmoon/15511f92e5216fa2624b
+      function CustomError(message) {
+        Error.captureStackTrace(this, this.constructor);
+        this.name = this.constructor.name;
+        this.message = message;
+      }
+
+      util.inherits(CustomError, Error);
+
+      var err = new CustomError('boom');
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('CustomError: boom');
+        parsed.exception[0].type.should.equal('CustomError');
+        done();
+      });
+    });
+
+    it('should allow for overriding name for built-in errors', function(done) {
+      var err = new Error();
+      err.name = 'foo';
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('foo: <no message>');
+        parsed.exception[0].type.should.equal('foo');
+        done();
+      });
+    });
+
+    it('should allow for overriding name for custom errors', function(done) {
+      // https://gist.github.com/justmoon/15511f92e5216fa2624b
+      function CustomError(message) {
+        Error.captureStackTrace(this, this.constructor);
+        this.name = 'foo';
+        this.message = message;
+      }
+
+      util.inherits(CustomError, Error);
+
+      var err = new CustomError('boom');
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('foo: boom');
+        parsed.exception[0].type.should.equal('foo');
+        done();
+      });
+    });
+
+    it('should parse Error with non-string type', function(done) {
+      var err = new Error();
+      err.name = {};
+      raven.parsers.parseError(err, {}, function(parsed) {
+        parsed.message.should.equal('[object Object]: <no message>');
+        parsed.exception[0].type.should.equal('[object Object]');
+        parsed.exception[0].value.should.equal('');
+        done();
+      });
     });
   });
 });
