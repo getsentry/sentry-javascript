@@ -3088,6 +3088,46 @@ describe('Raven (public API)', function() {
       });
     });
   });
+
+  describe('.lastEventId', function() {
+    it('should return eventId of last event sent', function() {
+      Raven.config(SENTRY_DSN);
+
+      Raven.captureMessage('foo', {
+        event_id: 'bar'
+      });
+
+      assert.equal(Raven.lastEventId(), 'bar');
+    });
+
+    it('should override lastEventId when duplicate happens and they are allowed', function() {
+      Raven.config(SENTRY_DSN, {allowDuplicates: true});
+
+      Raven.captureMessage('foo', {
+        event_id: 'bar'
+      });
+
+      Raven.captureMessage('foo', {
+        event_id: 'baz'
+      });
+
+      assert.equal(Raven.lastEventId(), 'baz');
+    });
+
+    it('should not override lastEventId when duplicate happens but they are not allowed', function() {
+      Raven.config(SENTRY_DSN, {allowDuplicates: false});
+
+      Raven.captureMessage('foo', {
+        event_id: 'bar'
+      });
+
+      Raven.captureMessage('foo', {
+        event_id: 'baz'
+      });
+
+      assert.equal(Raven.lastEventId(), 'bar');
+    });
+  });
 });
 
 describe('Raven (private methods)', function() {
