@@ -1118,7 +1118,7 @@ Raven.prototype = {
             var xhr = this;
 
             function onreadystatechangeHandler() {
-              if (xhr.__raven_xhr && (xhr.readyState === 1 || xhr.readyState === 4)) {
+              if (xhr.__raven_xhr && xhr.readyState === 4) {
                 try {
                   // touching statusCode in some platforms throws
                   // an exception
@@ -1126,6 +1126,7 @@ Raven.prototype = {
                 } catch (e) {
                   /* do nothing */
                 }
+
                 self.captureBreadcrumb({
                   type: 'http',
                   category: 'xhr',
