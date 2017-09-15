@@ -205,8 +205,7 @@ module.exports = function(grunt) {
             'http://127.0.0.1:9999/test/integration/index.html'
           ],
           sauceConfig: {
-            'record-video': false,
-            'record-screenshots': false
+            'record-video': false
           },
           build: process.env.TRAVIS_BUILD_NUMBER,
           // On average, our integration tests take 60s to run
@@ -224,10 +223,10 @@ module.exports = function(grunt) {
             // Already notified SauceLabs support about this issue
             // ['Windows 10', 'microsoftedge', 'latest'],
 
-            // Commenting out until we fix initial issues
-            // ['Windows 10', 'microsoftedge', 'latest-1'],
-            // ['Windows 10', 'internet explorer', '11'],
-
+            ['Windows 10', 'microsoftedge', 'latest-1'],
+            ['Windows 10', 'internet explorer', '11'],
+            ['Windows 7', 'internet explorer', '11'],
+            ['Windows 7', 'internet explorer', '10'],
             ['Windows 10', 'chrome', 'latest'],
             ['Windows 10', 'firefox', 'latest'],
             ['macOS 10.12', 'safari', '10'],
@@ -235,7 +234,11 @@ module.exports = function(grunt) {
             ['macOS 10.12', 'firefox', 'latest']
           ],
           public: 'public',
-          tunnelArgs: ['--verbose']
+          tunnelArgs: ['--verbose'],
+          onTestComplete: function(result, callback) {
+            console.log(result);
+            callback(null);
+          }
         }
       }
     },
