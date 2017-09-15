@@ -39,70 +39,50 @@
     }());
 
     /**
-     * Custom event factories for cross-browser compatibility
-     *
-     * Gecko browsers are using non-standard `initKeyEvent`, where others implemented `initKeyboardEvent`.
-     * To make it more consistent, we try to use standardized `MouseEvent`/`KeyboardEvent` now
-     * and fallback to older implementations for legacy browsers only.
-     *
-     * See deprecation notes:
-     * https://developer.mozilla.org/en-US/docs/Web/API/Document/createEvent
-     * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/initKeyEvent
-     * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/initKeyboardEvent
+     * DOM4 MouseEvent and KeyboardEvent Polyfills
      *
      * References:
-     * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent#Specifications
-     * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent#Specifications
+     * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent
+     * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent#Polyfill
+     * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/KeyboardEvent
      */
-    function createMouseEvent (options) {
-      var options = {
-        bubbles: true,
-        cancelable: true,
-        view: window
+    (function () {
+      try {
+        new MouseEvent('click');
+        return false; // No need to polyfill
+      } catch (e) {
+        // Need to polyfill - fall through
       }
 
-      if ('MouseEvent' in window) {
-        return new MouseEvent('click', options);
-      } else {
-        var event = document.createEvent('MouseEvent');
-        event.initMouseEvent(
-          'click',
-          options.bubbles,
-          options.cancelable,
-          options.view
-        );
-
-        return event;
+      var MouseEvent = function (eventType) {
+        var mouseEvent = document.createEvent('MouseEvent');
+        mouseEvent.initMouseEvent(eventType, true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+        return mouseEvent;
       }
-    }
 
-    function createKeyboardEvent (key) {
-      var options = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        key: key || 'a'
+      MouseEvent.prototype = Event.prototype;
+      window.MouseEvent = MouseEvent;
+    })();
+
+    (function () {
+      try {
+        new KeyboardEvent('keypress');
+        return false; // No need to polyfill
+      } catch (e) {
+        // Need to polyfill - fall through
       }
-      options.charCode = options.key.charCodeAt();
 
-      if ('KeyboardEvent' in window) {
-        return new KeyboardEvent('keypress', options);
-      } else {
-        var event = document.createEvent('KeyboardEvent');
-        event.initKeyboardEvent(
-          'keypress',
-          options.bubbles,
-          options.cancelable,
-          options.view,
-          options.key,
-          options.charCode
-        );
-
-        return event;
+      var KeyboardEvent = function (eventType) {
+        var keyboardEvent = document.createEvent('KeyboardEvent');
+        if (keyboardEvent.initKeyboardEvent) keyboardEvent.initKeyboardEvent(eventType, true, true, window, false, false, false, false, 'a', 0);
+        if (keyboardEvent.initKeyEvent) keyboardEvent.initKeyEvent(eventType, true, true, window, false, false, false, false, 'a');
+        return keyboardEvent;
       }
-    }
+
+      KeyboardEvent.prototype = Event.prototype;
+      window.KeyboardEvent = KeyboardEvent;
+    })();
   </script>
-  <script src="../../node_modules/jquery/dist/jquery.js"></script>
   <script src="../../build/raven.js"></script>
   <script>
     // stub _makeRequest so we don't actually transmit any data
