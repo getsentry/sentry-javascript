@@ -456,7 +456,7 @@ describe('integration', function() {
             false
           );
 
-          var click = createMouseEvent();
+          var click = new MouseEvent('click');
           div.dispatchEvent(click);
         },
         function() {
@@ -485,14 +485,8 @@ describe('integration', function() {
           div.addEventListener('click', fooFn, false);
           div.removeEventListener('click', fooFn);
 
-          var evt;
-          if (document.createEvent) {
-            evt = document.createEvent('MouseEvents');
-            evt.initEvent('click', true, false);
-            div.dispatchEvent(evt);
-          } else if (document.createEventObject) {
-            div.fireEvent('onclick');
-          }
+          var click = new MouseEvent('click');
+          div.dispatchEvent(click);
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
@@ -820,8 +814,8 @@ describe('integration', function() {
           input.addEventListener('click', clickHandler);
 
           // click <input/>
-          var evt = createMouseEvent();
-          input.dispatchEvent(evt);
+          var click = new MouseEvent('click');
+          input.dispatchEvent(click);
         },
         function() {
           var Raven = iframe.contentWindow.Raven,
@@ -853,10 +847,9 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // click <input/>
-          var evt = createMouseEvent();
-
+          var click = new MouseEvent('click');
           var input = document.getElementsByTagName('input')[0];
-          input.dispatchEvent(evt);
+          input.dispatchEvent(click);
         },
         function() {
           var Raven = iframe.contentWindow.Raven,
@@ -899,10 +892,9 @@ describe('integration', function() {
           document.querySelector('.c').addEventListener('click', clickHandler);
 
           // click <input/>
-          var evt = createMouseEvent();
-
+          var click = new MouseEvent('click');
           var input = document.querySelector('.a'); // leaf node
-          input.dispatchEvent(evt);
+          input.dispatchEvent(click);
         },
         function() {
           var Raven = iframe.contentWindow.Raven,
@@ -932,16 +924,15 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // click <input/>
-          var evt = createMouseEvent();
-
+          var click = new MouseEvent('click');
           function kaboom() {
             throw new Error('lol');
           }
-          Object.defineProperty(evt, 'type', {get: kaboom});
-          Object.defineProperty(evt, 'target', {get: kaboom});
+          Object.defineProperty(click, 'type', {get: kaboom});
+          Object.defineProperty(click, 'target', {get: kaboom});
 
           var input = document.querySelector('.a'); // leaf node
-          input.dispatchEvent(evt);
+          input.dispatchEvent(click);
         },
         function() {
           var Raven = iframe.contentWindow.Raven,
@@ -969,8 +960,8 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/> twice
-          var keypress1 = createKeyboardEvent('a');
-          var keypress2 = createKeyboardEvent('b');
+          var keypress1 = new KeyboardEvent('keypress');
+          var keypress2 = new KeyboardEvent('keypress');
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress1);
@@ -1004,7 +995,7 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/>
-          var keypress = createKeyboardEvent();
+          var keypress = new KeyboardEvent('keypress');
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress);
@@ -1042,11 +1033,11 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // 1st keypress <input/>
-          var keypress1 = createKeyboardEvent('a');
+          var keypress1 = new KeyboardEvent('keypress');
           // click <input/>
-          var click = createMouseEvent();
+          var click = new MouseEvent('click');
           // 2nd keypress
-          var keypress2 = createKeyboardEvent('b');
+          var keypress2 = new KeyboardEvent('keypress');
 
           var input = document.getElementsByTagName('input')[0];
           input.dispatchEvent(keypress1);
@@ -1096,8 +1087,8 @@ describe('integration', function() {
           Raven._breadcrumbs = [];
 
           // keypress <input/> twice
-          var keypress1 = createKeyboardEvent('a');
-          var keypress2 = createKeyboardEvent('b');
+          var keypress1 = new KeyboardEvent('keypress');
+          var keypress2 = new KeyboardEvent('keypress');
 
           var div = document.querySelector('[contenteditable]');
           div.dispatchEvent(keypress1);
