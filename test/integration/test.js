@@ -313,7 +313,7 @@ describe('integration', function() {
           );
           assert.match(
             ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code/
+            /\?|global code/i
           );
         }
       );
@@ -350,7 +350,7 @@ describe('integration', function() {
           );
           assert.match(
             ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code/
+            /\?|global code/i
           );
         }
       );
@@ -384,7 +384,7 @@ describe('integration', function() {
           );
           assert.match(
             ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code/
+            /\?|global code|throwRealError/i
           );
         }
       );
