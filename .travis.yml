@@ -15,7 +15,3 @@ addons:
 script:
 - npm run test
 - npm run test:ci
-env:
-  global:
-  - secure: HbIEuZjOG0bvzoTRci1s9yt9uAYazj/72NWUFYW6doGkzdrmiR+/uzD+JL8x4iE4WERtYGUyIDUmvkXtlRnOj+2WtSexIDBvZBCTFGhkw/kV2CF0l1Cdr0RKeC32NuccPtcYt3dWK9cGwbD0GjkWza9gLiwcSPYJj7WCKRKmBbk=
-  - secure: YFHBu05fF9Y6gJ+oma0tFKp/pqV4b4xL4odMtJryU8x+JiC+zcmsAalESOO1uFaIow/qz4foRBiDDqJdQnO5K5p6pBKxb+eZgb9/08rm9e8J8XXqYTqtysHupUMduHA/RBDgyKyPN8sIF5vNMD6yB4HddvaXFSBCUefcaTg3v8s=
