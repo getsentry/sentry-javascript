@@ -1725,11 +1725,6 @@ Raven.prototype = {
 
     if (!this.isSetup()) return;
 
-    // Send along an event_id if not explicitly passed.
-    // This event_id can be used to reference the error within Sentry itself.
-    // Set lastEventId after we know the error should actually be sent
-    this._lastEventId = data.event_id || (data.event_id = this._getUuid());
-
     // Try and clean up the packet before sending by truncating long values
     data = this._trimPacket(data);
 
@@ -1741,6 +1736,11 @@ Raven.prototype = {
       return;
     }
 
+    // Send along an event_id if not explicitly passed.
+    // This event_id can be used to reference the error within Sentry itself.
+    // Set lastEventId after we know the error should actually be sent
+    this._lastEventId = data.event_id || (data.event_id = this._getUuid());
+
     // Store outbound payload after trim
     this._lastData = data;
 
@@ -1751,6 +1751,7 @@ Raven.prototype = {
       sentry_client: 'raven-js/' + this.VERSION,
       sentry_key: this._globalKey
     };
+
     if (this._globalSecret) {
       auth.sentry_secret = this._globalSecret;
     }
