@@ -17,13 +17,14 @@ function consolePlugin(Raven, console, pluginOptions) {
   console = console || window.console || {};
   pluginOptions = pluginOptions || {};
 
-  var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'],
-    level = logLevels.pop();
+  var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'];
+  if ('assert' in console) logLevels.push('assert');
 
   var callback = function(msg, data) {
     Raven.captureMessage(msg, data);
   };
 
+  var level = logLevels.pop();
   while (level) {
     wrapConsoleMethod(console, level, callback);
     level = logLevels.pop();

@@ -15,7 +15,17 @@ var wrapMethod = function(console, level, callback) {
 
     var msg = '' + args.join(' ');
     var data = {level: sentryLevel, logger: 'console', extra: {arguments: args}};
-    callback && callback(msg, data);
+
+    if (level === 'assert') {
+      if (args[0] === false) {
+        // Default browsers message
+        msg = 'Assertion failed: ' + (args.slice(1).join(' ') || 'console.assert');
+        data.extra.arguments = args.slice(1);
+        callback && callback(msg, data);
+      }
+    } else {
+      callback && callback(msg, data);
+    }
 
     // this fails for some browsers. :(
     if (originalConsoleLevel) {
