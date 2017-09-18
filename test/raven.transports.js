@@ -2,7 +2,7 @@
 
 var transports = require('../lib/transports');
 
-describe.only('transports', function() {
+describe('transports', function() {
   it('should emit error when requests queued over the limit', function(done) {
     var http = transports.http;
     var _cachedAgent = http.options.agent;

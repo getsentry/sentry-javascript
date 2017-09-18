@@ -81,6 +81,21 @@ describe('raven.utils', function() {
       };
       dsn.should.eql(expected);
     });
+
+    it('should parse DSN without private key', function() {
+      var dsn = raven.utils.parseDSN(
+        'https://8769c40cf49c4cc58b51fa45d8e2d166@mysentry.com:8443/some/other/path/269'
+      );
+      var expected = {
+        protocol: 'https',
+        public_key: '8769c40cf49c4cc58b51fa45d8e2d166',
+        host: 'mysentry.com',
+        path: '/some/other/path/',
+        project_id: '269',
+        port: 8443
+      };
+      dsn.should.eql(expected);
+    });
   });
 
   describe('#parseAuthHeader()', function() {
@@ -93,6 +108,16 @@ describe('raven.utils', function() {
         raven.version +
         ', sentry_key=abc, sentry_secret=xyz';
       raven.utils.getAuthHeader(timestamp, apiKey, apiSecret).should.equal(expected);
+    });
+
+    it('should skip sentry_secret if apiSecret not provided', function() {
+      var timestamp = 12345,
+        apiKey = 'abc';
+      var expected =
+        'Sentry sentry_version=5, sentry_timestamp=12345, sentry_client=raven-node/' +
+        raven.version +
+        ', sentry_key=abc';
+      raven.utils.getAuthHeader(timestamp, apiKey).should.equal(expected);
     });
   });
 
