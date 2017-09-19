@@ -7,3 +7,4 @@ Integrations
    connect
    express
    koa
+   loopback
