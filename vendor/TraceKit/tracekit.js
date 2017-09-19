@@ -31,8 +31,7 @@ var UNKNOWN_FUNCTION = '?';
 var ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/;
 
 function getLocationHref() {
-    if (typeof document === 'undefined' || typeof document.location === 'undefined')
-        return '';
+    if (typeof document === 'undefined' || document.location == null) return '';
 
     return document.location.href;
 }
