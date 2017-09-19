@@ -6,7 +6,7 @@
     <h1>Raven.js - Sentry SDK for JavaScript</h1>
 </p>
 
-[![Sauce Test Status](https://saucelabs.com/buildstatus/sentryio)](https://saucelabs.com/u/kamilsentry) [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js) [![npm](https://img.shields.io/npm/v/raven-js.svg)](https://www.npmjs.com/package/raven-js) [![npm](https://img.shields.io/npm/dm/raven-js.svg)](https://www.npmjs.com/package/raven-js)
+[![Sauce Test Status](https://saucelabs.com/buildstatus/sentryio)](https://saucelabs.com/u/sentryio) [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js) [![npm](https://img.shields.io/npm/v/raven-js.svg)](https://www.npmjs.com/package/raven-js) [![npm](https://img.shields.io/npm/dm/raven-js.svg)](https://www.npmjs.com/package/raven-js)
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/sentryio.svg)](https://saucelabs.com/u/sentryio)
 
