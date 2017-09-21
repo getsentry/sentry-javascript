@@ -20,6 +20,7 @@ var options: Raven.RavenOptions = {
         /https?:\/\/google\.com/,
         'https://www.google.com'
     ],
+    collectWindowErrors: false,
     autoBreadcrumbs: {
         xhr: false,
         console: false,
