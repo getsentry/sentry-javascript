@@ -229,9 +229,7 @@ module.exports = function(grunt) {
             ['Windows 7', 'internet explorer', '10'],
             ['Windows 10', 'chrome', 'latest'],
             ['Windows 10', 'firefox', 'latest'],
-            ['macOS 10.12', 'safari', '10'],
-            ['macOS 10.12', 'chrome', 'latest'],
-            ['macOS 10.12', 'firefox', 'latest']
+            ['macOS 10.12', 'safari', '10']
           ],
           public: 'public',
           tunnelArgs: ['--verbose'],
