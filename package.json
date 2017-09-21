@@ -31,7 +31,6 @@
   },
   "dependencies": {
     "cookie": "0.3.1",
-    "json-stringify-safe": "5.0.1",
     "lsmod": "1.0.0",
     "stack-trace": "0.0.9",
     "timed-out": "4.0.1",
@@ -46,12 +45,12 @@
     "glob": "~3.1.13",
     "husky": "^0.14.3",
     "istanbul": "^0.4.3",
-    "koa": "*",
     "lint-staged": "^4.0.4",
     "mocha": "~3.1.2",
     "nock": "~9.0.0",
     "prettier": "^1.6.1",
-    "should": "11.2.0"
+    "should": "11.2.0",
+    "sinon": "^3.3.0"
   },
   "prettier": {
     "singleQuote": true,
