@@ -9,13 +9,31 @@
  Tests for this are in test/vendor.
 
  ISC license: https://github.com/isaacs/json-stringify-safe/blob/master/LICENSE
-*/
+ */
 
 exports = module.exports = stringify;
 exports.getSerialize = serializer;
 
 function stringify(obj, replacer, spaces, cycleReplacer) {
   return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces);
+}
+
+// https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
+function stringifyError(value) {
+  var err = {
+    // These properties are implemented as magical getters and don't show up in for in
+    stack: value.stack,
+    message: value.message,
+    name: value.name
+  };
+
+  for (var i in value) {
+    if (Object.prototype.hasOwnProperty.call(value, i)) {
+      err[i] = value[i];
+    }
+  }
+
+  return err;
 }
 
 function serializer(replacer, cycleReplacer) {
@@ -36,6 +54,7 @@ function serializer(replacer, cycleReplacer) {
       var thisPos = stack.indexOf(this);
       ~thisPos ? stack.splice(thisPos + 1) : stack.push(this);
       ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key);
+
       if (~stack.indexOf(value)) {
         value = cycleReplacer.call(this, key, value);
       }
@@ -43,6 +62,8 @@ function serializer(replacer, cycleReplacer) {
       stack.push(value);
     }
 
-    return replacer == null ? value : replacer.call(this, key, value);
+    return replacer == null
+      ? value instanceof Error ? stringifyError(value) : value
+      : replacer.call(this, key, value);
   };
 }

@@ -249,6 +249,52 @@ describe('Stringify', function() {
     assert.ok(err instanceof TypeError);
   });
 
+  it('must stringify error objects, including extra properties', function() {
+    var obj = new Error('Wubba Lubba Dub Dub');
+    obj.reason = new TypeError("I'm pickle Riiick!");
+
+    // Testing whole stack is reduntant, we just need to know that it has been stringified
+    // And that it includes our first frame
+    var stringified = stringify(obj, null, 2);
+    assert.equal(obj.stack.indexOf('Error: Wubba Lubba Dub Dub') === 0, true);
+    assert.equal(obj.reason.stack.indexOf("TypeError: I'm pickle Riiick!") === 0, true);
+
+    // Skip stack, as it has been tested above
+    delete obj.stack;
+    delete obj.reason.stack;
+    stringified = stringify(obj, null, 2);
+
+    assert.deepEqual(
+      stringified,
+      jsonify({
+        message: 'Wubba Lubba Dub Dub',
+        name: 'Error',
+        reason: {
+          message: "I'm pickle Riiick!",
+          name: 'TypeError'
+        }
+      })
+    );
+  });
+
+  it('must stringify error objects with circular references', function() {
+    var obj = new Error('Wubba Lubba Dub Dub');
+    obj.reason = obj;
+
+    // Skip stack, as it has been tested above
+    delete obj.stack;
+    var stringified = stringify(obj, null, 2);
+
+    assert.deepEqual(
+      stringified,
+      jsonify({
+        message: 'Wubba Lubba Dub Dub',
+        name: 'Error',
+        reason: '[Circular ~]'
+      })
+    );
+  });
+
   describe('.getSerialize', function() {
     it('must stringify circular objects', function() {
       var obj = {a: 'b'};
