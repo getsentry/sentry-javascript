@@ -22,16 +22,23 @@ function vuePlugin(Raven, Vue) {
   if (!Vue || !Vue.config) return;
 
   var _oldOnError = Vue.config.errorHandler;
-  Vue.config.errorHandler = function VueErrorHandler(error, vm) {
+  Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+    var metaData = {
+      componentName: formatComponentName(vm),
+      propsData: vm.$options.propsData
+    };
+
+    // lifecycleHook is not always available
+    if (typeof info !== 'undefined') {
+      metaData.lifecycleHook = info;
+    }
+
     Raven.captureException(error, {
-      extra: {
-        componentName: formatComponentName(vm),
-        propsData: vm.$options.propsData
-      }
+      extra: metaData
     });
 
     if (typeof _oldOnError === 'function') {
-      _oldOnError.call(this, error, vm);
+      _oldOnError.call(this, error, vm, info);
     }
   };
 }
