@@ -23,12 +23,18 @@ function vuePlugin(Raven, Vue) {
 
   var _oldOnError = Vue.config.errorHandler;
   Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+	var metaData = {
+	  componentName: formatComponentName(vm),
+	  propsData: vm.$options.propsData
+	};
+
+	// lifecycleHook is not always available
+	if (typeof info !== 'undefined') {
+	  metaData.lifecycleHook = info
+	}
+
     Raven.captureException(error, {
-      extra: {
-        componentName: formatComponentName(vm),
-        propsData: vm.$options.propsData,
-        lifeCycleHook: info 
-      }
+      extra: metaData
     });
 
     if (typeof _oldOnError === 'function') {
