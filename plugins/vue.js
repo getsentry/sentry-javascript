@@ -22,16 +22,17 @@ function vuePlugin(Raven, Vue) {
   if (!Vue || !Vue.config) return;
 
   var _oldOnError = Vue.config.errorHandler;
-  Vue.config.errorHandler = function VueErrorHandler(error, vm) {
+  Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
     Raven.captureException(error, {
       extra: {
         componentName: formatComponentName(vm),
-        propsData: vm.$options.propsData
+        propsData: vm.$options.propsData,
+        lifeCycleHook: info 
       }
     });
 
     if (typeof _oldOnError === 'function') {
-      _oldOnError.call(this, error, vm);
+      _oldOnError.call(this, error, vm, info);
     }
   };
 }
