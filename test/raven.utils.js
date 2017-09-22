@@ -98,6 +98,66 @@ describe('raven.utils', function() {
     });
   });
 
+  describe('#prepareInitialRequest', function() {
+    it('should extract specific non-enumerables and return an object containing them', function() {
+      var req = raven.utils.prepareInitialRequest({
+        ip: '127.0.0.1'
+      });
+      var expected = {
+        ip: '127.0.0.1'
+      };
+      req.should.eql(expected);
+    });
+
+    it('should skip non-listed properties', function() {
+      var req = raven.utils.prepareInitialRequest({
+        ip: '127.0.0.1',
+        pickle: 'Rick',
+        evil: 'Morty'
+      });
+      var expected = {
+        ip: '127.0.0.1'
+      };
+      req.should.eql(expected);
+    });
+
+    it('should preserve extend-like order', function() {
+      var req = raven.utils.prepareInitialRequest(
+        {
+          ip: '127.0.0.1'
+        },
+        {
+          ip: '123.123.123.123'
+        },
+        {
+          ip: '42.42.42.42'
+        }
+      );
+      var expected = {
+        ip: '42.42.42.42'
+      };
+      req.should.eql(expected);
+    });
+
+    it('should filter incorrect sources', function() {
+      var req = raven.utils.prepareInitialRequest(
+        {
+          ip: '127.0.0.1'
+        },
+        [42],
+        null,
+        'hello',
+        {
+          ip: '123.123.123.123'
+        }
+      );
+      var expected = {
+        ip: '123.123.123.123'
+      };
+      req.should.eql(expected);
+    });
+  });
+
   describe('#parseAuthHeader()', function() {
     it('should parse all parameters', function() {
       var timestamp = 12345,
