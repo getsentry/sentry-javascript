@@ -6,9 +6,19 @@ To get started, you need to configure Raven to use your Sentry DSN:
 .. sourcecode:: javascript
 
     var Raven = require('raven');
-    Raven.config('___PUBLIC_DSN___').install()
+    Raven.config('___PUBLIC_DSN___').install();
 
 At this point, Raven is ready to capture any uncaught exceptions.
+
+Note that the ``install`` method can optionally take a callback function that is invoked if a fatal, non-recoverable error occurs.
+You can use this callback to perform any cleanup that should occur before the Node process exits.
+
+.. sourcecode:: javascript
+
+    Raven.config('___PUBLIC_DSN___').install(function (err, initialErr, eventId) {
+      console.error(err);
+      process.exit(1);
+    });
 
 Optional settings
 -----------------
@@ -18,8 +28,8 @@ Optional settings
 .. sourcecode:: javascript
 
     Raven.config('___PUBLIC_DSN___', {
-        release: '1.3.0'
-    }).install()
+      release: '1.3.0'
+    }).install();
 
 Those configuration options are documented below:
 
