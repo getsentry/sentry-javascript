@@ -27,8 +27,7 @@ describe('Vue plugin', function() {
               foo: 'bar'
             }
           }
-        },
-        {} /* vm */
+        }
       );
 
       assert.isTrue(Raven.captureException.calledOnce);
@@ -56,6 +55,28 @@ describe('Vue plugin', function() {
       assert.isTrue(errorHandler.calledOnce);
       assert.equal(errorHandler.args[0][0], err);
       assert.equal(errorHandler.args[0][1], vm);
+    });
+
+    it('should capture lifecycle hook', function() {
+      vuePlugin(Raven, this.MockVue);
+
+      this.MockVue.config.errorHandler(
+        new Error('foo'),
+        {
+          $options: {
+            propsData: {}
+          }
+        },
+        'mounted'
+      );
+
+      assert.isTrue(Raven.captureException.calledOnce);
+
+      assert.deepEqual(Raven.captureException.args[0][1].extra, {
+        propsData: {},
+        componentName: 'anonymous component',
+        lifecycleHook: 'mounted'
+      });
     });
   });
 });
