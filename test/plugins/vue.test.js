@@ -19,13 +19,16 @@ describe('Vue plugin', function() {
     it('should capture component name and propsData', function() {
       vuePlugin(Raven, this.MockVue);
 
-      this.MockVue.config.errorHandler(new Error('foo'), {
-        $options: {
-          propsData: {
-            foo: 'bar'
+      this.MockVue.config.errorHandler(
+        new Error('foo'),
+        {
+          $options: {
+            propsData: {
+              foo: 'bar'
+            }
           }
         }
-      });
+      );
 
       assert.isTrue(Raven.captureException.calledOnce);
 
