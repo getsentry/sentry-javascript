@@ -33,9 +33,21 @@ Those configuration options are documented below:
           logger: 'default'
         }
 
+.. describe:: name
+
+    Set the server name for the client to use. Default: ``require('os').hostname()``
+    Optionally, use ``SENTRY_NAME`` environment variable.
+
+    .. code-block:: javascript
+
+        {
+          name: 'primary'
+        }
+
 .. describe:: release
 
     Track the version of your application in Sentry.
+    Optionally, use ``SENTRY_RELEASE`` environment variable.
 
     .. code-block:: javascript
 
@@ -58,6 +70,7 @@ Those configuration options are documented below:
 .. describe:: environment
 
     Track the environment name inside Sentry.
+    Optionally, use ``SENTRY_ENVIRONMENT`` environment variable.
 
     .. code-block:: javascript
 
@@ -216,8 +229,7 @@ Environment Variables
 
 .. describe:: SENTRY_NAME
 
-    Optionally set the name for the client to use. `What is name?
-    <http://raven.readthedocs.org/en/latest/config/index.html#name>`__
+    Optionally set the server name for the client to use.
 
 .. describe:: SENTRY_RELEASE
 
