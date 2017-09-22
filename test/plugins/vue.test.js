@@ -27,8 +27,7 @@ describe('Vue plugin', function() {
               foo: 'bar'
             }
           }
-        },
-        {} /* vm */
+        }
       );
 
       assert.isTrue(Raven.captureException.calledOnce);
