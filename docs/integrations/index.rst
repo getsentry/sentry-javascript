@@ -8,3 +8,4 @@ Integrations
    express
    koa
    loopback
+   sails
