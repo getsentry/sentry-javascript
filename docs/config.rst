@@ -43,6 +43,18 @@ Those configuration options are documented below:
           release: '721e41770371db95eee98ca2707686226b993eda'
         }
 
+    This is usually a Git SHA hash, which can be obtained using various npm packages, e.g.
+
+    .. code-block:: javascript
+
+        var git = require('git-rev-sync');
+
+        {
+          // this will return 40 characters long hash
+          // eg. '75bf4eea9aa1a7fd6505d0d0aa43105feafa92ef'
+          release: git.long()
+        }
+
 .. describe:: environment
 
     Track the environment name inside Sentry.
