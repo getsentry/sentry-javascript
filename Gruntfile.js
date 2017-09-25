@@ -222,10 +222,10 @@ module.exports = function(grunt) {
             // Latest version of Edge (v15) can't reach the server
             // Already notified SauceLabs support about this issue
             // ['Windows 10', 'microsoftedge', 'latest'],
-
             ['Windows 10', 'microsoftedge', 'latest-1'],
+            // We can skip IE11 on Win7, as there are no differences that'd change anything for us
+            // https://msdn.microsoft.com/library/dn394063(v=vs.85).aspx#unsupported_features
             ['Windows 10', 'internet explorer', '11'],
-            ['Windows 7', 'internet explorer', '11'],
             ['Windows 7', 'internet explorer', '10'],
             ['Windows 10', 'chrome', 'latest'],
             ['Windows 10', 'firefox', 'latest'],
