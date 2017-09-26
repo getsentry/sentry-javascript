@@ -1420,14 +1420,15 @@ Raven.prototype = {
   },
 
   _processException: function(type, message, fileurl, lineno, frames, options) {
-    var stacktrace;
+    var testString = (type || '') + ': ' + (message || '');
+
     if (
       !!this._globalOptions.ignoreErrors.test &&
-      this._globalOptions.ignoreErrors.test(message)
+      this._globalOptions.ignoreErrors.test(testString)
     )
       return;
 
-    message += '';
+    var stacktrace;
 
     if (frames && frames.length) {
       fileurl = frames[0].filename || fileurl;

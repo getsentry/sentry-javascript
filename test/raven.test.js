@@ -478,10 +478,12 @@ describe('globals', function() {
     it('should respect `ignoreErrors`', function() {
       this.sinon.stub(Raven, '_send');
 
-      Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+      Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2', 'CustomError']);
       Raven._processException('Error', 'e1', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('Error', 'e2', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+      Raven._processException('CustomError', 'e3', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('Error', 'error', 'http://example.com', []);
       assert.isTrue(Raven._send.calledOnce);
