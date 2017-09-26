@@ -241,4 +241,4 @@ Environment Variables
 
 .. describe:: SENTRY_ENVIRONMENT
 
-    Optionally set the environment name, e.g. "staging", "production".
+    Optionally set the environment name, e.g. "staging", "production". Sentry will default to the value of `NODE_ENV`, if present.
