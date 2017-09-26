@@ -1,5 +1,4 @@
 /*global XDomainRequest:false, __DEV__:false*/
-'use strict';
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
 var stringify = require('../vendor/json-stringify-safe/stringify');

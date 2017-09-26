@@ -3,8 +3,6 @@
  *
  * Patches event handler callbacks and ajax callbacks.
  */
-'use strict';
-
 function emberPlugin(Raven, Ember) {
   Ember = Ember || window.Ember;
 

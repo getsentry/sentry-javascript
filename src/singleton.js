@@ -4,8 +4,6 @@
  * Raven library, you SHOULD load this file (vs raven.js).
  **/
 
-'use strict';
-
 var RavenConstructor = require('./raven');
 
 // This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)

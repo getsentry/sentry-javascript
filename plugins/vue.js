@@ -2,7 +2,6 @@
  * Vue.js 2.0 plugin
  *
  */
-'use strict';
 
 function formatComponentName(vm) {
   if (vm.$root === vm) {
