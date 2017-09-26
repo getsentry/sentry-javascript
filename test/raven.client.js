@@ -1369,6 +1369,102 @@ describe('raven.Client', function() {
       });
     });
   });
+
+  describe('#_createRequestObject', function() {
+    it('should merge together all sources', function() {
+      var req = client._createRequestObject(
+        {
+          foo: 123
+        },
+        {
+          bar: 42
+        }
+      );
+      var expected = {
+        foo: 123,
+        bar: 42
+      };
+      req.should.eql(expected);
+    });
+
+    it('should preserve extend-like order', function() {
+      var req = client._createRequestObject(
+        {
+          foo: 111
+        },
+        {
+          foo: 222
+        },
+        {
+          foo: 333
+        }
+      );
+      var expected = {
+        foo: 333
+      };
+      req.should.eql(expected);
+    });
+
+    it('should filter incorrect sources', function() {
+      var req = client._createRequestObject(
+        {
+          foo: 111
+        },
+        [42],
+        null,
+        'hello',
+        {
+          foo: 222
+        }
+      );
+      var expected = {
+        foo: 222
+      };
+      req.should.eql(expected);
+    });
+
+    it('should extract specified non-enumerables', function() {
+      var foo = {};
+      Object.defineProperty(foo, 'ip', {
+        value: '127.0.0.1',
+        enumerable: false
+      });
+      var bar = {
+        foo: 222
+      };
+      var req = client._createRequestObject(foo, bar);
+      var expected = {
+        foo: 222,
+        ip: '127.0.0.1'
+      };
+      req.should.eql(expected);
+    });
+
+    it('should skip all remaining non-enumerables', function() {
+      var foo = {};
+      Object.defineProperty(foo, 'ip', {
+        value: '127.0.0.1',
+        enumerable: false
+      });
+      Object.defineProperty(foo, 'pickle', {
+        value: 'rick',
+        enumerable: false
+      });
+      var bar = {
+        dont: 'skip'
+      };
+      Object.defineProperty(bar, 'evil', {
+        value: 'morty',
+        enumerable: false
+      });
+      var req = client._createRequestObject(foo, bar);
+      var expected = {
+        ip: '127.0.0.1',
+        dont: 'skip'
+      };
+      req.should.eql(expected);
+    });
+  });
 });
 
 describe('raven requestHandler/errorHandler middleware', function() {
