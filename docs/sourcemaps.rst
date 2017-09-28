@@ -210,7 +210,7 @@ Additionally, you'll need to configure the client to send the ``release``:
 
 .. code-block:: javascript
 
-    Raven.config({
+    Raven.config('your-dsn', {
         release: '2da95dfb052f477380608d59d32b4ab9'
     });
 
