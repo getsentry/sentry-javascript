@@ -247,6 +247,67 @@ describe('Stringify', function() {
     assert.ok(err instanceof TypeError);
   });
 
+  it('must stringify error objects, including extra properties', function() {
+    var obj = new Error('Wubba Lubba Dub Dub');
+    obj.reason = new TypeError("I'm pickle Riiick!");
+    obj.extra = 'some extra prop';
+
+    // Stack is inconsistent across browsers, so override it and just make sure its stringified
+    obj.stack = 'x';
+    obj.reason.stack = 'x';
+
+    // IE 10/11
+    delete obj.description;
+    delete obj.reason.description;
+
+    // Safari doesn't allow deleting those properties from error object, yet only it provides them
+    var result = stringify(obj, null, 2)
+      .replace(/ +"(line|column|sourceURL)": .+,?\n/g, '')
+      .replace(/,\n( +)}/g, '\n$1}'); // make sure to strip trailing commas as well
+
+    assert.equal(
+      result,
+      jsonify({
+        stack: 'x',
+        message: 'Wubba Lubba Dub Dub',
+        name: 'Error',
+        reason: {
+          stack: 'x',
+          message: "I'm pickle Riiick!",
+          name: 'TypeError'
+        },
+        extra: 'some extra prop'
+      })
+    );
+  });
+
+  it('must stringify error objects with circular references', function() {
+    var obj = new Error('Wubba Lubba Dub Dub');
+    obj.reason = obj;
+
+    // Stack is inconsistent across browsers, so override it and just make sure its stringified
+    obj.stack = 'x';
+    obj.reason.stack = 'x';
+
+    // IE 10/11
+    delete obj.description;
+
+    // Safari doesn't allow deleting those properties from error object, yet only it provides them
+    var result = stringify(obj, null, 2)
+      .replace(/ +"(line|column|sourceURL)": .+,?\n/g, '')
+      .replace(/,\n( +)}/g, '\n$1}'); // make sure to strip trailing commas as well
+
+    assert.equal(
+      result,
+      jsonify({
+        stack: 'x',
+        message: 'Wubba Lubba Dub Dub',
+        name: 'Error',
+        reason: '[Circular ~]'
+      })
+    );
+  });
+
   describe('.getSerialize', function() {
     it('must stringify circular objects', function() {
       var obj = {a: 'b'};
