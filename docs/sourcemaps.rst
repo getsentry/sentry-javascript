@@ -164,7 +164,7 @@ sourcemaps point to.
     $ curl https://sentry.io/api/0/projects/:organization_slug/:project_slug/releases/ \
       -X POST \
       -H 'Authorization: Bearer {TOKEN}' \
-      -H 'Content-Type: application/json'
+      -H 'Content-Type: application/json' \
       -d '{"version": "2da95dfb052f477380608d59d32b4ab9"}' \
 
     {
