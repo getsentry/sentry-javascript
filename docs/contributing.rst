@@ -35,7 +35,7 @@ From the command line:
 
 .. code-block:: sh
 
-    $ grunt test
+    $ npm run test
 
 From your browser:
 
