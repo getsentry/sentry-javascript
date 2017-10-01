@@ -51,7 +51,7 @@ The test suite is powered by [Mocha](http://visionmedia.github.com/mocha/) and c
 From the command line:
 
 ```bash
-$ grunt test
+$ npm run test
 ```
 
 From your browser:
