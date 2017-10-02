@@ -1,3 +1,13 @@
+# 2.2.0 - 10/02/2017
+- Fixed all Node v8 tests to ensure everything is working correctly [See #366]
+- Raven now uses Prettier to format it's code [See #364]
+- Prevent Raven from queueing too many requests in case server is down [See #132]
+- Enable keep-alive on socket connection and limit number of sockets [See #284]
+- Pull Error's name from constructor, not Error itself to always get correct error type [See #372]
+- Updated Errors serialization to store all additional properties and allow for attaching other object instances directly to it [See #376]
+- Preserve some non-enumerable properties from request [See #379]
+- Fall back to NODE_ENV for Sentry Environment [See #384]
+
 # 2.1.2 - 8/16/2017
 - Remove errant large file that accidentally got published in 2.1.1. [See #361]
 

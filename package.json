@@ -9,7 +9,7 @@
     "raven",
     "sentry"
   ],
-  "version": "2.1.2",
+  "version": "2.2.0",
   "repository": "git://github.com/getsentry/raven-node.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-node",
@@ -32,6 +32,7 @@
   "dependencies": {
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
+    "memwatch-next": "^0.3.0",
     "stack-trace": "0.0.9",
     "timed-out": "4.0.1",
     "uuid": "3.0.0"
