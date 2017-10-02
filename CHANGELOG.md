@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.18.1
+
+* BUGFIX: Remove engine field from package.json, preventing correct npm/yarn usage
+
 ## 3.18.0
 
 * NEW: All unit and integration tests are now running on CI using SauceLabs, to ensure everything is working correctly on all browsers https://github.com/getsentry/raven-js/pull/1026
