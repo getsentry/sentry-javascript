@@ -812,6 +812,56 @@ describe('integration', function() {
       );
     });
 
+    it('should record a fetch request with an arbitrary type argument', function(done) {
+      var iframe = this.iframe;
+
+      iframeExecute(
+        iframe,
+        done,
+        function() {
+          // some browsers trigger onpopstate for load / reset breadcrumb state
+          Raven._breadcrumbs = [];
+
+          fetch(123).then(
+            function() {
+              setTimeout(done);
+            },
+            function() {
+              setTimeout(done);
+            }
+          );
+        },
+        function() {
+          var Raven = iframe.contentWindow.Raven,
+            breadcrumbs = Raven._breadcrumbs,
+            breadcrumbUrl = '123';
+
+          if ('fetch' in window) {
+            assert.equal(breadcrumbs.length, 1);
+
+            assert.equal(breadcrumbs[0].type, 'http');
+            assert.equal(breadcrumbs[0].category, 'fetch');
+            assert.equal(breadcrumbs[0].data.method, 'GET');
+            // Request constructor normalizes the url
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
+          } else {
+            // otherwise we use a fetch polyfill based on xhr
+            assert.equal(breadcrumbs.length, 2);
+
+            assert.equal(breadcrumbs[0].type, 'http');
+            assert.equal(breadcrumbs[0].category, 'fetch');
+            assert.equal(breadcrumbs[0].data.method, 'GET');
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
+
+            assert.equal(breadcrumbs[1].type, 'http');
+            assert.equal(breadcrumbs[1].category, 'xhr');
+            assert.equal(breadcrumbs[1].data.method, 'GET');
+            assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
+          }
+        }
+      );
+    });
+
     it('should record a mouse click on element WITH click handler present', function(
       done
     ) {

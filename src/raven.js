@@ -1179,11 +1179,13 @@ Raven.prototype = {
 
             if (typeof fetchInput === 'string') {
               url = fetchInput;
-            } else {
+            } else if ('Request' in _window && fetchInput instanceof _window.Request) {
               url = fetchInput.url;
               if (fetchInput.method) {
                 method = fetchInput.method;
               }
+            } else {
+              url = '' + fetchInput;
             }
 
             if (args[1] && args[1].method) {
