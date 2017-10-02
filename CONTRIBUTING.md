@@ -123,7 +123,7 @@ _This is a checklist for core contributors when releasing a new version._
   * [ ] Deploy [docs](https://github.com/getsentry/sentry-docs) so that docs, code examples display the latest version change.
   * [ ] Confirm that the new version exists behind `cdn.ravenjs.com`
   * [ ] Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.
-  * [ ] Bump sentry.io `<script>` tag of raven.js
+  * [ ] Bump sentry.io `<script>` tag of raven.js https://github.com/getsentry/sentry.io/blob/master/src/_includes/raven-js.html and it's tests https://github.com/getsentry/sentry.io/blob/master/tests/thirdParty.spec.js
   * [ ] Bump `package.json` in Sentry repo https://github.com/getsentry/sentry/blob/master/package.json
   * [ ] Bump version for Segment integration since they don't: https://github.com/segment-integrations/analytics.js-integration-sentry
   * [ ] glhf
