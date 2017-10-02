@@ -401,7 +401,7 @@ module.exports = function(grunt) {
   ]);
 
   // Webserver tasks
-  grunt.registerTask('run:test', ['connect:test']);
+  grunt.registerTask('run:test', ['build.test', 'connect:test']);
   grunt.registerTask('run:docs', ['connect:docs']);
 
   grunt.registerTask('publish', ['build.plugins-combined', 's3']);
