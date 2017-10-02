@@ -1,3 +1,7 @@
+# 2.2.1 - 10/02/2017
+
+- Remove unintentional memwatch-next dependency
+
 # 2.2.0 - 10/02/2017
 - Fixed all Node v8 tests to ensure everything is working correctly [See #366]
 - Raven now uses Prettier to format it's code [See #364]
