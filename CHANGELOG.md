@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.18.0
+
+* NEW: All unit and integration tests are now running on CI using SauceLabs, to ensure everything is working correctly on all browsers https://github.com/getsentry/raven-js/pull/1026
+* NEW: `console.assert` is now instrumented in the same way as the rest of `console` methods https://github.com/getsentry/raven-js/pull/1044
+* NEW: Vue.js plugin now provides `lifecycleHook` as the 3rd argument to error handler, to make it in line with v2.2.0 implementation https://github.com/getsentry/raven-js/pull/1053
+* NEW: Updated Errors serialization to store all additional properties and allow for attaching other object instances directly to it https://github.com/getsentry/raven-js/pull/1060
+* NEW: Included exception type in `ignoreErrors` test, which allows for filtering based on error types https://github.com/getsentry/raven-js/pull/1057
+* CHANGE: Raven.js now uses Prettier to format it's code https://github.com/getsentry/raven-js/pull/1020
+* CHANGE: Unit tests are using Headless Chrome instead of PhantomJS https://github.com/getsentry/raven-js/pull/1029
+* CHANGE: Added `setDSN` typing definition for TypeScript https://github.com/getsentry/raven-js/pull/995
+* BUGFIX: Defend against undefined `XMLHttpRequest` while sending events https://github.com/getsentry/raven-js/pull/1024
+* BUGFIX: `lastEventId` won't be overriden when an event was dropped https://github.com/getsentry/raven-js/pull/1041
+* BUGFIX: Make sure that `document` is available before reading `location` https://github.com/getsentry/raven-js/pull/1038
+* BUGFIX: Prevent breadcrumbs with undefined url to throw an error https://github.com/getsentry/raven-js/pull/1018
+
 ## 3.17.0
 * CHANGE: Export TypeScript definitions as a CommonJS module. See: https://github.com/getsentry/raven-js/pull/977
 
