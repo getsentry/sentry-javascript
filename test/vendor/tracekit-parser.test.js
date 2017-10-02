@@ -840,5 +840,18 @@ describe('TraceKit', function() {
         column: null
       });
     });
+
+    it('should parse Electron errors', function() {
+      var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CHROME_ELECTRON);
+      assert.ok(stackFrames);
+      assert.deepEqual(stackFrames.stack.length, 1);
+      assert.deepEqual(stackFrames.stack[0], {
+        url: 'C:\\Users\\user\\path\\to\\file.js',
+        func: 'TESTTESTTEST.someMethod',
+        args: [],
+        line: 295,
+        column: 108
+      });
+    });
   });
 });
