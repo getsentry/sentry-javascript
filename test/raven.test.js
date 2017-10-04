@@ -16,7 +16,8 @@ _Raven.prototype._getUuid = function() {
   return 'abc123';
 };
 
-var joinRegExp = _Raven.utils.joinRegExp;
+var optimizeFilters = _Raven.utils.optimizeFilters;
+var matchFilters = _Raven.utils.matchFilters;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -364,7 +365,7 @@ describe('globals', function() {
         func: 'lol'
       };
 
-      Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
+      Raven._globalOptions.includePaths = [/^http:\/\/example\.com/];
 
       assert.deepEqual(Raven._normalizeFrame(frame), {
         filename: 'http://example.com/path/file.js',
@@ -383,7 +384,7 @@ describe('globals', function() {
         func: 'lol'
       };
 
-      Raven._globalOptions.includePaths = /^http:\/\/example\.com/;
+      Raven._globalOptions.includePaths = [/^http:\/\/example\.com/];
 
       assert.deepEqual(Raven._normalizeFrame(frame), {
         filename: 'http://lol.com/path/file.js',
@@ -478,12 +479,21 @@ describe('globals', function() {
     it('should respect `ignoreErrors`', function() {
       this.sinon.stub(Raven, '_send');
 
-      Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2', 'CustomError']);
+      Raven._globalOptions.ignoreErrors = optimizeFilters([
+        'e1',
+        'e2',
+        'CustomError',
+        function(typeString, type, message, fileurl) {
+          return fileurl.indexOf('https://') >= 0;
+        }
+      ]);
       Raven._processException('Error', 'e1', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('Error', 'e2', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('CustomError', 'e3', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+      Raven._processException('Error', 'e4', 'https://example.com', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('Error', 'error', 'http://example.com', []);
       assert.isTrue(Raven._send.calledOnce);
@@ -500,7 +510,7 @@ describe('globals', function() {
     it('should respect `ignoreUrls`', function() {
       this.sinon.stub(Raven, '_send');
 
-      Raven._globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+      Raven._globalOptions.ignoreUrls = optimizeFilters([/.+?host1.+/, /.+?host2.+/]);
       Raven._processException('Error', 'error', 'http://host1/', []);
       assert.isFalse(Raven._send.called);
       Raven._processException('Error', 'error', 'http://host2/', []);
@@ -520,7 +530,7 @@ describe('globals', function() {
     it('should respect `whitelistUrls`', function() {
       this.sinon.stub(Raven, '_send');
 
-      Raven._globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+      Raven._globalOptions.whitelistUrls = optimizeFilters([/.+?host1.+/, /.+?host2.+/]);
       Raven._processException('Error', 'error', 'http://host1/', []);
       assert.equal(Raven._send.callCount, 1);
       Raven._processException('Error', 'error', 'http://host2/', []);
@@ -1893,21 +1903,23 @@ describe('Raven (public API)', function() {
       Raven.config('//abc@example.com/2');
 
       assert.isTrue(
-        Raven._globalOptions.ignoreErrors.test('Script error'),
+        matchFilters(Raven._globalOptions.ignoreErrors, 'Script error'),
         'it should install "Script error" by default'
       );
       assert.isTrue(
-        Raven._globalOptions.ignoreErrors.test('Script error.'),
+        matchFilters(Raven._globalOptions.ignoreErrors, 'Script error.'),
         'it should install "Script error." by default'
       );
       assert.isTrue(
-        Raven._globalOptions.ignoreErrors.test(
+        matchFilters(
+          Raven._globalOptions.ignoreErrors,
           'Javascript error: Script error on line 0'
         ),
         'it should install "Javascript error: Script error on line 0" by default'
       );
       assert.isTrue(
-        Raven._globalOptions.ignoreErrors.test(
+        matchFilters(
+          Raven._globalOptions.ignoreErrors,
           'Javascript error: Script error. on line 0'
         ),
         'it should install "Javascript error: Script error. on line 0" by default'
@@ -2618,7 +2630,7 @@ describe('Raven (public API)', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_send');
 
-      Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2']);
+      Raven._globalOptions.ignoreErrors = optimizeFilters(['e1', 'e2']);
       Raven.captureMessage('e1');
       assert.isFalse(Raven._send.called);
       Raven.captureMessage('e2');

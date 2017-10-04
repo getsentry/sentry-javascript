@@ -142,14 +142,10 @@ Raven.prototype = {
     globalOptions.ignoreErrors.push(/^Javascript error: Script error\.? on line 0$/);
 
     // join regexp rules into one big rule
-    globalOptions.ignoreErrors = joinRegExp(globalOptions.ignoreErrors);
-    globalOptions.ignoreUrls = globalOptions.ignoreUrls.length
-      ? joinRegExp(globalOptions.ignoreUrls)
-      : false;
-    globalOptions.whitelistUrls = globalOptions.whitelistUrls.length
-      ? joinRegExp(globalOptions.whitelistUrls)
-      : false;
-    globalOptions.includePaths = joinRegExp(globalOptions.includePaths);
+    globalOptions.ignoreErrors = optimizeFilters(globalOptions.ignoreErrors);
+    globalOptions.ignoreUrls = optimizeFilters(globalOptions.ignoreUrls);
+    globalOptions.whitelistUrls = optimizeFilters(globalOptions.whitelistUrls);
+    globalOptions.includePaths = optimizeFilters(globalOptions.includePaths);
     globalOptions.maxBreadcrumbs = Math.max(
       0,
       Math.min(globalOptions.maxBreadcrumbs || 100, 100)
@@ -416,13 +412,7 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureMessage: function(msg, options) {
-    // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
-    // early call; we'll error on the side of logging anything called before configuration since it's
-    // probably something you should see:
-    if (
-      !!this._globalOptions.ignoreErrors.test &&
-      this._globalOptions.ignoreErrors.test(msg)
-    ) {
+    if (matchFilters(this._globalOptions.ignoreErrors, msg)) {
       return;
     }
 
@@ -1405,9 +1395,10 @@ Raven.prototype = {
 
     normalized.in_app = !// determine if an exception came from outside of our app
     // first we check the global includePaths list.
+    // If includePaths is empty then every filename is in includePaths
     (
-      (!!this._globalOptions.includePaths.test &&
-        !this._globalOptions.includePaths.test(normalized.filename)) ||
+      (this._globalOptions.includePaths.length > 0 &&
+        !matchFilters(this._globalOptions.includePaths, normalized.filename)) ||
       // Now we check for fun, if the function name is Raven or TraceKit
       /(Raven|TraceKit)\./.test(normalized['function']) ||
       // finally, we do a last ditch effort and check for raven.min.js
@@ -1421,8 +1412,16 @@ Raven.prototype = {
     var testString = (type || '') + ': ' + (message || '');
 
     if (
-      !!this._globalOptions.ignoreErrors.test &&
-      this._globalOptions.ignoreErrors.test(testString)
+      matchFilters(
+        this._globalOptions.ignoreErrors,
+        testString,
+        type,
+        message,
+        fileurl,
+        lineno,
+        frames,
+        options
+      )
     )
       return;
 
@@ -1446,14 +1445,12 @@ Raven.prototype = {
       };
     }
 
+    if (matchFilters(this._globalOptions.ignoreUrls, fileurl)) return;
+
+    // If whitelistUrls is empty then every url passes the whitelist
     if (
-      !!this._globalOptions.ignoreUrls.test &&
-      this._globalOptions.ignoreUrls.test(fileurl)
-    )
-      return;
-    if (
-      !!this._globalOptions.whitelistUrls.test &&
-      !this._globalOptions.whitelistUrls.test(fileurl)
+      this._globalOptions.whitelistUrls.length > 0 &&
+      !matchFilters(this._globalOptions.whitelistUrls, fileurl)
     )
       return;
 
@@ -1886,6 +1883,10 @@ function isString(what) {
   return objectPrototype.toString.call(what) === '[object String]';
 }
 
+function isRegExp(what) {
+  return objectPrototype.toString.call(what) === '[object RegExp]';
+}
+
 function isEmptyObject(what) {
   for (var _ in what) return false; // eslint-disable-line guard-for-in, no-unused-vars
   return true;
@@ -1948,6 +1949,49 @@ function truncate(str, max) {
  */
 function hasKey(object, key) {
   return objectPrototype.hasOwnProperty.call(object, key);
+}
+
+function matchFilters(filters, object) {
+  var args = Array.prototype.slice.call(arguments, 1),
+    i = 0,
+    len = filters.length,
+    filter;
+  for (; i < len; i++) {
+    filter = filters[i];
+    if (isFunction(filter) && filter.apply(null, args)) {
+      return true;
+    } else if (isRegExp(filter) && filter.test(object)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function optimizeFilters(filters) {
+  // Optimize filters array by joining strings and regular expressions
+  // and pass along function predicate.
+  var regexps = [],
+    optimized_filters = [],
+    i = 0,
+    len = filters.length,
+    filter,
+    joined_regexp;
+
+  for (; i < len; i++) {
+    filter = filters[i];
+    if (isString(filter) || isRegExp(filter)) {
+      regexps.push(filter);
+    } else if (isFunction(filter)) {
+      optimized_filters.push(filter);
+    }
+    // Intentionally skip other cases
+  }
+
+  if (regexps.length > 0) {
+    optimized_filters.push(joinRegExp(regexps));
+  }
+
+  return optimized_filters;
 }
 
 function joinRegExp(patterns) {
@@ -2198,6 +2242,8 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
     truncate: truncate,
     hasKey: hasKey,
     joinRegExp: joinRegExp,
+    optimizeFilters: optimizeFilters,
+    matchFilters: matchFilters,
     urlencode: urlencode,
     uuid4: uuid4,
     htmlTreeAsString: htmlTreeAsString,
