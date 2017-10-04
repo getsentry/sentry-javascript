@@ -356,7 +356,12 @@ describe('integration', function() {
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
           assert.equal(ravenData.exception.values[0].type, undefined);
-          assert.equal(ravenData.exception.values[0].value, '[object Object]');
+
+          // #<Object> is covering default Android 4.4 and 5.1 browser
+          assert.match(
+            ravenData.exception.values[0].value,
+            /^(\[object Object\]|#<Object>)$/
+          );
           assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
 
           // some browsers extract proper url, line, and column for thrown objects
