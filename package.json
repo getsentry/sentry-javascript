@@ -54,7 +54,7 @@
     "sinon": "^3.2.1",
     "through2": "^2.0.0",
     "typescript": "^1.8.10",
-    "whatwg-fetch": "^1.0.0"
+    "whatwg-fetch": "^2.0.3"
   },
   "prettier": {
     "singleQuote": true,
