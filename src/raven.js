@@ -1974,8 +1974,7 @@ function optimizeFilters(filters) {
     optimized_filters = [],
     i = 0,
     len = filters.length,
-    filter,
-    joined_regexp;
+    filter;
 
   for (; i < len; i++) {
     filter = filters[i];
