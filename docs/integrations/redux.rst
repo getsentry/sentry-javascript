@@ -38,20 +38,14 @@ Both packages provide a useful integration for Raven in Redux but take slightly
 different approaches.
 
 Redux Sagas Middleware
-----------------------
+``````````````````````
 
-`Redux Saga <https://github.com/redux-saga/redux-saga>`_ is a great way to
-separate out actions that produce side effects from your pure reducers, however
-due to it's "thread like model", exceptions raised from sagas do not bubble up
-to the browser default exception handler.
+If you're using `Redux Saga <https://github.com/redux-saga/redux-saga>`_ be
+aware that it does not bubble errors up to the browsers uncaught exception
+handler.
 
-Instrumenting a Redux Saga middleware for sentry is simple:
-
-.. code-block:: javascript
-
-    createSagaMiddleware({onError: function logException(ex) {
-        Raven.captureException(ex);
-    }});
-
-
-Exceptions raised within your saga tasks will be now reported to Sentry.
+You may specify an error handler that captures saga exceptions by passing an
+``onError`` function to the ``createSagaMiddleware`` options. See the `Redux
+Saga documentation
+<https://redux-saga.js.org/docs/api/#createsagamiddlewareoptions>`_ for more
+details.
