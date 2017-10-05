@@ -199,6 +199,21 @@ describe('raven.Client', function() {
 
       client.captureMessage('Hey!');
     });
+
+    it('should allow for attaching stacktrace', function(done) {
+      var dsn = 'https://public:private@app.getsentry.com:8443/269';
+      var client = new raven.Client(dsn, {
+        stacktrace: true
+      });
+      client.send = function mockSend(kwargs) {
+        kwargs.message.should.equal('wtf?');
+        kwargs.should.have.property('stacktrace');
+        var stack = kwargs.stacktrace;
+        stack.frames[stack.frames.length - 1].context_line.should.match(/captureMessage/);
+        done();
+      };
+      client.captureMessage('wtf?');
+    });
   });
 
   describe('#captureException()', function() {

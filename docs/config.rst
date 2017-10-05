@@ -234,6 +234,10 @@ Those configuration options are documented below:
 
   Controls how many requests can be maximally queued before bailing out and emitting an error. Defaults to `100`.
 
+.. describe:: stacktrace
+
+  Attack stack trace to `captureMessage` calls by generatic "synthetic" error object and extracting all frames.
+
 Environment Variables
 ---------------------
 
