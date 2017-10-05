@@ -1423,8 +1423,9 @@ Raven.prototype = {
     var testString = (type || '') + ': ' + (message || '');
 
     if (
-      !!this._globalOptions.ignoreErrors.test &&
-      this._globalOptions.ignoreErrors.test(testString)
+      !!this._globalOptions.ignoreErrors.test && (
+        this._globalOptions.ignoreErrors.test(message) ||
+        this._globalOptions.ignoreErrors.test(testString))
     )
       return;
 
