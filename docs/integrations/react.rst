@@ -26,7 +26,7 @@ Expanded Usage
 --------------
 If you're using React 16 or above, `Error Boundaries <https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html>`_ 
 are an important tool for defining the behavior of your application in the face of errors. Be sure to send errors they catch to 
-Sentry using `Raven.captureException`, and optionally this is also a great opportunity to surface `User Feedback <https://docs.sentry.io/learn/user-feedback/>`_
+Sentry using ``Raven.captureException``, and optionally this is also a great opportunity to surface `User Feedback <https://docs.sentry.io/learn/user-feedback/>`_
 
 .. code-block:: javascript
 
@@ -87,7 +87,7 @@ aware that it does not bubble errors up to the browsers uncaught exception
 handler.
 
 You may specify an error handler that captures saga exceptions by passing an
-``onError`` function to the ``createSagaMiddleware`` options, and call Raven.captureException inside that callback. See the `Redux
+``onError`` function to the ``createSagaMiddleware`` options, and call ``Raven.captureException`` inside that callback. See the `Redux
 Saga documentation
 <https://redux-saga.js.org/docs/api/#createsagamiddlewareoptions>`_ for more
 details.
