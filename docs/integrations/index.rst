@@ -38,7 +38,6 @@ To install a plugin just include the plugin **after** Raven has been loaded and 
    backbone
    ember
    react
-   redux
    vue
 
 
