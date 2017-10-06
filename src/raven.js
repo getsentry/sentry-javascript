@@ -1422,7 +1422,7 @@ Raven.prototype = {
   _processException: function(type, message, fileurl, lineno, frames, options) {
     if (!!this._globalOptions.ignoreErrors.test) {
       var testStrings = [message, type ? type + ': ' + (message || '') : ''];
-      for (var ix in testStrings) {
+      for (var ix = 0, len = testStrings.length; ix < len; ix++) {
         if (testStrings[ix] && this._globalOptions.ignoreErrors.test(testStrings[ix])) {
           return;
         }
