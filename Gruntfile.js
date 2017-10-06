@@ -204,7 +204,8 @@ module.exports = function(grunt) {
             'http://127.0.0.1:9999/test/integration/index.html'
           ],
           sauceConfig: {
-            'record-video': false
+            'record-video': false,
+            'record-screenshots': false
           },
           build: process.env.TRAVIS_BUILD_NUMBER,
           // On average, our integration tests take 60s to run
@@ -218,17 +219,35 @@ module.exports = function(grunt) {
             'Raven.js' +
             (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
           browsers: [
-            // Latest version of Edge (v15) can't reach the server
+            // Latest version of Edge (v15) can't reach the server, so we use v14 for now instead
             // Already notified SauceLabs support about this issue
-            // ['Windows 10', 'microsoftedge', 'latest'],
             ['Windows 10', 'microsoftedge', 'latest-1'],
+
             // We can skip IE11 on Win7, as there are no differences that'd change anything for us
             // https://msdn.microsoft.com/library/dn394063(v=vs.85).aspx#unsupported_features
             ['Windows 10', 'internet explorer', '11'],
             ['Windows 7', 'internet explorer', '10'],
             ['Windows 10', 'chrome', 'latest'],
             ['Windows 10', 'firefox', 'latest'],
-            ['macOS 10.12', 'safari', '10']
+            ['macOS 10.12', 'safari', '10.0'],
+            ['macOS 10.12', 'iphone', '10.0'],
+            ['Linux', 'android', '4.4'],
+            ['Linux', 'android', '5.1']
+
+            // grunt-saucelabs (or SauceLabs REST API?) doesn't allow for passing device attribute at the moment
+            // and it's required for Android 6.0/7.1 - https://wiki.saucelabs.com/display/DOCS/2017/03/31/Android+6.0+and+7.0+Support+Released
+            // Notified SauceLabs support as well, so hopefully it'll be resolved soon
+            // {
+            //   browserName: 'Chrome',
+            //   platform: 'Android',
+            //   version: '6.0',
+            //   device: 'Android Emulator'
+            // }, {
+            //   browserName: 'Chrome',
+            //   platform: 'Android',
+            //   version: '7.1',
+            //   device: 'Android GoogleAPI Emulator'
+            // }
           ],
           public: 'public',
           tunnelArgs: ['--verbose'],
