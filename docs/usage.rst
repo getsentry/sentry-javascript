@@ -94,6 +94,23 @@ Capturing Messages
 
     Raven.captureMessage('Broken!')
 
+Passing options
+-----------------------
+
+The ``captureMessage`` and ``captureException`` both allow options to be passed for them
+
+.. describe:: skipSampleRate
+
+    Skips sampling rate checking this message and always sends it. Default: ``false``
+
+    .. code-block:: javascript
+
+        Raven.captureMessage('Something happened', {
+          options: {
+            skipSampleRate: true
+          }
+        });
+
 .. _raven-js-additional-context:
 
 Passing Additional Data

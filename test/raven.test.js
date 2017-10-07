@@ -2627,6 +2627,18 @@ describe('Raven (public API)', function() {
       assert.isTrue(Raven._send.calledOnce);
     });
 
+    it('should respect `skipSampleRate` option', function() {
+      this.sinon.stub(Raven, '_makeRequest');
+      setupRaven();
+      Raven._globalOptions.sampleRate = 0.0;
+      Raven.captureMessage('This message should be sent', {
+        options: {
+          skipSampleRate: true
+        }
+      });
+      assert.equal(Raven._makeRequest.callCount, 1);
+    });
+
     it('should not throw an error if not configured', function() {
       this.sinon.stub(Raven, 'isSetup').returns(false);
       this.sinon.stub(Raven, '_send');
@@ -2749,6 +2761,18 @@ describe('Raven (public API)', function() {
       assert.doesNotThrow(function() {
         Raven.captureException(new Error('err'));
       });
+    });
+
+    it('should respect `skipSampleRate`', function() {
+      this.sinon.stub(Raven, '_makeRequest');
+      setupRaven();
+      Raven._globalOptions.sampleRate = 0.0;
+      Raven.captureException(new Error('This error should be sent'), {
+        options: {
+          skipSampleRate: true
+        }
+      });
+      assert.equal(Raven._makeRequest.callCount, 1);
     });
   });
 

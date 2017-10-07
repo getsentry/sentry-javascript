@@ -1635,6 +1635,9 @@ Raven.prototype = {
 
   _send: function(data) {
     var globalOptions = this._globalOptions;
+    var options = data.options || {};
+    // delete `options` from data to so it doesn't get send with the outbound payload
+    delete data.options;
 
     var baseData = {
         project: this._globalProject,
@@ -1708,7 +1711,7 @@ Raven.prototype = {
       return;
     }
 
-    if (typeof globalOptions.sampleRate === 'number') {
+    if (typeof globalOptions.sampleRate === 'number' && !options.skipSampleRate) {
       if (Math.random() < globalOptions.sampleRate) {
         this._sendProcessedPayload(data);
       }
