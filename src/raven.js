@@ -450,6 +450,10 @@ Raven.prototype = {
     ex.name = null;
     var stack = TraceKit.computeStackTrace(ex);
 
+    var prvCall = stack.stack[1];
+
+    var fileurl = prvCall.url || '';
+
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
       options = objectMerge(
         {
