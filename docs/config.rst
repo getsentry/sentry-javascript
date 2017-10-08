@@ -90,7 +90,7 @@ Those configuration options are documented below:
     tags. Not setting this value is equivalent to a catch-all and will not
     filter out any values.
 
-    Does not affect ``captureMessage`` or when non-error object is passed in
+    Does not affect when non-error object is passed in
     as argument to captureException.
 
     .. code-block:: javascript
@@ -107,7 +107,7 @@ Those configuration options are documented below:
     messages to be filtered out before being sent to Sentry as either
     regular expressions or strings.
 
-    Does not affect captureMessage or when non-error object is passed in
+    Does not affect when non-error object is passed in
     as argument to captureException.
 
     .. code-block:: javascript
@@ -128,7 +128,7 @@ Those configuration options are documented below:
           ignoreUrls: [/graph\.facebook\.com/, 'http://example.com/script2.js']
         }
 
-    Does not affect captureMessage or when non-error object is passed in
+    Does not affect when non-error object is passed in
     as argument to ``captureException``.
 
 .. describe:: includePaths
