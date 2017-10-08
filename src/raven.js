@@ -454,6 +454,17 @@ Raven.prototype = {
 
     var fileurl = prvCall.url || '';
 
+    if (
+      !!this._globalOptions.ignoreUrls.test &&
+      this._globalOptions.ignoreUrls.test(fileurl)
+    )
+      return;
+    if (
+      !!this._globalOptions.whitelistUrls.test &&
+      !this._globalOptions.whitelistUrls.test(fileurl)
+    )
+      return;
+
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
       options = objectMerge(
         {
