@@ -450,20 +450,24 @@ Raven.prototype = {
     ex.name = null;
     var stack = TraceKit.computeStackTrace(ex);
 
-    var prvCall = stack.stack[1];
+    // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
+    var initialCall = stack.stack[1];
 
-    var fileurl = prvCall.url || '';
+    var fileurl = initialCall.url || '';
 
     if (
       !!this._globalOptions.ignoreUrls.test &&
       this._globalOptions.ignoreUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
+
     if (
       !!this._globalOptions.whitelistUrls.test &&
       !this._globalOptions.whitelistUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
 
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
       options = objectMerge(
