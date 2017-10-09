@@ -2670,13 +2670,13 @@ describe('Raven (public API)', function() {
       Raven._globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
       TraceKitStub.returns({stack: [{url: 'http://host1/'}, {url: 'http://host1/'}]});
       Raven.captureMessage('Capture!');
-      assert.equal(Raven._send.callCount, 1);
+      assert.isTrue(Raven._send.calledOnce);
       TraceKitStub.returns({stack: [{url: 'http://host2/'}, {url: 'http://host2/'}]});
       Raven.captureMessage('Also capture!');
-      assert.equal(Raven._send.callCount, 2);
+      assert.isTrue(Raven._send.calledTwice);
       TraceKitStub.returns({stack: [{url: 'http://host3/'}, {url: 'http://host3/'}]});
       Raven.captureMessage('Do not capture!');
-      assert.equal(Raven._send.callCount, 2);
+      assert.isTrue(Raven._send.calledTwice);
     });
 
     it('should handle empty `whitelistUrls`', function() {
