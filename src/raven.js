@@ -1470,13 +1470,16 @@ Raven.prototype = {
     if (
       !!this._globalOptions.ignoreUrls.test &&
       this._globalOptions.ignoreUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
+
     if (
       !!this._globalOptions.whitelistUrls.test &&
       !this._globalOptions.whitelistUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
 
     var data = objectMerge(
       {
