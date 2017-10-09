@@ -43,15 +43,16 @@ Sentry using ``Raven.captureException``, and optionally this is also a great opp
 
         render() {
             if (this.state.error) {
-            return (
-                <div
-                className="snap"
-                onClick={() => Raven.lastEventId() && Raven.showReportDialog()}>
-                <img src={oops} />
-                    <p>We're sorry — something's gone wrong.</p>
-                    <p>Our team has been notified, but click here fill out a report.</p>
-                </div>
-            );
+                //render fallback UI
+                return (
+                    <div
+                    className="snap"
+                    onClick={() => Raven.lastEventId() && Raven.showReportDialog()}>
+                        <img src={oops} />
+                        <p>We're sorry — something's gone wrong.</p>
+                        <p>Our team has been notified, but click here fill out a report.</p>
+                    </div>
+                );
             } else {
                 //when there's not an error, render children untouched
                 return this.props.children; 
@@ -68,7 +69,7 @@ Sentry using ``Raven.captureException``, and optionally this is also a great opp
         <p> This content won't unmount when Widget throws. </p>
     </div>
 
-One important thing to note about the behavior of error boundaries in development mode is that React will the rethrow errors they catch.
+One important thing to note about the behavior of error boundaries in development mode is that React will rethrow errors they catch.
 This will result in errors being reported twice to Sentry with the above setup, but this won't occur in your production build.
 
 Read more about error boundaries `in this blog post <https://blog.sentry.io/2017/09/28/react-16-error-boundaries>`_.
@@ -84,9 +85,7 @@ for annotating error reports with useful information, such as store state and re
 Redux Sagas Middleware
 ----------------
 If you're using `Redux Saga <https://github.com/redux-saga/redux-saga>`_ be
-aware that it does not bubble errors up to the browsers uncaught exception
-handler.
+aware that it does not bubble errors up to the browsers uncaught exception handler.
 
-You may specify an error handler that captures saga exceptions by passing an
-``onError`` function to the ``createSagaMiddleware`` options, and call ``Raven.captureException`` inside that callback.
+You may specify an error handler that captures saga exceptions by passing an ``onError`` function to the ``createSagaMiddleware`` options, and call ``Raven.captureException`` inside that callback.
 See the `Redux Saga documentation <https://redux-saga.js.org/docs/api/#createsagamiddlewareoptions>`_ for more details.
