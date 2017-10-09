@@ -1420,13 +1420,13 @@ Raven.prototype = {
   },
 
   _processException: function(type, message, fileurl, lineno, frames, options) {
-    if (!!this._globalOptions.ignoreErrors.test) {
-      if (
-        this._globalOptions.ignoreErrors.test(message) ||
-        (type && this._globalOptions.ignoreErrors.test(type + ': ' + (message || '')))
-      ) {
-        return;
-      }
+    var prefixedMessage = (type ? type + ': ' : '') + (message || '');
+    if (
+      !!this._globalOptions.ignoreErrors.test &&
+      (this._globalOptions.ignoreErrors.test(message) ||
+        this._globalOptions.ignoreErrors.test(prefixedMessage))
+    ) {
+      return;
     }
 
     var stacktrace;
