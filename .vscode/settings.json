@@ -1,0 +1,10 @@
+{
+    "prettier.bracketSpacing": true,
+    "prettier.singleQuote": true,
+    "prettier.printWidth": 90,
+    "prettier.jsxBracketSameLine": true,
+
+    "[typescript]": {
+        "editor.formatOnSave": true
+    }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@sentry/core",
+  "version": "0.1.0",
+  "description": "Sentry core implementation for all JavaScript related SDKs",
+  "main": "dist/index.js",
+  "typings": "definitions/index",
+  "typescript": {
+    "definition": "definitions/index"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^8.0.32",
+    "prettier": "^1.7.4",
+    "raven": "^2.2.1",
+    "raven-js": "^3.18.1",
+    "ts-loader": "^2.3.7",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.5.3",
+    "webpack": "^3.6.0"
+  },
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "dist": "npm run clean && tsc -p tsconfig.json",
+    "build-browser": "webpack --config webpack.config.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test-node": "ts-node _node.ts",
+    "test-browser": "npm run build-browser && open ./tests/index.html",
+    "watch": "webpack --watch"
+  },
+  "author": "Sentry",
+  "license": "MIT"
+}
