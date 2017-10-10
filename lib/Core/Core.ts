@@ -20,7 +20,7 @@ export enum LogLevel {
 export type Options = { [key: string]: any };
 
 export class Core {
-  private sdks: Sdk.Interface[] = [];
+  private sdks = new Array<Sdk.Interface>();
   readonly dsn: string;
   readonly options: Options = {};
 
@@ -39,11 +39,18 @@ export class Core {
     return sdk;
   }
 
+  getInstances(name: string): Sdk.Interface[] {
+    return this.sdks.filter((sdk: Sdk.Interface) => {
+      if (sdk.constructor.name == name) return true;
+      return false;
+    });
+  }
+
   async install() {
-    return await Promise.all(this.sdks.map((Sdk: Sdk.Interface) => Sdk._install()));
+    return await Promise.all(this.sdks.map((sdk: Sdk.Interface) => sdk._install()));
   }
 
   async send(event: Event) {
-    return await Promise.all(this.sdks.map((Sdk: Sdk.Interface) => Sdk._send(event)));
+    return await Promise.all(this.sdks.map((sdk: Sdk.Interface) => sdk._send(event)));
   }
 }
