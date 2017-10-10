@@ -61,6 +61,7 @@ Sentry using ``Raven.captureException``, and optionally this is also a great opp
     }
 
 .. code-block:: javascript
+
     <div>
         <ExampleBoundary>
             <h2>Sidebar</h2>
