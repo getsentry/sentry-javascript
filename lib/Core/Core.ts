@@ -34,9 +34,9 @@ export class Core {
     client: { new (dsn: string, options: Options, core: Core): T },
     options?: Options
   ): T {
-    let Sdk = new client(this.dsn, options, this);
-    this.sdks.push(Sdk);
-    return Sdk;
+    let sdk = new client(this.dsn, options, this);
+    this.sdks.push(sdk);
+    return sdk;
   }
 
   async install() {
