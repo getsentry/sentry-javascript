@@ -477,16 +477,38 @@ describe('globals', function() {
   describe('processException', function() {
     it('should respect `ignoreErrors`', function() {
       this.sinon.stub(Raven, '_send');
+      Raven._globalOptions.ignoreErrors = joinRegExp([
+        'msg1',
+        'CustomError1',
+        'CustomError2: msg2',
+        /^msg3/,
+        /^RegexError1/,
+        /^RegexError2: msg4/
+      ]);
+      Raven._processException('Error', 'msg1', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+      Raven._processException(undefined, 'msg1', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+      Raven._processException('CustomError1', 'error', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+      Raven._processException('CustomError2', 'msg2', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
 
-      Raven._globalOptions.ignoreErrors = joinRegExp(['e1', 'e2', 'CustomError']);
-      Raven._processException('Error', 'e1', 'http://example.com', []);
+      Raven._processException('Error', 'msg3', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
-      Raven._processException('Error', 'e2', 'http://example.com', []);
+      Raven._processException(undefined, 'msg3', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
-      Raven._processException('CustomError', 'e3', 'http://example.com', []);
+      Raven._processException('RegexError1', 'error', 'http://example.com', []);
       assert.isFalse(Raven._send.called);
+      Raven._processException('RegexError2', 'msg4', 'http://example.com', []);
+      assert.isFalse(Raven._send.called);
+
       Raven._processException('Error', 'error', 'http://example.com', []);
       assert.isTrue(Raven._send.calledOnce);
+      Raven._processException('CustomError2', 'error', 'http://example.com', []);
+      assert.isTrue(Raven._send.calledTwice);
+      Raven._processException('RegexError2', 'error', 'http://example.com', []);
+      assert.isTrue(Raven._send.calledThrice);
     });
 
     it('should handle empty `ignoreErrors`', function() {
