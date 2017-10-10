@@ -39,11 +39,8 @@ export class Core {
     return sdk;
   }
 
-  getInstances(name: string): Sdk.Interface[] {
-    return this.sdks.filter((sdk: Sdk.Interface) => {
-      if (sdk.constructor.name == name) return true;
-      return false;
-    });
+  getInstalledSdks(): Sdk.Interface[] {
+    return this.sdks;
   }
 
   async install() {
