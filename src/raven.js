@@ -435,21 +435,41 @@ Raven.prototype = {
       options
     );
 
+    var ex;
+    // Generate a "synthetic" stack trace from this point.
+    // NOTE: If you are a Sentry user, and you are seeing this stack frame, it is NOT indicative
+    //       of a bug with Raven.js. Sentry generates synthetic traces either by configuration,
+    //       or if it catches a thrown object without a "stack" property.
+    try {
+      throw new Error(msg);
+    } catch (ex1) {
+      ex = ex1;
+    }
+
+    // null exception name so `Error` isn't prefixed to msg
+    ex.name = null;
+    var stack = TraceKit.computeStackTrace(ex);
+
+    // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
+    var initialCall = stack.stack[1];
+
+    var fileurl = initialCall.url || '';
+
+    if (
+      !!this._globalOptions.ignoreUrls.test &&
+      this._globalOptions.ignoreUrls.test(fileurl)
+    ) {
+      return;
+    }
+
+    if (
+      !!this._globalOptions.whitelistUrls.test &&
+      !this._globalOptions.whitelistUrls.test(fileurl)
+    ) {
+      return;
+    }
+
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
-      var ex;
-      // Generate a "synthetic" stack trace from this point.
-      // NOTE: If you are a Sentry user, and you are seeing this stack frame, it is NOT indicative
-      //       of a bug with Raven.js. Sentry generates synthetic traces either by configuration,
-      //       or if it catches a thrown object without a "stack" property.
-      try {
-        throw new Error(msg);
-      } catch (ex1) {
-        ex = ex1;
-      }
-
-      // null exception name so `Error` isn't prefixed to msg
-      ex.name = null;
-
       options = objectMerge(
         {
           // fingerprint on msg, not stack trace (legacy behavior, could be
@@ -463,7 +483,6 @@ Raven.prototype = {
         options
       );
 
-      var stack = TraceKit.computeStackTrace(ex);
       var frames = this._prepareFrames(stack, options);
       data.stacktrace = {
         // Sentry expects frames oldest to newest
@@ -1452,13 +1471,16 @@ Raven.prototype = {
     if (
       !!this._globalOptions.ignoreUrls.test &&
       this._globalOptions.ignoreUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
+
     if (
       !!this._globalOptions.whitelistUrls.test &&
       !this._globalOptions.whitelistUrls.test(fileurl)
-    )
+    ) {
       return;
+    }
 
     var data = objectMerge(
       {

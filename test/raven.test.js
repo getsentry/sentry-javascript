@@ -2657,6 +2657,62 @@ describe('Raven (public API)', function() {
       });
     });
 
+    it('should respect `ignoreUrls`', function() {
+      this.sinon.stub(Raven, '_send');
+      var TraceKitStub = this.sinon.stub(TraceKit, 'computeStackTrace');
+
+      Raven._globalOptions.ignoreUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+      TraceKitStub.returns({stack: [{url: 'http://host1/'}, {url: 'http://host1/'}]});
+      Raven.captureMessage('Do not capture');
+      assert.isFalse(Raven._send.called);
+      TraceKitStub.returns({stack: [{url: 'http://host2/'}, {url: 'http://host2/'}]});
+      Raven.captureMessage('Also do not capture');
+      assert.isFalse(Raven._send.called);
+      TraceKitStub.returns({stack: [{url: 'http://host3/'}, {url: 'http://host3/'}]});
+      Raven.captureMessage('Capture!');
+      assert.isTrue(Raven._send.calledOnce);
+    });
+
+    it('should handle empty `ignoreUrls`', function() {
+      this.sinon.stub(Raven, '_send');
+      var TraceKitStub = this.sinon.stub(TraceKit, 'computeStackTrace');
+
+      Raven._globalOptions.ignoreUrls = [];
+      TraceKitStub.returns({
+        stack: [{url: 'http://example.com'}, {url: 'http://example.com'}]
+      });
+      Raven.captureMessage('Capture!');
+      assert.isTrue(Raven._send.calledOnce);
+    });
+
+    it('should respect `whitelistUrls`', function() {
+      this.sinon.stub(Raven, '_send');
+      var TraceKitStub = this.sinon.stub(TraceKit, 'computeStackTrace');
+
+      Raven._globalOptions.whitelistUrls = joinRegExp([/.+?host1.+/, /.+?host2.+/]);
+      TraceKitStub.returns({stack: [{url: 'http://host1/'}, {url: 'http://host1/'}]});
+      Raven.captureMessage('Capture!');
+      assert.isTrue(Raven._send.calledOnce);
+      TraceKitStub.returns({stack: [{url: 'http://host2/'}, {url: 'http://host2/'}]});
+      Raven.captureMessage('Also capture!');
+      assert.isTrue(Raven._send.calledTwice);
+      TraceKitStub.returns({stack: [{url: 'http://host3/'}, {url: 'http://host3/'}]});
+      Raven.captureMessage('Do not capture!');
+      assert.isTrue(Raven._send.calledTwice);
+    });
+
+    it('should handle empty `whitelistUrls`', function() {
+      this.sinon.stub(Raven, '_send');
+      var TraceKitStub = this.sinon.stub(TraceKit, 'computeStackTrace');
+
+      Raven._globalOptions.whitelistUrls = [];
+      TraceKitStub.returns({
+        stack: [{url: 'http://example.com'}, {url: 'http://example.com'}]
+      });
+      Raven.captureMessage('Capture!');
+      assert.isTrue(Raven._send.calledOnce);
+    });
+
     describe('synthetic traces', function() {
       function assertSynthetic(frames) {
         // Raven.captureMessage
