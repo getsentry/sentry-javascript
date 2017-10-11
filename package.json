@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "Sentry core implementation for all JavaScript related SDKs",
   "main": "dist/index.js",
-  "typings": "definitions/index",
+  "typings": "dist/index.d.ts",
   "typescript": {
-    "definition": "definitions/index"
+    "definition": "dist/index.d.ts"
   },
   "dependencies": {},
   "devDependencies": {
@@ -13,23 +13,23 @@
     "@types/node": "^8.0.32",
     "jest": "^21.2.1",
     "prettier": "^1.7.4",
-    "raven": "^2.2.1",
-    "raven-js": "^3.18.1",
     "ts-jest": "^21.1.2",
     "ts-loader": "^2.3.7",
     "ts-node": "^3.3.0",
     "typescript": "^2.5.3",
     "webpack": "^3.6.0"
   },
+  "engines": {
+    "node": ">=6.9.5 <7.0.0",
+    "npm": ">=3.10.7 <4.0.0",
+    "yarn": ">=1.0.2 <2.0.0"
+  },
   "scripts": {
+    "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Please use Yarn instead of NPM to install dependencies. See: https://yarnpkg.com/lang/en/docs/install/')\"",
     "clean": "rm -rf ./dist",
     "dist": "npm run clean && tsc -p tsconfig.json",
-    "build-browser": "webpack --config webpack.config.js",
     "test": "jest",
-    "test:watch": "jest --watch --notify",
-    "test-node": "ts-node _node.ts",
-    "test-browser": "npm run build-browser && open ./tests/index.html",
-    "watch": "webpack --watch"
+    "test:watch": "jest --watch --notify"
   },
   "jest": {
     "transform": {
