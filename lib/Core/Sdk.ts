@@ -11,7 +11,8 @@ export namespace Sdk {
   export interface Interface {
     readonly dsn: string;
     readonly options: Options;
-    _install(): Promise<Result<boolean>>;
-    _send(event: Event): Promise<Result<Event>>;
+    install(): Promise<Result<boolean>>;
+    send(event: Event): Promise<Result<Event>>;
+    captureEvent(event: Event): Promise<Event>;
   }
 }

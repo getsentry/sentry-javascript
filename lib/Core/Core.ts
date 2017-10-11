@@ -43,11 +43,24 @@ export class Core {
     return this.sdks;
   }
 
-  async install() {
-    return await Promise.all(this.sdks.map((sdk: Sdk.Interface) => sdk._install()));
+  captureMessage(message: string) {
+    let event = new Event();
+    event.message = message;
+    return this.captureEvent(event);
   }
 
-  async send(event: Event) {
-    return await Promise.all(this.sdks.map((sdk: Sdk.Interface) => sdk._send(event)));
+  captureEvent(event: Event) {
+    return this.sdks.reduce(
+      async (event, sdk) => sdk.captureEvent(await event),
+      Promise.resolve(event)
+    );
+  }
+
+  install() {
+    return Promise.all(this.sdks.map(sdk => sdk.install()));
+  }
+
+  send(event: Event) {
+    return Promise.all(this.sdks.map(sdk => sdk.send(event)));
   }
 }
