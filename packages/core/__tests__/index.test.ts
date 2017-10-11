@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import * as Sentry from '../index';
 import { MockSdk } from '../__mocks__/MockSdk';
 
@@ -73,7 +74,10 @@ describe('Sentry.Core', () => {
     expect(spy1).toBeCalled();
     expect(spy2).toBeCalled();
     expect(spy3).toBeCalled();
-    expect(result.value.message).toBe('heyho+++');
+    expect(result.value).toBeDefined();
+    if (result.value) {
+      expect(result.value.message).toBe('heyho+++');
+    }
   });
 
   test('call send only on one SDK', async () => {
@@ -94,6 +98,9 @@ describe('Sentry.Core', () => {
     expect(spy3).toBeCalled();
     expect(spy2Send).toBeCalled();
     expect(result.sdk).toEqual(sdk2);
-    expect(result.value.message).toBe('send+++');
+    expect(result.value).toBeDefined();
+    if (result.value) {
+      expect(result.value.message).toBe('send+++');
+    }
   });
 });

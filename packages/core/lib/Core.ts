@@ -16,11 +16,9 @@ export class Core {
   }
 
   readonly dsn: string;
-  readonly options: Options = {
-    maxBreadcrumbs: 100
-  };
+  readonly options: Options;
 
-  constructor(dsn: string, options?: Options) {
+  constructor(dsn: string, options: Options = { maxBreadcrumbs: 100 }) {
     this.dsn = dsn;
     this.options = options;
     return this;
@@ -32,10 +30,10 @@ export class Core {
    * @param options
    */
   register<T extends Sdk.Interface, O extends Sdk.Options>(
-    client: { new (dsn: string, options: O, core: Core): T },
+    client: { new (core: Core, dsn: string, options?: O): T },
     options?: O
   ): T {
-    let sdk = new client(this.dsn, options, this);
+    let sdk = new client(this, this.dsn, options);
     // We use this._sdks on purpose here
     // everywhere else we should use this.sdks
     this._sdks.push(sdk);

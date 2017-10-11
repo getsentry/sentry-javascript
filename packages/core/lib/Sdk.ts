@@ -12,7 +12,7 @@ export namespace Sdk {
      * This number determines which Sdk should send the event
      * default: (should be) 1000
      */
-    rank?: number;
+    rank: number;
   };
 
   export interface Interface {

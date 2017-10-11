@@ -1,18 +1,17 @@
 {
+    "extends": "../tsconfig.build.json",
+
     "compilerOptions": {
-        "sourceMap": false,
-        "lib": [
-            "es2015"
-        ],
         "types": [
-            "node"
+            "node",
+            "jest"
         ],
-        "declaration": true,
         "allowJs": false,
-        "target": "es5",
         "outDir": "dist"
     },
+
     "include": [
+        "__tests__",
         "index.ts",
         "lib/**/*",
         "spec/**/*"

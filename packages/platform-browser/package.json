@@ -8,6 +8,7 @@
     "definition": "dist/index.d.ts"
   },
   "dependencies": {
+    "@sentry/core": "../core",
     "raven-js": "^3.18.1"
   },
   "devDependencies": {
