@@ -7,6 +7,14 @@ export type Options = {
 
 export class Core {
   private _sdks = new Array<Sdk.Interface>();
+  /**
+   * Returns all registered SDKs
+   */
+  get sdks() {
+    this.hasConfiguredSdk();
+    return this._sdks;
+  }
+
   readonly dsn: string;
   readonly options: Options = {
     maxBreadcrumbs: 100
@@ -18,27 +26,24 @@ export class Core {
     return this;
   }
 
-  register<T extends Sdk.Interface, U extends Sdk.Options>(
-    client: { new (dsn: string, options: U, core: Core): T },
-    options?: U
+  /**
+   * Register a SDK client with the core
+   * @param client
+   * @param options
+   */
+  register<T extends Sdk.Interface, O extends Sdk.Options>(
+    client: { new (dsn: string, options: O, core: Core): T },
+    options?: O
   ): T {
-    console.log(options);
     let sdk = new client(this.dsn, options, this);
+    // We use this._sdks on purpose here
+    // everywhere else we should use this.sdks
     this._sdks.push(sdk);
     if (!this.hasUniqueRankedSdks()) {
       throw new TypeError('SDK must have unique rank, use options {rank: value}');
     }
-    // We want to sort all SDKs by rank
-    this._sdks.sort((prev, current) => {
-      if (prev.options.rank < current.options.rank) return -1;
-      if (prev.options.rank > current.options.rank) return 1;
-      return 0;
-    });
+    this.sortSdks();
     return sdk;
-  }
-
-  get sdks() {
-    return this._sdks;
   }
 
   captureMessage(message: string) {
@@ -47,18 +52,25 @@ export class Core {
     return this.captureEvent(event);
   }
 
+  /**
+   * Captures and sends an event. Will pass through every registered
+   * SDK and send will be called by the SDK with the lowest rank
+   * @param event
+   */
   async captureEvent(event: Event) {
     return this.send(
-      await this._sdks.reduce(
+      await this.sdks.reduce(
         async (event, sdk) => sdk.captureEvent(await event),
         Promise.resolve(event)
       )
     );
   }
 
+  /**
+   * Calls install() on all registered SDKs
+   */
   install() {
-    this.checkHasConfiguredSdk();
-    return Promise.all(this._sdks.map(sdk => sdk.install()));
+    return Promise.all(this.sdks.map(sdk => sdk.install()));
   }
 
   /**
@@ -66,18 +78,35 @@ export class Core {
    * @param event
    */
   send(event: Event) {
-    this.checkHasConfiguredSdk();
-    return this._sdks[0].send(event);
+    return this.sdks[0].send(event);
   }
 
   // -------------------- HELPER
 
-  private hasUniqueRankedSdks() {
-    return new Set(this._sdks.map(sdk => sdk.options.rank)).size === this._sdks.length;
+  /**
+   * This sorts all SDKs from lowest to highest rank
+   */
+  private sortSdks() {
+    this._sdks.sort((prev, current) => {
+      if (prev.options.rank < current.options.rank) return -1;
+      if (prev.options.rank > current.options.rank) return 1;
+      return 0;
+    });
   }
 
-  private checkHasConfiguredSdk() {
-    if (this.sdks.length === 0)
+  /**
+   * Checks if there are multiple SDKs with the same rank
+   */
+  private hasUniqueRankedSdks() {
+    return new Set(this.sdks.map(sdk => sdk.options.rank)).size === this.sdks.length;
+  }
+
+  /**
+   * Checks if there are any registered SDKs, this will be called by
+   * this.sdks
+   */
+  private hasConfiguredSdk() {
+    if (this._sdks.length === 0)
       throw new RangeError('At least one SDK has to be registered');
   }
 }
