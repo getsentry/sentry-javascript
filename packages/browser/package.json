@@ -1,5 +1,5 @@
 {
-  "name": "@sentry/platform-browser",
+  "name": "@sentry/browser",
   "version": "0.1.0",
   "description": "Offical Sentry SDK for browsers",
   "main": "dist/index.js",
