@@ -5,6 +5,8 @@ export type Options = {
   maxBreadcrumbs: number;
 };
 
+// TODO: Add breadcrumbs
+// TODO: Add context handling tags, extra, user
 export class Core {
   private _sdks = new Array<Sdk.Interface>();
   /**
@@ -15,12 +17,8 @@ export class Core {
     return this._sdks;
   }
 
-  readonly dsn: string;
-  readonly options: Options;
-
-  constructor(dsn: string, options: Options = { maxBreadcrumbs: 100 }) {
-    this.dsn = dsn;
-    this.options = options;
+  constructor(public dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
+    // TODO: parse DSN split into public/private
     return this;
   }
 
