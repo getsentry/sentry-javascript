@@ -13,6 +13,6 @@ addons:
   chrome: stable
   sauce_connect: true
 script:
-- npm run test
-- npm run test:ci
-- npm run bundlesize
+  - npm run test:size
+  - npm run test
+  - npm run test:ci

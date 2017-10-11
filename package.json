@@ -23,7 +23,7 @@
     "test:integration": "mocha-chrome test/integration/index.html --chrome-flags '[\"--disable-web-security\"]' --ignore-resource-errors --ignore-exceptions",
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
     "test:ci": "npm run lint && grunt test:ci",
-    "bundlesize": "grunt dist && bundlesize"
+    "test:size": "grunt dist && bundlesize"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
