@@ -96,7 +96,11 @@ export class Core {
    * Checks if there are multiple SDKs with the same rank
    */
   private hasUniqueRankedSdks() {
-    return new Set(this.sdks.map(sdk => sdk.options.rank)).size === this.sdks.length;
+    let ranks = this.sdks.map(sdk => sdk.options.rank);
+    return (
+      ranks.filter(rank => ranks.indexOf(rank) === ranks.lastIndexOf(rank)).length ===
+      this.sdks.length
+    );
   }
 
   /**
