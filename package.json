@@ -22,12 +22,14 @@
     "test:unit": "mocha-chrome test/index.html",
     "test:integration": "mocha-chrome test/integration/index.html --chrome-flags '[\"--disable-web-security\"]' --ignore-resource-errors --ignore-exceptions",
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
-    "test:ci": "npm run lint && grunt test:ci"
+    "test:ci": "npm run lint && grunt test:ci",
+    "bundlesize": "grunt dist && bundlesize"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
     "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
+    "bundlesize": "^0.15.2",
     "chai": "^4.1.1",
     "derequire": "2.0.3",
     "es6-promise": "^4.0.5",
@@ -67,5 +69,11 @@
       "git add"
     ]
   },
-  "typings": "typescript/raven.d.ts"
+  "typings": "typescript/raven.d.ts",
+  "bundlesize": [
+    {
+      "path": "./dist/raven.min.js",
+      "maxSize": "10 kB"
+    }
+  ]
 }
