@@ -19,7 +19,7 @@
     "precommit": "lint-staged",
     "publish": "npm run test && grunt publish",
     "test": "npm run lint && npm run test:size && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
-    "test:karma:unit": "karma start karma.config.js",
+    "test:karma:unit": "karma start karma.unit.config.js",
     "test:karma:integration": "karma start karma.integration.config.js ",
     "test:unit": "npm run test:karma:unit -- --single-run",
     "test:integration": "npm run test:karma:integration -- --single-run",
