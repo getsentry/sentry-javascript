@@ -102,12 +102,14 @@ Those configuration options are documented below:
     something other than your application, or errors that you're
     completely not interested in. `ignoreErrors` is a list of these
     messages to be filtered out before being sent to Sentry as either
-    regular expressions or strings.
+    regular expressions or strings. When using strings, they'll partially
+    match the messages, so if you need to achieve an exact match, use
+    RegExp patterns instead.
 
     .. code-block:: javascript
 
         {
-          ignoreErrors: ['fb_xd_fragment']
+          ignoreErrors: ['fb_xd_fragment', /^Exact Match Message$/]
         }
 
 .. describe:: ignoreUrls
