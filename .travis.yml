@@ -11,6 +11,7 @@ cache:
   - node_modules
 addons:
   chrome: stable
+  firefox: latest
   sauce_connect: true
 script:
   - npm run test && npm run test:ci
