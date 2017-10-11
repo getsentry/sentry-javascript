@@ -1,12 +1,13 @@
 var commonConfig = require('./karma.config');
 
+var testFiles = ['test/globals.js', 'build/raven.test.js'];
+
 module.exports = function(config) {
-  var unitTestFiles = ['test/globals.js', 'build/raven.test.js'];
-  var unitTestConfig = Object.assign(
+  var testConfig = Object.assign(
     {},
     commonConfig,
-    {files: unitTestFiles},
+    {files: testFiles},
     {logLevel: config.LOG_INFO}
   );
-  config.set(unitTestConfig);
+  config.set(testConfig);
 };
