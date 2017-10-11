@@ -2,6 +2,10 @@
 /*global assert:false, console:true*/
 'use strict';
 
+var sinon = require('sinon');
+var chai = require('chai');
+var assert = chai.assert;
+
 var proxyquire = require('proxyquireify')(require);
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
@@ -32,6 +36,14 @@ function setupRaven() {
 }
 
 var Raven;
+
+beforeEach(function() {
+  this.sinon = sinon.sandbox.create();
+});
+
+afterEach(function() {
+  this.sinon.restore();
+});
 
 describe('globals', function() {
   beforeEach(function() {
