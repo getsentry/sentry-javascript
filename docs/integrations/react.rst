@@ -76,7 +76,7 @@ This will result in errors being reported twice to Sentry with the above setup, 
 Read more about error boundaries `in this blog post <https://blog.sentry.io/2017/09/28/react-16-error-boundaries>`_.
 
 Redux
-----------------
+-----
 If you use `Redux <https://github.com/reactjs/redux>`_ there are some useful community maintained middleware packages 
 for annotating error reports with useful information, such as store state and recent actions:
 
@@ -84,7 +84,7 @@ for annotating error reports with useful information, such as store state and re
 - `ngokevin/redux-raven-middleware <https://github.com/ngokevin/redux-raven-middleware>`_
 
 Redux Sagas Middleware
-----------------
+----------------------
 If you're using `Redux Saga <https://github.com/redux-saga/redux-saga>`_ be
 aware that it does not bubble errors up to the browsers uncaught exception handler.
 
