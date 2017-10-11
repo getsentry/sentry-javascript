@@ -453,7 +453,7 @@ Raven.prototype = {
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
     var initialCall = stack.stack[1];
 
-    var fileurl = initialCall.url || '';
+    var fileurl = (initialCall && initialCall.url) || '';
 
     if (
       !!this._globalOptions.ignoreUrls.test &&
