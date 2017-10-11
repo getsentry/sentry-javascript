@@ -24,8 +24,8 @@ At this point, Raven is ready to capture any uncaught exception.
 
 Expanded Usage
 --------------
-If you're using React 16 or above, `Error Boundaries <https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html>`_ 
-are an important tool for defining the behavior of your application in the face of errors. Be sure to send errors they catch to 
+If you're using React 16 or above, `Error Boundaries <https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html>`_
+are an important tool for defining the behavior of your application in the face of errors. Be sure to send errors they catch to
 Sentry using ``Raven.captureException``, and optionally this is also a great opportunity to surface `User Feedback <https://docs.sentry.io/learn/user-feedback/>`_
 
 .. code-block:: javascript
@@ -35,7 +35,7 @@ Sentry using ``Raven.captureException``, and optionally this is also a great opp
             super(props);
             this.state = { error: null };
         }
-        
+
         componentDidCatch(error, errorInfo) {
             this.setState({ error });
             Raven.captureException(error, { extra: errorInfo });
@@ -55,7 +55,7 @@ Sentry using ``Raven.captureException``, and optionally this is also a great opp
                 );
             } else {
                 //when there's not an error, render children untouched
-                return this.props.children; 
+                return this.props.children;
             }
         }
     }
@@ -77,7 +77,7 @@ Read more about error boundaries `in this blog post <https://blog.sentry.io/2017
 
 Redux
 -----
-If you use `Redux <https://github.com/reactjs/redux>`_ there are some useful community maintained middleware packages 
+If you use `Redux <https://github.com/reactjs/redux>`_ there are some useful community maintained middleware packages
 for annotating error reports with useful information, such as store state and recent actions:
 
 - `captbaritone/raven-for-redux <https://github.com/captbaritone/raven-for-redux>`_
