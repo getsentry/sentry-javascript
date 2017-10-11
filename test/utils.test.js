@@ -2,17 +2,16 @@
 /*global assert:false, console:true*/
 'use strict';
 
-var Raven = require('../src/raven');
-var wrappedCallback = require('../src/utils').wrappedCallback;
-var utils = Raven.utils;
 var RavenConfigError = require('../src/configError');
 
+var utils = require('../src/utils');
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
 var isObject = utils.isObject;
 var isEmptyObject = utils.isEmptyObject;
 var isError = utils.isError;
+var wrappedCallback = utils.wrappedCallback;
 var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
 var truncate = utils.truncate;

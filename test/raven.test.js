@@ -16,7 +16,7 @@ _Raven.prototype._getUuid = function() {
   return 'abc123';
 };
 
-var joinRegExp = _Raven.utils.joinRegExp;
+var joinRegExp = require('../src/utils').joinRegExp;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
