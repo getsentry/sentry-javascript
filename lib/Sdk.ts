@@ -1,13 +1,20 @@
-import { Event } from './Interface/Event';
-import { Options } from '../Core/Core';
+import { Event } from './Interface';
+import { Options } from './Core';
 
 export namespace Sdk {
   export type Result<T> = {
     sdk: Interface;
     value?: T;
   };
-  // There are no internal functions yet
-  // so we have to go with _
+
+  export type Options = {
+    /**
+     * This number determines which Sdk should send the event
+     * default: (should be) 1000
+     */
+    rank?: number;
+  };
+
   export interface Interface {
     readonly dsn: string;
     readonly options: Options;

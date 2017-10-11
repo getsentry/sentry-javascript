@@ -1,4 +1,4 @@
-import { Severity } from '../Core';
+import { Severity } from './Severity';
 
 export class Event {
   id: string = 'TODO';

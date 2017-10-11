@@ -1,5 +1,5 @@
 import * as Sentry from '../index';
-import { MockSdk } from '../__mocks__/MockSdk';
+import { MockSdk, Options } from '../__mocks__/MockSdk';
 
 const dsn = '__DSN__';
 
@@ -8,9 +8,18 @@ beforeEach(() => {
 });
 
 describe('Sentry.Core', () => {
+  test('throw error for SDKs with same rank', () => {
+    let sentry = new Sentry.Core(dsn);
+    sentry.register(MockSdk);
+    expect(() => sentry.register(MockSdk)).toThrow();
+  });
+
   test('call install on all SDKs', () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk);
+    let sdk1 = sentry.register<MockSdk, Options>(MockSdk, {
+      rank: 1001,
+      testOption: true
+    });
     let sdk2 = sentry.register(MockSdk);
     let spy1 = jest.spyOn(sdk1, 'install');
     let spy2 = jest.spyOn(sdk2, 'install');
@@ -22,7 +31,7 @@ describe('Sentry.Core', () => {
   test('call captureEvent on all SDKs', async () => {
     let sentry = new Sentry.Core(dsn);
     let sdk1 = sentry.register(MockSdk);
-    let sdk2 = sentry.register(MockSdk);
+    let sdk2 = sentry.register(MockSdk, { rank: 1001 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let event = new Sentry.Event();
@@ -31,21 +40,60 @@ describe('Sentry.Core', () => {
     let result = await sentry.captureEvent(event);
     expect(spy1).toBeCalledWith({ id: 'testid', message: 'message', severity: 3 });
     expect(spy2).toBeCalledWith({ id: 'testid', message: 'message+', severity: 3 });
-    expect(result).toEqual({ id: 'testid', message: 'message++', severity: 3 });
+    expect(result.value).toEqual({ id: 'testid', message: 'message++', severity: 3 });
+  });
+
+  test('call captureEvent on all SDKs in right order', async () => {
+    let sentry = new Sentry.Core(dsn);
+    let sdk1 = sentry.register(MockSdk);
+    let sdk2 = sentry.register(MockSdk, { rank: 1001 });
+    let sdk3 = sentry.register(MockSdk, { rank: 999 });
+    let spy1 = jest.spyOn(sdk1, 'captureEvent');
+    let spy2 = jest.spyOn(sdk2, 'captureEvent');
+    let spy3 = jest.spyOn(sdk3, 'captureEvent');
+    let event = new Sentry.Event();
+    event.id = 'testid';
+    event.message = 'message';
+    let result = await sentry.captureEvent(event);
+    expect(spy1).toBeCalledWith({ id: 'testid', message: 'message+', severity: 3 });
+    expect(spy2).toBeCalledWith({ id: 'testid', message: 'message++', severity: 3 });
+    expect(spy3).toBeCalledWith({ id: 'testid', message: 'message', severity: 3 });
+    expect(result.value).toEqual({ id: 'testid', message: 'message+++', severity: 3 });
   });
 
   test('call captureMessage on all SDKs', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk);
-    let sdk2 = sentry.register(MockSdk);
+    let sdk1 = sentry.register(MockSdk, { rank: 1001 });
+    let sdk2 = sentry.register(MockSdk, { rank: 1002 });
     let sdk3 = sentry.register(MockSdk);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
-    let spy3 = jest.spyOn(sdk2, 'captureEvent');
+    let spy3 = jest.spyOn(sdk3, 'captureEvent');
     let result = await sentry.captureMessage('heyho');
     expect(spy1).toBeCalled();
     expect(spy2).toBeCalled();
     expect(spy3).toBeCalled();
-    expect(result.message).toBe('heyho+++');
+    expect(result.value.message).toBe('heyho+++');
+  });
+
+  test('call send only on one SDK', async () => {
+    let sentry = new Sentry.Core(dsn);
+    let sdk1 = sentry.register(MockSdk, { rank: 1001 });
+    let sdk2 = sentry.register(MockSdk, { rank: 900 });
+    let sdk3 = sentry.register(MockSdk);
+    let spy1 = jest.spyOn(sdk1, 'captureEvent');
+    let spy2 = jest.spyOn(sdk2, 'captureEvent');
+    let spy3 = jest.spyOn(sdk3, 'captureEvent');
+    let spy2Send = jest.spyOn(sdk2, 'send');
+    let event = new Sentry.Event();
+    event.id = 'testid';
+    event.message = 'send';
+    let result = await sentry.captureEvent(event);
+    expect(spy1).toBeCalled();
+    expect(spy2).toBeCalled();
+    expect(spy3).toBeCalled();
+    expect(spy2Send).toBeCalled();
+    expect(result.sdk).toEqual(sdk2);
+    expect(result.value.message).toBe('send+++');
   });
 });
