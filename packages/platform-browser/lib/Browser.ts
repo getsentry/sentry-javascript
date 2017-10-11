@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Sdk, Core, Options, Event } from '@sentry/core';
 var Raven = require('raven-js');
 
@@ -7,14 +8,15 @@ export namespace Browser {
   };
 
   export class Client implements Sdk.Interface {
-    readonly dsn: string;
-    readonly options: Options = {};
+    options: Options = {
+      rank: 1000,
+      testOption: false
+    };
     private core: Core;
 
-    constructor(dsn: string, options: Options, core: Core) {
-      this.dsn = dsn;
-      this.options = options;
+    constructor(core: Core, public dsn: string, options?: Options) {
       this.core = core;
+      if (options && options.rank) this.options.rank = options.rank;
       return this;
     }
 
