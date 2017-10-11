@@ -84,7 +84,7 @@ for annotating error reports with useful information, such as store state and re
 - `ngokevin/redux-raven-middleware <https://github.com/ngokevin/redux-raven-middleware>`_
 
 Redux Sagas Middleware
--------------------
+-----------------------------
 If you're using `Redux Saga <https://github.com/redux-saga/redux-saga>`_ be
 aware that it does not bubble errors up to the browsers uncaught exception handler.
 
