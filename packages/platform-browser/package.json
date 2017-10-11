@@ -1,13 +1,15 @@
 {
-  "name": "@sentry/core",
+  "name": "@sentry/platform-browser",
   "version": "0.1.0",
-  "description": "Sentry core implementation for all JavaScript related SDKs",
+  "description": "Offical Sentry SDK for browsers",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "typescript": {
     "definition": "dist/index.d.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "raven-js": "^3.18.1"
+  },
   "devDependencies": {
     "@types/jest": "^21.1.2",
     "@types/node": "^8.0.32",
@@ -20,8 +22,8 @@
     "webpack": "^3.6.0"
   },
   "engines": {
-    "node": ">=6.9.5 <7.0.0",
-    "npm": ">=3.10.7 <4.0.0",
+    "node": ">=6.9.5 <9.0.0",
+    "npm": ">=3.10.7 <6.0.0",
     "yarn": ">=1.0.2 <2.0.0"
   },
   "scripts": {

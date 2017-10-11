@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "sourceMap": false,
+        "lib": [
+            "es2015"
+        ],
+        "types": [
+            "node"
+        ],
+        "declaration": true,
+        "allowJs": false,
+        "target": "es5",
+        "outDir": "dist"
+    },
+    "include": [
+        "index.ts",
+        "lib/**/*",
+        "spec/**/*"
+    ]
+}

@@ -16,8 +16,5 @@
         "index.ts",
         "lib/**/*",
         "spec/**/*"
-    ],
-    "exclude": [
-        "lib/Backend/**/*"
     ]
 }
