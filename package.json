@@ -18,7 +18,7 @@
     "lint": "eslint .",
     "precommit": "lint-staged",
     "publish": "npm run test && grunt publish",
-    "test": "npm run lint && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
+    "test": "npm run lint && npm run test:size && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
     "test:unit": "mocha-chrome test/index.html",
     "test:integration": "mocha-chrome test/integration/index.html --chrome-flags '[\"--disable-web-security\"]' --ignore-resource-errors --ignore-exceptions",
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
