@@ -63,6 +63,7 @@ var testFiles = [
   'test/globals.js',
   'build/raven.js',
   'build/raven.test.js',
+  {pattern: 'test/integration/123', included: false},
   {pattern: 'test/integration/throw-string.js', included: false},
   {pattern: 'test/integration/throw-error.js', included: false},
   {pattern: 'test/integration/throw-object.js', included: false},
