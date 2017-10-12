@@ -13,35 +13,49 @@ var customLaunchers = {
     platform: 'Windows 10',
     version: 'latest'
   },
-  sl_ios_safari: {
+  sl_edge: {
     base: 'SauceLabs',
-    browserName: 'iphone',
-    platform: 'macOS 10.12',
-    version: '10.0'
-  },
-  sl_macos_safari: {
-    base: 'SauceLabs',
-    browserName: 'safari',
-    platform: 'macOS 10.12',
-    version: '10.0'
+    browserName: 'microsoftedge',
+    version: 'latest',
+    platform: 'Windows 10'
   },
   sl_ie_11: {
     base: 'SauceLabs',
     browserName: 'internet explorer',
-    platform: 'Windows 10',
+    platform: 'Windows 7',
     version: '11'
   },
   sl_ie_10: {
     base: 'SauceLabs',
     browserName: 'internet explorer',
-    platform: 'Windows 10',
+    platform: 'Windows 7',
     version: '10'
   },
-  sl_android_4: {
+  sl_safari: {
     base: 'SauceLabs',
-    browserName: 'android',
-    platform: 'Linux',
-    version: '4.4'
+    browserName: 'safari',
+    platform: 'OS X 10.12',
+    version: '10.0'
+  },
+  sl_ios: {
+    base: 'SauceLabs',
+    browserName: 'iphone',
+    platform: 'OS X 10.12',
+    version: '10.0'
+  },
+  sl_android_7: {
+    base: 'SauceLabs',
+    browserName: 'Chrome',
+    platform: 'Android',
+    version: '7.1',
+    device: 'Android GoogleAPI Emulator'
+  },
+  sl_android_6: {
+    base: 'SauceLabs',
+    browserName: 'Chrome',
+    platform: 'Android',
+    version: '6.0',
+    device: 'Android Emulator'
   },
   sl_android_5: {
     base: 'SauceLabs',
@@ -49,11 +63,11 @@ var customLaunchers = {
     platform: 'Linux',
     version: '5.1'
   },
-  sl_edge: {
+  sl_android_4: {
     base: 'SauceLabs',
-    browserName: 'microsoftedge',
-    version: 'latest-1',
-    platform: 'Windows 10'
+    browserName: 'android',
+    platform: 'Linux',
+    version: '4.4'
   }
 };
 

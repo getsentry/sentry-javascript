@@ -10,7 +10,7 @@ cache:
   directories:
   - node_modules
 addons:
-  chrome: stable
+  chrome: latest
   firefox: latest
   sauce_connect: true
 script:
