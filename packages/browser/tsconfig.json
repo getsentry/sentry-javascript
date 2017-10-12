@@ -5,6 +5,7 @@
         "types": [
             "node"
         ],
+        "lib": ["es2015", "dom"],
         "declaration": false,
         "allowJs": true
     },

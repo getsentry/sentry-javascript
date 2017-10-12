@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/core';
 import { Browser } from '../lib/Browser';
 
-let sentry = new Sentry.Core(
-  'https://3d7a8ff40b8e4a769cb11288e0e8e630@dgriesser-7b0957b1732f38a5e205.eu.ngrok.io/1'
-);
+let sentry = new Sentry.Core('https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291');
 sentry.register(Browser.Client);
 
 sentry.install().then((results: Sentry.Sdk.Result<boolean>[]) => {
@@ -12,8 +10,4 @@ sentry.install().then((results: Sentry.Sdk.Result<boolean>[]) => {
   });
 });
 
-sentry
-  .captureMessage('PICKLE RIIIICK!')
-  .then((result: Sentry.Sdk.Result<Sentry.Event>) => {
-    console.log(result);
-  });
+sentry.captureMessage('PICKLE RIIIICK!');

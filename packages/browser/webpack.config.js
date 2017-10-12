@@ -1,6 +1,6 @@
 module.exports = {
   devtool: 'inline-source-map',
-  entry: './__tests__/browser.ts',
+  entry: './__tests__/browser.no-jest.ts',
   output: {
     filename: './dist/bundle.js'
   },
