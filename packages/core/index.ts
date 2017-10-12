@@ -1,3 +1,3 @@
 export * from './lib/Interfaces';
-export { Integration } from './lib/Integration';
+export { Adapter } from './lib/Adapter';
 export { Core, Options } from './lib/Core';

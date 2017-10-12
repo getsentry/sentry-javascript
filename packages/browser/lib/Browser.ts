@@ -1,14 +1,14 @@
 /// <reference types="node" />
-import { Integration, Core, Options, Event } from '@sentry/core';
+import { Adapter, Core, Options, Event } from '@sentry/core';
 var Raven = require('raven-js');
 
 export namespace Browser {
-  export type Options = Integration.Options & {
+  export type Options = Adapter.Options & {
     testOption?: boolean;
   };
 }
 
-export class Browser implements Integration {
+export class Browser implements Adapter {
   options: Browser.Options = {
     rank: 1000,
     testOption: false
@@ -21,7 +21,7 @@ export class Browser implements Integration {
     return this;
   }
 
-  install(): Promise<Integration.Result<boolean>> {
+  install(): Promise<Adapter.Result<boolean>> {
     Raven.config(this.dsn).install();
     return Promise.resolve({
       sdk: this,
@@ -35,7 +35,7 @@ export class Browser implements Integration {
   }
 
   send(event: Event) {
-    return new Promise<Integration.Result<Event>>((resolve, reject) => {
+    return new Promise<Adapter.Result<Event>>((resolve, reject) => {
       Raven.captureMessage(event.message);
       setTimeout(() => {
         resolve({

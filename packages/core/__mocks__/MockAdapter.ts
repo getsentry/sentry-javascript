@@ -1,25 +1,25 @@
 import * as Sentry from '../index';
 
-export namespace MockIntegration {
-  export type Options = Sentry.Integration.Options & {
+export namespace MockAdapter {
+  export type Options = Sentry.Adapter.Options & {
     testOption?: boolean;
   };
 }
 
-export class MockIntegration implements Sentry.Integration {
+export class MockAdapter implements Sentry.Adapter {
   private core: Sentry.Core;
-  options: MockIntegration.Options = {
+  options: MockAdapter.Options = {
     rank: 1000,
     testOption: false
   };
 
-  constructor(core: Sentry.Core, public dsn: string, options?: MockIntegration.Options) {
+  constructor(core: Sentry.Core, public dsn: string, options?: MockAdapter.Options) {
     this.core = core;
     if (options && options.rank) this.options.rank = options.rank;
     return this;
   }
 
-  install(): Promise<Sentry.Integration.Result<boolean>> {
+  install(): Promise<Sentry.Adapter.Result<boolean>> {
     return Promise.resolve({
       sdk: this,
       value: true
@@ -32,7 +32,7 @@ export class MockIntegration implements Sentry.Integration {
     return Promise.resolve(event);
   }
 
-  send(event: Sentry.Event): Promise<Sentry.Integration.Result<Sentry.Event>> {
+  send(event: Sentry.Event): Promise<Sentry.Adapter.Result<Sentry.Event>> {
     return Promise.resolve({
       sdk: this,
       value: event

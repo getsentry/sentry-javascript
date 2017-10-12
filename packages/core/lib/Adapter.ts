@@ -1,9 +1,9 @@
 import { Event } from './Interfaces';
 import { Options } from './Core';
 
-export namespace Integration {
+export namespace Adapter {
   export type Result<T> = {
-    sdk: Integration;
+    sdk: Adapter;
     value?: T;
   };
 
@@ -22,10 +22,10 @@ export namespace Integration {
   };
 }
 
-export interface Integration {
+export interface Adapter {
   readonly dsn: string;
-  readonly options: Integration.Options;
-  install(): Promise<Integration.Result<boolean>>;
-  send(event: Event): Promise<Integration.Result<Event>>;
+  readonly options: Adapter.Options;
+  install(): Promise<Adapter.Result<boolean>>;
+  send(event: Event): Promise<Adapter.Result<Event>>;
   captureEvent(event: Event): Promise<Event>;
 }

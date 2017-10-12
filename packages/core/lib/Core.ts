@@ -1,5 +1,5 @@
 import { Event } from './Interfaces';
-import { Integration } from './Integration';
+import { Adapter } from './Adapter';
 
 export type Options = {
   maxBreadcrumbs: number;
@@ -8,13 +8,13 @@ export type Options = {
 // TODO: Add breadcrumbs
 // TODO: Add context handling tags, extra, user
 export class Core {
-  private _integrations = new Array<Integration>();
+  private _adapters = new Array<Adapter>();
   /**
-   * Returns all registered SDKs
+   * Returns all registered Adapters
    */
-  get integrations() {
-    this.hasConfiguredSdk();
-    return this._integrations;
+  get adapters() {
+    this.hasConfiguredAdapter();
+    return this._adapters;
   }
 
   constructor(public dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
@@ -23,23 +23,23 @@ export class Core {
   }
 
   /**
-   * Register a Integration on the Core
-   * @param Integration
+   * Register a Adapter on the Core
+   * @param Adapter
    * @param options
    */
-  register<T extends Integration, O extends Integration.Options>(
-    Integration: { new (core: Core, dsn: string, options?: O): T },
+  register<T extends Adapter, O extends Adapter.Options>(
+    Adapter: { new (core: Core, dsn: string, options?: O): T },
     options?: O
   ): T {
-    let integration = new Integration(this, this.dsn, options);
-    // We use this._sdks on purpose here
-    // everywhere else we should use this.sdks
-    this._integrations.push(integration);
-    if (!this.hasUniqueRankedSdks()) {
-      throw new TypeError('SDK must have unique rank, use options {rank: value}');
+    let adapter = new Adapter(this, this.dsn, options);
+    // We use this._adapters on purpose here
+    // everywhere else we should use this.adapters
+    this._adapters.push(adapter);
+    if (!this.hasUniqueRankedAdapters()) {
+      throw new TypeError('Adapter must have unique rank, use options {rank: value}');
     }
-    this.sortSdks();
-    return integration;
+    this.sortAdapters();
+    return adapter;
   }
 
   captureMessage(message: string) {
@@ -50,40 +50,40 @@ export class Core {
 
   /**
    * Captures and sends an event. Will pass through every registered
-   * SDK and send will be called by the SDK with the lowest rank
+   * Adapter and send will be called by the Adapter with the lowest rank
    * @param event
    */
   async captureEvent(event: Event) {
     return this.send(
-      await this.integrations.reduce(
-        async (event, sdk) => sdk.captureEvent(await event),
+      await this.adapters.reduce(
+        async (event, adapter) => adapter.captureEvent(await event),
         Promise.resolve(event)
       )
     );
   }
 
   /**
-   * Calls install() on all registered SDKs
+   * Calls install() on all registered Adapters
    */
   install() {
-    return Promise.all(this.integrations.map(sdk => sdk.install()));
+    return Promise.all(this.adapters.map(adapter => adapter.install()));
   }
 
   /**
-   * This will send an event with the SDK with the lowest rank
+   * This will send an event with the Adapter with the lowest rank
    * @param event
    */
   send(event: Event) {
-    return this.integrations[0].send(event);
+    return this.adapters[0].send(event);
   }
 
   // -------------------- HELPER
 
   /**
-   * This sorts all SDKs from lowest to highest rank
+   * This sorts all Adapters from lowest to highest rank
    */
-  private sortSdks() {
-    this._integrations.sort((prev, current) => {
+  private sortAdapters() {
+    this._adapters.sort((prev, current) => {
       if (prev.options.rank < current.options.rank) return -1;
       if (prev.options.rank > current.options.rank) return 1;
       return 0;
@@ -91,22 +91,22 @@ export class Core {
   }
 
   /**
-   * Checks if there are multiple SDKs with the same rank
+   * Checks if there are multiple Adapters with the same rank
    */
-  private hasUniqueRankedSdks() {
-    let ranks = this.integrations.map(integration => integration.options.rank);
+  private hasUniqueRankedAdapters() {
+    let ranks = this.adapters.map(integration => integration.options.rank);
     return (
       ranks.filter(rank => ranks.indexOf(rank) === ranks.lastIndexOf(rank)).length ===
-      this.integrations.length
+      this.adapters.length
     );
   }
 
   /**
-   * Checks if there are any registered SDKs, this will be called by
-   * this.sdks
+   * Checks if there are any registered Adapters, this will be called by
+   * this.adapter
    */
-  private hasConfiguredSdk() {
-    if (this._integrations.length === 0)
-      throw new RangeError('At least one SDK has to be registered');
+  private hasConfiguredAdapter() {
+    if (this._adapters.length === 0)
+      throw new RangeError('At least one Adapter has to be registered');
   }
 }

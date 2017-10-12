@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import * as Sentry from '../index';
-import { MockIntegration } from '../__mocks__/MockIntegration';
+import { MockAdapter } from '../__mocks__/MockAdapter';
 
 const dsn = '__DSN__';
 
@@ -9,19 +9,19 @@ beforeEach(() => {
 });
 
 describe('Sentry.Core', () => {
-  test('throw error for Integrations with same rank', () => {
+  test('throw error for Adapters with same rank', () => {
     let sentry = new Sentry.Core(dsn);
-    sentry.register(MockIntegration);
-    expect(() => sentry.register(MockIntegration)).toThrow();
+    sentry.register(MockAdapter);
+    expect(() => sentry.register(MockAdapter)).toThrow();
   });
 
-  test('call install on all Integrations', () => {
+  test('call install on all Adapters', () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration, <MockIntegration.Options>{
+    let sdk1 = sentry.register(MockAdapter, <MockAdapter.Options>{
       rank: 1001,
       testOption: true
     });
-    let sdk2 = sentry.register(MockIntegration, { rank: 1000 });
+    let sdk2 = sentry.register(MockAdapter, { rank: 1000 });
     let spy1 = jest.spyOn(sdk1, 'install');
     let spy2 = jest.spyOn(sdk2, 'install');
     sentry.install();
@@ -29,10 +29,10 @@ describe('Sentry.Core', () => {
     expect(spy2).toHaveBeenCalledTimes(1);
   });
 
-  test('call captureEvent on all Integrations', async () => {
+  test('call captureEvent on all Adapters', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration);
-    let sdk2 = sentry.register(MockIntegration, { rank: 1001 });
+    let sdk1 = sentry.register(MockAdapter);
+    let sdk2 = sentry.register(MockAdapter, { rank: 1001 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let event = new Sentry.Event();
@@ -44,11 +44,11 @@ describe('Sentry.Core', () => {
     expect(result.value).toEqual({ id: 'testid', message: 'message++', severity: 3 });
   });
 
-  test('call captureEvent on all Integrations in right order', async () => {
+  test('call captureEvent on all Adapters in right order', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration);
-    let sdk2 = sentry.register(MockIntegration, { rank: 1001 });
-    let sdk3 = sentry.register(MockIntegration, { rank: 999 });
+    let sdk1 = sentry.register(MockAdapter);
+    let sdk2 = sentry.register(MockAdapter, { rank: 1001 });
+    let sdk3 = sentry.register(MockAdapter, { rank: 999 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -62,11 +62,11 @@ describe('Sentry.Core', () => {
     expect(result.value).toEqual({ id: 'testid', message: 'message+++', severity: 3 });
   });
 
-  test('call captureMessage on all Integrations', async () => {
+  test('call captureMessage on all Adapters', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration, { rank: 1001 });
-    let sdk2 = sentry.register(MockIntegration, { rank: 1002 });
-    let sdk3 = sentry.register(MockIntegration);
+    let sdk1 = sentry.register(MockAdapter, { rank: 1001 });
+    let sdk2 = sentry.register(MockAdapter, { rank: 1002 });
+    let sdk3 = sentry.register(MockAdapter);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -82,9 +82,9 @@ describe('Sentry.Core', () => {
 
   test('call send only on one SDK', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration, { rank: 1001 });
-    let sdk2 = sentry.register(MockIntegration, { rank: 900 });
-    let sdk3 = sentry.register(MockIntegration);
+    let sdk1 = sentry.register(MockAdapter, { rank: 1001 });
+    let sdk2 = sentry.register(MockAdapter, { rank: 900 });
+    let sdk3 = sentry.register(MockAdapter);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
