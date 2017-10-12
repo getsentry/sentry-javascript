@@ -7,9 +7,9 @@
         ],
         "lib": ["es2015", "dom"],
         "declaration": false,
-        "allowJs": true
+        "allowJs": true,
+        "outDir": "dist"
     },
-
     "include": [
       "__tests__",
       "index.ts",

@@ -6,13 +6,16 @@
             "node",
             "jest"
         ],
-        "allowJs": false
+        "allowJs": false,
+        "outDir": "dist"
     },
-
     "include": [
       "__tests__",
       "index.ts",
       "lib/**/*",
       "spec/**/*"
+    ],
+    "exclude": [
+        "__tests__/browser.no-jest.ts"
     ]
 }

@@ -13,7 +13,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "sourceMap": true,
-    "inlineSources": true,
-    "outDir": "dist"
+    "inlineSources": true
   }
 }

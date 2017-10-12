@@ -1,5 +1,5 @@
-import { Event } from './Interface';
-import { Sdk } from './Sdk';
+import { Event } from './Interfaces';
+import { Integration } from './Integration';
 
 export type Options = {
   maxBreadcrumbs: number;
@@ -8,13 +8,13 @@ export type Options = {
 // TODO: Add breadcrumbs
 // TODO: Add context handling tags, extra, user
 export class Core {
-  private _sdks = new Array<Sdk.Interface>();
+  private _integrations = new Array<Integration>();
   /**
    * Returns all registered SDKs
    */
-  get sdks() {
+  get integrations() {
     this.hasConfiguredSdk();
-    return this._sdks;
+    return this._integrations;
   }
 
   constructor(public dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
@@ -23,23 +23,23 @@ export class Core {
   }
 
   /**
-   * Register a SDK client with the core
-   * @param client
+   * Register a Integration on the Core
+   * @param Integration
    * @param options
    */
-  register<T extends Sdk.Interface, O extends Sdk.Options>(
-    client: { new (core: Core, dsn: string, options?: O): T },
+  register<T extends Integration, O extends Integration.Options>(
+    Integration: { new (core: Core, dsn: string, options?: O): T },
     options?: O
   ): T {
-    let sdk = new client(this, this.dsn, options);
+    let integration = new Integration(this, this.dsn, options);
     // We use this._sdks on purpose here
     // everywhere else we should use this.sdks
-    this._sdks.push(sdk);
+    this._integrations.push(integration);
     if (!this.hasUniqueRankedSdks()) {
       throw new TypeError('SDK must have unique rank, use options {rank: value}');
     }
     this.sortSdks();
-    return sdk;
+    return integration;
   }
 
   captureMessage(message: string) {
@@ -55,7 +55,7 @@ export class Core {
    */
   async captureEvent(event: Event) {
     return this.send(
-      await this.sdks.reduce(
+      await this.integrations.reduce(
         async (event, sdk) => sdk.captureEvent(await event),
         Promise.resolve(event)
       )
@@ -66,7 +66,7 @@ export class Core {
    * Calls install() on all registered SDKs
    */
   install() {
-    return Promise.all(this.sdks.map(sdk => sdk.install()));
+    return Promise.all(this.integrations.map(sdk => sdk.install()));
   }
 
   /**
@@ -74,7 +74,7 @@ export class Core {
    * @param event
    */
   send(event: Event) {
-    return this.sdks[0].send(event);
+    return this.integrations[0].send(event);
   }
 
   // -------------------- HELPER
@@ -83,7 +83,7 @@ export class Core {
    * This sorts all SDKs from lowest to highest rank
    */
   private sortSdks() {
-    this._sdks.sort((prev, current) => {
+    this._integrations.sort((prev, current) => {
       if (prev.options.rank < current.options.rank) return -1;
       if (prev.options.rank > current.options.rank) return 1;
       return 0;
@@ -94,10 +94,10 @@ export class Core {
    * Checks if there are multiple SDKs with the same rank
    */
   private hasUniqueRankedSdks() {
-    let ranks = this.sdks.map(sdk => sdk.options.rank);
+    let ranks = this.integrations.map(integration => integration.options.rank);
     return (
       ranks.filter(rank => ranks.indexOf(rank) === ranks.lastIndexOf(rank)).length ===
-      this.sdks.length
+      this.integrations.length
     );
   }
 
@@ -106,7 +106,7 @@ export class Core {
    * this.sdks
    */
   private hasConfiguredSdk() {
-    if (this._sdks.length === 0)
+    if (this._integrations.length === 0)
       throw new RangeError('At least one SDK has to be registered');
   }
 }

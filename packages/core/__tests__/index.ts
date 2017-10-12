@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import * as Sentry from '../index';
-import { MockSdk } from '../__mocks__/MockSdk';
+import { MockIntegration } from '../__mocks__/MockIntegration';
 
 const dsn = '__DSN__';
 
@@ -11,17 +11,17 @@ beforeEach(() => {
 describe('Sentry.Core', () => {
   test('throw error for SDKs with same rank', () => {
     let sentry = new Sentry.Core(dsn);
-    sentry.register(MockSdk.Client);
-    expect(() => sentry.register(MockSdk.Client)).toThrow();
+    sentry.register(MockIntegration.Client);
+    expect(() => sentry.register(MockIntegration.Client)).toThrow();
   });
 
   test('call install on all SDKs', () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk.Client, <MockSdk.Options>{
+    let sdk1 = sentry.register(MockIntegration.Client, <MockIntegration.Options>{
       rank: 1001,
       testOption: true
     });
-    let sdk2 = sentry.register(MockSdk.Client, { rank: 1000 });
+    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1000 });
     let spy1 = jest.spyOn(sdk1, 'install');
     let spy2 = jest.spyOn(sdk2, 'install');
     sentry.install();
@@ -31,8 +31,8 @@ describe('Sentry.Core', () => {
 
   test('call captureEvent on all SDKs', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk.Client);
-    let sdk2 = sentry.register(MockSdk.Client, { rank: 1001 });
+    let sdk1 = sentry.register(MockIntegration.Client);
+    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1001 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let event = new Sentry.Event();
@@ -46,9 +46,9 @@ describe('Sentry.Core', () => {
 
   test('call captureEvent on all SDKs in right order', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk.Client);
-    let sdk2 = sentry.register(MockSdk.Client, { rank: 1001 });
-    let sdk3 = sentry.register(MockSdk.Client, { rank: 999 });
+    let sdk1 = sentry.register(MockIntegration.Client);
+    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1001 });
+    let sdk3 = sentry.register(MockIntegration.Client, { rank: 999 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -64,9 +64,9 @@ describe('Sentry.Core', () => {
 
   test('call captureMessage on all SDKs', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk.Client, { rank: 1001 });
-    let sdk2 = sentry.register(MockSdk.Client, { rank: 1002 });
-    let sdk3 = sentry.register(MockSdk.Client);
+    let sdk1 = sentry.register(MockIntegration.Client, { rank: 1001 });
+    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1002 });
+    let sdk3 = sentry.register(MockIntegration.Client);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -82,9 +82,9 @@ describe('Sentry.Core', () => {
 
   test('call send only on one SDK', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockSdk.Client, { rank: 1001 });
-    let sdk2 = sentry.register(MockSdk.Client, { rank: 900 });
-    let sdk3 = sentry.register(MockSdk.Client);
+    let sdk1 = sentry.register(MockIntegration.Client, { rank: 1001 });
+    let sdk2 = sentry.register(MockIntegration.Client, { rank: 900 });
+    let sdk3 = sentry.register(MockIntegration.Client);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');

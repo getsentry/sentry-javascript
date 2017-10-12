@@ -28,8 +28,7 @@
     "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Please use Yarn instead of NPM to install dependencies. See: https://yarnpkg.com/lang/en/docs/install/')\"",
     "clean": "rm -rf ./dist",
     "dist": "yarn run clean && tsc -p tsconfig.json",
-    "test": "jest --forceExit",
-    "test:js": "yarn run dist && jest",
+    "test": "yarn run dist && jest",
     "test:watch": "jest --watch --notify"
   },
   "jest": {

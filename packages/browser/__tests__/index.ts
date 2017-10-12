@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/core';
 import { Browser } from '../index';
 import * as Puppeteer from 'puppeteer';
 
-describe('Browser SDK', () => {
+describe('Browser Interface', () => {
   test('sending a message', async done => {
     expect.assertions(1);
 
