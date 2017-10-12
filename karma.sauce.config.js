@@ -92,9 +92,15 @@ module.exports = function(config) {
     logLevel: config.LOG_INFO,
     customLaunchers: customLaunchers,
     browsers: Object.keys(customLaunchers),
-    reporters: ['dots', 'saucelabs'],
+    reporters: ['progress', 'saucelabs'],
     singleRun: true,
     plugins: commonConfig.plugins.concat(['karma-sauce-launcher']),
+    build: process.env.TRAVIS_BUILD_NUMBER,
+    // SauceLabs allows for 2 tunnels only, therefore some browsers will have to wait
+    // rather long time. Plus mobile emulators tend to require a lot of time to start up.
+    // 10 minutes should be more than enough to run all of them.
+    browserNoActivityTimeout: 600000,
+    captureTimeout: 600000,
     sauceLabs: {
       recordScreenshots: false,
       recordVideo: false,
