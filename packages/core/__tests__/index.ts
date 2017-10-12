@@ -9,19 +9,19 @@ beforeEach(() => {
 });
 
 describe('Sentry.Core', () => {
-  test('throw error for SDKs with same rank', () => {
+  test('throw error for Integrations with same rank', () => {
     let sentry = new Sentry.Core(dsn);
-    sentry.register(MockIntegration.Client);
-    expect(() => sentry.register(MockIntegration.Client)).toThrow();
+    sentry.register(MockIntegration);
+    expect(() => sentry.register(MockIntegration)).toThrow();
   });
 
-  test('call install on all SDKs', () => {
+  test('call install on all Integrations', () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration.Client, <MockIntegration.Options>{
+    let sdk1 = sentry.register(MockIntegration, <MockIntegration.Options>{
       rank: 1001,
       testOption: true
     });
-    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1000 });
+    let sdk2 = sentry.register(MockIntegration, { rank: 1000 });
     let spy1 = jest.spyOn(sdk1, 'install');
     let spy2 = jest.spyOn(sdk2, 'install');
     sentry.install();
@@ -29,10 +29,10 @@ describe('Sentry.Core', () => {
     expect(spy2).toHaveBeenCalledTimes(1);
   });
 
-  test('call captureEvent on all SDKs', async () => {
+  test('call captureEvent on all Integrations', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration.Client);
-    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1001 });
+    let sdk1 = sentry.register(MockIntegration);
+    let sdk2 = sentry.register(MockIntegration, { rank: 1001 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let event = new Sentry.Event();
@@ -44,11 +44,11 @@ describe('Sentry.Core', () => {
     expect(result.value).toEqual({ id: 'testid', message: 'message++', severity: 3 });
   });
 
-  test('call captureEvent on all SDKs in right order', async () => {
+  test('call captureEvent on all Integrations in right order', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration.Client);
-    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1001 });
-    let sdk3 = sentry.register(MockIntegration.Client, { rank: 999 });
+    let sdk1 = sentry.register(MockIntegration);
+    let sdk2 = sentry.register(MockIntegration, { rank: 1001 });
+    let sdk3 = sentry.register(MockIntegration, { rank: 999 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -62,11 +62,11 @@ describe('Sentry.Core', () => {
     expect(result.value).toEqual({ id: 'testid', message: 'message+++', severity: 3 });
   });
 
-  test('call captureMessage on all SDKs', async () => {
+  test('call captureMessage on all Integrations', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration.Client, { rank: 1001 });
-    let sdk2 = sentry.register(MockIntegration.Client, { rank: 1002 });
-    let sdk3 = sentry.register(MockIntegration.Client);
+    let sdk1 = sentry.register(MockIntegration, { rank: 1001 });
+    let sdk2 = sentry.register(MockIntegration, { rank: 1002 });
+    let sdk3 = sentry.register(MockIntegration);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
@@ -82,9 +82,9 @@ describe('Sentry.Core', () => {
 
   test('call send only on one SDK', async () => {
     let sentry = new Sentry.Core(dsn);
-    let sdk1 = sentry.register(MockIntegration.Client, { rank: 1001 });
-    let sdk2 = sentry.register(MockIntegration.Client, { rank: 900 });
-    let sdk3 = sentry.register(MockIntegration.Client);
+    let sdk1 = sentry.register(MockIntegration, { rank: 1001 });
+    let sdk2 = sentry.register(MockIntegration, { rank: 900 });
+    let sdk3 = sentry.register(MockIntegration);
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
     let spy2 = jest.spyOn(sdk2, 'captureEvent');
     let spy3 = jest.spyOn(sdk3, 'captureEvent');
