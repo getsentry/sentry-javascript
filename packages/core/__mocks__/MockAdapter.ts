@@ -26,6 +26,10 @@ export class MockAdapter implements Sentry.Adapter {
     });
   }
 
+  captureException(exception: Error, event: Sentry.Event): Promise<Sentry.Event> {
+    return Promise.resolve(event);
+  }
+
   captureEvent(event: Sentry.Event): Promise<Sentry.Event> {
     event = { ...event };
     event.message = event.message + '+';

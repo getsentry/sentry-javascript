@@ -42,6 +42,15 @@ export class Core {
     return adapter;
   }
 
+  async captureException(exception: Error) {
+    return this.send(
+      await this.adapters.reduce(
+        async (event, adapter) => adapter.captureException(exception, await event),
+        Promise.resolve(new Event())
+      )
+    );
+  }
+
   captureMessage(message: string) {
     let event = new Event();
     event.message = message;
@@ -53,7 +62,7 @@ export class Core {
    * Adapter and send will be called by the Adapter with the lowest rank
    * @param event
    */
-  async captureEvent(event: Event) {
+  async captureEvent(event: any) {
     return this.send(
       await this.adapters.reduce(
         async (event, adapter) => adapter.captureEvent(await event),

@@ -22,27 +22,43 @@ export class Browser implements Adapter {
   }
 
   install(): Promise<Adapter.Result<boolean>> {
-    Raven.config(this.dsn).install();
+    Raven.config(this.dsn, this.options).install();
     return Promise.resolve({
       sdk: this,
       value: true
     });
   }
 
-  captureEvent(event: Event): Promise<Event> {
-    Raven.captureMessage(event.message);
-    return Promise.resolve(event);
+  captureException(exception: Error, event: Event) {
+    let ravenSendRequest = Raven._sendProcessedPayload;
+    return new Promise<Event>((resolve, reject) => {
+      Raven._sendProcessedPayload = (data: any) => {
+        resolve(data);
+        Raven._sendProcessedPayload = ravenSendRequest;
+      };
+      Raven.captureException(exception);
+    });
   }
 
-  send(event: Event) {
-    return new Promise<Adapter.Result<Event>>((resolve, reject) => {
+  captureEvent(event: any): Promise<Event> {
+    let ravenSendRequest = Raven._sendProcessedPayload;
+    return new Promise<Event>((resolve, reject) => {
+      Raven._sendProcessedPayload = (data: any) => {
+        resolve(data);
+        Raven._sendProcessedPayload = ravenSendRequest;
+      };
       Raven.captureMessage(event.message);
-      setTimeout(() => {
+    });
+  }
+
+  send(event: any) {
+    return new Promise<Adapter.Result<Event>>((resolve, reject) => {
+      Raven._sendProcessedPayload(event, (error: any) => {
         resolve({
           sdk: this,
           value: event
         });
-      }, 1000);
+      });
     });
   }
 }

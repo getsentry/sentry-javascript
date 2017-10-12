@@ -28,4 +28,5 @@ export interface Adapter {
   install(): Promise<Adapter.Result<boolean>>;
   send(event: Event): Promise<Adapter.Result<Event>>;
   captureEvent(event: Event): Promise<Event>;
+  captureException(exception: Error, event: Event): Promise<Event>;
 }
