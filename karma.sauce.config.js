@@ -92,7 +92,7 @@ module.exports = function(config) {
     logLevel: config.LOG_INFO,
     customLaunchers: customLaunchers,
     browsers: Object.keys(customLaunchers),
-    reporters: ['progress', 'saucelabs'],
+    reporters: ['failed', 'saucelabs'],
     singleRun: true,
     plugins: commonConfig.plugins.concat(['karma-sauce-launcher']),
     build: process.env.TRAVIS_BUILD_NUMBER,

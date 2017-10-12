@@ -25,7 +25,8 @@ module.exports = {
     'karma-chai',
     'karma-sinon',
     'karma-chrome-launcher',
-    'karma-firefox-launcher'
+    'karma-firefox-launcher',
+    'karma-failed-reporter'
   ],
 
   // test results reporter to use
