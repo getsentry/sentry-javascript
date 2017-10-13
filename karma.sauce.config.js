@@ -102,6 +102,9 @@ module.exports = function(config) {
     browserNoActivityTimeout: 600000,
     captureTimeout: 600000,
     sauceLabs: {
+      startConnect: false,
+      // Just something "random" so we don't have to provide additional ENV var when running locally
+      tunnelIdentifier: process.env.TRAVIS_JOB_NUMBER || Math.ceil(Math.random() * 1337),
       recordScreenshots: false,
       recordVideo: false,
       testName:

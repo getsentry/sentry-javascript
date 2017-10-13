@@ -54,11 +54,15 @@ From the command line (run all required checks):
 $ npm run test
 ```
 
-From your browser (run unit and integration tests separately):
+From your browser (run unit tests):
 
 ```bash
 $ npm run test:karma:unit
-// or
+```
+
+or (run integration tests):
+
+```bash
 $ npm run test:karma:integration
 ```
 
