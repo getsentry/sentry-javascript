@@ -17,8 +17,6 @@ function isError(value) {
       return true;
     case '[object DOMException]':
       return true;
-    case '[object ErrorEvent]':
-      return true;
     default:
       return value instanceof Error;
   }

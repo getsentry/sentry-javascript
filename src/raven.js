@@ -393,8 +393,11 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureException: function(ex, options) {
-    // If not an Error is passed through, recall as a message instead
-    if (!isError(ex)) {
+    // Cases for sending ex as a message, rather than an exception
+    const isNotError = !isError(ex);
+    const isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
+
+    if (isNotError || isErrorEventWithoutError) {
       return this.captureMessage(
         ex,
         objectMerge(
@@ -407,10 +410,8 @@ Raven.prototype = {
       );
     }
 
-    // Get actual error out of ErrorEvents
-    if (isErrorEvent(ex)) {
-      ex = ex.error;
-    }
+    // Get actual Error from ErrorEvent
+    if (isErrorEvent(ex)) ex = ex.error;
 
     // Store the raw exception object for potential debugging and introspection
     this._lastCapturedException = ex;
