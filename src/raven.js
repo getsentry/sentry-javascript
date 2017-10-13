@@ -1285,26 +1285,23 @@ Raven.prototype = {
         }
       };
 
-      fill(
-        history,
-        'pushState',
-        function(origPushState) {
-          // note history.pushState.length is 0; intentionally not declaring
-          // params to preserve 0 arity
-          return function(/* state, title, url */) {
-            var url = arguments.length > 2 ? arguments[2] : undefined;
+      var historyReplacementFunction = function(origHistFunction) {
+        // note history.pushState.length is 0; intentionally not declaring
+        // params to preserve 0 arity
+        return function(/* state, title, url */) {
+          var url = arguments.length > 2 ? arguments[2] : undefined;
 
-            // url argument is optional
-            if (url) {
-              // coerce to string (this is what pushState does)
-              self._captureUrlChange(self._lastHref, url + '');
-            }
+          // url argument is optional
+          if (url) {
+            // coerce to string (this is what pushState does)
+            self._captureUrlChange(self._lastHref, url + '');
+          }
 
-            return origPushState.apply(this, arguments);
-          };
-        },
-        wrappedBuiltIns
-      );
+          return origHistFunction.apply(this, arguments);
+        };
+      };
+
+      fill(history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
     }
 
     if (autoBreadcrumbs.console && 'console' in _window && console.log) {
