@@ -17,7 +17,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
 function createIframe(done) {
   var iframe = document.createElement('iframe');
   iframe.style.display = 'none';
-  iframe.src = './frame.html';
+  iframe.src = './base/test/integration/frame.html';
   iframe.onload = function() {
     done();
   };
@@ -636,7 +636,7 @@ describe('integration', function() {
 
           var xhr = new XMLHttpRequest();
 
-          xhr.open('GET', '/test/integration/example.json');
+          xhr.open('GET', 'example.json');
           xhr.setRequestHeader('Content-type', 'application/json');
           xhr.onreadystatechange = function() {
             // don't fire `done` handler until at least *one* onreadystatechange
@@ -675,7 +675,7 @@ describe('integration', function() {
 
           var xhr = new XMLHttpRequest();
 
-          xhr.open('GET', '/test/integration/example.json');
+          xhr.open('GET', 'example.json');
           xhr.setRequestHeader('Content-type', 'application/json');
           xhr.send();
         },
@@ -726,7 +726,7 @@ describe('integration', function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
           Raven._breadcrumbs = [];
 
-          fetch('/test/integration/example.json').then(
+          fetch('example.json').then(
             function() {
               setTimeout(done);
             },
@@ -738,7 +738,7 @@ describe('integration', function() {
         function() {
           var Raven = iframe.contentWindow.Raven,
             breadcrumbs = Raven._breadcrumbs,
-            breadcrumbUrl = '/test/integration/example.json';
+            breadcrumbUrl = 'example.json';
 
           if ('fetch' in window) {
             assert.equal(breadcrumbs.length, 1);
@@ -777,7 +777,7 @@ describe('integration', function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
           Raven._breadcrumbs = [];
 
-          fetch(new Request('/test/integration/example.json')).then(
+          fetch(new Request('example.json')).then(
             function() {
               setTimeout(done);
             },
@@ -789,7 +789,7 @@ describe('integration', function() {
         function() {
           var Raven = iframe.contentWindow.Raven,
             breadcrumbs = Raven._breadcrumbs,
-            breadcrumbUrl = '/test/integration/example.json';
+            breadcrumbUrl = 'example.json';
 
           if ('fetch' in window) {
             assert.equal(breadcrumbs.length, 1);

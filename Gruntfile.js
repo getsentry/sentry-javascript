@@ -196,69 +196,6 @@ module.exports = function(grunt) {
       }
     },
 
-    'saucelabs-mocha': {
-      all: {
-        options: {
-          urls: [
-            'http://127.0.0.1:9999/test/index.html',
-            'http://127.0.0.1:9999/test/integration/index.html'
-          ],
-          sauceConfig: {
-            'record-video': false,
-            'record-screenshots': false
-          },
-          build: process.env.TRAVIS_BUILD_NUMBER,
-          // On average, our integration tests take 60s to run
-          // and unit tests about 30s, which gives us 90s in total
-          // And even though we are running 2 tests in parallel, it's safer to assume
-          // 90s * 7 browsers = ~10 minutes (plus some additional time, just in case)
-          // Therefore 200 * 3000ms = 10min
-          statusCheckAttempts: 200,
-          pollInterval: 3000,
-          testname:
-            'Raven.js' +
-            (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
-          browsers: [
-            // Latest version of Edge (v15) can't reach the server, so we use v14 for now instead
-            // Already notified SauceLabs support about this issue
-            ['Windows 10', 'microsoftedge', 'latest-1'],
-
-            // We can skip IE11 on Win7, as there are no differences that'd change anything for us
-            // https://msdn.microsoft.com/library/dn394063(v=vs.85).aspx#unsupported_features
-            ['Windows 10', 'internet explorer', '11'],
-            ['Windows 7', 'internet explorer', '10'],
-            ['Windows 10', 'chrome', 'latest'],
-            ['Windows 10', 'firefox', 'latest'],
-            ['macOS 10.12', 'safari', '10.0'],
-            ['macOS 10.12', 'iphone', '10.0'],
-            ['Linux', 'android', '4.4'],
-            ['Linux', 'android', '5.1']
-
-            // grunt-saucelabs (or SauceLabs REST API?) doesn't allow for passing device attribute at the moment
-            // and it's required for Android 6.0/7.1 - https://wiki.saucelabs.com/display/DOCS/2017/03/31/Android+6.0+and+7.0+Support+Released
-            // Notified SauceLabs support as well, so hopefully it'll be resolved soon
-            // {
-            //   browserName: 'Chrome',
-            //   platform: 'Android',
-            //   version: '6.0',
-            //   device: 'Android Emulator'
-            // }, {
-            //   browserName: 'Chrome',
-            //   platform: 'Android',
-            //   version: '7.1',
-            //   device: 'Android GoogleAPI Emulator'
-            // }
-          ],
-          public: 'public',
-          tunnelArgs: ['--verbose'],
-          onTestComplete: function(result, callback) {
-            console.log(result);
-            callback(null);
-          }
-        }
-      }
-    },
-
     release: {
       options: {
         npm: false,
@@ -291,12 +228,6 @@ module.exports = function(grunt) {
     },
 
     connect: {
-      ci: {
-        options: {
-          port: 9999
-        }
-      },
-
       test: {
         options: {
           port: 8000,
@@ -389,7 +320,6 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-s3');
   grunt.loadNpmTasks('grunt-gitinfo');
   grunt.loadNpmTasks('grunt-sri');
-  grunt.loadNpmTasks('grunt-saucelabs');
 
   // Build tasks
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
@@ -412,12 +342,7 @@ module.exports = function(grunt) {
   grunt.registerTask('build', ['build.plugins-combined']);
   grunt.registerTask('dist', ['build.core', 'copy:dist']);
 
-  grunt.registerTask('test:ci', [
-    'config:ci',
-    'build.test',
-    'connect:ci',
-    'saucelabs-mocha'
-  ]);
+  grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 
   // Webserver tasks
   grunt.registerTask('run:test', ['build.test', 'connect:test']);

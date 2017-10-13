@@ -324,24 +324,6 @@ describe('Stringify', function() {
         })
       );
     });
-
-    // This is the behavior as of Mar 3, 2015.
-    // The serializer function keeps state inside the returned function and
-    // so far I'm not sure how to not do that. JSON.stringify's replacer is not
-    // called _after_ serialization.
-    xit('must return a function that could be called twice', function() {
-      var obj = {name: 'Alice'};
-      obj.self = obj;
-
-      var json;
-      var serializer = stringify.getSerialize();
-
-      json = JSON.stringify(obj, serializer, 2);
-      assert.deepEqual(json, jsonify({name: 'Alice', self: '[Circular ~]'}));
-
-      json = JSON.stringify(obj, serializer, 2);
-      assert.deepEqual(json, jsonify({name: 'Alice', self: '[Circular ~]'}));
-    });
   });
 });
 
