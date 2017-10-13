@@ -46,21 +46,29 @@ $ npm install -g grunt-cli
 
 ### Running the Test Suite
 
-The test suite is powered by [Mocha](http://visionmedia.github.com/mocha/) and can both run from the command line or in the browser.
+The test suite is powered by [Mocha](http://visionmedia.github.com/mocha/) and [Karma](https://karma-runner.github.io/) and can both run from the command line or in the browser.
 
-From the command line:
+From the command line (run all required checks):
 
 ```bash
 $ npm run test
 ```
 
-From your browser:
+From your browser (run unit and integration tests separately):
 
 ```bash
-$ grunt run:test
+$ npm run test:karma:unit
+// or
+$ npm run test:karma:integration
 ```
 
-Then visit: http://localhost:8000/test/
+Then visit: http://localhost:9876/debug.html
+
+If you want to make sure that your changes will fit in our 10kB budget:
+
+```bash
+$ npm run test:size
+```
 
 ### Compiling Raven.js
 
