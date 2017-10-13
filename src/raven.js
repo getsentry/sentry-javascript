@@ -1272,8 +1272,12 @@ Raven.prototype = {
     // borrowed from: https://github.com/angular/angular.js/pull/13945/files
     var chrome = _window.chrome;
     var isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
-    var hasPushState = !isChromePackagedApp && _window.history && history.pushState;
-    if (autoBreadcrumbs.location && hasPushState) {
+    var hasPushAndReplaceState =
+      !isChromePackagedApp &&
+      _window.history &&
+      history.pushState &&
+      history.replaceState;
+    if (autoBreadcrumbs.location && hasPushAndReplaceState) {
       // TODO: remove onpopstate handler on uninstall()
       var oldOnPopState = _window.onpopstate;
       _window.onpopstate = function() {
@@ -1302,6 +1306,7 @@ Raven.prototype = {
       };
 
       fill(history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
+      fill(history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
     }
 
     if (autoBreadcrumbs.console && 'console' in _window && console.log) {
