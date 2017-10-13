@@ -394,8 +394,8 @@ Raven.prototype = {
      */
   captureException: function(ex, options) {
     // Cases for sending ex as a message, rather than an exception
-    const isNotError = !isError(ex);
-    const isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
+    var isNotError = !isError(ex);
+    var isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
 
     if (isNotError || isErrorEventWithoutError) {
       return this.captureMessage(
