@@ -17,9 +17,15 @@ function isError(value) {
       return true;
     case '[object DOMException]':
       return true;
+    case '[object ErrorEvent]':
+      return true;
     default:
       return value instanceof Error;
   }
+}
+
+function isErrorEvent(value) {
+  return {}.toString.call(value) === '[object ErrorEvent]';
 }
 
 function isUndefined(what) {
@@ -348,6 +354,7 @@ function fill(obj, name, replacement, track) {
 module.exports = {
   isObject: isObject,
   isError: isError,
+  isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,

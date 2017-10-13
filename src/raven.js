@@ -8,7 +8,7 @@ var utils = require('./utils');
 var isError = utils.isError;
 var isObject = utils.isObject;
 var isObject = utils.isObject;
-var isError = utils.isError;
+var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
@@ -405,6 +405,11 @@ Raven.prototype = {
           options
         )
       );
+    }
+
+    // Get actual error out of ErrorEvents
+    if (isErrorEvent(ex)) {
+      ex = ex.error;
     }
 
     // Store the raw exception object for potential debugging and introspection
