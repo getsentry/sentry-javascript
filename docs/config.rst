@@ -236,7 +236,7 @@ Those configuration options are documented below:
 
 .. describe:: stacktrace
 
-  Attack stack trace to `captureMessage` calls by generatic "synthetic" error object and extracting all frames.
+  Attach stack trace to `captureMessage` calls by generatic "synthetic" error object and extracting all frames.
 
 Environment Variables
 ---------------------
