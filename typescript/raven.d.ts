@@ -234,7 +234,7 @@ declare module Raven {
         setShouldSendCallback(data: any, orig?: any): RavenStatic;
 
         /** Show Sentry user feedback dialog */
-        showReportDialog(options: Object): void;
+        showReportDialog(options?: Object): void;
 
         /*
          * Configure Raven DSN
