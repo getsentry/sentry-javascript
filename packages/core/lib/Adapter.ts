@@ -1,5 +1,4 @@
 import { Event } from './Interfaces';
-import { Options } from './Core';
 
 export namespace Adapter {
   export type Result<T> = {

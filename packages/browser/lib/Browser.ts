@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { Adapter, Core, Options, Event } from '@sentry/core';
+import { Adapter, Client, Options, Event } from '@sentry/core';
 var Raven = require('raven-js');
 
 export namespace Browser {
@@ -13,9 +13,9 @@ export class Browser implements Adapter {
     rank: 1000,
     testOption: false
   };
-  private core: Core;
+  private core: Client;
 
-  constructor(core: Core, public dsn: string, options?: Browser.Options) {
+  constructor(core: Client, public dsn: string, options?: Browser.Options) {
     this.core = core;
     if (options && options.rank) this.options.rank = options.rank;
     return this;

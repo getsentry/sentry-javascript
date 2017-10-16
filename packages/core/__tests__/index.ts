@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import * as Sentry from '../core';
+import * as Sentry from '../index';
 import { MockAdapter } from '../__mocks__/MockAdapter';
 
 const dsn = '__DSN__';
@@ -10,13 +10,15 @@ beforeEach(() => {
 
 describe('Sentry.Core', () => {
   test('throw error for Adapters with same rank', () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
+    Sentry.setSharedClient(sentry);
+    expect(Sentry.getSharedClient()).toBe(sentry);
     sentry.register(MockAdapter);
     expect(() => sentry.register(MockAdapter)).toThrow();
   });
 
   test('call install on all Adapters', () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
     let sdk1 = sentry.register(MockAdapter, <MockAdapter.Options>{
       rank: 1001,
       testOption: true
@@ -30,7 +32,7 @@ describe('Sentry.Core', () => {
   });
 
   test('call captureEvent on all Adapters', async () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
     let sdk1 = sentry.register(MockAdapter);
     let sdk2 = sentry.register(MockAdapter, { rank: 1001 });
     let spy1 = jest.spyOn(sdk1, 'captureEvent');
@@ -45,7 +47,7 @@ describe('Sentry.Core', () => {
   });
 
   test('call captureEvent on all Adapters in right order', async () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
     let sdk1 = sentry.register(MockAdapter);
     let sdk2 = sentry.register(MockAdapter, { rank: 1001 });
     let sdk3 = sentry.register(MockAdapter, { rank: 999 });
@@ -63,7 +65,7 @@ describe('Sentry.Core', () => {
   });
 
   test('call captureMessage on all Adapters', async () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
     let sdk1 = sentry.register(MockAdapter, { rank: 1001 });
     let sdk2 = sentry.register(MockAdapter, { rank: 1002 });
     let sdk3 = sentry.register(MockAdapter);
@@ -81,7 +83,7 @@ describe('Sentry.Core', () => {
   });
 
   test('call send only on one SDK', async () => {
-    let sentry = new Sentry.Core(dsn);
+    let sentry = new Sentry.Client(dsn);
     let sdk1 = sentry.register(MockAdapter, { rank: 1001 });
     let sdk2 = sentry.register(MockAdapter, { rank: 900 });
     let sdk3 = sentry.register(MockAdapter);

@@ -2,12 +2,10 @@
   "name": "@sentry/core",
   "version": "0.1.0",
   "description": "Sentry core implementation for all JavaScript related SDKs",
-  "main": "dist/core.js",
-  "module": "dist/esm5/core.js",
-  "es2015": "dist/esm2015/core.js",
-  "typings": "dist/core.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "typescript": {
-    "definition": "dist/core.d.ts"
+    "definition": "dist/index.d.ts"
   },
   "dependencies": {},
   "devDependencies": {

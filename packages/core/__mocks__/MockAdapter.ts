@@ -1,4 +1,4 @@
-import * as Sentry from '../core';
+import * as Sentry from '../index';
 
 export namespace MockAdapter {
   export type Options = Sentry.Adapter.Options & {
@@ -7,13 +7,13 @@ export namespace MockAdapter {
 }
 
 export class MockAdapter implements Sentry.Adapter {
-  private core: Sentry.Core;
+  private core: Sentry.Client;
   options: MockAdapter.Options = {
     rank: 1000,
     testOption: false
   };
 
-  constructor(core: Sentry.Core, public dsn: string, options?: MockAdapter.Options) {
+  constructor(core: Sentry.Client, public dsn: string, options?: MockAdapter.Options) {
     this.core = core;
     if (options && options.rank) this.options.rank = options.rank;
     return this;

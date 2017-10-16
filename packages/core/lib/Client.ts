@@ -1,14 +1,12 @@
 import { Event } from './Interfaces';
 import { Adapter } from './Adapter';
-
-export type Options = {
-  maxBreadcrumbs: number;
-};
+import { Options } from './Options';
 
 // TODO: Add breadcrumbs
 // TODO: Add context handling tags, extra, user
-export class Core {
+export class Client {
   private _adapters = new Array<Adapter>();
+
   /**
    * Returns all registered Adapters
    */
@@ -28,7 +26,7 @@ export class Core {
    * @param options
    */
   register<T extends Adapter, O extends Adapter.Options>(
-    Adapter: { new (core: Core, dsn: string, options?: O): T },
+    Adapter: { new (core: Client, dsn: string, options?: O): T },
     options?: O
   ): T {
     let adapter = new Adapter(this, this.dsn, options);
