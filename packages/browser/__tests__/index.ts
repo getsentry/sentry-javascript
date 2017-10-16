@@ -5,7 +5,7 @@ import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as Sentry from '@sentry/core';
-import { Browser } from '../index';
+import { Browser } from '../browser';
 import * as Puppeteer from 'puppeteer';
 
 describe('Browser Interface', () => {

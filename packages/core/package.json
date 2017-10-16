@@ -16,10 +16,8 @@
     "jest": "^21.2.1",
     "prettier": "^1.7.4",
     "ts-jest": "^21.1.2",
-    "ts-loader": "^2.3.7",
     "ts-node": "^3.3.0",
-    "typescript": "^2.5.3",
-    "webpack": "^3.6.0"
+    "typescript": "^2.5.3"
   },
   "engines": {
     "node": ">=6.9.5 <9.0.0",
@@ -44,7 +42,9 @@
       "jsx",
       "json"
     ],
-    "modulePathIgnorePatterns": ["<rootDir>/dist/__mocks__"],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/__mocks__"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "\\.d\\.(jsx?|tsx?)$",
