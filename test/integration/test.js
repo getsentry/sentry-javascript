@@ -1186,7 +1186,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record history.[pushState|back] changes as navigation breadcrumbs', function(
+    it('should record history.[pushState|replaceState] changes as navigation breadcrumbs', function(
       done
     ) {
       var iframe = this.iframe;
