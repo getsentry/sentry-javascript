@@ -24,7 +24,7 @@ export class Browser implements Adapter {
   install(): Promise<Adapter.Result<boolean>> {
     Raven.config(this.dsn, this.options).install();
     return Promise.resolve({
-      sdk: this,
+      adapter: this,
       value: true
     });
   }
@@ -54,8 +54,9 @@ export class Browser implements Adapter {
   send(event: any) {
     return new Promise<Adapter.Result<Event>>((resolve, reject) => {
       Raven._sendProcessedPayload(event, (error: any) => {
+        // TODO: error handling
         resolve({
-          sdk: this,
+          adapter: this,
           value: event
         });
       });

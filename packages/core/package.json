@@ -2,10 +2,12 @@
   "name": "@sentry/core",
   "version": "0.1.0",
   "description": "Sentry core implementation for all JavaScript related SDKs",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "dist/core.js",
+  "module": "dist/esm5/core.js",
+  "es2015": "dist/esm2015/core.js",
+  "typings": "dist/core.d.ts",
   "typescript": {
-    "definition": "dist/index.d.ts"
+    "definition": "dist/core.d.ts"
   },
   "dependencies": {},
   "devDependencies": {
@@ -25,10 +27,9 @@
     "yarn": ">=1.0.2 <2.0.0"
   },
   "scripts": {
-    "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Please use Yarn instead of NPM to install dependencies. See: https://yarnpkg.com/lang/en/docs/install/')\"",
     "clean": "rm -rf ./dist",
-    "dist": "yarn run clean && tsc -p tsconfig.json",
-    "test": "yarn run dist && jest",
+    "dist": "npm run clean && tsc -p tsconfig.json",
+    "test": "npm run dist && jest",
     "test:watch": "jest --watch --notify"
   },
   "jest": {

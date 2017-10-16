@@ -3,7 +3,7 @@ import { Options } from './Core';
 
 export namespace Adapter {
   export type Result<T> = {
-    sdk: Adapter;
+    adapter: Adapter;
     value?: T;
   };
 

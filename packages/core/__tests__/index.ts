@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import * as Sentry from '../index';
+import * as Sentry from '../core';
 import { MockAdapter } from '../__mocks__/MockAdapter';
 
 const dsn = '__DSN__';
@@ -97,7 +97,7 @@ describe('Sentry.Core', () => {
     expect(spy2).toBeCalled();
     expect(spy3).toBeCalled();
     expect(spy2Send).toBeCalled();
-    expect(result.sdk).toEqual(sdk2);
+    expect(result.adapter).toEqual(sdk2);
     expect(result.value).toBeDefined();
     if (result.value) {
       expect(result.value.message).toBe('send+++');

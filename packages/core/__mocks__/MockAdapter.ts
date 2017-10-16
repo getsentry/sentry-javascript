@@ -1,4 +1,4 @@
-import * as Sentry from '../index';
+import * as Sentry from '../core';
 
 export namespace MockAdapter {
   export type Options = Sentry.Adapter.Options & {
@@ -21,7 +21,7 @@ export class MockAdapter implements Sentry.Adapter {
 
   install(): Promise<Sentry.Adapter.Result<boolean>> {
     return Promise.resolve({
-      sdk: this,
+      adapter: this,
       value: true
     });
   }
@@ -38,7 +38,7 @@ export class MockAdapter implements Sentry.Adapter {
 
   send(event: Sentry.Event): Promise<Sentry.Adapter.Result<Sentry.Event>> {
     return Promise.resolve({
-      sdk: this,
+      adapter: this,
       value: event
     });
   }
