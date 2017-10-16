@@ -98,6 +98,7 @@ function Raven() {
   this._keypressTimeout;
   this._location = _window.location;
   this._lastHref = this._location && this._location.href;
+  this._sentEvents = 0;
   this._resetBackoff();
 
   // eslint-disable-next-line guard-for-in
@@ -911,6 +912,9 @@ Raven.prototype = {
     var parsedTo = parseUrl(to);
     var parsedFrom = parseUrl(from);
 
+    // refresh max events count
+    this._sentEvents = 0;
+
     // because onpopstate only tells you the "new" (to) value of location.href, and
     // not the previous (from) value, we need to track the value of the current URL
     // state ourselves
@@ -1293,6 +1297,9 @@ Raven.prototype = {
           // params to preserve 0 arity
           return function(/* state, title, url */) {
             var url = arguments.length > 2 ? arguments[2] : undefined;
+
+            // refresh max events count
+            self._sentEvents = 0;
 
             // url argument is optional
             if (url) {
@@ -1743,12 +1750,22 @@ Raven.prototype = {
       return;
     }
 
+    // Check if the request should be filtered due to max events per page
+    if (
+      globalOptions.maxEventsPerPage &&
+      this._sentEvents >= globalOptions.maxEventsPerPage
+    ) {
+      return;
+    }
+
     // Backoff state: Sentry server previously responded w/ an error (e.g. 429 - too many requests),
     // so drop requests until "cool-off" period has elapsed.
     if (this._shouldBackoff()) {
       this._logDebug('warn', 'Raven dropped error due to backoff: ', data);
       return;
     }
+
+    this._sentEvents++; // failed events count towards maxEvents
 
     if (typeof globalOptions.sampleRate === 'number') {
       if (Math.random() < globalOptions.sampleRate) {

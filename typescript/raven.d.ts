@@ -71,6 +71,9 @@ declare module Raven {
 
         /** Enables/disables automatic collection of breadcrumbs. */
         autoBreadcrumbs?: boolean | AutoBreadcrumbOptions
+
+        /** By default, Raven captures as many events as possible. If you want to reduce this number, you can change it by setting `maxEventsPerPage`. The counter will automatically restart on every page change. */
+        maxEventsPerPage?: number;
     }
 
     interface RavenInstrumentationOptions {
