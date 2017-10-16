@@ -13,7 +13,7 @@ export class MockAdapter implements Sentry.Adapter {
     testOption: false
   };
 
-  constructor(core: Sentry.Client, public dsn: string, options?: MockAdapter.Options) {
+  constructor(core: Sentry.Client, options?: MockAdapter.Options) {
     this.core = core;
     if (options && options.rank) this.options.rank = options.rank;
     return this;

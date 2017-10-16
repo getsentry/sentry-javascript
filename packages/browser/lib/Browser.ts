@@ -13,16 +13,17 @@ export class Browser implements Adapter {
     rank: 1000,
     testOption: false
   };
-  private core: Client;
+  private client: Client;
 
-  constructor(core: Client, public dsn: string, options?: Browser.Options) {
-    this.core = core;
+  constructor(client: Client, options?: Browser.Options) {
+    this.client = client;
     if (options && options.rank) this.options.rank = options.rank;
     return this;
   }
 
   install(): Promise<Adapter.Result<boolean>> {
-    Raven.config(this.dsn, this.options).install();
+    // TODO: check for raven this._globalOptions.allowSecretKey
+    Raven.config(this.client.dsn.getDsn(false), this.options).install();
     return Promise.resolve({
       adapter: this,
       value: true

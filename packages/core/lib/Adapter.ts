@@ -22,7 +22,6 @@ export namespace Adapter {
 }
 
 export interface Adapter {
-  readonly dsn: string;
   readonly options: Adapter.Options;
   install(): Promise<Adapter.Result<boolean>>;
   send(event: Event): Promise<Adapter.Result<Event>>;

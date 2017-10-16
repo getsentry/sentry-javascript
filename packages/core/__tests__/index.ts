@@ -9,6 +9,15 @@ beforeEach(() => {
 });
 
 describe('Sentry.Core', () => {
+  test('get public/private DSN', () => {
+    let sentry = new Sentry.Client('https://username:password@domain/path');
+    expect(sentry.dsn.getDsn(false)).toBe('https://username@domain/path');
+    expect(sentry.dsn.getDsn(true)).toBe('https://username:password@domain/path');
+    let sentry2 = new Sentry.Client('https://username:password@domain:8888/path');
+    expect(sentry2.dsn.getDsn(false)).toBe('https://username@domain:8888/path');
+    expect(sentry2.dsn.getDsn(true)).toBe('https://username:password@domain:8888/path');
+  });
+
   test('throw error for Adapters with same rank', () => {
     let sentry = new Sentry.Client(dsn);
     Sentry.setSharedClient(sentry);

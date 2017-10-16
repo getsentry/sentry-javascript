@@ -1,4 +1,5 @@
 import { Event } from './Interfaces';
+import { DSN } from './Interfaces/DSN';
 import { Adapter } from './Adapter';
 import { Options } from './Options';
 
@@ -6,6 +7,7 @@ import { Options } from './Options';
 // TODO: Add context handling tags, extra, user
 export class Client {
   private _adapters = new Array<Adapter>();
+  readonly dsn: DSN;
 
   /**
    * Returns all registered Adapters
@@ -15,8 +17,9 @@ export class Client {
     return this._adapters;
   }
 
-  constructor(public dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
+  constructor(dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
     // TODO: parse DSN split into public/private
+    this.dsn = new DSN(dsn);
     return this;
   }
 
@@ -26,10 +29,10 @@ export class Client {
    * @param options
    */
   register<T extends Adapter, O extends Adapter.Options>(
-    Adapter: { new (core: Client, dsn: string, options?: O): T },
+    Adapter: { new (core: Client, options?: O): T },
     options?: O
   ): T {
-    let adapter = new Adapter(this, this.dsn, options);
+    let adapter = new Adapter(this, options);
     // We use this._adapters on purpose here
     // everywhere else we should use this.adapters
     this._adapters.push(adapter);
