@@ -2770,7 +2770,7 @@ describe('Raven (public API)', function() {
   });
 
   describe('.captureException', function() {
-    it.only('should treat ErrorEvents similarly to Errors', function() {
+    it('should treat ErrorEvents similarly to Errors', function() {
       var error = new ErrorEvent('crap', {error: new Error('crap')});
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_handleStackInfo');
@@ -2778,7 +2778,7 @@ describe('Raven (public API)', function() {
       assert.isTrue(Raven._handleStackInfo.calledOnce);
     });
 
-    it.only('should send ErrorEvents without Errors as messages', function() {
+    it('should send ErrorEvents without Errors as messages', function() {
       var error = new ErrorEvent('crap');
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, 'captureMessage');
@@ -2786,7 +2786,7 @@ describe('Raven (public API)', function() {
       assert.isTrue(Raven.captureMessage.calledOnce);
     });
 
-    it.only('should send non-Errors as messages', function() {
+    it('should send non-Errors as messages', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, 'captureMessage');
       Raven.captureException({}, {foo: 'bar'});
