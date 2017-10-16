@@ -10,8 +10,8 @@ cache:
   directories:
   - node_modules
 addons:
-  chrome: latest
+  chrome: stable
   firefox: latest
   sauce_connect: true
 script:
-  - npm run test && npm run test:ci
+  - npm run test && if [ -z "$TRAVIS_SECURE_ENV_VARS" ]; then exit 0; else npm run test:ci; fi
