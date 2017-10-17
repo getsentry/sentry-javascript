@@ -22,6 +22,10 @@ function isError(value) {
   }
 }
 
+function isErrorEvent(value) {
+  return {}.toString.call(value) === '[object ErrorEvent]';
+}
+
 function isUndefined(what) {
   return what === void 0;
 }
@@ -348,6 +352,7 @@ function fill(obj, name, replacement, track) {
 module.exports = {
   isObject: isObject,
   isError: isError,
+  isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,

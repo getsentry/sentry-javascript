@@ -8,7 +8,7 @@ var utils = require('./utils');
 var isError = utils.isError;
 var isObject = utils.isObject;
 var isObject = utils.isObject;
-var isError = utils.isError;
+var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
@@ -393,8 +393,12 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureException: function(ex, options) {
-    // If not an Error is passed through, recall as a message instead
-    if (!isError(ex)) {
+    // Cases for sending ex as a message, rather than an exception
+    var isNotError = !isError(ex);
+    var isNotErrorEvent = !isErrorEvent(ex);
+    var isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
+
+    if ((isNotError && isNotErrorEvent) || isErrorEventWithoutError) {
       return this.captureMessage(
         ex,
         objectMerge(
@@ -406,6 +410,9 @@ Raven.prototype = {
         )
       );
     }
+
+    // Get actual Error from ErrorEvent
+    if (isErrorEvent(ex)) ex = ex.error;
 
     // Store the raw exception object for potential debugging and introspection
     this._lastCapturedException = ex;
