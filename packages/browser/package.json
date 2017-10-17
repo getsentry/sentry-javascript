@@ -1,0 +1,63 @@
+{
+  "name": "@sentry/browser",
+  "version": "0.1.0",
+  "description": "Offical Sentry SDK for browsers",
+  "main": "dist/browser.js",
+  "typings": "dist/browser.d.ts",
+  "typescript": {
+    "definition": "dist/browser.d.ts"
+  },
+  "dependencies": {
+    "@sentry/core": "../core",
+    "raven-js": "^3.18.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^21.1.2",
+    "@types/node": "^8.0.32",
+    "@types/puppeteer": "^0.10.2",
+    "jest": "^21.2.1",
+    "prettier": "^1.7.4",
+    "puppeteer": "^0.11.0",
+    "ts-jest": "^21.1.2",
+    "ts-loader": "^2.3.7",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.5.3",
+    "webpack": "^3.6.0"
+  },
+  "engines": {
+    "node": ">=6.9.5 <9.0.0",
+    "npm": ">=3.10.7 <6.0.0",
+    "yarn": ">=1.0.2 <2.0.0"
+  },
+  "scripts": {
+    "build-browser": "webpack --config webpack.config.js",
+    "clean": "rm -rf ./dist",
+    "dist": "npm run clean && tsc -p tsconfig.json && npm run build-browser",
+    "test": "npm run dist && jest --forceExit",
+    "test:watch": "npm run dist && jest --watch --notify"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/__mocks__"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "\\.d\\.(jsx?|tsx?)$",
+      "\\.no-jest\\.(jsx?|tsx?)$",
+      "/dist/"
+    ]
+  },
+  "author": "Sentry",
+  "license": "MIT"
+}
