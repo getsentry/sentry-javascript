@@ -12,6 +12,7 @@ var isObject = utils.isObject;
 var isEmptyObject = utils.isEmptyObject;
 var isError = utils.isError;
 var isErrorEvent = utils.isErrorEvent;
+var supportsErrorEvent = utils.supportsErrorEvent;
 var wrappedCallback = utils.wrappedCallback;
 var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
@@ -66,12 +67,14 @@ describe('utils', function() {
     });
   });
 
-  describe('isErrorEvent', function() {
-    it('should work as advertised', function() {
-      assert.isFalse(isErrorEvent(new Error()));
-      assert.isTrue(isErrorEvent(new ErrorEvent('')));
+  if (supportsErrorEvent()) {
+    describe('isErrorEvent', function() {
+      it('should work as advertised', function() {
+        assert.isFalse(isErrorEvent(new Error()));
+        assert.isTrue(isErrorEvent(new ErrorEvent('')));
+      });
     });
-  });
+  }
 
   describe('isError', function() {
     function testErrorFromDifferentContext(createError) {
