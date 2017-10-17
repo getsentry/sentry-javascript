@@ -1,3 +1,5 @@
+import { SentryError } from '../Sentry';
+
 type DSNParts = {
   source: string;
   protocol: string;
@@ -11,7 +13,7 @@ type DSNParts = {
 export class DSN {
   private dsnString: string;
   private dsn: DSNParts;
-  private dsnRegex = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
+  private dsnRegex = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?(\/.*)/;
   constructor(dsnString: string) {
     this.dsnString = dsnString;
     this.parseDsn();
@@ -30,8 +32,9 @@ export class DSN {
         port: match[5] || '',
         path: match[6]
       };
+    } else {
+      throw new SentryError('invalid dsn');
     }
-    // TODO: else error
   }
 
   getDsn(withPass: boolean) {

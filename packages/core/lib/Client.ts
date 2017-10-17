@@ -18,7 +18,6 @@ export class Client {
   }
 
   constructor(dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
-    // TODO: parse DSN split into public/private
     this.dsn = new DSN(dsn);
     return this;
   }

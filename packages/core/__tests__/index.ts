@@ -2,7 +2,7 @@
 import * as Sentry from '../index';
 import { MockAdapter } from '../__mocks__/MockAdapter';
 
-const dsn = '__DSN__';
+const dsn = 'https://username:password@domain/path';
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -16,6 +16,27 @@ describe('Sentry.Core', () => {
     let sentry2 = new Sentry.Client('https://username:password@domain:8888/path');
     expect(sentry2.dsn.getDsn(false)).toBe('https://username@domain:8888/path');
     expect(sentry2.dsn.getDsn(true)).toBe('https://username:password@domain:8888/path');
+  });
+
+  test('invalid DSN', () => {
+    expect(() => {
+      new Sentry.Client('abc');
+    }).toThrow();
+    expect(() => {
+      new Sentry.Client('https://username:password@domain');
+    }).toThrow();
+    expect(() => {
+      new Sentry.Client('//username:password@domain');
+    }).toThrow();
+    expect(() => {
+      new Sentry.Client('123');
+    }).toThrow();
+    // sentry = new Sentry.Client('https://username:password@domain');
+    // expect(sentry).toThrow();
+    // sentry = new Sentry.Client('//username:password@domain');
+    // expect(sentry).toThrow();
+    // expect(new Sentry.Client('abcd')).toThrow();
+    // expect(new Sentry.Client('1234')).toThrow();
   });
 
   test('throw error for Adapters with same rank', () => {
