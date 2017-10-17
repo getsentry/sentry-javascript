@@ -14,4 +14,4 @@ addons:
   firefox: latest
   sauce_connect: true
 script:
-  - npm run test && if [ -z "$TRAVIS_SECURE_ENV_VARS" ]; then exit 0; else npm run test:ci; fi
+  - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
