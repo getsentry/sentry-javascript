@@ -104,23 +104,14 @@ process.on('unhandledRejection', reason => console.log(reason));
 
   if (shouldPushChanges) pushChanges();
 
-  const {shouldPublishOnCdn} = await inquirer.prompt({
-    name: 'shouldPublishOnCdn',
-    message: `Do you want to publish on CDN?`,
+  const {shouldPublish} = await inquirer.prompt({
+    name: 'shouldPublish',
+    message: `Do you want to publish on CDN and NPM?`,
     type: 'confirm',
     default: false
   });
 
-  if (shouldPublishOnCdn) publishOnCdn();
-
-  const {shouldPublishOnNpm} = await inquirer.prompt({
-    name: 'shouldPublishOnNpm',
-    message: `Do you want to publish on NPM?`,
-    type: 'confirm',
-    default: false
-  });
-
-  if (shouldPublishOnNpm) publishOnNpm();
+  if (shouldPublish) publish();
 
   await askUnskippableQuestion(
     `Sweet! Now go to https://github.com/getsentry/raven-js/releases and copy a changelog in there`
@@ -226,12 +217,7 @@ function pushChanges() {
   console.log('✔ Changes pushed');
 }
 
-function publishOnCdn() {
-  execCommand(`grunt publish`);
-  console.log('✔ Published on CDN');
-}
-
-function publishOnNpm() {
+function publish() {
   execCommand(`npm publish`);
-  console.log('✔ Published on NPM');
+  console.log('✔ Published on CDN and NPM');
 }
