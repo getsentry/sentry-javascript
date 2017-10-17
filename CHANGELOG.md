@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.19.1
+
+* BUGFIX: Don't prettify minified dist files https://github.com/getsentry/raven-js/commit/fee37713c9a17d41b5bb4e669f584ec056658df1
+
 ## 3.19.0
 
 * NEW: `ErrorEvent` are now treated in the same way as regular `Error` objects https://github.com/getsentry/raven-js/pull/1094

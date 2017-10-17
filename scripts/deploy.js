@@ -24,8 +24,8 @@ process.on('unhandledRejection', reason => console.log(reason));
       name: 'bump',
       message: 'Which version part do you want to update?',
       type: 'list',
-      choices: ['major', 'minor', 'patch'],
-      default: 'patch'
+      choices: ['major', 'minor', 'patch', 'skip'],
+      default: 'skip'
     })
     .then(
       answers =>

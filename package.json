@@ -9,7 +9,7 @@
     "raven",
     "sentry"
   ],
-  "version": "3.19.0",
+  "version": "3.19.1",
   "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
@@ -76,9 +76,18 @@
     "printWidth": 90
   },
   "lint-staged": {
-    "src/**/*.js": ["prettier --write", "git add"],
-    "test/**/*.js": ["prettier --write", "git add"],
-    "plugins/**/*.js": ["prettier --write", "git add"]
+    "src/**/*.js": [
+      "prettier --write",
+      "git add"
+    ],
+    "test/**/*.js": [
+      "prettier --write",
+      "git add"
+    ],
+    "plugins/**/*.js": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "typings": "typescript/raven.d.ts",
   "bundlesize": [
