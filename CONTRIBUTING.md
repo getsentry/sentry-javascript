@@ -68,6 +68,12 @@ $ npm run test:karma:integration
 
 Then visit: http://localhost:9876/debug.html
 
+Keep in mind that in order for in-browser tests to work correctly, they need to be bundled first:
+
+```bash
+$ grunt build.test
+```
+
 If you want to make sure that your changes will fit in our 10kB budget:
 
 ```bash

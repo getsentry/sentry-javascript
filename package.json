@@ -19,7 +19,7 @@
     "lint": "eslint .",
     "precommit": "lint-staged",
     "publish": "npm run test && grunt publish",
-    "test": "npm run lint && npm run test:size && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
+    "test": "npm run lint && grunt build.test && npm run test:unit && npm run test:integration && npm run test:typescript",
     "test:karma:unit": "karma start karma.unit.config.js",
     "test:karma:integration": "karma start karma.integration.config.js ",
     "test:karma:sauce": "karma start karma.sauce.config.js ",
@@ -27,7 +27,7 @@
     "test:integration": "npm run test:karma:integration -- --single-run",
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
     "test:ci": "npm run lint && grunt test:ci && npm run test:karma:sauce",
-    "test:size": "grunt dist && bundlesize"
+    "test:size": "grunt dist && bundlesize && git checkout -- dist/"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
