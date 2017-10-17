@@ -1,7 +1,7 @@
-import { Severity } from './Severity';
+import {Severity} from './Severity';
 
 export class Event {
-  id: string = 'TODO';
-  message: string;
-  severity?: Severity = Severity.Info;
+  // id: string;
+  message: string = '';
+  // severity?: Severity = Severity.Info;
 }

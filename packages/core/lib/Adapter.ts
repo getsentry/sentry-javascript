@@ -24,7 +24,8 @@ export namespace Adapter {
 export interface Adapter {
   readonly options: Adapter.Options;
   install(): Promise<Adapter.Result<boolean>>;
+  setOptions(options: Adapter.Options): Adapter;
   send(event: Event): Promise<Adapter.Result<Event>>;
-  captureEvent(event: Event): Promise<Event>;
   captureException(exception: Error, event: Event): Promise<Event>;
+  captureMessage(message: string, event: Event): Promise<Event>;
 }

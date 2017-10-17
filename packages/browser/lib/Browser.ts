@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { Adapter, Client, Options, Event } from '@sentry/core';
+import {Adapter, Client, Options, Event} from '@sentry/core';
 var Raven = require('raven-js');
 
 export namespace Browser {
@@ -30,6 +30,12 @@ export class Browser implements Adapter {
     });
   }
 
+  setOptions(options: Browser.Options) {
+    Object.assign(this.options, options);
+    Object.assign(Raven._globalOptions, this.options);
+    return this;
+  }
+
   captureException(exception: Error, event: Event) {
     let ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
@@ -41,14 +47,14 @@ export class Browser implements Adapter {
     });
   }
 
-  captureEvent(event: any): Promise<Event> {
+  captureMessage(message: string, event: Event): Promise<Event> {
     let ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload = (data: any) => {
         resolve(data);
         Raven._sendProcessedPayload = ravenSendRequest;
       };
-      Raven.captureMessage(event.message);
+      Raven.captureMessage(message);
     });
   }
 

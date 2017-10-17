@@ -1,7 +1,7 @@
-import { Event } from './Interfaces';
-import { DSN } from './Interfaces/DSN';
-import { Adapter } from './Adapter';
-import { Options } from './Options';
+import {Event} from './Interfaces';
+import {DSN} from './Interfaces/DSN';
+import {Adapter} from './Adapter';
+import {Options} from './Options';
 
 // TODO: Add breadcrumbs
 // TODO: Add context handling tags, extra, user
@@ -17,7 +17,7 @@ export class Client {
     return this._adapters;
   }
 
-  constructor(dsn: string, public options: Options = { maxBreadcrumbs: 100 }) {
+  constructor(dsn: string, public options: Options = {maxBreadcrumbs: 100}) {
     this.dsn = new DSN(dsn);
     return this;
   }
@@ -28,7 +28,7 @@ export class Client {
    * @param options
    */
   register<T extends Adapter, O extends Adapter.Options>(
-    Adapter: { new (core: Client, options?: O): T },
+    Adapter: {new (core: Client, options?: O): T},
     options?: O
   ): T {
     let adapter = new Adapter(this, options);
@@ -51,22 +51,11 @@ export class Client {
     );
   }
 
-  captureMessage(message: string) {
-    let event = new Event();
-    event.message = message;
-    return this.captureEvent(event);
-  }
-
-  /**
-   * Captures and sends an event. Will pass through every registered
-   * Adapter and send will be called by the Adapter with the lowest rank
-   * @param event
-   */
-  async captureEvent(event: any) {
+  async captureMessage(message: string) {
     return this.send(
       await this.adapters.reduce(
-        async (event, adapter) => adapter.captureEvent(await event),
-        Promise.resolve(event)
+        async (event, adapter) => adapter.captureMessage(message, await event),
+        Promise.resolve(new Event())
       )
     );
   }
