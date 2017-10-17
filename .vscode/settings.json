@@ -1,15 +1,13 @@
 {
-    "prettier.bracketSpacing": true,
-    "prettier.singleQuote": true,
-    "prettier.printWidth": 90,
-    "prettier.jsxBracketSameLine": true,
-
     "[typescript]": {
         "editor.formatOnSave": true
     },
     "[javascript]": {
         "editor.formatOnSave": true
     },
+    "prettier.singleQuote": true,
+    "prettier.printWidth": 90,
+    "prettier.jsxBracketSameLine": true,
     "search.exclude": {
         "**/node_modules": true,
         "**/bower_components": true,

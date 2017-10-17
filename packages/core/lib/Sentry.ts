@@ -1,4 +1,4 @@
-import { Client } from './Client';
+import {Client} from './Client';
 
 let sharedClient: Client;
 
@@ -10,11 +10,7 @@ export function getSharedClient() {
   return sharedClient;
 }
 
-export class SentryError {
-  constructor(...args: any[]) {
-    Error.apply(this, args);
-    this.name = 'SentryError';
-  }
+export class SentryError implements Error {
+  public name = 'SentryError';
+  constructor(public message: string) {}
 }
-
-SentryError.prototype = new Error();

@@ -1,4 +1,4 @@
-import { Event } from './Interfaces';
+import {Event} from './Interfaces';
 
 export namespace Adapter {
   export type Result<T> = {
