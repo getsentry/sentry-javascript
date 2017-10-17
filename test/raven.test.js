@@ -20,7 +20,9 @@ _Raven.prototype._getUuid = function() {
   return 'abc123';
 };
 
-var joinRegExp = require('../src/utils').joinRegExp;
+var utils = require('../src/utils');
+var joinRegExp = utils.joinRegExp;
+var supportsErrorEvent = utils.supportsErrorEvent;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -2770,21 +2772,23 @@ describe('Raven (public API)', function() {
   });
 
   describe('.captureException', function() {
-    it('should treat ErrorEvents similarly to Errors', function() {
-      var error = new ErrorEvent('pickleRick', {error: new Error('pickleRick')});
-      this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, '_handleStackInfo');
-      Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(Raven._handleStackInfo.calledOnce);
-    });
+    if (supportsErrorEvent()) {
+      it('should treat ErrorEvents similarly to Errors', function() {
+        var error = new ErrorEvent('pickleRick', {error: new Error('pickleRick')});
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, '_handleStackInfo');
+        Raven.captureException(error, {foo: 'bar'});
+        assert.isTrue(Raven._handleStackInfo.calledOnce);
+      });
 
-    it('should send ErrorEvents without Errors as messages', function() {
-      var error = new ErrorEvent('pickleRick');
-      this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'captureMessage');
-      Raven.captureException(error, {foo: 'bar'});
-      assert.isTrue(Raven.captureMessage.calledOnce);
-    });
+      it('should send ErrorEvents without Errors as messages', function() {
+        var error = new ErrorEvent('pickleRick');
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, 'captureMessage');
+        Raven.captureException(error, {foo: 'bar'});
+        assert.isTrue(Raven.captureMessage.calledOnce);
+      });
+    }
 
     it('should send non-Errors as messages', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);

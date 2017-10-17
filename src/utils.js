@@ -23,7 +23,7 @@ function isError(value) {
 }
 
 function isErrorEvent(value) {
-  return {}.toString.call(value) === '[object ErrorEvent]';
+  return supportsErrorEvent() && {}.toString.call(value) === '[object ErrorEvent]';
 }
 
 function isUndefined(what) {
@@ -41,6 +41,15 @@ function isString(what) {
 function isEmptyObject(what) {
   for (var _ in what) return false; // eslint-disable-line guard-for-in, no-unused-vars
   return true;
+}
+
+function supportsErrorEvent() {
+  try {
+    new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function wrappedCallback(callback) {
@@ -357,6 +366,7 @@ module.exports = {
   isFunction: isFunction,
   isString: isString,
   isEmptyObject: isEmptyObject,
+  supportsErrorEvent: supportsErrorEvent,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,
