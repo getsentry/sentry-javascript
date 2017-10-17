@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.19.0
+
+* NEW: `ErrorEvent` are now treated in the same way as regular `Error` objects https://github.com/getsentry/raven-js/pull/1094
+* NEW: `replaceState` is now instrumented to be stored as a breadcrumbs correctly https://github.com/getsentry/raven-js/pull/1093
+* NEW: `captureMessage` now respects `ignoreUrls` and `whitelistUrls` configs https://github.com/getsentry/raven-js/pull/1080
+* NEW: Improved support for parsing Electron errors https://github.com/getsentry/raven-js/pull/1068
+* NEW: All test suites are now using Karma and are additionally running on Headless Firefox, Edge 15, Android 4.4/5.1/6.0/7.1 and iOS10 https://github.com/getsentry/raven-js/pull/1087
+* BUGFIX: Don't throw error when calling `fetch` without a valid arguments https://github.com/getsentry/raven-js/pull/1069
+* BUGFIX: `ignoreErrors` patterns are now compared on both, error message itself and `<type>: <message>` formatted string https://github.com/getsentry/raven-js/pull/1076
+* BUGFIX: `showReportDialog` `options` argument is now optional in TypeScript definitions https://github.com/getsentry/raven-js/pull/1097
+* BUGFIX: TravisCI tests will run correctly for non-org contributors as well \o/ https://github.com/getsentry/raven-js/commit/1650da749282207939d9d362194d086a565e09c5
+
 ## 3.18.1
 
 * BUGFIX: Remove engine field from package.json, preventing correct npm/yarn usage
