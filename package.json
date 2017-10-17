@@ -76,10 +76,9 @@
     "printWidth": 90
   },
   "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ]
+    "src/**/*.js": ["prettier --write", "git add"],
+    "test/**/*.js": ["prettier --write", "git add"],
+    "plugins/**/*.js": ["prettier --write", "git add"]
   },
   "typings": "typescript/raven.d.ts",
   "bundlesize": [

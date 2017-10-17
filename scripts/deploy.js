@@ -44,6 +44,9 @@ process.on('unhandledRejection', reason => console.log(reason));
             case 'patch':
               resolve(`${major}.${minor}.${patch + 1}`);
               break;
+            case 'skip':
+              resolve(`${major}.${minor}.${patch}`);
+              break;
             default:
               reject('Incorrect version bump');
           }
