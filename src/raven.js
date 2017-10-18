@@ -1810,14 +1810,18 @@ Raven.prototype = {
     }
 
     var exception = data.exception && data.exception.values[0];
-    this.captureBreadcrumb({
-      category: 'sentry',
-      message: exception
-        ? (exception.type ? exception.type + ': ' : '') + exception.value
-        : data.message,
-      event_id: data.event_id,
-      level: data.level || 'error' // presume error unless specified
-    });
+
+    // only capture 'sentry' breadcrumb is autoBreadcrumbs is truthy
+    if (this._globalOptions.autoBreadcrumbs) {
+      this.captureBreadcrumb({
+        category: 'sentry',
+        message: exception
+          ? (exception.type ? exception.type + ': ' : '') + exception.value
+          : data.message,
+        event_id: data.event_id,
+        level: data.level || 'error' // presume error unless specified
+      });
+    }
 
     var url = this._globalEndpoint;
     (globalOptions.transport || this._makeRequest).call(this, {
