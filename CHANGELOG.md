@@ -31,7 +31,7 @@
 * CHANGE: Unit tests are using Headless Chrome instead of PhantomJS https://github.com/getsentry/raven-js/pull/1029
 * CHANGE: Added `setDSN` typing definition for TypeScript https://github.com/getsentry/raven-js/pull/995
 * BUGFIX: Defend against undefined `XMLHttpRequest` while sending events https://github.com/getsentry/raven-js/pull/1024
-* BUGFIX: `lastEventId` won't be overriden when an event was dropped https://github.com/getsentry/raven-js/pull/1041
+* BUGFIX: `lastEventId` won't be overridden when an event was dropped https://github.com/getsentry/raven-js/pull/1041
 * BUGFIX: Make sure that `document` is available before reading `location` https://github.com/getsentry/raven-js/pull/1038
 * BUGFIX: Prevent breadcrumbs with undefined url to throw an error https://github.com/getsentry/raven-js/pull/1018
 
@@ -336,7 +336,7 @@
 * New `backbone.js` plugin. See: https://github.com/getsentry/raven-js/pull/220
 * Added support for `chrome://` protocol in Firefox in stack traces. See: https://github.com/getsentry/raven-js/pull/225
 * Ignore more garbage from IE cross origin errors. See: https://github.com/getsentry/raven-js/pull/224
-* Added `Raven.debug` to prevent logging to `console` when `false`. Defaults to `true` for backwards compatability. See: https://github.com/getsentry/raven-js/pull/229
+* Added `Raven.debug` to prevent logging to `console` when `false`. Defaults to `true` for backwards compatibility. See: https://github.com/getsentry/raven-js/pull/229
 * Prevent calling `Raven.config()` or `Raven.install()` twice. See: https://github.com/getsentry/raven-js/pull/233
 
 ## 1.1.15
@@ -359,7 +359,7 @@
 * Fixed an issue with the `require.js` plugin basically not working at all. See: https://github.com/getsentry/raven-js/commit/c2a2e2672a2a61a5a07e88f24a9c885f6dba57ae
 * Got rid of `Raven.afterLoad` and made it internal only.
 * `Raven.TraceKit` is now internal only.
-* Truncate message length to a max of 100 characters becasue angular.js sucks and generates stupidly large error messages.
+* Truncate message length to a max of 100 characters because angular.js sucks and generates stupidly large error messages.
 
 ## 1.1.11
 
@@ -418,7 +418,7 @@ A new website dedicated to helping you compile a custom build of raven.js
 `whitelistUrls` are recommended over `ignoreUrls`. `whitelistUrls` drastically helps cut out noisy error messages from other scripts running on your site.
 
 ### Misc
-* `ignoreUrls`, `ignoreErrors`, `includePaths` have all been unified to accept both a regular expression and strings to avoid confusion and backwards compatability
+* `ignoreUrls`, `ignoreErrors`, `includePaths` have all been unified to accept both a regular expression and strings to avoid confusion and backwards compatibility
 * `Raven.wrap` recursively wraps arguments
 * Events are dispatched when an exception is received, recorded or failed sending to Sentry
 * Support newer Sentry protocol which allows smaller packets

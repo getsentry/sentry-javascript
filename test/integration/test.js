@@ -703,7 +703,7 @@ describe('integration', function() {
           var xhr = new XMLHttpRequest();
           xhr.open('GET', 'http://example.com/api/1/store/?sentry_key=public');
 
-          // can't actually transmit an XHR (breadcrumb isnt recorded until
+          // can't actually transmit an XHR (breadcrumb isn't recorded until
           // onreadystatechange fires), so enough to just verify that
           // __raven_xhr wasn't set on xhr object
 
@@ -961,7 +961,7 @@ describe('integration', function() {
             //evt.stopPropagation();
           };
 
-          // mousemove event shouldnt clobber subsequent "breadcrumbed" events (see #724)
+          // mousemove event shouldn't clobber subsequent "breadcrumbed" events (see #724)
           document.querySelector('.a').addEventListener('mousemove', clickHandler);
 
           document.querySelector('.a').addEventListener('click', clickHandler);
