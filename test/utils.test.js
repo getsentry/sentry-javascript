@@ -64,6 +64,12 @@ describe('utils', function() {
     it('should work as advertised', function() {
       assert.isTrue(isEmptyObject({}));
       assert.isFalse(isEmptyObject({foo: 1}));
+      var MyObj = function() {};
+      MyObj.prototype.foo = 0;
+      assert.isTrue(isEmptyObject(new MyObj()));
+      var myExample = new MyObj();
+      myExample.bar = 1;
+      assert.isFalse(isEmptyObject(myExample));
     });
   });
 
