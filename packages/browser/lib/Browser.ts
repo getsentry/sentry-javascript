@@ -4,14 +4,14 @@ var Raven = require('raven-js');
 
 export namespace Browser {
   export type Options = Adapter.Options & {
-    testOption?: boolean;
+    allowSecretKey?: boolean;
+    allowDuplicates?: boolean;
   };
 }
 
 export class Browser implements Adapter {
   options: Browser.Options = {
-    rank: 1000,
-    testOption: false
+    rank: 1000
   };
   private client: Client;
 

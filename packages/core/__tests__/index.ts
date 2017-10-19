@@ -39,8 +39,7 @@ describe('Sentry.Core', () => {
   });
 
   test('throw error for Adapters with same rank', () => {
-    let sentry = new Sentry.Client(dsn);
-    Sentry.setSharedClient(sentry);
+    let sentry = Sentry.create(dsn);
     expect(Sentry.getSharedClient()).toBe(sentry);
     sentry.register(MockAdapter);
     expect(() => sentry.register(MockAdapter)).toThrow();

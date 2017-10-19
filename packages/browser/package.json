@@ -8,7 +8,7 @@
     "definition": "dist/browser.d.ts"
   },
   "dependencies": {
-    "@sentry/core": "../core",
+    "@sentry/core": "file:../core",
     "raven-js": "^3.18.1"
   },
   "devDependencies": {

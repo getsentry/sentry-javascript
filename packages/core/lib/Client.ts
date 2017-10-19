@@ -71,7 +71,7 @@ export class Client {
    * This will send an event with the Adapter with the lowest rank
    * @param event
    */
-  send(event: Event) {
+  send(event: Event): Promise<Adapter.Result<Event>> {
     return this.adapters[0].send(event);
   }
 
