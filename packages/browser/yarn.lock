@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@sentry/core@../core":
+"@sentry/core@file:../core":
   version "0.1.0"
 
 "@types/jest@^21.1.2":

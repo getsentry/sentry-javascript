@@ -10,24 +10,17 @@ export namespace Browser {
 }
 
 export class Browser implements Adapter {
-  options: Browser.Options = {
-    rank: 1000
-  };
   private client: Client;
 
-  constructor(client: Client, options?: Browser.Options) {
+  constructor(client: Client, public options: Browser.Options = {}) {
     this.client = client;
-    if (options && options.rank) this.options.rank = options.rank;
     return this;
   }
 
-  install(): Promise<Adapter.Result<boolean>> {
+  install(): Promise<boolean> {
     // TODO: check for raven this._globalOptions.allowSecretKey
     Raven.config(this.client.dsn.getDsn(false), this.options).install();
-    return Promise.resolve({
-      adapter: this,
-      value: true
-    });
+    return Promise.resolve(true);
   }
 
   setOptions(options: Browser.Options) {
@@ -36,7 +29,7 @@ export class Browser implements Adapter {
     return this;
   }
 
-  captureException(exception: Error, event: Event) {
+  captureException(exception: Error) {
     let ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload = (data: any) => {
@@ -47,7 +40,7 @@ export class Browser implements Adapter {
     });
   }
 
-  captureMessage(message: string, event: Event): Promise<Event> {
+  captureMessage(message: string) {
     let ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload = (data: any) => {
@@ -59,13 +52,10 @@ export class Browser implements Adapter {
   }
 
   send(event: any) {
-    return new Promise<Adapter.Result<Event>>((resolve, reject) => {
+    return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload(event, (error: any) => {
         // TODO: error handling
-        resolve({
-          adapter: this,
-          value: event
-        });
+        resolve(event);
       });
     });
   }
