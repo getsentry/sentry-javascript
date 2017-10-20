@@ -65,7 +65,7 @@ describe('Sentry.Client', () => {
     expect(result.message).toEqual('+');
   });
 
-  test('call captureMessage on all Adapters', async () => {
+  test('call captureMessage on Adapter', async () => {
     let sentry = new Sentry.Client(dsn);
     let sdk = sentry.use(MockAdapter);
     let spy = jest.spyOn(sdk, 'captureMessage');
@@ -75,6 +75,14 @@ describe('Sentry.Client', () => {
     if (result) {
       expect(result.message).toBe('heyho');
     }
+  });
+
+  test('call captureBreadcrumb on Adapter', () => {
+    let sentry = new Sentry.Client(dsn);
+    let sdk = sentry.use(MockAdapter);
+    let spy = jest.spyOn(sdk, 'captureBreadcrumb');
+    sentry.captureBreadcrumb({category: 'test'});
+    expect(spy).toBeCalled();
   });
 
   test('call send only on one Adapter', async () => {

@@ -1,4 +1,4 @@
-import {Event} from './Interfaces';
+import {Event, Breadcrumb} from './Interfaces';
 
 export namespace Adapter {
   export type Options = {};
@@ -11,4 +11,5 @@ export interface Adapter {
   send(event: Event): Promise<Event>;
   captureException(exception: Error): Promise<Event>;
   captureMessage(message: string): Promise<Event>;
+  captureBreadcrumb(crumb: Breadcrumb): Promise<Breadcrumb>;
 }

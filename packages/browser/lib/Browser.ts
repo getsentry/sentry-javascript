@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import {Adapter, Client, Options, Event} from '@sentry/core';
+import {Adapter, Client, Options, Event, Breadcrumb} from '@sentry/core';
 var Raven = require('raven-js');
 
 export namespace Browser {
@@ -48,6 +48,21 @@ export class Browser implements Adapter {
         Raven._sendProcessedPayload = ravenSendRequest;
       };
       Raven.captureMessage(message);
+    });
+  }
+
+  captureBreadcrumb(crumb: Breadcrumb) {
+    return new Promise<Breadcrumb>((resolve, reject) => {
+      // TODO: We have to check if this is necessary used in react-native
+      // let oldCaptureBreadcrumb = Raven.captureBreadcrumb;
+      // Raven.captureBreadcrumb = (breadCrumb: any, ...args: any[]) => {
+      //   if (breadCrumb.data && typeof breadCrumb.data === 'object') {
+      //     breadCrumb.data = Object.assign({}, breadCrumb.data);
+      //   }
+      //   return oldCaptureBreadcrumb(breadCrumb, ...args);
+      // };
+      Raven.setBreadcrumbCallback((finalBreadCrumb: any) => resolve(finalBreadCrumb));
+      Raven.captureBreadcrumb(crumb);
     });
   }
 

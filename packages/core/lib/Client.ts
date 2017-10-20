@@ -1,4 +1,4 @@
-import {Event, User} from './Interfaces';
+import {Breadcrumb, Event, User} from './Interfaces';
 import {DSN} from './Interfaces/DSN';
 import {Context} from './Interfaces/Context';
 import {Adapter} from './Adapter';
@@ -59,6 +59,10 @@ export class Client {
 
   async captureMessage(message: string) {
     return this.send(await this.adapter.captureMessage(message));
+  }
+
+  captureBreadcrumb(crumb: Breadcrumb) {
+    return this.adapter.captureBreadcrumb(crumb);
   }
 
   install() {

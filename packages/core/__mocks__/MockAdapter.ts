@@ -33,6 +33,11 @@ export class MockAdapter implements Sentry.Adapter {
     return Promise.resolve(event);
   }
 
+  captureBreadcrumb(crumb: Sentry.Breadcrumb): Promise<Sentry.Breadcrumb> {
+    // Do nothing
+    return Promise.resolve(crumb);
+  }
+
   send(event: Sentry.Event): Promise<Sentry.Event> {
     return Promise.resolve(event);
   }
