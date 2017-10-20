@@ -1,1 +1,2 @@
-export { Event } from './Event';
+export {Event} from './Event';
+export {User} from './User';

@@ -1,5 +1,6 @@
-import {Event} from './Interfaces';
+import {Event, User} from './Interfaces';
 import {DSN} from './Interfaces/DSN';
+import {Context} from './Interfaces/Context';
 import {Adapter} from './Adapter';
 import {Options} from './Options';
 import {SentryError} from './Sentry';
@@ -8,11 +9,18 @@ import {SentryError} from './Sentry';
 // TODO: Add context handling tags, extra, user
 export class Client {
   private _adapter: Adapter;
+  private _context: Context;
   readonly dsn: DSN;
 
   constructor(dsn: string, public options: Options = {maxBreadcrumbs: 100}) {
     this.dsn = new DSN(dsn);
+    this.clearContext();
     return this;
+  }
+
+  getContext() {
+    // TODO: check for cyclic objects
+    return JSON.parse(JSON.stringify(this._context));
   }
 
   private get adapter() {
@@ -60,4 +68,28 @@ export class Client {
   send(event: Event) {
     return this.adapter.send(event);
   }
+
+  // ---------------- CONTEXT
+
+  setUserContext(user: User) {
+    Context.set(this._context, 'user', user);
+    return this;
+  }
+
+  setTagsContext(tags: any) {
+    Context.merge(this._context, 'tags', tags);
+    return this;
+  }
+
+  setExtraContext(extra: any) {
+    Context.merge(this._context, 'extra', extra);
+    return this;
+  }
+
+  clearContext() {
+    this._context = Context.getDefaultContext();
+    return this;
+  }
+
+  // ------------------------
 }

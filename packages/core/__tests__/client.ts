@@ -8,7 +8,7 @@ beforeEach(() => {
   jest.resetAllMocks();
 });
 
-describe('Sentry.Core', () => {
+describe('Sentry.Client', () => {
   test('get public/private DSN', () => {
     let sentry = new Sentry.Client('https://username:password@domain/path');
     expect(sentry.dsn.getDsn(false)).toBe('https://username@domain/path');
