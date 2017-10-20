@@ -1,4 +1,4 @@
-import {Event, Breadcrumb} from './Interfaces';
+import {Event, Breadcrumb, User} from './Interfaces';
 
 export namespace Adapter {
   export type Options = {};
@@ -12,4 +12,11 @@ export interface Adapter {
   captureException(exception: Error): Promise<Event>;
   captureMessage(message: string): Promise<Event>;
   captureBreadcrumb(crumb: Breadcrumb): Promise<Breadcrumb>;
+
+  // These should be removed at some point in the future
+  // only the client should handle global stuff
+  setUserContext?(user?: User): Adapter;
+  setTagsContext?(tags?: {[key: string]: any}): Adapter;
+  setExtraContext?(extra?: {[key: string]: any}): Adapter;
+  clearContext?(): Adapter;
 }

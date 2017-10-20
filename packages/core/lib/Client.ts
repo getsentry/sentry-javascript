@@ -14,7 +14,7 @@ export class Client {
 
   constructor(dsn: string, public options: Options = {maxBreadcrumbs: 100}) {
     this.dsn = new DSN(dsn);
-    this.clearContext();
+    this._context = Context.getDefaultContext();
     return this;
   }
 
@@ -75,23 +75,38 @@ export class Client {
 
   // ---------------- CONTEXT
 
-  setUserContext(user: User) {
+  setUserContext(user?: User) {
     Context.set(this._context, 'user', user);
+    // TODO: Remove this once we moved code away from adapters
+    if (this.adapter.setUserContext) {
+      this.adapter.setUserContext(user);
+    }
     return this;
   }
 
-  setTagsContext(tags: any) {
+  setTagsContext(tags?: {[key: string]: any}) {
     Context.merge(this._context, 'tags', tags);
+    // TODO: Remove this once we moved code away from adapters
+    if (this.adapter.setTagsContext) {
+      this.adapter.setTagsContext(tags);
+    }
     return this;
   }
 
-  setExtraContext(extra: any) {
+  setExtraContext(extra?: {[key: string]: any}) {
     Context.merge(this._context, 'extra', extra);
+    // TODO: Remove this once we moved code away from adapters
+    if (this.adapter.setExtraContext) {
+      this.adapter.setExtraContext(extra);
+    }
     return this;
   }
 
   clearContext() {
     this._context = Context.getDefaultContext();
+    if (this.adapter.clearContext) {
+      this.adapter.clearContext();
+    }
     return this;
   }
 

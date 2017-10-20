@@ -10,13 +10,17 @@ beforeEach(() => {
 
 describe('Sentry.Client context', () => {
   test('set tags', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
+    let sentry = new Sentry.Client('https://username:password@domain/path').use(
+      MockAdapter
+    );
     sentry.setTagsContext({yo: 12});
     expect(sentry.getContext()).toEqual({tags: {yo: 12}});
   });
 
   test('set extra and tags', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
+    let sentry = new Sentry.Client('https://username:password@domain/path').use(
+      MockAdapter
+    );
     sentry.setTagsContext({yo: 12});
     expect(sentry.getContext()).toEqual({tags: {yo: 12}});
     sentry.setExtraContext({foo: 13});
@@ -24,7 +28,9 @@ describe('Sentry.Client context', () => {
   });
 
   test('clear context', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
+    let sentry = new Sentry.Client('https://username:password@domain/path').use(
+      MockAdapter
+    );
     sentry.setTagsContext({yo: 12});
     expect(sentry.getContext()).toEqual({tags: {yo: 12}});
     sentry.clearContext();
@@ -32,7 +38,9 @@ describe('Sentry.Client context', () => {
   });
 
   test('set undefined', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
+    let sentry = new Sentry.Client('https://username:password@domain/path').use(
+      MockAdapter
+    );
     sentry.setTagsContext(undefined);
     expect(sentry.getContext()).toEqual({});
     sentry.setTagsContext({yo: 12});
@@ -46,7 +54,9 @@ describe('Sentry.Client context', () => {
   });
 
   test('set user', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
+    let sentry = new Sentry.Client('https://username:password@domain/path').use(
+      MockAdapter
+    );
     sentry.setUserContext({
       id: 'test'
     });

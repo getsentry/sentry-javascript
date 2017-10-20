@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import {Adapter, Client, Options, Event, Breadcrumb} from '@sentry/core';
+import {Adapter, Client, Options, Event, Breadcrumb, User} from '@sentry/core';
 var Raven = require('raven-js');
 
 export namespace Browser {
@@ -73,5 +73,25 @@ export class Browser implements Adapter {
         resolve(event);
       });
     });
+  }
+
+  setUserContext(user?: User) {
+    Raven.setUserContext(user);
+    return this;
+  }
+
+  setTagsContext(tags?: {[key: string]: any}) {
+    Raven.setTagsContext(tags);
+    return this;
+  }
+
+  setExtraContext(extra?: {[key: string]: any}) {
+    Raven.setExtraContext(extra);
+    return this;
+  }
+
+  clearContext() {
+    Raven.clearContext();
+    return this;
   }
 }
