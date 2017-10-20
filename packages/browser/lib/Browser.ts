@@ -51,6 +51,10 @@ export class Browser implements Adapter {
     });
   }
 
+  setBreadcrumbCallback(callback: {(crumb: Breadcrumb): void}) {
+    Raven.setBreadcrumbCallback(callback);
+  }
+
   captureBreadcrumb(crumb: Breadcrumb) {
     return new Promise<Breadcrumb>((resolve, reject) => {
       // TODO: We have to check if this is necessary used in react-native
@@ -61,8 +65,8 @@ export class Browser implements Adapter {
       //   }
       //   return oldCaptureBreadcrumb(breadCrumb, ...args);
       // };
-      Raven.setBreadcrumbCallback((finalBreadCrumb: any) => resolve(finalBreadCrumb));
       Raven.captureBreadcrumb(crumb);
+      resolve(crumb);
     });
   }
 
