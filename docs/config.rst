@@ -219,6 +219,7 @@ Those configuration options are documented below:
             'console': false,  // console logging
             'dom': true,       // DOM interactions, i.e. clicks/typing
             'location': false  // url changes, including pushState/popState
+            'sentry': true     // sentry events
         }
 
 .. describe:: maxBreadcrumbs
