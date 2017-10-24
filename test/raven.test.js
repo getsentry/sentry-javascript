@@ -802,7 +802,7 @@ describe('globals', function() {
       });
     });
 
-    it("should create and append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs` is truthy", function() {
+    it("should create and append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is truthy", function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
@@ -814,7 +814,9 @@ describe('globals', function() {
       Raven._globalOptions = {
         logger: 'javascript',
         maxMessageLength: 100,
-        autoBreadcrumbs: true
+        autoBreadcrumbs: {
+          sentry: true
+        }
       };
       Raven._breadcrumbs = [
         {
@@ -904,7 +906,7 @@ describe('globals', function() {
       ]);
     });
 
-    it("should not create nor append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs` is falsy", function() {
+    it("should not create nor append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is falsy", function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
@@ -2223,7 +2225,8 @@ describe('Raven (public API)', function() {
           xhr: true,
           console: true,
           dom: true,
-          location: true
+          location: true,
+          sentry: true
         });
       });
 
@@ -2244,6 +2247,7 @@ describe('Raven (public API)', function() {
           xhr: true,
           console: true,
           dom: true,
+          sentry: true,
           location: false /* ! */
         });
       });
