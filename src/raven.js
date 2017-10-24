@@ -178,7 +178,8 @@ Raven.prototype = {
       xhr: true,
       console: true,
       dom: true,
-      location: true
+      location: true,
+      sentry: true
     };
 
     var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
@@ -1812,7 +1813,10 @@ Raven.prototype = {
     var exception = data.exception && data.exception.values[0];
 
     // only capture 'sentry' breadcrumb is autoBreadcrumbs is truthy
-    if (this._globalOptions.autoBreadcrumbs) {
+    if (
+      this._globalOptions.autoBreadcrumbs &&
+      this._globalOptions.autoBreadcrumbs.sentry
+    ) {
       this.captureBreadcrumb({
         category: 'sentry',
         message: exception
