@@ -68,6 +68,12 @@ $ npm run test:karma:integration
 
 Then visit: http://localhost:9876/debug.html
 
+Keep in mind that in order for in-browser tests to work correctly, they need to be bundled first:
+
+```bash
+$ grunt build.test
+```
+
 If you want to make sure that your changes will fit in our 10kB budget:
 
 ```bash
@@ -121,17 +127,8 @@ $ grunt run:docs
 
 _This is a checklist for core contributors when releasing a new version._
 
-  * [ ] Verify TypeScript [language definition file](https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts) is up to date
-  * [ ] Bump version numbers in `package.json`, `bower.json`, and `docs/sentry-doc-config.json`.
   * ⚠ WARNING: once `docs/sentry-doc-config.json` is bumped on master, it can be pulled by a docs deploy at any time, so complete this process up to `grunt publish` and `npm publish` immediately to ensure docs don't reference a non-existent version link ⚠
-  * [ ] Bump version numbers in `src/raven.js`, and `test/raven.test.js`.
-  * [ ] Put together [CHANGELOG](https://github.com/getsentry/raven-js/blob/master/CHANGELOG.md)
-  * [ ] `$ grunt dist` This will compile a new version and update it in the `dist/` folder.
-  * [ ] Confirm that build was fine, etc.
-  * [ ] Commit new version, create a tag. Push to GitHub.
-  * [ ] Copy CHANGELOG entry into a new GH Release: https://github.com/getsentry/raven-js/releases
-  * [ ] `$ grunt publish` to recompile all plugins and all permutations and upload to S3.
-  * [ ] `$ npm publish` to push to npm.
+  * [ ] Run `npm run deploy` and follow instructions
   * [ ] Deploy [docs](https://github.com/getsentry/sentry-docs) so that docs, code examples display the latest version change.
   * [ ] Confirm that the new version exists behind `cdn.ravenjs.com`
   * [ ] Bump version in the `gh-pages` branch specifically for http://ravenjs.com/.

@@ -20,7 +20,9 @@ _Raven.prototype._getUuid = function() {
   return 'abc123';
 };
 
-var joinRegExp = require('../src/utils').joinRegExp;
+var utils = require('../src/utils');
+var joinRegExp = utils.joinRegExp;
+var supportsErrorEvent = utils.supportsErrorEvent;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -1264,7 +1266,7 @@ describe('globals', function() {
         extra: {'session:duration': 100}
       });
       assert.deepEqual(opts.auth, {
-        sentry_client: 'raven-js/3.18.1',
+        sentry_client: 'raven-js/3.19.1',
         sentry_key: 'abc',
         sentry_version: '7'
       });
@@ -1311,7 +1313,7 @@ describe('globals', function() {
         extra: {'session:duration': 100}
       });
       assert.deepEqual(opts.auth, {
-        sentry_client: 'raven-js/3.18.1',
+        sentry_client: 'raven-js/3.19.1',
         sentry_key: 'abc',
         sentry_secret: 'def',
         sentry_version: '7'
@@ -1739,7 +1741,7 @@ describe('globals', function() {
       this.sinon.stub(Raven, '_makeRequest');
       var stackInfo = {
         name: 'Error',
-        message: 'crap',
+        message: 'pickleRick',
         url: 'http://example.com',
         lineno: 10,
         stack: [
@@ -1774,7 +1776,7 @@ describe('globals', function() {
                 },
                 exception: {
                     type: 'Error',
-                    value: 'crap'
+                    value: 'pickleRick'
                 },
                 stacktrace: {
                     frames: [{
@@ -1798,7 +1800,7 @@ describe('globals', function() {
                     }]
                 },
                 culprit: 'http://example.com',
-                message: 'Error: crap',
+                message: 'Error: pickleRick',
                 foo: 'bar'
             }]);
             */
@@ -2347,7 +2349,7 @@ describe('Raven (public API)', function() {
     });
 
     it('should capture the exception with options', function() {
-      var error = new Error('crap');
+      var error = new Error('pickleRick');
       var broken = function() {
         throw error;
       };
@@ -2365,7 +2367,7 @@ describe('Raven (public API)', function() {
     });
 
     it('should capture the exception without options', function() {
-      var error = new Error('crap');
+      var error = new Error('pickleRick');
       var broken = function() {
         throw error;
       };
@@ -2770,8 +2772,33 @@ describe('Raven (public API)', function() {
   });
 
   describe('.captureException', function() {
+    if (supportsErrorEvent()) {
+      it('should treat ErrorEvents similarly to Errors', function() {
+        var error = new ErrorEvent('pickleRick', {error: new Error('pickleRick')});
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, '_handleStackInfo');
+        Raven.captureException(error, {foo: 'bar'});
+        assert.isTrue(Raven._handleStackInfo.calledOnce);
+      });
+
+      it('should send ErrorEvents without Errors as messages', function() {
+        var error = new ErrorEvent('pickleRick');
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, 'captureMessage');
+        Raven.captureException(error, {foo: 'bar'});
+        assert.isTrue(Raven.captureMessage.calledOnce);
+      });
+    }
+
+    it('should send non-Errors as messages', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, 'captureMessage');
+      Raven.captureException({}, {foo: 'bar'});
+      assert.isTrue(Raven.captureMessage.calledOnce);
+    });
+
     it('should call handleStackInfo', function() {
-      var error = new Error('crap');
+      var error = new Error('pickleRick');
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_handleStackInfo');
       Raven.captureException(error, {foo: 'bar'});
@@ -2779,7 +2806,7 @@ describe('Raven (public API)', function() {
     });
 
     it('should store the last exception', function() {
-      var error = new Error('crap');
+      var error = new Error('pickleRick');
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_handleStackInfo');
       Raven.captureException(error);
@@ -2787,7 +2814,7 @@ describe('Raven (public API)', function() {
     });
 
     it("shouldn't reraise the if error is the same error", function() {
-      var error = new Error('crap');
+      var error = new Error('pickleRick');
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_handleStackInfo').throws(error);
       // this would raise if the errors didn't match
@@ -2796,11 +2823,11 @@ describe('Raven (public API)', function() {
     });
 
     it('should reraise a different error', function() {
-      var error = new Error('crap1');
+      var error = new Error('pickleRick1');
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_handleStackInfo').throws(error);
       assert.throws(function() {
-        Raven.captureException(new Error('crap2'));
+        Raven.captureException(new Error('pickleRick2'));
       }, error);
     });
 

@@ -1186,7 +1186,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record history.[pushState|back] changes as navigation breadcrumbs', function(
+    it('should record history.[pushState|replaceState] changes as navigation breadcrumbs', function(
       done
     ) {
       var iframe = this.iframe;
@@ -1205,9 +1205,9 @@ describe('integration', function() {
 
           // can't call history.back() because it will change url of parent document
           // (e.g. document running mocha) ... instead just "emulate" a back button
-          // press by calling replaceState + onpopstate manually
+          // press by calling replaceState
           history.replaceState({}, '', '/bar?a=1#fragment');
-          window.onpopstate();
+
           done();
         },
         function() {

@@ -8,7 +8,7 @@ var utils = require('./utils');
 var isError = utils.isError;
 var isObject = utils.isObject;
 var isObject = utils.isObject;
-var isError = utils.isError;
+var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
@@ -117,7 +117,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.18.1',
+  VERSION: '3.19.1',
 
   debug: false,
 
@@ -393,8 +393,12 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureException: function(ex, options) {
-    // If not an Error is passed through, recall as a message instead
-    if (!isError(ex)) {
+    // Cases for sending ex as a message, rather than an exception
+    var isNotError = !isError(ex);
+    var isNotErrorEvent = !isErrorEvent(ex);
+    var isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
+
+    if ((isNotError && isNotErrorEvent) || isErrorEventWithoutError) {
       return this.captureMessage(
         ex,
         objectMerge(
@@ -406,6 +410,9 @@ Raven.prototype = {
         )
       );
     }
+
+    // Get actual Error from ErrorEvent
+    if (isErrorEvent(ex)) ex = ex.error;
 
     // Store the raw exception object for potential debugging and introspection
     this._lastCapturedException = ex;
@@ -1272,8 +1279,12 @@ Raven.prototype = {
     // borrowed from: https://github.com/angular/angular.js/pull/13945/files
     var chrome = _window.chrome;
     var isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
-    var hasPushState = !isChromePackagedApp && _window.history && history.pushState;
-    if (autoBreadcrumbs.location && hasPushState) {
+    var hasPushAndReplaceState =
+      !isChromePackagedApp &&
+      _window.history &&
+      history.pushState &&
+      history.replaceState;
+    if (autoBreadcrumbs.location && hasPushAndReplaceState) {
       // TODO: remove onpopstate handler on uninstall()
       var oldOnPopState = _window.onpopstate;
       _window.onpopstate = function() {
@@ -1285,26 +1296,24 @@ Raven.prototype = {
         }
       };
 
-      fill(
-        history,
-        'pushState',
-        function(origPushState) {
-          // note history.pushState.length is 0; intentionally not declaring
-          // params to preserve 0 arity
-          return function(/* state, title, url */) {
-            var url = arguments.length > 2 ? arguments[2] : undefined;
+      var historyReplacementFunction = function(origHistFunction) {
+        // note history.pushState.length is 0; intentionally not declaring
+        // params to preserve 0 arity
+        return function(/* state, title, url */) {
+          var url = arguments.length > 2 ? arguments[2] : undefined;
 
-            // url argument is optional
-            if (url) {
-              // coerce to string (this is what pushState does)
-              self._captureUrlChange(self._lastHref, url + '');
-            }
+          // url argument is optional
+          if (url) {
+            // coerce to string (this is what pushState does)
+            self._captureUrlChange(self._lastHref, url + '');
+          }
 
-            return origPushState.apply(this, arguments);
-          };
-        },
-        wrappedBuiltIns
-      );
+          return origHistFunction.apply(this, arguments);
+        };
+      };
+
+      fill(history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
+      fill(history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
     }
 
     if (autoBreadcrumbs.console && 'console' in _window && console.log) {

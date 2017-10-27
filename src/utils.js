@@ -22,6 +22,10 @@ function isError(value) {
   }
 }
 
+function isErrorEvent(value) {
+  return supportsErrorEvent() && {}.toString.call(value) === '[object ErrorEvent]';
+}
+
 function isUndefined(what) {
   return what === void 0;
 }
@@ -35,8 +39,21 @@ function isString(what) {
 }
 
 function isEmptyObject(what) {
-  for (var _ in what) return false; // eslint-disable-line guard-for-in, no-unused-vars
+  for (var _ in what) {
+    if (what.hasOwnProperty(_)) {
+      return false;
+    }
+  }
   return true;
+}
+
+function supportsErrorEvent() {
+  try {
+    new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function wrappedCallback(callback) {
@@ -348,10 +365,12 @@ function fill(obj, name, replacement, track) {
 module.exports = {
   isObject: isObject,
   isError: isError,
+  isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,
   isEmptyObject: isEmptyObject,
+  supportsErrorEvent: supportsErrorEvent,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

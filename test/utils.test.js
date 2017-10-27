@@ -11,6 +11,8 @@ var isString = utils.isString;
 var isObject = utils.isObject;
 var isEmptyObject = utils.isEmptyObject;
 var isError = utils.isError;
+var isErrorEvent = utils.isErrorEvent;
+var supportsErrorEvent = utils.supportsErrorEvent;
 var wrappedCallback = utils.wrappedCallback;
 var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
@@ -62,8 +64,23 @@ describe('utils', function() {
     it('should work as advertised', function() {
       assert.isTrue(isEmptyObject({}));
       assert.isFalse(isEmptyObject({foo: 1}));
+      var MyObj = function() {};
+      MyObj.prototype.foo = 0;
+      assert.isTrue(isEmptyObject(new MyObj()));
+      var myExample = new MyObj();
+      myExample.bar = 1;
+      assert.isFalse(isEmptyObject(myExample));
     });
   });
+
+  if (supportsErrorEvent()) {
+    describe('isErrorEvent', function() {
+      it('should work as advertised', function() {
+        assert.isFalse(isErrorEvent(new Error()));
+        assert.isTrue(isErrorEvent(new ErrorEvent('')));
+      });
+    });
+  }
 
   describe('isError', function() {
     function testErrorFromDifferentContext(createError) {
