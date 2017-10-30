@@ -38,39 +38,56 @@ describe('Sentry.Client', () => {
     }
   });
 
-  test('throw error for Adapters with same rank', () => {
+  test('throw error if multiple Adapters', () => {
     let sentry = Sentry.create(dsn);
     expect(Sentry.getSharedClient()).toBe(sentry);
     sentry.use(MockAdapter);
     expect(() => sentry.use(MockAdapter)).toThrow();
   });
 
-  test('call install on all Adapters', () => {
+  test('call install on Adapter', () => {
     let sentry = new Sentry.Client(dsn);
-    let sdk1 = sentry.use(MockAdapter, <MockAdapter.Options>{
+    sentry.use(MockAdapter, <MockAdapter.Options>{
       rank: 1001,
       testOption: true
     });
-    let spy1 = jest.spyOn(sdk1, 'install');
+    let spy1 = jest.spyOn(sentry, 'install');
+    let spy2 = jest.spyOn(sentry.getAdapter(), 'install');
     sentry.install();
     expect(spy1).toHaveBeenCalledTimes(1);
+    expect(spy2).toHaveBeenCalledTimes(1);
+  });
+
+  test('no registered Adapter', () => {
+    let sentry = new Sentry.Client(dsn);
+    expect(() => sentry.install()).toThrow();
+  });
+
+  test('get Adapter', () => {
+    let sentry = new Sentry.Client(dsn);
+    sentry.use(MockAdapter, <MockAdapter.Options>{
+      rank: 1001,
+      testOption: true
+    });
+    expect(sentry.getAdapter()).toBeInstanceOf(MockAdapter);
+  });
+
+  test('call captureMessage with reject on Adapter', async () => {
+    let sentry = new Sentry.Client(dsn);
+    sentry.use(MockAdapter);
+    expect.assertions(1);
+    return expect(sentry.captureMessage('fail')).rejects.toEqual(
+      new Error('Failed because we told it too')
+    );
   });
 
   test('call captureMessage on Adapter', async () => {
-    let sentry = new Sentry.Client(dsn);
-    let sdk1 = sentry.use(MockAdapter);
-    let spy1 = jest.spyOn(sdk1, 'captureMessage');
-    let result = await sentry.captureMessage('+');
-    expect(spy1).toBeCalledWith('+');
-    expect(result.message).toEqual('+');
-  });
-
-  test('call captureMessage on Adapter', async () => {
-    let sentry = new Sentry.Client(dsn);
-    let sdk = sentry.use(MockAdapter);
-    let spy = jest.spyOn(sdk, 'captureMessage');
+    let sentry = new Sentry.Client(dsn).use(MockAdapter);
+    let spy = jest.spyOn(sentry, 'captureMessage');
+    let spy2 = jest.spyOn(sentry.getAdapter(), 'captureMessage');
     let result = await sentry.captureMessage('heyho');
     expect(spy).toBeCalled();
+    expect(spy2).toBeCalled();
     expect(result).toBeDefined();
     if (result) {
       expect(result.message).toBe('heyho');
@@ -78,24 +95,47 @@ describe('Sentry.Client', () => {
   });
 
   test('call captureBreadcrumb on Adapter', () => {
-    let sentry = new Sentry.Client(dsn);
-    let sdk = sentry.use(MockAdapter);
-    let spy = jest.spyOn(sdk, 'captureBreadcrumb');
+    let sentry = new Sentry.Client(dsn).use(MockAdapter);
+    let spy = jest.spyOn(sentry, 'captureBreadcrumb');
+    let spy2 = jest.spyOn(sentry.getAdapter(), 'captureBreadcrumb');
     sentry.captureBreadcrumb({category: 'test'});
     expect(spy).toBeCalled();
+    expect(spy2).toBeCalled();
+  });
+
+  test('call captureException on Adapter', () => {
+    let sentry = new Sentry.Client(dsn).use(MockAdapter);
+    let spy = jest.spyOn(sentry, 'captureException');
+    let spy2 = jest.spyOn(sentry.getAdapter(), 'captureException');
+    sentry.captureException(new Error('oops'));
+    expect(spy).toBeCalled();
+    expect(spy2).toBeCalled();
   });
 
   test('call send only on one Adapter', async () => {
-    let sentry = new Sentry.Client(dsn);
-    let sdk = sentry.use(MockAdapter);
-    let spy = jest.spyOn(sdk, 'captureMessage');
-    let spySend = jest.spyOn(sdk, 'send');
+    let sentry = new Sentry.Client(dsn).use(MockAdapter);
+    let spy = jest.spyOn(sentry, 'captureMessage');
+    let spy2 = jest.spyOn(sentry.getAdapter(), 'captureMessage');
+    let spySend = jest.spyOn(sentry, 'send');
+    let spySend2 = jest.spyOn(sentry.getAdapter(), 'send');
     let result = await sentry.captureMessage('+');
     expect(spy).toBeCalled();
+    expect(spy2).toBeCalled();
     expect(spySend).toBeCalled();
+    expect(spySend2).toBeCalled();
     expect(result).toBeDefined();
     if (result) {
       expect(result.message).toBe('+');
     }
+  });
+
+  test('call log only if bigger debug', () => {
+    let sentry = new Sentry.Client(dsn).use(MockAdapter);
+    let spy = jest.spyOn(global.console, 'log');
+    sentry.log('Nothing');
+    expect(spy).not.toBeCalled();
+    sentry.options.logLevel = Sentry.LogLevel.Debug;
+    sentry.log('This is fine');
+    expect(spy).toBeCalled();
   });
 });

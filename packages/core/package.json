@@ -29,6 +29,10 @@
     "test:watch": "jest --watch --notify"
   },
   "jest": {
+    "collectCoverage": true,
+    "coveragePathIgnorePatterns": [
+      "dist"
+    ],
     "transform": {
       "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },

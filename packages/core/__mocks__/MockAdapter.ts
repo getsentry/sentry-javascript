@@ -30,6 +30,9 @@ export class MockAdapter implements Sentry.Adapter {
   captureMessage(message: string): Promise<Sentry.Event> {
     let event = new Sentry.Event();
     event.message = message;
+    if (message == 'fail') {
+      return Promise.reject(new Error('Failed because we told it too'));
+    }
     return Promise.resolve(event);
   }
 
@@ -40,5 +43,21 @@ export class MockAdapter implements Sentry.Adapter {
 
   send(event: Sentry.Event): Promise<Sentry.Event> {
     return Promise.resolve(event);
+  }
+
+  setUserContext(user?: Sentry.User) {
+    return this;
+  }
+
+  setTagsContext(tags?: {[key: string]: any}) {
+    return this;
+  }
+
+  setExtraContext(extra?: {[key: string]: any}) {
+    return this;
+  }
+
+  clearContext() {
+    return this;
   }
 }

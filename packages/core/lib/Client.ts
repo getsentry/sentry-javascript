@@ -1,4 +1,4 @@
-import {Breadcrumb, Event, User} from './Interfaces';
+import {Breadcrumb, Event, User, LogLevel} from './Interfaces';
 import {DSN} from './Interfaces/DSN';
 import {Context} from './Interfaces/Context';
 import {Adapter} from './Adapter';
@@ -12,7 +12,13 @@ export class Client {
   private _context: Context;
   readonly dsn: DSN;
 
-  constructor(dsn: string, public options: Options = {maxBreadcrumbs: 100}) {
+  constructor(
+    dsn: string,
+    public options: Options = {
+      maxBreadcrumbs: 100,
+      logLevel: LogLevel.Error
+    }
+  ) {
     this.dsn = new DSN(dsn);
     this._context = Context.getDefaultContext();
     return this;
@@ -73,6 +79,17 @@ export class Client {
     return this.adapter.send(event);
   }
 
+  // ---------------- HELPER
+
+  log(...args: any[]) {
+    if (this.options.logLevel >= LogLevel.Debug) {
+      // eslint-disable-next-line
+      console.log.apply(null, args);
+    }
+  }
+
+  // -----------------------
+
   // ---------------- CONTEXT
 
   setUserContext(user?: User) {
@@ -81,6 +98,7 @@ export class Client {
     if (this.adapter.setUserContext) {
       this.adapter.setUserContext(user);
     }
+    // -------------------------------------------------------
     return this;
   }
 
@@ -90,6 +108,7 @@ export class Client {
     if (this.adapter.setTagsContext) {
       this.adapter.setTagsContext(tags);
     }
+    // -------------------------------------------------------
     return this;
   }
 
@@ -99,14 +118,17 @@ export class Client {
     if (this.adapter.setExtraContext) {
       this.adapter.setExtraContext(extra);
     }
+    // -------------------------------------------------------
     return this;
   }
 
   clearContext() {
     this._context = Context.getDefaultContext();
+    // TODO: Remove this once we moved code away from adapters
     if (this.adapter.clearContext) {
       this.adapter.clearContext();
     }
+    // -------------------------------------------------------
     return this;
   }
 
