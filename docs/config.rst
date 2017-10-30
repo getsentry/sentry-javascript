@@ -209,7 +209,7 @@ Those configuration options are documented below:
     Enables/disables automatic collection of breadcrumbs. Possible values are:
 
     * `true` (default)
-    * `false` - all automatic breadcrumb collection disabled
+    * `false` - all breadcrumb collection disabled
     * A dictionary of individual breadcrumb types that can be enabled/disabled:
 
     .. code-block:: javascript
@@ -219,6 +219,7 @@ Those configuration options are documented below:
             'console': false,  // console logging
             'dom': true,       // DOM interactions, i.e. clicks/typing
             'location': false  // url changes, including pushState/popState
+            'sentry': true     // sentry events
         }
 
 .. describe:: maxBreadcrumbs

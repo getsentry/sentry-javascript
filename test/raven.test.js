@@ -802,7 +802,7 @@ describe('globals', function() {
       });
     });
 
-    it("should create and append 'sentry' breadcrumb", function() {
+    it("should create and append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is truthy", function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
@@ -813,7 +813,10 @@ describe('globals', function() {
       Raven._globalProject = '2';
       Raven._globalOptions = {
         logger: 'javascript',
-        maxMessageLength: 100
+        maxMessageLength: 100,
+        autoBreadcrumbs: {
+          sentry: true
+        }
       };
       Raven._breadcrumbs = [
         {
@@ -901,6 +904,41 @@ describe('globals', function() {
           level: 'error'
         }
       ]);
+    });
+
+    it("should not create nor append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is falsy", function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_makeRequest');
+      this.sinon.stub(Raven, '_getHttpData').returns({
+        url: 'http://localhost/?a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
+
+      Raven._globalProject = '2';
+      Raven._globalOptions = {
+        logger: 'javascript',
+        maxMessageLength: 100,
+        autoBreadcrumbs: false
+      };
+
+      Raven._send({message: 'bar'});
+
+      assert.deepEqual(Raven._breadcrumbs, []);
+
+      Raven._send({message: 'foo', level: 'warning'});
+      assert.deepEqual(Raven._breadcrumbs, []);
+
+      Raven._send({
+        exception: {
+          values: [
+            {
+              type: 'ReferenceError',
+              value: 'foo is not defined'
+            }
+          ]
+        }
+      });
+      assert.deepEqual(Raven._breadcrumbs, []);
     });
 
     it('should build a good data payload with a User', function() {
@@ -2187,7 +2225,8 @@ describe('Raven (public API)', function() {
           xhr: true,
           console: true,
           dom: true,
-          location: true
+          location: true,
+          sentry: true
         });
       });
 
@@ -2208,6 +2247,7 @@ describe('Raven (public API)', function() {
           xhr: true,
           console: true,
           dom: true,
+          sentry: true,
           location: false /* ! */
         });
       });
