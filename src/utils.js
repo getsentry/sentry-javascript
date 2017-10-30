@@ -357,6 +357,8 @@ function isSameStacktrace(stack1, stack2) {
 function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
+  obj[name].__raven__ = true;
+  obj[name].__orig_method__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }

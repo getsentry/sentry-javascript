@@ -1254,6 +1254,46 @@ describe('integration', function() {
         }
       );
     });
+
+    it('should preserve native code detection compatibility', function(done) {
+      var iframe = this.iframe;
+
+      iframeExecute(
+        iframe,
+        done,
+        function() {
+          done();
+        },
+        function() {
+          assert.include(
+            Function.prototype.toString.call(window.setTimeout),
+            '[native code]'
+          );
+          assert.include(
+            Function.prototype.toString.call(window.setInterval),
+            '[native code]'
+          );
+          assert.include(
+            Function.prototype.toString.call(window.addEventListener),
+            '[native code]'
+          );
+          assert.include(
+            Function.prototype.toString.call(window.removeEventListener),
+            '[native code]'
+          );
+          assert.include(
+            Function.prototype.toString.call(window.requestAnimationFrame),
+            '[native code]'
+          );
+          if ('fetch' in window) {
+            assert.include(
+              Function.prototype.toString.call(window.fetch),
+              '[native code]'
+            );
+          }
+        }
+      );
+    });
   });
 
   describe('uninstall', function() {
