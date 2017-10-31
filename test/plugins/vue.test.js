@@ -75,5 +75,14 @@ describe('Vue plugin', function() {
         lifecycleHook: 'mounted'
       });
     });
+
+    it('should not explode when `vm` is not defined', function() {
+      vuePlugin(Raven, this.MockVue);
+      assert.doesNotThrow(
+        function() {
+          this.MockVue.config.errorHandler(new Error('foo'));
+        }.bind(this)
+      );
+    });
   });
 });
