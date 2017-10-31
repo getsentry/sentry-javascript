@@ -7,7 +7,6 @@ var RavenConfigError = require('./configError');
 var utils = require('./utils');
 var isError = utils.isError;
 var isObject = utils.isObject;
-var isObject = utils.isObject;
 var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
