@@ -947,6 +947,7 @@ Raven.prototype = {
   _patchFunctionToString: function() {
     var self = this;
     self._originalFunctionToString = Function.prototype.toString;
+    // eslint-disable-next-line no-extend-native
     Function.prototype.toString = function() {
       if (typeof this === 'function' && this.__raven__) {
         return self._originalFunctionToString.apply(this.__orig_method__, arguments);
@@ -957,6 +958,7 @@ Raven.prototype = {
 
   _unpatchFunctionToString: function() {
     if (this._originalFunctionToString) {
+      // eslint-disable-next-line no-extend-native
       Function.prototype.toString = this._originalFunctionToString;
     }
   },

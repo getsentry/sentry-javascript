@@ -77,14 +77,17 @@
   },
   "lint-staged": {
     "src/**/*.js": [
+      "eslint",
       "prettier --write",
       "git add"
     ],
     "test/**/*.js": [
+      "eslint",
       "prettier --write",
       "git add"
     ],
     "plugins/**/*.js": [
+      "eslint",
       "prettier --write",
       "git add"
     ]
