@@ -6,6 +6,10 @@
     "browser": true,
     "builtin": true
   },
+  
+  
+  
+  
   "globals": {
     "require": false
   },
