@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+//usr/bin/env node
 
 const path = require('path');
 const fs = require('fs');
@@ -34,7 +34,8 @@ process.on('unhandledRejection', reason => console.log(reason));
             .split('.')
             .map(x => parseInt(x, 10));
 
-          switch (answers.bump) {
+          switch (answers.bump)
+              {
             case 'major':
               resolve(`${major + 1}.0.0`);
               break;
@@ -53,7 +54,8 @@ process.on('unhandledRejection', reason => console.log(reason));
         })
     );
 
-  const {shouldUpdateFiles} = await inquirer.prompt({
+  const {shouldUpdateFiles} = await inquirer.prompt(
+    {
     name: 'shouldUpdateFiles',
     message: `Do you want to update all files to version ${nextVersion}?`,
     type: 'confirm',
