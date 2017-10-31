@@ -221,6 +221,9 @@ Raven.prototype = {
       TraceKit.report.subscribe(function() {
         self._handleOnErrorStackInfo.apply(self, arguments);
       });
+
+      self._patchFunctionToString();
+
       if (self._globalOptions.instrument && self._globalOptions.instrument.tryCatch) {
         self._instrumentTryCatch();
       }
@@ -377,6 +380,7 @@ Raven.prototype = {
   uninstall: function() {
     TraceKit.report.uninstall();
 
+    this._unpatchFunctionToString();
     this._restoreBuiltIns();
 
     Error.stackTraceLimit = this._originalErrorStackTraceLimit;
@@ -937,6 +941,25 @@ Raven.prototype = {
         from: from
       }
     });
+  },
+
+  _patchFunctionToString: function() {
+    var self = this;
+    self._originalFunctionToString = Function.prototype.toString;
+    // eslint-disable-next-line no-extend-native
+    Function.prototype.toString = function() {
+      if (typeof this === 'function' && this.__raven__) {
+        return self._originalFunctionToString.apply(this.__orig_method__, arguments);
+      }
+      return self._originalFunctionToString.apply(this, arguments);
+    };
+  },
+
+  _unpatchFunctionToString: function() {
+    if (this._originalFunctionToString) {
+      // eslint-disable-next-line no-extend-native
+      Function.prototype.toString = this._originalFunctionToString;
+    }
   },
 
   /**
