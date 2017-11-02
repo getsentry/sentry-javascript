@@ -84,5 +84,11 @@ describe('Vue plugin', function() {
         }.bind(this)
       );
     });
+
+    it('should still send a raw error when `vm` is not defined', function() {
+      vuePlugin(Raven, this.MockVue);
+      this.MockVue.config.errorHandler(new Error('foo'));
+      assert.isTrue(Raven.captureException.calledOnce);
+    });
   });
 });
