@@ -41,7 +41,7 @@ var customLaunchers = {
     base: 'SauceLabs',
     browserName: 'iphone',
     platform: 'OS X 10.12',
-    version: '10.0'
+    version: '11.0'
   },
   sl_android_7: {
     base: 'SauceLabs',
