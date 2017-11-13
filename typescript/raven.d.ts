@@ -71,9 +71,14 @@ declare module Raven {
 
         /** Enables/disables automatic collection of breadcrumbs. */
         autoBreadcrumbs?: boolean | AutoBreadcrumbOptions;
-        
+
         /** By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this number by setting maxBreadcrumbs. Note that this number cannot be set higher than the default of 100. */
         maxBreadcrumbs?: number;
+
+        /**
+         * A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default).
+         */
+        sampleRate?: number;
     }
 
     interface RavenInstrumentationOptions {
