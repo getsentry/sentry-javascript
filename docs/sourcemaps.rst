@@ -214,7 +214,7 @@ Additionally, you'll need to configure the client to send the ``release``:
         release: '2da95dfb052f477380608d59d32b4ab9'
     });
 
-Note: You dont *have* to upload the source files (ref'd by sourcemaps),
+Note: You don't *have* to upload the source files (ref'd by sourcemaps),
 but without them the grouping algorithm will not be as strong, and the UI
 will not show any contextual source.
 
