@@ -1,63 +1,61 @@
 import * as Sentry from '../index';
 
-export namespace MockAdapter {
-  export type Options = Sentry.Adapter.Options & {
-    testOption?: boolean;
-  };
+export interface IMockAdapterOptions {
+  testOption?: boolean;
 }
 
-export class MockAdapter implements Sentry.Adapter {
+export class MockAdapter implements Sentry.IAdapter {
   constructor(
     client: Sentry.Client,
-    public options: MockAdapter.Options = {testOption: false}
+    public options: IMockAdapterOptions = { testOption: false }
   ) {
     return this;
   }
 
-  install(): Promise<boolean> {
+  public install(): Promise<boolean> {
     return Promise.resolve(true);
   }
 
-  setOptions(options: MockAdapter.Options) {
+  public setOptions(options: IMockAdapterOptions) {
     // We need nothing here
     return this;
   }
 
-  captureException(exception: Error): Promise<Sentry.Event> {
+  public captureException(exception: Error): Promise<Sentry.Event> {
     return Promise.resolve(new Sentry.Event());
   }
 
-  captureMessage(message: string): Promise<Sentry.Event> {
-    let event = new Sentry.Event();
+  public captureMessage(message: string): Promise<Sentry.Event> {
+    const event = new Sentry.Event();
     event.message = message;
-    if (message == 'fail') {
+    if (message === 'fail') {
       return Promise.reject(new Error('Failed because we told it too'));
     }
     return Promise.resolve(event);
   }
 
-  captureBreadcrumb(crumb: Sentry.Breadcrumb): Promise<Sentry.Breadcrumb> {
+  public captureBreadcrumb(crumb: Sentry.IBreadcrumb): Promise<Sentry.IBreadcrumb> {
     // Do nothing
     return Promise.resolve(crumb);
   }
 
-  send(event: Sentry.Event): Promise<Sentry.Event> {
+  public send(event: Sentry.Event): Promise<Sentry.Event> {
     return Promise.resolve(event);
   }
 
-  setUserContext(user?: Sentry.User) {
+  public setUserContext(user?: Sentry.IUser) {
     return this;
   }
 
-  setTagsContext(tags?: {[key: string]: any}) {
+  public setTagsContext(tags?: { [key: string]: any }) {
     return this;
   }
 
-  setExtraContext(extra?: {[key: string]: any}) {
+  public setExtraContext(extra?: { [key: string]: any }) {
     return this;
   }
 
-  clearContext() {
+  public clearContext() {
     return this;
   }
 }

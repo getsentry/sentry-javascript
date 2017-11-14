@@ -5,12 +5,14 @@
     "[javascript]": {
         "editor.formatOnSave": true
     },
-    "prettier.singleQuote": true,
-    "prettier.printWidth": 90,
-    "prettier.jsxBracketSameLine": true,
+    "prettier.typescriptEnable": [
+        "typescript",
+        "typescriptreact"
+    ],
     "search.exclude": {
         "**/node_modules": true,
         "**/bower_components": true,
         "**/dist/**": true
-    }
+    },
+    "tslint.autoFixOnSave": true
 }

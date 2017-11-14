@@ -1,5 +1,5 @@
-import {LogLevel} from './Interfaces';
-export type Options = {
+import { LogLevel } from './Interfaces';
+export interface IOptions {
   maxBreadcrumbs: number;
   logLevel: LogLevel;
-};
+}

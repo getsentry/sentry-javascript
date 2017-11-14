@@ -1,36 +1,34 @@
-import {User} from './User';
+import { IUser } from './User';
 
-export type Context = {
+export interface IContext {
   tags?: any;
   extra?: any;
-  user?: User;
-};
+  user?: IUser;
+}
 
-export namespace Context {
-  export function getDefaultContext() {
-    return {};
+export function getDefaultContext() {
+  return {};
+}
+
+export function set<T extends IContext, K extends keyof T>(
+  context: T,
+  key: K,
+  value: any
+) {
+  context[key] = value;
+}
+
+export function merge<T extends IContext, K extends keyof T>(
+  context: T,
+  key: K,
+  value: any
+) {
+  if (!context[key]) {
+    set(context, key, {});
   }
-
-  export function set<T extends Context, K extends keyof T>(
-    context: T,
-    key: K,
-    value: any
-  ) {
-    context[key] = value;
-  }
-
-  export function merge<T extends Context, K extends keyof T>(
-    context: T,
-    key: K,
-    value: any
-  ) {
-    if (!context[key]) {
-      set(context, key, {});
-    }
-    if (value === undefined) {
-      delete context[key];
-    } else {
-      Object.assign(context[key], value);
-    }
+  if (value === undefined) {
+    delete context[key];
+  } else {
+    Object.assign(context[key], value);
   }
 }

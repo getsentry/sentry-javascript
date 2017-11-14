@@ -1,22 +1,18 @@
-import {Event, Breadcrumb, User} from './Interfaces';
+import { Event, IBreadcrumb, IUser } from './Interfaces';
 
-export namespace Adapter {
-  export type Options = {};
-}
-
-export interface Adapter {
-  readonly options: Adapter.Options;
+export interface IAdapter {
+  readonly options: {};
   install(): Promise<boolean>;
-  setOptions(options: Adapter.Options): Adapter;
+  setOptions(options: {}): IAdapter;
   send(event: Event): Promise<Event>;
   captureException(exception: Error): Promise<Event>;
   captureMessage(message: string): Promise<Event>;
-  captureBreadcrumb(crumb: Breadcrumb): Promise<Breadcrumb>;
+  captureBreadcrumb(crumb: IBreadcrumb): Promise<IBreadcrumb>;
 
   // These should be removed at some point in the future
   // only the client should handle global stuff
-  setUserContext?(user?: User): Adapter;
-  setTagsContext?(tags?: {[key: string]: any}): Adapter;
-  setExtraContext?(extra?: {[key: string]: any}): Adapter;
-  clearContext?(): Adapter;
+  setUserContext?(user?: IUser): IAdapter;
+  setTagsContext?(tags?: { [key: string]: any }): IAdapter;
+  setExtraContext?(extra?: { [key: string]: any }): IAdapter;
+  clearContext?(): IAdapter;
 }

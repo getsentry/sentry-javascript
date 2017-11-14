@@ -1,36 +1,34 @@
 /// <reference types="node" />
-import {Adapter, Client, Options, Event, Breadcrumb, User} from '@sentry/core';
-var Raven = require('raven-js');
+import { Adapter, Breadcrumb, Client, Event, Options, User } from '@sentry/core';
+const Raven = require('raven-js');
 
-export namespace Browser {
-  export type Options = Adapter.Options & {
-    allowSecretKey?: boolean;
-    allowDuplicates?: boolean;
-  };
+export interface IBrowserOptions {
+  allowSecretKey?: boolean;
+  allowDuplicates?: boolean;
 }
 
 export class Browser implements Adapter {
   private client: Client;
 
-  constructor(client: Client, public options: Browser.Options = {}) {
+  constructor(client: Client, public options: IBrowserOptions = {}) {
     this.client = client;
     return this;
   }
 
-  install(): Promise<boolean> {
+  public install(): Promise<boolean> {
     // TODO: check for raven this._globalOptions.allowSecretKey
     Raven.config(this.client.dsn.getDsn(false), this.options).install();
     return Promise.resolve(true);
   }
 
-  setOptions(options: Browser.Options) {
+  public setOptions(options: IBrowserOptions) {
     Object.assign(this.options, options);
     Object.assign(Raven._globalOptions, this.options);
     return this;
   }
 
-  captureException(exception: Error) {
-    let ravenSendRequest = Raven._sendProcessedPayload;
+  public captureException(exception: Error) {
+    const ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload = (data: any) => {
         resolve(data);
@@ -40,8 +38,8 @@ export class Browser implements Adapter {
     });
   }
 
-  captureMessage(message: string) {
-    let ravenSendRequest = Raven._sendProcessedPayload;
+  public captureMessage(message: string) {
+    const ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload = (data: any) => {
         resolve(data);
@@ -51,11 +49,11 @@ export class Browser implements Adapter {
     });
   }
 
-  setBreadcrumbCallback(callback: {(crumb: Breadcrumb): void}) {
+  public setBreadcrumbCallback(callback: (crumb: Breadcrumb) => void) {
     Raven.setBreadcrumbCallback(callback);
   }
 
-  captureBreadcrumb(crumb: Breadcrumb) {
+  public captureBreadcrumb(crumb: Breadcrumb) {
     return new Promise<Breadcrumb>((resolve, reject) => {
       // TODO: We have to check if this is necessary used in react-native
       // let oldCaptureBreadcrumb = Raven.captureBreadcrumb;
@@ -70,7 +68,7 @@ export class Browser implements Adapter {
     });
   }
 
-  send(event: any) {
+  public send(event: any) {
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload(event, (error: any) => {
         // TODO: error handling
@@ -79,22 +77,22 @@ export class Browser implements Adapter {
     });
   }
 
-  setUserContext(user?: User) {
+  public setUserContext(user?: User) {
     Raven.setUserContext(user);
     return this;
   }
 
-  setTagsContext(tags?: {[key: string]: any}) {
+  public setTagsContext(tags?: { [key: string]: any }) {
     Raven.setTagsContext(tags);
     return this;
   }
 
-  setExtraContext(extra?: {[key: string]: any}) {
+  public setExtraContext(extra?: { [key: string]: any }) {
     Raven.setExtraContext(extra);
     return this;
   }
 
-  clearContext() {
+  public clearContext() {
     Raven.clearContext();
     return this;
   }

@@ -4,5 +4,5 @@ export enum Severity {
   Warning,
   Info,
   Debug,
-  Critical
+  Critical,
 }

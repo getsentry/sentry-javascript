@@ -1,9 +1,9 @@
-import {Client} from './Client';
-import {Options} from './Options';
+import { Client } from './Client';
+import { IOptions } from './Options';
 
 let sharedClient: Client;
 
-export function create(dsn: string, options?: Options) {
+export function create(dsn: string, options?: IOptions) {
   return setSharedClient(new Client(dsn, options));
 }
 

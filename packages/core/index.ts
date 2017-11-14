@@ -1,5 +1,5 @@
 export * from './lib/Sentry';
 export * from './lib/Interfaces';
-export { Adapter } from './lib/Adapter';
+export * from './lib/Adapter';
+export { IOptions } from './lib/Options';
 export { Client } from './lib/Client';
-export { Options } from './lib/Options';

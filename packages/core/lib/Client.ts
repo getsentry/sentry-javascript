@@ -1,22 +1,22 @@
-import {Breadcrumb, Event, User, LogLevel} from './Interfaces';
-import {DSN} from './Interfaces/DSN';
-import {Context} from './Interfaces/Context';
-import {Adapter} from './Adapter';
-import {Options} from './Options';
-import {SentryError} from './Sentry';
+import * as Adapter from './Adapter';
+import { Event, IBreadcrumb, IUser, LogLevel } from './Interfaces';
+import * as Context from './Interfaces/Context';
+import { DSN } from './Interfaces/DSN';
+import { IOptions } from './Options';
+import { SentryError } from './Sentry';
 
 // TODO: Add breadcrumbs
 // TODO: Add context handling tags, extra, user
 export class Client {
-  private _adapter: Adapter;
-  private _context: Context;
-  readonly dsn: DSN;
+  public readonly dsn: DSN;
+  private _adapter: Adapter.IAdapter;
+  private _context: Context.IContext;
 
   constructor(
     dsn: string,
-    public options: Options = {
+    public options: IOptions = {
+      logLevel: LogLevel.Error,
       maxBreadcrumbs: 100,
-      logLevel: LogLevel.Error
     }
   ) {
     this.dsn = new DSN(dsn);
@@ -24,7 +24,7 @@ export class Client {
     return this;
   }
 
-  getContext() {
+  public getContext() {
     // TODO: check for cyclic objects
     return JSON.parse(JSON.stringify(this._context));
   }
@@ -36,17 +36,17 @@ export class Client {
     return this._adapter;
   }
 
-  getAdapter<A extends Adapter>(): A {
+  public getAdapter<A extends Adapter.IAdapter>(): A {
     return this.adapter as A;
   }
 
   /**
    * Register a Adapter on the Core
-   * @param Adapter
+   * @param adapter
    * @param options
    */
-  use<A extends Adapter, O extends Adapter.Options>(
-    Adapter: {new (client: Client, options?: O): A},
+  public use<A extends Adapter.IAdapter, O extends {}>(
+    adapter: { new (client: Client, options?: O): A },
     options?: O
   ): Client {
     if (this._adapter) {
@@ -55,33 +55,33 @@ export class Client {
         'There is already a Adapter registered, call unregister() to remove current adapter'
       );
     }
-    this._adapter = new Adapter(this, options);
+    this._adapter = new adapter(this, options);
     return this;
   }
 
-  async captureException(exception: Error) {
+  public async captureException(exception: Error) {
     return this.send(await this.adapter.captureException(exception));
   }
 
-  async captureMessage(message: string) {
+  public async captureMessage(message: string) {
     return this.send(await this.adapter.captureMessage(message));
   }
 
-  captureBreadcrumb(crumb: Breadcrumb) {
+  public captureBreadcrumb(crumb: IBreadcrumb) {
     return this.adapter.captureBreadcrumb(crumb);
   }
 
-  install() {
+  public install() {
     return this.adapter.install();
   }
 
-  send(event: Event) {
+  public send(event: Event) {
     return this.adapter.send(event);
   }
 
   // ---------------- HELPER
 
-  log(...args: any[]) {
+  public log(...args: any[]) {
     if (this.options.logLevel >= LogLevel.Debug) {
       // eslint-disable-next-line
       console.log.apply(null, args);
@@ -92,7 +92,7 @@ export class Client {
 
   // ---------------- CONTEXT
 
-  setUserContext(user?: User) {
+  public setUserContext(user?: IUser) {
     Context.set(this._context, 'user', user);
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.setUserContext) {
@@ -102,7 +102,7 @@ export class Client {
     return this;
   }
 
-  setTagsContext(tags?: {[key: string]: any}) {
+  public setTagsContext(tags?: { [key: string]: any }) {
     Context.merge(this._context, 'tags', tags);
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.setTagsContext) {
@@ -112,7 +112,7 @@ export class Client {
     return this;
   }
 
-  setExtraContext(extra?: {[key: string]: any}) {
+  public setExtraContext(extra?: { [key: string]: any }) {
     Context.merge(this._context, 'extra', extra);
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.setExtraContext) {
@@ -122,7 +122,7 @@ export class Client {
     return this;
   }
 
-  clearContext() {
+  public clearContext() {
     this._context = Context.getDefaultContext();
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.clearContext) {

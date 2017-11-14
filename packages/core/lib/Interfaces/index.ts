@@ -1,4 +1,4 @@
-export {Event} from './Event';
-export {User} from './User';
-export {Breadcrumb} from './Breadcrumb';
-export {LogLevel} from './LogLevel';
+export { Event } from './Event';
+export { IUser } from './User';
+export { IBreadcrumb } from './Breadcrumb';
+export { LogLevel } from './LogLevel';
