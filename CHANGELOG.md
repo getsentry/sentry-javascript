@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.20.0
+
+* NEW: `autoBreadcrumbs` can now disable sentry breadcrumbs and configure them on demand https://github.com/getsentry/raven-js/pull/1099
+* NEW: Add `maxBreadcrumbs` and `sampleRate` to Typescript typings https://github.com/getsentry/raven-js/commit/29b89deb846dca5578036d88fd77000fb395fba3 https://github.com/getsentry/raven-js/commit/989f43abfc0bb9c5fc36b00d7f9ce04c581168c2
+* CHANGE: `isEmptyObject` utility now checks for object's own properties only https://github.com/getsentry/raven-js/pull/1100
+* CHANGE: Update how wrapped functions are detected as native functions https://github.com/getsentry/raven-js/pull/1106
+* CHANGE: Update integration tests on SauceLabs to use Safari 11.0
+* BUGFIX: Send raw error when `vm` is undefined while using Vue plugin https://github.com/getsentry/raven-js/pull/1118
+
 ## 3.19.1
 
 * BUGFIX: Don't prettify minified dist files https://github.com/getsentry/raven-js/commit/fee37713c9a17d41b5bb4e669f584ec056658df1

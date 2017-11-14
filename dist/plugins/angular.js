@@ -1,4 +1,4 @@
-/*! Raven.js 3.19.1 (fee3771) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -129,7 +129,11 @@ function isString(what) {
 }
 
 function isEmptyObject(what) {
-  for (var _ in what) return false; // eslint-disable-line guard-for-in, no-unused-vars
+  for (var _ in what) {
+    if (what.hasOwnProperty(_)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -443,6 +447,8 @@ function isSameStacktrace(stack1, stack2) {
 function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
+  obj[name].__raven__ = true;
+  obj[name].__orig_method__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }

@@ -1,4 +1,4 @@
-/*! Raven.js 3.19.1 (fee3771) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -71,7 +71,6 @@ var RavenConfigError = _dereq_(1);
 
 var utils = _dereq_(5);
 var isError = utils.isError;
-var isObject = utils.isObject;
 var isObject = utils.isObject;
 var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
@@ -182,7 +181,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.19.1',
+  VERSION: '3.20.0',
 
   debug: false,
 
@@ -243,7 +242,8 @@ Raven.prototype = {
       xhr: true,
       console: true,
       dom: true,
-      location: true
+      location: true,
+      sentry: true
     };
 
     var autoBreadcrumbs = globalOptions.autoBreadcrumbs;
@@ -286,6 +286,9 @@ Raven.prototype = {
       TraceKit.report.subscribe(function() {
         self._handleOnErrorStackInfo.apply(self, arguments);
       });
+
+      self._patchFunctionToString();
+
       if (self._globalOptions.instrument && self._globalOptions.instrument.tryCatch) {
         self._instrumentTryCatch();
       }
@@ -442,6 +445,7 @@ Raven.prototype = {
   uninstall: function() {
     TraceKit.report.uninstall();
 
+    this._unpatchFunctionToString();
     this._restoreBuiltIns();
 
     Error.stackTraceLimit = this._originalErrorStackTraceLimit;
@@ -1002,6 +1006,25 @@ Raven.prototype = {
         from: from
       }
     });
+  },
+
+  _patchFunctionToString: function() {
+    var self = this;
+    self._originalFunctionToString = Function.prototype.toString;
+    // eslint-disable-next-line no-extend-native
+    Function.prototype.toString = function() {
+      if (typeof this === 'function' && this.__raven__) {
+        return self._originalFunctionToString.apply(this.__orig_method__, arguments);
+      }
+      return self._originalFunctionToString.apply(this, arguments);
+    };
+  },
+
+  _unpatchFunctionToString: function() {
+    if (this._originalFunctionToString) {
+      // eslint-disable-next-line no-extend-native
+      Function.prototype.toString = this._originalFunctionToString;
+    }
   },
 
   /**
@@ -1875,14 +1898,21 @@ Raven.prototype = {
     }
 
     var exception = data.exception && data.exception.values[0];
-    this.captureBreadcrumb({
-      category: 'sentry',
-      message: exception
-        ? (exception.type ? exception.type + ': ' : '') + exception.value
-        : data.message,
-      event_id: data.event_id,
-      level: data.level || 'error' // presume error unless specified
-    });
+
+    // only capture 'sentry' breadcrumb is autoBreadcrumbs is truthy
+    if (
+      this._globalOptions.autoBreadcrumbs &&
+      this._globalOptions.autoBreadcrumbs.sentry
+    ) {
+      this.captureBreadcrumb({
+        category: 'sentry',
+        message: exception
+          ? (exception.type ? exception.type + ': ' : '') + exception.value
+          : data.message,
+        event_id: data.event_id,
+        level: data.level || 'error' // presume error unless specified
+      });
+    }
 
     var url = this._globalEndpoint;
     (globalOptions.transport || this._makeRequest).call(this, {
@@ -2069,7 +2099,11 @@ function isString(what) {
 }
 
 function isEmptyObject(what) {
-  for (var _ in what) return false; // eslint-disable-line guard-for-in, no-unused-vars
+  for (var _ in what) {
+    if (what.hasOwnProperty(_)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -2383,6 +2417,8 @@ function isSameStacktrace(stack1, stack2) {
 function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
+  obj[name].__raven__ = true;
+  obj[name].__orig_method__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }

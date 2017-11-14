@@ -1,4 +1,4 @@
-/*! Raven.js 3.19.1 (fee3771) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -35,12 +35,14 @@ function vuePlugin(Raven, Vue) {
 
   var _oldOnError = Vue.config.errorHandler;
   Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
-    var metaData = {
-      componentName: formatComponentName(vm),
-      propsData: vm.$options.propsData
-    };
+    var metaData = {};
 
-    // lifecycleHook is not always available
+    // vm and lifecycleHook are not always available
+    if (Object.prototype.toString.call(vm) === '[object Object]') {
+      metaData.componentName = formatComponentName(vm);
+      metaData.propsData = vm.$options.propsData;
+    }
+
     if (typeof info !== 'undefined') {
       metaData.lifecycleHook = info;
     }
