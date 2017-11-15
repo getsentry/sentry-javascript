@@ -75,6 +75,9 @@ declare module Raven {
         /** By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this number by setting maxBreadcrumbs. Note that this number cannot be set higher than the default of 100. */
         maxBreadcrumbs?: number;
 
+        /** A function that allows filtering or mutating breadcrumb payloads. Return false to throw away the breadcrumb. */
+        breadcrumbCallback?: (data: any) => any;
+
         /**
          * A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default).
          */
@@ -283,6 +286,7 @@ declare module Raven {
         console?: boolean;
         dom?: boolean;
         location?: boolean;
+        sentry?: boolean;
     }
 
     type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
