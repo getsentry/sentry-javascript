@@ -358,7 +358,7 @@ function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
-  obj[name].__orig_method__ = orig;
+  obj[name].__orig__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }
