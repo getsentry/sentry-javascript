@@ -24,7 +24,11 @@ var options: Raven.RavenOptions = {
         xhr: false,
         console: false,
         dom: true,
-        location: false
+        location: false,
+        sentry: true
+    },
+    breadcrumbCallback: function (data) {
+        return data
     }
 };
 
@@ -60,7 +64,7 @@ var err:Error = Raven.lastException();
 
 Raven.captureMessage('Broken!');
 Raven.captureMessage('Broken!', {tags: { key: "value" }});
-+Raven.captureMessage('Broken!', { stacktrace: true });
+Raven.captureMessage('Broken!', { stacktrace: true });
 Raven.captureMessage('Warning', { level: 'warning' });
 Raven.captureBreadcrumb({
     message: "This is a breadcrumb message."
