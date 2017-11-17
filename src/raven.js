@@ -364,10 +364,10 @@ Raven.prototype = {
     wrapped.prototype = func.prototype;
 
     func.__raven_wrapper__ = wrapped;
-    // Signal that this function has been wrapped already
-    // for both debugging and to prevent it to being wrapped twice
+    // Signal that this function has been wrapped/filled already
+    // for both debugging and to prevent it to being wrapped/filled twice
     wrapped.__raven__ = true;
-    wrapped.__inner__ = func;
+    wrapped.__orig__ = func;
 
     return wrapped;
   },
@@ -949,7 +949,7 @@ Raven.prototype = {
     // eslint-disable-next-line no-extend-native
     Function.prototype.toString = function() {
       if (typeof this === 'function' && this.__raven__) {
-        return self._originalFunctionToString.apply(this.__orig_method__, arguments);
+        return self._originalFunctionToString.apply(this.__orig__, arguments);
       }
       return self._originalFunctionToString.apply(this, arguments);
     };
