@@ -265,8 +265,8 @@ declare module Raven {
             sentry_client: string;
             sentry_key: string;
         };
-        onSuccess: () => void;
-        onError: (error: Error & { request: XMLHttpRequest }) => void;
+        onSuccess(): void;
+        onError(error: Error & { request?: XMLHttpRequest }): void;
     }
 
     interface RavenPlugin {
