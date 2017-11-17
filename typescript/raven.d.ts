@@ -82,6 +82,13 @@ declare module Raven {
          * A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default).
          */
         sampleRate?: number;
+
+        /**
+         * By default, Raven.js attempts to suppress duplicate captured errors and messages that occur back-to-back. 
+         * Such events are often triggered by rogue code (e.g. from a `setInterval` callback in a browser extension), 
+         * are not actionable, and eat up your event quota.
+         */
+        allowDuplicates?: boolean
     }
 
     interface RavenInstrumentationOptions {
@@ -236,13 +243,13 @@ declare module Raven {
         isSetup(): boolean;
 
         /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
-        setDataCallback(callback: RavenCallback): RavenStatic;
+        setDataCallback(callback?: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
-        setBreadcrumbCallback(callback: RavenCallback): RavenStatic;
+        setBreadcrumbCallback(callback?: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
-        setShouldSendCallback(callback: RavenCallback): RavenStatic;
+        setShouldSendCallback(callback?: RavenCallback): RavenStatic;
 
         /** Show Sentry user feedback dialog */
         showReportDialog(options?: Object): void;
@@ -255,7 +262,7 @@ declare module Raven {
         setDSN(dsn: string): void;
     }
 
-    type RavenCallback = (data: any, orig: (data: any) => any) => any | void;
+    type RavenCallback = (data: any, orig?: (data: any) => any) => any | void;
 
     interface RavenTransportOptions {
         url: string;
