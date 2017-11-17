@@ -236,13 +236,13 @@ declare module Raven {
         isSetup(): boolean;
 
         /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
-        setDataCallback(data: any, orig?: any): RavenStatic;
+        setDataCallback(callback: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
-        setBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+        setBreadcrumbCallback(callback: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
-        setShouldSendCallback(data: any, orig?: any): RavenStatic;
+        setShouldSendCallback(callback: RavenCallback): RavenStatic;
 
         /** Show Sentry user feedback dialog */
         showReportDialog(options?: Object): void;
@@ -254,6 +254,8 @@ declare module Raven {
          */
         setDSN(dsn: string): void;
     }
+
+    type RavenCallback = (data: any, orig: (data: any) => any) => any | void;
 
     interface RavenTransportOptions {
         url: string;
