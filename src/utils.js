@@ -38,6 +38,10 @@ function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
 }
 
+function isArray(what) {
+  return Object.prototype.toString.call(what) === '[object Array]';
+}
+
 function isEmptyObject(what) {
   for (var _ in what) {
     if (what.hasOwnProperty(_)) {
@@ -371,6 +375,7 @@ module.exports = {
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,
+  isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
   wrappedCallback: wrappedCallback,
