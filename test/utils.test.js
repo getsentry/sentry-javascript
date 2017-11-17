@@ -8,6 +8,7 @@ var utils = require('../src/utils');
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
+var isArray = utils.isArray;
 var isObject = utils.isObject;
 var isEmptyObject = utils.isEmptyObject;
 var isError = utils.isError;
@@ -49,6 +50,17 @@ describe('utils', function() {
       assert.isFalse(isString({}));
       assert.isFalse(isString(undefined));
       assert.isFalse(isString(function() {}));
+    });
+  });
+
+  describe('isArray', function() {
+    it('should do as advertised', function() {
+      assert.isTrue(isArray([]));
+      assert.isTrue(isArray(new Array(42)));
+      assert.isFalse(isArray(''));
+      assert.isFalse(isArray({}));
+      assert.isFalse(isArray(undefined));
+      assert.isFalse(isArray(function() {}));
     });
   });
 

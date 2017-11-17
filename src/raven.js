@@ -11,6 +11,7 @@ var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
+var isArray = utils.isArray;
 var isEmptyObject = utils.isEmptyObject;
 var each = utils.each;
 var objectMerge = utils.objectMerge;
@@ -481,8 +482,7 @@ Raven.prototype = {
     var stack = TraceKit.computeStackTrace(ex);
 
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
-    var initialCall = stack.stack[1];
-
+    var initialCall = isArray(stack.stack) && stack.stack[1];
     var fileurl = (initialCall && initialCall.url) || '';
 
     if (
