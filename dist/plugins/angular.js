@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.1 (42adaf5) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -126,6 +126,10 @@ function isFunction(what) {
 
 function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
+}
+
+function isArray(what) {
+  return Object.prototype.toString.call(what) === '[object Array]';
 }
 
 function isEmptyObject(what) {
@@ -448,7 +452,7 @@ function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
-  obj[name].__orig_method__ = orig;
+  obj[name].__orig__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }
@@ -461,6 +465,7 @@ module.exports = {
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,
+  isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
   wrappedCallback: wrappedCallback,

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.20.1
+
+* BUGFIX: Prevent Raven throwing during installation when `Function.prototype.toString` is called in Angular projects with `zone.js` and `core.js` wrapped functions https://github.com/getsentry/raven-js/pull/1135
+* BUGFIX: Add isArray util to prevent undefined `stack.stack` during `captureMessage` with synthetic stack traces enabled https://github.com/getsentry/raven-js/pull/1140
+
 ## 3.20.0
 
 * NEW: `autoBreadcrumbs` can now disable sentry breadcrumbs and configure them on demand https://github.com/getsentry/raven-js/pull/1099

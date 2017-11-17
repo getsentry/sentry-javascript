@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.1 (42adaf5) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -76,6 +76,7 @@ var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
+var isArray = utils.isArray;
 var isEmptyObject = utils.isEmptyObject;
 var each = utils.each;
 var objectMerge = utils.objectMerge;
@@ -181,7 +182,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.20.0',
+  VERSION: '3.20.1',
 
   debug: false,
 
@@ -429,10 +430,10 @@ Raven.prototype = {
     wrapped.prototype = func.prototype;
 
     func.__raven_wrapper__ = wrapped;
-    // Signal that this function has been wrapped already
-    // for both debugging and to prevent it to being wrapped twice
+    // Signal that this function has been wrapped/filled already
+    // for both debugging and to prevent it to being wrapped/filled twice
     wrapped.__raven__ = true;
-    wrapped.__inner__ = func;
+    wrapped.__orig__ = func;
 
     return wrapped;
   },
@@ -546,8 +547,7 @@ Raven.prototype = {
     var stack = TraceKit.computeStackTrace(ex);
 
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
-    var initialCall = stack.stack[1];
-
+    var initialCall = isArray(stack.stack) && stack.stack[1];
     var fileurl = (initialCall && initialCall.url) || '';
 
     if (
@@ -1014,7 +1014,7 @@ Raven.prototype = {
     // eslint-disable-next-line no-extend-native
     Function.prototype.toString = function() {
       if (typeof this === 'function' && this.__raven__) {
-        return self._originalFunctionToString.apply(this.__orig_method__, arguments);
+        return self._originalFunctionToString.apply(this.__orig__, arguments);
       }
       return self._originalFunctionToString.apply(this, arguments);
     };
@@ -2098,6 +2098,10 @@ function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
 }
 
+function isArray(what) {
+  return Object.prototype.toString.call(what) === '[object Array]';
+}
+
 function isEmptyObject(what) {
   for (var _ in what) {
     if (what.hasOwnProperty(_)) {
@@ -2418,7 +2422,7 @@ function fill(obj, name, replacement, track) {
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
-  obj[name].__orig_method__ = orig;
+  obj[name].__orig__ = orig;
   if (track) {
     track.push([obj, name, orig]);
   }
@@ -2431,6 +2435,7 @@ module.exports = {
   isUndefined: isUndefined,
   isFunction: isFunction,
   isString: isString,
+  isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
   wrappedCallback: wrappedCallback,
