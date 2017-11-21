@@ -145,6 +145,8 @@ sourcemaps) within Sentry. This removes the requirement for them to be
 web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
+Note: You must have the source map directive (``//# sourceMappingURL=...app.js.map``) present on the last line of the minified file in order for un-minfication to occur.
+
 You can either interact with the API directly or you can upload sourcemaps
 with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`).
 
