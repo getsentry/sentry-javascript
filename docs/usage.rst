@@ -303,6 +303,8 @@ And set an ``Access-Control-Allow-Origin`` HTTP header on that file.
 .. note:: both of these steps need to be done or your scripts might not
    even get executed
 
+.. _raven-js-promises:
+
 Promises
 --------
 
