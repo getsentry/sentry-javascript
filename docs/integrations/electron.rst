@@ -37,7 +37,7 @@ And now ``renderer process``, which uses the Browser SDK:
     });
 
 This configuration will also take care of unhandled Promise rejections, which can be handled in various ways. By default, Electron uses standard JS API.
-To learn more about handling promises, refer to :doc:`Promises <raven-js-promises>` documentation.
+To learn more about handling promises, refer to :ref:`raven-js-promises` documentation.
 
 Sending environment information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
