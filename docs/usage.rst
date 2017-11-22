@@ -333,6 +333,12 @@ For example, the `RSVP.js library
         Raven.captureException(evt.reason);
     };
 
+Node's native promises are reported through a ``unhandledRejection`` event:
+
+.. code-block:: javascript
+
+    process.on('unhandledRejection', reason => Raven.captureException(reason));
+
 Please consult your promise library documentation on how to hook into its global unhandled rejection handler, if it exposes one.
 
 Custom Grouping Behavior
