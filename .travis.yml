@@ -27,7 +27,10 @@ matrix:
       script:
       - yarn link
       - cd packages/core && yarn link && yarn install && yarn dist
-      - cd ../browser && yarn link "@sentry/core" && yarn install && yarn test
+      - cd ../browser
+      - yarn link "@sentry/core"
+      - yarn link "raven-js"
+      - yarn install && yarn test
     - env: NAME="@sentry/core"
       script:
       - cd packages/core && yarn install && yarn test
