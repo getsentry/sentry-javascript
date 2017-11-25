@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+
 sudo: false
 language: node_js
 node_js:
@@ -9,9 +10,17 @@ dist: trusty
 cache:
   directories:
   - node_modules
-addons:
-  chrome: stable
-  firefox: latest
-  sauce_connect: true
-script:
-  - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+
+
+matrix:
+  include:
+    - addons:
+        chrome: stable
+        firefox: latest
+        sauce_connect: true
+      script:
+        - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+    - script:
+      - cd packages/browser && yarn test
+    - script:
+      - cd packages/core && yarn test

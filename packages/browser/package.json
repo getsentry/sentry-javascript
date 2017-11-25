@@ -11,6 +11,10 @@
     "@sentry/core": "file:../core",
     "raven-js": "^3.18.1"
   },
+  "peerDependencies": {
+    "@sentry/core": "file:../core",
+    "raven-js": "^3.18.1"
+  },
   "devDependencies": {
     "@types/jest": "^21.1.6",
     "@types/node": "^8.0.51",

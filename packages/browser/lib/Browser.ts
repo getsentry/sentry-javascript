@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { Adapter, Breadcrumb, Client, Event, Options, User } from '@sentry/core';
+import { Client, Event, IAdapter, IBreadcrumb, IUser } from '@sentry/core';
 const Raven = require('raven-js');
 
 export interface IBrowserOptions {
@@ -7,7 +7,7 @@ export interface IBrowserOptions {
   allowDuplicates?: boolean;
 }
 
-export class Browser implements Adapter {
+export class Browser implements IAdapter {
   private client: Client;
 
   constructor(client: Client, public options: IBrowserOptions = {}) {
@@ -16,9 +16,12 @@ export class Browser implements Adapter {
   }
 
   public install(): Promise<boolean> {
-    // TODO: check for raven this._globalOptions.allowSecretKey
     Raven.config(this.client.dsn.getDsn(false), this.options).install();
     return Promise.resolve(true);
+  }
+
+  public getRaven() {
+    return Raven;
   }
 
   public setOptions(options: IBrowserOptions) {
@@ -49,20 +52,12 @@ export class Browser implements Adapter {
     });
   }
 
-  public setBreadcrumbCallback(callback: (crumb: Breadcrumb) => void) {
+  public setBreadcrumbCallback(callback: (crumb: IBreadcrumb) => void) {
     Raven.setBreadcrumbCallback(callback);
   }
 
-  public captureBreadcrumb(crumb: Breadcrumb) {
-    return new Promise<Breadcrumb>((resolve, reject) => {
-      // TODO: We have to check if this is necessary used in react-native
-      // let oldCaptureBreadcrumb = Raven.captureBreadcrumb;
-      // Raven.captureBreadcrumb = (breadCrumb: any, ...args: any[]) => {
-      //   if (breadCrumb.data && typeof breadCrumb.data === 'object') {
-      //     breadCrumb.data = Object.assign({}, breadCrumb.data);
-      //   }
-      //   return oldCaptureBreadcrumb(breadCrumb, ...args);
-      // };
+  public captureBreadcrumb(crumb: IBreadcrumb) {
+    return new Promise<IBreadcrumb>((resolve, reject) => {
       Raven.captureBreadcrumb(crumb);
       resolve(crumb);
     });
@@ -77,7 +72,7 @@ export class Browser implements Adapter {
     });
   }
 
-  public setUserContext(user?: User) {
+  public setUserContext(user?: IUser) {
     Raven.setUserContext(user);
     return this;
   }
