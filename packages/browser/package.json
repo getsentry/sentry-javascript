@@ -8,11 +8,11 @@
     "definition": "dist/browser.d.ts"
   },
   "dependencies": {
-    "@sentry/core": "file:../core",
+    "@sentry/core": "^0.1.0",
     "raven-js": "^3.18.1"
   },
   "peerDependencies": {
-    "@sentry/core": "file:../core",
+    "@sentry/core": "^0.1.0",
     "raven-js": "^3.18.1"
   },
   "devDependencies": {

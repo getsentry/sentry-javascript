@@ -25,8 +25,9 @@ matrix:
         - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
     - env: NAME="@sentry/browser"
       script:
-      - cd packages/core && yarn install && yarn dist
-      - cd ../browser && yarn install && yarn test
+      - yarn link
+      - cd packages/core && yarn link && yarn install && yarn dist
+      - cd ../browser && yarn link "@sentry/core" && yarn install && yarn test
     - env: NAME="@sentry/core"
       script:
       - cd packages/core && yarn install && yarn test
