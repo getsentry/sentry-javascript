@@ -26,7 +26,7 @@ matrix:
     - env: NAME="@sentry/browser"
       script:
       - cd packages/core && yarn install && yarn dist
-      - cd packages/browser && yarn install && yarn test
+      - cd ../browser && yarn install && yarn test
     - env: NAME="@sentry/core"
       script:
       - cd packages/core && yarn install && yarn test
