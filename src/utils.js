@@ -310,6 +310,13 @@ function isOnlyOneTruthy(a, b) {
 }
 
 /**
+ * Returns true if both parameters are undefined
+ */
+function isBothUndefined(a, b) {
+  return isUndefined(a) && isUndefined(b);
+}
+
+/**
  * Returns true if the two input exception interfaces have the same content
  */
 function isSameException(ex1, ex2) {
@@ -319,6 +326,9 @@ function isSameException(ex1, ex2) {
   ex2 = ex2.values[0];
 
   if (ex1.type !== ex2.type || ex1.value !== ex2.value) return false;
+
+  // in case both stacktraces are undefined, we can't decide so default to false
+  if (isBothUndefined(ex1.stacktrace, ex2.stacktrace)) return false;
 
   return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
 }
