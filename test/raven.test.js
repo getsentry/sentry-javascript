@@ -3527,6 +3527,14 @@ describe('Raven (private methods)', function() {
         data.exception.values[0].stacktrace.frames = [];
         assert.isFalse(Raven._isRepeatData(data));
       });
+
+      it('should not blown if both stacktraces are undefined', function() {
+        Raven._lastData.exception.values[0].stacktrace = undefined;
+        var data1 = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+        var data2 = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+        assert.isFalse(Raven._isRepeatData(data1));
+        assert.isFalse(Raven._isRepeatData(data2));
+      });
     });
   });
 });
