@@ -2,155 +2,96 @@
 module.exports = function(grunt) {
   var path = require('path');
   var os = require('os');
-  var through = require('through2');
-  var proxyquire = require('proxyquireify');
-  var versionify = require('browserify-versionify');
-  var derequire = require('derequire/plugin');
-  var collapser = require('bundle-collapser/plugin');
 
   var excludedPlugins = ['react-native'];
 
-  var plugins = grunt.option('plugins');
-  // Create plugin paths and verify they exist
-  plugins = (plugins ? plugins.split(',') : []).map(function(plugin) {
-    var p = 'plugins/' + plugin + '.js';
-
-    if (!grunt.file.exists(p))
-      throw new Error("Plugin '" + plugin + "' not found in plugins directory.");
-
-    return p;
-  });
-
-  // custom browserify transformer to re-write plugins to
-  // self-register with Raven via addPlugin
-  function AddPluginBrowserifyTransformer() {
-    return function(file) {
-      return through(function(buf, enc, next) {
-        buf = buf.toString('utf8');
-        if (/plugins/.test(file)) {
-          buf += "\nrequire('../src/singleton').addPlugin(module.exports);";
-        }
-        this.push(buf);
-        next();
-      });
-    };
-  }
-
-  // Taken from http://dzone.com/snippets/calculate-all-combinations
-  var combine = function(a) {
-    var fn = function(n, src, got, all) {
-      if (n === 0) {
-        all.push(got);
-        return;
-      }
-
-      for (var j = 0; j < src.length; j++) {
-        fn(n - 1, src.slice(j + 1), got.concat([src[j]]), all);
-      }
-    };
-
-    var excluded = excludedPlugins.map(function(plugin) {
-      return 'plugins/' + plugin + '.js';
-    });
-
-    // Remove the plugins that we don't want to build
-    a = a.filter(function(n) {
-      return excluded.indexOf(n) === -1;
-    });
-
-    var all = [a];
-
-    for (var i = 0; i < a.length; i++) {
-      fn(i, a, [], all);
-    }
-
-    return all;
-  };
-
-  var plugins = grunt.file.expand('plugins/*.js');
-
-  var cleanedPlugins = plugins.filter(function(plugin) {
+  var plugins = grunt.file.expand('plugins/*.js').filter(function(plugin) {
     var pluginName = path.basename(plugin, '.js');
 
     return excludedPlugins.indexOf(pluginName) === -1;
   });
 
-  var pluginSingleFiles = cleanedPlugins.map(function(plugin) {
-    var filename = path.basename(plugin);
+  // These files are generated with the 'generate:plugins-combined' npm script
+  var pluginCombinations = grunt.file.expand('plugins/combinations/*.js');
 
-    var file = {};
-    file.src = plugin;
-    file.dest = path.join('build', 'plugins', filename);
+  var tests = grunt.file.expand('test/**/*.test.js');
 
-    return file;
-  });
-
-  var pluginCombinations = combine(plugins);
-  var pluginConcatFiles = pluginCombinations.reduce(function(dict, comb) {
-    var key = comb.map(function(plugin) {
-      return path.basename(plugin, '.js');
-    });
-    key.sort();
-
-    var dest = path.join('build/', key.join(','), '/raven.js');
-    dict[dest] = ['src/singleton.js'].concat(comb);
-
-    return dict;
-  }, {});
-
-  var browserifyConfig = {
-    options: {
-      banner: grunt.file.read('template/_copyright.js'),
-      browserifyOptions: {
-        standalone: 'Raven' // umd
-      },
-      transform: [versionify],
-      plugin: [derequire, collapser]
-    },
+  var rollupConfig = {
     core: {
-      src: 'src/singleton.js',
-      dest: 'build/raven.js'
+      options: [
+        {
+          input: {
+            input: 'src/singleton.js'
+          },
+          output: {
+            file: 'build/raven.js',
+            name: 'Raven',
+            banner: grunt.file.read('template/_copyright.js')
+          }
+        }
+      ]
     },
-    'plugins-combined': {
-      files: pluginConcatFiles,
-      options: {
-        transform: [[versionify], [new AddPluginBrowserifyTransformer()]]
-      }
+    plugins: {
+      options: []
     },
-    test: {
-      src: 'test/**/*.test.js',
-      dest: 'build/raven.test.js',
-      options: {
-        browserifyOptions: {
-          debug: false // source maps
-        },
-        ignore: ['react-native'],
-        plugin: [proxyquire.plugin]
-      }
+    pluginCombinations: {
+      options: []
+    },
+    tests: {
+      options: []
     }
   };
 
-  // Create a dedicated entry in browserify config for
-  // each individual plugin (each needs a unique `standalone`
-  // config)
-  var browserifyPluginTaskNames = [];
-  pluginSingleFiles.forEach(function(item) {
-    var name = item.src
+  // Create a dedicated entry in rollup config for each individual
+  // plugin (each needs a unique `standalone` config)
+  plugins.forEach(function(plugin) {
+    var name = plugin
       .replace(/.*\//, '') // everything before slash
       .replace('.js', ''); // extension
     var capsName = name.charAt(0).toUpperCase() + name.slice(1);
     var config = {
-      src: item.src,
-      dest: item.dest,
-      options: {
-        browserifyOptions: {
-          // e.g. Raven.Plugins.Angular
-          standalone: 'Raven.Plugins.' + capsName
-        }
+      input: {
+        input: plugin
+      },
+      output: {
+        file: path.join('build', 'plugins', path.basename(plugin)),
+        name: 'Raven.Plugins.' + capsName,
+        banner: grunt.file.read('template/_copyright.js')
       }
     };
-    browserifyConfig[name] = config;
-    browserifyPluginTaskNames.push('browserify:' + name);
+
+    rollupConfig.plugins.options.push(config);
+  });
+
+  // Create a dedicated entry in rollup config for each individual plugin combination
+  pluginCombinations.forEach(function(pluginCombination) {
+    var config = {
+      input: {
+        input: pluginCombination
+      },
+      output: {
+        file: path.join('build', path.basename(pluginCombination, '.js'), 'raven.js'),
+        name: 'Raven',
+        banner: grunt.file.read('template/_copyright.js')
+      }
+    };
+
+    rollupConfig.pluginCombinations.options.push(config);
+  });
+
+  // Transpile all test scripts
+  tests.forEach(function (test) {
+    var config = {
+      input: {
+        input: test
+      },
+      output: {
+        file: path.join('build', path.basename(test)),
+        name: path.basename(test, '.js'),
+      }
+    };
+
+    rollupConfig.tests.options.push(config);
   });
 
   var awsConfigPath = path.join(os.homedir(), '.aws', 'raven-js.json');
@@ -158,9 +99,9 @@ module.exports = function(grunt) {
     pkg: grunt.file.readJSON('package.json'),
     aws: grunt.file.exists(awsConfigPath) ? grunt.file.readJSON(awsConfigPath) : {},
 
-    clean: ['build'],
+    clean: ['build', 'plugins/combinations'],
 
-    browserify: browserifyConfig,
+    rollup: rollupConfig,
 
     uglify: {
       options: {
@@ -277,6 +218,30 @@ module.exports = function(grunt) {
   grunt.initConfig(gruntConfig);
 
   // Custom Grunt tasks
+  grunt.registerMultiTask('rollup', 'Create the bundles', function() {
+    var build = require('./scripts/build');
+    var options = this.options();
+    var done = this.async();
+
+    var promises = Object.keys(options).map(function(key) {
+      return build(options[key].input, options[key].output);
+    });
+
+    Promise.all(promises)
+      .then(function() {
+        done();
+      })
+      ['catch'](function(error) {
+        grunt.fail.warn(error);
+      });
+  });
+
+  grunt.registerTask('generate-plugin-combinations', function() {
+    var dest = './plugins/combinations';
+    grunt.file.mkdir(dest);
+    require('./scripts/generate-plugin-combinations')(plugins, dest);
+  });
+
   grunt.registerTask('version', function() {
     var pkg = grunt.config.get('pkg');
 
@@ -315,34 +280,29 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-copy');
 
   // 3rd party Grunt tasks
-  grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-release');
   grunt.loadNpmTasks('grunt-s3');
   grunt.loadNpmTasks('grunt-gitinfo');
   grunt.loadNpmTasks('grunt-sri');
 
   // Build tasks
-  grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-  grunt.registerTask(
-    'browserify.core',
-    ['_prep', 'browserify:core'].concat(browserifyPluginTaskNames)
-  );
-  grunt.registerTask('browserify.plugins-combined', [
+  grunt.registerTask('_prep', ['gitinfo', 'version']);
+  grunt.registerTask('build.test', ['_prep', 'rollup:core', 'rollup:tests']);
+  grunt.registerTask('build.core', ['_prep', 'rollup:core', 'sri:dist']);
+  grunt.registerTask('build.plugins', [
     '_prep',
-    'browserify:plugins-combined'
-  ]);
-  grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
-  grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
-  grunt.registerTask('build.plugins-combined', [
-    'browserify.plugins-combined',
-    'uglify',
+    'generate-plugin-combinations',
+    'rollup:plugins',
+    'rollup:pluginCombinations',
     'sri:dist',
     'sri:build'
   ]);
-  grunt.registerTask('build', ['build.plugins-combined']);
-  grunt.registerTask('dist', ['build.core', 'copy:dist']);
+  grunt.registerTask('build', ['build.core', 'build.plugins', 'uglify']);
 
-  grunt.registerTask('test:ci', ['config:ci', 'build.test']);
+  grunt.registerTask('dist', ['clean', 'build', 'copy:dist']);
+
+  // Test tasks
+  grunt.registerTask('test:ci', ['config:ci', 'build:test']);
 
   // Webserver tasks
   grunt.registerTask('run:test', ['build.test', 'connect:test']);
