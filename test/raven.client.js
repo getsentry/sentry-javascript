@@ -268,6 +268,8 @@ describe('raven.Client', function() {
         zlib.deflate = old;
 
         var kwargs = JSON.parse(skwargs);
+        // Remove superfluous node version data to simplify the test itself
+        delete kwargs.extra.node;
         kwargs.should.have.property('extra', {
           foo: '[Circular ~]'
         });
