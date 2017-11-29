@@ -15,6 +15,9 @@ Both packages are available via npm.
 
     $ npm install raven raven-js --save
 
+Configuring the Client
+----------------------
+
 First, let's configure ``main process``, which uses the Node.js SDK:
 
 .. code-block:: javascript
