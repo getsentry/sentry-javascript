@@ -145,11 +145,12 @@ sourcemaps) within Sentry. This removes the requirement for them to be
 web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
-You can either interact with the API directly or you can upload sourcemaps
-with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`).
+You can either interact with the API directly, upload sourcemaps
+with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`)
+or you can use ``sentry-webpack-plugin``.
 
-* Start by creating a new authentication token under **[Account] > API**.
-* Ensure you you have ``project:write`` selected under scopes.
+* Start by creating a new authentication token under `**[Account] > API** <https://sentry.io/api/>`_.
+* Ensure you have ``project:write`` selected under scopes.
 * You'll use the Authorization header with the value of ``Bearer: {TOKEN}``
   with API requests.
 
@@ -302,6 +303,35 @@ the ``--ext`` parameter.
     *   Make sure that your minified files you have on your servers
         actually have references to your files.
 
+Using Sentry Webpack Plugin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another way to manage releases and sourcemaps on Sentry, is to use the Sentry Webpack Plugin.
+
+* Start by creating a new authentication token under `**[Account] > API** <https://sentry.io/api/>`_.
+* Ensure you have ``project:write`` selected under scopes.
+* Install ``@sentry/webpack-plugin`` using ``npm``
+* Create ``.sentryclirc`` file with necessary config (see Sentry Webpack Plugin docs below)
+* Update your ``webpack.config.json``
+
+::
+
+    const SentryPlugin = require('@sentry/webpack-plugin');
+
+    module.exports = {
+        // ... other config above ...
+        plugins: [
+          new SentryPlugin({
+            release: process.env.RELEASE,
+            include: './dist',
+            ignore: ['node_modules', 'webpack.config.js'],
+          })
+        ]
+    };
+
+
+You can take a look at `Sentry Webpack Plugin documentation <https://github.com/getsentry/sentry-webpack-plugin>`_
+for more information on how to configure the plugin.
 
 .. sentry:edition:: hosted
 
