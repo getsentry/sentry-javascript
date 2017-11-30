@@ -1233,7 +1233,7 @@ Raven.prototype = {
         _window,
         'fetch',
         function(origFetch) {
-          return function(fn, t) {
+          return function() {
             // preserve arity
             // Make a copy of the arguments to prevent deoptimization
             // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
@@ -1255,6 +1255,11 @@ Raven.prototype = {
               }
             } else {
               url = '' + fetchInput;
+            }
+
+            // if Sentry key appears in URL, don't capture
+            if (url.indexOf(self._globalKey) !== -1) {
+              return origFetch.apply(this, args);
             }
 
             if (args[1] && args[1].method) {
