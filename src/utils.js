@@ -56,6 +56,19 @@ function supportsErrorEvent() {
   }
 }
 
+function supportsFetch() {
+  if (!('fetch' in _window)) return false;
+
+  try {
+    new Headers(); // eslint-disable-line no-new
+    new Request(''); // eslint-disable-line no-new
+    new Response(); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function wrappedCallback(callback) {
   function dataCallback(data, original) {
     var normalizedData = callback(data) || data;
@@ -373,6 +386,7 @@ module.exports = {
   isString: isString,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsFetch: supportsFetch,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,
