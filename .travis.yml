@@ -1,7 +1,7 @@
 branches:
   only:
     - master
-sudo: false
+sudo: required
 language: node_js
 node_js:
 - '8'
@@ -13,5 +13,8 @@ addons:
   chrome: stable
   firefox: latest
   sauce_connect: true
+before_script:
+  - "sudo chown root /opt/google/chrome/chrome-sandbox"
+  - "sudo chmod 4755 /opt/google/chrome/chrome-sandbox"
 script:
   - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
