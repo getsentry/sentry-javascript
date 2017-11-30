@@ -26,6 +26,7 @@ var isSameException = utils.isSameException;
 var isSameStacktrace = utils.isSameStacktrace;
 var parseUrl = utils.parseUrl;
 var fill = utils.fill;
+var supportsFetch = utils.supportsFetch;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -1179,7 +1180,7 @@ Raven.prototype = {
         xhrproto,
         'send',
         function(origSend) {
-          return function(data) {
+          return function() {
             // preserve arity
             var xhr = this;
 
@@ -1227,12 +1228,12 @@ Raven.prototype = {
       );
     }
 
-    if (autoBreadcrumbs.xhr && 'fetch' in _window) {
+    if (autoBreadcrumbs.xhr && supportsFetch()) {
       fill(
         _window,
         'fetch',
         function(origFetch) {
-          return function(fn, t) {
+          return function() {
             // preserve arity
             // Make a copy of the arguments to prevent deoptimization
             // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
@@ -1254,6 +1255,11 @@ Raven.prototype = {
               }
             } else {
               url = '' + fetchInput;
+            }
+
+            // if Sentry key appears in URL, don't capture, as it's our own request
+            if (url.indexOf(self._globalKey) !== -1) {
+              return origFetch.apply(this, args);
             }
 
             if (args[1] && args[1].method) {
@@ -1692,8 +1698,14 @@ Raven.prototype = {
     try {
       // If Retry-After is not in Access-Control-Expose-Headers, most
       // browsers will throw an exception trying to access it
-      retry = request.getResponseHeader('Retry-After');
-      retry = parseInt(retry, 10) * 1000; // Retry-After is returned in seconds
+      if (supportsFetch()) {
+        retry = request.headers.get('Retry-After');
+      } else {
+        retry = request.getResponseHeader('Retry-After');
+      }
+
+      // Retry-After is returned in seconds
+      retry = parseInt(retry, 10) * 1000;
     } catch (e) {
       /* eslint no-empty:0 */
     }
@@ -1882,6 +1894,32 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
+    // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
+    var url = opts.url + '?' + urlencode(opts.auth);
+
+    if (supportsFetch()) {
+      return _window
+        .fetch(url, {
+          method: 'POST',
+          body: stringify(opts.data)
+        })
+        .then(function(response) {
+          if (response.ok) {
+            opts.onSuccess && opts.onSuccess();
+          } else {
+            var error = new Error('Sentry error code: ' + response.status);
+            // It's called request only to keep compatibility with XHR interface
+            // and not add more redundant checks in setBackoffState method
+            error.request = response;
+            opts.onError && opts.onError(error);
+          }
+        })
+        ['catch'](function() {
+          opts.onError &&
+            opts.onError(new Error('Sentry error code: network unavailable'));
+        });
+    }
+
     var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
     if (!request) return;
 
@@ -1889,8 +1927,6 @@ Raven.prototype = {
     var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
 
     if (!hasCORS) return;
-
-    var url = opts.url;
 
     if ('withCredentials' in request) {
       request.onreadystatechange = function() {
@@ -1923,9 +1959,7 @@ Raven.prototype = {
       }
     }
 
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
+    request.open('POST', url);
     request.send(stringify(opts.data));
   },
 
