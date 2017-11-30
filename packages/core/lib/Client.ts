@@ -83,8 +83,8 @@ export class Client {
 
   public log(...args: any[]) {
     if (this.options.logLevel >= LogLevel.Debug) {
-      // eslint-disable-next-line
-      console.log.apply(null, args);
+      // tslint:disable-next-line
+      console.log(...args);
     }
   }
 
@@ -103,7 +103,7 @@ export class Client {
   }
 
   public setTagsContext(tags?: { [key: string]: any }) {
-    Context.merge(this._context, 'tags', tags);
+    Context.mergeIn(this._context, 'tags', tags);
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.setTagsContext) {
       this.adapter.setTagsContext(tags);
@@ -113,7 +113,7 @@ export class Client {
   }
 
   public setExtraContext(extra?: { [key: string]: any }) {
-    Context.merge(this._context, 'extra', extra);
+    Context.mergeIn(this._context, 'extra', extra);
     // TODO: Remove this once we moved code away from adapters
     if (this.adapter.setExtraContext) {
       this.adapter.setExtraContext(extra);

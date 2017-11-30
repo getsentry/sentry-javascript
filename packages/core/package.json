@@ -12,6 +12,7 @@
     "@types/jest": "^21.1.2",
     "@types/node": "^8.0.32",
     "jest": "^21.2.1",
+    "npm-run-all": "^4.1.2",
     "prettier": "^1.8.0",
     "ts-jest": "21.2.2",
     "ts-node": "^3.3.0",
@@ -22,15 +23,17 @@
     "vrsource-tslint-rules": "^5.8.0"
   },
   "engines": {
-    "node": ">=6.9.5 <9.0.0",
-    "npm": ">=3.10.7 <6.0.0",
-    "yarn": ">=1.0.2 <2.0.0"
+    "node": ">=6.9.5",
+    "npm": ">=3.10.7",
+    "yarn": ">=1.0.2"
   },
   "scripts": {
     "clean": "rm -rf ./dist",
     "dist": "npm run clean && tsc -p tsconfig.json",
-    "test": "npm run dist && jest",
-    "test:watch": "jest --watch --notify"
+    "test:browser": "jest --env=jsdom",
+    "test:node": "jest --env=node",
+    "test:watch": "jest --watch --notify",
+    "test": "npm-run-all dist test:browser test:node"
   },
   "jest": {
     "collectCoverage": true,

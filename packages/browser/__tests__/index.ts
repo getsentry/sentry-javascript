@@ -9,7 +9,7 @@ import { Browser } from '../browser';
 
 describe('Browser Interface', () => {
   test('sending a message', async done => {
-    let countExcpects = 0;
+    let countExpects = 0;
     const expectedAssertions = 2;
     expect.assertions(expectedAssertions);
 
@@ -41,9 +41,9 @@ describe('Browser Interface', () => {
         } else {
           expect(data.message).toBe('PICKLE RIIIICK!');
         }
-        countExcpects++;
+        countExpects++;
       }
-      if (countExcpects === expectedAssertions) {
+      if (countExpects === expectedAssertions) {
         await browser.close();
         done();
       }

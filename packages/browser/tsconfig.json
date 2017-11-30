@@ -6,8 +6,7 @@
             "node"
         ],
         "lib": ["es2015", "dom"],
-        "declaration": false,
-        "allowJs": true,
+        "allowJs": false,
         "outDir": "dist"
     },
     "include": [

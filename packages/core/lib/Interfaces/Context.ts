@@ -18,7 +18,7 @@ export function set<T extends IContext, K extends keyof T>(
   context[key] = value;
 }
 
-export function merge<T extends IContext, K extends keyof T>(
+export function mergeIn<T extends IContext, K extends keyof T>(
   context: T,
   key: K,
   value: any

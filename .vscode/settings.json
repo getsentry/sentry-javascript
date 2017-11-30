@@ -1,4 +1,6 @@
 {
+    "editor.tabSize": 2,
+    "editor.rulers": [90],
     "[typescript]": {
         "editor.formatOnSave": true
     },
@@ -14,5 +16,5 @@
         "**/bower_components": true,
         "**/dist/**": true
     },
-    "tslint.autoFixOnSave": true
+    "tslint.autoFixOnSave": true,
 }

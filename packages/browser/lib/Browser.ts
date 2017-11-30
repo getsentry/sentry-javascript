@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { Client, Event, IAdapter, IBreadcrumb, IUser } from '@sentry/core';
+declare function require(path: string): any;
 const Raven = require('raven-js');
 
 export interface IBrowserOptions {
@@ -12,7 +13,6 @@ export class Browser implements IAdapter {
 
   constructor(client: Client, public options: IBrowserOptions = {}) {
     this.client = client;
-    return this;
   }
 
   public install(): Promise<boolean> {
@@ -31,22 +31,22 @@ export class Browser implements IAdapter {
   }
 
   public captureException(exception: Error) {
-    const ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
+      const ravenSendRequest = Raven._sendProcessedPayload;
       Raven._sendProcessedPayload = (data: any) => {
-        resolve(data);
         Raven._sendProcessedPayload = ravenSendRequest;
+        resolve(data);
       };
       Raven.captureException(exception);
     });
   }
 
   public captureMessage(message: string) {
-    const ravenSendRequest = Raven._sendProcessedPayload;
     return new Promise<Event>((resolve, reject) => {
+      const ravenSendRequest = Raven._sendProcessedPayload;
       Raven._sendProcessedPayload = (data: any) => {
-        resolve(data);
         Raven._sendProcessedPayload = ravenSendRequest;
+        resolve(data);
       };
       Raven.captureMessage(message);
     });
@@ -66,7 +66,10 @@ export class Browser implements IAdapter {
   public send(event: any) {
     return new Promise<Event>((resolve, reject) => {
       Raven._sendProcessedPayload(event, (error: any) => {
-        // TODO: error handling
+        if (error) {
+          reject(error);
+          return;
+        }
         resolve(event);
       });
     });

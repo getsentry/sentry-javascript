@@ -71,9 +71,11 @@ describe('Sentry.Client', () => {
     const sentry = new Sentry.Client(dsn);
     sentry.use(MockAdapter);
     expect.assertions(1);
-    return expect(sentry.captureMessage('fail')).rejects.toEqual(
-      new Error('Failed because we told it too')
-    );
+    try {
+      await sentry.captureMessage('fail');
+    } catch (e) {
+      expect(e.message).toBe('Failed because we told it too');
+    }
   });
 
   test('call captureMessage on Adapter', async () => {
