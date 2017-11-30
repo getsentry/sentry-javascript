@@ -1629,10 +1629,12 @@ Raven.prototype = {
       };
     }
 
+    if (_window.location && _window.location.href) {
+      httpData.url = _window.location.href;
+    } else if (_document.location && _document.location.href) {
+      httpData.url = _document.location.href;
+    }
     if (this._hasDocument) {
-      if (_document.location && _document.location.href) {
-        httpData.url = _document.location.href;
-      }
       if (_document.referrer) {
         if (!httpData.headers) httpData.headers = {};
         httpData.headers.Referer = _document.referrer;
