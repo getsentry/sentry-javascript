@@ -60,6 +60,10 @@ function supportsErrorEvent() {
   }
 }
 
+function supportsFetch() {
+  return 'fetch' in _window;
+}
+
 function wrappedCallback(callback) {
   function dataCallback(data, original) {
     var normalizedData = callback(data) || data;
@@ -378,6 +382,7 @@ module.exports = {
   isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsFetch: supportsFetch,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,
