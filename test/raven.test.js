@@ -1471,7 +1471,7 @@ describe('globals', function() {
       Raven._send({message: 'bar'});
       var opts = Raven._makeRequest.lastCall.args[0];
       var mockError = new Error('429: Too many requests');
-      mockError.request = {
+      mockError.xhrRequest = {
         status: 429
       };
       opts.onError(mockError);
@@ -1502,7 +1502,7 @@ describe('globals', function() {
       Raven._send({message: 'bar'});
       var opts = Raven._makeRequest.lastCall.args[0];
       var mockError = new Error('401: Unauthorized');
-      mockError.request = {
+      mockError.xhrRequest = {
         status: 401,
         getResponseHeader: sinon
           .stub()
@@ -1714,7 +1714,7 @@ describe('globals', function() {
         data: {foo: 'bar'},
         options: Raven._globalOptions,
         onError: function(error) {
-          assert.equal(error.request.status, 429);
+          assert.equal(error.xhrRequest.status, 429);
           done();
         }
       });
