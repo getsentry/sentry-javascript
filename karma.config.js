@@ -60,7 +60,7 @@ module.exports = {
 
   // Concurrency level
   // how many browser should be started simultaneous
-  concurrency: Infinity,
+  concurrency: 2,
 
   client: {
     mocha: {
