@@ -89,6 +89,7 @@ describe('utils', function() {
     describe('isErrorEvent', function() {
       it('should work as advertised', function() {
         assert.isFalse(isErrorEvent(new Error()));
+        assert.isFalse(isError(new ErrorEvent('')));
         assert.isTrue(isErrorEvent(new ErrorEvent('')));
       });
     });
