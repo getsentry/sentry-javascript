@@ -156,8 +156,13 @@ TraceKit.report = (function reportModuleWrapper() {
         message
       );
       processLastException();
-    } else if (ex && utils.isError(ex)) {
+    } else if (ex && (utils.isError(ex) || utils.isErrorEvent(ex))) {
       // non-string `ex` arg; attempt to extract stack trace
+
+      // If this is an ErrorEvent, get the real error from within
+      if (utils.isErrorEvent(ex)) {
+        ex = ex.error;
+      }
 
       // New chrome and blink send along a real error object
       // Let's just report that like a normal error.

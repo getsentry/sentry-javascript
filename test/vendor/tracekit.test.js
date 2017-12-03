@@ -2,6 +2,8 @@
 'use strict';
 
 var TraceKit = require('../../vendor/TraceKit/tracekit');
+var utils = require('../../src/utils');
+var supportsErrorEvent = utils.supportsErrorEvent;
 
 describe('TraceKit', function() {
   describe('stacktrace info', function() {
@@ -139,6 +141,20 @@ describe('TraceKit', function() {
       }
     });
 
+    if (supportsErrorEvent()) {
+      it('should handle an error event object', function() {
+        var ex = new ErrorEvent('', {
+          error: new Error('something went wrong')
+        });
+        subscriptionHandler = function(stackInfo, extra) {
+          assert.equal(stackInfo.name, 'Error');
+          assert.equal(stackInfo.message, 'something went wrong');
+        };
+        TraceKit.report.subscribe(subscriptionHandler);
+        window.onerror(undefined, undefined, testLineNo, undefined, ex);
+      });
+    }
+
     describe('with undefined arguments', function() {
       it('should pass undefined:undefined', function() {
         // this is probably not good behavior;  just writing this test to verify
@@ -151,6 +167,7 @@ describe('TraceKit', function() {
         window.onerror(undefined, undefined, testLineNo);
       });
     });
+
     describe('when no 5th argument (error object)', function() {
       it('should seperate name, message for default error types (e.g. ReferenceError)', function(
         done
