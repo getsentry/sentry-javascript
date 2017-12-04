@@ -25,13 +25,13 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(new Sentry.Event());
   }
 
-  public captureMessage(message: string): Promise<Sentry.Event> {
+  public async captureMessage(message: string): Promise<Sentry.Event> {
     const event = new Sentry.Event();
     event.message = message;
     if (message === 'fail') {
-      return Promise.reject(new Error('Failed because we told it too'));
+      throw new Error('Failed because we told it too');
     }
-    return Promise.resolve(event);
+    return event;
   }
 
   public captureBreadcrumb(crumb: Sentry.IBreadcrumb): Promise<Sentry.IBreadcrumb> {
@@ -43,19 +43,19 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(event);
   }
 
-  public async setUserContext(user?: Sentry.IUser) {
+  public setUserContext(user?: Sentry.IUser) {
     return this;
   }
 
-  public async setTagsContext(tags?: { [key: string]: any }) {
+  public setTagsContext(tags?: { [key: string]: any }) {
     return this;
   }
 
-  public async setExtraContext(extra?: { [key: string]: any }) {
+  public setExtraContext(extra?: { [key: string]: any }) {
     return this;
   }
 
-  public async clearContext() {
+  public clearContext() {
     return this;
   }
 }

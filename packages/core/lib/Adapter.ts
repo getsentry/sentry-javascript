@@ -11,8 +11,8 @@ export interface IAdapter {
 
   // These should be removed at some point in the future
   // only the client should handle global stuff
-  setUserContext?(user?: IUser): Promise<IAdapter>;
-  setTagsContext?(tags?: { [key: string]: any }): Promise<IAdapter>;
-  setExtraContext?(extra?: { [key: string]: any }): Promise<IAdapter>;
-  clearContext?(): Promise<IAdapter>;
+  setUserContext?(user?: IUser): IAdapter;
+  setTagsContext?(tags?: { [key: string]: any }): IAdapter;
+  setExtraContext?(extra?: { [key: string]: any }): IAdapter;
+  clearContext?(): IAdapter;
 }

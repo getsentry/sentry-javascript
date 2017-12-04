@@ -9,6 +9,7 @@ export class Client {
   public readonly dsn: DSN;
   private _adapter: Adapter.IAdapter;
   private _context: Context.IContext;
+  private _isInstalled: Promise<boolean>;
 
   constructor(
     dsn: string,
@@ -34,11 +35,6 @@ export class Client {
     return this._adapter as A;
   }
 
-  /**
-   * Register a Adapter on the Core
-   * @param adapter
-   * @param options
-   */
   public use<A extends Adapter.IAdapter, O extends {}>(
     adapter: { new (client: Client, options?: O): A },
     options?: O
@@ -53,25 +49,31 @@ export class Client {
     return this;
   }
 
+  public install(): Promise<this> {
+    if (!this._isInstalled) {
+      this._isInstalled = this.getAdapter().install();
+    }
+    return this._isInstalled.then(() => this);
+  }
+
   public async captureException(exception: Error) {
-    return this.send(await this.getAdapter().captureException(exception));
+    const adapter = await this.awaitAdapter();
+    return this.send(await adapter.captureException(exception));
   }
 
   public async captureMessage(message: string) {
-    return this.send(await this.getAdapter().captureMessage(message));
+    const adapter = await this.awaitAdapter();
+    return this.send(await adapter.captureMessage(message));
   }
 
   public async captureBreadcrumb(crumb: IBreadcrumb) {
-    return this.getAdapter().captureBreadcrumb(crumb);
-  }
-
-  public async install() {
-    await this.getAdapter().install();
-    return this;
+    const adapter = await this.awaitAdapter();
+    return adapter.captureBreadcrumb(crumb);
   }
 
   public async send(event: Event) {
-    return this.getAdapter().send(event);
+    const adapter = await this.awaitAdapter();
+    return adapter.send(event);
   }
 
   // ---------------- HELPER
@@ -87,7 +89,7 @@ export class Client {
 
   // ---------------- CONTEXT
 
-  public async setUserContext(user?: IUser) {
+  public setUserContext(user?: IUser) {
     Context.set(this._context, 'user', user);
     // TODO: Remove this once we moved code away from adapters
     const adapter = this.getAdapter();
@@ -98,7 +100,7 @@ export class Client {
     return this;
   }
 
-  public async setTagsContext(tags?: { [key: string]: any }) {
+  public setTagsContext(tags?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'tags', tags);
     // TODO: Remove this once we moved code away from adapters
     const adapter = this.getAdapter();
@@ -109,7 +111,7 @@ export class Client {
     return this;
   }
 
-  public async setExtraContext(extra?: { [key: string]: any }) {
+  public setExtraContext(extra?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'extra', extra);
     // TODO: Remove this once we moved code away from adapters
     const adapter = this.getAdapter();
@@ -120,7 +122,7 @@ export class Client {
     return this;
   }
 
-  public async clearContext() {
+  public clearContext() {
     this._context = Context.getDefaultContext();
     // TODO: Remove this once we moved code away from adapters
     const adapter = this.getAdapter();
@@ -132,4 +134,14 @@ export class Client {
   }
 
   // ------------------------
+
+  private awaitAdapter(): Promise<Adapter.IAdapter> {
+    const adapter = this.getAdapter();
+    if (!this._isInstalled) {
+      throw new SentryError(
+        'Please call install() before calling other methods on Sentry'
+      );
+    }
+    return this._isInstalled.then(() => this._adapter);
+  }
 }
