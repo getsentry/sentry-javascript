@@ -20,6 +20,7 @@
     "@types/node": "^8.0.51",
     "@types/puppeteer": "^0.12.4",
     "jest": "^21.2.1",
+    "npm-run-all": "^4.1.2",
     "prettier": "^1.8.2",
     "puppeteer": "^0.13.0",
     "ts-jest": "^21.2.2",
@@ -41,8 +42,9 @@
     "build-browser": "webpack --config webpack.config.js",
     "clean": "rm -rf ./dist",
     "dist": "npm run clean && tsc -p tsconfig.json && npm run build-browser",
-    "test": "jest --forceExit",
-    "test:watch": "jest --watch --notify"
+    "test:browser": "jest --forceExit",
+    "test:watch": "jest --watch --notify",
+    "test": "npm-run-all dist test:browser"
   },
   "jest": {
     "transform": {
