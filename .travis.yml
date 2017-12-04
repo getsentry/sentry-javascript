@@ -26,6 +26,8 @@ matrix:
       after_success:
         - npm install -g @zeus-ci/cli
         - zeus upload -t "application/tar+npm" *.tgz
+        - zeus upload -t "application/javascript" dist/**/*.js
+        - zeus upload -t "application/json" dist/**/*.js.map
     - script: npm run build:plugins && tar -czf raven-js-plugins.tar.gz -C build .
       after_success:
         - npm install -g @zeus-ci/cli
