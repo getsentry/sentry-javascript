@@ -1,6 +1,3 @@
-branches:
-  only:
-    - master
 sudo: false
 language: node_js
 node_js:
@@ -9,7 +6,31 @@ node_js:
   - "6"
   - "7"
   - "8"
+
 cache:
   directories:
     - node_modules
+
+branches:
+  only:
+    - master
+
 script: npm run test-full
+
+matrix:
+  include:
+    - script: npm pack
+      node_js: "8"
+      after_success:
+        - npm install -g @zeus-ci/cli
+        - zeus upload -t "application/tar+npm" *.tgz
+
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/b152d48c-d694-11e7-99e7-0a580a28020f/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always
