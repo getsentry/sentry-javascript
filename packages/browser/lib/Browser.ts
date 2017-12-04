@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Client, Event, IAdapter, IBreadcrumb, IUser } from '@sentry/core';
 declare function require(path: string): any;
 const Raven = require('raven-js');
