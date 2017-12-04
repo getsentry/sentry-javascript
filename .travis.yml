@@ -29,7 +29,7 @@ matrix:
     - script: npm run build:plugins && tar -czf raven-js-plugins.tar.gz -C build .
       after_success:
         - npm install -g @zeus-ci/cli
-        - zeus upload -t "application/tar"
+        - zeus upload -t "application/tar" raven-js-plugins.tar.gz
 
 notifications:
   webhooks:
