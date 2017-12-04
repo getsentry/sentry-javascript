@@ -68,15 +68,6 @@ process.on('unhandledRejection', reason => console.log(reason));
     updateTest(nextVersion);
   }
 
-  const {shouldRunBuild} = await inquirer.prompt({
-    name: 'shouldRunBuild',
-    message: `Do you want to run the build process?`,
-    type: 'confirm',
-    default: false
-  });
-
-  if (shouldRunBuild) runBuild();
-
   const {shouldCommitChanges} = await inquirer.prompt({
     name: 'shouldCommitChanges',
     message: `Do you want to commit the changes?`,
@@ -103,19 +94,6 @@ process.on('unhandledRejection', reason => console.log(reason));
   });
 
   if (shouldPushChanges) pushChanges();
-
-  const {shouldPublish} = await inquirer.prompt({
-    name: 'shouldPublish',
-    message: `Do you want to publish on CDN and NPM?`,
-    type: 'confirm',
-    default: false
-  });
-
-  if (shouldPublish) publish();
-
-  await askUnskippableQuestion(
-    `Sweet! Now go to https://github.com/getsentry/raven-js/releases and copy a changelog in there`
-  );
 
   console.log(`\n✔ Deployment of Raven.js ${nextVersion} complete!\n`);
 })();
@@ -197,11 +175,6 @@ function execCommand(command) {
   }
 }
 
-function runBuild() {
-  execCommand(`grunt dist`);
-  console.log('✔ Build process completed');
-}
-
 function commitChanges(nextVersion) {
   execCommand(`git add -A && git commit -am "${nextVersion}"`);
   console.log('✔ Changes committed');
@@ -215,9 +188,4 @@ function createTag(nextVersion) {
 function pushChanges() {
   execCommand(`git push --follow-tags`);
   console.log('✔ Changes pushed');
-}
-
-function publish() {
-  execCommand(`npm publish`);
-  console.log('✔ Published on CDN and NPM');
 }
