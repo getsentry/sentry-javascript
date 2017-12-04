@@ -1897,12 +1897,23 @@ Raven.prototype = {
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
     var url = opts.url + '?' + urlencode(opts.auth);
 
+    var evaluatedHeaders = null;
+    if (opts.options.headers) {
+      evaluatedHeaders = this._evaluateHeaders(opts.options.headers);
+    }
+
     if (supportsFetch()) {
+      var fetchOptions = {
+        method: 'POST',
+        body: stringify(opts.data)
+      };
+
+      if (evaluatedHeaders) {
+        fetchOptions.headers = evaluatedHeaders;
+      }
+
       return _window
-        .fetch(url, {
-          method: 'POST',
-          body: stringify(opts.data)
-        })
+        .fetch(url, fetchOptions)
         .then(function(response) {
           if (response.ok) {
             opts.onSuccess && opts.onSuccess();
@@ -1960,18 +1971,27 @@ Raven.prototype = {
     }
 
     request.open('POST', url);
-    this._appendHeadersToRequest(request, opts.options.headers);
+
+    if (evaluatedHeaders) {
+      each(evaluatedHeaders, function(key, value) {
+        request.setRequestHeader(key, value);
+      });
+    }
+
     request.send(stringify(opts.data));
   },
 
-  _appendHeadersToRequest: function(request, headers) {
-    if (!headers) {
-      return;
+  _evaluateHeaders: function(headers) {
+    var evaluatedHeaders = {};
+
+    for (var key in headers) {
+      if (headers.hasOwnProperty(key)) {
+        var value = headers[key];
+        evaluatedHeaders[key] = typeof value === 'function' ? value() : value;
+      }
     }
 
-    each(headers, function(key, value) {
-      request.setRequestHeader(key, typeof value === 'function' ? value() : value);
-    });
+    return evaluatedHeaders;
   },
 
   _logDebug: function(level) {
