@@ -332,11 +332,10 @@ module.exports = function(grunt) {
     'browserify:plugins-combined'
   ]);
   grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
-  grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
+  grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:build']);
   grunt.registerTask('build.plugins-combined', [
     'browserify.plugins-combined',
     'uglify',
-    'sri:dist',
     'sri:build'
   ]);
   grunt.registerTask('build', ['build.plugins-combined']);
