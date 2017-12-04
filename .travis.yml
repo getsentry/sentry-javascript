@@ -1,17 +1,42 @@
-branches:
-  only:
-    - master
 sudo: false
+dist: trusty
 language: node_js
 node_js:
-- '8'
-dist: trusty
+  - '8'
+
 cache:
   directories:
   - node_modules
+
+branches:
+  only:
+    - master
+
 addons:
   chrome: stable
   firefox: latest
   sauce_connect: true
+
 script:
   - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+
+matrix:
+  include:
+    - script: npm run build:dist && npm pack
+      after_success:
+        - npm install -g @zeus-ci/cli
+        - zeus upload -t "application/tar+npm" *.tgz
+    - script: npm run build:plugins && tar -czf raven-js-plugins.tar.gz -C build .
+      after_success:
+        - npm install -g @zeus-ci/cli
+        - zeus upload -t "application/tar"
+
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/853ee4aa-d692-11e7-8c60-0a580a28020f/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always
