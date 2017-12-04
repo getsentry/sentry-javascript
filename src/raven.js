@@ -1960,7 +1960,18 @@ Raven.prototype = {
     }
 
     request.open('POST', url);
+    this._appendHeadersToRequest(request, opts.options.headers);
     request.send(stringify(opts.data));
+  },
+
+  _appendHeadersToRequest: function(request, headers) {
+    if (!headers) {
+      return;
+    }
+
+    each(headers, function(key, value) {
+      request.setRequestHeader(key, typeof value === 'function' ? value() : value);
+    });
   },
 
   _logDebug: function(level) {
