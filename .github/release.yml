@@ -1,0 +1,4 @@
+store: zeus
+targets:
+  - github
+  - npm
