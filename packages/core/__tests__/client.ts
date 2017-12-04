@@ -56,9 +56,14 @@ describe('Sentry.Client', () => {
     expect(spy2).toHaveBeenCalledTimes(1);
   });
 
-  test('no registered Adapter', () => {
+  test('no registered Adapter', async () => {
     const sentry = new Sentry.Client(dsn);
-    expect(() => sentry.install()).toThrow();
+    expect.assertions(1);
+    try {
+      await sentry.install();
+    } catch (e) {
+      expect(e.message).toBe('No adapter in use, please call .use(<Adapter>)');
+    }
   });
 
   test('get Adapter', () => {

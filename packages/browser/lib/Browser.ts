@@ -75,22 +75,22 @@ export class Browser implements IAdapter {
     });
   }
 
-  public setUserContext(user?: IUser) {
+  public async setUserContext(user?: IUser) {
     Raven.setUserContext(user);
     return this;
   }
 
-  public setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: { [key: string]: any }) {
     Raven.setTagsContext(tags);
     return this;
   }
 
-  public setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: { [key: string]: any }) {
     Raven.setExtraContext(extra);
     return this;
   }
 
-  public clearContext() {
+  public async clearContext() {
     Raven.clearContext();
     return this;
   }

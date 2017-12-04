@@ -5,8 +5,6 @@ import { DSN } from './Interfaces/DSN';
 import { IOptions } from './Options';
 import { SentryError } from './Sentry';
 
-// TODO: Add breadcrumbs
-// TODO: Add context handling tags, extra, user
 export class Client {
   public readonly dsn: DSN;
   private _adapter: Adapter.IAdapter;
@@ -29,15 +27,11 @@ export class Client {
     return JSON.parse(JSON.stringify(this._context));
   }
 
-  private get adapter() {
+  public getAdapter<A extends Adapter.IAdapter>(): A {
     if (!this._adapter) {
       throw new SentryError('No adapter in use, please call .use(<Adapter>)');
     }
-    return this._adapter;
-  }
-
-  public getAdapter<A extends Adapter.IAdapter>(): A {
-    return this.adapter as A;
+    return this._adapter as A;
   }
 
   /**
@@ -60,23 +54,24 @@ export class Client {
   }
 
   public async captureException(exception: Error) {
-    return this.send(await this.adapter.captureException(exception));
+    return this.send(await this.getAdapter().captureException(exception));
   }
 
   public async captureMessage(message: string) {
-    return this.send(await this.adapter.captureMessage(message));
+    return this.send(await this.getAdapter().captureMessage(message));
   }
 
-  public captureBreadcrumb(crumb: IBreadcrumb) {
-    return this.adapter.captureBreadcrumb(crumb);
+  public async captureBreadcrumb(crumb: IBreadcrumb) {
+    return this.getAdapter().captureBreadcrumb(crumb);
   }
 
-  public install() {
-    return this.adapter.install();
+  public async install() {
+    await this.getAdapter().install();
+    return this;
   }
 
-  public send(event: Event) {
-    return this.adapter.send(event);
+  public async send(event: Event) {
+    return this.getAdapter().send(event);
   }
 
   // ---------------- HELPER
@@ -92,41 +87,45 @@ export class Client {
 
   // ---------------- CONTEXT
 
-  public setUserContext(user?: IUser) {
+  public async setUserContext(user?: IUser) {
     Context.set(this._context, 'user', user);
     // TODO: Remove this once we moved code away from adapters
-    if (this.adapter.setUserContext) {
-      this.adapter.setUserContext(user);
+    const adapter = this.getAdapter();
+    if (adapter.setUserContext) {
+      adapter.setUserContext(user);
     }
     // -------------------------------------------------------
     return this;
   }
 
-  public setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'tags', tags);
     // TODO: Remove this once we moved code away from adapters
-    if (this.adapter.setTagsContext) {
-      this.adapter.setTagsContext(tags);
+    const adapter = this.getAdapter();
+    if (adapter.setTagsContext) {
+      adapter.setTagsContext(tags);
     }
     // -------------------------------------------------------
     return this;
   }
 
-  public setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'extra', extra);
     // TODO: Remove this once we moved code away from adapters
-    if (this.adapter.setExtraContext) {
-      this.adapter.setExtraContext(extra);
+    const adapter = this.getAdapter();
+    if (adapter.setExtraContext) {
+      adapter.setExtraContext(extra);
     }
     // -------------------------------------------------------
     return this;
   }
 
-  public clearContext() {
+  public async clearContext() {
     this._context = Context.getDefaultContext();
     // TODO: Remove this once we moved code away from adapters
-    if (this.adapter.clearContext) {
-      this.adapter.clearContext();
+    const adapter = this.getAdapter();
+    if (adapter.clearContext) {
+      adapter.clearContext();
     }
     // -------------------------------------------------------
     return this;

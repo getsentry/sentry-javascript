@@ -10,10 +10,11 @@ interface IDSNParts {
   path: string;
 }
 
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?(\/.*)/;
+
 export class DSN {
   private dsnString: string;
   private dsn: IDSNParts;
-  private dsnRegex = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?(\/.*)/;
 
   constructor(dsnString: string) {
     this.dsnString = dsnString;
@@ -29,7 +30,7 @@ export class DSN {
   }
 
   private parseDsn() {
-    const match = this.dsnRegex.exec(this.dsnString);
+    const match = DSN_REGEX.exec(this.dsnString);
     if (match) {
       this.dsn = {
         source: match[0],

@@ -41,8 +41,8 @@
     "build-browser": "webpack --config webpack.config.js",
     "clean": "rm -rf ./dist",
     "dist": "npm run clean && tsc -p tsconfig.json && npm run build-browser",
-    "test": "npm run dist && jest --forceExit",
-    "test:watch": "npm run dist && jest --watch --notify"
+    "test": "jest --forceExit",
+    "test:watch": "jest --watch --notify"
   },
   "jest": {
     "transform": {
