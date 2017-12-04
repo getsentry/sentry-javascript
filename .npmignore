@@ -1,0 +1,12 @@
+build/
+docs/
+example/
+node_modules/
+scripts/
+template/
+test/
+
+.*
+karma.*
+Makefile
+npm-debug.log
