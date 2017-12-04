@@ -148,6 +148,16 @@ TraceKit.report = (function reportModuleWrapper() {
   function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
     var stack = null;
 
+    // If 'ex' is ErrorEvent, get real Error from inside
+    if (ex && utils.isErrorEvent(ex)) {
+      ex = ex.error;
+    } 
+
+    // If 'message' is ErrorEvent, get real message from inside
+    if (message && utils.isErrorEvent(message)) {
+      message = message.message;
+    }
+
     if (lastExceptionStack) {
       TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
         lastExceptionStack,
@@ -156,13 +166,8 @@ TraceKit.report = (function reportModuleWrapper() {
         message
       );
       processLastException();
-    } else if (ex && (utils.isError(ex) || utils.isErrorEvent(ex))) {
+    } else if (ex && utils.isError(ex)) {
       // non-string `ex` arg; attempt to extract stack trace
-
-      // If this is an ErrorEvent, get the real error from within
-      if (utils.isErrorEvent(ex)) {
-        ex = ex.error;
-      }
 
       // New chrome and blink send along a real error object
       // Let's just report that like a normal error.
@@ -179,6 +184,7 @@ TraceKit.report = (function reportModuleWrapper() {
       var name = undefined;
       var msg = message; // must be new var or will modify original `arguments`
       var groups;
+
       if ({}.toString.call(message) === '[object String]') {
         var groups = message.match(ERROR_TYPES_RE);
         if (groups) {

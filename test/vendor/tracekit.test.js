@@ -142,7 +142,7 @@ describe('TraceKit', function() {
     });
 
     if (supportsErrorEvent()) {
-      it('should handle an error event object', function() {
+      it("should handle error event object as 'ex' param", function() {
         var ex = new ErrorEvent('', {
           error: new Error('something went wrong')
         });
@@ -153,11 +153,23 @@ describe('TraceKit', function() {
         TraceKit.report.subscribe(subscriptionHandler);
         window.onerror(undefined, undefined, testLineNo, undefined, ex);
       });
+
+      it("should handle error event object as 'message' param", function() {
+        var message = new ErrorEvent('', {
+          message: 'something went wrong'
+        });
+        subscriptionHandler = function(stackInfo, extra) {
+          assert.equal(stackInfo.name, undefined);
+          assert.equal(stackInfo.message, 'something went wrong');
+        };
+        TraceKit.report.subscribe(subscriptionHandler);
+        window.onerror(message, undefined, testLineNo, undefined, undefined);
+      });
     }
 
     describe('with undefined arguments', function() {
       it('should pass undefined:undefined', function() {
-        // this is probably not good behavior;  just writing this test to verify
+        // this is probably not good behavior; just writing this test to verify
         // that it doesn't change unintentionally
         subscriptionHandler = function(stackInfo, extra) {
           assert.equal(stackInfo.name, undefined);
