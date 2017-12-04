@@ -11,6 +11,7 @@ docs/_build
 docs/doctrees
 
 build
+dist
 node_modules
 npm-debug.log
 
