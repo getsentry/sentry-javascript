@@ -63,6 +63,11 @@ declare module Raven {
         /** Override the default HTTP data transport handler. */
         transport?: (options: RavenTransportOptions) => void;
 
+        /** Append headers to the fetch or XMLHttpRequest request. Should be in a form of hash, were value can be string or function */
+        headers?: {
+          [key: string]: (string | Function);
+        };
+
         /** Allow use of private/secretKey. */
         allowSecretKey?: boolean;
 
