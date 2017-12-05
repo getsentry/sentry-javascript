@@ -275,6 +275,32 @@ Those configuration options are documented below:
     onError
         Callback to be invoked upon a failed request.
 
+.. describe:: headers
+
+    Pass custom headers to server requests for ``fetch`` or ``XMLHttpRequest``.
+
+    .. code-block:: javascript
+
+        {
+            headers: {
+                'CSRF-TOKEN': '12345'
+            }
+        }
+
+    Headers value can be in form of a function, to compute value in time of a request:
+
+    .. code-block:: javascript
+
+        {
+            headers: {
+                'CSRF-TOKEN': function() {
+                    // custom logic that will be computed on every request
+                    return new Date();
+                }
+            }
+        }
+
+
 .. describe:: allowDuplicates
 
     By default, Raven.js attempts to suppress duplicate captured errors and messages that occur back-to-back. Such events are often triggered by rogue code (e.g. from a `setInterval` callback in a browser extension), are not actionable, and eat up your event quota.
