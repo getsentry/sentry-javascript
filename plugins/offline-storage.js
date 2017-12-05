@@ -7,7 +7,7 @@
 
 var offlineStorageKey = 'raven-js-offline-queue';
 
-function offlineStoragelugin(Raven, options) {
+function offlineStoragePlugin(Raven, options) {
   options = options || {};
 
   function processOfflineQueue() {
@@ -21,7 +21,7 @@ function offlineStoragelugin(Raven, options) {
       var queue = JSON.parse(localStorage.getItem(offlineStorageKey)) || [];
 
       // Store an empty queue. If processing these one fails they get back to the queue
-      localStorage.setItem(offlineStorageKey, JSON.stringify([]));
+      localStorage.removeItem(offlineStorageKey);
 
       queue.forEach(function processOfflinePayload(data) {
         // Avoid duplication verification for offline stored
@@ -47,7 +47,7 @@ function offlineStoragelugin(Raven, options) {
 
     try {
       var queue = JSON.parse(localStorage.getItem(offlineStorageKey)) || [];
-      queue.push(event.data || Raven._lastData);
+      queue.push(event.data);
       localStorage.setItem(offlineStorageKey, JSON.stringify(queue));
     } catch (error) {
       Raven._logDebug('error', 'Raven failed to store payload offline: ', error);
@@ -58,4 +58,4 @@ function offlineStoragelugin(Raven, options) {
   window.addEventListener(options.onlineEventName || 'online', processOfflineQueue);
 }
 
-module.exports = offlineStoragelugin;
+module.exports = offlineStoragePlugin;
