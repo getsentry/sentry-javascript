@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Offical Sentry SDK for browsers",
   "main": "dist/browser.js",
   "typings": "dist/browser.d.ts",
@@ -8,11 +8,7 @@
     "definition": "dist/browser.d.ts"
   },
   "dependencies": {
-    "@sentry/core": "file:../core",
-    "raven-js": "^3.18.1"
-  },
-  "peerDependencies": {
-    "@sentry/core": "file:../core",
+    "@sentry/core": "^0.1.0",
     "raven-js": "^3.18.1"
   },
   "devDependencies": {
