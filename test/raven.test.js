@@ -1394,82 +1394,43 @@ describe('globals', function() {
 
     it('should apply globalOptions.headers if specified', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, '_getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
+      this.sinon.stub(window, 'fetch').resolves(true);
 
-      var globalOptions = {
+      Raven._globalProject = '2';
+      Raven._globalOptions = {
         logger: 'javascript',
         maxMessageLength: 100,
-        transport: sinon.stub(),
-        options: {
-          headers: {
-            'custom-header': 'value'
-          }
+        headers: {
+          'custom-header': 'value'
         }
       };
 
-      Raven._globalProject = '2';
-      Raven._globalOptions = globalOptions;
-
       Raven._send({message: 'bar'});
 
-      assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
-        project: '2',
-        logger: 'javascript',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost:9876/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser',
-            'custom-header': 'value'
-          }
-        },
-        event_id: 'abc123',
-        message: 'bar',
-        extra: {'session:duration': 100}
+      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+        'custom-header': 'value'
       });
     });
 
     it('should apply globalOptions.headers with function value if specified', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, '_getHttpData').returns({
-        url: 'http://localhost/?a=b',
-        headers: {'User-Agent': 'lolbrowser'}
-      });
+      this.sinon.stub(window, 'fetch').resolves(true);
 
-      var globalOptions = {
+      Raven._globalProject = '2';
+      Raven._globalOptions = {
         logger: 'javascript',
         maxMessageLength: 100,
-        transport: sinon.stub(),
-        options: {
-          headers: {
-            'custom-header': function() {
-              return 'computed-header-value';
-            }
+        headers: {
+          'custom-header': function() {
+            return 'computed-header-value';
           }
         }
       };
 
-      Raven._globalProject = '2';
-      Raven._globalOptions = globalOptions;
-
       Raven._send({message: 'bar'});
-      assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
-        project: '2',
-        logger: 'javascript',
-        platform: 'javascript',
-        request: {
-          url: 'http://localhost/?a=b',
-          headers: {
-            'User-Agent': 'lolbrowser',
-            'custom-header': 'computed-header-value'
-          }
-        },
-        event_id: 'abc123',
-        message: 'bar',
-        extra: {'session:duration': 100}
+
+      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+        'custom-header': 'computed-header-value'
       });
     });
 
