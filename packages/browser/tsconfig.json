@@ -11,7 +11,8 @@
     },
     "include": [
       "__tests__",
-      "index.ts",
+      "browser.ts",
+      "standalone.ts",
       "lib/**/*",
       "spec/**/*"
     ]
