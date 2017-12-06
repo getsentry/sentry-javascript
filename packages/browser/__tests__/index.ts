@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as path from 'path';
 import * as Puppeteer from 'puppeteer';
-import { Browser } from '../browser';
+import { SentryBrowser } from '../index';
 
 describe('Browser Interface', () => {
   test('sending a message', async done => {

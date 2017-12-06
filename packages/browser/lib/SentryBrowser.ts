@@ -7,7 +7,7 @@ export interface IBrowserOptions {
   allowDuplicates?: boolean;
 }
 
-export class Browser implements IAdapter {
+export class SentryBrowser implements IAdapter {
   private client: Client;
 
   constructor(client: Client, public options: IBrowserOptions = {}) {
