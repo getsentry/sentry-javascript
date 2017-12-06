@@ -7,8 +7,6 @@ import * as path from 'path';
 import * as Puppeteer from 'puppeteer';
 import { Browser } from '../browser';
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000; // increase the timeout for travis
-
 describe('Browser Interface', () => {
   test('sending a message', async done => {
     let countExpects = 0;
