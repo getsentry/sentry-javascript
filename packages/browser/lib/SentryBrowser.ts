@@ -2,7 +2,7 @@ import { Client, Event, IAdapter, IBreadcrumb, IUser } from '@sentry/core';
 declare function require(path: string): any;
 const Raven = require('raven-js');
 
-export interface IBrowserOptions {
+export interface ISentryBrowserOptions {
   allowSecretKey?: boolean;
   allowDuplicates?: boolean;
 }
@@ -10,7 +10,7 @@ export interface IBrowserOptions {
 export class SentryBrowser implements IAdapter {
   private client: Client;
 
-  constructor(client: Client, public options: IBrowserOptions = {}) {
+  constructor(client: Client, public options: ISentryBrowserOptions = {}) {
     this.client = client;
   }
 
@@ -23,7 +23,7 @@ export class SentryBrowser implements IAdapter {
     return Raven;
   }
 
-  public setOptions(options: IBrowserOptions) {
+  public setOptions(options: ISentryBrowserOptions) {
     Object.assign(this.options, options);
     Object.assign(Raven._globalOptions, this.options);
     return this;

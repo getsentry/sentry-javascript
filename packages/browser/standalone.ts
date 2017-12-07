@@ -1,2 +1,2 @@
 export * from '@sentry/core';
-export { SentryBrowser } from './lib/SentryBrowser';
+export { SentryBrowser, ISentryBrowserOptions } from './lib/SentryBrowser';
