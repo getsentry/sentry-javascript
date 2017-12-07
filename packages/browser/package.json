@@ -45,7 +45,8 @@
     "dist": "npm-run-all clean build:typescript build:bundle build:browser:test",
     "test:browser": "jest --forceExit",
     "test:watch": "jest --watch --notify",
-    "test": "npm-run-all dist test:browser"
+    "test": "npm-run-all dist test:browser",
+    "size:check": "cat dist/build.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   },
   "jest": {
     "transform": {
