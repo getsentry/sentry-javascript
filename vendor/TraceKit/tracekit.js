@@ -149,15 +149,10 @@ TraceKit.report = (function reportModuleWrapper() {
     var stack = null;
 
     // If 'ex' is ErrorEvent, get real Error from inside
-    if (ex && utils.isErrorEvent(ex)) {
-      ex = ex.error;
-    } 
-
+    if (utils.isErrorEvent(ex)) ex = ex.error;
     // If 'message' is ErrorEvent, get real message from inside
-    if (message && utils.isErrorEvent(message)) {
-      message = message.message;
-    }
-
+    if (utils.isErrorEvent(message)) message = message.message;
+   
     if (lastExceptionStack) {
       TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
         lastExceptionStack,
