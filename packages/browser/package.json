@@ -2,10 +2,10 @@
   "name": "@sentry/browser",
   "version": "0.0.1",
   "description": "Offical Sentry SDK for browsers",
-  "main": "dist/browser.js",
-  "typings": "dist/browser.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "typescript": {
-    "definition": "dist/browser.d.ts"
+    "definition": "dist/index.d.ts"
   },
   "dependencies": {
     "@sentry/core": "^0.1.0",
