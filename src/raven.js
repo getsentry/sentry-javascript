@@ -74,6 +74,7 @@ function Raven() {
     ignoreUrls: [],
     whitelistUrls: [],
     includePaths: [],
+    headers: null,
     collectWindowErrors: true,
     maxMessageLength: 0,
 
