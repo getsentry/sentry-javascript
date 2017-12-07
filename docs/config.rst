@@ -269,6 +269,9 @@ Those configuration options are documented below:
         sentry_key
             Your public client key (DSN).
 
+    options
+        Include all top-level options described.
+
     onSuccess
         Callback to be invoked upon a successful request.
 
