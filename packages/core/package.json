@@ -1,0 +1,65 @@
+{
+  "name": "@sentry/core",
+  "version": "0.0.1",
+  "description": "Sentry core implementation for all JavaScript related SDKs",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "typescript": {
+    "definition": "dist/index.d.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^21.1.2",
+    "@types/node": "^8.0.32",
+    "jest": "^21.2.1",
+    "npm-run-all": "^4.1.2",
+    "prettier": "^1.8.0",
+    "ts-jest": "21.2.2",
+    "ts-node": "^3.3.0",
+    "tslint": "^5.8.0",
+    "tslint-config-prettier": "^1.6.0",
+    "tslint-eslint-rules": "^4.1.1",
+    "typescript": "2.6.1",
+    "vrsource-tslint-rules": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=6.9.5",
+    "npm": ">=3.10.7",
+    "yarn": ">=1.0.2"
+  },
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "dist": "npm run clean && tsc -p tsconfig.json",
+    "test:browser": "jest --env=jsdom",
+    "test:node": "jest --env=node",
+    "test:watch": "jest --watch --notify",
+    "test": "npm-run-all dist test:browser test:node"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "coveragePathIgnorePatterns": [
+      "dist"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/__mocks__"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "\\.d\\.(jsx?|tsx?)$",
+      "\\.no-jest\\.(jsx?|tsx?)$"
+    ]
+  },
+  "author": "Sentry",
+  "license": "MIT"
+}
