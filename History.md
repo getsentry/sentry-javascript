@@ -1,3 +1,14 @@
+# 2.3.0 - 12/11/2017
+
+- fix: attach remaining non-enumerables to req [See #387]
+- feat: Allow to configure stacktrace for captureMessage calls [See #388]
+- fix: access 'process' through global variable [See #399]
+- ref: Enable http instrumentation by default [See #401]
+- ref: Warn user when using capture/wrap without installing Raven [See #402]
+- ci: Integrate Zeus and release with the bot [See #403]
+- ref: Delete empty properties before sending event to the server [See #407]
+- feat: Support Boom library statusCode [See #408]
+
 # 2.2.1 - 10/02/2017
 
 - Remove unintentional memwatch-next dependency
@@ -10,7 +21,7 @@
 - Pull Error's name from constructor, not Error itself to always get correct error type [See #372]
 - Updated Errors serialization to store all additional properties and allow for attaching other object instances directly to it [See #376]
 - Preserve some non-enumerable properties from request [See #379]
-- Fall back to NODE_ENV for Sentry Environment [See #384]
+- Fall back to `NODE_ENV` for Sentry Environment [See #384]
 
 # 2.1.2 - 8/16/2017
 - Remove errant large file that accidentally got published in 2.1.1. [See #361]
