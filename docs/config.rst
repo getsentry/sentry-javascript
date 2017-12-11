@@ -35,7 +35,7 @@ Those configuration options are documented below:
 
 .. describe:: logger
 
-    The name of the logger used by Sentry. Default: ``''``
+    The name of the logger used by Sentry.
 
     .. code-block:: javascript
 
