@@ -121,6 +121,11 @@ describe('utils', function() {
       if (supportsErrorEvent()) assert.isFalse(isError(new ErrorEvent('')));
       assert.isTrue(isError(new Error()));
       assert.isTrue(isError(new ReferenceError()));
+
+      if (supportsErrorEvent()) {
+        assert.isFalse(isError(new ErrorEvent('')));
+      }
+
       assert.isTrue(isError(new RavenConfigError()));
       assert.isTrue(isError(testErrorFromDifferentContext(fromContext)));
       assert.isTrue(isError(testErrorFromDifferentContext(domException)));
