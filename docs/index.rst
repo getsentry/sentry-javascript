@@ -13,7 +13,7 @@
 raven-node is the official Node.js client for Sentry.
 
 **Note**: If you're using JavaScript in the browser, you'll need
-`raven-js <https://github.com/getsentry/raven-js>`_.
+`raven-js <https://docs.sentry.io/clients/javascript>`_.
 
 Installation
 ------------
