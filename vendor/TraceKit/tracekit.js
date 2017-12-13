@@ -137,7 +137,7 @@ TraceKit.report = (function reportModuleWrapper() {
   /**
      * Ensures all global unhandled exceptions are recorded.
      * Supported by Gecko and IE.
-     * @param {string} message Error message.
+     * @param {string} msg Error message.
      * @param {string} url URL of script that generated the exception.
      * @param {(number|string)} lineNo The line number at which the error
      * occurred.
@@ -145,14 +145,13 @@ TraceKit.report = (function reportModuleWrapper() {
      * occurred.
      * @param {?Error} ex The actual Error object.
      */
-  function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
+  function traceKitWindowOnError(msg, url, lineNo, colNo, ex) {
     var stack = null;
-
     // If 'ex' is ErrorEvent, get real Error from inside
-    if (utils.isErrorEvent(ex)) ex = ex.error;
-    // If 'message' is ErrorEvent, get real message from inside
-    if (utils.isErrorEvent(message)) message = message.message;
-   
+    var exception = utils.isErrorEvent(ex) ? ex.error : ex;
+    // If 'msg' is ErrorEvent, get real message from inside
+    var message = utils.isErrorEvent(msg) ? msg.message : msg;
+
     if (lastExceptionStack) {
       TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
         lastExceptionStack,
@@ -161,13 +160,13 @@ TraceKit.report = (function reportModuleWrapper() {
         message
       );
       processLastException();
-    } else if (ex && utils.isError(ex)) {
-      // non-string `ex` arg; attempt to extract stack trace
+    } else if (exception && utils.isError(exception)) {
+      // non-string `exception` arg; attempt to extract stack trace
 
       // New chrome and blink send along a real error object
       // Let's just report that like a normal error.
       // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
-      stack = TraceKit.computeStackTrace(ex);
+      stack = TraceKit.computeStackTrace(exception);
       notifyHandlers(stack, true);
     } else {
       var location = {
@@ -177,14 +176,13 @@ TraceKit.report = (function reportModuleWrapper() {
       };
 
       var name = undefined;
-      var msg = message; // must be new var or will modify original `arguments`
       var groups;
 
       if ({}.toString.call(message) === '[object String]') {
         var groups = message.match(ERROR_TYPES_RE);
         if (groups) {
           name = groups[1];
-          msg = groups[2];
+          message = groups[2];
         }
       }
 
@@ -192,7 +190,7 @@ TraceKit.report = (function reportModuleWrapper() {
 
       stack = {
         name: name,
-        message: msg,
+        message: message,
         url: getLocationHref(),
         stack: [location]
       };
