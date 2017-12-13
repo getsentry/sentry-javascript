@@ -269,11 +269,40 @@ Those configuration options are documented below:
         sentry_key
             Your public client key (DSN).
 
+    options
+        Include all top-level options described.
+
     onSuccess
         Callback to be invoked upon a successful request.
 
     onError
         Callback to be invoked upon a failed request.
+
+.. describe:: headers
+
+    Pass custom headers to server requests for ``fetch`` or ``XMLHttpRequest``.
+
+    .. code-block:: javascript
+
+        {
+            headers: {
+                'CSRF-TOKEN': '12345'
+            }
+        }
+
+    Headers value can be in form of a function, to compute value in time of a request:
+
+    .. code-block:: javascript
+
+        {
+            headers: {
+                'CSRF-TOKEN': function() {
+                    // custom logic that will be computed on every request
+                    return new Date();
+                }
+            }
+        }
+
 
 .. describe:: allowDuplicates
 

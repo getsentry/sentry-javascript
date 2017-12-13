@@ -1392,6 +1392,48 @@ describe('globals', function() {
       });
     });
 
+    it('should apply globalOptions.headers if specified', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(window, 'fetch').resolves(true);
+
+      Raven._globalProject = '2';
+      Raven._globalOptions = {
+        logger: 'javascript',
+        maxMessageLength: 100,
+        headers: {
+          'custom-header': 'value'
+        }
+      };
+
+      Raven._send({message: 'bar'});
+
+      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+        'custom-header': 'value'
+      });
+    });
+
+    it('should apply globalOptions.headers with function value if specified', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(window, 'fetch').resolves(true);
+
+      Raven._globalProject = '2';
+      Raven._globalOptions = {
+        logger: 'javascript',
+        maxMessageLength: 100,
+        headers: {
+          'custom-header': function() {
+            return 'computed-header-value';
+          }
+        }
+      };
+
+      Raven._send({message: 'bar'});
+
+      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+        'custom-header': 'computed-header-value'
+      });
+    });
+
     it('should check `Raven.isSetup`', function() {
       this.sinon.stub(Raven, 'isSetup').returns(false);
       this.sinon.stub(Raven, '_makeRequest');
