@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.1 (42adaf5) | github.com/getsentry/raven-js */
+/*! Raven.js 3.21.0 (fbfea0f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -144,6 +144,19 @@ function isEmptyObject(what) {
 function supportsErrorEvent() {
   try {
     new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function supportsFetch() {
+  if (!('fetch' in _window)) return false;
+
+  try {
+    new Headers(); // eslint-disable-line no-new
+    new Request(''); // eslint-disable-line no-new
+    new Response(); // eslint-disable-line no-new
     return true;
   } catch (e) {
     return false;
@@ -400,6 +413,13 @@ function isOnlyOneTruthy(a, b) {
 }
 
 /**
+ * Returns true if both parameters are undefined
+ */
+function isBothUndefined(a, b) {
+  return isUndefined(a) && isUndefined(b);
+}
+
+/**
  * Returns true if the two input exception interfaces have the same content
  */
 function isSameException(ex1, ex2) {
@@ -409,6 +429,9 @@ function isSameException(ex1, ex2) {
   ex2 = ex2.values[0];
 
   if (ex1.type !== ex2.type || ex1.value !== ex2.value) return false;
+
+  // in case both stacktraces are undefined, we can't decide so default to false
+  if (isBothUndefined(ex1.stacktrace, ex2.stacktrace)) return false;
 
   return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
 }
@@ -468,6 +491,7 @@ module.exports = {
   isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsFetch: supportsFetch,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

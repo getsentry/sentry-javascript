@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.1 (42adaf5) | github.com/getsentry/raven-js */
+/*! Raven.js 3.21.0 (fbfea0f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -91,6 +91,7 @@ var isSameException = utils.isSameException;
 var isSameStacktrace = utils.isSameStacktrace;
 var parseUrl = utils.parseUrl;
 var fill = utils.fill;
+var supportsFetch = utils.supportsFetch;
 
 var wrapConsoleMethod = _dereq_(2).wrapMethod;
 
@@ -138,6 +139,7 @@ function Raven() {
     ignoreUrls: [],
     whitelistUrls: [],
     includePaths: [],
+    headers: null,
     collectWindowErrors: true,
     maxMessageLength: 0,
 
@@ -182,7 +184,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.20.1',
+  VERSION: '3.21.0',
 
   debug: false,
 
@@ -1244,7 +1246,7 @@ Raven.prototype = {
         xhrproto,
         'send',
         function(origSend) {
-          return function(data) {
+          return function() {
             // preserve arity
             var xhr = this;
 
@@ -1292,12 +1294,12 @@ Raven.prototype = {
       );
     }
 
-    if (autoBreadcrumbs.xhr && 'fetch' in _window) {
+    if (autoBreadcrumbs.xhr && supportsFetch()) {
       fill(
         _window,
         'fetch',
         function(origFetch) {
-          return function(fn, t) {
+          return function() {
             // preserve arity
             // Make a copy of the arguments to prevent deoptimization
             // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
@@ -1319,6 +1321,11 @@ Raven.prototype = {
               }
             } else {
               url = '' + fetchInput;
+            }
+
+            // if Sentry key appears in URL, don't capture, as it's our own request
+            if (url.indexOf(self._globalKey) !== -1) {
+              return origFetch.apply(this, args);
             }
 
             if (args[1] && args[1].method) {
@@ -1757,8 +1764,14 @@ Raven.prototype = {
     try {
       // If Retry-After is not in Access-Control-Expose-Headers, most
       // browsers will throw an exception trying to access it
-      retry = request.getResponseHeader('Retry-After');
-      retry = parseInt(retry, 10) * 1000; // Retry-After is returned in seconds
+      if (supportsFetch()) {
+        retry = request.headers.get('Retry-After');
+      } else {
+        retry = request.getResponseHeader('Retry-After');
+      }
+
+      // Retry-After is returned in seconds
+      retry = parseInt(retry, 10) * 1000;
     } catch (e) {
       /* eslint no-empty:0 */
     }
@@ -1947,6 +1960,43 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
+    // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
+    var url = opts.url + '?' + urlencode(opts.auth);
+
+    var evaluatedHeaders = null;
+    if (opts.options.headers) {
+      evaluatedHeaders = this._evaluateHeaders(opts.options.headers);
+    }
+
+    if (supportsFetch()) {
+      var fetchOptions = {
+        method: 'POST',
+        body: stringify(opts.data)
+      };
+
+      if (evaluatedHeaders) {
+        fetchOptions.headers = evaluatedHeaders;
+      }
+
+      return _window
+        .fetch(url, fetchOptions)
+        .then(function(response) {
+          if (response.ok) {
+            opts.onSuccess && opts.onSuccess();
+          } else {
+            var error = new Error('Sentry error code: ' + response.status);
+            // It's called request only to keep compatibility with XHR interface
+            // and not add more redundant checks in setBackoffState method
+            error.request = response;
+            opts.onError && opts.onError(error);
+          }
+        })
+        ['catch'](function() {
+          opts.onError &&
+            opts.onError(new Error('Sentry error code: network unavailable'));
+        });
+    }
+
     var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
     if (!request) return;
 
@@ -1954,8 +2004,6 @@ Raven.prototype = {
     var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
 
     if (!hasCORS) return;
-
-    var url = opts.url;
 
     if ('withCredentials' in request) {
       request.onreadystatechange = function() {
@@ -1988,10 +2036,28 @@ Raven.prototype = {
       }
     }
 
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
+    request.open('POST', url);
+
+    if (evaluatedHeaders) {
+      each(evaluatedHeaders, function(key, value) {
+        request.setRequestHeader(key, value);
+      });
+    }
+
     request.send(stringify(opts.data));
+  },
+
+  _evaluateHeaders: function(headers) {
+    var evaluatedHeaders = {};
+
+    for (var key in headers) {
+      if (headers.hasOwnProperty(key)) {
+        var value = headers[key];
+        evaluatedHeaders[key] = typeof value === 'function' ? value() : value;
+      }
+    }
+
+    return evaluatedHeaders;
   },
 
   _logDebug: function(level) {
@@ -2114,6 +2180,19 @@ function isEmptyObject(what) {
 function supportsErrorEvent() {
   try {
     new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function supportsFetch() {
+  if (!('fetch' in _window)) return false;
+
+  try {
+    new Headers(); // eslint-disable-line no-new
+    new Request(''); // eslint-disable-line no-new
+    new Response(); // eslint-disable-line no-new
     return true;
   } catch (e) {
     return false;
@@ -2370,6 +2449,13 @@ function isOnlyOneTruthy(a, b) {
 }
 
 /**
+ * Returns true if both parameters are undefined
+ */
+function isBothUndefined(a, b) {
+  return isUndefined(a) && isUndefined(b);
+}
+
+/**
  * Returns true if the two input exception interfaces have the same content
  */
 function isSameException(ex1, ex2) {
@@ -2379,6 +2465,9 @@ function isSameException(ex1, ex2) {
   ex2 = ex2.values[0];
 
   if (ex1.type !== ex2.type || ex1.value !== ex2.value) return false;
+
+  // in case both stacktraces are undefined, we can't decide so default to false
+  if (isBothUndefined(ex1.stacktrace, ex2.stacktrace)) return false;
 
   return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
 }
@@ -2438,6 +2527,7 @@ module.exports = {
   isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsFetch: supportsFetch,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,
@@ -2597,7 +2687,7 @@ TraceKit.report = (function reportModuleWrapper() {
   /**
      * Ensures all global unhandled exceptions are recorded.
      * Supported by Gecko and IE.
-     * @param {string} message Error message.
+     * @param {string} msg Error message.
      * @param {string} url URL of script that generated the exception.
      * @param {(number|string)} lineNo The line number at which the error
      * occurred.
@@ -2605,8 +2695,12 @@ TraceKit.report = (function reportModuleWrapper() {
      * occurred.
      * @param {?Error} ex The actual Error object.
      */
-  function traceKitWindowOnError(message, url, lineNo, colNo, ex) {
+  function traceKitWindowOnError(msg, url, lineNo, colNo, ex) {
     var stack = null;
+    // If 'ex' is ErrorEvent, get real Error from inside
+    var exception = utils.isErrorEvent(ex) ? ex.error : ex;
+    // If 'msg' is ErrorEvent, get real message from inside
+    var message = utils.isErrorEvent(msg) ? msg.message : msg;
 
     if (lastExceptionStack) {
       TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
@@ -2616,13 +2710,13 @@ TraceKit.report = (function reportModuleWrapper() {
         message
       );
       processLastException();
-    } else if (ex && utils.isError(ex)) {
-      // non-string `ex` arg; attempt to extract stack trace
+    } else if (exception && utils.isError(exception)) {
+      // non-string `exception` arg; attempt to extract stack trace
 
       // New chrome and blink send along a real error object
       // Let's just report that like a normal error.
       // See: https://mikewest.org/2013/08/debugging-runtime-errors-with-window-onerror
-      stack = TraceKit.computeStackTrace(ex);
+      stack = TraceKit.computeStackTrace(exception);
       notifyHandlers(stack, true);
     } else {
       var location = {
@@ -2632,13 +2726,13 @@ TraceKit.report = (function reportModuleWrapper() {
       };
 
       var name = undefined;
-      var msg = message; // must be new var or will modify original `arguments`
       var groups;
+
       if ({}.toString.call(message) === '[object String]') {
         var groups = message.match(ERROR_TYPES_RE);
         if (groups) {
           name = groups[1];
-          msg = groups[2];
+          message = groups[2];
         }
       }
 
@@ -2646,7 +2740,7 @@ TraceKit.report = (function reportModuleWrapper() {
 
       stack = {
         name: name,
-        message: msg,
+        message: message,
         url: getLocationHref(),
         stack: [location]
       };

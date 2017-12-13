@@ -119,7 +119,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.20.1',
+  VERSION: '3.21.0',
 
   debug: false,
 
@@ -686,14 +686,14 @@ Raven.prototype = {
   },
 
   /**
-     * Override the default HTTP transport mechanism that transmits data
-     * to the Sentry server.
-     *
-     * @param {function} transport Function invoked instead of the default
-     *                             `makeRequest` handler.
-     *
-     * @return {Raven}
-     */
+   * Override the default HTTP transport mechanism that transmits data
+   * to the Sentry server.
+   *
+   * @param {function} transport Function invoked instead of the default
+   *                             `makeRequest` handler.
+   *
+   * @return {Raven}
+   */
   setTransport: function(transport) {
     this._globalOptions.transport = transport;
 
@@ -830,11 +830,11 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture UI breadcrumbs
-     * @param evtName the event name (e.g. "click")
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture UI breadcrumbs
+   * @param evtName the event name (e.g. "click")
+   * @returns {Function}
+   * @private
+   */
   _breadcrumbEventHandler: function(evtName) {
     var self = this;
     return function(evt) {
@@ -869,10 +869,10 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture keypress UI events
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture keypress UI events
+   * @returns {Function}
+   * @private
+   */
   _keypressEventHandler: function() {
     var self = this,
       debounceDuration = 1000; // milliseconds
@@ -914,11 +914,11 @@ Raven.prototype = {
   },
 
   /**
-     * Captures a breadcrumb of type "navigation", normalizing input URLs
-     * @param to the originating URL
-     * @param from the target URL
-     * @private
-     */
+   * Captures a breadcrumb of type "navigation", normalizing input URLs
+   * @param to the originating URL
+   * @param from the target URL
+   * @private
+   */
   _captureUrlChange: function(from, to) {
     var parsedLoc = parseUrl(this._location.href);
     var parsedTo = parseUrl(to);
@@ -965,9 +965,9 @@ Raven.prototype = {
   },
 
   /**
-     * Wrap timer functions and event targets to catch errors and provide
-     * better metadata.
-     */
+   * Wrap timer functions and event targets to catch errors and provide
+   * better metadata.
+   */
   _instrumentTryCatch: function() {
     var self = this;
 
@@ -1131,14 +1131,14 @@ Raven.prototype = {
   },
 
   /**
-     * Instrument browser built-ins w/ breadcrumb capturing
-     *  - XMLHttpRequests
-     *  - DOM interactions (click/typing)
-     *  - window.location changes
-     *  - console
-     *
-     * Can be disabled or individually configured via the `autoBreadcrumbs` config option
-     */
+   * Instrument browser built-ins w/ breadcrumb capturing
+   *  - XMLHttpRequests
+   *  - DOM interactions (click/typing)
+   *  - window.location changes
+   *  - console
+   *
+   * Can be disabled or individually configured via the `autoBreadcrumbs` config option
+   */
   _instrumentBreadcrumbs: function() {
     var self = this;
     var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
@@ -1590,8 +1590,8 @@ Raven.prototype = {
   },
 
   /**
-     * Truncate breadcrumb values (right now just URLs)
-     */
+   * Truncate breadcrumb values (right now just URLs)
+   */
   _trimBreadcrumbs: function(breadcrumbs) {
     // known breadcrumb properties with urls
     // TODO: also consider arbitrary prop values that start with (https?)?://
@@ -1653,14 +1653,14 @@ Raven.prototype = {
   },
 
   /**
-     * Returns true if the in-process data payload matches the signature
-     * of the previously-sent data
-     *
-     * NOTE: This has to be done at this level because TraceKit can generate
-     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
-     *       other old browsers). This can take the form of an "exception"
-     *       data object with a single frame (derived from the onerror args).
-     */
+   * Returns true if the in-process data payload matches the signature
+   * of the previously-sent data
+   *
+   * NOTE: This has to be done at this level because TraceKit can generate
+   *       data from window.onerror WITHOUT an exception object (IE8, IE9,
+   *       other old browsers). This can take the form of an "exception"
+   *       data object with a single frame (derived from the onerror args).
+   */
   _isRepeatData: function(current) {
     var last = this._lastData;
 

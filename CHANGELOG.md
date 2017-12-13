@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.21.0
+
+* NEW: Use Fetch instead of XHR when available https://github.com/getsentry/raven-js/pull/1157
+* NEW: Ability to specify Custom headers https://github.com/getsentry/raven-js/pull/1166
+* NEW: Handle ErrorEvent objects in TraceKit https://github.com/getsentry/raven-js/pull/1162
+* BUGFIX: Check for both stacktraces before calling 'isSameException' https://github.com/getsentry/raven-js/pull/1150
+* DOCS: Electron integration documentation https://github.com/getsentry/raven-js/pull/1142
+* DOCS: Include Sentry Webpack Plugin in the Source Maps documentation https://github.com/getsentry/raven-js/pull/1155
+
 ## 3.20.1
 
 * BUGFIX: Prevent Raven throwing during installation when `Function.prototype.toString` is called in Angular projects with `zone.js` and `core.js` wrapped functions https://github.com/getsentry/raven-js/pull/1135
