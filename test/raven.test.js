@@ -1392,46 +1392,75 @@ describe('globals', function() {
       });
     });
 
-    it('should apply globalOptions.headers if specified', function() {
-      this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(window, 'fetch').resolves(true);
+    if (supportsFetch()) {
+      it('should apply globalOptions.headers with string value to fetch call if specified', function() {
+        this.sinon.stub(window, 'fetch').resolves(true);
 
-      Raven._globalProject = '2';
-      Raven._globalOptions = {
-        logger: 'javascript',
-        maxMessageLength: 100,
-        headers: {
+        Raven._globalProject = '2';
+        Raven._globalOptions = {
+          logger: 'javascript',
+          maxMessageLength: 100,
+          headers: {
+            'custom-header': 'value'
+          }
+        };
+
+        Raven._send({message: 'bar'});
+
+        assert.deepEqual(window.fetch.lastCall.args[1].headers, {
           'custom-header': 'value'
-        }
+        });
+      });
+
+      it('should apply globalOptions.headers with function value to fetch call if specified', function() {
+        this.sinon.stub(window, 'fetch').resolves(true);
+
+        Raven._globalProject = '2';
+        Raven._globalOptions = {
+          logger: 'javascript',
+          maxMessageLength: 100,
+          headers: {
+            'custom-header': function() {
+              return 'computed-header-value';
+            }
+          }
+        };
+
+        Raven._send({message: 'bar'});
+
+        assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+          'custom-header': 'computed-header-value'
+        });
+      });
+    }
+
+    it('should apply globalOptions.headers with string or function value to XHR call if specified', function() {
+      var origFetch = window.fetch;
+      delete window.fetch;
+
+      var requests = [];
+      var xhr = sinon.useFakeXMLHttpRequest();
+
+      xhr.onCreate = function(xhr) {
+        requests.push(xhr);
       };
 
-      Raven._send({message: 'bar'});
-
-      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
-        'custom-header': 'value'
-      });
-    });
-
-    it('should apply globalOptions.headers with function value if specified', function() {
-      this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(window, 'fetch').resolves(true);
-
-      Raven._globalProject = '2';
       Raven._globalOptions = {
-        logger: 'javascript',
-        maxMessageLength: 100,
         headers: {
-          'custom-header': function() {
-            return 'computed-header-value';
+          'custom-string-header': 'pickle-rick',
+          'custom-function-header': function() {
+            return 'morty';
           }
         }
       };
 
       Raven._send({message: 'bar'});
 
-      assert.deepEqual(window.fetch.lastCall.args[1].headers, {
-        'custom-header': 'computed-header-value'
-      });
+      var lastXhr = requests[requests.length - 1];
+      assert.equal(lastXhr.HEADERS_RECEIVED, 2);
+
+      window.fetch = origFetch;
+      xhr.restore();
     });
 
     it('should check `Raven.isSetup`', function() {
