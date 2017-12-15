@@ -23,7 +23,7 @@ export class SentryBrowser implements IAdapter {
     return Raven;
   }
 
-  public setOptions(options: ISentryBrowserOptions) {
+  public async setOptions(options: ISentryBrowserOptions) {
     Object.assign(this.options, options);
     Object.assign(Raven._globalOptions, this.options);
     return this;

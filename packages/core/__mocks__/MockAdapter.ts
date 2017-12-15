@@ -16,7 +16,7 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(true);
   }
 
-  public setOptions(options: IMockAdapterOptions) {
+  public async setOptions(options: IMockAdapterOptions) {
     // We need nothing here
     return this;
   }

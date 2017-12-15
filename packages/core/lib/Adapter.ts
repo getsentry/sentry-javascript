@@ -3,7 +3,7 @@ import { Event, IBreadcrumb, IUser } from './Interfaces';
 export interface IAdapter {
   readonly options: {};
   install(): Promise<boolean>;
-  setOptions(options: {}): IAdapter;
+  setOptions(options: {}): Promise<IAdapter>;
   send(event: Event): Promise<Event>;
   captureException(exception: Error): Promise<Event>;
   captureMessage(message: string): Promise<Event>;
