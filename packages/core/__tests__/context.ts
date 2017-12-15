@@ -1,6 +1,6 @@
 /// <reference types="jest" />
+import { MockAdapter } from '../__mocks__/MockAdapter';
 import * as Sentry from '../index';
-import {MockAdapter} from '../__mocks__/MockAdapter';
 
 const dsn = 'https://username:password@domain/path';
 
@@ -9,60 +9,65 @@ beforeEach(() => {
 });
 
 describe('Sentry.Client context', () => {
-  test('set tags', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
-    let adapter = sentry.use(MockAdapter);
-    let spy1 = jest.spyOn(adapter, 'setTagsContext');
-    sentry.setTagsContext({yo: 12});
-    expect(sentry.getContext()).toEqual({tags: {yo: 12}});
+  test('set tags', async () => {
+    expect.assertions(2);
+    const sentry = new Sentry.Client('https://username:password@domain/path');
+    const adapter = await sentry.use(MockAdapter).install();
+    const spy1 = jest.spyOn(adapter, 'setTagsContext');
+    await sentry.setTagsContext({ yo: 12 });
+    expect(sentry.getContext()).toEqual({ tags: { yo: 12 } });
     expect(spy1).toHaveBeenCalledTimes(1);
   });
 
-  test('set extra and tags', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
-    let adapter = sentry.use(MockAdapter);
-    let spy1 = jest.spyOn(adapter, 'setExtraContext');
-    sentry.setTagsContext({yo: 12});
-    expect(sentry.getContext()).toEqual({tags: {yo: 12}});
-    sentry.setExtraContext({foo: 13});
-    expect(sentry.getContext()).toEqual({tags: {yo: 12}, extra: {foo: 13}});
+  test('set extra and tags', async () => {
+    expect.assertions(3);
+    const sentry = new Sentry.Client('https://username:password@domain/path');
+    const adapter = await sentry.use(MockAdapter).install();
+    const spy1 = jest.spyOn(adapter, 'setExtraContext');
+    await sentry.setTagsContext({ yo: 12 });
+    expect(sentry.getContext()).toEqual({ tags: { yo: 12 } });
+    await sentry.setExtraContext({ foo: 13 });
+    expect(sentry.getContext()).toEqual({ tags: { yo: 12 }, extra: { foo: 13 } });
     expect(spy1).toHaveBeenCalledTimes(1);
   });
 
-  test('clear context', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
-    let adapter = sentry.use(MockAdapter);
-    let spy1 = jest.spyOn(adapter, 'clearContext');
-    sentry.setTagsContext({yo: 12});
-    expect(sentry.getContext()).toEqual({tags: {yo: 12}});
-    sentry.clearContext();
+  test('clear context', async () => {
+    expect.assertions(3);
+    const sentry = new Sentry.Client('https://username:password@domain/path');
+    const adapter = await sentry.use(MockAdapter).install();
+    const spy1 = jest.spyOn(adapter, 'clearContext');
+    await sentry.setTagsContext({ yo: 12 });
+    expect(sentry.getContext()).toEqual({ tags: { yo: 12 } });
+    await sentry.clearContext();
     expect(sentry.getContext()).toEqual({});
     expect(spy1).toHaveBeenCalledTimes(1);
   });
 
-  test('set undefined', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
-    let adapter = sentry.use(MockAdapter);
-    sentry.setTagsContext(undefined);
+  test('set undefined', async () => {
+    expect.assertions(5);
+    const sentry = new Sentry.Client('https://username:password@domain/path');
+    const adapter = await sentry.use(MockAdapter).install();
+    await sentry.setTagsContext(undefined);
     expect(sentry.getContext()).toEqual({});
-    sentry.setTagsContext({yo: 12});
-    expect(sentry.getContext()).toEqual({tags: {yo: 12}});
-    sentry.setTagsContext(undefined);
+    await sentry.setTagsContext({ yo: 12 });
+    expect(sentry.getContext()).toEqual({ tags: { yo: 12 } });
+    await sentry.setTagsContext(undefined);
     expect(sentry.getContext()).toEqual({});
-    sentry.setExtraContext(undefined);
+    await sentry.setExtraContext(undefined);
     expect(sentry.getContext()).toEqual({});
-    sentry.clearContext();
+    await sentry.clearContext();
     expect(sentry.getContext()).toEqual({});
   });
 
-  test('set user', () => {
-    let sentry = new Sentry.Client('https://username:password@domain/path');
-    let adapter = sentry.use(MockAdapter);
-    sentry.setUserContext({
-      id: 'test'
+  test('set user', async () => {
+    expect.assertions(2);
+    const sentry = new Sentry.Client('https://username:password@domain/path');
+    const adapter = await sentry.use(MockAdapter).install();
+    await sentry.setUserContext({
+      id: 'test',
     });
-    expect(sentry.getContext()).toEqual({user: {id: 'test'}});
-    sentry.clearContext();
+    expect(sentry.getContext()).toEqual({ user: { id: 'test' } });
+    await sentry.clearContext();
     expect(sentry.getContext()).toEqual({});
   });
 });
