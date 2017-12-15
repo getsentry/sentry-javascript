@@ -33,7 +33,6 @@ matrix:
       - yarn link
       - cd packages/core && yarn link && yarn install && yarn dist
       - cd ../browser
-      - yarn remove @sentry/core # this has to be removed once we released the package
       - yarn link "@sentry/core"
       - yarn link "raven-js"
       - yarn install && yarn test
