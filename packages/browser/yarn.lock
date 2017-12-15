@@ -2,8 +2,9 @@
 # yarn lockfile v1
 
 
-"@sentry/core@file:../core":
-  version "0.0.1"
+"@sentry/core@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-0.1.0.tgz#9d9cdbedc1013de21a6143c92dbc357c60242682"
 
 "@types/jest@^21.1.6":
   version "21.1.6"
