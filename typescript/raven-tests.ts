@@ -29,7 +29,8 @@ var options: Raven.RavenOptions = {
     },
     breadcrumbCallback: function (data) {
         return data
-    }
+    },
+    allowDuplicates: true
 };
 
 Raven.config('https://public@sentry.io/1', options).install();
