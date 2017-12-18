@@ -88,7 +88,8 @@ function Raven() {
   this._fetchDefaults = {
     method: 'POST',
     credentials: 'include',
-    keepalive: true
+    keepalive: true,
+    referrerPolicy: 'origin'
   };
   this._ignoreOnError = 0;
   this._isRavenInstalled = false;

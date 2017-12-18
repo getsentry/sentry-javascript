@@ -305,9 +305,17 @@ Those configuration options are documented below:
 
 .. describe:: fetchParameters
 
-    ``fetch()`` init parameters.
+    ``fetch()`` init parameters (https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters).
 
-    Reference: https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters
+    Defaults:
+
+    .. code-block:: javascript
+        {
+            method: 'POST',
+            credentials: 'include',
+            keepalive: true,
+            referrerPolicy: 'origin'
+        }
 
 
 .. describe:: allowDuplicates

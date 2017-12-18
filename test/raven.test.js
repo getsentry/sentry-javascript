@@ -1777,6 +1777,7 @@ describe('globals', function() {
             {
               credentials: 'include',
               keepalive: true,
+              referrerPolicy: 'origin',
               method: 'POST',
               body: '{"foo":"bar"}'
             }
