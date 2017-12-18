@@ -87,6 +87,11 @@ declare module Raven {
          * A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default).
          */
         sampleRate?: number;
+
+        /**
+         * Should raven send duplicate errors. A value of false will not send duplicate errors (default).
+         */
+        allowDuplicates?: boolean;
     }
 
     interface RavenInstrumentationOptions {
