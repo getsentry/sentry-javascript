@@ -85,6 +85,11 @@ function Raven() {
     instrument: true,
     sampleRate: 1
   };
+  this._fetchDefaults = {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true
+  };
   this._ignoreOnError = 0;
   this._isRavenInstalled = false;
   this._originalErrorStackTraceLimit = Error.stackTraceLimit;
@@ -1899,15 +1904,21 @@ Raven.prototype = {
     var url = opts.url + '?' + urlencode(opts.auth);
 
     var evaluatedHeaders = null;
+    var evaluatedFetchParameters = {};
+
     if (opts.options.headers) {
-      evaluatedHeaders = this._evaluateHeaders(opts.options.headers);
+      evaluatedHeaders = this._evaluateHash(opts.options.headers);
+    }
+
+    if (opts.options.fetchParameters) {
+      evaluatedFetchParameters = this._evaluateHash(opts.options.fetchParameters);
     }
 
     if (supportsFetch()) {
-      var fetchOptions = {
-        method: 'POST',
-        body: stringify(opts.data)
-      };
+      evaluatedFetchParameters.body = stringify(opts.data);
+
+      var defaultFetchOptions = objectMerge({}, this._fetchDefaults);
+      var fetchOptions = objectMerge(defaultFetchOptions, evaluatedFetchParameters);
 
       if (evaluatedHeaders) {
         fetchOptions.headers = evaluatedHeaders;
@@ -1982,17 +1993,17 @@ Raven.prototype = {
     request.send(stringify(opts.data));
   },
 
-  _evaluateHeaders: function(headers) {
-    var evaluatedHeaders = {};
+  _evaluateHash: function(hash) {
+    var evaluated = {};
 
-    for (var key in headers) {
-      if (headers.hasOwnProperty(key)) {
-        var value = headers[key];
-        evaluatedHeaders[key] = typeof value === 'function' ? value() : value;
+    for (var key in hash) {
+      if (hash.hasOwnProperty(key)) {
+        var value = hash[key];
+        evaluated[key] = typeof value === 'function' ? value() : value;
       }
     }
 
-    return evaluatedHeaders;
+    return evaluated;
   },
 
   _logDebug: function(level) {

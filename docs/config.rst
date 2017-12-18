@@ -303,6 +303,12 @@ Those configuration options are documented below:
             }
         }
 
+.. describe:: fetchParameters
+
+    ``fetch()`` init parameters.
+
+    Reference: https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters
+
 
 .. describe:: allowDuplicates
 
