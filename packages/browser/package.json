@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offical Sentry SDK for browsers",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

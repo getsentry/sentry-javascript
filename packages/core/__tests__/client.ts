@@ -62,15 +62,13 @@ describe('Sentry.Client', () => {
   });
 
   test('multiple install calls on Adapter should only call once', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
     const sentry = new Sentry.Client(dsn);
     sentry.use(MockAdapter, { testOption: true });
-    const spy1 = jest.spyOn(sentry, 'install');
-    const spy2 = jest.spyOn(sentry.getAdapter(), 'install');
+    const spy1 = jest.spyOn(sentry.getAdapter(), 'install');
     await sentry.install();
     await sentry.install();
-    expect(spy1).toHaveBeenCalledTimes(2);
-    expect(spy2).toHaveBeenCalledTimes(1);
+    expect(spy1).toHaveBeenCalledTimes(1);
   });
 
   test('no registered Adapter', async () => {
@@ -173,12 +171,10 @@ describe('Sentry.Client', () => {
   });
 
   test('call setRelease on Adapter', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
-    const spy = jest.spyOn(sentry, 'setRelease');
-    const spy2 = jest.spyOn(sentry.getAdapter(), 'setRelease');
+    const spy = jest.spyOn(sentry.getAdapter(), 'setRelease');
     await sentry.setRelease('#oops');
     expect(spy).toBeCalled();
-    expect(spy2).toBeCalled();
   });
 });
