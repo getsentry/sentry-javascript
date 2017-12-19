@@ -68,6 +68,11 @@ declare module Raven {
           [key: string]: (string | Function);
         };
 
+        /** `fetch` init parameters */
+        fetchParameters?: {
+          [key: string]: (string | Function);
+        };
+
         /** Allow use of private/secretKey. */
         allowSecretKey?: boolean;
 
