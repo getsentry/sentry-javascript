@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Sentry core implementation for all JavaScript related SDKs",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

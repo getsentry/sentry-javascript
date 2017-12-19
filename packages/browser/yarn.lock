@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@sentry/core@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-0.1.0.tgz#9d9cdbedc1013de21a6143c92dbc357c60242682"
+"@sentry/core@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-0.2.1.tgz#4ab771ef370397eb24ac03b5686fe805d5ab523a"
 
 "@types/events@*":
   version "1.1.0"
