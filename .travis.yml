@@ -23,17 +23,16 @@ matrix:
         sauce_connect: true
       script:
         - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+    - env: NAME="@sentry/core"
+      install: true
+      script:
+      - cd packages/core && yarn install && yarn test
     - env: NAME="@sentry/browser"
       install: true
       script:
       - yarn link
       - cd packages/core && yarn link && yarn install && yarn dist
       - cd ../browser
-      - yarn remove @sentry/core # this has to be removed once we released the package
       - yarn link "@sentry/core"
       - yarn link "raven-js"
       - yarn install && yarn test
-    - env: NAME="@sentry/core"
-      install: true
-      script:
-      - cd packages/core && yarn install && yarn test

@@ -23,7 +23,7 @@ export class SentryBrowser implements IAdapter {
     return Raven;
   }
 
-  public setOptions(options: ISentryBrowserOptions) {
+  public async setOptions(options: ISentryBrowserOptions) {
     Object.assign(this.options, options);
     Object.assign(Raven._globalOptions, this.options);
     return this;
@@ -74,23 +74,28 @@ export class SentryBrowser implements IAdapter {
     });
   }
 
-  public setUserContext(user?: IUser) {
+  public async setUserContext(user?: IUser) {
     Raven.setUserContext(user);
     return this;
   }
 
-  public setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: { [key: string]: any }) {
     Raven.setTagsContext(tags);
     return this;
   }
 
-  public setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: { [key: string]: any }) {
     Raven.setExtraContext(extra);
     return this;
   }
 
-  public clearContext() {
+  public async clearContext() {
     Raven.clearContext();
+    return this;
+  }
+
+  public async setRelease(release: string) {
+    Raven.setRelease(release);
     return this;
   }
 }

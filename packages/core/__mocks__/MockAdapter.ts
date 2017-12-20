@@ -16,7 +16,7 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(true);
   }
 
-  public setOptions(options: IMockAdapterOptions) {
+  public async setOptions(options: IMockAdapterOptions) {
     // We need nothing here
     return this;
   }
@@ -43,19 +43,23 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(event);
   }
 
-  public setUserContext(user?: Sentry.IUser) {
+  public async setUserContext(user?: Sentry.IUser) {
     return this;
   }
 
-  public setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: { [key: string]: any }) {
     return this;
   }
 
-  public setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: { [key: string]: any }) {
     return this;
   }
 
-  public clearContext() {
+  public async clearContext() {
+    return this;
+  }
+
+  public async setRelease(release: string) {
     return this;
   }
 }

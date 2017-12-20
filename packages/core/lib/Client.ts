@@ -23,11 +23,6 @@ export class Client {
     return this;
   }
 
-  public getContext() {
-    // TODO: check for cyclic objects
-    return JSON.parse(JSON.stringify(this._context));
-  }
-
   public getAdapter<A extends Adapter.IAdapter>(): A {
     if (!this._adapter) {
       throw new SentryError('No adapter in use, please call .use(<Adapter>)');
@@ -87,49 +82,44 @@ export class Client {
 
   // -----------------------
 
+  public async setRelease(release: string) {
+    const adapter = await this.awaitAdapter();
+    await adapter.setRelease(release);
+    return this;
+  }
+
   // ---------------- CONTEXT
 
-  public setUserContext(user?: IUser) {
+  public getContext() {
+    // TODO: check for cyclic objects
+    return JSON.parse(JSON.stringify(this._context));
+  }
+
+  public async setUserContext(user?: IUser) {
     Context.set(this._context, 'user', user);
-    // TODO: Remove this once we moved code away from adapters
-    const adapter = this.getAdapter();
-    if (adapter.setUserContext) {
-      adapter.setUserContext(user);
-    }
-    // -------------------------------------------------------
+    const adapter = await this.awaitAdapter();
+    await adapter.setUserContext(user);
     return this;
   }
 
-  public setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'tags', tags);
-    // TODO: Remove this once we moved code away from adapters
-    const adapter = this.getAdapter();
-    if (adapter.setTagsContext) {
-      adapter.setTagsContext(tags);
-    }
-    // -------------------------------------------------------
+    const adapter = await this.awaitAdapter();
+    await adapter.setTagsContext(tags);
     return this;
   }
 
-  public setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: { [key: string]: any }) {
     Context.mergeIn(this._context, 'extra', extra);
-    // TODO: Remove this once we moved code away from adapters
-    const adapter = this.getAdapter();
-    if (adapter.setExtraContext) {
-      adapter.setExtraContext(extra);
-    }
-    // -------------------------------------------------------
+    const adapter = await this.awaitAdapter();
+    await adapter.setExtraContext(extra);
     return this;
   }
 
-  public clearContext() {
+  public async clearContext() {
     this._context = Context.getDefaultContext();
-    // TODO: Remove this once we moved code away from adapters
-    const adapter = this.getAdapter();
-    if (adapter.clearContext) {
-      adapter.clearContext();
-    }
-    // -------------------------------------------------------
+    const adapter = await this.awaitAdapter();
+    await adapter.clearContext();
     return this;
   }
 

@@ -34,7 +34,7 @@ describe('Browser Interface', () => {
 
     page.on('request', async request => {
       // @ts-ignore
-      if (request.resourceType === 'xhr') {
+      if (request.resourceType === 'other' || request.resourceType === 'xhr') {
         const data = JSON.parse(request.postData as any);
         if (data.exception) {
           expect(data.exception).not.toBeUndefined();

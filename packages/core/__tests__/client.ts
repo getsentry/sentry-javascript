@@ -30,6 +30,9 @@ describe('Sentry.Client', () => {
       new Sentry.Client('//username:password@domain');
     }).toThrow();
     expect(() => {
+      new Sentry.Client('https://username:@domain');
+    }).toThrow();
+    expect(() => {
       new Sentry.Client('123');
     }).toThrow();
     try {
@@ -56,6 +59,16 @@ describe('Sentry.Client', () => {
     await sentry.install();
     expect(spy1).toHaveBeenCalledTimes(1);
     expect(spy2).toHaveBeenCalledTimes(1);
+  });
+
+  test('multiple install calls on Adapter should only call once', async () => {
+    expect.assertions(1);
+    const sentry = new Sentry.Client(dsn);
+    sentry.use(MockAdapter, { testOption: true });
+    const spy1 = jest.spyOn(sentry.getAdapter(), 'install');
+    await sentry.install();
+    await sentry.install();
+    expect(spy1).toHaveBeenCalledTimes(1);
   });
 
   test('no registered Adapter', async () => {
@@ -145,6 +158,23 @@ describe('Sentry.Client', () => {
     expect(spy).not.toBeCalled();
     sentry.options.logLevel = Sentry.LogLevel.Debug;
     sentry.log('This is fine');
+    expect(spy).toBeCalled();
+  });
+
+  test('should throw error without calling install', async () => {
+    expect.assertions(1);
+    const sentry = new Sentry.Client(dsn).use(MockAdapter);
+    return expect(sentry.captureException(new Error('oops'))).rejects.toEqual({
+      message: 'Please call install() before calling other methods on Sentry',
+      name: 'SentryError',
+    });
+  });
+
+  test('call setRelease on Adapter', async () => {
+    expect.assertions(1);
+    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const spy = jest.spyOn(sentry.getAdapter(), 'setRelease');
+    await sentry.setRelease('#oops');
     expect(spy).toBeCalled();
   });
 });
