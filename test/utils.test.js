@@ -7,6 +7,7 @@ var RavenConfigError = require('../src/configError');
 var utils = require('../src/utils');
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
+var isPlainObject = utils.isPlainObject;
 var isString = utils.isString;
 var isArray = utils.isArray;
 var isObject = utils.isObject;
@@ -39,6 +40,20 @@ describe('utils', function() {
       assert.isFalse(isFunction({}));
       assert.isFalse(isFunction(''));
       assert.isFalse(isFunction(undefined));
+    });
+  });
+
+  describe('isPlainObject', function() {
+    it('should do as advertised', function() {
+      assert.isTrue(isPlainObject({}));
+      assert.isTrue(isPlainObject({foo: 'bar'}));
+      assert.isTrue(isPlainObject(new Object()));
+      assert.isFalse(isPlainObject([]));
+      assert.isFalse(isPlainObject(undefined));
+      assert.isFalse(isPlainObject(null));
+      assert.isFalse(isPlainObject(1));
+      assert.isFalse(isPlainObject(''));
+      assert.isFalse(isPlainObject(function() {}));
     });
   });
 

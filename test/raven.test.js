@@ -1136,7 +1136,7 @@ describe('globals', function() {
       assert.isTrue(Raven._makeRequest.called);
     });
 
-    it('should strip empty tags', function() {
+    it('should strip empty attributes', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
@@ -1148,10 +1148,18 @@ describe('globals', function() {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
-        tags: {}
+        tags: {},
+        extra: {}
       };
 
-      Raven._send({message: 'bar', tags: {}, extra: {}});
+      Raven._send({
+        message: 'bar',
+        tags: {},
+        extra: {},
+        redundant: '',
+        attribute: null,
+        something: undefined
+      });
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
