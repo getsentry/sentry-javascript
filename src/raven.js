@@ -1754,9 +1754,6 @@ Raven.prototype = {
       };
     }
 
-    // If there are no tags/extra, strip the key from the payload alltogther.
-    if (isEmptyObject(data.tags)) delete data.tags;
-
     if (this._globalContext.user) {
       // sentry.interfaces.User
       data.user = this._globalContext.user;
@@ -1770,6 +1767,13 @@ Raven.prototype = {
 
     // Include server_name if it's defined in globalOptions
     if (globalOptions.serverName) data.server_name = globalOptions.serverName;
+
+    // Cleanup empty properties before sending them to the server
+    Object.keys(data).forEach(function(key) {
+      if (data[key] == null || data[key] === '' || isEmptyObject(data[key])) {
+        delete data[key];
+      }
+    });
 
     if (isFunction(globalOptions.dataCallback)) {
       data = globalOptions.dataCallback(data) || data;
