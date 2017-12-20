@@ -1636,14 +1636,14 @@ Raven.prototype = {
       };
     }
 
-    if (this._hasDocument) {
-      if (_document.location && _document.location.href) {
-        httpData.url = _document.location.href;
-      }
-      if (_document.referrer) {
-        if (!httpData.headers) httpData.headers = {};
-        httpData.headers.Referer = _document.referrer;
-      }
+    // Check in `window` instead of `document`, as we may be in ServiceWorker environment
+    if (_window.location && _window.location.href) {
+      httpData.url = _window.location.href;
+    }
+
+    if (this._hasDocument && _document.referrer) {
+      if (!httpData.headers) httpData.headers = {};
+      httpData.headers.Referer = _document.referrer;
     }
 
     return httpData;
