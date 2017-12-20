@@ -1905,6 +1905,7 @@ Raven.prototype = {
 
     if (supportsFetch()) {
       var fetchOptions = {
+        keepalive: true,
         method: 'POST',
         body: stringify(opts.data)
       };
