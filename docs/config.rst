@@ -310,6 +310,7 @@ Those configuration options are documented below:
     Defaults:
 
     .. code-block:: javascript
+
         {
             method: 'POST',
             credentials: 'include',
