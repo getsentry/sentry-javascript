@@ -187,11 +187,11 @@ declare module Raven {
         /*
         * Manually capture an exception and send it over to Sentry
         *
-        * @param {error} ex An exception to be logged
+        * @param {error|ErrorEvent|string} ex An exception to be logged
         * @param {object} options A specific set of options for this error [optional]
         * @return {Raven}
         */
-        captureException(ex: Error, options?: RavenOptions): RavenStatic;
+        captureException(ex: Error | ErrorEvent | string, options?: RavenOptions): RavenStatic;
 
         /*
         * Manually send a message to Sentry
@@ -205,28 +205,36 @@ declare module Raven {
         /** Log a breadcrumb */
         captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
-        /**
-         * Clear the user context, removing the user data that would be sent to Sentry.
-         */
-        setUserContext(): RavenStatic;
-
         /*
         * Set a user to be sent along with the payload.
         *
         * @param {object} user An object representing user data [optional]
+        *                 If user is undefined, the current user context will be removed.
         * @return {Raven}
         */
-        setUserContext(user: {
+        setUserContext(user?: {
             id?: string;
             username?: string;
             email?: string;
         }): RavenStatic;
 
-        /** Merge extra attributes to be sent along with the payload. */
-        setExtraContext(context: Object): RavenStatic;
+        /*
+        * Merge extra attributes to be sent along with the payload.
+        *
+        * @param {object} context A set of data to be merged with the current extra context data [optional]
+        *                 If context is undefined, the current extra context data will be removed.
+        * @return {Raven}
+        */
+        setExtraContext(context?: Object): RavenStatic;
 
-        /** Merge tags to be sent along with the payload. */
-        setTagsContext(tags: Object): RavenStatic;
+        /*
+        * Merge tags to be sent along with the payload.
+        *
+        * @param {object} tags A set of data to be merged with the current tag context data [optional]
+        *                 If tags is undefined, the current tag context data will be removed.
+        * @return {Raven}
+        */
+        setTagsContext(tags?: Object): RavenStatic;
 
         /** Clear all of the context. */
         clearContext(): RavenStatic;
