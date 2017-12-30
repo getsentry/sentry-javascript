@@ -92,6 +92,7 @@ Raven.captureMessage('Warning', { level: 'warning' });
 Raven.captureBreadcrumb({
     message: "This is a breadcrumb message."
 });
+Raven.captureBreadcrumb({category: "console", level: "log", message: "A console.log() message"});
 
 Raven.setRelease('abc123');
 Raven.setEnvironment('production');

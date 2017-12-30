@@ -65,12 +65,12 @@ declare module Raven {
 
         /** Append headers to the fetch or XMLHttpRequest request. Should be in a form of hash, were value can be string or function */
         headers?: {
-          [key: string]: (string | Function);
+            [key: string]: (string | Function);
         };
 
         /** `fetch` init parameters */
         fetchParameters?: {
-          [key: string]: (string | Function);
+            [key: string]: (string | Function);
         };
 
         /** Allow use of private/secretKey. */
@@ -316,5 +316,5 @@ declare module Raven {
         sentry?: boolean;
     }
 
-    type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
+    type LogLevel = "critical" | "error" | "warning" | "info" | "debug" | "warn" | "log";
 }
