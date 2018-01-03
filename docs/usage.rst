@@ -381,3 +381,12 @@ Additional instances can be created like this:
 .. code-block:: javascript
 
   var Raven2 = new Raven.Client();
+
+
+Dealing with Minified Source Code
+---------------------------------
+
+Raven and Sentry support `Source Maps
+<http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.
+
+We have provided some instructions to creating Source Maps over at :ref:`raven-node-sourcemaps`.

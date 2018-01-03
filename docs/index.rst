@@ -118,6 +118,15 @@ Raven can be configured to automatically capture breadcrubs for certain events i
 
 For more information, see :ref:`raven-recording-breadcrumbs`.
 
+Dealing with Minified Source Code
+---------------------------------
+
+Raven and Sentry support `Source Maps
+<http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_.  If
+you provide source maps in addition to your minified files that data
+becomes available in Sentry. For more information see
+:ref:`raven-node-sourcemaps`.
+
 Middleware and Integrations
 ---------------------------
 
@@ -137,6 +146,7 @@ is additional documentation available that covers all the rest:
    config
    usage
    integrations/index
+   sourcemaps
    coffeescript
 
 Resources:
