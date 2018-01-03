@@ -132,7 +132,7 @@ declare module Raven {
         * Configure Raven with a DSN and extra options
         *
         * @param {string} dsn The public Sentry DSN
-        * @param {object} options Optional set of of global options [optional]
+        * @param {object} options Optional set of global options [optional]
         * @return {Raven}
         */
         config(dsn: string, options?: RavenOptions): RavenStatic;
