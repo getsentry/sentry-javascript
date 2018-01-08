@@ -205,21 +205,14 @@ declare module Raven {
         /** Log a breadcrumb */
         captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
-        /**
-         * Clear the user context, removing the user data that would be sent to Sentry.
-         */
-        setUserContext(): RavenStatic;
-
         /*
-        * Set a user to be sent along with the payload.
+        * Set/Clear a user to be sent along with the payload.
         *
         * @param {object} user An object representing user data [optional]
         * @return {Raven}
         */
-        setUserContext(user: {
-            id?: string;
-            username?: string;
-            email?: string;
+        setUserContext(user?: {
+            [key: string]: string | number | boolean | null | void
         }): RavenStatic;
 
         /** Merge extra attributes to be sent along with the payload. */
