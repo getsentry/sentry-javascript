@@ -2835,15 +2835,36 @@ describe('Raven (public API)', function() {
         }
       ]);
     });
-
-    it('should coerce message to a string', function() {
+    it('should coerce object message to a json string', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_send');
-      Raven.captureMessage({});
+      Raven.captureMessage({foo: 'bar'});
       assert.isTrue(Raven._send.called);
       assert.deepEqual(Raven._send.lastCall.args, [
         {
-          message: '[object Object]'
+          message: '{"foo":"bar"}'
+        }
+      ]);
+    });
+    it('should coerce array message to a json string', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_send');
+      Raven.captureMessage([1, 2, 3]);
+      assert.isTrue(Raven._send.called);
+      assert.deepEqual(Raven._send.lastCall.args, [
+        {
+          message: '[1,2,3]'
+        }
+      ]);
+    });
+    it('should coerce number to a string', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_send');
+      Raven.captureMessage(56);
+      assert.isTrue(Raven._send.called);
+      assert.deepEqual(Raven._send.lastCall.args, [
+        {
+          message: '56'
         }
       ]);
     });

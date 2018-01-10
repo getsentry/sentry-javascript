@@ -455,12 +455,20 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureMessage: function(msg, options) {
+    // Convert the message into a string
+    var exceptionMessage;
+    if (typeof msg === 'object' && msg !== null) {
+      exceptionMessage = JSON.stringify(msg);
+    } else {
+      exceptionMessage = '' + msg;
+    }
+
     // config() automagically converts ignoreErrors from a list to a RegExp so we need to test for an
     // early call; we'll error on the side of logging anything called before configuration since it's
     // probably something you should see:
     if (
       !!this._globalOptions.ignoreErrors.test &&
-      this._globalOptions.ignoreErrors.test(msg)
+      this._globalOptions.ignoreErrors.test(exceptionMessage)
     ) {
       return;
     }
@@ -469,7 +477,7 @@ Raven.prototype = {
 
     var data = objectMerge(
       {
-        message: msg + '' // Make sure it's actually a string
+        message: exceptionMessage
       },
       options
     );
