@@ -353,6 +353,15 @@ describe('utils', function() {
         // from example.com => example.com/example.com/foo (valid url).
       });
     });
+
+    it('should return an empty object for invalid input', function() {
+      assert.deepEqual(parseUrl(), {});
+      assert.deepEqual(parseUrl(42), {});
+      assert.deepEqual(parseUrl([]), {});
+      assert.deepEqual(parseUrl({}), {});
+      assert.deepEqual(parseUrl(null), {});
+      assert.deepEqual(parseUrl(undefined), {});
+    });
   });
 
   describe('wrappedCallback', function() {
