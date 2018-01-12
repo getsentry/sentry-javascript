@@ -206,16 +206,14 @@ declare module Raven {
         captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
         /*
-        * Set a user to be sent along with the payload.
+        * Set/Clear a user to be sent along with the payload.
         *
         * @param {object} user An object representing user data [optional]
         *                 If user is undefined, the current user context will be removed.
         * @return {Raven}
         */
         setUserContext(user?: {
-            id?: string;
-            username?: string;
-            email?: string;
+            [key: string]: string | number | boolean | null | void
         }): RavenStatic;
 
         /*
