@@ -1,10 +1,10 @@
-/*! Raven.js 3.21.0 (fbfea0f) | github.com/getsentry/raven-js */
+/*! Raven.js 3.22.0 (50583ff) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2017 Matt Robenolt and other contributors
+ * Copyright 2018 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -124,6 +124,10 @@ function isFunction(what) {
   return typeof what === 'function';
 }
 
+function isPlainObject(what) {
+  return Object.prototype.toString.call(what) === '[object Object]';
+}
+
 function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
 }
@@ -133,6 +137,8 @@ function isArray(what) {
 }
 
 function isEmptyObject(what) {
+  if (!isPlainObject(what)) return false;
+
   for (var _ in what) {
     if (what.hasOwnProperty(_)) {
       return false;
@@ -269,8 +275,8 @@ function urlencode(o) {
 // intentionally using regex and not <a/> href parsing trick because React Native and other
 // environments where DOM might not be available
 function parseUrl(url) {
+  if (typeof url !== 'string') return {};
   var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
-  if (!match) return {};
 
   // coerce to undefined values to empty string so we don't get 'undefined'
   var query = match[6] || '';
@@ -487,6 +493,7 @@ module.exports = {
   isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
+  isPlainObject: isPlainObject,
   isString: isString,
   isArray: isArray,
   isEmptyObject: isEmptyObject,

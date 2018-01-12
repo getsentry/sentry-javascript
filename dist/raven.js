@@ -1,10 +1,10 @@
-/*! Raven.js 3.21.0 (fbfea0f) | github.com/getsentry/raven-js */
+/*! Raven.js 3.22.0 (50583ff) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2017 Matt Robenolt and other contributors
+ * Copyright 2018 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -150,6 +150,12 @@ function Raven() {
     instrument: true,
     sampleRate: 1
   };
+  this._fetchDefaults = {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true,
+    referrerPolicy: 'origin'
+  };
   this._ignoreOnError = 0;
   this._isRavenInstalled = false;
   this._originalErrorStackTraceLimit = Error.stackTraceLimit;
@@ -184,7 +190,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.21.0',
+  VERSION: '3.22.0',
 
   debug: false,
 
@@ -751,14 +757,14 @@ Raven.prototype = {
   },
 
   /**
-     * Override the default HTTP transport mechanism that transmits data
-     * to the Sentry server.
-     *
-     * @param {function} transport Function invoked instead of the default
-     *                             `makeRequest` handler.
-     *
-     * @return {Raven}
-     */
+   * Override the default HTTP transport mechanism that transmits data
+   * to the Sentry server.
+   *
+   * @param {function} transport Function invoked instead of the default
+   *                             `makeRequest` handler.
+   *
+   * @return {Raven}
+   */
   setTransport: function(transport) {
     this._globalOptions.transport = transport;
 
@@ -895,11 +901,11 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture UI breadcrumbs
-     * @param evtName the event name (e.g. "click")
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture UI breadcrumbs
+   * @param evtName the event name (e.g. "click")
+   * @returns {Function}
+   * @private
+   */
   _breadcrumbEventHandler: function(evtName) {
     var self = this;
     return function(evt) {
@@ -934,10 +940,10 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture keypress UI events
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture keypress UI events
+   * @returns {Function}
+   * @private
+   */
   _keypressEventHandler: function() {
     var self = this,
       debounceDuration = 1000; // milliseconds
@@ -979,11 +985,11 @@ Raven.prototype = {
   },
 
   /**
-     * Captures a breadcrumb of type "navigation", normalizing input URLs
-     * @param to the originating URL
-     * @param from the target URL
-     * @private
-     */
+   * Captures a breadcrumb of type "navigation", normalizing input URLs
+   * @param to the originating URL
+   * @param from the target URL
+   * @private
+   */
   _captureUrlChange: function(from, to) {
     var parsedLoc = parseUrl(this._location.href);
     var parsedTo = parseUrl(to);
@@ -1030,9 +1036,9 @@ Raven.prototype = {
   },
 
   /**
-     * Wrap timer functions and event targets to catch errors and provide
-     * better metadata.
-     */
+   * Wrap timer functions and event targets to catch errors and provide
+   * better metadata.
+   */
   _instrumentTryCatch: function() {
     var self = this;
 
@@ -1196,14 +1202,14 @@ Raven.prototype = {
   },
 
   /**
-     * Instrument browser built-ins w/ breadcrumb capturing
-     *  - XMLHttpRequests
-     *  - DOM interactions (click/typing)
-     *  - window.location changes
-     *  - console
-     *
-     * Can be disabled or individually configured via the `autoBreadcrumbs` config option
-     */
+   * Instrument browser built-ins w/ breadcrumb capturing
+   *  - XMLHttpRequests
+   *  - DOM interactions (click/typing)
+   *  - window.location changes
+   *  - console
+   *
+   * Can be disabled or individually configured via the `autoBreadcrumbs` config option
+   */
   _instrumentBreadcrumbs: function() {
     var self = this;
     var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
@@ -1655,8 +1661,8 @@ Raven.prototype = {
   },
 
   /**
-     * Truncate breadcrumb values (right now just URLs)
-     */
+   * Truncate breadcrumb values (right now just URLs)
+   */
   _trimBreadcrumbs: function(breadcrumbs) {
     // known breadcrumb properties with urls
     // TODO: also consider arbitrary prop values that start with (https?)?://
@@ -1695,14 +1701,14 @@ Raven.prototype = {
       };
     }
 
-    if (this._hasDocument) {
-      if (_document.location && _document.location.href) {
-        httpData.url = _document.location.href;
-      }
-      if (_document.referrer) {
-        if (!httpData.headers) httpData.headers = {};
-        httpData.headers.Referer = _document.referrer;
-      }
+    // Check in `window` instead of `document`, as we may be in ServiceWorker environment
+    if (_window.location && _window.location.href) {
+      httpData.url = _window.location.href;
+    }
+
+    if (this._hasDocument && _document.referrer) {
+      if (!httpData.headers) httpData.headers = {};
+      httpData.headers.Referer = _document.referrer;
     }
 
     return httpData;
@@ -1718,14 +1724,14 @@ Raven.prototype = {
   },
 
   /**
-     * Returns true if the in-process data payload matches the signature
-     * of the previously-sent data
-     *
-     * NOTE: This has to be done at this level because TraceKit can generate
-     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
-     *       other old browsers). This can take the form of an "exception"
-     *       data object with a single frame (derived from the onerror args).
-     */
+   * Returns true if the in-process data payload matches the signature
+   * of the previously-sent data
+   *
+   * NOTE: This has to be done at this level because TraceKit can generate
+   *       data from window.onerror WITHOUT an exception object (IE8, IE9,
+   *       other old browsers). This can take the form of an "exception"
+   *       data object with a single frame (derived from the onerror args).
+   */
   _isRepeatData: function(current) {
     var last = this._lastData;
 
@@ -1819,9 +1825,6 @@ Raven.prototype = {
       };
     }
 
-    // If there are no tags/extra, strip the key from the payload alltogther.
-    if (isEmptyObject(data.tags)) delete data.tags;
-
     if (this._globalContext.user) {
       // sentry.interfaces.User
       data.user = this._globalContext.user;
@@ -1835,6 +1838,13 @@ Raven.prototype = {
 
     // Include server_name if it's defined in globalOptions
     if (globalOptions.serverName) data.server_name = globalOptions.serverName;
+
+    // Cleanup empty properties before sending them to the server
+    Object.keys(data).forEach(function(key) {
+      if (data[key] == null || data[key] === '' || isEmptyObject(data[key])) {
+        delete data[key];
+      }
+    });
 
     if (isFunction(globalOptions.dataCallback)) {
       data = globalOptions.dataCallback(data) || data;
@@ -1964,15 +1974,21 @@ Raven.prototype = {
     var url = opts.url + '?' + urlencode(opts.auth);
 
     var evaluatedHeaders = null;
+    var evaluatedFetchParameters = {};
+
     if (opts.options.headers) {
-      evaluatedHeaders = this._evaluateHeaders(opts.options.headers);
+      evaluatedHeaders = this._evaluateHash(opts.options.headers);
+    }
+
+    if (opts.options.fetchParameters) {
+      evaluatedFetchParameters = this._evaluateHash(opts.options.fetchParameters);
     }
 
     if (supportsFetch()) {
-      var fetchOptions = {
-        method: 'POST',
-        body: stringify(opts.data)
-      };
+      evaluatedFetchParameters.body = stringify(opts.data);
+
+      var defaultFetchOptions = objectMerge({}, this._fetchDefaults);
+      var fetchOptions = objectMerge(defaultFetchOptions, evaluatedFetchParameters);
 
       if (evaluatedHeaders) {
         fetchOptions.headers = evaluatedHeaders;
@@ -2047,17 +2063,17 @@ Raven.prototype = {
     request.send(stringify(opts.data));
   },
 
-  _evaluateHeaders: function(headers) {
-    var evaluatedHeaders = {};
+  _evaluateHash: function(hash) {
+    var evaluated = {};
 
-    for (var key in headers) {
-      if (headers.hasOwnProperty(key)) {
-        var value = headers[key];
-        evaluatedHeaders[key] = typeof value === 'function' ? value() : value;
+    for (var key in hash) {
+      if (hash.hasOwnProperty(key)) {
+        var value = hash[key];
+        evaluated[key] = typeof value === 'function' ? value() : value;
       }
     }
 
-    return evaluatedHeaders;
+    return evaluated;
   },
 
   _logDebug: function(level) {
@@ -2160,6 +2176,10 @@ function isFunction(what) {
   return typeof what === 'function';
 }
 
+function isPlainObject(what) {
+  return Object.prototype.toString.call(what) === '[object Object]';
+}
+
 function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
 }
@@ -2169,6 +2189,8 @@ function isArray(what) {
 }
 
 function isEmptyObject(what) {
+  if (!isPlainObject(what)) return false;
+
   for (var _ in what) {
     if (what.hasOwnProperty(_)) {
       return false;
@@ -2305,8 +2327,8 @@ function urlencode(o) {
 // intentionally using regex and not <a/> href parsing trick because React Native and other
 // environments where DOM might not be available
 function parseUrl(url) {
+  if (typeof url !== 'string') return {};
   var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
-  if (!match) return {};
 
   // coerce to undefined values to empty string so we don't get 'undefined'
   var query = match[6] || '';
@@ -2523,6 +2545,7 @@ module.exports = {
   isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
+  isPlainObject: isPlainObject,
   isString: isString,
   isArray: isArray,
   isEmptyObject: isEmptyObject,
@@ -2924,7 +2947,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
     var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
       gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
-      winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
+      winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
       // Used to additionally parse URL/line/column from eval frames
       geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
       chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/,

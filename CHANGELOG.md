@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.22.0
+
+* NEW: Add `fetchParameters` to configure `fetch` (#1177)
+* NEW: Delete empty properties before sending event to the server (#1179)
+* CHANGE: Improve support for Windows 10 webview URLs in the stack trace (#1137)
+* CHANGE: Various Typescript typings update (#1134 #1183 #1187)
+* BUGFIX: Access `window.location` first before trying `document.location` (#1180)
+* BUGFIX: Check `parseUrl` for correct input type (#1190)
+
 ## 3.21.0
 
 * NEW: Use Fetch instead of XHR when available https://github.com/getsentry/raven-js/pull/1157

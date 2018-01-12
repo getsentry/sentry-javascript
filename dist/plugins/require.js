@@ -1,10 +1,10 @@
-/*! Raven.js 3.21.0 (fbfea0f) | github.com/getsentry/raven-js */
+/*! Raven.js 3.22.0 (50583ff) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2017 Matt Robenolt and other contributors
+ * Copyright 2018 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
