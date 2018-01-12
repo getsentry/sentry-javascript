@@ -87,7 +87,6 @@ function Raven() {
   };
   this._fetchDefaults = {
     method: 'POST',
-    credentials: 'include',
     keepalive: true,
     referrerPolicy: 'origin'
   };
