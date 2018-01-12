@@ -185,8 +185,8 @@ function urlencode(o) {
 // intentionally using regex and not <a/> href parsing trick because React Native and other
 // environments where DOM might not be available
 function parseUrl(url) {
+  if (typeof url !== 'string') return {};
   var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
-  if (!match) return {};
 
   // coerce to undefined values to empty string so we don't get 'undefined'
   var query = match[6] || '';
