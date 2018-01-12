@@ -65,12 +65,12 @@ declare module Raven {
 
         /** Append headers to the fetch or XMLHttpRequest request. Should be in a form of hash, were value can be string or function */
         headers?: {
-          [key: string]: (string | Function);
+            [key: string]: (string | Function);
         };
 
         /** `fetch` init parameters */
         fetchParameters?: {
-          [key: string]: (string | Function);
+            [key: string]: (string | Function);
         };
 
         /** Allow use of private/secretKey. */
@@ -187,11 +187,11 @@ declare module Raven {
         /*
         * Manually capture an exception and send it over to Sentry
         *
-        * @param {error} ex An exception to be logged
+        * @param {error|ErrorEvent|string} ex An exception to be logged
         * @param {object} options A specific set of options for this error [optional]
         * @return {Raven}
         */
-        captureException(ex: Error, options?: RavenOptions): RavenStatic;
+        captureException(ex: Error | ErrorEvent | string, options?: RavenOptions): RavenStatic;
 
         /*
         * Manually send a message to Sentry
@@ -209,17 +209,30 @@ declare module Raven {
         * Set/Clear a user to be sent along with the payload.
         *
         * @param {object} user An object representing user data [optional]
+        *                 If user is undefined, the current user context will be removed.
         * @return {Raven}
         */
         setUserContext(user?: {
             [key: string]: string | number | boolean | null | void
         }): RavenStatic;
 
-        /** Merge extra attributes to be sent along with the payload. */
-        setExtraContext(context: Object): RavenStatic;
+        /*
+        * Merge extra attributes to be sent along with the payload.
+        *
+        * @param {object} context A set of data to be merged with the current extra context data [optional]
+        *                 If context is undefined, the current extra context data will be removed.
+        * @return {Raven}
+        */
+        setExtraContext(context?: Object): RavenStatic;
 
-        /** Merge tags to be sent along with the payload. */
-        setTagsContext(tags: Object): RavenStatic;
+        /*
+        * Merge tags to be sent along with the payload.
+        *
+        * @param {object} tags A set of data to be merged with the current tag context data [optional]
+        *                 If tags is undefined, the current tag context data will be removed.
+        * @return {Raven}
+        */
+        setTagsContext(tags?: Object): RavenStatic;
 
         /** Clear all of the context. */
         clearContext(): RavenStatic;
@@ -301,5 +314,5 @@ declare module Raven {
         sentry?: boolean;
     }
 
-    type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
+    type LogLevel = "critical" | "error" | "warning" | "info" | "debug" | "warn" | "log";
 }
