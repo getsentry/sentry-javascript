@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.22.1
+
+* NEW: Check for `SENTRY_RELEASE` during config phase (#1194)
+* CHANGE: Fix ChromeLauncher for Travis integration tests (#1196)
+* BUGFIX: Do not include credentials by default (#1191)
+* BUGFIX: Call captureBreadcrumb for fetch after its done (#1197)
+
 ## 3.22.0
 
 * NEW: Add `fetchParameters` to configure `fetch` (#1177)

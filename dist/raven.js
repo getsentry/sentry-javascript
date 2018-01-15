@@ -1,4 +1,4 @@
-/*! Raven.js 3.22.0 (50583ff) | github.com/getsentry/raven-js */
+/*! Raven.js 3.22.1 (eec289b) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -134,6 +134,8 @@ function Raven() {
   this._globalProject = null;
   this._globalContext = {};
   this._globalOptions = {
+    // SENTRY_RELEASE can be injected by https://github.com/getsentry/sentry-webpack-plugin
+    release: _window.SENTRY_RELEASE && _window.SENTRY_RELEASE.id,
     logger: 'javascript',
     ignoreErrors: [],
     ignoreUrls: [],
@@ -152,7 +154,6 @@ function Raven() {
   };
   this._fetchDefaults = {
     method: 'POST',
-    credentials: 'include',
     keepalive: true,
     referrerPolicy: 'origin'
   };
@@ -190,7 +191,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.22.0',
+  VERSION: '3.22.1',
 
   debug: false,
 
@@ -1344,14 +1345,14 @@ Raven.prototype = {
               status_code: null
             };
 
-            self.captureBreadcrumb({
-              type: 'http',
-              category: 'fetch',
-              data: fetchData
-            });
-
             return origFetch.apply(this, args).then(function(response) {
               fetchData.status_code = response.status;
+
+              self.captureBreadcrumb({
+                type: 'http',
+                category: 'fetch',
+                data: fetchData
+              });
 
               return response;
             });
