@@ -10,9 +10,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@sentry/core@^0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-0.2.1.tgz#4ab771ef370397eb24ac03b5686fe805d5ab523a"
+"@sentry/core@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-0.3.0.tgz#83c46eab5d83f8dbe4b8c762cd9ddc83ab40ec6b"
 
 "@types/events@*":
   version "1.1.0"
