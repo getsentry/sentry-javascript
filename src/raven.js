@@ -1280,14 +1280,14 @@ Raven.prototype = {
               status_code: null
             };
 
-            self.captureBreadcrumb({
-              type: 'http',
-              category: 'fetch',
-              data: fetchData
-            });
-
             return origFetch.apply(this, args).then(function(response) {
               fetchData.status_code = response.status;
+
+              self.captureBreadcrumb({
+                type: 'http',
+                category: 'fetch',
+                data: fetchData
+              });
 
               return response;
             });
