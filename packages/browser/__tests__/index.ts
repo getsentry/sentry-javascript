@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/core';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as path from 'path';
-import * as Puppeteer from 'puppeteer';
+const Puppeteer = require('puppeteer');
 import { SentryBrowser } from '../index';
 
 describe('Browser Interface', () => {
@@ -29,13 +29,16 @@ describe('Browser Interface', () => {
       })
       .listen(8999);
 
-    const browser = await Puppeteer.launch({ headless: true });
+    const browser = await Puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const page = await browser.newPage();
 
-    page.on('request', async request => {
+    page.on('request', async (request: any) => {
       // @ts-ignore
-      if (request.resourceType === 'other' || request.resourceType === 'xhr') {
-        const data = JSON.parse(request.postData as any);
+      if (request.resourceType() === 'other' || request.resourceType() === 'xhr') {
+        const data = JSON.parse(request.postData() as any);
         if (data.exception) {
           expect(data.exception).not.toBeUndefined();
         } else {
