@@ -69,6 +69,8 @@ function Raven() {
   this._globalProject = null;
   this._globalContext = {};
   this._globalOptions = {
+    // SENTRY_RELEASE can be injected by https://github.com/getsentry/sentry-webpack-plugin
+    release: _window.SENTRY_RELEASE && _window.SENTRY_RELEASE.id,
     logger: 'javascript',
     ignoreErrors: [],
     ignoreUrls: [],
