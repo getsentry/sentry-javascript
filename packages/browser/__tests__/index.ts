@@ -29,7 +29,10 @@ describe('Browser Interface', () => {
       })
       .listen(8999);
 
-    const browser = await Puppeteer.launch({ headless: true });
+    const browser = await Puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const page = await browser.newPage();
 
     page.on('request', async (request: any) => {
