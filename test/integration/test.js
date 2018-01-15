@@ -733,12 +733,17 @@ describe('integration', function() {
             assert.equal(breadcrumbs[0].data.url, breadcrumbUrl);
           } else {
             // otherwise we use a fetch polyfill based on xhr
-            assert.equal(breadcrumbs.length, 1);
+            assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             assert.equal(breadcrumbs[0].data.url, breadcrumbUrl);
+
+            assert.equal(breadcrumbs[1].type, 'http');
+            assert.equal(breadcrumbs[1].category, 'fetch');
+            assert.equal(breadcrumbs[1].data.method, 'GET');
+            assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
           }
         }
       );
@@ -778,11 +783,16 @@ describe('integration', function() {
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           } else {
             // otherwise we use a fetch polyfill based on xhr
-            assert.equal(breadcrumbs.length, 1);
+            assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
+
+            assert.equal(breadcrumbs[1].type, 'http');
+            assert.equal(breadcrumbs[1].category, 'fetch');
+            assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           }
         }
@@ -823,11 +833,16 @@ describe('integration', function() {
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           } else {
             // otherwise we use a fetch polyfill based on xhr
-            assert.equal(breadcrumbs.length, 1);
+            assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
+
+            assert.equal(breadcrumbs[1].type, 'http');
+            assert.equal(breadcrumbs[1].category, 'fetch');
+            assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           }
         }
