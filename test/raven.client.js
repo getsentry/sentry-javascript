@@ -2,6 +2,9 @@
 /* global Promise */
 'use strict';
 
+var versionRegexp = /^v(\d+)\.(\d+)\.(\d+)$/i;
+var majorVersion = parseInt(versionRegexp.exec(process.version)[1], 10);
+
 var raven = require('../'),
   nock = require('nock'),
   url = require('url'),
@@ -246,6 +249,62 @@ describe('raven.Client', function() {
       client.captureException('wtf?');
     });
 
+    it('should serialize non-error exceptions', function(done) {
+      var old = client.send;
+      client.send = function mockSend(kwargs) {
+        client.send = old;
+
+        kwargs.message.should.equal(
+          'Non-Error exception captured with keys: aKeyOne, bKeyTwo, cKeyThree, dKeyFour\u2026'
+        );
+
+        // Remove superfluous node version data to simplify the test itself
+        delete kwargs.extra.node;
+        kwargs.extra.should.have.property('__serialized__', {
+          aKeyOne: 'a',
+          bKeyTwo: 42,
+          cKeyThree: {},
+          dKeyFour: ['d'],
+          eKeyFive: '[Function: foo]',
+          fKeySix: {
+            levelTwo: {
+              levelThreeObject: '[Object]',
+              levelThreeArray: '[Array]',
+              // Node < 6 is not capable of pulling function name from unnamed object methods
+              levelThreeAnonymousFunction:
+                majorVersion < 6
+                  ? '[Function]'
+                  : '[Function: levelThreeAnonymousFunction]',
+              levelThreeNamedFunction: '[Function: bar]',
+              levelThreeString: 'foo',
+              levelThreeNumber: 42
+            }
+          }
+        });
+
+        done();
+      };
+      client.captureException({
+        aKeyOne: 'a',
+        bKeyTwo: 42,
+        cKeyThree: {},
+        dKeyFour: ['d'],
+        eKeyFive: function foo() {},
+        fKeySix: {
+          levelTwo: {
+            levelThreeObject: {
+              enough: 42
+            },
+            levelThreeArray: [42],
+            levelThreeAnonymousFunction: function() {},
+            levelThreeNamedFunction: function bar() {},
+            levelThreeString: 'foo',
+            levelThreeNumber: 42
+          }
+        }
+      });
+    });
+
     it('should send an Error to Sentry server on another port', function(done) {
       var scope = nock('https://app.getsentry.com:8443')
         .filteringRequestBody(/.*/, '*')
@@ -380,9 +439,7 @@ describe('raven.Client', function() {
 
     describe('exit conditions', function() {
       var exitStr = 'exit test assertions complete\n';
-      it('should catch an uncaughtException and capture it before exiting', function(
-        done
-      ) {
+      it('should catch an uncaughtException and capture it before exiting', function(done) {
         child_process.exec('node test/exit/capture.js', function(err, stdout, stderr) {
           stdout.should.equal(exitStr);
           stderr.should.startWith('Error: derp');
@@ -390,9 +447,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch an uncaughtException and capture it before calling a provided callback', function(
-        done
-      ) {
+      it('should catch an uncaughtException and capture it before calling a provided callback', function(done) {
         child_process.exec('node test/exit/capture_callback.js', function(
           err,
           stdout,
@@ -405,9 +460,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch an uncaughtException and capture it without a second followup exception causing premature shutdown', function(
-        done
-      ) {
+      it('should catch an uncaughtException and capture it without a second followup exception causing premature shutdown', function(done) {
         child_process.exec('node test/exit/capture_with_second_error.js', function(
           err,
           stdout,
@@ -419,9 +472,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function(
-        done
-      ) {
+      it('should treat an error thrown by captureException from uncaughtException handler as a sending error passed to onFatalError', function(done) {
         this.timeout(4000);
         child_process.exec('node test/exit/throw_on_send.js', function(
           err,
@@ -447,9 +498,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch a domain exception and capture it before calling a provided callback', function(
-        done
-      ) {
+      it('should catch a domain exception and capture it before calling a provided callback', function(done) {
         child_process.exec('node test/exit/domain_capture_callback.js', function(
           err,
           stdout,
@@ -462,9 +511,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch a domain exception and capture it without a second followup exception causing premature shutdown', function(
-        done
-      ) {
+      it('should catch a domain exception and capture it without a second followup exception causing premature shutdown', function(done) {
         child_process.exec('node test/exit/domain_capture_with_second_error.js', function(
           err,
           stdout,
@@ -476,9 +523,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function(
-        done
-      ) {
+      it('should treat an error thrown by captureException from domain exception handler as a sending error passed to onFatalError', function(done) {
         this.timeout(4000);
         child_process.exec('node test/exit/domain_throw_on_send.js', function(
           err,
@@ -492,9 +537,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch an uncaughtException and capture it without a second followup domain exception causing premature shutdown', function(
-        done
-      ) {
+      it('should catch an uncaughtException and capture it without a second followup domain exception causing premature shutdown', function(done) {
         child_process.exec('node test/exit/capture_with_second_domain_error.js', function(
           err,
           stdout,
@@ -506,9 +549,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should catch an uncaughtException and capture it and failsafe shutdown if onFatalError throws', function(
-        done
-      ) {
+      it('should catch an uncaughtException and capture it and failsafe shutdown if onFatalError throws', function(done) {
         child_process.exec('node test/exit/throw_on_fatal.js', function(
           err,
           stdout,
@@ -579,9 +620,7 @@ describe('raven.Client', function() {
       );
     });
 
-    it('should pass original shouldSendCallback to newer shouldSendCallback', function(
-      done
-    ) {
+    it('should pass original shouldSendCallback to newer shouldSendCallback', function(done) {
       var cb1 = function(data) {
         return false;
       };

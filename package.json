@@ -32,6 +32,7 @@
   "dependencies": {
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
+    "md5": "^2.2.1",
     "stack-trace": "0.0.9",
     "timed-out": "4.0.1",
     "uuid": "3.0.0"

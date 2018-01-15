@@ -1,5 +1,8 @@
-/* eslint max-len:0 */
+/* eslint max-len:0, no-undefined:0 */
 'use strict';
+
+var versionRegexp = /^v(\d+)\.(\d+)\.(\d+)$/i;
+var majorVersion = parseInt(versionRegexp.exec(process.version)[1], 10);
 
 var raven = require('../');
 
@@ -192,9 +195,7 @@ describe('raven.utils', function() {
       }
     });
 
-    it('should treat windows files as being in app: in_app should be true', function(
-      done
-    ) {
+    it('should treat windows files as being in app: in_app should be true', function(done) {
       var parseStack = raven.utils.parseStack;
       var callback = function(frames) {
         var frame = frames.pop();
@@ -242,9 +243,7 @@ describe('raven.utils', function() {
       }
     });
 
-    it('should not read the same source file multiple times when getting source context lines', function(
-      done
-    ) {
+    it('should not read the same source file multiple times when getting source context lines', function(done) {
       var fs = require('fs');
       var origReadFile = fs.readFile;
       var filesRead = [];
@@ -328,6 +327,228 @@ describe('raven.utils', function() {
     it('should fallback to just filename', function() {
       var filename = '/home/lol.js';
       raven.utils.getModule(filename).should.eql('lol');
+    });
+  });
+
+  describe('#serializeException()', function() {
+    it('return [Object] when reached depth=0', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true
+        },
+        0
+      );
+      var expected = '[Object]';
+
+      actual.should.eql(expected);
+    });
+
+    it('should serialize one level deep with depth=1', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true,
+          d: undefined,
+          e:
+            'very long string that is definitely over 120 characters, which is default for now but can be changed anytime because why not?',
+          f: {foo: 42},
+          g: [1, 'a', true],
+          h: function() {}
+        },
+        1
+      );
+      var expected = {
+        a: 42,
+        b: 'asd',
+        c: true,
+        d: undefined,
+        e: 'very long string that is definitely ove\u2026',
+        f: '[Object]',
+        g: '[Array]',
+        // Node < 6 is not capable of pulling function name from unnamed object methods
+        h: majorVersion < 6 ? '[Function]' : '[Function: h]'
+      };
+
+      actual.should.eql(expected);
+    });
+
+    it('should serialize arbitrary number of depths', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true,
+          d: undefined,
+          e:
+            'very long string that is definitely over 40 characters, which is default for now but can be changed',
+          f: {
+            foo: 42,
+            bar: {
+              foo: 42,
+              bar: {
+                bar: {
+                  bar: {
+                    bar: 42
+                  }
+                }
+              },
+              baz: ['hello']
+            },
+            baz: [1, 'a', true]
+          },
+          g: [1, 'a', true],
+          h: function bar() {}
+        },
+        5
+      );
+      var expected = {
+        a: 42,
+        b: 'asd',
+        c: true,
+        d: undefined,
+        e: 'very long string that is definitely ove\u2026',
+        f: {
+          foo: 42,
+          bar: {
+            foo: 42,
+            bar: {
+              bar: {
+                bar: '[Object]'
+              }
+            },
+            baz: ['hello']
+          },
+          baz: [1, 'a', true]
+        },
+        g: [1, 'a', true],
+        h: '[Function: bar]'
+      };
+
+      actual.should.eql(expected);
+    });
+
+    it('should reduce depth if payload size was exceeded', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: {
+            a: '50kB worth of payload pickle rick',
+            b: '50kB worth of payload pickle rick'
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        2,
+        100
+      );
+      var expected = {
+        a: '[Object]',
+        b: '50kB worth of payload pickle rick'
+      };
+
+      actual.should.eql(expected);
+    });
+
+    it('should reduce depth only one level at the time', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: {
+            a: {
+              a: {
+                a: [
+                  '50kB worth of payload pickle rick',
+                  '50kB worth of payload pickle rick',
+                  '50kB worth of payload pickle rick'
+                ]
+              }
+            },
+            b: '50kB worth of payload pickle rick'
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        4,
+        200
+      );
+      var expected = {
+        a: {
+          a: {
+            a: {
+              a: '[Array]'
+            }
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        b: '50kB worth of payload pickle rick'
+      };
+
+      actual.should.eql(expected);
+    });
+
+    it('should fallback to [Object] if cannot reduce payload size enough', function() {
+      var actual = raven.utils.serializeException(
+        {
+          a: '50kB worth of payload pickle rick',
+          b: '50kB worth of payload pickle rick',
+          c: '50kB worth of payload pickle rick',
+          d: '50kB worth of payload pickle rick'
+        },
+        1,
+        100
+      );
+      var expected = '[Object]';
+
+      actual.should.eql(expected);
+    });
+  });
+
+  describe('#serializeKeysForMessage()', function() {
+    it('should fit as many keys as possible in default limit of 40', function() {
+      var actual = raven.utils.serializeKeysForMessage([
+        'pickle',
+        'rick',
+        'morty',
+        'snuffles',
+        'server',
+        'request'
+      ]);
+      var expected = 'pickle, rick, morty, snuffles, server\u2026';
+      actual.should.eql(expected);
+    });
+
+    it('shouldnt append ellipsis if have enough space', function() {
+      var actual = raven.utils.serializeKeysForMessage(['pickle', 'rick', 'morty']);
+      var expected = 'pickle, rick, morty';
+      actual.should.eql(expected);
+    });
+
+    it('should default to no-keys message if empty array provided', function() {
+      var actual = raven.utils.serializeKeysForMessage([]);
+      var expected = '[object has no keys]';
+      actual.should.eql(expected);
+    });
+
+    it('should leave first key as is, if its too long for the limit', function() {
+      var actual = raven.utils.serializeKeysForMessage([
+        'imSuchALongKeyThatIDontEvenFitInTheLimitOf40Characters',
+        'pickle'
+      ]);
+      var expected = 'imSuchALongKeyThatIDontEvenFitInTheLimitOf40Characters';
+      actual.should.eql(expected);
+    });
+
+    it('should with with provided maxLength', function() {
+      var actual = raven.utils.serializeKeysForMessage(['foo', 'bar', 'baz'], 10);
+      var expected = 'foo, bar\u2026';
+      actual.should.eql(expected);
+    });
+
+    it('handles incorrect input', function() {
+      raven.utils.serializeKeysForMessage({}).should.eql('');
+      raven.utils.serializeKeysForMessage(false).should.eql('');
+      raven.utils.serializeKeysForMessage(undefined).should.eql('');
+      raven.utils.serializeKeysForMessage(42).should.eql('42');
+      raven.utils.serializeKeysForMessage('foo').should.eql('foo');
     });
   });
 });
