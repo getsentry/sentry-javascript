@@ -313,7 +313,6 @@ Those configuration options are documented below:
 
         {
             method: 'POST',
-            credentials: 'include',
             keepalive: true,
             referrerPolicy: 'origin'
         }
