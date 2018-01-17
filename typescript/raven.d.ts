@@ -35,6 +35,9 @@ declare module Raven {
         /** An array of regex patterns to indicate which urls are a part of your app. */
         includePaths?: (RegExp | string)[];
 
+        /** set to false to disable collecting window errors */
+        collectWindowErrors?: boolean;
+
         /** Additional data to be tagged onto the error. */
         tags?: {
             [id: string]: string;
