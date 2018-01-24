@@ -6,19 +6,12 @@ var sinon = require('sinon');
 var chai = require('chai');
 var assert = chai.assert;
 
-var proxyquire = require('proxyquireify')(require);
+var _Raven = require('../src/raven');
+_Raven.prototype._getUuid = function() {
+  return 'abc123'; // Mock in order to get a predictable UUID
+};
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
-
-var _Raven = proxyquire('../src/raven', {
-  // Ensure same TraceKit obj is shared (without specifying this, proxyquire
-  // seems to clone dependencies or something weird)
-  '../vendor/TraceKit/tracekit': TraceKit
-});
-
-_Raven.prototype._getUuid = function() {
-  return 'abc123';
-};
 
 var utils = require('../src/utils');
 var joinRegExp = utils.joinRegExp;
@@ -2510,7 +2503,7 @@ describe('Raven (public API)', function() {
       }, error);
     });
 
-    it('should return input funciton as-is if accessing __raven__ prop throws exception', function() {
+    it('should return input function as-is if accessing __raven__ prop throws exception', function() {
       // see raven-js#495
       var fn = function() {};
       Object.defineProperty(fn, '__raven__', {
@@ -2519,13 +2512,13 @@ describe('Raven (public API)', function() {
         }
       });
       assert.throw(function() {
-        fn.__raven__;
+        return fn.__raven__;
       }, 'Permission denied');
       var wrapped = Raven.wrap(fn);
       assert.equal(fn, wrapped);
     });
 
-    it('should return input funciton as-is if accessing __raven_wrapper__ prop throws exception', function() {
+    it('should return input function as-is if accessing __raven_wrapper__ prop throws exception', function() {
       // see raven-js#495
       var fn = function() {};
       Object.defineProperty(fn, '__raven_wrapper__', {
@@ -2534,7 +2527,7 @@ describe('Raven (public API)', function() {
         }
       });
       assert.throw(function() {
-        fn.__raven_wrapper__;
+        return fn.__raven_wrapper__;
       }, 'Permission denied');
       var wrapped = Raven.wrap(fn);
       assert.equal(fn, wrapped);
