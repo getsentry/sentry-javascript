@@ -8,6 +8,19 @@ Sentry supports un-minifying JavaScript via `Source Maps
 view source code context obtained from stack traces in their original untransformed form, which is particularly useful for debugging minified code (e.g. UglifyJS), or transpiled code from a higher-level
 language (e.g. TypeScript, ES6).
 
+Specify the release in Raven.js
+-------------------------------
+
+If you are uploading sourcemap artifacts yourself, you must specify the release in your Raven.js client configuration.
+Sentry will use the release name to associate digested event data with the files you've uploaded via the `releases API<https://docs.sentry.io/api/releases/>`, `sentry-cli<https://docs.sentry.io/learn/cli/>` or `sentry-webpack-plugin<https://github.com/getsentry/sentry-webpack-plugin>`.
+This step is optional if you are hosting sourcemaps on the remote server.
+
+.. code-block:: javascript
+
+  Raven.config('your-dsn', {
+    release: '1.2.3-beta'
+  }).install();
+
 Generating a Source Map
 -----------------------
 
@@ -339,19 +352,6 @@ Troubleshooting
 ---------------
 
 Source maps can sometimes be tricky to get going. If you're having trouble, try the following tips.
-
-Verify you have specified the release in your client config
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You must specify the active release in your Raven.js client configuration:
-
-.. code-block:: javascript
-
-  Raven.config('your-dsn', {
-    release: '1.2.3-beta'
-  }).install();
-
-Sentry needs this to associate ingested event data with the release and artifacts you've created via the API.
 
 Verify your source maps are built correctly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
