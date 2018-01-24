@@ -26,6 +26,7 @@ var isSameException = utils.isSameException;
 var isSameStacktrace = utils.isSameStacktrace;
 var parseUrl = utils.parseUrl;
 var fill = utils.fill;
+var supportsFetch = utils.supportsFetch;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -68,11 +69,14 @@ function Raven() {
   this._globalProject = null;
   this._globalContext = {};
   this._globalOptions = {
+    // SENTRY_RELEASE can be injected by https://github.com/getsentry/sentry-webpack-plugin
+    release: _window.SENTRY_RELEASE && _window.SENTRY_RELEASE.id,
     logger: 'javascript',
     ignoreErrors: [],
     ignoreUrls: [],
     whitelistUrls: [],
     includePaths: [],
+    headers: null,
     collectWindowErrors: true,
     maxMessageLength: 0,
 
@@ -82,6 +86,11 @@ function Raven() {
     autoBreadcrumbs: true,
     instrument: true,
     sampleRate: 1
+  };
+  this._fetchDefaults = {
+    method: 'POST',
+    keepalive: true,
+    referrerPolicy: 'origin'
   };
   this._ignoreOnError = 0;
   this._isRavenInstalled = false;
@@ -117,7 +126,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.20.1',
+  VERSION: '3.22.1',
 
   debug: false,
 
@@ -684,14 +693,14 @@ Raven.prototype = {
   },
 
   /**
-     * Override the default HTTP transport mechanism that transmits data
-     * to the Sentry server.
-     *
-     * @param {function} transport Function invoked instead of the default
-     *                             `makeRequest` handler.
-     *
-     * @return {Raven}
-     */
+   * Override the default HTTP transport mechanism that transmits data
+   * to the Sentry server.
+   *
+   * @param {function} transport Function invoked instead of the default
+   *                             `makeRequest` handler.
+   *
+   * @return {Raven}
+   */
   setTransport: function(transport) {
     this._globalOptions.transport = transport;
 
@@ -828,11 +837,11 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture UI breadcrumbs
-     * @param evtName the event name (e.g. "click")
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture UI breadcrumbs
+   * @param evtName the event name (e.g. "click")
+   * @returns {Function}
+   * @private
+   */
   _breadcrumbEventHandler: function(evtName) {
     var self = this;
     return function(evt) {
@@ -867,10 +876,10 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture keypress UI events
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture keypress UI events
+   * @returns {Function}
+   * @private
+   */
   _keypressEventHandler: function() {
     var self = this,
       debounceDuration = 1000; // milliseconds
@@ -912,11 +921,11 @@ Raven.prototype = {
   },
 
   /**
-     * Captures a breadcrumb of type "navigation", normalizing input URLs
-     * @param to the originating URL
-     * @param from the target URL
-     * @private
-     */
+   * Captures a breadcrumb of type "navigation", normalizing input URLs
+   * @param to the originating URL
+   * @param from the target URL
+   * @private
+   */
   _captureUrlChange: function(from, to) {
     var parsedLoc = parseUrl(this._location.href);
     var parsedTo = parseUrl(to);
@@ -963,9 +972,9 @@ Raven.prototype = {
   },
 
   /**
-     * Wrap timer functions and event targets to catch errors and provide
-     * better metadata.
-     */
+   * Wrap timer functions and event targets to catch errors and provide
+   * better metadata.
+   */
   _instrumentTryCatch: function() {
     var self = this;
 
@@ -1129,14 +1138,14 @@ Raven.prototype = {
   },
 
   /**
-     * Instrument browser built-ins w/ breadcrumb capturing
-     *  - XMLHttpRequests
-     *  - DOM interactions (click/typing)
-     *  - window.location changes
-     *  - console
-     *
-     * Can be disabled or individually configured via the `autoBreadcrumbs` config option
-     */
+   * Instrument browser built-ins w/ breadcrumb capturing
+   *  - XMLHttpRequests
+   *  - DOM interactions (click/typing)
+   *  - window.location changes
+   *  - console
+   *
+   * Can be disabled or individually configured via the `autoBreadcrumbs` config option
+   */
   _instrumentBreadcrumbs: function() {
     var self = this;
     var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
@@ -1179,7 +1188,7 @@ Raven.prototype = {
         xhrproto,
         'send',
         function(origSend) {
-          return function(data) {
+          return function() {
             // preserve arity
             var xhr = this;
 
@@ -1227,12 +1236,12 @@ Raven.prototype = {
       );
     }
 
-    if (autoBreadcrumbs.xhr && 'fetch' in _window) {
+    if (autoBreadcrumbs.xhr && supportsFetch()) {
       fill(
         _window,
         'fetch',
         function(origFetch) {
-          return function(fn, t) {
+          return function() {
             // preserve arity
             // Make a copy of the arguments to prevent deoptimization
             // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
@@ -1256,6 +1265,11 @@ Raven.prototype = {
               url = '' + fetchInput;
             }
 
+            // if Sentry key appears in URL, don't capture, as it's our own request
+            if (url.indexOf(self._globalKey) !== -1) {
+              return origFetch.apply(this, args);
+            }
+
             if (args[1] && args[1].method) {
               method = args[1].method;
             }
@@ -1266,14 +1280,14 @@ Raven.prototype = {
               status_code: null
             };
 
-            self.captureBreadcrumb({
-              type: 'http',
-              category: 'fetch',
-              data: fetchData
-            });
-
             return origFetch.apply(this, args).then(function(response) {
               fetchData.status_code = response.status;
+
+              self.captureBreadcrumb({
+                type: 'http',
+                category: 'fetch',
+                data: fetchData
+              });
 
               return response;
             });
@@ -1583,8 +1597,8 @@ Raven.prototype = {
   },
 
   /**
-     * Truncate breadcrumb values (right now just URLs)
-     */
+   * Truncate breadcrumb values (right now just URLs)
+   */
   _trimBreadcrumbs: function(breadcrumbs) {
     // known breadcrumb properties with urls
     // TODO: also consider arbitrary prop values that start with (https?)?://
@@ -1623,14 +1637,14 @@ Raven.prototype = {
       };
     }
 
-    if (this._hasDocument) {
-      if (_document.location && _document.location.href) {
-        httpData.url = _document.location.href;
-      }
-      if (_document.referrer) {
-        if (!httpData.headers) httpData.headers = {};
-        httpData.headers.Referer = _document.referrer;
-      }
+    // Check in `window` instead of `document`, as we may be in ServiceWorker environment
+    if (_window.location && _window.location.href) {
+      httpData.url = _window.location.href;
+    }
+
+    if (this._hasDocument && _document.referrer) {
+      if (!httpData.headers) httpData.headers = {};
+      httpData.headers.Referer = _document.referrer;
     }
 
     return httpData;
@@ -1646,14 +1660,14 @@ Raven.prototype = {
   },
 
   /**
-     * Returns true if the in-process data payload matches the signature
-     * of the previously-sent data
-     *
-     * NOTE: This has to be done at this level because TraceKit can generate
-     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
-     *       other old browsers). This can take the form of an "exception"
-     *       data object with a single frame (derived from the onerror args).
-     */
+   * Returns true if the in-process data payload matches the signature
+   * of the previously-sent data
+   *
+   * NOTE: This has to be done at this level because TraceKit can generate
+   *       data from window.onerror WITHOUT an exception object (IE8, IE9,
+   *       other old browsers). This can take the form of an "exception"
+   *       data object with a single frame (derived from the onerror args).
+   */
   _isRepeatData: function(current) {
     var last = this._lastData;
 
@@ -1692,8 +1706,14 @@ Raven.prototype = {
     try {
       // If Retry-After is not in Access-Control-Expose-Headers, most
       // browsers will throw an exception trying to access it
-      retry = request.getResponseHeader('Retry-After');
-      retry = parseInt(retry, 10) * 1000; // Retry-After is returned in seconds
+      if (supportsFetch()) {
+        retry = request.headers.get('Retry-After');
+      } else {
+        retry = request.getResponseHeader('Retry-After');
+      }
+
+      // Retry-After is returned in seconds
+      retry = parseInt(retry, 10) * 1000;
     } catch (e) {
       /* eslint no-empty:0 */
     }
@@ -1741,9 +1761,6 @@ Raven.prototype = {
       };
     }
 
-    // If there are no tags/extra, strip the key from the payload alltogther.
-    if (isEmptyObject(data.tags)) delete data.tags;
-
     if (this._globalContext.user) {
       // sentry.interfaces.User
       data.user = this._globalContext.user;
@@ -1757,6 +1774,13 @@ Raven.prototype = {
 
     // Include server_name if it's defined in globalOptions
     if (globalOptions.serverName) data.server_name = globalOptions.serverName;
+
+    // Cleanup empty properties before sending them to the server
+    Object.keys(data).forEach(function(key) {
+      if (data[key] == null || data[key] === '' || isEmptyObject(data[key])) {
+        delete data[key];
+      }
+    });
 
     if (isFunction(globalOptions.dataCallback)) {
       data = globalOptions.dataCallback(data) || data;
@@ -1882,6 +1906,49 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
+    // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
+    var url = opts.url + '?' + urlencode(opts.auth);
+
+    var evaluatedHeaders = null;
+    var evaluatedFetchParameters = {};
+
+    if (opts.options.headers) {
+      evaluatedHeaders = this._evaluateHash(opts.options.headers);
+    }
+
+    if (opts.options.fetchParameters) {
+      evaluatedFetchParameters = this._evaluateHash(opts.options.fetchParameters);
+    }
+
+    if (supportsFetch()) {
+      evaluatedFetchParameters.body = stringify(opts.data);
+
+      var defaultFetchOptions = objectMerge({}, this._fetchDefaults);
+      var fetchOptions = objectMerge(defaultFetchOptions, evaluatedFetchParameters);
+
+      if (evaluatedHeaders) {
+        fetchOptions.headers = evaluatedHeaders;
+      }
+
+      return _window
+        .fetch(url, fetchOptions)
+        .then(function(response) {
+          if (response.ok) {
+            opts.onSuccess && opts.onSuccess();
+          } else {
+            var error = new Error('Sentry error code: ' + response.status);
+            // It's called request only to keep compatibility with XHR interface
+            // and not add more redundant checks in setBackoffState method
+            error.request = response;
+            opts.onError && opts.onError(error);
+          }
+        })
+        ['catch'](function() {
+          opts.onError &&
+            opts.onError(new Error('Sentry error code: network unavailable'));
+        });
+    }
+
     var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
     if (!request) return;
 
@@ -1889,8 +1956,6 @@ Raven.prototype = {
     var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
 
     if (!hasCORS) return;
-
-    var url = opts.url;
 
     if ('withCredentials' in request) {
       request.onreadystatechange = function() {
@@ -1923,10 +1988,28 @@ Raven.prototype = {
       }
     }
 
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
+    request.open('POST', url);
+
+    if (evaluatedHeaders) {
+      each(evaluatedHeaders, function(key, value) {
+        request.setRequestHeader(key, value);
+      });
+    }
+
     request.send(stringify(opts.data));
+  },
+
+  _evaluateHash: function(hash) {
+    var evaluated = {};
+
+    for (var key in hash) {
+      if (hash.hasOwnProperty(key)) {
+        var value = hash[key];
+        evaluated[key] = typeof value === 'function' ? value() : value;
+      }
+    }
+
+    return evaluated;
   },
 
   _logDebug: function(level) {

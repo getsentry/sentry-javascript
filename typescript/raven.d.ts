@@ -63,6 +63,16 @@ declare module Raven {
         /** Override the default HTTP data transport handler. */
         transport?: (options: RavenTransportOptions) => void;
 
+        /** Append headers to the fetch or XMLHttpRequest request. Should be in a form of hash, were value can be string or function */
+        headers?: {
+            [key: string]: (string | Function);
+        };
+
+        /** `fetch` init parameters */
+        fetchParameters?: {
+            [key: string]: (string | Function);
+        };
+
         /** Allow use of private/secretKey. */
         allowSecretKey?: boolean;
 
@@ -82,6 +92,13 @@ declare module Raven {
          * A sampling rate to apply to events. A value of 0.0 will send no events, and a value of 1.0 will send all events (default).
          */
         sampleRate?: number;
+
+        /**
+         * By default, Raven.js attempts to suppress duplicate captured errors and messages that occur back-to-back. 
+         * Such events are often triggered by rogue code (e.g. from a `setInterval` callback in a browser extension), 
+         * are not actionable, and eat up your event quota.
+         */
+        allowDuplicates?: boolean
     }
 
     interface RavenInstrumentationOptions {
@@ -115,7 +132,7 @@ declare module Raven {
         * Configure Raven with a DSN and extra options
         *
         * @param {string} dsn The public Sentry DSN
-        * @param {object} options Optional set of of global options [optional]
+        * @param {object} options Optional set of global options [optional]
         * @return {Raven}
         */
         config(dsn: string, options?: RavenOptions): RavenStatic;
@@ -170,11 +187,11 @@ declare module Raven {
         /*
         * Manually capture an exception and send it over to Sentry
         *
-        * @param {error} ex An exception to be logged
+        * @param {error|ErrorEvent|string} ex An exception to be logged
         * @param {object} options A specific set of options for this error [optional]
         * @return {Raven}
         */
-        captureException(ex: Error, options?: RavenOptions): RavenStatic;
+        captureException(ex: Error | ErrorEvent | string, options?: RavenOptions): RavenStatic;
 
         /*
         * Manually send a message to Sentry
@@ -188,28 +205,34 @@ declare module Raven {
         /** Log a breadcrumb */
         captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
-        /**
-         * Clear the user context, removing the user data that would be sent to Sentry.
-         */
-        setUserContext(): RavenStatic;
-
         /*
-        * Set a user to be sent along with the payload.
+        * Set/Clear a user to be sent along with the payload.
         *
         * @param {object} user An object representing user data [optional]
+        *                 If user is undefined, the current user context will be removed.
         * @return {Raven}
         */
-        setUserContext(user: {
-            id?: string;
-            username?: string;
-            email?: string;
+        setUserContext(user?: {
+            [key: string]: string | number | boolean | null | void
         }): RavenStatic;
 
-        /** Merge extra attributes to be sent along with the payload. */
-        setExtraContext(context: Object): RavenStatic;
+        /*
+        * Merge extra attributes to be sent along with the payload.
+        *
+        * @param {object} context A set of data to be merged with the current extra context data [optional]
+        *                 If context is undefined, the current extra context data will be removed.
+        * @return {Raven}
+        */
+        setExtraContext(context?: Object): RavenStatic;
 
-        /** Merge tags to be sent along with the payload. */
-        setTagsContext(tags: Object): RavenStatic;
+        /*
+        * Merge tags to be sent along with the payload.
+        *
+        * @param {object} tags A set of data to be merged with the current tag context data [optional]
+        *                 If tags is undefined, the current tag context data will be removed.
+        * @return {Raven}
+        */
+        setTagsContext(tags?: Object): RavenStatic;
 
         /** Clear all of the context. */
         clearContext(): RavenStatic;
@@ -236,13 +259,13 @@ declare module Raven {
         isSetup(): boolean;
 
         /** Specify a function that allows mutation of the data payload right before being sent to Sentry. */
-        setDataCallback(data: any, orig?: any): RavenStatic;
+        setDataCallback(callback?: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to mutate or filter breadcrumbs when they are captured. */
-        setBreadcrumbCallback(data: any, orig?: any): RavenStatic;
+        setBreadcrumbCallback(callback?: RavenCallback): RavenStatic;
 
         /** Specify a callback function that allows you to apply your own filters to determine if the message should be sent to Sentry. */
-        setShouldSendCallback(data: any, orig?: any): RavenStatic;
+        setShouldSendCallback(callback?: RavenCallback): RavenStatic;
 
         /** Show Sentry user feedback dialog */
         showReportDialog(options?: Object): void;
@@ -255,6 +278,8 @@ declare module Raven {
         setDSN(dsn: string): void;
     }
 
+    type RavenCallback = (data: any, orig?: (data: any) => any) => any | void;
+
     interface RavenTransportOptions {
         url: string;
         data: any;
@@ -263,8 +288,8 @@ declare module Raven {
             sentry_client: string;
             sentry_key: string;
         };
-        onSuccess: () => void;
-        onFailure: () => void;
+        onSuccess(): void;
+        onError(error: Error & { request?: XMLHttpRequest }): void;
     }
 
     interface RavenPlugin {
@@ -289,5 +314,5 @@ declare module Raven {
         sentry?: boolean;
     }
 
-    type LogLevel = "critical" | "error" | "warning" | "info" | "debug";
+    type LogLevel = "critical" | "error" | "warning" | "info" | "debug" | "warn" | "log";
 }

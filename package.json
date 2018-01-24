@@ -9,7 +9,7 @@
     "raven",
     "sentry"
   ],
-  "version": "3.20.1",
+  "version": "3.22.1",
   "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
@@ -69,7 +69,7 @@
     "rollup-plugin-commonjs": "^8.2.6",
     "rollup-plugin-node-resolve": "^3.0.0",
     "sinon": "^3.2.1",
-    "typescript": "^1.8.10",
+    "typescript": "^2.3.0",
     "whatwg-fetch": "^2.0.3"
   },
   "prettier": {

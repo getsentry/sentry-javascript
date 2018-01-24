@@ -75,6 +75,6 @@
     }
   },
   "vars": {
-    "RAVEN_VERSION": "3.20.1"
+    "RAVEN_VERSION": "3.22.1"
   }
 }

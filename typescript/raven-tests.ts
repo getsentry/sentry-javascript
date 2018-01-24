@@ -45,19 +45,42 @@ try {
     Raven.captureException(e, {tags: { key: "value" }});
 }
 
+// ErrorEvent requires at least Typescript 2.3.0 due to incorrect ErrorEvent definitions
+// prior to that version.
+var throwsErrorEvent = () => {
+    throw new ErrorEvent('oops', {error: new Error('Oops')});
+};
+
+try {
+    throwsErrorEvent();
+} catch(ee) {
+    Raven.captureException(ee);
+    Raven.captureException(ee, {tags: { key: "value" }});
+}
+
+Raven.captureException('Something broke');
+Raven.captureException('Something broke', {tags: { key: "value" }});
+
 Raven.context(throwsError);
 Raven.context({tags: { key: "value" }}, throwsError);
+Raven.context(throwsErrorEvent);
+Raven.context({tags: { key: "value" }}, throwsErrorEvent);
 
 setTimeout(Raven.wrap(throwsError), 1000);
 Raven.wrap({logger: "my.module"}, throwsError)();
+Raven.wrap(throwsErrorEvent)();
+Raven.wrap({logger: "my.module"}, throwsErrorEvent)();
 
+Raven.setUserContext();
 Raven.setUserContext({
     email: 'matt@example.com',
     id: '123'
 });
 
 Raven.setExtraContext({foo: 'bar'});
+Raven.setExtraContext();
 Raven.setTagsContext({env: 'prod'});
+Raven.setTagsContext();
 Raven.clearContext();
 var obj:Object = Raven.getContext();
 var err:Error = Raven.lastException();
@@ -69,6 +92,7 @@ Raven.captureMessage('Warning', { level: 'warning' });
 Raven.captureBreadcrumb({
     message: "This is a breadcrumb message."
 });
+Raven.captureBreadcrumb({category: "console", level: "log", message: "A console.log() message"});
 
 Raven.setRelease('abc123');
 Raven.setEnvironment('production');

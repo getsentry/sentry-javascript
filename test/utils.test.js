@@ -7,6 +7,7 @@ var RavenConfigError = require('../src/configError');
 var utils = require('../src/utils');
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
+var isPlainObject = utils.isPlainObject;
 var isString = utils.isString;
 var isArray = utils.isArray;
 var isObject = utils.isObject;
@@ -39,6 +40,20 @@ describe('utils', function() {
       assert.isFalse(isFunction({}));
       assert.isFalse(isFunction(''));
       assert.isFalse(isFunction(undefined));
+    });
+  });
+
+  describe('isPlainObject', function() {
+    it('should do as advertised', function() {
+      assert.isTrue(isPlainObject({}));
+      assert.isTrue(isPlainObject({foo: 'bar'}));
+      assert.isTrue(isPlainObject(new Object()));
+      assert.isFalse(isPlainObject([]));
+      assert.isFalse(isPlainObject(undefined));
+      assert.isFalse(isPlainObject(null));
+      assert.isFalse(isPlainObject(1));
+      assert.isFalse(isPlainObject(''));
+      assert.isFalse(isPlainObject(function() {}));
     });
   });
 
@@ -118,6 +133,7 @@ describe('utils', function() {
     }
 
     it('should work as advertised', function() {
+      if (supportsErrorEvent()) assert.isFalse(isError(new ErrorEvent('')));
       assert.isTrue(isError(new Error()));
       assert.isTrue(isError(new ReferenceError()));
       assert.isTrue(isError(new RavenConfigError()));
@@ -336,6 +352,15 @@ describe('utils', function() {
         // this is correct! pushState({}, '', 'example.com/foo') would take you
         // from example.com => example.com/example.com/foo (valid url).
       });
+    });
+
+    it('should return an empty object for invalid input', function() {
+      assert.deepEqual(parseUrl(), {});
+      assert.deepEqual(parseUrl(42), {});
+      assert.deepEqual(parseUrl([]), {});
+      assert.deepEqual(parseUrl({}), {});
+      assert.deepEqual(parseUrl(null), {});
+      assert.deepEqual(parseUrl(undefined), {});
     });
   });
 

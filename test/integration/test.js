@@ -94,9 +94,7 @@ describe('integration', function() {
       );
     });
 
-    it('should generate a synthetic trace for captureException w/ non-errors', function(
-      done
-    ) {
+    it('should generate a synthetic trace for captureException w/ non-errors', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -117,9 +115,7 @@ describe('integration', function() {
       );
     });
 
-    it('should capture an Error object passed to Raven.captureException w/ maxMessageLength set (#647)', function(
-      done
-    ) {
+    it('should capture an Error object passed to Raven.captureException w/ maxMessageLength set (#647)', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -188,9 +184,7 @@ describe('integration', function() {
       );
     });
 
-    it('should not reject back-to-back errors with different stack traces', function(
-      done
-    ) {
+    it('should not reject back-to-back errors with different stack traces', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -239,9 +233,7 @@ describe('integration', function() {
       );
     });
 
-    it('should reject duplicate, back-to-back messages from captureMessage', function(
-      done
-    ) {
+    it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -438,9 +430,7 @@ describe('integration', function() {
       );
     });
 
-    it('should catch an exception already caught [but rethrown] via Raven.captureException', function(
-      done
-    ) {
+    it('should catch an exception already caught [but rethrown] via Raven.captureException', function(done) {
       // unlike Raven.wrap which ALWAYS re-throws, we don't know if the user will
       // re-throw an exception passed to Raven.captureException, and so we cannot
       // automatically suppress the next error caught through window.onerror
@@ -496,9 +486,7 @@ describe('integration', function() {
       );
     });
 
-    it('should transparently remove event listeners from wrapped functions', function(
-      done
-    ) {
+    it('should transparently remove event listeners from wrapped functions', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -588,9 +576,7 @@ describe('integration', function() {
       );
     });
 
-    it('should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)', function(
-      done
-    ) {
+    it('should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -692,9 +678,7 @@ describe('integration', function() {
       );
     });
 
-    it('should NOT denote XMLHttpRequests to the Sentry store endpoint as requiring breadcrumb capture', function(
-      done
-    ) {
+    it('should NOT denote XMLHttpRequests to the Sentry store endpoint as requiring breadcrumb capture', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -752,12 +736,12 @@ describe('integration', function() {
             assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
-            assert.equal(breadcrumbs[0].category, 'fetch');
+            assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             assert.equal(breadcrumbs[0].data.url, breadcrumbUrl);
 
             assert.equal(breadcrumbs[1].type, 'http');
-            assert.equal(breadcrumbs[1].category, 'xhr');
+            assert.equal(breadcrumbs[1].category, 'fetch');
             assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
           }
@@ -765,9 +749,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record a fetch request with Request obj instead of URL string', function(
-      done
-    ) {
+    it('should record a fetch request with Request obj instead of URL string', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -804,14 +786,14 @@ describe('integration', function() {
             assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
-            assert.equal(breadcrumbs[0].category, 'fetch');
+            assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
 
             assert.equal(breadcrumbs[1].type, 'http');
-            assert.equal(breadcrumbs[1].category, 'xhr');
+            assert.equal(breadcrumbs[1].category, 'fetch');
             assert.equal(breadcrumbs[1].data.method, 'GET');
-            assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           }
         }
       );
@@ -854,22 +836,20 @@ describe('integration', function() {
             assert.equal(breadcrumbs.length, 2);
 
             assert.equal(breadcrumbs[0].type, 'http');
-            assert.equal(breadcrumbs[0].category, 'fetch');
+            assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
 
             assert.equal(breadcrumbs[1].type, 'http');
-            assert.equal(breadcrumbs[1].category, 'xhr');
+            assert.equal(breadcrumbs[1].category, 'fetch');
             assert.equal(breadcrumbs[1].data.method, 'GET');
-            assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
+            assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
           }
         }
       );
     });
 
-    it('should record a mouse click on element WITH click handler present', function(
-      done
-    ) {
+    it('should record a mouse click on element WITH click handler present', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -909,9 +889,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record a mouse click on element WITHOUT click handler present', function(
-      done
-    ) {
+    it('should record a mouse click on element WITHOUT click handler present', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -943,9 +921,7 @@ describe('integration', function() {
       );
     });
 
-    it('should only record a SINGLE mouse click for a tree of elements with event listeners', function(
-      done
-    ) {
+    it('should only record a SINGLE mouse click for a tree of elements with event listeners', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -985,9 +961,7 @@ describe('integration', function() {
       );
     });
 
-    it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function(
-      done
-    ) {
+    it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function(done) {
       // see: https://github.com/getsentry/raven-js/issues/768
       var iframe = this.iframe;
 
@@ -1022,9 +996,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record consecutive keypress events into a single "input" breadcrumb', function(
-      done
-    ) {
+    it('should record consecutive keypress events into a single "input" breadcrumb', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -1095,9 +1067,7 @@ describe('integration', function() {
       );
     });
 
-    it('should flush keypress breadcrumb when input event occurs immediately after', function(
-      done
-    ) {
+    it('should flush keypress breadcrumb when input event occurs immediately after', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -1149,9 +1119,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record consecutive keypress events in a contenteditable into a single "input" breadcrumb', function(
-      done
-    ) {
+    it('should record consecutive keypress events in a contenteditable into a single "input" breadcrumb', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -1186,9 +1154,7 @@ describe('integration', function() {
       );
     });
 
-    it('should record history.[pushState|replaceState] changes as navigation breadcrumbs', function(
-      done
-    ) {
+    it('should record history.[pushState|replaceState] changes as navigation breadcrumbs', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(

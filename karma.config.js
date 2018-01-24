@@ -45,9 +45,13 @@ module.exports = {
 
   // start these browsers
   // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-  browsers: ['ChromeHeadless', 'FirefoxHeadless'],
+  browsers: ['ChromeHeadlessNoSandbox', 'FirefoxHeadless'],
 
   customLaunchers: {
+    ChromeHeadlessNoSandbox: {
+      base: 'ChromeHeadless',
+      flags: ['--no-sandbox', '--disable-setuid-sandbox']
+    },
     FirefoxHeadless: {
       base: 'Firefox',
       flags: ['-headless']
@@ -60,7 +64,7 @@ module.exports = {
 
   // Concurrency level
   // how many browser should be started simultaneous
-  concurrency: Infinity,
+  concurrency: 2,
 
   client: {
     mocha: {

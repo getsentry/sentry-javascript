@@ -1,10 +1,10 @@
-/*! Raven.js 3.20.1 (42adaf5) | github.com/getsentry/raven-js */
+/*! Raven.js 3.22.1 (eec289b) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright 2017 Matt Robenolt and other contributors
+ * Copyright 2018 Matt Robenolt and other contributors
  * Released under the BSD license
  * https://github.com/getsentry/raven-js/blob/master/LICENSE
  *
@@ -124,6 +124,10 @@ function isFunction(what) {
   return typeof what === 'function';
 }
 
+function isPlainObject(what) {
+  return Object.prototype.toString.call(what) === '[object Object]';
+}
+
 function isString(what) {
   return Object.prototype.toString.call(what) === '[object String]';
 }
@@ -133,6 +137,8 @@ function isArray(what) {
 }
 
 function isEmptyObject(what) {
+  if (!isPlainObject(what)) return false;
+
   for (var _ in what) {
     if (what.hasOwnProperty(_)) {
       return false;
@@ -144,6 +150,19 @@ function isEmptyObject(what) {
 function supportsErrorEvent() {
   try {
     new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function supportsFetch() {
+  if (!('fetch' in _window)) return false;
+
+  try {
+    new Headers(); // eslint-disable-line no-new
+    new Request(''); // eslint-disable-line no-new
+    new Response(); // eslint-disable-line no-new
     return true;
   } catch (e) {
     return false;
@@ -256,8 +275,8 @@ function urlencode(o) {
 // intentionally using regex and not <a/> href parsing trick because React Native and other
 // environments where DOM might not be available
 function parseUrl(url) {
+  if (typeof url !== 'string') return {};
   var match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
-  if (!match) return {};
 
   // coerce to undefined values to empty string so we don't get 'undefined'
   var query = match[6] || '';
@@ -400,6 +419,13 @@ function isOnlyOneTruthy(a, b) {
 }
 
 /**
+ * Returns true if both parameters are undefined
+ */
+function isBothUndefined(a, b) {
+  return isUndefined(a) && isUndefined(b);
+}
+
+/**
  * Returns true if the two input exception interfaces have the same content
  */
 function isSameException(ex1, ex2) {
@@ -409,6 +435,9 @@ function isSameException(ex1, ex2) {
   ex2 = ex2.values[0];
 
   if (ex1.type !== ex2.type || ex1.value !== ex2.value) return false;
+
+  // in case both stacktraces are undefined, we can't decide so default to false
+  if (isBothUndefined(ex1.stacktrace, ex2.stacktrace)) return false;
 
   return isSameStacktrace(ex1.stacktrace, ex2.stacktrace);
 }
@@ -464,10 +493,12 @@ module.exports = {
   isErrorEvent: isErrorEvent,
   isUndefined: isUndefined,
   isFunction: isFunction,
+  isPlainObject: isPlainObject,
   isString: isString,
   isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsFetch: supportsFetch,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

@@ -21,3 +21,5 @@ scratch/
 
 .idea
 *.sublime-*
+
+yarn-error.log

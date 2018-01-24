@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+
 sudo: false
 language: node_js
 node_js:
@@ -9,9 +10,29 @@ dist: trusty
 cache:
   directories:
   - node_modules
-addons:
-  chrome: stable
-  firefox: latest
-  sauce_connect: true
-script:
-  - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+before_install:
+  - curl -o- -L https://yarnpkg.com/install.sh | bash
+  - export PATH="$HOME/.yarn/bin:$PATH"
+
+matrix:
+  include:
+    - env: NAME="raven-js"
+      addons:
+        chrome: stable
+        firefox: latest
+        sauce_connect: true
+      script:
+        - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
+    - env: NAME="@sentry/core"
+      install: true
+      script:
+      - cd packages/core && yarn install && yarn test
+    - env: NAME="@sentry/browser"
+      install: true
+      script:
+      - yarn link
+      - cd packages/core && yarn link && yarn install && yarn dist
+      - cd ../browser
+      - yarn link "@sentry/core"
+      - yarn link "raven-js"
+      - yarn install && yarn test
