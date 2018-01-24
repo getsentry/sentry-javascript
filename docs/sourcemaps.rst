@@ -11,7 +11,7 @@ language (e.g. TypeScript, ES6).
 Specify the active release in raven
 -----------------------------------
 
-For sourcemaps to work you must ensure you have specified the active release in your Raven.js client configuration:
+If you are uploading your own sourcemap artifacts, you must have specified the active release in your Raven.js client configuration. If your sourcemaps are on your remote server (with your running code) then this step is not needed.
 
 .. code-block:: javascript
 
@@ -19,7 +19,7 @@ For sourcemaps to work you must ensure you have specified the active release in 
     release: '1.2.3-beta'
   }).install();
 
-Sentry needs this to associate ingested event data with the release and artifacts you've created via the API.
+Sentry needs this to associate ingested event data with the release and artifacts you've created via the API. 
 
 Generating a Source Map
 -----------------------
