@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0 - 2018-01-24
+
+- feat: Sensible non-Error exception serializer (#416)
+- fix: workaround for express.js 'host' deprecation message (#413)
+
 ## 2.3.0 - 12/11/2017
 
 - fix: attach remaining non-enumerables to req [See #387]
