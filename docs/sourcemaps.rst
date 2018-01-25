@@ -12,7 +12,7 @@ Specify the release in Raven.js
 -------------------------------
 
 If you are uploading sourcemap artifacts yourself, you must specify the release in your Raven.js client configuration.
-Sentry will use the release name to associate digested event data with the files you've uploaded via the `releases API<https://docs.sentry.io/api/releases/>`, `sentry-cli<https://docs.sentry.io/learn/cli/>` or `sentry-webpack-plugin<https://github.com/getsentry/sentry-webpack-plugin>`.
+Sentry will use the release name to associate digested event data with the files you've uploaded via the `releases API <https://docs.sentry.io/api/releases/>`_, `sentry-cli <https://docs.sentry.io/learn/cli/>_` or `sentry-webpack-plugin <https://github.com/getsentry/sentry-webpack-plugin>`_.
 This step is optional if you are hosting sourcemaps on the remote server.
 
 .. code-block:: javascript
