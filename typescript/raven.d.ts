@@ -98,7 +98,12 @@ declare module Raven {
          * Such events are often triggered by rogue code (e.g. from a `setInterval` callback in a browser extension), 
          * are not actionable, and eat up your event quota.
          */
-        allowDuplicates?: boolean
+        allowDuplicates?: boolean;
+
+        /**
+         * If set to true, Raven.js outputs some light debugging information onto the console.
+         */
+        debug?: boolean;
     }
 
     interface RavenInstrumentationOptions {
