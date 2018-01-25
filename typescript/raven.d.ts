@@ -99,6 +99,11 @@ declare module Raven {
          * are not actionable, and eat up your event quota.
          */
         allowDuplicates?: boolean
+
+        /**
+         * If set to true, Raven.js outputs some light debugging information onto the console.
+         */
+        debug?: boolean;
     }
 
     interface RavenInstrumentationOptions {
