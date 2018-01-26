@@ -103,23 +103,25 @@ To do that however, we can normalize all urls using ``dataCallback`` method:
 
     Raven.config('your-dsn', {
         // the rest of configuration
-        dataCallback: function (data) {
-          var stacktrace = data.exception && data.exception[0].stacktrace;
 
-          if (stacktrace && stacktrace.frames) {
-            stacktrace.frames.forEach(function(frame) {
-              if (frame.filename.startsWith('/')) {
-                frame.filename = 'app:///' + path.basename(frame.filename);
-              }
-            });
-          }
+      dataCallback: function (data) {
+        var stacktrace = data.exception && data.exception[0].stacktrace;
 
-          if (data.culprit) {
-            data.culprit = normalizeUrl(data.culprit);
-          }
-
-          return data;
+        if (stacktrace && stacktrace.frames) {
+          stacktrace.frames.forEach(function(frame) {
+            if (frame.filename.startsWith('/')) {
+              frame.filename = 'app:///' + path.basename(frame.filename);
+            }
+          });
         }
+
+        return data;
       }
     ).install();
 
+There's one very important thing to note here. This config assumes, that you'll bundle your application into a single file.
+That's why we are using `path.basename` to get the filename.
+
+If you are not doing this, eg. you are using TypeScript and upload all your compiled files separately to the server,
+then we need to be a little smarter about this.
+Please refer to `TypeScript usage docs <https://docs.sentry.io/clients/node/typescript/>`_ to see a more complex and detailed example.
