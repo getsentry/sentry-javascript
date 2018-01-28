@@ -8,6 +8,19 @@ Sentry supports un-minifying JavaScript via `Source Maps
 view source code context obtained from stack traces in their original untransformed form, which is particularly useful for debugging minified code (e.g. UglifyJS), or transpiled code from a higher-level
 language (e.g. TypeScript, ES6).
 
+Specify the release in Raven.js
+-------------------------------
+
+If you are uploading sourcemap artifacts yourself, you must specify the release in your Raven.js client configuration.
+Sentry will use the release name to associate digested event data with the files you've uploaded via the `releases API <https://docs.sentry.io/api/releases/>`_, `sentry-cli <https://docs.sentry.io/learn/cli/>`_ or `sentry-webpack-plugin <https://github.com/getsentry/sentry-webpack-plugin>`_.
+This step is optional if you are hosting sourcemaps on the remote server.
+
+.. code-block:: javascript
+
+  Raven.config('your-dsn', {
+    release: '1.2.3-beta'
+  }).install();
+
 Generating a Source Map
 -----------------------
 
@@ -145,11 +158,12 @@ sourcemaps) within Sentry. This removes the requirement for them to be
 web-accessible, and also removes any inconsistency that could come from
 network flakiness (on either your end, or Sentry's end).
 
-You can either interact with the API directly or you can upload sourcemaps
-with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`).
+You can either interact with the API directly, upload sourcemaps
+with the help of the Sentry CLI (:ref:`upload-sourcemaps-with-cli`)
+or you can use ``sentry-webpack-plugin``.
 
-* Start by creating a new authentication token under **[Account] > API**.
-* Ensure you you have ``project:write`` selected under scopes.
+* Start by creating a new authentication token under `**[Account] > API** <https://sentry.io/api/>`_.
+* Ensure you have ``project:write`` selected under scopes.
 * You'll use the Authorization header with the value of ``Bearer: {TOKEN}``
   with API requests.
 
@@ -302,6 +316,35 @@ the ``--ext`` parameter.
     *   Make sure that your minified files you have on your servers
         actually have references to your files.
 
+Using Sentry Webpack Plugin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another way to manage releases and sourcemaps on Sentry, is to use the Sentry Webpack Plugin.
+
+* Start by creating a new authentication token under `**[Account] > API** <https://sentry.io/api/>`_.
+* Ensure you have ``project:write`` selected under scopes.
+* Install ``@sentry/webpack-plugin`` using ``npm``
+* Create ``.sentryclirc`` file with necessary config (see Sentry Webpack Plugin docs below)
+* Update your ``webpack.config.json``
+
+::
+
+    const SentryPlugin = require('@sentry/webpack-plugin');
+
+    module.exports = {
+        // ... other config above ...
+        plugins: [
+          new SentryPlugin({
+            release: process.env.RELEASE,
+            include: './dist',
+            ignore: ['node_modules', 'webpack.config.js'],
+          })
+        ]
+    };
+
+
+You can take a look at `Sentry Webpack Plugin documentation <https://github.com/getsentry/sentry-webpack-plugin>`_
+for more information on how to configure the plugin.
 
 .. sentry:edition:: hosted
 
@@ -309,19 +352,6 @@ Troubleshooting
 ---------------
 
 Source maps can sometimes be tricky to get going. If you're having trouble, try the following tips.
-
-Verify you have specified the release in your client config
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You must specify the active release in your Raven.js client configuration:
-
-.. code-block:: javascript
-
-  Raven.config('your-dsn', {
-    release: '1.2.3-beta'
-  }).install();
-
-Sentry needs this to associate ingested event data with the release and artifacts you've created via the API.
 
 Verify your source maps are built correctly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

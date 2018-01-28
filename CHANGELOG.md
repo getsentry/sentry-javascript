@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.22.1
+
+* NEW: Check for `SENTRY_RELEASE` during config phase (#1194)
+* CHANGE: Fix ChromeLauncher for Travis integration tests (#1196)
+* BUGFIX: Do not include credentials by default (#1191)
+* BUGFIX: Call captureBreadcrumb for fetch after its done (#1197)
+
+## 3.22.0
+
+* NEW: Add `fetchParameters` to configure `fetch` (#1177)
+* NEW: Delete empty properties before sending event to the server (#1179)
+* CHANGE: Improve support for Windows 10 webview URLs in the stack trace (#1137)
+* CHANGE: Various Typescript typings update (#1134 #1183 #1187)
+* BUGFIX: Access `window.location` first before trying `document.location` (#1180)
+* BUGFIX: Check `parseUrl` for correct input type (#1190)
+
+## 3.21.0
+
+* NEW: Use Fetch instead of XHR when available https://github.com/getsentry/raven-js/pull/1157
+* NEW: Ability to specify Custom headers https://github.com/getsentry/raven-js/pull/1166
+* NEW: Handle ErrorEvent objects in TraceKit https://github.com/getsentry/raven-js/pull/1162
+* BUGFIX: Check for both stacktraces before calling 'isSameException' https://github.com/getsentry/raven-js/pull/1150
+* DOCS: Electron integration documentation https://github.com/getsentry/raven-js/pull/1142
+* DOCS: Include Sentry Webpack Plugin in the Source Maps documentation https://github.com/getsentry/raven-js/pull/1155
+
 ## 3.20.1
 
 * BUGFIX: Prevent Raven throwing during installation when `Function.prototype.toString` is called in Angular projects with `zone.js` and `core.js` wrapped functions https://github.com/getsentry/raven-js/pull/1135

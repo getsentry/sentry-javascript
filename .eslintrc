@@ -6,8 +6,12 @@
     "browser": true,
     "builtin": true
   },
+  "parserOptions": {
+    "ecmaVersion": 6
+  },
   "globals": {
-    "require": false
+    "require": false,
+    "Promise": true
   },
   "rules": {
     "block-scoped-var": 2,

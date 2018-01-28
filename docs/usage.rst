@@ -142,6 +142,19 @@ functions all allow passing additional data to be tagged onto the error.
 
         Raven.setTagsContext({ key: "value" });
 
+    Tags given in ``setTagsContext`` are merged with the existing tags. If you need to remove a tag,
+    use ``getContext`` to get the current context value, call ``setTagsContext`` with no parameters
+    to remove all tags context data, and then call ``setTagsContext`` again with the tags that you
+    want to keep.
+
+    .. code-block:: javascript
+
+        const context = Raven.getContext(); // Note: Do not mutate context directly.
+        const tags = {...context.tags};
+        delete tags['TagNameToDelete'];
+        Raven.setTagsContext();             // Clear all current tags from the context.
+        Raven.setTagsContext(tags);         // Add back the tags you want to keep.
+
 .. describe:: extra
 
     Arbitrary data to associate with the event.
@@ -160,6 +173,18 @@ functions all allow passing additional data to be tagged onto the error.
 
         Raven.setExtraContext({ foo: "bar" })
 
+    Data given in ``setExtraContext`` is merged with the existing extra data. If you need to remove
+    a field from the extra context data, use ``getContext`` to get the current context value, call
+    ``setExtraContext`` with no parameters to remove all extra context data, and then call
+    ``setExtraContext`` again with the extra data content that you want to keep.
+
+    .. code-block:: javascript
+
+        const context = Raven.getContext(); // Note: Do not mutate context directly.
+        const extra = {...context.extra};
+        delete extra['FieldKeyToDelete'];
+        Raven.setExtraContext();            // Clear all extra data from the context.
+        Raven.setExtraContext(extra);       // Add back the extra data that you want to keep.
 
 .. _raven-js-recording-breadcrumbs:
 

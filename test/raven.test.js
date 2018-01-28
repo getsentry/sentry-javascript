@@ -6,23 +6,17 @@ var sinon = require('sinon');
 var chai = require('chai');
 var assert = chai.assert;
 
-var proxyquire = require('proxyquireify')(require);
+var _Raven = require('../src/raven');
+_Raven.prototype._getUuid = function() {
+  return 'abc123'; // Mock in order to get a predictable UUID
+};
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
-
-var _Raven = proxyquire('../src/raven', {
-  // Ensure same TraceKit obj is shared (without specifying this, proxyquire
-  // seems to clone dependencies or something weird)
-  '../vendor/TraceKit/tracekit': TraceKit
-});
-
-_Raven.prototype._getUuid = function() {
-  return 'abc123';
-};
 
 var utils = require('../src/utils');
 var joinRegExp = utils.joinRegExp;
 var supportsErrorEvent = utils.supportsErrorEvent;
+var supportsFetch = utils.supportsFetch;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -1135,7 +1129,7 @@ describe('globals', function() {
       assert.isTrue(Raven._makeRequest.called);
     });
 
-    it('should strip empty tags', function() {
+    it('should strip empty attributes', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
@@ -1147,10 +1141,18 @@ describe('globals', function() {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
-        tags: {}
+        tags: {},
+        extra: {}
       };
 
-      Raven._send({message: 'bar', tags: {}, extra: {}});
+      Raven._send({
+        message: 'bar',
+        tags: {},
+        extra: {},
+        redundant: '',
+        attribute: null,
+        something: undefined
+      });
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
@@ -1304,7 +1306,7 @@ describe('globals', function() {
         extra: {'session:duration': 100}
       });
       assert.deepEqual(opts.auth, {
-        sentry_client: 'raven-js/3.20.1',
+        sentry_client: 'raven-js/3.22.1',
         sentry_key: 'abc',
         sentry_version: '7'
       });
@@ -1351,7 +1353,7 @@ describe('globals', function() {
         extra: {'session:duration': 100}
       });
       assert.deepEqual(opts.auth, {
-        sentry_client: 'raven-js/3.20.1',
+        sentry_client: 'raven-js/3.22.1',
         sentry_key: 'abc',
         sentry_secret: 'def',
         sentry_version: '7'
@@ -1389,6 +1391,77 @@ describe('globals', function() {
         message: 'bar',
         extra: {'session:duration': 100}
       });
+    });
+
+    if (supportsFetch()) {
+      it('should apply globalOptions.headers with string value to fetch call if specified', function() {
+        this.sinon.stub(window, 'fetch').resolves(true);
+
+        Raven._globalProject = '2';
+        Raven._globalOptions = {
+          logger: 'javascript',
+          maxMessageLength: 100,
+          headers: {
+            'custom-header': 'value'
+          }
+        };
+
+        Raven._send({message: 'bar'});
+
+        assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+          'custom-header': 'value'
+        });
+      });
+
+      it('should apply globalOptions.headers with function value to fetch call if specified', function() {
+        this.sinon.stub(window, 'fetch').resolves(true);
+
+        Raven._globalProject = '2';
+        Raven._globalOptions = {
+          logger: 'javascript',
+          maxMessageLength: 100,
+          headers: {
+            'custom-header': function() {
+              return 'computed-header-value';
+            }
+          }
+        };
+
+        Raven._send({message: 'bar'});
+
+        assert.deepEqual(window.fetch.lastCall.args[1].headers, {
+          'custom-header': 'computed-header-value'
+        });
+      });
+    }
+
+    it('should apply globalOptions.headers with string or function value to XHR call if specified', function() {
+      var origFetch = window.fetch;
+      delete window.fetch;
+
+      var requests = [];
+      var xhr = sinon.useFakeXMLHttpRequest();
+
+      xhr.onCreate = function(xhr) {
+        requests.push(xhr);
+      };
+
+      Raven._globalOptions = {
+        headers: {
+          'custom-string-header': 'pickle-rick',
+          'custom-function-header': function() {
+            return 'morty';
+          }
+        }
+      };
+
+      Raven._send({message: 'bar'});
+
+      var lastXhr = requests[requests.length - 1];
+      assert.equal(lastXhr.HEADERS_RECEIVED, 2);
+
+      window.fetch = origFetch;
+      xhr.restore();
     });
 
     it('should check `Raven.isSetup`', function() {
@@ -1495,7 +1568,10 @@ describe('globals', function() {
       assert.equal(Raven._backoffDuration, 2000);
     });
 
-    it('should set backoffDuration to value of Retry-If header if present', function() {
+    it('should set backoffDuration to value of Retry-If header if present - XHR API', function() {
+      var origFetch = window.fetch;
+      delete window.fetch;
+
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
 
@@ -1509,11 +1585,39 @@ describe('globals', function() {
           .withArgs('Retry-After')
           .returns('2')
       };
+
       opts.onError(mockError);
 
       assert.equal(Raven._backoffStart, 100); // clock is at 100ms
       assert.equal(Raven._backoffDuration, 2000); // converted to ms, int
+
+      window.fetch = origFetch;
     });
+
+    if (supportsFetch()) {
+      it('should set backoffDuration to value of Retry-If header if present - FETCH API', function() {
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, '_makeRequest');
+
+        Raven._send({message: 'bar'});
+        var opts = Raven._makeRequest.lastCall.args[0];
+        var mockError = new Error('401: Unauthorized');
+        mockError.request = {
+          status: 401,
+          headers: {
+            get: sinon
+              .stub()
+              .withArgs('Retry-After')
+              .returns('2')
+          }
+        };
+
+        opts.onError(mockError);
+
+        assert.equal(Raven._backoffStart, 100); // clock is at 100ms
+        assert.equal(Raven._backoffDuration, 2000); // converted to ms, int
+      });
+    }
 
     it('should reset backoffDuration and backoffStart if onSuccess is fired (200)', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
@@ -1653,74 +1757,140 @@ describe('globals', function() {
   });
 
   describe('makeRequest', function() {
-    beforeEach(function() {
-      // NOTE: can't seem to call useFakeXMLHttpRequest via sandbox; must
-      //       restore manually
-      this.xhr = sinon.useFakeXMLHttpRequest();
-      var requests = (this.requests = []);
+    if (supportsFetch()) {
+      describe('using Fetch API', function() {
+        afterEach(function() {
+          window.fetch.restore();
+        });
 
-      this.xhr.onCreate = function(xhr) {
-        requests.push(xhr);
-      };
-    });
+        it('should create an XMLHttpRequest object with body as JSON payload', function() {
+          this.sinon.spy(window, 'fetch');
 
-    afterEach(function() {
-      this.xhr.restore();
-    });
+          Raven._makeRequest({
+            url: 'http://localhost/',
+            auth: {a: '1', b: '2'},
+            data: {foo: 'bar'},
+            options: Raven._globalOptions
+          });
 
-    it('should create an XMLHttpRequest object with body as JSON payload', function() {
-      XMLHttpRequest.prototype.withCredentials = true;
+          assert.deepEqual(window.fetch.lastCall.args, [
+            'http://localhost/?a=1&b=2',
+            {
+              keepalive: true,
+              referrerPolicy: 'origin',
+              method: 'POST',
+              body: '{"foo":"bar"}'
+            }
+          ]);
+        });
 
-      Raven._makeRequest({
-        url: 'http://localhost/',
-        auth: {a: '1', b: '2'},
-        data: {foo: 'bar'},
-        options: Raven._globalOptions
+        it('should pass a request object to onError', function(done) {
+          sinon.stub(window, 'fetch');
+          window.fetch.returns(
+            Promise.resolve(
+              new window.Response('{"foo":"bar"}', {
+                ok: false,
+                status: 429,
+                headers: {
+                  'Content-type': 'text/html'
+                }
+              })
+            )
+          );
+
+          Raven._makeRequest({
+            url: 'http://localhost/',
+            auth: {a: '1', b: '2'},
+            data: {foo: 'bar'},
+            options: Raven._globalOptions,
+            onError: function(error) {
+              assert.equal(error.request.status, 429);
+              done();
+            }
+          });
+        });
+      });
+    }
+
+    describe('using XHR API', function() {
+      var origFetch = window.fetch;
+      var xhr;
+      var requests;
+
+      before(function() {
+        delete window.fetch;
       });
 
-      var lastXhr = this.requests[this.requests.length - 1];
-      assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
-      assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
-    });
-
-    it('should no-op if CORS is not supported', function() {
-      delete XMLHttpRequest.prototype.withCredentials;
-      var oldSupportsCORS = sinon.xhr.supportsCORS;
-      sinon.xhr.supportsCORS = false;
-
-      var oldXDR = window.XDomainRequest;
-      window.XDomainRequest = undefined;
-
-      Raven._makeRequest({
-        url: 'http://localhost/',
-        auth: {a: '1', b: '2'},
-        data: {foo: 'bar'},
-        options: Raven._globalOptions
+      after(function() {
+        window.fetch = origFetch;
       });
 
-      assert.equal(this.requests.length, 1); // the "test" xhr
-      assert.equal(this.requests[0].readyState, 0);
+      beforeEach(function() {
+        // NOTE: can't seem to call useFakeXMLHttpRequest via sandbox; must restore manually
+        xhr = sinon.useFakeXMLHttpRequest();
+        requests = [];
 
-      sinon.xhr.supportsCORS = oldSupportsCORS;
-      window.XDomainRequest = oldXDR;
-    });
+        XMLHttpRequest.prototype.withCredentials = true;
 
-    it('should pass a request object to onError', function(done) {
-      XMLHttpRequest.prototype.withCredentials = true;
-
-      Raven._makeRequest({
-        url: 'http://localhost/',
-        auth: {a: '1', b: '2'},
-        data: {foo: 'bar'},
-        options: Raven._globalOptions,
-        onError: function(error) {
-          assert.equal(error.request.status, 429);
-          done();
-        }
+        xhr.onCreate = function(xhr) {
+          requests.push(xhr);
+        };
       });
 
-      var lastXhr = this.requests[this.requests.length - 1];
-      lastXhr.respond(429, {'Content-Type': 'text/html'}, 'Too many requests');
+      afterEach(function() {
+        xhr.restore();
+      });
+
+      it('should create an XMLHttpRequest object with body as JSON payload', function() {
+        Raven._makeRequest({
+          url: 'http://localhost/',
+          auth: {a: '1', b: '2'},
+          data: {foo: 'bar'},
+          options: Raven._globalOptions
+        });
+
+        var lastXhr = requests[requests.length - 1];
+        assert.equal(lastXhr.requestBody, '{"foo":"bar"}');
+        assert.equal(lastXhr.url, 'http://localhost/?a=1&b=2');
+      });
+
+      it('should pass a request object to onError', function(done) {
+        Raven._makeRequest({
+          url: 'http://localhost/',
+          auth: {a: '1', b: '2'},
+          data: {foo: 'bar'},
+          options: Raven._globalOptions,
+          onError: function(error) {
+            assert.equal(error.request.status, 429);
+            done();
+          }
+        });
+
+        var lastXhr = requests[requests.length - 1];
+        lastXhr.respond(429, {'Content-Type': 'text/html'}, 'Too many requests');
+      });
+
+      it('should no-op if CORS is not supported', function() {
+        delete XMLHttpRequest.prototype.withCredentials;
+        var oldSupportsCORS = sinon.xhr.supportsCORS;
+        sinon.xhr.supportsCORS = false;
+
+        var oldXDR = window.XDomainRequest;
+        window.XDomainRequest = undefined;
+
+        Raven._makeRequest({
+          url: 'http://localhost/',
+          auth: {a: '1', b: '2'},
+          data: {foo: 'bar'},
+          options: Raven._globalOptions
+        });
+
+        assert.equal(requests.length, 1); // the "test" xhr
+        assert.equal(requests[0].readyState, 0);
+
+        sinon.xhr.supportsCORS = oldSupportsCORS;
+        window.XDomainRequest = oldXDR;
+      });
     });
   });
 
@@ -2333,7 +2503,7 @@ describe('Raven (public API)', function() {
       }, error);
     });
 
-    it('should return input funciton as-is if accessing __raven__ prop throws exception', function() {
+    it('should return input function as-is if accessing __raven__ prop throws exception', function() {
       // see raven-js#495
       var fn = function() {};
       Object.defineProperty(fn, '__raven__', {
@@ -2342,13 +2512,13 @@ describe('Raven (public API)', function() {
         }
       });
       assert.throw(function() {
-        fn.__raven__;
+        return fn.__raven__;
       }, 'Permission denied');
       var wrapped = Raven.wrap(fn);
       assert.equal(fn, wrapped);
     });
 
-    it('should return input funciton as-is if accessing __raven_wrapper__ prop throws exception', function() {
+    it('should return input function as-is if accessing __raven_wrapper__ prop throws exception', function() {
       // see raven-js#495
       var fn = function() {};
       Object.defineProperty(fn, '__raven_wrapper__', {
@@ -2357,7 +2527,7 @@ describe('Raven (public API)', function() {
         }
       });
       assert.throw(function() {
-        fn.__raven_wrapper__;
+        return fn.__raven_wrapper__;
       }, 'Permission denied');
       var wrapped = Raven.wrap(fn);
       assert.equal(fn, wrapped);
