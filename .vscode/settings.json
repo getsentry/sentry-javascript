@@ -1,20 +1,10 @@
 {
-    "editor.tabSize": 2,
-    "editor.rulers": [90],
-    "[typescript]": {
-        "editor.formatOnSave": true
-    },
-    "[javascript]": {
-        "editor.formatOnSave": true
-    },
-    "prettier.typescriptEnable": [
-        "typescript",
-        "typescriptreact"
-    ],
-    "search.exclude": {
-        "**/node_modules": true,
-        "**/bower_components": true,
-        "**/dist/**": true
-    },
-    "tslint.autoFixOnSave": true,
+  "editor.rulers": [120],
+  "search.exclude": {
+    "**/node_modules/": true,
+    "**/build/": true,
+    "**/dist/": true
+  },
+  "editor.formatOnSave": true,
+  "tslint.autoFixOnSave": true
 }

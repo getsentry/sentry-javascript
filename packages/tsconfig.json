@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@sentry/*": ["./*/src"]
+    },
+    "stripInternal": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "module": "commonjs",
+    "target": "es5",
+    "types": ["node", "mocha", "chai", "sinon"],
+    "lib": ["es2015"],
+    "allowJs": false
+  },
+  "exclude": ["node_modules"]
+}

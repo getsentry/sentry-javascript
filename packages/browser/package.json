@@ -2,75 +2,29 @@
   "name": "@sentry/browser",
   "version": "0.3.0",
   "description": "Offical Sentry SDK for browsers",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "typescript": {
-    "definition": "dist/index.d.ts"
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6"
   },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@sentry/core": "^0.3.0",
     "raven-js": "^3.22.1"
   },
   "devDependencies": {
-    "@types/jest": "^22.0.1",
-    "@types/node": "^9.3.0",
-    "@types/puppeteer": "^0.13.9",
-    "jest": "^22.1.0",
-    "npm-run-all": "^4.1.2",
-    "prettier": "^1.10.2",
-    "puppeteer": "^1.0.0",
-    "rollup": "^0.54.0",
-    "rollup-plugin-commonjs": "^8.2.6",
-    "rollup-plugin-node-resolve": "^3.0.2",
-    "rollup-plugin-uglify": "^2.0.1",
-    "ts-jest": "^22.0.1",
-    "ts-loader": "^3.2.0",
-    "ts-node": "^4.1.0",
-    "tslint": "^5.9.1",
-    "tslint-config-prettier": "^1.6.0",
-    "tslint-eslint-rules": "^4.1.1",
-    "typescript": "^2.6.2",
-    "vrsource-tslint-rules": "^5.8.0"
-  },
-  "engines": {
-    "node": ">=6.9.5",
-    "npm": ">=3.10.7",
-    "yarn": ">=1.0.2"
+    "karma": "*",
+    "prettier": "*",
+    "tslint": "*",
+    "webpack-cli": "*"
   },
   "scripts": {
-    "build:bundle": "rollup --config",
-    "build:browser:test": "rollup --config rollup.config.test.js",
-    "build:typescript": "tsc -p tsconfig.json",
-    "clean": "rm -rf ./dist",
-    "dist": "npm-run-all clean build:typescript build:bundle build:browser:test",
-    "test:browser": "jest --forceExit",
-    "test:watch": "jest --watch --notify",
-    "test": "npm-run-all dist test:browser",
-    "size:check": "cat dist/build.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
-    },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/dist/__mocks__"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "rollup.*",
-      "\\.d\\.(jsx?|tsx?)$",
-      "\\.no-jest\\.(jsx?|tsx?)$",
-      "/dist/"
-    ]
-  },
-  "author": "Sentry",
-  "license": "MIT"
+    "build": "webpack --config ../webpack.config.js",
+    "clean": "rm -rf ./build ./dist ./coverage",
+    "lint": "tslint --config ../.tslintrc.json src/**/*",
+    "format": "prettier --config ../.prettierrc.json src/**/* --write",
+    "test": "karma start ../karma.config.js",
+    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+  }
 }

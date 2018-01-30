@@ -2,70 +2,25 @@
   "name": "@sentry/core",
   "version": "0.3.0",
   "description": "Sentry core implementation for all JavaScript related SDKs",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "typescript": {
-    "definition": "dist/index.d.ts"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^22.0.1",
-    "@types/node": "^9.3.0",
-    "jest": "^22.0.6",
-    "npm-run-all": "^4.1.2",
-    "prettier": "^1.10.2",
-    "ts-jest": "^22.0.1",
-    "ts-node": "^4.1.0",
-    "tslint": "^5.9.1",
-    "tslint-config-prettier": "^1.6.0",
-    "tslint-eslint-rules": "^4.1.1",
-    "typescript": "2.6.2",
-    "vrsource-tslint-rules": "^5.8.0"
-  },
+  "author": "Sentry",
+  "license": "MIT",
   "engines": {
-    "node": ">=6.9.5",
-    "npm": ">=3.10.7",
-    "yarn": ">=1.0.2"
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "karma": "*",
+    "prettier": "*",
+    "tslint": "*",
+    "webpack-cli": "*"
   },
   "scripts": {
-    "clean": "rm -rf ./dist",
-    "dist": "npm run clean && tsc -p tsconfig.json",
-    "test:browser": "jest --env=jsdom",
-    "test:node": "jest --env=node",
-    "test:watch": "jest --watch --notify",
-    "test": "npm-run-all dist test:browser test:node"
-  },
-  "jest": {
-    "globals": {
-      "ts-jest": {
-        "tsConfigFile": "./tsconfig.json"
-      }
-    },
-    "mapCoverage": true,
-    "collectCoverage": true,
-    "coveragePathIgnorePatterns": [
-      "dist"
-    ],
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/dist/__mocks__"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "\\.d\\.(jsx?|tsx?)$",
-      "\\.no-jest\\.(jsx?|tsx?)$"
-    ]
-  },
-  "author": "Sentry",
-  "license": "MIT"
+    "build": "webpack --config ../webpack.config.js",
+    "clean": "rm -rf ./build ./dist ./coverage",
+    "lint": "tslint --config ../.tslintrc.json src/**/*",
+    "format": "prettier --config ../.prettierrc.json src/**/* --write",
+    "test": "karma start ../karma.config.js",
+    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+  }
 }

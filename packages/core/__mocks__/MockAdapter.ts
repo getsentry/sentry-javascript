@@ -1,14 +1,11 @@
-import * as Sentry from '../index';
+import * as Sentry from '../src/index';
 
 export interface IMockAdapterOptions {
   testOption?: boolean;
 }
 
 export class MockAdapter implements Sentry.IAdapter {
-  constructor(
-    client: Sentry.Client,
-    public options: IMockAdapterOptions = { testOption: false }
-  ) {
+  constructor(client: Sentry.Client, public options: IMockAdapterOptions = {testOption: false}) {
     return this;
   }
 
@@ -47,11 +44,11 @@ export class MockAdapter implements Sentry.IAdapter {
     return this;
   }
 
-  public async setTagsContext(tags?: { [key: string]: any }) {
+  public async setTagsContext(tags?: {[key: string]: any}) {
     return this;
   }
 
-  public async setExtraContext(extra?: { [key: string]: any }) {
+  public async setExtraContext(extra?: {[key: string]: any}) {
     return this;
   }
 
