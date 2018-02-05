@@ -416,11 +416,14 @@ Raven.prototype = {
       return this.captureMessage(
         ex,
         objectMerge(
+          objectMerge(
+            {
+              stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
+            },
+            options),
           {
-            trimHeadFrames: 1,
-            stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
-          },
-          options
+            trimHeadFrames: ((options && options.trimHeadFrames) || 0) + 1,
+          }
         )
       );
     }
