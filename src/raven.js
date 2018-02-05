@@ -408,6 +408,7 @@ Raven.prototype = {
      * @return {Raven}
      */
   captureException: function(ex, options) {
+    options = objectMerge({trimHeadFrames: 0}, options ? options : {});
     // Cases for sending ex as a message, rather than an exception
     var isNotError = !isError(ex);
     var isNotErrorEvent = !isErrorEvent(ex);
@@ -416,13 +417,10 @@ Raven.prototype = {
     if ((isNotError && isNotErrorEvent) || isErrorEventWithoutError) {
       return this.captureMessage(
         ex,
-        objectMerge(
-          {
-            trimHeadFrames: 1,
-            stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
-          },
-          options
-        )
+        objectMerge(options, {
+          stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
+          trimHeadFrames: options.trimHeadFrames + 1
+        })
       );
     }
 
