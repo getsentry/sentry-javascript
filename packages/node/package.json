@@ -1,0 +1,30 @@
+{
+  "name": "@sentry/node",
+  "version": "0.3.0",
+  "description": "Offical Sentry SDK for Node.js",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@sentry/core": "^0.3.0",
+    "raven": "^2.4.0"
+  },
+  "devDependencies": {
+    "karma": "*",
+    "prettier": "*",
+    "tslint": "*",
+    "webpack-cli": "*"
+  },
+  "scripts": {
+    "build": "webpack --config ../webpack.config.js",
+    "clean": "rm -rf ./build ./dist ./coverage",
+    "lint": "tslint --config ../.tslintrc.json src/**/*",
+    "format": "prettier --config ../.prettierrc.json src/**/* --write",
+    "test": "karma start ../karma.config.js",
+    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+  }
+}

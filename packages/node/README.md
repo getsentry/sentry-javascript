@@ -3,12 +3,12 @@
         <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
     </a>
 <br/>
-    <h1>Sentry Browser SDK Package</h1>
+    <h1>Sentry Node.js SDK Package</h1>
 </p>
 
-[![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
+[![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 
 ## General
 
@@ -20,10 +20,10 @@ First you have to create the core and `use` a corresponding SDK.
 
 ```javascript
 import * as Sentry from '@sentry/core';
-import {SentryBrowser} from '@sentry/Sentrybrowser';
+import {SentryNode} from '@sentry/node';
 
 Sentry.create('__DSN__')
-  .use(SentryBrowser)
+  .use(SentryNode)
   .install();
 ```
 

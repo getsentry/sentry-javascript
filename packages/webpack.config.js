@@ -10,7 +10,7 @@ const entries = ['index', 'standalone'].reduce((acc, name) => {
   return acc;
 }, {});
 
-module.exports = {
+const config = {
   context: rootDir,
   entry: entries,
   output: {
@@ -32,3 +32,9 @@ module.exports = {
   },
   stats: 'errors-only',
 };
+
+if (rootDir.includes('node')) {
+  config.target = 'node';
+}
+
+module.exports = config;

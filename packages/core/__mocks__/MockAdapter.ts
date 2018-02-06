@@ -1,11 +1,11 @@
-import * as Sentry from '../src/index';
+import {Adapter, Breadcrumb, Client, Event, Options} from '../src/index';
 
-export interface IMockAdapterOptions {
+export interface MockAdapterOptions extends Options {
   testOption?: boolean;
 }
 
-export class MockAdapter implements Sentry.IAdapter {
-  constructor(client: Sentry.Client, public options: IMockAdapterOptions = {testOption: false}) {
+export class MockAdapter implements Adapter {
+  constructor(client: Client, public options: MockAdapterOptions = {testOption: false}) {
     return this;
   }
 
@@ -13,50 +13,27 @@ export class MockAdapter implements Sentry.IAdapter {
     return Promise.resolve(true);
   }
 
-  public async setOptions(options: IMockAdapterOptions) {
-    // We need nothing here
-    return this;
-  }
-
-  public captureException(exception: Error): Promise<Sentry.Event> {
-    return Promise.resolve(new Sentry.Event());
-  }
-
-  public async captureMessage(message: string): Promise<Sentry.Event> {
-    const event = new Sentry.Event();
-    event.message = message;
-    if (message === 'fail') {
-      throw new Error('Failed because we told it too');
-    }
-    return event;
-  }
-
-  public captureBreadcrumb(crumb: Sentry.IBreadcrumb): Promise<Sentry.IBreadcrumb> {
-    // Do nothing
-    return Promise.resolve(crumb);
-  }
-
-  public send(event: Sentry.Event): Promise<Sentry.Event> {
+  public capture(event: Event) {
     return Promise.resolve(event);
   }
 
-  public async setUserContext(user?: Sentry.IUser) {
-    return this;
+  public send(event: Event): Promise<Event> {
+    return Promise.resolve(event);
   }
 
-  public async setTagsContext(tags?: {[key: string]: any}) {
-    return this;
+  public wrap(fn: Function, options: object) {
+    return fn;
   }
 
-  public async setExtraContext(extra?: {[key: string]: any}) {
-    return this;
+  public async setOptions(options: MockAdapterOptions) {
+    return Promise.resolve(this);
   }
 
-  public async clearContext() {
-    return this;
+  public async getContext() {
+    return Promise.resolve({});
   }
 
-  public async setRelease(release: string) {
-    return this;
+  public async setContext() {
+    return Promise.resolve(this);
   }
 }

@@ -1,1 +1,1 @@
-export { SentryBrowser, ISentryBrowserOptions } from './lib/SentryBrowser';
+export {SentryBrowser, BrowserOptions as SentryBrowserOptions} from './lib/browser';

@@ -1,6 +1,6 @@
-import { SentryError } from '../Sentry';
+import {SentryError} from './sentry';
 
-interface IDSNParts {
+interface DSNParts {
   source: string;
   protocol: string;
   user: string;
@@ -14,7 +14,7 @@ const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?(\/.*)/;
 
 export class DSN {
   private dsnString: string;
-  private dsn: IDSNParts;
+  private dsn: DSNParts;
 
   constructor(dsnString: string) {
     this.dsnString = dsnString;
