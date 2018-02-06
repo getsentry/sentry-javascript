@@ -147,6 +147,7 @@ is additional documentation available that covers all the rest:
    usage
    integrations/index
    sourcemaps
+   typescript
    coffeescript
 
 Resources:
