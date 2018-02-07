@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {Context} from '../src/lib/context';
 
-describe.only('Context', () => {
+describe('Context', () => {
   it('should be empty when initialized', () => {
     const context = new Context();
     expect(context.get()).to.deep.equal({});

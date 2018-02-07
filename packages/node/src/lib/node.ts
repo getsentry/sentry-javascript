@@ -1,4 +1,4 @@
-import {Adapter, Breadcrumb, Client, Context as ContextInterface, Event, Options, User} from '@sentry/core';
+import {Adapter, Breadcrumb, Client, Context, Event, Options, User} from '@sentry/core';
 declare function require(path: string): any;
 const Raven = require('raven');
 
@@ -41,7 +41,7 @@ export class SentryNode implements Adapter {
   }
 
   public install() {
-    Raven.config(this.client.dsn.getDsn(false), this.options).install();
+    Raven.config(this.client.dsn.getDSN(), this.options).install();
     return Promise.resolve(true);
   }
 
@@ -98,7 +98,7 @@ export class SentryNode implements Adapter {
     return Promise.resolve(context);
   }
 
-  public async setContext(context: ContextInterface) {
+  public async setContext(context: Context) {
     Raven.setContext(context);
     return Promise.resolve(this);
   }

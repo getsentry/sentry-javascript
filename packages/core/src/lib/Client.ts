@@ -31,11 +31,6 @@ export class Client {
     return this.isInstalled.then(() => this.adapter);
   }
 
-  private async send(event: Event) {
-    const adapter = await this.awaitAdapter();
-    return adapter.send(event);
-  }
-
   public getAdapter<Adapter>() {
     if (!this.adapter) {
       throw new SentryError('No adapter in use, please call .use(<Adapter>)');
@@ -64,15 +59,17 @@ export class Client {
     return adapter.capture(event);
   }
 
+  public async send(event: Event) {
+    const adapter = await this.awaitAdapter();
+    return adapter.send(event);
+  }
+
   public async setOptions(options: Options) {
     const adapter = await this.awaitAdapter();
     return adapter.setOptions(options);
   }
 
-  // ---------------- CONTEXT
-
   // TODO: Migrate context to core, using Context interface
-
   public async getContext() {
     // TODO: check for cyclic objects
     const adapter = await this.awaitAdapter();
@@ -84,8 +81,6 @@ export class Client {
     const adapter = await this.awaitAdapter();
     return this.adapter.setContext(context);
   }
-
-  // ---------------- HELPER
 
   public log(...args: any[]) {
     if (this.options && this.options.logLevel && this.options.logLevel >= LogLevel.Debug) {
