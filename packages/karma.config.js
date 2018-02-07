@@ -1,12 +1,22 @@
 const webpackConfig = require('./webpack.config');
 
+webpackConfig.module.rules = webpackConfig.module.rules.concat([
+  {
+    test: /\.ts$/,
+    loader: 'istanbul-instrumenter-loader',
+    enforce: 'post',
+    exclude: /node_modules|test/,
+  },
+]);
+
 module.exports = function(config) {
   config.set({
     basePath: process.cwd(),
     files: ['test/**/*.ts'],
     frameworks: ['mocha', 'chai', 'sinon'],
     preprocessors: {
-      'test/**/*.ts': ['webpack'],
+      './test/**/*.ts': ['webpack', 'sourcemap'],
+      './src/**/*.ts': ['coverage'],
     },
     webpack: {
       module: webpackConfig.module,
@@ -19,9 +29,16 @@ module.exports = function(config) {
     mime: {
       'text/x-typescript': ['ts'],
     },
-    reporters: ['dots'],
     browsers: ['ChromeHeadless'],
     singleRun: true,
+    reporters: ['dots', 'coverage', 'remap-coverage'],
+    coverageReporter: {
+      type: 'in-memory',
+    },
+    remapCoverageReporter: {
+      'text-summary': null,
+      html: './coverage',
+    },
 
     // Uncomment if you want to silence console logs in the output
     // client: {

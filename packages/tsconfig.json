@@ -8,6 +8,7 @@
     "target": "es5",
     "types": ["node", "mocha", "chai", "sinon"],
     "lib": ["es2015"],
+    "sourceMap": true,
     "allowJs": false,
     "noImplicitAny": true,
     "noImplicitThis": true,
