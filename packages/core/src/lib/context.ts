@@ -1,23 +1,26 @@
 import {Context as ContextInterface} from './interfaces';
 
+export interface UpdateContext {
+  (prevContext: ContextInterface): ContextInterface;
+}
+
 export class Context {
-  private data: ContextInterface;
+  private data: ContextInterface = {};
 
-  public clear() {
-    Object.keys(this.data).forEach((key: keyof ContextInterface) => {
-      delete this.data[key];
-    });
-  }
+  public set(nextContext: ContextInterface | UpdateContext): ContextInterface {
+    const prevContext = this.get();
 
-  public set(context: ContextInterface) {
-    this.data = Object.assign({}, context);
-  }
+    if (typeof nextContext === 'function') {
+      this.data = Object.assign({}, prevContext, nextContext(this.get()));
+    } else {
+      this.data = Object.assign({}, prevContext, nextContext);
+    }
 
-  public get<ContextInterface>() {
     return this.data;
   }
 
-  public merge(context: ContextInterface) {
-    Object.assign(this.data, context);
+  public get(): ContextInterface {
+    // Create an exact copy without references so people won't shoot themselves in the foot
+    return JSON.parse(JSON.stringify(this.data));
   }
 }

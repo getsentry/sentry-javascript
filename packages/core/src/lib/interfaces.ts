@@ -19,7 +19,7 @@ export interface Breadcrumb {
 }
 
 export interface Context {
-  tags?: Array<string | number>;
+  tags?: Array<string>;
   extra?: object;
   user?: User;
 }

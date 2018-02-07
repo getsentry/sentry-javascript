@@ -22,8 +22,10 @@ module.exports = function(config) {
     reporters: ['dots'],
     browsers: ['ChromeHeadless'],
     singleRun: true,
-    client: {
-      captureConsole: false,
-    },
+
+    // Uncomment if you want to silence console logs in the output
+    // client: {
+    //   captureConsole: false,
+    // },
   });
 };
