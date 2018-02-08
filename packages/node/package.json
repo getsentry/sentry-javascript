@@ -27,6 +27,7 @@
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
     "test": "mocha --require ts-node/register -r tsconfig-paths/register 'test/**/*.{ts,tsx}'",
-    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+    "test:watch":
+      "mocha --watch --require ts-node/register -r tsconfig-paths/register --watch-extensions ts,tsx 'test/**/*.{ts,tsx}'"
   }
 }
