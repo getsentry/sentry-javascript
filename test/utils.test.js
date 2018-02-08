@@ -23,6 +23,7 @@ var urlencode = utils.urlencode;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var htmlElementAsString = utils.htmlElementAsString;
 var parseUrl = utils.parseUrl;
+var safeJoin = utils.safeJoin;
 
 describe('utils', function() {
   describe('isUndefined', function() {
@@ -418,6 +419,37 @@ describe('utils', function() {
       assert.equal(
         cb('it will run the ', original),
         'it will run the callback first, then the original.'
+      );
+    });
+  });
+
+  describe('safeJoin', function() {
+    it('should return empty string if not-array input provided', function() {
+      assert.equal(safeJoin('asd'), '');
+      assert.equal(safeJoin(undefined), '');
+      assert.equal(safeJoin({foo: 123}), '');
+    });
+
+    it('should default to comma, as regular join() call', function() {
+      assert.equal(safeJoin(['a', 'b', 'c']), 'a,b,c');
+    });
+
+    it('should stringify complex values, as regular String() call', function() {
+      assert.equal(
+        safeJoin([1, 'a', {foo: 42}, [1, 2, 3]], ' '),
+        '1 a [object Object] 1,2,3'
+      );
+    });
+
+    it('should still work with unserializeable values', function() {
+      function Foo() {}
+      Foo.prototype.toString = function() {
+        throw Error('whoops!');
+      };
+
+      assert.equal(
+        safeJoin([new Foo(), 'abc', new Foo(), 42], ' X '),
+        '[value cannot be serialized] X abc X [value cannot be serialized] X 42'
       );
     });
   });

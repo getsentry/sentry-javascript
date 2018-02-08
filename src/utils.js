@@ -397,6 +397,28 @@ function fill(obj, name, replacement, track) {
   }
 }
 
+/**
+ * Join values in array
+ * @param input array of values to be joined together
+ * @param delimiter string to be placed in-between values
+ * @returns {string}
+ */
+function safeJoin(input, delimiter) {
+  if (!isArray(input)) return '';
+
+  var output = [];
+
+  for (var i = 0; i < input.length; i++) {
+    try {
+      output.push(String(input[i]));
+    } catch (e) {
+      output.push('[value cannot be serialized]');
+    }
+  }
+
+  return output.join(delimiter);
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -423,5 +445,6 @@ module.exports = {
   isSameException: isSameException,
   isSameStacktrace: isSameStacktrace,
   parseUrl: parseUrl,
-  fill: fill
+  fill: fill,
+  safeJoin: safeJoin
 };
