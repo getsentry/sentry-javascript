@@ -1,8 +1,8 @@
-import {Adapter, Breadcrumb, Context as ContextInterface, Event, Options, User, LogLevel} from './interfaces';
-import {SentryError} from './sentry';
+import { Adapter, Breadcrumb, Context as ContextInterface, Event, Options, User, LogLevel } from './interfaces';
+import { SentryError } from './sentry';
 
-import {DSN} from './dsn';
-import {Context} from './context';
+import { DSN } from './dsn';
+import { Context } from './context';
 
 export class Client {
   public readonly dsn: DSN;
@@ -39,7 +39,7 @@ export class Client {
     return this.adapter;
   }
 
-  public use<A extends Adapter, O extends {}>(adapter: {new (client: Client, options?: O): A}, options?: O): Client {
+  public use<A extends Adapter, O extends {}>(adapter: { new (client: Client, options?: O): A }, options?: O): Client {
     if (this.adapter) {
       // TODO: implement unregister
       throw new RangeError('There is already a Adapter registered, call unregister() to remove current adapter');

@@ -1,4 +1,4 @@
-import {SentryError} from './sentry';
+import { SentryError } from './sentry';
 
 interface DSNInterface {
   source: string;

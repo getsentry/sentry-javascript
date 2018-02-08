@@ -1,4 +1,4 @@
-import {Adapter, Breadcrumb, Client, Context, Event, Options, User} from '@sentry/core';
+import { Adapter, Breadcrumb, Client, Context, Event, Options, User } from '@sentry/core';
 declare function require(path: string): any;
 const Raven = require('raven-js');
 

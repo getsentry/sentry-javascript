@@ -1,1 +1,1 @@
-export {SentryNode, NodeOptions as SentryNodeOptions} from './lib/node';
+export { SentryNode, NodeOptions as SentryNodeOptions } from './lib/node';

@@ -1,5 +1,5 @@
-import {Client} from './client';
-import {Options} from './interfaces';
+import { Client } from './client';
+import { Options } from './interfaces';
 
 let sharedClient: Client;
 

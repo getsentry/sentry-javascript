@@ -1,4 +1,4 @@
-import {Context as ContextInterface} from './interfaces';
+import { Context as ContextInterface } from './interfaces';
 
 // ADD JSDOCS
 

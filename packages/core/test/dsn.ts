@@ -1,6 +1,6 @@
-import {expect} from 'chai';
-import {SentryError} from '../src/lib/sentry';
-import {DSN} from '../src/lib/dsn';
+import { expect } from 'chai';
+import { SentryError } from '../src/lib/sentry';
+import { DSN } from '../src/lib/dsn';
 
 describe('DSN', () => {
   it('should throw SentryError when provided invalid DSN', () => {

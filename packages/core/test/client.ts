@@ -1,6 +1,6 @@
-import {expect} from 'chai';
-import {spy} from 'sinon';
-import {MockAdapter} from '../__mocks__/MockAdapter';
+import { expect } from 'chai';
+import { spy } from 'sinon';
+import { MockAdapter } from '../__mocks__/MockAdapter';
 import * as Sentry from '../src/index';
 
 const dsn = 'https://username:password@domain/path';
@@ -47,7 +47,7 @@ describe('Sentry.Client', () => {
 
   it('call install on Adapter', async () => {
     const sentry = new Sentry.Client(dsn);
-    sentry.use(MockAdapter, {testOption: true});
+    sentry.use(MockAdapter, { testOption: true });
     const spy1 = spy(sentry, 'install');
     const spy2 = spy(sentry.getAdapter(), 'install');
     await sentry.install();
@@ -57,7 +57,7 @@ describe('Sentry.Client', () => {
 
   it('multiple install calls on Adapter should only call once', async () => {
     const sentry = new Sentry.Client(dsn);
-    sentry.use(MockAdapter, {testOption: true});
+    sentry.use(MockAdapter, { testOption: true });
     const spy1 = spy(sentry.getAdapter(), 'install');
     await sentry.install();
     await sentry.install();
@@ -75,7 +75,7 @@ describe('Sentry.Client', () => {
 
   it('get Adapter', () => {
     const sentry = new Sentry.Client(dsn);
-    sentry.use(MockAdapter, {testOption: true});
+    sentry.use(MockAdapter, { testOption: true });
     expect(sentry.getAdapter()).to.be.an.instanceof(MockAdapter);
   });
 
@@ -115,7 +115,7 @@ describe('Sentry.Client', () => {
     const spy2 = spy(sentry.getAdapter(), 'capture');
     await sentry.capture({
       type: 'breadcrumb',
-      payload: {category: 'test'},
+      payload: { category: 'test' },
     });
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
@@ -177,7 +177,7 @@ describe('Sentry.Client', () => {
   it('call setOptions on Adapter', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
     const spy1 = spy(sentry.getAdapter(), 'setOptions');
-    await sentry.setOptions({release: '#oops'});
+    await sentry.setOptions({ release: '#oops' });
     expect(spy1.calledOnce).to.be.true;
   });
 
