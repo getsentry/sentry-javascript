@@ -19,6 +19,7 @@ export class Client {
     },
   ) {
     this.dsn = new DSN(dsn);
+    this.options = options;
     this.context = new Context();
     return this;
   }

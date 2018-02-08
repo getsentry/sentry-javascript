@@ -14,7 +14,9 @@ export class MockAdapter implements Adapter {
   }
 
   public capture(event: Event) {
-    return Promise.resolve(event);
+    return Promise.resolve({
+      message: event.payload,
+    });
   }
 
   public send(event: Event): Promise<Event> {

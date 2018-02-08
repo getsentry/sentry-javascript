@@ -1,5 +1,7 @@
 import {Context as ContextInterface} from './interfaces';
 
+// ADD JSDOCS
+
 export interface UpdateContext {
   (prevContext: ContextInterface): ContextInterface;
 }

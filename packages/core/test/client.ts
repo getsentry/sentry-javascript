@@ -8,11 +8,11 @@ const dsn = 'https://username:password@domain/path';
 describe('Sentry.Client', () => {
   it('get public/private DSN', () => {
     const sentry = new Sentry.Client(dsn);
-    expect(sentry.dsn.getDsn(false)).to.equal('https://username@domain/path');
-    expect(sentry.dsn.getDsn(true)).to.equal(dsn);
+    expect(sentry.dsn.getDSN()).to.equal('https://username@domain/path');
+    expect(sentry.dsn.getDSN(true)).to.equal(dsn);
     const sentry2 = new Sentry.Client('https://username:password@domain:8888/path');
-    expect(sentry2.dsn.getDsn(false)).to.equal('https://username@domain:8888/path');
-    expect(sentry2.dsn.getDsn(true)).to.equal('https://username:password@domain:8888/path');
+    expect(sentry2.dsn.getDSN()).to.equal('https://username@domain:8888/path');
+    expect(sentry2.dsn.getDSN(true)).to.equal('https://username:password@domain:8888/path');
   });
 
   it('invalid DSN', () => {
@@ -133,7 +133,7 @@ describe('Sentry.Client', () => {
     expect(spy2.calledOnce).to.be.true;
   });
 
-  it('call send only on one Adapter', async () => {
+  it('doesnt call send (for now - will be changed once we move to new API)', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
     const spy1 = spy(sentry, 'capture');
     const spy2 = spy(sentry.getAdapter(), 'capture');
@@ -144,7 +144,7 @@ describe('Sentry.Client', () => {
     });
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
-    expect(spySend.calledOnce).to.be.true;
+    expect(spySend.calledOnce).to.be.false;
     expect(result).to.be.ok;
     if (result) {
       expect(result.message).to.equal('+');
