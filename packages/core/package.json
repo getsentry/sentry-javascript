@@ -13,14 +13,17 @@
     "karma": "*",
     "prettier": "*",
     "tslint": "*",
-    "webpack-cli": "*"
+    "webpack-cli": "*",
+    "mocha": "*",
+    "ts-node": "*"
   },
   "scripts": {
     "build": "webpack --config ../webpack.config.js",
     "clean": "rm -rf ./build ./dist ./coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "karma start ../karma.config.js",
+    "test":
+      "karma start ../karma.config.js && mocha --require ts-node/register -r tsconfig-paths/register 'test/**/*.{ts,tsx}'",
     "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
   }
 }
