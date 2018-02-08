@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.22.2
+
+* BUGFIX: Use correct trimHeadFrames value if capturing new trace (#1216)
+* BUGFIX: Restore console methods after calling uninstall (#1221)
+* BUGFIX: Create safeJoin util for console wrappers (#1222)
+
 ## 3.22.1
 
 * NEW: Check for `SENTRY_RELEASE` during config phase (#1194)
