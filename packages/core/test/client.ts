@@ -180,4 +180,20 @@ describe('Sentry.Client', () => {
     await sentry.setOptions({release: '#oops'});
     expect(spy1.calledOnce).to.be.true;
   });
+
+  it('setContext', async () => {
+    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    sentry.setContext({
+      extra: {
+        some: 'key',
+      },
+      tags: ['test1', 'test2'],
+    });
+    expect(await sentry.getContext()).to.deep.equal({
+      extra: {
+        some: 'key',
+      },
+      tags: ['test1', 'test2'],
+    });
+  });
 });

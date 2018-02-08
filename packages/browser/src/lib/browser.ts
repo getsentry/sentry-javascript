@@ -95,11 +95,20 @@ export class SentryBrowser implements Adapter {
 
   public async getContext() {
     const context = Raven.getContext();
+    console.log(context);
     return Promise.resolve(context);
   }
 
   public async setContext(context: Context) {
-    Raven.setContext(context);
+    if (context.extra) {
+      Raven.setExtraContext(context.extra);
+    }
+    if (context.user) {
+      Raven.setUserContext(context.user);
+    }
+    if (context.tags) {
+      Raven.setTagsContext(context.tags);
+    }
     return Promise.resolve(this);
   }
 }

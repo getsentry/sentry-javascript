@@ -8,10 +8,10 @@ describe('Test', () => {
     await Sentry.create('https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291')
       .use(SentryNode)
       .install()
-      .then(client => client.setContext({tags: ['abc']}));
+      .then(client => client.setContext({extra: {abc: 'def'}}));
   });
 
-  it('works', () => {
-    expect(Sentry.getSharedClient().getContext()).to.deep.equal({tags: {cordova: true}});
+  it('works', async () => {
+    expect(await Sentry.getSharedClient().getContext()).to.deep.equal({extra: {abc: 'def'}});
   });
 });

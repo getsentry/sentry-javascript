@@ -1,10 +1,12 @@
-import {Adapter, Breadcrumb, Client, Event, Options} from '../src/index';
+import {Adapter, Breadcrumb, Client, Event, Options, Context} from '../src/index';
 
 export interface MockAdapterOptions extends Options {
   testOption?: boolean;
 }
 
 export class MockAdapter implements Adapter {
+  private context: Context;
+
   constructor(client: Client, public options: MockAdapterOptions = {testOption: false}) {
     return this;
   }
@@ -32,10 +34,11 @@ export class MockAdapter implements Adapter {
   }
 
   public async getContext() {
-    return Promise.resolve({});
+    return Promise.resolve(this.context);
   }
 
-  public async setContext() {
+  public async setContext(context: Context) {
+    this.context = context;
     return Promise.resolve(this);
   }
 }
