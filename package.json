@@ -9,7 +9,9 @@
     "test": "lerna run test",
     "test:watch": "lerna run --parallel test:watch"
   },
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@types/chai": "^4.1.2",
     "@types/mocha": "^2.2.48",
@@ -32,6 +34,8 @@
     "prettier": "^1.10.2",
     "sinon": "^4.2.2",
     "ts-loader": "^3.4.0",
+    "ts-node": "^4.1.0",
+    "tsconfig-paths": "^3.1.1",
     "tsconfig-paths-webpack-plugin": "^2.0.0",
     "tslint": "^5.9.1",
     "tslint-config-prettier": "^1.7.0",

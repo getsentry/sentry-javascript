@@ -14,9 +14,11 @@
     "raven": "^2.4.0"
   },
   "devDependencies": {
+    "mocha": "*",
     "karma": "*",
     "prettier": "*",
     "tslint": "*",
+    "ts-node": "*",
     "webpack-cli": "*"
   },
   "scripts": {
@@ -24,7 +26,7 @@
     "clean": "rm -rf ./build ./dist ./coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "karma start ../karma.config.js",
+    "test": "mocha --require ts-node/register -r tsconfig-paths/register 'test/**/*.{ts,tsx}'",
     "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
   }
 }
