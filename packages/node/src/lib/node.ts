@@ -65,7 +65,6 @@ export class SentryNode implements Adapter {
 
       default: {
         const message = 'Incorrect Event type';
-        console.log(message);
         return Promise.reject(message);
       }
     }

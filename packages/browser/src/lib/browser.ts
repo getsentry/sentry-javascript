@@ -65,7 +65,6 @@ export class SentryBrowser implements Adapter {
 
       default: {
         const message = 'Incorrect Event type';
-        console.log(message);
         return Promise.reject(message);
       }
     }
@@ -95,7 +94,6 @@ export class SentryBrowser implements Adapter {
 
   public async getContext() {
     const context = Raven.getContext();
-    console.log(context);
     return Promise.resolve(context);
   }
 
