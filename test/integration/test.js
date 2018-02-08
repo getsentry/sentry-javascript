@@ -1283,7 +1283,12 @@ describe('integration', function() {
               originalBuiltIns.headAddEventListener === document.body.addEventListener,
             headRemoveEventListener:
               originalBuiltIns.headRemoveEventListener ===
-              document.body.removeEventListener
+              document.body.removeEventListener,
+            consoleDebug: originalBuiltIns.consoleDebug === console.debug,
+            consoleInfo: originalBuiltIns.consoleInfo === console.info,
+            consoleWarn: originalBuiltIns.consoleWarn === console.warn,
+            consoleError: originalBuiltIns.consoleError === console.error,
+            consoleLog: originalBuiltIns.consoleLog === console.log
           };
         },
         function() {
@@ -1294,6 +1299,11 @@ describe('integration', function() {
           assert.isTrue(isRestored.xhrProtoOpen);
           assert.isTrue(isRestored.headAddEventListener);
           assert.isTrue(isRestored.headRemoveEventListener);
+          assert.isTrue(isRestored.consoleDebug);
+          assert.isTrue(isRestored.consoleInfo);
+          assert.isTrue(isRestored.consoleWarn);
+          assert.isTrue(isRestored.consoleError);
+          assert.isTrue(isRestored.consoleLog);
         }
       );
     });
