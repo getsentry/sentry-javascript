@@ -392,6 +392,7 @@ Raven.prototype = {
 
     this._unpatchFunctionToString();
     this._restoreBuiltIns();
+    this._restoreConsole();
 
     Error.stackTraceLimit = this._originalErrorStackTraceLimit;
     this._isRavenInstalled = false;
@@ -1380,6 +1381,13 @@ Raven.prototype = {
         orig = builtin[2];
 
       obj[name] = orig;
+    }
+  },
+
+  _restoreConsole: function() {
+    // eslint-disable-next-line guard-for-in
+    for (var method in this._originalConsoleMethods) {
+      this._originalConsole[method] = this._originalConsoleMethods[method];
     }
   },
 

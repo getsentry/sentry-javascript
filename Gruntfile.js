@@ -80,14 +80,14 @@ module.exports = function(grunt) {
   });
 
   // Transpile all test scripts
-  tests.forEach(function (test) {
+  tests.forEach(function(test) {
     var config = {
       input: {
         input: test
       },
       output: {
         file: path.join('build', path.basename(test)),
-        name: path.basename(test, '.js'),
+        name: path.basename(test, '.js')
       }
     };
 
@@ -288,18 +288,17 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('_prep', ['gitinfo', 'version']);
   grunt.registerTask('build.test', ['_prep', 'rollup:core', 'rollup:tests']);
-  grunt.registerTask('build.core', ['_prep', 'rollup:core', 'sri:dist']);
+  grunt.registerTask('build.core', ['_prep', 'rollup:core']);
   grunt.registerTask('build.plugins', [
     '_prep',
     'generate-plugin-combinations',
     'rollup:plugins',
     'rollup:pluginCombinations',
-    'sri:dist',
     'sri:build'
   ]);
   grunt.registerTask('build', ['build.core', 'build.plugins', 'uglify']);
 
-  grunt.registerTask('dist', ['clean', 'build', 'copy:dist']);
+  grunt.registerTask('dist', ['clean', 'build', 'copy:dist', 'sri:dist']);
 
   // Test tasks
   grunt.registerTask('test:ci', ['config:ci', 'build:test']);
