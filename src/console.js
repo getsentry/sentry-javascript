@@ -1,3 +1,5 @@
+var utils = require('./utils');
+
 var wrapMethod = function(console, level, callback) {
   var originalConsoleLevel = console[level];
   var originalConsole = console;
@@ -11,13 +13,14 @@ var wrapMethod = function(console, level, callback) {
   console[level] = function() {
     var args = [].slice.call(arguments);
 
-    var msg = '' + args.join(' ');
+    var msg = utils.safeJoin(args, ' ');
     var data = {level: sentryLevel, logger: 'console', extra: {arguments: args}};
 
     if (level === 'assert') {
       if (args[0] === false) {
         // Default browsers message
-        msg = 'Assertion failed: ' + (args.slice(1).join(' ') || 'console.assert');
+        msg =
+          'Assertion failed: ' + (utils.safeJoin(args.slice(1), ' ') || 'console.assert');
         data.extra.arguments = args.slice(1);
         callback && callback(msg, data);
       }
