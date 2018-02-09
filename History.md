@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.1 - 2018-02-09
+
+- fix: Handle scoped packages structure in node-lsmod (#426)
+- fix: Report fatal errors as indeed "fatal" (#425)
+- ref: Use a named function for the middleware over an anonymous (#424)
+
 ## 2.4.0 - 2018-01-24
 
 - feat: Sensible non-Error exception serializer (#416)
