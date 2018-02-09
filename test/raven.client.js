@@ -953,7 +953,6 @@ describe('raven.Client', function() {
           var msg = JSON.parse(dec.toString());
           var modules = msg.modules;
 
-          modules.should.have.property('lsmod');
           modules.should.have.property('uuid');
           done();
         });
