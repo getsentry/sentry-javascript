@@ -30,9 +30,9 @@
     "test:size": "grunt dist && bundlesize && git checkout -- dist/"
   },
   "devDependencies": {
-    "@babel/core": "^7.0.0-beta.32",
-    "@babel/preset-env": "^7.0.0-beta.32",
     "bluebird": "^3.4.1",
+    "browserify-versionify": "^1.0.6",
+    "bundle-collapser": "^1.2.1",
     "bundlesize": "^0.15.2",
     "chai": "^4.1.1",
     "derequire": "2.0.3",
@@ -40,6 +40,7 @@
     "eslint": "^4.6.1",
     "eslint-config-prettier": "^2.3.0",
     "grunt": "^0.4.5",
+    "grunt-browserify": "^4.0.1",
     "grunt-cli": "^0.1.13",
     "grunt-contrib-clean": "^0.7.0",
     "grunt-contrib-connect": "^0.11.2",
@@ -64,11 +65,8 @@
     "mocha": "^3.5.0",
     "prettier": "^1.6.1",
     "proxyquireify": "^3.0.2",
-    "rollup": "^0.52.0",
-    "rollup-plugin-babel": "^4.0.0-beta.0",
-    "rollup-plugin-commonjs": "^8.2.6",
-    "rollup-plugin-node-resolve": "^3.0.0",
     "sinon": "^3.2.1",
+    "through2": "^2.0.0",
     "typescript": "^2.3.0",
     "whatwg-fetch": "^2.0.3"
   },

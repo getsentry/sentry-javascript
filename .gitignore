@@ -12,7 +12,6 @@ docs/doctrees
 
 build
 node_modules
-plugins/combinations
 npm-debug.log
 
 scratch/
