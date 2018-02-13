@@ -1461,7 +1461,7 @@ Raven.prototype = {
     var self = this;
     var frames = [];
     if (stackInfo.stack && stackInfo.stack.length) {
-      each(stackInfo.stack, function(i, stack) {
+      each(stackInfo.stack, function(_, stack) {
         var frame = self._normalizeFrame(stack, stackInfo.url);
         if (frame) {
           frames.push(frame);
