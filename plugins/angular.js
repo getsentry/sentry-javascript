@@ -9,36 +9,27 @@ var wrappedCallback = require('../src/utils').wrappedCallback;
 var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
 var moduleName = 'ngRaven';
 
+function ExceptionHandlerProvider($provide) {
+  $provide.decorator('$exceptionHandler', ['Raven', '$delegate', exceptionHandler]);
+}
+
+function exceptionHandler(R, $delegate) {
+  return function(ex, cause) {
+    R.captureException(ex, {
+      extra: {cause: cause}
+    });
+    $delegate(ex, cause);
+  };
+}
+
 function angularPlugin(Raven, angular) {
   angular = angular || window.angular;
 
   if (!angular) return;
 
-  function RavenProvider() {
-    this.$get = [
-      '$window',
-      function($window) {
-        return Raven;
-      }
-    ];
-  }
-
-  function ExceptionHandlerProvider($provide) {
-    $provide.decorator('$exceptionHandler', ['Raven', '$delegate', exceptionHandler]);
-  }
-
-  function exceptionHandler(R, $delegate) {
-    return function(ex, cause) {
-      R.captureException(ex, {
-        extra: {cause: cause}
-      });
-      $delegate(ex, cause);
-    };
-  }
-
   angular
     .module(moduleName, [])
-    .provider('Raven', RavenProvider)
+    .constant('Raven', Raven)
     .config(['$provide', ExceptionHandlerProvider]);
 
   Raven.setDataCallback(
