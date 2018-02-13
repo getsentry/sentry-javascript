@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.22.3
+
+* BUGFIX: Reverted Rollup-based build system and fixed broken plugin builds
+
 ## 3.22.2
 
 * BUGFIX: Use correct trimHeadFrames value if capturing new trace (#1216)
