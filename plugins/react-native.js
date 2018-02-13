@@ -185,7 +185,7 @@ reactNativePlugin._clearPayload = function() {
  */
 reactNativePlugin._transport = function(options) {
   var request = new XMLHttpRequest();
-  request.onreadystatechange = function(e) {
+  request.onreadystatechange = function() {
     if (request.readyState !== 4) {
       return;
     }

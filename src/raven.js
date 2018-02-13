@@ -982,7 +982,7 @@ Raven.prototype = {
     var wrappedBuiltIns = self._wrappedBuiltIns;
 
     function wrapTimeFn(orig) {
-      return function(fn, t) {
+      return function() {
         // preserve arity
         // Make a copy of the arguments to prevent deoptimization
         // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments

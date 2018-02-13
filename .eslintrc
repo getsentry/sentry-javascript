@@ -31,7 +31,7 @@
     "no-sequences": 2,
     "no-shadow": 2,
     "no-undef": 2,
-    "no-unused-vars": [2, {"args": "none"}],
+    "no-unused-vars": 2,
     "no-with": 2,
     "semi": [0, "never"],
     "strict": [2, "never"],
