@@ -1,21 +1,32 @@
 Loopback
 ========
 
+If you're using Loopback 2.x LTS, make sure
+you've migrated to `strong-error-handler
+<https://loopback.io/doc/en/lb2/Using-strong-error-handler.html>`_, otherwise no
+errors will get to ``raven-node``.
+
+Configure ``raven-node`` as early as possible:
+
 .. code-block:: javascript
 
-    // server/middleware/sentry.js
+    // server/server.js
 
-    var Raven = require('raven');
+    const Raven = require('raven');
     Raven.config('__DSN__').install();
 
-    module.exports = function () {
-      return Raven.errorHandler();
-    }
+Add ``Raven.errorHandler`` as a Loopback middleware:
 
-.. code-block:: javascript
+.. code-block:: json
 
     // server/middleware.json
 
-    "final": {
-      "./middleware/sentry": {}
+    "final:after": {
+      "raven#errorHandler": {},
+      "strong-error-handler": {
+        "debug": false,
+        "log": false
+      }
     }
+
+You're all set!
