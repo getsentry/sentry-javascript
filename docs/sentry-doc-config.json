@@ -11,6 +11,14 @@
         "index#reporting-errors"
       ]
     },
+    "javascript.textkit": {
+      "name": "Raven Testkit",
+      "type": "framework",
+      "doc_link": "integrations/raven-textkit/",
+      "wizard": [
+        "integrations/raven-textkit#raven-test-kit"
+      ]
+    },
     "javascript.angularjs": {
       "name": "AngularJS",
       "type": "framework",

@@ -40,6 +40,7 @@ To install a plugin just include the plugin **after** Raven has been loaded and 
    ember
    react
    vue
+   raven-testkit
 
 
 .. toctree::
