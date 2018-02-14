@@ -513,13 +513,15 @@ Raven.prototype = {
           // fingerprint on msg, not stack trace (legacy behavior, could be
           // revisited)
           fingerprint: msg,
-          // since we know this is a synthetic trace, the top N-most frames
-          // MUST be from Raven.js, so mark them as in_app later by setting
-          // trimHeadFrames
-          trimHeadFrames: (options.trimHeadFrames || 0) + 1
+          trimHeadFrames: 0
         },
         options
       );
+      // Since we know this is a synthetic trace, the top frame (this function call)
+      // MUST be from Raven.js, so mark it for trimming
+      // We add to the trim counter so that callers can choose to trim extra frames, such
+      // as utility functions.
+      options.trimHeadFrames += 1;
 
       var frames = this._prepareFrames(stack, options);
       data.stacktrace = {
