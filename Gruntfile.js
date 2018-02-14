@@ -24,15 +24,10 @@ module.exports = function(grunt) {
   // custom browserify transformer to re-write plugins to
   // self-register with Raven via addPlugin
   function AddPluginBrowserifyTransformer() {
+    var noop = function (chunk, _, cb) { cb(null, chunk); };
+    var append = function (cb) { cb(null, "\nrequire('../src/singleton').addPlugin(module.exports);"); };
     return function(file) {
-      return through(function(buf, enc, next) {
-        buf = buf.toString('utf8');
-        if (/plugins/.test(file)) {
-          buf += "\nrequire('../src/singleton').addPlugin(module.exports);";
-        }
-        this.push(buf);
-        next();
-      });
+      return through(noop, /plugins/.test(file) ? append : undefined);
     };
   }
 
