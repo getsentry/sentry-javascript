@@ -218,7 +218,7 @@ Those configuration options are documented below:
             'xhr': false,      // XMLHttpRequest
             'console': false,  // console logging
             'dom': true,       // DOM interactions, i.e. clicks/typing
-            'location': false  // url changes, including pushState/popState
+            'location': false, // url changes, including pushState/popState
             'sentry': true     // sentry events
         }
 
