@@ -10,9 +10,13 @@ describe('Sentry.Client', () => {
     const sentry = new Sentry.Client(dsn);
     expect(sentry.dsn.getDSN()).to.equal('https://username@domain/path');
     expect(sentry.dsn.getDSN(true)).to.equal(dsn);
-    const sentry2 = new Sentry.Client('https://username:password@domain:8888/path');
+    const sentry2 = new Sentry.Client(
+      'https://username:password@domain:8888/path',
+    );
     expect(sentry2.dsn.getDSN()).to.equal('https://username@domain:8888/path');
-    expect(sentry2.dsn.getDSN(true)).to.equal('https://username:password@domain:8888/path');
+    expect(sentry2.dsn.getDSN(true)).to.equal(
+      'https://username:password@domain:8888/path',
+    );
   });
 
   it('invalid DSN', () => {
@@ -69,7 +73,9 @@ describe('Sentry.Client', () => {
     try {
       await sentry.install();
     } catch (e) {
-      expect(e.message).to.equal('No adapter in use, please call .use(<Adapter>)');
+      expect(e.message).to.equal(
+        'No adapter in use, please call .use(<Adapter>)',
+      );
     }
   });
 
@@ -79,27 +85,21 @@ describe('Sentry.Client', () => {
     expect(sentry.getAdapter()).to.be.an.instanceof(MockAdapter);
   });
 
-  it('call capture with reject on Adapter', async () => {
+  it('call captureMessage with reject on Adapter', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
     try {
-      await sentry.capture({
-        type: 'message',
-        payload: 'fail',
-      });
+      await sentry.captureMessage('fail');
     } catch (e) {
-      expect(e.message).to.equal('Failed because we told it too');
+      expect(e.message).to.equal('Failed because we told it to');
     }
   });
 
-  it('call capture on Adapter with message', async () => {
+  it('call captureMessage on Adapter', async () => {
     const sentry = new Sentry.Client(dsn).use(MockAdapter);
     sentry.install();
-    const spy1 = spy(sentry, 'capture');
-    const spy2 = spy(sentry.getAdapter(), 'capture');
-    const result = await sentry.capture({
-      type: 'message',
-      payload: 'heyho',
-    });
+    const spy1 = spy(sentry, 'captureMessage');
+    const spy2 = spy(sentry.getAdapter(), 'captureMessage');
+    const result = await sentry.captureMessage('heyho');
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
     expect(result).to.be.ok;
@@ -108,43 +108,36 @@ describe('Sentry.Client', () => {
     }
   });
 
-  it('call capture on Adapter with breadcrumb', async () => {
+  it('call captureBreadcrumb on Adapter', async () => {
     const sentry = new Sentry.Client(dsn).use(MockAdapter);
     await sentry.install();
-    const spy1 = spy(sentry, 'capture');
-    const spy2 = spy(sentry.getAdapter(), 'capture');
-    await sentry.capture({
-      type: 'breadcrumb',
-      payload: { category: 'test' },
-    });
+    const spy1 = spy(sentry, 'captureBreadcrumb');
+    const spy2 = spy(sentry.getAdapter(), 'captureBreadcrumb');
+    await sentry.captureBreadcrumb({ category: 'test' });
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
   });
 
-  it('call capture on Adapter with exception', async () => {
+  it('call captureException on Adapter', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
-    const spy1 = spy(sentry, 'capture');
-    const spy2 = spy(sentry.getAdapter(), 'capture');
-    await sentry.capture({
-      type: 'exception',
-      payload: new Error('oops'),
-    });
+    const spy1 = spy(sentry, 'captureException');
+    const spy2 = spy(sentry.getAdapter(), 'captureException');
+    await sentry.captureException(new Error('oops'));
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
   });
 
-  it('doesnt call send (for now - will be changed once we move to new API)', async () => {
+  it('call send only on one Adapter', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
-    const spy1 = spy(sentry, 'capture');
-    const spy2 = spy(sentry.getAdapter(), 'capture');
-    const spySend = spy(sentry.getAdapter(), 'send');
-    const result = await sentry.capture({
-      type: 'message',
-      payload: '+',
-    });
+    const spy1 = spy(sentry, 'captureMessage');
+    const spy2 = spy(sentry.getAdapter(), 'captureMessage');
+    const spySend = spy(sentry, 'send');
+    const spySend2 = spy(sentry.getAdapter(), 'send');
+    const result = await sentry.captureMessage('+');
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
-    expect(spySend.calledOnce).to.be.false;
+    expect(spySend.calledOnce).to.be.true;
+    expect(spySend2.calledOnce).to.be.true;
     expect(result).to.be.ok;
     if (result) {
       expect(result.message).to.equal('+');
@@ -163,15 +156,12 @@ describe('Sentry.Client', () => {
 
   it('should throw error without calling install', async () => {
     const sentry = new Sentry.Client(dsn).use(MockAdapter);
-    return sentry
-      .capture({
-        type: 'exception',
-        payload: new Error('oops'),
-      })
-      .catch(err => {
-        expect(err).to.be.instanceof(Sentry.SentryError);
-        expect(err.message).to.equal('Please call install() before calling other methods on Sentry');
-      });
+    return sentry.captureException(new Error('oops')).catch(err => {
+      expect(err).to.be.instanceof(Sentry.SentryError);
+      expect(err.message).to.equal(
+        'Please call install() before calling other methods on Sentry',
+      );
+    });
   });
 
   it('call setOptions on Adapter', async () => {

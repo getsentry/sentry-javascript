@@ -1,4 +1,11 @@
-import {Adapter, Breadcrumb, Client, Event, Options, Context} from '../src/index';
+import {
+  Adapter,
+  Breadcrumb,
+  Client,
+  Event,
+  Options,
+  Context,
+} from '../src/index';
 
 export interface MockAdapterOptions extends Options {
   testOption?: boolean;
@@ -7,7 +14,10 @@ export interface MockAdapterOptions extends Options {
 export class MockAdapter implements Adapter {
   private context: Context;
 
-  constructor(client: Client, public options: MockAdapterOptions = {testOption: false}) {
+  constructor(
+    client: Client,
+    public options: MockAdapterOptions = { testOption: false },
+  ) {
     return this;
   }
 
@@ -15,14 +25,24 @@ export class MockAdapter implements Adapter {
     return Promise.resolve(true);
   }
 
-  public capture(event: Event) {
-    return Promise.resolve({
-      message: event.payload,
-    });
+  public captureException(raw: any): Promise<Event> {
+    return Promise.resolve({ message: raw.toString() });
   }
 
-  public send(event: Event): Promise<Event> {
-    return Promise.resolve(event);
+  public async captureMessage(message: string): Promise<Event> {
+    if (message === 'fail') {
+      throw new Error('Failed because we told it to');
+    } else {
+      return { message };
+    }
+  }
+
+  public captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb> {
+    return Promise.resolve(breadcrumb);
+  }
+
+  public send(event: Event): Promise<void> {
+    return Promise.resolve();
   }
 
   public wrap(fn: Function, options: object) {
