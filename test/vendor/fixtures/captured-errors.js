@@ -297,6 +297,18 @@ CapturedExceptions.FIREFOX_50_RESOURCE_URL = {
   name: 'TypeError'
 };
 
+CapturedExceptions.FIREFOX_MOZ_EXTENSION = {
+  stack:
+    'render@moz-extension://path/data/content/bundle.js:5529:16\n' +
+    'dispatchEvent@moz-extension://path/data/content/vendor.bundle.js:18:23028\n' +
+    'wrapped@moz-extension//path/data/content/bundle.js:7270:25',
+  fileName: 'moz-extension://path/data/content/bundle.js',
+  lineNumber: 5529,
+  columnNumber: 16,
+  message: 'this.props.raw[this.state.dataSource].rows is undefined',
+  name: 'TypeError'
+};
+
 CapturedExceptions.SAFARI_6 = {
   message: "'null' is not an object (evaluating 'x.undef')",
   stack:

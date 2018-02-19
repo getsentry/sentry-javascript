@@ -788,6 +788,21 @@ describe('TraceKit', function() {
       });
     });
 
+    it('should parse Firefox Extension errors', function() {
+      var stackFrames = TraceKit.computeStackTrace(
+        CapturedExceptions.FIREFOX_MOZ_EXTENSION
+      );
+      assert.ok(stackFrames);
+      assert.deepEqual(stackFrames.stack.length, 3);
+      assert.deepEqual(stackFrames.stack[0], {
+        url: 'moz-extension://path/data/content/bundle.js',
+        func: 'render',
+        args: [],
+        line: 5529,
+        column: 16
+      });
+    });
+
     it('should parse React Native errors on Android', function() {
       var stackFrames = TraceKit.computeStackTrace(
         CapturedExceptions.ANDROID_REACT_NATIVE
