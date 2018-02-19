@@ -1,4 +1,12 @@
-import { Adapter, Breadcrumb, Client, Context, Event, Options, User } from '@sentry/core';
+import {
+  Adapter,
+  Breadcrumb,
+  Client,
+  Context,
+  Event,
+  Options,
+  User,
+} from '@sentry/core';
 declare function require(path: string): any;
 const Raven = require('raven');
 
@@ -6,35 +14,6 @@ export interface NodeOptions extends Options {}
 
 export class SentryNode implements Adapter {
   private client: Client;
-
-  private captureException(exception: object | Error) {
-    return new Promise<Event>((resolve, reject) => {
-      const ravenSend = Raven.send;
-      Raven.send = (data: any) => {
-        Raven.send = ravenSend;
-        resolve(data);
-      };
-      Raven.captureException(exception);
-    });
-  }
-
-  private captureMessage(message: string | number) {
-    return new Promise<Event>((resolve, reject) => {
-      const ravenSend = Raven.send;
-      Raven.send = (data: any) => {
-        Raven.send = ravenSend;
-        resolve(data);
-      };
-      Raven.captureMessage(message);
-    });
-  }
-
-  private captureBreadcrumb(crumb: Breadcrumb) {
-    return new Promise<Breadcrumb>((resolve, reject) => {
-      Raven.captureBreadcrumb(crumb);
-      resolve(crumb);
-    });
-  }
 
   constructor(client: Client, public options: NodeOptions = {}) {
     this.client = client;
@@ -49,35 +28,43 @@ export class SentryNode implements Adapter {
     return Raven;
   }
 
-  public capture(event: Event) {
-    switch (event.type) {
-      case 'exception': {
-        return this.captureException(event.payload);
-      }
-
-      case 'message': {
-        return this.captureMessage(event.payload);
-      }
-
-      case 'breadcrumb': {
-        return this.captureBreadcrumb(event.payload);
-      }
-
-      default: {
-        const message = 'Incorrect Event type';
-        return Promise.reject(message);
-      }
-    }
+  public captureException(exception: any): Promise<Event> {
+    return new Promise<Event>((resolve, reject) => {
+      const ravenSend = Raven.send;
+      Raven.send = (data: any) => {
+        Raven.send = ravenSend;
+        resolve(data);
+      };
+      Raven.captureException(exception);
+    });
   }
 
-  public send(event: any) {
+  public captureMessage(message: string): Promise<Event> {
     return new Promise<Event>((resolve, reject) => {
+      const ravenSend = Raven.send;
+      Raven.send = (data: any) => {
+        Raven.send = ravenSend;
+        resolve(data);
+      };
+      Raven.captureMessage(message);
+    });
+  }
+
+  public captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb> {
+    return new Promise<Breadcrumb>((resolve, reject) => {
+      Raven.captureBreadcrumb(breadcrumb);
+      resolve(breadcrumb);
+    });
+  }
+
+  public send(event: Event): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       Raven.send(event, (error: any) => {
         if (error) {
           reject(error);
-          return;
+        } else {
+          resolve();
         }
-        resolve(event);
       });
     });
   }
