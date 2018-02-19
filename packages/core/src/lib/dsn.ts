@@ -20,9 +20,10 @@ export class DSN {
   }
 
   public getDSN(withPass: boolean = false) {
+    const { host, path, pass, port, protocol, user } = this.dsn;
     return (
-      `${this.dsn.protocol}://${this.dsn.user}${withPass ? this.dsn.pass : ''}` +
-      `@${this.dsn.host}${this.dsn.port ? ':' + this.dsn.port : ''}/${this.dsn.path}`
+      `${protocol}://${user}${withPass ? pass : ''}` +
+      `@${host}${port ? ':' + port : ''}/${path}`
     );
   }
 

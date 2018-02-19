@@ -1,16 +1,21 @@
 export interface Adapter {
   readonly options: {};
   install(): Promise<boolean>;
-  capture(event: Event): Promise<any>; // FIXME: swap any for interface
-  send(event: Event): Promise<any>; // FIXME: swap any for interface
+  captureException(exception: any): Promise<Event>;
+  captureMessage(message: string): Promise<Event>;
+  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
+  send(event: Event): Promise<void>;
   wrap(fn: Function, options: object): Function;
   setOptions(options: Options): Promise<Adapter>;
   getContext(): Promise<Context>;
   setContext(context: Context): Promise<Adapter>;
 }
 
+// TODO: Enumerate breadcrumb types
+export type BreadcrumbType = string;
+
 export interface Breadcrumb {
-  type?: string;
+  type?: BreadcrumbType;
   level?: string; // TODO: check if same as LogLevel or Severity
   event_id?: string;
   category?: string;
@@ -24,22 +29,10 @@ export interface Context {
   user?: User;
 }
 
-interface ExceptionEvent {
-  type: 'exception';
-  payload: object | Error;
+// TODO: Add missing fields
+export interface Event {
+  message?: string;
 }
-
-interface MessageEvent {
-  type: 'message';
-  payload: string | number;
-}
-
-interface BreadcrumbEvent {
-  type: 'breadcrumb';
-  payload: Breadcrumb;
-}
-
-export type Event = ExceptionEvent | MessageEvent | BreadcrumbEvent;
 
 export enum LogLevel {
   None = 0,
