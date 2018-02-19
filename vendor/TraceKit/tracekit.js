@@ -372,7 +372,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
   function computeStackTraceFromStackProp(ex) {
     if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
-    var chrome = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+    var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
       gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
       winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
       // Used to additionally parse URL/line/column from eval frames

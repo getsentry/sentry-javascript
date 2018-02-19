@@ -193,10 +193,18 @@ CapturedExceptions.CHROME_XX_WEBPACK = {
   name: 'TypeError',
   stack:
     "TypeError: Cannot read property 'error' of undefined\n" +
-    '   at TESTTESTTEST.eval(webpack:///./src/components/test/test.jsx?:295:108)\n' +
-    '   at TESTTESTTEST.render(webpack:///./src/components/test/test.jsx?:272:32)\n' +
-    '   at TESTTESTTEST.tryRender(webpack:///./~/react-transform-catch-errors/lib/index.js?:34:31)\n' +
-    '   at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)'
+    '    at TESTTESTTEST.eval(webpack:///./src/components/test/test.jsx?:295:108)\n' +
+    '    at TESTTESTTEST.render(webpack:///./src/components/test/test.jsx?:272:32)\n' +
+    '    at TESTTESTTEST.tryRender(webpack:///./~/react-transform-catch-errors/lib/index.js?:34:31)\n' +
+    '    at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)'
+};
+
+CapturedExceptions.CHROME_EXTENSION = {
+  message: 'oops!',
+  name: 'Error',
+  stack:
+    'Error: oops!\n' +
+    '    at chrome-extension://negengibeecgiokdifncekejdgkcoono/content-script-main.js:93:12'
 };
 
 CapturedExceptions.FIREFOX_3 = {
