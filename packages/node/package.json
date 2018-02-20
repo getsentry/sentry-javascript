@@ -27,7 +27,7 @@
     "clean": "rimraf dist coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "jest --env=node",
+    "test": "jest",
     "test:watch": "jest --watch --notify"
   },
   "jest": {
@@ -37,6 +37,7 @@
       }
     },
     "collectCoverage": true,
+    "testEnvironment": "node",
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },

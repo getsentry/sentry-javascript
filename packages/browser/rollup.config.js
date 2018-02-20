@@ -3,9 +3,9 @@ import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 
 export default {
-  input: 'dist/browser/src/standalone.js',
+  input: 'dist/standalone.js',
   output: {
-    file: 'dist/browser/build.min.js',
+    file: 'dist/build.min.js',
     format: 'cjs',
     exports: 'named',
   },

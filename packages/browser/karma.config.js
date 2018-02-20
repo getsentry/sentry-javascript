@@ -11,14 +11,14 @@ module.exports = function(config) {
     basePath: process.cwd(),
     files: ['test/**/*.ts', 'src/**/*.ts'],
     preprocessors: {
-      'src/**/*.ts': ['karma-typescript'],
-      'test/**/*.ts': ['karma-typescript'],
+      '**/*.ts': ['karma-typescript'],
     },
 
     karmaTypescriptConfig: {
       tsconfig: 'tsconfig.json',
-      bundlerOptions: { sourceMap: true },
-      compilerOptions: { rootDir: '.' },
+      bundlerOptions: {
+        sourceMap: true,
+      },
       include: ['test/**/*.ts'],
       reports: {
         html: 'coverage',
