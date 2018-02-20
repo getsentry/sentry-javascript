@@ -14,20 +14,34 @@
     "raven": "^2.4.0"
   },
   "devDependencies": {
-    "mocha": "*",
-    "karma": "*",
+    "@types/jest": "*",
+    "jest": "*",
     "prettier": "*",
+    "rimraf": "*",
+    "ts-jest": "*",
     "tslint": "*",
-    "ts-node": "*",
-    "webpack-cli": "*"
+    "typescript": "*"
   },
   "scripts": {
     "build": "webpack --config ../webpack.config.js",
     "clean": "rm -rf ./build ./dist ./coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "mocha --require ts-node/register -r tsconfig-paths/register 'test/**/*.{ts,tsx}'",
-    "test:watch":
-      "mocha --watch --require ts-node/register -r tsconfig-paths/register --watch-extensions ts,tsx 'test/**/*.{ts,tsx}'"
+    "test": "jest --env=node",
+    "test:watch": "jest --watch --notify"
+  },
+  "jest": {
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "./tsconfig.json"
+      }
+    },
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": ["js", "ts"],
+    "testMatch": ["**/*.test.ts"],
+    "testPathIgnorePatterns": ["/Mock/"]
   }
 }
