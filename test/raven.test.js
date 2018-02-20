@@ -24,6 +24,7 @@ var utils = require('../src/utils');
 var joinRegExp = utils.joinRegExp;
 var supportsErrorEvent = utils.supportsErrorEvent;
 var supportsFetch = utils.supportsFetch;
+var supportsReferrerPolicy = utils.supportsReferrerPolicy;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -1784,7 +1785,7 @@ describe('globals', function() {
             'http://localhost/?a=1&b=2',
             {
               keepalive: true,
-              referrerPolicy: 'origin',
+              referrerPolicy: supportsReferrerPolicy() ? 'origin' : '',
               method: 'POST',
               body: '{"foo":"bar"}'
             }

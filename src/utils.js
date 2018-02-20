@@ -79,6 +79,24 @@ function supportsFetch() {
   }
 }
 
+// Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
+// https://caniuse.com/#feat=referrer-policy
+// It doesn't. And it throw exception instead of ignoring this parameter...
+// REF: https://github.com/getsentry/raven-js/issues/1233
+function supportsReferrerPolicy() {
+  if (!supportsFetch()) return false;
+
+  try {
+    // eslint-disable-next-line no-new
+    new Request('pickleRick', {
+      referrerPolicy: 'origin'
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function wrappedCallback(callback) {
   function dataCallback(data, original) {
     var normalizedData = callback(data) || data;
@@ -431,6 +449,7 @@ module.exports = {
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
   supportsFetch: supportsFetch,
+  supportsReferrerPolicy: supportsReferrerPolicy,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,
