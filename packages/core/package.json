@@ -10,9 +10,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "devDependencies": {
-    "karma": "*",
+    "@types/jest": "*",
+    "jest": "*",
+    "npm-run-all": "*",
     "prettier": "*",
     "rimraf": "*",
+    "ts-jest": "*",
     "tslint": "*",
     "typescript": "*"
   },
@@ -21,7 +24,23 @@
     "clean": "rimraf dist coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "karma start ../karma.config.js",
-    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+    "test:browser": "jest --env=jsdom",
+    "test:node": "jest --env=node",
+    "test:watch": "jest --watch --notify",
+    "test": "npm-run-all test:browser test:node"
+  },
+  "jest": {
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "./tsconfig.json"
+      }
+    },
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": ["js", "ts"],
+    "testMatch": ["**/*.test.ts"],
+    "testPathIgnorePatterns": ["/Mock/"]
   }
 }

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { MockAdapter } from '../mocks/MockAdapter.test';
+import { MockAdapter } from '../mocks/MockAdapter';
 import * as Sentry from '../../src/index';
 
 const dsn = 'https://username:password@domain/path';
