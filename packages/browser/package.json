@@ -25,7 +25,7 @@
     "typescript": "*"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc",
     "build:bundle": "rollup --config",
     "build:test": "rollup --config rollup.config.test.js",
     "clean": "rimraf dist coverage",
