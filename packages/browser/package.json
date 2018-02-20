@@ -7,8 +7,8 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/browser/src/index.js",
+  "types": "dist/browser/src/index.d.ts",
   "dependencies": {
     "@sentry/core": "^0.3.0",
     "raven-js": "^3.22.1"
@@ -16,15 +16,22 @@
   "devDependencies": {
     "karma": "*",
     "prettier": "*",
+    "rimraf": "*",
+    "rollup": "*",
+    "rollup-plugin-commonjs": "*",
+    "rollup-plugin-node-resolve": "*",
+    "rollup-plugin-uglify": "*",
     "tslint": "*",
-    "webpack-cli": "*"
+    "typescript": "*"
   },
   "scripts": {
-    "build": "webpack --config ../webpack.config.js",
-    "clean": "rm -rf ./build ./dist ./coverage",
+    "build": "tsc -p tsconfig.json",
+    "build:bundle": "rollup --config",
+    "build:test": "rollup --config rollup.config.test.js",
+    "clean": "rimraf dist coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test": "karma start ../karma.config.js",
-    "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
+    "test": "karma start karma.config.js",
+    "test:watch": "karma start karma.config.js --auto-watch --no-single-run"
   }
 }
