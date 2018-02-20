@@ -7,10 +7,9 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/browser/src/index.js",
-  "types": "dist/browser/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/core": "^0.3.0",
     "raven-js": "^3.22.1"
   },
   "devDependencies": {
@@ -21,17 +20,21 @@
     "rollup-plugin-commonjs": "*",
     "rollup-plugin-node-resolve": "*",
     "rollup-plugin-uglify": "*",
+    "rollup-plugin-typescript2": "*",
     "tslint": "*",
     "typescript": "*"
   },
+  "peerDependencies": {
+    "@sentry/core": "^0.3.0"
+  },
   "scripts": {
-    "build": "tsc",
-    "build:bundle": "rollup --config",
-    "build:test": "rollup --config rollup.config.test.js",
-    "clean": "rimraf dist coverage",
-    "lint": "tslint --config ../.tslintrc.json src/**/*",
-    "format": "prettier --config ../.prettierrc.json src/**/* --write",
+    "build": "rollup --config",
+    "clean": "rimraf dist coverage .rpt2_cache build",
+    "lint": "tslint --config ../../.tslintrc.json src/**/*",
+    "format": "prettier --config ../../.prettierrc.json src/**/* --write",
     "test": "karma start karma.config.js",
-    "test:watch": "karma start karma.config.js --auto-watch --no-single-run"
+    "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
+    "size:check":
+      "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   }
 }

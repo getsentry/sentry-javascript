@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": "./packages",
     "paths": {
       "@sentry/*": ["./*/src"]
     },

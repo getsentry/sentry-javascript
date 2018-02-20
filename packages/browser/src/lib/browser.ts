@@ -7,8 +7,9 @@ import {
   Options,
   User,
 } from '@sentry/core';
-declare function require(path: string): any;
-const Raven = require('raven-js');
+
+import * as RavenJS from 'raven-js';
+const Raven = RavenJS as any;
 
 export interface BrowserOptions extends Options {}
 

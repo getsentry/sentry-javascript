@@ -25,6 +25,4 @@ lerna-debug.log
 .Spotlight-V100
 .Trashes
 
-# For some reason, .d.ts files for core get created in the browser and
-# node packages, but these are generated files.
-packages/*/core/**/*.d.ts
+.rpt2_cache
