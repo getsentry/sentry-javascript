@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Context } from '../src/lib/context';
+import { Context } from '../../src/lib/context';
 
 describe('Context', () => {
   it('should be empty when initialized', () => {

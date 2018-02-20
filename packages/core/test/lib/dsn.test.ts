@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { SentryError } from '../src/lib/sentry';
-import { DSN } from '../src/lib/dsn';
+import { SentryError } from '../../src/lib/sentry';
+import { DSN } from '../../src/lib/dsn';
 
 describe('DSN', () => {
   it('should throw SentryError when provided invalid DSN', () => {
@@ -10,11 +10,15 @@ describe('DSN', () => {
   });
 
   it('should not throw SentryError when provided correct DSN', () => {
-    expect(() => new DSN('https://abc:xyz@sentry.io:1234/123')).to.not.throw(SentryError);
+    expect(() => new DSN('https://abc:xyz@sentry.io:1234/123')).to.not.throw(
+      SentryError,
+    );
   });
 
   it('password and port should be optional', () => {
-    expect(() => new DSN('https://abc@sentry.io/123')).to.not.throw(SentryError);
+    expect(() => new DSN('https://abc@sentry.io/123')).to.not.throw(
+      SentryError,
+    );
   });
 
   it('protocol, user, host and path should be mandatory', () => {

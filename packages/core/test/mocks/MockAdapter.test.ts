@@ -5,7 +5,7 @@ import {
   Event,
   Options,
   Context,
-} from '../src/index';
+} from '../../src/index';
 
 export interface MockAdapterOptions extends Options {
   testOption?: boolean;

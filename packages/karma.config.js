@@ -1,43 +1,29 @@
-const webpackConfig = require('./webpack.config');
-
-webpackConfig.module.rules = webpackConfig.module.rules.concat([
-  {
-    test: /\.ts$/,
-    loader: 'istanbul-instrumenter-loader',
-    enforce: 'post',
-    exclude: /node_modules|test/,
-  },
-]);
-
 module.exports = function(config) {
   config.set({
-    basePath: process.cwd(),
-    files: ['test/**/*.ts'],
-    frameworks: ['mocha', 'chai', 'sinon'],
-    preprocessors: {
-      './test/**/*.ts': ['webpack', 'sourcemap'],
-      './src/**/*.ts': ['coverage'],
-    },
-    webpack: {
-      module: webpackConfig.module,
-      resolve: webpackConfig.resolve,
-    },
-    webpackMiddleware: {
-      stats: webpackConfig.stats,
-      quiet: true,
-    },
-    mime: {
-      'text/x-typescript': ['ts'],
-    },
-    browsers: ['ChromeHeadless'],
+    colors: true,
     singleRun: true,
-    reporters: ['dots', 'coverage', 'remap-coverage'],
-    coverageReporter: {
-      type: 'in-memory',
+    autoWatch: false,
+
+    frameworks: ['mocha', 'chai', 'sinon', 'karma-typescript'],
+    browsers: ['ChromeHeadless'],
+    reporters: ['mocha', 'karma-typescript'],
+
+    basePath: process.cwd(),
+    files: ['test/**/*.ts', 'src/**/*.ts'],
+    preprocessors: {
+      'src/**/*.ts': ['karma-typescript'],
+      'test/**/*.ts': ['karma-typescript'],
     },
-    remapCoverageReporter: {
-      'text-summary': null,
-      html: './coverage',
+
+    karmaTypescriptConfig: {
+      tsconfig: 'tsconfig.json',
+      bundlerOptions: { sourceMap: true },
+      compilerOptions: { rootDir: '.' },
+      include: ['test/**/*.ts'],
+      reports: {
+        html: 'coverage',
+        'text-summary': '',
+      },
     },
 
     // Uncomment if you want to silence console logs in the output

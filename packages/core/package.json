@@ -12,18 +12,16 @@
   "devDependencies": {
     "karma": "*",
     "prettier": "*",
+    "rimraf": "*",
     "tslint": "*",
-    "webpack-cli": "*",
-    "mocha": "*",
-    "ts-node": "*"
+    "typescript": "*"
   },
   "scripts": {
-    "build": "webpack --config ../webpack.config.js",
-    "clean": "rm -rf ./build ./dist ./coverage",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist coverage",
     "lint": "tslint --config ../.tslintrc.json src/**/*",
     "format": "prettier --config ../.prettierrc.json src/**/* --write",
-    "test":
-      "karma start ../karma.config.js && mocha --require ts-node/register -r tsconfig-paths/register 'test/**/*.{ts,tsx}'",
+    "test": "karma start ../karma.config.js",
     "test:watch": "karma start ../karma.config.js --auto-watch --no-single-run"
   }
 }
