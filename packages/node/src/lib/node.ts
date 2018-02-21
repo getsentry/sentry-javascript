@@ -40,7 +40,7 @@ export class SentryNode implements Adapter {
     if (this.capturing) {
       // This breadcrumb is being captured explicitly by the Client. We use
       // Raven's internal mechanism to store it.
-      captureRavenBreadcrumb(crumb);
+      captureRavenBreadcrumb.call(Raven, crumb);
       this.captured = crumb;
     } else {
       // The breadcrumb has been generated internally by Raven. We return `false`
@@ -111,7 +111,7 @@ export class SentryNode implements Adapter {
 
   public send(event: SentryEvent): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      sendRavenEvent(event, (error: any) => {
+      sendRavenEvent.call(Raven, event, (error: any) => {
         if (error) {
           reject(error);
         } else {
