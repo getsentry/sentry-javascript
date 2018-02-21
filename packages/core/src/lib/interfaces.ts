@@ -5,7 +5,6 @@ export interface Adapter {
   captureMessage(message: string): Promise<Event>;
   captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
   send(event: Event): Promise<void>;
-  wrap(fn: Function, options: object): Function;
   setOptions(options: Options): Promise<void>;
   getContext(): Promise<Context>;
   setContext(context: Context): Promise<void>;
