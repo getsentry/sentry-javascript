@@ -27,7 +27,7 @@
     "test:browser": "jest --env=jsdom",
     "test:node": "jest --env=node",
     "test:watch": "jest --watch --notify",
-    "test": "npm-run-all test:browser test:node"
+    "test": "run-s test:browser test:node"
   },
   "jest": {
     "globals": {

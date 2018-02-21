@@ -1,13 +1,14 @@
 {
   "private": true,
   "scripts": {
-    "pre:run": "lerna --scope '@sentry/core' run build",
+    "prebuild": "lerna --scope '@sentry/core' run build",
+    "pretest": "lerna --scope '@sentry/core' run build",
     "bootstrap": "lerna bootstrap",
-    "build": "yarn pre:run && lerna run build",
+    "build": "lerna run build",
     "clean": "lerna run clean",
     "format": "lerna run format",
     "lint": "lerna run lint",
-    "test": "yarn pre:run && lerna run test",
+    "test": "lerna run test",
     "test:watch": "lerna run --parallel test:watch"
   },
   "workspaces": ["packages/*"],
