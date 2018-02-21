@@ -27,6 +27,7 @@ var isSameStacktrace = utils.isSameStacktrace;
 var parseUrl = utils.parseUrl;
 var fill = utils.fill;
 var supportsFetch = utils.supportsFetch;
+var supportsReferrerPolicy = utils.supportsReferrerPolicy;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -90,7 +91,11 @@ function Raven() {
   this._fetchDefaults = {
     method: 'POST',
     keepalive: true,
-    referrerPolicy: 'origin'
+    // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
+    // https://caniuse.com/#feat=referrer-policy
+    // It doesn't. And it throw exception instead of ignoring this parameter...
+    // REF: https://github.com/getsentry/raven-js/issues/1233
+    referrerPolicy: supportsReferrerPolicy() ? 'origin' : ''
   };
   this._ignoreOnError = 0;
   this._isRavenInstalled = false;
