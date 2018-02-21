@@ -13,11 +13,7 @@ const Raven = require('raven');
 export interface NodeOptions extends Options {}
 
 export class SentryNode implements Adapter {
-  private client: Client;
-
-  constructor(client: Client, public options: NodeOptions = {}) {
-    this.client = client;
-  }
+  constructor(private client: Client, public options: NodeOptions = {}) {}
 
   public install() {
     Raven.config(this.client.dsn.getDSN(), this.options).install();

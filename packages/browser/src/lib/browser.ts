@@ -14,11 +14,7 @@ const Raven = RavenJS as any;
 export interface BrowserOptions extends Options {}
 
 export class SentryBrowser implements Adapter {
-  private client: Client;
-
-  constructor(client: Client, public options: BrowserOptions = {}) {
-    this.client = client;
-  }
+  constructor(private client: Client, public options: BrowserOptions = {}) {}
 
   public install() {
     Raven.config(this.client.dsn.getDSN(), this.options).install();
