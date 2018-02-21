@@ -193,10 +193,18 @@ CapturedExceptions.CHROME_XX_WEBPACK = {
   name: 'TypeError',
   stack:
     "TypeError: Cannot read property 'error' of undefined\n" +
-    '   at TESTTESTTEST.eval(webpack:///./src/components/test/test.jsx?:295:108)\n' +
-    '   at TESTTESTTEST.render(webpack:///./src/components/test/test.jsx?:272:32)\n' +
-    '   at TESTTESTTEST.tryRender(webpack:///./~/react-transform-catch-errors/lib/index.js?:34:31)\n' +
-    '   at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)'
+    '    at TESTTESTTEST.eval(webpack:///./src/components/test/test.jsx?:295:108)\n' +
+    '    at TESTTESTTEST.render(webpack:///./src/components/test/test.jsx?:272:32)\n' +
+    '    at TESTTESTTEST.tryRender(webpack:///./~/react-transform-catch-errors/lib/index.js?:34:31)\n' +
+    '    at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)'
+};
+
+CapturedExceptions.CHROME_EXTENSION = {
+  message: 'oops!',
+  name: 'Error',
+  stack:
+    'Error: oops!\n' +
+    '    at chrome-extension://negengibeecgiokdifncekejdgkcoono/content-script-main.js:93:12'
 };
 
 CapturedExceptions.FIREFOX_3 = {
@@ -291,6 +299,18 @@ CapturedExceptions.FIREFOX_50_RESOURCE_URL = {
     'dispatchEvent@resource://path/data/content/vendor.bundle.js:18:23028\n' +
     'wrapped@resource://path/data/content/bundle.js:7270:25',
   fileName: 'resource://path/data/content/bundle.js',
+  lineNumber: 5529,
+  columnNumber: 16,
+  message: 'this.props.raw[this.state.dataSource].rows is undefined',
+  name: 'TypeError'
+};
+
+CapturedExceptions.FIREFOX_MOZ_EXTENSION = {
+  stack:
+    'render@moz-extension://path/data/content/bundle.js:5529:16\n' +
+    'dispatchEvent@moz-extension://path/data/content/vendor.bundle.js:18:23028\n' +
+    'wrapped@moz-extension//path/data/content/bundle.js:7270:25',
+  fileName: 'moz-extension://path/data/content/bundle.js',
   lineNumber: 5529,
   columnNumber: 16,
   message: 'this.props.raw[this.state.dataSource].rows is undefined',
