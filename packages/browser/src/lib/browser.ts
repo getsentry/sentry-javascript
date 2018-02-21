@@ -3,7 +3,7 @@ import {
   Breadcrumb,
   Client,
   Context,
-  Event,
+  SentryEvent,
   Options,
   User,
 } from '@sentry/core';
@@ -25,8 +25,8 @@ export class SentryBrowser implements Adapter {
     return Raven;
   }
 
-  public captureException(exception: any): Promise<Event> {
-    return new Promise<Event>((resolve, reject) => {
+  public captureException(exception: any): Promise<SentryEvent> {
+    return new Promise<SentryEvent>((resolve, reject) => {
       const ravenSendRequest = Raven._sendProcessedPayload;
       Raven._sendProcessedPayload = (data: any) => {
         Raven._sendProcessedPayload = ravenSendRequest;
@@ -36,8 +36,8 @@ export class SentryBrowser implements Adapter {
     });
   }
 
-  public captureMessage(message: string): Promise<Event> {
-    return new Promise<Event>((resolve, reject) => {
+  public captureMessage(message: string): Promise<SentryEvent> {
+    return new Promise<SentryEvent>((resolve, reject) => {
       const ravenSendRequest = Raven._sendProcessedPayload;
       Raven._sendProcessedPayload = (data: any) => {
         Raven._sendProcessedPayload = ravenSendRequest;
@@ -54,7 +54,7 @@ export class SentryBrowser implements Adapter {
     });
   }
 
-  public send(event: Event): Promise<void> {
+  public send(event: SentryEvent): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       Raven._sendProcessedPayload(event, (error: any) => {
         if (error) {

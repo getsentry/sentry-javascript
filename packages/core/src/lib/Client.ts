@@ -2,7 +2,7 @@ import {
   Adapter,
   Breadcrumb,
   Context as ContextInterface,
-  Event,
+  SentryEvent,
   Options,
   User,
   LogLevel,
@@ -67,12 +67,12 @@ export class Client {
     return this.isInstalled.then(() => this);
   }
 
-  public async captureException(exception: any): Promise<Event> {
+  public async captureException(exception: any): Promise<SentryEvent> {
     const adapter = await this.awaitAdapter();
     return this.send(await adapter.captureException(exception));
   }
 
-  public async captureMessage(message: string): Promise<Event> {
+  public async captureMessage(message: string): Promise<SentryEvent> {
     const adapter = await this.awaitAdapter();
     return this.send(await adapter.captureMessage(message));
   }
@@ -82,7 +82,7 @@ export class Client {
     return adapter.captureBreadcrumb(breadcrumb);
   }
 
-  public async send(event: Event): Promise<Event> {
+  public async send(event: SentryEvent): Promise<SentryEvent> {
     const adapter = await this.awaitAdapter();
     await adapter.send(event);
     return event;

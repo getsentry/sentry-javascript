@@ -1,10 +1,10 @@
 export interface Adapter {
   readonly options: {};
   install(): Promise<boolean>;
-  captureException(exception: any): Promise<Event>;
-  captureMessage(message: string): Promise<Event>;
+  captureException(exception: any): Promise<SentryEvent>;
+  captureMessage(message: string): Promise<SentryEvent>;
   captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
-  send(event: Event): Promise<void>;
+  send(event: SentryEvent): Promise<void>;
   setOptions(options: Options): Promise<void>;
   getContext(): Promise<Context>;
   setContext(context: Context): Promise<void>;
@@ -29,7 +29,7 @@ export interface Context {
 }
 
 // TODO: Add missing fields
-export interface Event {
+export interface SentryEvent {
   message?: string;
 }
 
