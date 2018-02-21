@@ -16,7 +16,7 @@ export class SentryNode implements Adapter {
   constructor(private client: Client, public options: NodeOptions = {}) {}
 
   public install(): Promise<boolean> {
-    Raven.config(this.client.dsn.getDSN(), this.options).install();
+    Raven.config(this.client.dsn.getDSN(true), this.options).install();
     return Promise.resolve(true);
   }
 
