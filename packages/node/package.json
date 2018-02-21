@@ -7,8 +7,8 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/node/src/index.js",
-  "types": "dist/node/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "raven": "^2.4.0"
   },
