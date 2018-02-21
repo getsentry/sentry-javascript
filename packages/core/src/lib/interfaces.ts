@@ -6,9 +6,9 @@ export interface Adapter {
   captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
   send(event: Event): Promise<void>;
   wrap(fn: Function, options: object): Function;
-  setOptions(options: Options): Promise<Adapter>;
+  setOptions(options: Options): Promise<void>;
   getContext(): Promise<Context>;
-  setContext(context: Context): Promise<Adapter>;
+  setContext(context: Context): Promise<void>;
 }
 
 // TODO: Enumerate breadcrumb types

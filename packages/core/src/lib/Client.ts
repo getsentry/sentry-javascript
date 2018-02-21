@@ -90,7 +90,8 @@ export class Client {
 
   public async setOptions(options: Options): Promise<Adapter> {
     const adapter = await this.awaitAdapter();
-    return adapter.setOptions(options);
+    await adapter.setOptions(options);
+    return adapter;
   }
 
   // TODO: Migrate context to core, using Context interface
@@ -103,7 +104,8 @@ export class Client {
 
   public async setContext(context: ContextInterface): Promise<Adapter> {
     const adapter = await this.awaitAdapter();
-    return this.adapter.setContext(context);
+    await adapter.setContext(context);
+    return adapter;
   }
 
   public log(...args: any[]) {

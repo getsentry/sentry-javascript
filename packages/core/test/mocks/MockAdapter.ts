@@ -45,20 +45,20 @@ export class MockAdapter implements Adapter {
     return Promise.resolve();
   }
 
-  public wrap(fn: Function, options: object) {
+  public wrap(fn: Function, options: object): Function {
     return fn;
   }
 
-  public async setOptions(options: MockAdapterOptions) {
-    return Promise.resolve(this);
+  public async setOptions(options: MockAdapterOptions): Promise<void> {
+    return Promise.resolve();
   }
 
-  public async getContext() {
+  public async getContext(): Promise<Context> {
     return Promise.resolve(this.context);
   }
 
-  public async setContext(context: Context) {
+  public async setContext(context: Context): Promise<void> {
     this.context = context;
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
 }

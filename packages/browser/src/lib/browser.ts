@@ -66,22 +66,21 @@ export class SentryBrowser implements Adapter {
     });
   }
 
-  public wrap(fn: Function, options: object) {
+  public wrap(fn: Function, options: object): Function {
     return Raven.wrap(options, fn);
   }
 
-  public async setOptions(options: BrowserOptions) {
+  public setOptions(options: BrowserOptions): Promise<void> {
     Object.assign(this.options, options);
     Object.assign(Raven._globalOptions, this.options);
-    return this;
+    return Promise.resolve();
   }
 
-  public async getContext() {
-    const context = Raven.getContext();
-    return Promise.resolve(context);
+  public async getContext(): Promise<Context> {
+    return Promise.resolve(Raven.getContext());
   }
 
-  public async setContext(context: Context) {
+  public setContext(context: Context): Promise<void> {
     if (context.extra) {
       Raven.setExtraContext(context.extra);
     }
@@ -91,6 +90,6 @@ export class SentryBrowser implements Adapter {
     if (context.tags) {
       Raven.setTagsContext(context.tags);
     }
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
 }

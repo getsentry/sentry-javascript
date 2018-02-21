@@ -15,12 +15,12 @@ export interface NodeOptions extends Options {}
 export class SentryNode implements Adapter {
   constructor(private client: Client, public options: NodeOptions = {}) {}
 
-  public install() {
+  public install(): Promise<boolean> {
     Raven.config(this.client.dsn.getDSN(), this.options).install();
     return Promise.resolve(true);
   }
 
-  public getRaven() {
+  public getRaven(): any {
     return Raven;
   }
 
@@ -69,19 +69,18 @@ export class SentryNode implements Adapter {
     return Raven.wrap(options, fn);
   }
 
-  public async setOptions(options: NodeOptions) {
+  public setOptions(options: NodeOptions): Promise<void> {
     Object.assign(this.options, options);
     Object.assign(Raven, this.options);
-    return this;
+    return Promise.resolve();
   }
 
-  public async getContext() {
-    const context = Raven.getContext();
-    return Promise.resolve(context);
+  public getContext(): Promise<Context> {
+    return Promise.resolve(Raven.getContext());
   }
 
-  public async setContext(context: Context) {
+  public setContext(context: Context): Promise<void> {
     Raven.setContext(context);
-    return Promise.resolve(this);
+    return Promise.resolve();
   }
 }
