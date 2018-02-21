@@ -372,18 +372,20 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
   function computeStackTraceFromStackProp(ex) {
     if (typeof ex.stack === 'undefined' || !ex.stack) return;
 
-    var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
-      gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
-      winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-      // Used to additionally parse URL/line/column from eval frames
-      geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
-      chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/,
-      lines = ex.stack.split('\n'),
-      stack = [],
-      submatch,
-      parts,
-      element,
-      reference = /^(.*) is undefined$/.exec(ex.message);
+    var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+    var winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
+    // NOTE: blob urls are now supposed to always have an origin, therefore it's format
+    // which is `blob:http://url/path/with-some-uuid`, is matched by `blob.*?:\/` as well
+    var gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i;
+    // Used to additionally parse URL/line/column from eval frames
+    var geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
+    var chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
+    var lines = ex.stack.split('\n');
+    var stack = [];
+    var submatch;
+    var parts;
+    var element;
+    var reference = /^(.*) is undefined$/.exec(ex.message);
 
     for (var i = 0, j = lines.length; i < j; ++i) {
       if ((parts = chrome.exec(lines[i]))) {

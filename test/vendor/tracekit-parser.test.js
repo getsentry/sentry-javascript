@@ -881,5 +881,18 @@ describe('TraceKit', function() {
         column: 108
       });
     });
+
+    it('should parse custom errors', function() {
+      var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.CUSTOM_ERROR);
+      assert.ok(stackFrames);
+      assert.deepEqual(stackFrames.stack.length, 1);
+      assert.deepEqual(stackFrames.stack[0], {
+        url: 'file:///path/to/file.js',
+        func: '?',
+        args: [],
+        line: 19,
+        column: 40
+      });
+    });
   });
 });

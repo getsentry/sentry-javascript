@@ -309,7 +309,7 @@ CapturedExceptions.FIREFOX_MOZ_EXTENSION = {
   stack:
     'render@moz-extension://path/data/content/bundle.js:5529:16\n' +
     'dispatchEvent@moz-extension://path/data/content/vendor.bundle.js:18:23028\n' +
-    'wrapped@moz-extension//path/data/content/bundle.js:7270:25',
+    'wrapped@moz-extension://path/data/content/bundle.js:7270:25',
   fileName: 'moz-extension://path/data/content/bundle.js',
   lineNumber: 5529,
   columnNumber: 16,
@@ -502,6 +502,12 @@ CapturedExceptions.CHROME_ELECTRON = {
   stack:
     "TypeError: Cannot read property 'error' of undefined\n" +
     '   at TESTTESTTEST.someMethod (C:\\Users\\user\\path\\to\\file.js:295:108)'
+};
+
+CapturedExceptions.CUSTOM_ERROR = {
+  message: 'test',
+  name: 'HttpError',
+  stack: 'HttpError: test\n' + '    at file:///path/to/file.js:19:40'
 };
 
 module.exports = CapturedExceptions;
