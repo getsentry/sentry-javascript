@@ -24,10 +24,8 @@
     "clean": "rimraf dist coverage",
     "lint": "tslint --config ../../.tslintrc.json src/**/*",
     "format": "prettier --config ../../.prettierrc.json src/**/* --write",
-    "test:browser": "jest --env=jsdom",
-    "test:node": "jest --env=node",
-    "test:watch": "jest --watch --notify",
-    "test": "run-s test:browser test:node"
+    "test": "jest",
+    "test:watch": "jest --watch --notify"
   },
   "jest": {
     "globals": {
