@@ -1,36 +1,38 @@
-export interface Adapter {
-  readonly options: {};
-  install(): Promise<boolean>;
-  captureException(exception: any): Promise<SentryEvent>;
-  captureMessage(message: string): Promise<SentryEvent>;
-  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
-  send(event: SentryEvent): Promise<void>;
-  setOptions(options: Options): Promise<void>;
-  getContext(): Promise<Context>;
-  setContext(context: Context): Promise<void>;
+export enum Severity {
+  Fatal = 'fatal',
+  Error = 'error',
+  Warning = 'warning',
+  Info = 'info',
+  Debug = 'debug',
+  Critical = 'critical',
 }
 
-// TODO: Enumerate breadcrumb types
-export type BreadcrumbType = string;
-
 export interface Breadcrumb {
-  type?: BreadcrumbType;
-  level?: string; // TODO: check if same as LogLevel or Severity
+  type?: string;
+  level?: Severity;
   event_id?: string;
   category?: string;
   message?: string;
   data?: any;
 }
 
+export interface User {
+  id?: string;
+  email?: string;
+  username?: string;
+  extra?: any;
+}
+
 export interface Context {
-  tags?: Array<string>;
+  tags?: { [key: string]: string };
   extra?: object;
   user?: User;
 }
 
 // TODO: Add missing fields
-export interface SentryEvent {
+export interface SentryEvent extends Context {
   message?: string;
+  breadcrumbs?: Array<Breadcrumb>;
 }
 
 export enum LogLevel {
@@ -50,28 +52,22 @@ export interface Options {
   ignoreUrls?: Array<string | RegExp>;
   whitelistUrls?: Array<string | RegExp>;
   includePaths?: Array<string | RegExp>;
-  shouldSendCallback?: Function;
-  dataCallback?: Function;
-  beforeSendCallback?: Function;
-  afterSendCallback?: Function;
-  beforeCaptureCallback?: Function;
-  afterCaptureCallback?: Function;
-  beforeBreadcrumbCallback?: Function;
-  afterBreadcrumbCallback?: Function;
+  shouldSend?: (e: SentryEvent) => boolean;
+  beforeSend?: (e: SentryEvent) => SentryEvent;
+  afterSend?: (e: SentryEvent) => void;
+  shouldAddBreadcrumb?: (b: Breadcrumb) => boolean;
+  beforeBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
+  afterBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
 }
 
-export enum Severity {
-  Fatal,
-  Error,
-  Warning,
-  Info,
-  Debug,
-  Critical,
-}
-
-export interface User {
-  id?: string;
-  email?: string;
-  username?: string;
-  extra?: any;
+export interface Adapter {
+  readonly options: {};
+  install(): Promise<boolean>;
+  captureException(exception: any): Promise<SentryEvent>;
+  captureMessage(message: string): Promise<SentryEvent>;
+  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
+  send(event: SentryEvent): Promise<void>;
+  setOptions(options: Options): Promise<void>;
+  getContext(): Promise<Context>;
+  setContext(context: Context): Promise<void>;
 }

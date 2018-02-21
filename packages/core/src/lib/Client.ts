@@ -69,23 +69,44 @@ export class Client {
 
   public async captureException(exception: any): Promise<SentryEvent> {
     const adapter = await this.awaitAdapter();
-    return this.send(await adapter.captureException(exception));
+    const event = await adapter.captureException(exception);
+    return this.send(event);
   }
 
   public async captureMessage(message: string): Promise<SentryEvent> {
     const adapter = await this.awaitAdapter();
-    return this.send(await adapter.captureMessage(message));
+    const event = await adapter.captureMessage(message);
+    return this.send(event);
   }
 
-  public async captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb> {
-    const adapter = await this.awaitAdapter();
-    return adapter.captureBreadcrumb(breadcrumb);
+  public async captureBreadcrumb(crumb: Breadcrumb): Promise<Breadcrumb> {
+    const {
+      shouldAddBreadcrumb,
+      beforeBreadcrumb,
+      afterBreadcrumb,
+    } = this.options;
+
+    if (!shouldAddBreadcrumb || shouldAddBreadcrumb(crumb)) {
+      const finalCrumb = beforeBreadcrumb ? beforeBreadcrumb(crumb) : crumb;
+      const adapter = await this.awaitAdapter();
+      await adapter.captureBreadcrumb(finalCrumb);
+      afterBreadcrumb && afterBreadcrumb(finalCrumb);
+    }
+
+    return crumb;
   }
 
   public async send(event: SentryEvent): Promise<SentryEvent> {
+    const { shouldSend, beforeSend, afterSend } = this.options;
+    if (shouldSend && !shouldSend(event)) {
+      return event;
+    }
+
+    const finalEvent = beforeSend ? beforeSend(event) : event;
     const adapter = await this.awaitAdapter();
-    await adapter.send(event);
-    return event;
+    await adapter.send(finalEvent);
+    afterSend && afterSend(finalEvent);
+    return finalEvent;
   }
 
   public async setOptions(options: Options): Promise<Adapter> {
