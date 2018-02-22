@@ -8,13 +8,15 @@ const dsn = 'https://username:password@domain/path';
 describe('Sentry.Client', () => {
   it('get public/private DSN', () => {
     const sentry = new Sentry.Client(dsn);
-    expect(sentry.dsn.getDSN()).to.equal('https://username@domain/path');
-    expect(sentry.dsn.getDSN(true)).to.equal(dsn);
+    expect(sentry.dsn.toString()).to.equal('https://username@domain/path');
+    expect(sentry.dsn.toString(true)).to.equal(dsn);
     const sentry2 = new Sentry.Client(
       'https://username:password@domain:8888/path',
     );
-    expect(sentry2.dsn.getDSN()).to.equal('https://username@domain:8888/path');
-    expect(sentry2.dsn.getDSN(true)).to.equal(
+    expect(sentry2.dsn.toString()).to.equal(
+      'https://username@domain:8888/path',
+    );
+    expect(sentry2.dsn.toString(true)).to.equal(
       'https://username:password@domain:8888/path',
     );
   });
@@ -174,15 +176,11 @@ describe('Sentry.Client', () => {
   it('setContext', async () => {
     const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
     sentry.setContext({
-      extra: {
-        some: 'key',
-      },
+      extra: { some: 'key' },
       tags: { key: 'test1', key2: 'test2' },
     });
     expect(await sentry.getContext()).to.deep.equal({
-      extra: {
-        some: 'key',
-      },
+      extra: { some: 'key' },
       tags: { key: 'test1', key2: 'test2' },
     });
   });

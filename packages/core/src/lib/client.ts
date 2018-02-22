@@ -1,7 +1,7 @@
 import {
   Adapter,
   Breadcrumb,
-  Context as ContextInterface,
+  Context,
   SentryEvent,
   Options,
   User,
@@ -9,14 +9,14 @@ import {
 } from './interfaces';
 import { SentryError } from './sentry';
 
-import { DSN } from './dsn';
-import { Context } from './context';
+import DSN from './dsn';
+import ContextManager from './context';
 
-export class Client {
+export default class Client {
   public readonly dsn: DSN;
   public options: Options;
   private adapter: Adapter;
-  private context: Context;
+  private context: ContextManager;
   private isInstalled: Promise<boolean>;
 
   /**
@@ -32,7 +32,7 @@ export class Client {
   ) {
     this.dsn = new DSN(dsn);
     this.options = options;
-    this.context = new Context();
+    this.context = new ContextManager();
     return this;
   }
 
@@ -198,7 +198,7 @@ export class Client {
    * @param  {ContextInterface} context
    * @returns Promise<Adapter>
    */
-  public async setContext(context: ContextInterface): Promise<Adapter> {
+  public async setContext(context: Context): Promise<Adapter> {
     const adapter = await this.awaitAdapter();
     await adapter.setContext(context);
     return adapter;
