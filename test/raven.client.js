@@ -373,6 +373,12 @@ describe('raven.Client', function() {
         }
       });
     });
+
+    it('should call callback even without a config', function(done) {
+      raven.captureException(new Error('wtf?'), function(err) {
+        done();
+      });
+    });
   });
 
   describe('#install()', function() {
