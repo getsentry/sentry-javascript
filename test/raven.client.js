@@ -217,6 +217,12 @@ describe('raven.Client', function() {
       };
       client.captureMessage('wtf?');
     });
+
+    it('should call callback even without a config', function(done) {
+      raven.captureMessage('wtf?', function(err) {
+        done();
+      });
+    });
   });
 
   describe('#captureException()', function() {
