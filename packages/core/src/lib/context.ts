@@ -1,27 +1,19 @@
-import { Context as ContextInterface } from './interfaces';
+import { Context } from './interfaces';
 
-// ADD JSDOCS
+export default class ContextManager {
+  private data: Context = {};
 
-export interface UpdateContext {
-  (prevContext: ContextInterface): ContextInterface;
-}
-
-export class Context {
-  private data: ContextInterface = {};
-
-  public set(nextContext: ContextInterface | UpdateContext): ContextInterface {
-    const prevContext = this.get();
-
-    if (typeof nextContext === 'function') {
-      this.data = Object.assign({}, prevContext, nextContext(this.get()));
-    } else {
-      this.data = Object.assign({}, prevContext, nextContext);
-    }
-
+  public set(next: Context): Context {
+    const prev = this.get();
+    this.data = { ...this.get(), ...next };
     return this.data;
   }
 
-  public get(): ContextInterface {
+  public update(fn: (prev: Context) => Context): Context {
+    return this.set(fn(this.get()));
+  }
+
+  public get(): Context {
     // Create an exact copy without references so people won't shoot themselves in the foot
     return JSON.parse(JSON.stringify(this.data));
   }
