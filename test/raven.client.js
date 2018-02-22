@@ -427,6 +427,59 @@ describe('raven.Client', function() {
       }
     });
 
+    it('should preserve context on unhandledRejection', function(done) {
+      var listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(0);
+
+      var scope = nock('https://app.getsentry.com')
+        .filteringRequestBody(/.*/, '*')
+        .post('/api/269/store/', '*')
+        .reply(200, function(uri, body) {
+          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            if (err) return done(err);
+            var msg = JSON.parse(dec.toString());
+
+            msg.user.should.eql({
+              id: '123'
+            });
+
+            scope.done();
+            done();
+          });
+          return 'OK';
+        });
+
+      client = new raven.Client(dsn, {captureUnhandledRejections: true});
+      client.install();
+
+      listeners = process.listeners('unhandledRejection');
+      listeners.length.should.equal(1);
+
+      client.context(function() {
+        client.setContext({
+          user: {
+            id: '123'
+          }
+        });
+
+        // promises didn't include domain property until 8.0.0
+        // see: https://nodejs.org/api/domain.html#domain_domains_and_promises
+        // also: https://github.com/nodejs/node/pull/12489
+        if (process.version >= 'v8.0.0') {
+          // eslint-disable-next-line no-new
+          new Promise(function(resolve, reject) {
+            reject(new Error('rejected!'));
+          });
+        } else {
+          setTimeout(function() {
+            var error = new Error('rejected!');
+            var promise = Promise.reject(error);
+            process.emit('unhandledRejection', error, promise);
+          });
+        }
+      });
+    });
+
     it('should add itself to the uncaughtException event list', function() {
       var listeners = process.listeners('uncaughtException');
       listeners.length.should.equal(0);
