@@ -14,6 +14,7 @@ export interface Breadcrumb {
   category?: string;
   message?: string;
   data?: any;
+  timestamp?: number;
 }
 
 export interface User {
