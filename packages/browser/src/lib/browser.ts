@@ -70,7 +70,7 @@ export class SentryBrowser implements Adapter {
   }
 
   public install() {
-    Raven.config(this.client.dsn.getDSN(), this.options).install();
+    Raven.config(this.client.dsn.toString(), this.options).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept
     // both breadcrumbs created internally by Raven and pass them to the

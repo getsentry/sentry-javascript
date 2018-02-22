@@ -1,6 +1,8 @@
 import { SentryError } from './sentry';
 
-interface DSNInterface {
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+
+export interface DSNComponents {
   source: string;
   protocol: string;
   user: string;
@@ -10,37 +12,38 @@ interface DSNInterface {
   path: string;
 }
 
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+export default class DSN implements DSNComponents {
+  public source: string;
+  public protocol: string;
+  public user: string;
+  public pass: string;
+  public host: string;
+  public port: string;
+  public path: string;
 
-export class DSN {
-  private dsn: DSNInterface;
-
-  constructor(dsn: string) {
-    this.dsn = this.parseDSN(dsn);
+  constructor(from: string | DSNComponents) {
+    if (typeof from === 'string') {
+      this.fromString(from);
+    } else {
+      Object.assign(this, from);
+    }
   }
 
-  public getDSN(withPass: boolean = false) {
-    const { host, path, pass, port, protocol, user } = this.dsn;
+  private fromString(str: string) {
+    const match = DSN_REGEX.exec(str);
+    if (!match) {
+      throw new SentryError('Invalid DSN');
+    }
+
+    const [source, protocol, user, pass = '', host, port = '', path] = match;
+    Object.assign(this, { source, protocol, user, pass, host, port, path });
+  }
+
+  public toString(withPass: boolean = false) {
+    const { host, path, pass, port, protocol, user } = this;
     return (
       `${protocol}://${user}${withPass ? pass : ''}` +
       `@${host}${port ? ':' + port : ''}/${path}`
     );
-  }
-
-  private parseDSN(dsn: string): DSNInterface {
-    const match = DSN_REGEX.exec(dsn);
-    if (!match) throw new SentryError('Invalid DSN');
-
-    const [source, protocol, user, pass = '', host, port = '', path] = match;
-
-    return {
-      source,
-      protocol,
-      user,
-      pass,
-      host,
-      port,
-      path,
-    };
   }
 }

@@ -9,7 +9,7 @@ import {
 } from './interfaces';
 import { SentryError } from './sentry';
 
-import { DSN } from './dsn';
+import DSN from './dsn';
 import { Context } from './context';
 
 export class Client {
