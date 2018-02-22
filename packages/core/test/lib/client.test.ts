@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { spy } from 'sinon';
+import { spy, stub } from 'sinon';
 import { MockAdapter } from '../mocks/MockAdapter';
 import * as Sentry from '../../src/index';
 
@@ -177,13 +177,113 @@ describe('Sentry.Client', () => {
       extra: {
         some: 'key',
       },
-      tags: ['test1', 'test2'],
+      tags: { key: 'test1', key2: 'test2' },
     });
     expect(await sentry.getContext()).to.deep.equal({
       extra: {
         some: 'key',
       },
-      tags: ['test1', 'test2'],
+      tags: { key: 'test1', key2: 'test2' },
     });
+  });
+
+  it('should call breadcrumbs callbacks', async () => {
+    const shouldAddBreadcrumb = stub().returns(true);
+    const beforeBreadcrumb = spy();
+    const afterBreadcrumb = spy();
+
+    const sentry = new Sentry.Client(dsn, {
+      shouldAddBreadcrumb,
+      beforeBreadcrumb,
+      afterBreadcrumb,
+    }).use(MockAdapter);
+
+    await sentry.install();
+    const spy1 = spy(sentry, 'captureBreadcrumb');
+    const spy2 = spy(sentry.getAdapter(), 'captureBreadcrumb');
+    await sentry.captureBreadcrumb({ category: 'test' });
+    expect(spy1.calledOnce).to.be.true;
+    expect(spy2.calledOnce).to.be.true;
+    expect(shouldAddBreadcrumb.calledOnce).to.be.true;
+    expect(beforeBreadcrumb.calledOnce).to.be.true;
+    expect(afterBreadcrumb.calledOnce).to.be.true;
+  });
+
+  it('should not call breadcrumbs callbacks', async () => {
+    const shouldAddBreadcrumb = stub().returns(false);
+    const beforeBreadcrumb = spy();
+    const afterBreadcrumb = spy();
+
+    const sentry = new Sentry.Client(dsn, {
+      shouldAddBreadcrumb,
+      beforeBreadcrumb,
+      afterBreadcrumb,
+    }).use(MockAdapter);
+
+    await sentry.install();
+    const spy1 = spy(sentry, 'captureBreadcrumb');
+    const spy2 = spy(sentry.getAdapter(), 'captureBreadcrumb');
+    await sentry.captureBreadcrumb({ category: 'test' });
+    expect(spy1.calledOnce).to.be.true;
+    expect(spy2.calledOnce).to.be.false;
+    expect(shouldAddBreadcrumb.calledOnce).to.be.true;
+    expect(beforeBreadcrumb.calledOnce).to.be.false;
+    expect(afterBreadcrumb.calledOnce).to.be.false;
+  });
+
+  it('should call send callbacks', async () => {
+    const shouldSend = stub().returns(true);
+    const beforeSend = spy();
+    const afterSend = spy();
+
+    const sentry = new Sentry.Client(dsn, {
+      shouldSend,
+      beforeSend,
+      afterSend,
+    }).use(MockAdapter);
+
+    await sentry.install();
+    const spy1 = spy(sentry, 'captureMessage');
+    const spy2 = spy(sentry.getAdapter(), 'captureMessage');
+    const spySend = spy(sentry, 'send');
+    const spySend2 = spy(sentry.getAdapter(), 'send');
+    const result = await sentry.captureMessage('+');
+
+    expect(spy1.calledOnce).to.be.true;
+    expect(spy2.calledOnce).to.be.true;
+    expect(spySend.calledOnce).to.be.true;
+    expect(spySend2.calledOnce).to.be.true;
+
+    expect(shouldSend.calledOnce).to.be.true;
+    expect(beforeSend.calledOnce).to.be.true;
+    expect(afterSend.calledOnce).to.be.true;
+  });
+
+  it('should not call send callbacks', async () => {
+    const shouldSend = stub().returns(false);
+    const beforeSend = spy();
+    const afterSend = spy();
+
+    const sentry = new Sentry.Client(dsn, {
+      shouldSend,
+      beforeSend,
+      afterSend,
+    }).use(MockAdapter);
+
+    await sentry.install();
+    const spy1 = spy(sentry, 'captureMessage');
+    const spy2 = spy(sentry.getAdapter(), 'captureMessage');
+    const spySend = spy(sentry, 'send');
+    const spySend2 = spy(sentry.getAdapter(), 'send');
+    const result = await sentry.captureMessage('+');
+
+    expect(spy1.calledOnce).to.be.true;
+    expect(spy2.calledOnce).to.be.true;
+    expect(spySend.calledOnce).to.be.true;
+    expect(spySend2.calledOnce).to.be.false;
+
+    expect(shouldSend.calledOnce).to.be.true;
+    expect(beforeSend.calledOnce).to.be.false;
+    expect(afterSend.calledOnce).to.be.false;
   });
 });
