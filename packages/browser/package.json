@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.4.0-0",
+  "version": "0.4.0-beta.1",
   "description": "Offical Sentry SDK for browsers",
   "author": "Sentry",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "typescript": "*"
   },
   "peerDependencies": {
-    "@sentry/core": "^0.3.0"
+    "@sentry/core": "0.4.0-beta.1"
   },
   "scripts": {
     "build": "rollup --config",
