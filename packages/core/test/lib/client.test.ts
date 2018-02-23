@@ -1,3 +1,4 @@
+// tslint:disable
 import { expect } from 'chai';
 import { spy, stub } from 'sinon';
 import * as Sentry from '../../src/index';
