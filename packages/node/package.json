@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "0.3.0",
+  "version": "0.4.0-0",
   "description": "Offical Sentry SDK for Node.js",
   "author": "Sentry",
   "license": "MIT",
@@ -46,8 +46,15 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": ["js", "ts"],
-    "testMatch": ["**/*.test.ts"],
-    "testPathIgnorePatterns": ["/Mock/"]
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/Mock/"
+    ]
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "0.3.0",
+  "version": "0.4.0-0",
   "description": "Sentry core implementation for all JavaScript related SDKs",
   "author": "Sentry",
   "license": "MIT",
@@ -40,7 +40,12 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": ["js", "ts"],
-    "testMatch": ["**/*.test.ts"]
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ]
   }
 }

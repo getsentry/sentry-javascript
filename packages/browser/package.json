@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.3.0",
+  "version": "0.4.0-0",
   "description": "Offical Sentry SDK for browsers",
   "author": "Sentry",
   "license": "MIT",
@@ -22,8 +22,8 @@
     "rollup": "*",
     "rollup-plugin-commonjs": "*",
     "rollup-plugin-node-resolve": "*",
-    "rollup-plugin-uglify": "*",
     "rollup-plugin-typescript2": "*",
+    "rollup-plugin-uglify": "*",
     "tslint": "*",
     "typescript": "*"
   },
@@ -37,7 +37,6 @@
     "format": "prettier --config ../../.prettierrc.json src/**/* --write",
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
-    "size:check":
-      "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
+    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   }
 }
