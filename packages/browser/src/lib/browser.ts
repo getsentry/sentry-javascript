@@ -3,8 +3,8 @@ import {
   Breadcrumb,
   Client,
   Context,
-  SentryEvent,
   Options,
+  SentryEvent,
   User,
 } from '@sentry/core';
 
@@ -12,6 +12,7 @@ import * as RavenJS from 'raven-js';
 const Raven = RavenJS as any;
 const sendRavenEvent = Raven._sendProcessedPayload;
 
+// tslint:disable-next-line:no-empty-interface
 export interface BrowserOptions extends Options {}
 
 export class SentryBrowser implements Adapter {
@@ -19,55 +20,6 @@ export class SentryBrowser implements Adapter {
   private captured: any;
 
   constructor(private client: Client, public options: BrowserOptions = {}) {}
-
-  private interceptRavenSend(event: SentryEvent) {
-    if (this.capturing) {
-      // This event was requested via `SentryBrowser.captureException` or
-      // `SentryBrowser.captureMessage`. We capture it, which will return it to
-      // the `Client`. The client will call its `send` method automatically.
-      this.captured = event;
-    } else {
-      // This event was generated inside RavenJS in a wrapped function or
-      // global exception hook. We have to manually pass it to `Client.send`.
-      // The client will then run all callbacks and decide how to send this
-      // event.
-      this.client.send(event);
-    }
-  }
-
-  private interceptRavenBreadcrumb(crumb: Breadcrumb): Breadcrumb | boolean {
-    if (this.capturing) {
-      // This breadcrumb is being captured explicitly by the Client. We return
-      // it so that Raven uses its internal mechanism to store it.
-      this.captured = crumb;
-      return crumb;
-    }
-
-    // The breadcrumb has been generated internally by Raven. We return `false`
-    // to prevent Raven's default mechanism and pass it to the client instead.
-    // The client can then run all callbacks and decide how to store the
-    // breadcrumb. If SentryBrowser is in charge, the Client will call
-    // `SentryBrowser.captureBreadcrumb` next, which will capture it (see
-    // above).
-    this.client.captureBreadcrumb(crumb);
-    return false;
-  }
-
-  private capture<R>(callback: Function): R {
-    this.captured = undefined;
-    this.capturing = true;
-    callback();
-
-    const captured = this.captured;
-    this.captured = undefined;
-    this.capturing = false;
-
-    if (captured === undefined) {
-      throw new Error('Could not capture.');
-    }
-
-    return captured as R;
-  }
 
   public install() {
     Raven.config(this.client.dsn.toString(), this.options).install();
@@ -121,7 +73,7 @@ export class SentryBrowser implements Adapter {
     });
   }
 
-  public wrap(fn: Function, options: object): Function {
+  public wrap(fn: () => void, options: object): () => void {
     return Raven.wrap(options, fn);
   }
 
@@ -146,5 +98,54 @@ export class SentryBrowser implements Adapter {
       Raven.setTagsContext(context.tags);
     }
     return Promise.resolve();
+  }
+
+  private interceptRavenSend(event: SentryEvent) {
+    if (this.capturing) {
+      // This event was requested via `SentryBrowser.captureException` or
+      // `SentryBrowser.captureMessage`. We capture it, which will return it to
+      // the `Client`. The client will call its `send` method automatically.
+      this.captured = event;
+    } else {
+      // This event was generated inside RavenJS in a wrapped function or
+      // global exception hook. We have to manually pass it to `Client.send`.
+      // The client will then run all callbacks and decide how to send this
+      // event.
+      this.client.send(event);
+    }
+  }
+
+  private interceptRavenBreadcrumb(crumb: Breadcrumb): Breadcrumb | boolean {
+    if (this.capturing) {
+      // This breadcrumb is being captured explicitly by the Client. We return
+      // it so that Raven uses its internal mechanism to store it.
+      this.captured = crumb;
+      return crumb;
+    }
+
+    // The breadcrumb has been generated internally by Raven. We return `false`
+    // to prevent Raven's default mechanism and pass it to the client instead.
+    // The client can then run all callbacks and decide how to store the
+    // breadcrumb. If SentryBrowser is in charge, the Client will call
+    // `SentryBrowser.captureBreadcrumb` next, which will capture it (see
+    // above).
+    this.client.captureBreadcrumb(crumb);
+    return false;
+  }
+
+  private capture<R>(callback: () => void): R {
+    this.captured = undefined;
+    this.capturing = true;
+    callback();
+
+    const captured = this.captured;
+    this.captured = undefined;
+    this.capturing = false;
+
+    if (captured === undefined) {
+      throw new Error('Could not capture.');
+    }
+
+    return captured as R;
   }
 }

@@ -1,5 +1,8 @@
 {
-  "rulesDirectory": ["node_modules/vrsource-tslint-rules/rules", "node_modules/tslint-eslint-rules/dist/rules"],
+  "rulesDirectory": [
+    "node_modules/vrsource-tslint-rules/rules",
+    "node_modules/tslint-eslint-rules/dist/rules"
+  ],
   "rules": {
     "no-console": [true, "log"],
     "no-duplicate-imports": true,
@@ -14,7 +17,8 @@
     "ordered-imports": [true],
     "no-var-requires": false,
     "object-literal-sort-keys": false,
-    "no-switch-case-fall-through": true
+    "no-switch-case-fall-through": true,
+    "interface-name": false
   },
   "jsRules": {
     "no-console": [true, "log"],

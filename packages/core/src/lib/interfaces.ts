@@ -33,7 +33,7 @@ export interface Context {
 // TODO: Add missing fields
 export interface SentryEvent extends Context {
   message?: string;
-  breadcrumbs?: Array<Breadcrumb>;
+  breadcrumbs?: Breadcrumb[];
 }
 
 export enum LogLevel {

@@ -29,6 +29,15 @@ export default class DSN implements DSNComponents {
     }
   }
 
+  public toString(withPass: boolean = false) {
+    // tslint:disable-next-line:no-this-assignment
+    const { host, path, pass, port, protocol, user } = this;
+    return (
+      `${protocol}://${user}${withPass ? pass : ''}` +
+      `@${host}${port ? ':' + port : ''}/${path}`
+    );
+  }
+
   private fromString(str: string) {
     const match = DSN_REGEX.exec(str);
     if (!match) {
@@ -37,13 +46,5 @@ export default class DSN implements DSNComponents {
 
     const [source, protocol, user, pass = '', host, port = '', path] = match;
     Object.assign(this, { source, protocol, user, pass, host, port, path });
-  }
-
-  public toString(withPass: boolean = false) {
-    const { host, path, pass, port, protocol, user } = this;
-    return (
-      `${protocol}://${user}${withPass ? pass : ''}` +
-      `@${host}${port ? ':' + port : ''}/${path}`
-    );
   }
 }

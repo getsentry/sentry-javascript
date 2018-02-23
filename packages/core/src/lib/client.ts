@@ -2,15 +2,15 @@ import {
   Adapter,
   Breadcrumb,
   Context,
-  SentryEvent,
-  Options,
-  User,
   LogLevel,
+  Options,
+  SentryEvent,
+  User,
 } from './interfaces';
 import { SentryError } from './sentry';
 
-import DSN from './dsn';
 import ContextManager from './context';
+import DSN from './dsn';
 
 export default class Client {
   public readonly dsn: DSN;
@@ -34,21 +34,6 @@ export default class Client {
     this.options = options;
     this.context = new ContextManager();
     return this;
-  }
-
-  /**
-   * Internal function to make sure a adapter is "used" an installed
-   *
-   * @returns Promise<Adapter>
-   */
-  private awaitAdapter(): Promise<Adapter> {
-    const adapter = this.getAdapter();
-    if (!this.isInstalled) {
-      throw new SentryError(
-        'Please call install() before calling other methods on Sentry',
-      );
-    }
-    return this.isInstalled.then(() => this.adapter);
   }
 
   /**
@@ -140,7 +125,9 @@ export default class Client {
       const finalCrumb = beforeBreadcrumb ? beforeBreadcrumb(crumb) : crumb;
       const adapter = await this.awaitAdapter();
       await adapter.captureBreadcrumb(finalCrumb);
-      afterBreadcrumb && afterBreadcrumb(finalCrumb);
+      if (afterBreadcrumb) {
+        afterBreadcrumb(finalCrumb);
+      }
     }
 
     return crumb;
@@ -163,7 +150,9 @@ export default class Client {
     const finalEvent = beforeSend ? beforeSend(event) : event;
     const adapter = await this.awaitAdapter();
     await adapter.send(finalEvent);
-    afterSend && afterSend(finalEvent);
+    if (afterSend) {
+      afterSend(finalEvent);
+    }
     return finalEvent;
   }
 
@@ -218,5 +207,20 @@ export default class Client {
       // tslint:disable-next-line
       console.log(...args);
     }
+  }
+
+  /**
+   * Internal function to make sure a adapter is "used" an installed
+   *
+   * @returns Promise<Adapter>
+   */
+  private awaitAdapter(): Promise<Adapter> {
+    const adapter = this.getAdapter();
+    if (!this.isInstalled) {
+      throw new SentryError(
+        'Please call install() before calling other methods on Sentry',
+      );
+    }
+    return this.isInstalled.then(() => this.adapter);
   }
 }
