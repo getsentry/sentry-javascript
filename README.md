@@ -6,7 +6,7 @@ $ lerna bootstrap
 To make a release:
 
 ```
-lerna publish --skip-git --cd-version preminor
+yarn lerna publish --skip-git --cd-version=prerelease --preid=beta
 ```
 
 <p align="center">

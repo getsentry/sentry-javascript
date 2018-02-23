@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.4.0-beta.1",
+  "version": "0.4.0-beta.2",
   "description": "Offical Sentry SDK for browsers",
   "author": "Sentry",
   "license": "MIT",
@@ -13,6 +13,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/core": "^0.4.0-beta.2",
     "raven-js": "^3.22.1"
   },
   "devDependencies": {
@@ -26,9 +27,6 @@
     "rollup-plugin-uglify": "*",
     "tslint": "*",
     "typescript": "*"
-  },
-  "peerDependencies": {
-    "@sentry/core": "0.4.0-beta.1"
   },
   "scripts": {
     "build": "rollup --config",

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "0.4.0-beta.1",
+  "version": "0.4.0-beta.2",
   "description": "Offical Sentry SDK for Node.js",
   "author": "Sentry",
   "license": "MIT",
@@ -13,6 +13,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/core": "^0.4.0-beta.2",
     "raven": "^2.4.0"
   },
   "devDependencies": {
@@ -23,9 +24,6 @@
     "ts-jest": "*",
     "tslint": "*",
     "typescript": "*"
-  },
-  "peerDependencies": {
-    "@sentry/core": "0.4.0-beta.1"
   },
   "scripts": {
     "build": "tsc",
