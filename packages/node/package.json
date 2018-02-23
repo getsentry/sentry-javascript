@@ -27,7 +27,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist coverage",
-    "lint": "tslint --config ../../.tslintrc.json src/**/*",
+    "lint": "tslint --config ../../tslint.json src/**/*",
     "format": "prettier --config ../../.prettierrc.json src/**/* --write",
     "test": "jest",
     "test:watch": "jest --watch --notify"

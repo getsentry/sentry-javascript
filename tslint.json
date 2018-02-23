@@ -8,6 +8,7 @@
     "no-duplicate-imports": true,
     "no-duplicate-variable": true,
     "no-jasmine-focus": true,
+    "no-unused-variable": true,
     "no-var-keyword": true,
     "require-internal-with-underscore": true,
     "rollup-config": true,

@@ -30,7 +30,7 @@
   "scripts": {
     "build": "rollup --config",
     "clean": "rimraf dist coverage .rpt2_cache build",
-    "lint": "tslint --config ../../.tslintrc.json src/**/*",
+    "lint": "tslint --config ../../tslint.json src/**/*",
     "format": "prettier --config ../../.prettierrc.json src/**/* --write",
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",

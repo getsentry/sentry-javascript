@@ -2,9 +2,9 @@ import {
   Adapter,
   Breadcrumb,
   Client,
-  Event,
-  Options,
   Context,
+  Options,
+  SentryEvent,
 } from '../../src/index';
 
 export interface MockAdapterOptions extends Options {
@@ -25,11 +25,11 @@ export class MockAdapter implements Adapter {
     return Promise.resolve(true);
   }
 
-  public captureException(raw: any): Promise<Event> {
+  public captureException(raw: any): Promise<SentryEvent> {
     return Promise.resolve({ message: raw.toString() });
   }
 
-  public async captureMessage(message: string): Promise<Event> {
+  public async captureMessage(message: string): Promise<SentryEvent> {
     if (message === 'fail') {
       throw new Error('Failed because we told it to');
     } else {
@@ -41,11 +41,11 @@ export class MockAdapter implements Adapter {
     return Promise.resolve(breadcrumb);
   }
 
-  public send(event: Event): Promise<void> {
+  public send(event: SentryEvent): Promise<void> {
     return Promise.resolve();
   }
 
-  public wrap(fn: Function, options: object): Function {
+  public wrap(fn: () => void, options: object): () => void {
     return fn;
   }
 
