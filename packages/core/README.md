@@ -12,5 +12,6 @@
 
 ## General
 
-This package is meant to be used with other SDK Packages like Browser, Cordova, React Native.
-It is the public facing API and streamlines all JavaScript related SDKs.
+This package is meant to be used with other SDK Packages like Browser, Cordova,
+React Native. It is the public facing API and streamlines all JavaScript related
+SDKs.

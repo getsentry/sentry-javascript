@@ -20,7 +20,7 @@ First you have to create the core and `use` a corresponding SDK.
 
 ```javascript
 import * as Sentry from '@sentry/core';
-import {SentryNode} from '@sentry/node';
+import { SentryNode } from '@sentry/node';
 
 Sentry.create('__DSN__')
   .use(SentryNode)
@@ -30,13 +30,14 @@ Sentry.create('__DSN__')
 After that you can call function on the global `sharedClient`:
 
 ```javascript
-Sentry.getSharedClient().setTagsContext({cordova: true});
+Sentry.getSharedClient().setTagsContext({ cordova: true });
 Sentry.getSharedClient().captureMessage('test message');
-Sentry.getSharedClient().captureBreadcrumb({message: 'HOHOHOHO'});
+Sentry.getSharedClient().captureBreadcrumb({ message: 'HOHOHOHO' });
 Sentry.getSharedClient().captureException(new Error('error'));
 ```
 
-If you don't want to use a global static instance of Sentry, you can create one on your own:
+If you don't want to use a global static instance of Sentry, you can create one
+on your own:
 
 ```javascript
 const client = await new Sentry.Client(dsn).use(MockAdapter).install()
@@ -56,5 +57,5 @@ new Sentry.Client('__DSN__')
   });
 ```
 
-Notice, `install()` is a `Promise` but we internally wait until it is resolved, so it is save to call other function
-without waiting for it.
+Notice, `install()` is a `Promise` but we internally wait until it is resolved,
+so it is save to call other function without waiting for it.
