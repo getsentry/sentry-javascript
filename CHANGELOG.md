@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.22.4
+
+* NEW: Chrome and Firefox Extensions stack trace parsing (#1235)
+* BUGFIX: Handle custom error names in TraceKit (#1237)
+* BUGFIX: Let Edge to send fetch requests using default config (#1236)
+* BUGFIX: Correctly increment trimHeadFrames in captureMessage (#1224)
+* BUILD: Fix browserify plugin transform append (#1229)
+
 ## 3.22.3
 
 * BUGFIX: Reverted Rollup-based build system and fixed broken plugin builds
