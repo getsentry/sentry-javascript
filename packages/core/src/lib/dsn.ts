@@ -29,7 +29,7 @@ export default class DSN implements DSNComponents {
     }
   }
 
-  public toString(withPass: boolean = false) {
+  public toString(withPass: boolean = false): string {
     // tslint:disable-next-line:no-this-assignment
     const { host, path, pass, port, protocol, user } = this;
     return (
@@ -38,7 +38,7 @@ export default class DSN implements DSNComponents {
     );
   }
 
-  private fromString(str: string) {
+  private fromString(str: string): void {
     const match = DSN_REGEX.exec(str);
     if (!match) {
       throw new SentryError('Invalid DSN');

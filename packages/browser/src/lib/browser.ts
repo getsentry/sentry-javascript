@@ -21,7 +21,7 @@ export class SentryBrowser implements Adapter {
 
   constructor(private client: Client, public options: BrowserOptions = {}) {}
 
-  public install() {
+  public install(): Promise<boolean> {
     Raven.config(this.client.dsn.toString(), this.options).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept
@@ -39,7 +39,7 @@ export class SentryBrowser implements Adapter {
     return Promise.resolve(true);
   }
 
-  public getRaven() {
+  public getRaven(): any {
     return Raven;
   }
 
@@ -100,7 +100,7 @@ export class SentryBrowser implements Adapter {
     return Promise.resolve();
   }
 
-  private interceptRavenSend(event: SentryEvent) {
+  private interceptRavenSend(event: SentryEvent): void {
     if (this.capturing) {
       // This event was requested via `SentryBrowser.captureException` or
       // `SentryBrowser.captureMessage`. We capture it, which will return it to

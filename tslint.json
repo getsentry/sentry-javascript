@@ -19,7 +19,8 @@
     "no-var-requires": false,
     "object-literal-sort-keys": false,
     "no-switch-case-fall-through": true,
-    "interface-name": false
+    "interface-name": false,
+    "typedef": [true, "call-signature", "property-declaration"]
   },
   "jsRules": {
     "no-console": [true, "log"],

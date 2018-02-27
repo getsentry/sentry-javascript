@@ -198,7 +198,7 @@ export default class Client {
    *
    * @param  {any[]} ...args
    */
-  public log(...args: any[]) {
+  public log(...args: any[]): void {
     if (
       this.options &&
       this.options.logLevel &&

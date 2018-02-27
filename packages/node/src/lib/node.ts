@@ -74,7 +74,7 @@ export class SentryNode implements Adapter {
     });
   }
 
-  public wrap(fn: () => void, options: object) {
+  public wrap(fn: () => void, options: object): any {
     return Raven.wrap(options, fn);
   }
 
@@ -93,7 +93,7 @@ export class SentryNode implements Adapter {
     return Promise.resolve();
   }
 
-  private interceptRavenSend(event: SentryEvent) {
+  private interceptRavenSend(event: SentryEvent): void {
     if (this.capturing) {
       // This event was requested via `SentryNode.captureException` or
       // `SentryNode.captureMessage`. We capture it, which will return it to
@@ -108,7 +108,7 @@ export class SentryNode implements Adapter {
     }
   }
 
-  private interceptRavenBreadcrumb(crumb: Breadcrumb) {
+  private interceptRavenBreadcrumb(crumb: Breadcrumb): void {
     if (this.capturing) {
       // This breadcrumb is being captured explicitly by the Client. We use
       // Raven's internal mechanism to store it.
