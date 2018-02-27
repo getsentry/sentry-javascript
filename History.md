@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.2 - 2018-02-27
+
+fix: Dont throw exception when called captureException without config (#431)
+fix: Preserve context in for rejected promises (#428)
+ref: Log promise rejection reason alongside eventid (#434)
+ref: Use named function for middlewares (#429)
+
 ## 2.4.1 - 2018-02-09
 
 - fix: Handle scoped packages structure in node-lsmod (#426)
