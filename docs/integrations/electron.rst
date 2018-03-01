@@ -1,73 +1,69 @@
 Electron
 ========
 
-To use Sentry with your Electron application, you will need to use both Raven.js SDKs, one for Browser and one for Node.js.
-Browser SDK is used to report all errors from Electron's ``renderer process``, while Node.js is used to report ``main process`` errors.
+This is the documentation for our new Electron SDK.
+`Sentry Wizard <https://github.com/getsentry/sentry-wizard>`_ helps you with the correct
+setup. Under the hood we use `raven-node <https://github.com/getsentry/raven-node>`_
+and `raven-js <https://github.com/getsentry/raven-js>`_.
 
-On its own, Raven.js will report any uncaught exceptions triggered from your application. For advanced usage examples of Raven.js, please read :doc:`Raven.js usage <../usage>`.
+We also do support native crashes via minidumps.
 
 Installation
 ------------
 
-Both packages are available via npm.
+All packages are available via npm.
 
 .. code-block:: sh
 
-    $ npm install raven raven-js --save
+    $ npm install @sentry/electron --save
+
+This will also install `@sentry/wizard`. Run the wizard the help you finish your setup:
+With ``yarn`` you can just call:
+
+.. code-block:: sh
+
+    $ yarn sentry-wizard --integration=electron
+
+If you only have ``npm`` call:
+
+.. code-block:: sh
+
+    $ node node_modules/.bin/sentry-wizard --integration=electron
+
+``sentry-wizard`` will display recommended packages like `electron-download` which we need
+in order to symbolicate native crashes.
+The wizard will also create a file called ``sentry.properties`` (which does contain
+you account information) and ``sentry-symbols.js`` which helps you with the symbols
+upload.
+
 
 Configuring the Client
 ----------------------
 
-First, let's configure ``main process``, which uses the Node.js SDK:
+The following code should reside in the ``main process`` and ``renderer process``:
 
 .. code-block:: javascript
 
-    var Raven = require('raven');
+    const Sentry = require('@sentry/core');
+    const SentryElectron = require('@sentry/electron');
 
-    Raven.config('___PUBLIC_DSN___', {
-      captureUnhandledRejections: true
-    }).install();
+    Sentry.create('___PRIVATE_DSN___')
+      .use(SentryElectron)
+      .install();
 
-And now ``renderer process``, which uses the Browser SDK:
-
-.. code-block:: javascript
-
-    var Raven = require('raven-js');
-    Raven.config('___PUBLIC_DSN___').install();
-
-    window.addEventListener('unhandledrejection', function (event) {
-        Raven.captureException(event.reason);
-    });
-
-This configuration will also take care of unhandled Promise rejections, which can be handled in various ways. By default, Electron uses standard JS API.
+This configuration will also take care of unhandled Promise rejections, which can be
+handled in various ways. By default, Electron uses standard JS API.
 To learn more about handling promises, refer to :ref:`raven-js-promises` documentation.
 
-Sending environment information
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Uploading symbols
+~~~~~~~~~~~~~~~~~
 
-It's often a good idea to send platform information along with a caught error.
-Some things that we can easily add, but are not limited to, are:
+The wizard should create a file called ``sentry-symbols.js`` which takes care of uploading
+debug symbols to Sentry. Note that this is only necessary only whenever you update your
+version of electron. It usually takes quiet a while because it downloads debug symbols
+of electron and uploads the to Sentry so we can symbolicate your native crashes.
+You can always execute the script by calling:
 
-- Environment type (browser/renderer)
-- Electron version
-- Chrome version
-- Operation System type
-- Operation System release
+.. code-block:: sh
 
-You can configure both processes in the same way. To do this, require the standard Node.js module `os` and add a `tags` attribute to your `config` call:
-
-.. code-block:: javascript
-
-    var os = require('os');
-    var Raven = require('raven');
-
-    Raven.config('___PUBLIC_DSN___', {
-      captureUnhandledRejections: true,
-      tags: {
-        process: process.type,
-        electron: process.versions.electron,
-        chrome: process.versions.chrome,
-        platform: os.platform(),
-        platform_release: os.release()
-      }
-    }).install();
+    $ node sentry-symbols.js
