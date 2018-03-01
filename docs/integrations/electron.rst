@@ -59,9 +59,9 @@ Uploading symbols
 ~~~~~~~~~~~~~~~~~
 
 The wizard should create a file called ``sentry-symbols.js`` which takes care of uploading
-debug symbols to Sentry. Note that this is only necessary only whenever you update your
+debug symbols to Sentry. Note that this is only necessary whenever you update your
 version of electron. It usually takes quiet a while because it downloads debug symbols
-of electron and uploads the to Sentry so we can symbolicate your native crashes.
+of electron and uploads them to Sentry so we can symbolicate your native crashes.
 You can always execute the script by calling:
 
 .. code-block:: sh
