@@ -431,7 +431,7 @@ Raven.prototype = {
    */
   _attachPromiseRejectionHandler: function() {
     this._promiseRejectionHandler = this._promiseRejectionHandler.bind(this);
-    _window.addEventListener('unhandledrejection', this._promiseRejectionHandler);
+    _window.addEventListener && _window.addEventListener('unhandledrejection', this._promiseRejectionHandler);
     return this;
   },
 
@@ -441,7 +441,7 @@ Raven.prototype = {
    * @return {raven}
    */
   _detachPromiseRejectionHandler: function() {
-    _window.removeEventListener('unhandledrejection', this._promiseRejectionHandler);
+    _window.removeEventListener && _window.removeEventListener('unhandledrejection', this._promiseRejectionHandler);
     return this;
   },
 
