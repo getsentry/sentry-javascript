@@ -1,4 +1,4 @@
-/*! Raven.js 3.23.0 (0516d9e) | github.com/getsentry/raven-js */
+/*! Raven.js 3.23.1 (84edddc) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -200,7 +200,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.23.0',
+  VERSION: '3.23.1',
 
   debug: false,
 
@@ -499,7 +499,7 @@ Raven.prototype = {
    */
   _attachPromiseRejectionHandler: function() {
     this._promiseRejectionHandler = this._promiseRejectionHandler.bind(this);
-    _window.addEventListener('unhandledrejection', this._promiseRejectionHandler);
+    _window.addEventListener && _window.addEventListener('unhandledrejection', this._promiseRejectionHandler);
     return this;
   },
 
@@ -509,7 +509,7 @@ Raven.prototype = {
    * @return {raven}
    */
   _detachPromiseRejectionHandler: function() {
-    _window.removeEventListener('unhandledrejection', this._promiseRejectionHandler);
+    _window.removeEventListener && _window.removeEventListener('unhandledrejection', this._promiseRejectionHandler);
     return this;
   },
 

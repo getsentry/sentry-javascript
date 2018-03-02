@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.23.1
+
+* BUGFIX: Check if `addEventListener` and `removeEventListener` are present before calling them
+
 ## 3.23.0
 
 **NOTE**:
