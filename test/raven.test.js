@@ -25,6 +25,7 @@ var joinRegExp = utils.joinRegExp;
 var supportsErrorEvent = utils.supportsErrorEvent;
 var supportsFetch = utils.supportsFetch;
 var supportsReferrerPolicy = utils.supportsReferrerPolicy;
+var supportsPromiseRejectionEvent = utils.supportsPromiseRejectionEvent;
 
 // window.console must be stubbed in for browsers that don't have it
 if (typeof window.console === 'undefined') {
@@ -755,6 +756,40 @@ describe('globals', function() {
       assert.isTrue(Raven._send.called);
     });
   });
+
+  if (supportsPromiseRejectionEvent()) {
+    describe('captureUnhandledRejections', function() {
+      it('should capture string rejections', function(done) {
+        Raven._attachPromiseRejectionHandler();
+
+        this.sinon.stub(Raven, 'captureException').callsFake(function(reason) {
+          assert.equal(reason, 'foo');
+          Raven._detachPromiseRejectionHandler();
+          done();
+        });
+
+        new Promise(function(resolve, reject) {
+          reject('foo');
+        });
+      });
+
+      it('should capture error rejections', function(done) {
+        var err = new Error('foo');
+
+        Raven._attachPromiseRejectionHandler();
+
+        this.sinon.stub(Raven, 'captureException').callsFake(function(reason) {
+          assert.equal(reason, err);
+          Raven._detachPromiseRejectionHandler();
+          done();
+        });
+
+        new Promise(function(resolve, reject) {
+          reject(err);
+        });
+      });
+    });
+  }
 
   describe('send', function() {
     it('should build a good data payload', function() {
@@ -2344,6 +2379,29 @@ describe('Raven (public API)', function() {
         });
 
         assert.isFalse(TraceKit.collectWindowErrors);
+      });
+    });
+
+    describe('captureUnhandledRejections', function() {
+      it('should be true by default', function() {
+        Raven.config(SENTRY_DSN);
+        assert.isTrue(Raven._globalOptions.captureUnhandledRejections);
+      });
+
+      it('should be true if set to true', function() {
+        Raven.config(SENTRY_DSN, {
+          captureUnhandledRejections: true
+        });
+
+        assert.isTrue(Raven._globalOptions.captureUnhandledRejections);
+      });
+
+      it('should be false if set to false', function() {
+        Raven.config(SENTRY_DSN, {
+          captureUnhandledRejections: false
+        });
+
+        assert.isFalse(Raven._globalOptions.captureUnhandledRejections);
       });
     });
 

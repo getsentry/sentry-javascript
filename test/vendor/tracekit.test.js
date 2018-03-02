@@ -181,9 +181,7 @@ describe('TraceKit', function() {
     });
 
     describe('when no 5th argument (error object)', function() {
-      it('should seperate name, message for default error types (e.g. ReferenceError)', function(
-        done
-      ) {
+      it('should seperate name, message for default error types (e.g. ReferenceError)', function(done) {
         subscriptionHandler = function(stackInfo, extra) {
           assert.equal(stackInfo.name, 'ReferenceError');
           assert.equal(stackInfo.message, 'foo is undefined');
@@ -203,9 +201,7 @@ describe('TraceKit', function() {
         done();
       });
 
-      it('should separate name, message for default error types on Opera Mini (see #546)', function(
-        done
-      ) {
+      it('should separate name, message for default error types on Opera Mini (see #546)', function(done) {
         subscriptionHandler = function(stackInfo, extra) {
           assert.equal(stackInfo.name, 'ReferenceError');
           assert.equal(stackInfo.message, 'Undefined variable: foo');

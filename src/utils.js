@@ -97,6 +97,10 @@ function supportsReferrerPolicy() {
   }
 }
 
+function supportsPromiseRejectionEvent() {
+  return typeof PromiseRejectionEvent === 'function';
+}
+
 function wrappedCallback(callback) {
   function dataCallback(data, original) {
     var normalizedData = callback(data) || data;
@@ -450,6 +454,7 @@ module.exports = {
   supportsErrorEvent: supportsErrorEvent,
   supportsFetch: supportsFetch,
   supportsReferrerPolicy: supportsReferrerPolicy,
+  supportsPromiseRejectionEvent: supportsPromiseRejectionEvent,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

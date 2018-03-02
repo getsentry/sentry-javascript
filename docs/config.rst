@@ -227,6 +227,11 @@ Those configuration options are documented below:
     By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this
     number by setting `maxBreadcrumbs`. Note that this number cannot be set higher than the default of 100.
 
+.. describe:: captureUnhandledRejections
+
+    By default, Raven captures all unhandled promise rejections using standard ``unhandledrejection`` event.
+    If you want to disable this behaviour, set this option to ``false``.
+
 .. describe:: transport
 
     Override the default HTTP data transport handler.
