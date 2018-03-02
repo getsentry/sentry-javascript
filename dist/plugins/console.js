@@ -1,4 +1,4 @@
-/*! Raven.js 3.22.4 (114c958) | github.com/getsentry/raven-js */
+/*! Raven.js 3.23.0 (0516d9e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -187,6 +187,10 @@ function supportsReferrerPolicy() {
   } catch (e) {
     return false;
   }
+}
+
+function supportsPromiseRejectionEvent() {
+  return typeof PromiseRejectionEvent === 'function';
 }
 
 function wrappedCallback(callback) {
@@ -542,6 +546,7 @@ module.exports = {
   supportsErrorEvent: supportsErrorEvent,
   supportsFetch: supportsFetch,
   supportsReferrerPolicy: supportsReferrerPolicy,
+  supportsPromiseRejectionEvent: supportsPromiseRejectionEvent,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

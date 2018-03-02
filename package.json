@@ -9,7 +9,7 @@
     "raven",
     "sentry"
   ],
-  "version": "3.22.4",
+  "version": "3.23.0",
   "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",

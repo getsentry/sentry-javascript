@@ -1,4 +1,4 @@
-/*! Raven.js 3.22.4 (114c958) | github.com/getsentry/raven-js */
+/*! Raven.js 3.23.0 (0516d9e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -147,6 +147,7 @@ function Raven() {
     includePaths: [],
     headers: null,
     collectWindowErrors: true,
+    captureUnhandledRejections: true,
     maxMessageLength: 0,
 
     // By default, truncates URL values to 250 chars
@@ -199,7 +200,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.22.4',
+  VERSION: '3.23.0',
 
   debug: false,
 
@@ -304,6 +305,10 @@ Raven.prototype = {
       TraceKit.report.subscribe(function() {
         self._handleOnErrorStackInfo.apply(self, arguments);
       });
+
+      if (self._globalOptions.captureUnhandledRejections) {
+        self._attachPromiseRejectionHandler();
+      }
 
       self._patchFunctionToString();
 
@@ -455,14 +460,15 @@ Raven.prototype = {
     return wrapped;
   },
 
-  /*
-     * Uninstalls the global error handler.
-     *
-     * @return {Raven}
-     */
+  /**
+   * Uninstalls the global error handler.
+   *
+   * @return {Raven}
+   */
   uninstall: function() {
     TraceKit.report.uninstall();
 
+    this._detachPromiseRejectionHandler();
     this._unpatchFunctionToString();
     this._restoreBuiltIns();
     this._restoreConsole();
@@ -473,13 +479,47 @@ Raven.prototype = {
     return this;
   },
 
-  /*
-     * Manually capture an exception and send it over to Sentry
-     *
-     * @param {error} ex An exception to be logged
-     * @param {object} options A specific set of options for this error [optional]
-     * @return {Raven}
-     */
+  /**
+   * Callback used for `unhandledrejection` event
+   *
+   * @param {PromiseRejectionEvent} event An object containing
+   *   promise: the Promise that was rejected
+   *   reason: the value with which the Promise was rejected
+   * @return void
+   */
+  _promiseRejectionHandler: function(event) {
+    this._logDebug('debug', 'Raven caught unhandled promise rejection:', event);
+    this.captureException(event.reason);
+  },
+
+  /**
+   * Installs the global promise rejection handler.
+   *
+   * @return {raven}
+   */
+  _attachPromiseRejectionHandler: function() {
+    this._promiseRejectionHandler = this._promiseRejectionHandler.bind(this);
+    _window.addEventListener('unhandledrejection', this._promiseRejectionHandler);
+    return this;
+  },
+
+  /**
+   * Uninstalls the global promise rejection handler.
+   *
+   * @return {raven}
+   */
+  _detachPromiseRejectionHandler: function() {
+    _window.removeEventListener('unhandledrejection', this._promiseRejectionHandler);
+    return this;
+  },
+
+  /**
+   * Manually capture an exception and send it over to Sentry
+   *
+   * @param {error} ex An exception to be logged
+   * @param {object} options A specific set of options for this error [optional]
+   * @return {Raven}
+   */
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
     // Cases for sending ex as a message, rather than an exception
@@ -2256,6 +2296,10 @@ function supportsReferrerPolicy() {
   }
 }
 
+function supportsPromiseRejectionEvent() {
+  return typeof PromiseRejectionEvent === 'function';
+}
+
 function wrappedCallback(callback) {
   function dataCallback(data, original) {
     var normalizedData = callback(data) || data;
@@ -2609,6 +2653,7 @@ module.exports = {
   supportsErrorEvent: supportsErrorEvent,
   supportsFetch: supportsFetch,
   supportsReferrerPolicy: supportsReferrerPolicy,
+  supportsPromiseRejectionEvent: supportsPromiseRejectionEvent,
   wrappedCallback: wrappedCallback,
   each: each,
   objectMerge: objectMerge,

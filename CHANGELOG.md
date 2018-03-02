@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.23.0
+
+**NOTE**:
+This release may introduce some new, previously uncaught errors that were silently occuring in the background.
+Your Sentry Issues stream may show new errors, without any changes done to your application's code.
+
+* NEW: Introduce global unhandled rejections handler and `captureUnhandledRejections` config option (#1242).
+
 ## 3.22.4
 
 * NEW: Chrome and Firefox Extensions stack trace parsing (#1235)
