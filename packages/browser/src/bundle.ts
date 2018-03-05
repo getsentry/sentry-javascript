@@ -1,2 +1,2 @@
 export * from '@sentry/core';
-export { SentryBrowser, BrowserOptions as SentryBrowserOptions } from './lib/browser';
+export { default as SentryBrowser, BrowserOptions } from './lib/browser';

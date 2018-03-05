@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import * as Sentry from '@sentry/core';
-import { SentryNode } from '../src/index';
+import Sentry from '@sentry/core';
+import SentryNode from '../src/index';
 
 describe('Test', () => {
   beforeEach(async () => {

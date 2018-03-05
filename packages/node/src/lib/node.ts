@@ -16,7 +16,7 @@ const captureRavenBreadcrumb = Raven.captureBreadcrumb;
 // tslint:disable-next-line:no-empty-interface
 export interface NodeOptions extends Options {}
 
-export class SentryNode implements Adapter {
+export default class SentryNode implements Adapter {
   private capturing: boolean = false;
   private captured: any;
 

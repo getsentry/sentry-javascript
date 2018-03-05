@@ -1,11 +1,5 @@
-import {
-  Adapter,
-  Breadcrumb,
-  Client,
-  Context,
-  Options,
-  SentryEvent,
-} from '../../src/index';
+import Client, { Adapter, Options } from '../../src/lib/client';
+import { Breadcrumb, Context, SentryEvent } from '../../src/lib/interfaces';
 
 export interface MockAdapterOptions extends Options {
   testOption?: boolean;

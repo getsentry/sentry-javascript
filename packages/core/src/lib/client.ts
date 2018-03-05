@@ -1,16 +1,37 @@
-import {
-  Adapter,
-  Breadcrumb,
-  Context,
-  LogLevel,
-  Options,
-  SentryEvent,
-  User,
-} from './interfaces';
-import { SentryError } from './sentry';
-
 import ContextManager from './context';
 import DSN from './dsn';
+import SentryError from './error';
+import { Breadcrumb, Context, LogLevel, SentryEvent, User } from './interfaces';
+
+// TODO: Rework options
+export interface Options {
+  release?: string;
+  environment?: string;
+  logLevel?: LogLevel;
+  maxBreadcrumbs?: number;
+  ignoreErrors?: Array<string | RegExp>;
+  ignoreUrls?: Array<string | RegExp>;
+  whitelistUrls?: Array<string | RegExp>;
+  includePaths?: Array<string | RegExp>;
+  shouldSend?: (e: SentryEvent) => boolean;
+  beforeSend?: (e: SentryEvent) => SentryEvent;
+  afterSend?: (e: SentryEvent) => void;
+  shouldAddBreadcrumb?: (b: Breadcrumb) => boolean;
+  beforeBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
+  afterBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
+}
+
+export interface Adapter {
+  readonly options: {};
+  install(): Promise<boolean>;
+  captureException(exception: any): Promise<SentryEvent>;
+  captureMessage(message: string): Promise<SentryEvent>;
+  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
+  send(event: SentryEvent): Promise<void>;
+  setOptions(options: Options): Promise<void>;
+  getContext(): Promise<Context>;
+  setContext(context: Context): Promise<void>;
+}
 
 export default class Client {
   public readonly dsn: DSN;
