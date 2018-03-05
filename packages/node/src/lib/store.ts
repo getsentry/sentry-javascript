@@ -1,36 +1,6 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
-
-const _0777 = parseInt('0777', 8);
-
-function mkdirpSync(path: string): void {
-  // tslint:disable-next-line:no-bitwise
-  const mode = _0777 & ~process.umask();
-  const resPath = resolve(path);
-
-  try {
-    mkdirSync(resPath, mode);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      mkdirpSync(dirname(resPath));
-      mkdirSync(resPath);
-    } else {
-      try {
-        if (!statSync(resPath).isDirectory()) {
-          throw err;
-        }
-      } catch (_) {
-        throw err;
-      }
-    }
-  }
-}
+import { mkdirpSync } from './utils';
 
 /**
  * Lazily serializes data to a JSON file to persist.
@@ -92,9 +62,7 @@ export default class Store<T> {
     return this.data;
   }
 
-  /**
-   * Returns store to its initial state
-   */
+  /** Returns store to its initial state */
   public clear(): void {
     this.set(this.initial as T);
   }
