@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "0.4.0-beta.2",
+  "version": "0.4.0-beta.3",
   "description": "Offical Sentry SDK for Node.js",
   "author": "Sentry",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "^0.4.0-beta.2",
+    "@sentry/core": "^0.4.0-beta.3",
     "raven": "^2.4.0"
   },
   "devDependencies": {
