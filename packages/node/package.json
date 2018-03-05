@@ -19,6 +19,8 @@
   "devDependencies": {
     "@types/jest": "*",
     "jest": "*",
+    "chai": "*",
+    "sinon": "*",
     "prettier": "*",
     "rimraf": "*",
     "ts-jest": "*",
@@ -44,15 +46,8 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
-    "testMatch": [
-      "**/*.test.ts"
-    ],
-    "testPathIgnorePatterns": [
-      "/Mock/"
-    ]
+    "moduleFileExtensions": ["js", "ts"],
+    "testMatch": ["**/*.test.ts"],
+    "testPathIgnorePatterns": ["/Mock/"]
   }
 }
