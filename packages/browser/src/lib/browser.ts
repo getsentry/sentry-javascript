@@ -15,7 +15,7 @@ const sendRavenEvent = Raven._sendProcessedPayload;
 // tslint:disable-next-line:no-empty-interface
 export interface BrowserOptions extends Options {}
 
-export class SentryBrowser implements Adapter {
+export default class SentryBrowser implements Adapter {
   private capturing: boolean = false;
   private captured: any;
 

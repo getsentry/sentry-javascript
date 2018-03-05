@@ -1,4 +1,4 @@
-import { SentryError } from './sentry';
+import SentryError from './error';
 
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 

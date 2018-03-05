@@ -1,5 +1,4 @@
-import Client from './client';
-import { Options } from './interfaces';
+import Client, { Options } from './client';
 
 let sharedClient: Client;
 
@@ -14,14 +13,4 @@ export function setSharedClient(client: Client): Client {
 
 export function getSharedClient(): Client {
   return sharedClient;
-}
-
-export class SentryError extends Error {
-  public name: string;
-
-  constructor(public message: string) {
-    super(message);
-    this.name = new.target.prototype.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
 }

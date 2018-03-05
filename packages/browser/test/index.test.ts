@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import * as Sentry from '@sentry/core';
-import { SentryBrowser, SentryBrowserOptions } from '../src/index';
+import SentryBrowser, { BrowserOptions } from '../src/index';
 
 describe('Test', () => {
   beforeEach(async () => {

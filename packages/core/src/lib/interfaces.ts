@@ -1,3 +1,10 @@
+export enum LogLevel {
+  None = 0,
+  Error = 1,
+  Debug = 2,
+  Verbose = 3,
+}
+
 export enum Severity {
   Fatal = 'fatal',
   Error = 'error',
@@ -81,7 +88,6 @@ export interface Request {
   env?: { [key: string]: string };
 }
 
-// TODO: Add missing fields
 export interface SentryEvent extends Context {
   event_id?: string;
   message?: string;
@@ -100,41 +106,4 @@ export interface SentryEvent extends Context {
   exception?: SentryException[];
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
-}
-
-export enum LogLevel {
-  None = 0,
-  Error = 1,
-  Debug = 2,
-  Verbose = 3,
-}
-
-// TODO: Rework options
-export interface Options {
-  release?: string;
-  environment?: string;
-  logLevel?: LogLevel;
-  maxBreadcrumbs?: number;
-  ignoreErrors?: Array<string | RegExp>;
-  ignoreUrls?: Array<string | RegExp>;
-  whitelistUrls?: Array<string | RegExp>;
-  includePaths?: Array<string | RegExp>;
-  shouldSend?: (e: SentryEvent) => boolean;
-  beforeSend?: (e: SentryEvent) => SentryEvent;
-  afterSend?: (e: SentryEvent) => void;
-  shouldAddBreadcrumb?: (b: Breadcrumb) => boolean;
-  beforeBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
-  afterBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
-}
-
-export interface Adapter {
-  readonly options: {};
-  install(): Promise<boolean>;
-  captureException(exception: any): Promise<SentryEvent>;
-  captureMessage(message: string): Promise<SentryEvent>;
-  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
-  send(event: SentryEvent): Promise<void>;
-  setOptions(options: Options): Promise<void>;
-  getContext(): Promise<Context>;
-  setContext(context: Context): Promise<void>;
 }
