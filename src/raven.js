@@ -514,12 +514,14 @@ Raven.prototype = {
 
     options = options || {};
 
+    var strMsg = msg + ''; // Make sure it's actually a string
     var data = objectMerge(
       {
-        message: msg + '' // Make sure it's actually a string
+        message: strMsg
       },
       options
     );
+    var isFingerprint = isArray(data.fingerprint) && data.fingerprint.length;
 
     var ex;
     // Generate a "synthetic" stack trace from this point.
@@ -555,11 +557,13 @@ Raven.prototype = {
     }
 
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
+      if (!isFingerprint) {
+        // fingerprint on msg, not stack trace (legacy behavior, could be
+        // revisited)
+        data.fingerprint = [strMsg];
+      }
       options = objectMerge(
         {
-          // fingerprint on msg, not stack trace (legacy behavior, could be
-          // revisited)
-          fingerprint: msg,
           trimHeadFrames: 0
         },
         options
