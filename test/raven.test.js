@@ -3044,6 +3044,23 @@ describe('Raven (public API)', function() {
         var frames = Raven._send.lastCall.args[0].stacktrace.frames;
         assertSynthetic(frames);
       });
+
+      it('should send a default fingerprint if stacktrace:true is set via globalOptions', function() {
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, '_send');
+
+        Raven._globalOptions.stacktrace = true;
+        function foo() {
+          Raven.captureMessage('foo');
+        }
+
+        foo();
+        var fingerprint = Raven._send.lastCall.args[0].fingerprint;
+
+        // the fingerprint should be the same as the message
+        // but wrapped in an array
+        assert.deepEqual(fingerprint, ['foo']);
+      });
     });
   });
 
