@@ -513,10 +513,11 @@ Raven.prototype = {
     }
 
     options = options || {};
+    msg = msg + ''; // Make sure it's actually a string
 
     var data = objectMerge(
       {
-        message: msg + '' // Make sure it's actually a string
+        message: msg
       },
       options
     );
@@ -555,11 +556,11 @@ Raven.prototype = {
     }
 
     if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
+      // fingerprint on msg, not stack trace (legacy behavior, could be revisited)
+      data.fingerprint = data.fingerprint == null ? msg : data.fingerprint;
+
       options = objectMerge(
         {
-          // fingerprint on msg, not stack trace (legacy behavior, could be
-          // revisited)
-          fingerprint: msg,
           trimHeadFrames: 0
         },
         options
@@ -575,6 +576,13 @@ Raven.prototype = {
         // Sentry expects frames oldest to newest
         frames: frames.reverse()
       };
+    }
+
+    // Make sure that fingerprint is always wrapped in an array
+    if (data.fingerprint) {
+      data.fingerprint = isArray(data.fingerprint)
+        ? data.fingerprint
+        : [data.fingerprint];
     }
 
     // Fire away!
