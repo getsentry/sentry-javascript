@@ -1,4 +1,5 @@
-export { default as DSN } from './lib/dsn';
-export { default as Client } from './lib/client';
+export * from './lib/client';
+export * from './lib/domain';
+export * from './lib/dsn';
+export * from './lib/error';
 export * from './lib/sentry';
-export * from './lib/interfaces';

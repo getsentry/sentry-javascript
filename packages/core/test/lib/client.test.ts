@@ -1,19 +1,18 @@
 // tslint:disable
 import { expect } from 'chai';
 import { spy, stub } from 'sinon';
-import * as Sentry from '../../src/index';
+import { Client, LogLevel } from '../../src/lib/client';
+import { SentryError } from '../../src/lib/error';
 import { MockAdapter } from '../mocks/MockAdapter';
 
 const dsn = 'https://username:password@domain/path';
 
-describe('Sentry.Client', () => {
+describe('Client', () => {
   it('get public/private DSN', () => {
-    const sentry = new Sentry.Client(dsn);
+    const sentry = new Client(dsn);
     expect(sentry.dsn.toString()).to.equal('https://username@domain/path');
     expect(sentry.dsn.toString(true)).to.equal(dsn);
-    const sentry2 = new Sentry.Client(
-      'https://username:password@domain:8888/path',
-    );
+    const sentry2 = new Client('https://username:password@domain:8888/path');
     expect(sentry2.dsn.toString()).to.equal(
       'https://username@domain:8888/path',
     );
@@ -24,36 +23,35 @@ describe('Sentry.Client', () => {
 
   it('invalid DSN', () => {
     expect(() => {
-      new Sentry.Client('abc');
+      new Client('abc');
     }).to.throw();
     expect(() => {
-      new Sentry.Client('https://username:password@domain');
+      new Client('https://username:password@domain');
     }).to.throw();
     expect(() => {
-      new Sentry.Client('//username:password@domain');
+      new Client('//username:password@domain');
     }).to.throw();
     expect(() => {
-      new Sentry.Client('https://username:@domain');
+      new Client('https://username:@domain');
     }).to.throw();
     expect(() => {
-      new Sentry.Client('123');
+      new Client('123');
     }).to.throw();
     try {
-      new Sentry.Client('123');
+      new Client('123');
     } catch (e) {
-      expect(e instanceof Sentry.SentryError).to.be.ok;
+      expect(e instanceof SentryError).to.be.ok;
     }
   });
 
   it('throw error if multiple Adapters', () => {
-    const sentry = Sentry.create(dsn);
-    expect(Sentry.getSharedClient()).to.equal(sentry);
+    const sentry = new Client(dsn);
     sentry.use(MockAdapter);
     expect(() => sentry.use(MockAdapter)).to.throw();
   });
 
   it('call install on Adapter', async () => {
-    const sentry = new Sentry.Client(dsn);
+    const sentry = new Client(dsn);
     sentry.use(MockAdapter, { testOption: true });
     const spy1 = spy(sentry, 'install');
     const spy2 = spy(sentry.getAdapter(), 'install');
@@ -63,7 +61,7 @@ describe('Sentry.Client', () => {
   });
 
   it('multiple install calls on Adapter should only call once', async () => {
-    const sentry = new Sentry.Client(dsn);
+    const sentry = new Client(dsn);
     sentry.use(MockAdapter, { testOption: true });
     const spy1 = spy(sentry.getAdapter(), 'install');
     await sentry.install();
@@ -72,7 +70,7 @@ describe('Sentry.Client', () => {
   });
 
   it('no registered Adapter', async () => {
-    const sentry = new Sentry.Client(dsn);
+    const sentry = new Client(dsn);
     try {
       await sentry.install();
     } catch (e) {
@@ -83,13 +81,13 @@ describe('Sentry.Client', () => {
   });
 
   it('get Adapter', () => {
-    const sentry = new Sentry.Client(dsn);
+    const sentry = new Client(dsn);
     sentry.use(MockAdapter, { testOption: true });
     expect(sentry.getAdapter()).to.be.an.instanceof(MockAdapter);
   });
 
   it('call captureMessage with reject on Adapter', async () => {
-    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const sentry = await new Client(dsn).use(MockAdapter).install();
     try {
       await sentry.captureMessage('fail');
     } catch (e) {
@@ -98,7 +96,7 @@ describe('Sentry.Client', () => {
   });
 
   it('call captureMessage on Adapter', async () => {
-    const sentry = new Sentry.Client(dsn).use(MockAdapter);
+    const sentry = new Client(dsn).use(MockAdapter);
     sentry.install();
     const spy1 = spy(sentry, 'captureMessage');
     const spy2 = spy(sentry.getAdapter(), 'captureMessage');
@@ -112,7 +110,7 @@ describe('Sentry.Client', () => {
   });
 
   it('call captureBreadcrumb on Adapter', async () => {
-    const sentry = new Sentry.Client(dsn).use(MockAdapter);
+    const sentry = new Client(dsn).use(MockAdapter);
     await sentry.install();
     const spy1 = spy(sentry, 'captureBreadcrumb');
     const spy2 = spy(sentry.getAdapter(), 'captureBreadcrumb');
@@ -122,7 +120,7 @@ describe('Sentry.Client', () => {
   });
 
   it('call captureException on Adapter', async () => {
-    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const sentry = await new Client(dsn).use(MockAdapter).install();
     const spy1 = spy(sentry, 'captureException');
     const spy2 = spy(sentry.getAdapter(), 'captureException');
     await sentry.captureException(new Error('oops'));
@@ -131,7 +129,7 @@ describe('Sentry.Client', () => {
   });
 
   it('call send only on one Adapter', async () => {
-    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const sentry = await new Client(dsn).use(MockAdapter).install();
     const spy1 = spy(sentry, 'captureMessage');
     const spy2 = spy(sentry.getAdapter(), 'captureMessage');
     const spySend = spy(sentry, 'send');
@@ -148,34 +146,34 @@ describe('Sentry.Client', () => {
   });
 
   it('call log only if bigger debug', () => {
-    const sentry = new Sentry.Client(dsn).use(MockAdapter);
+    const sentry = new Client(dsn).use(MockAdapter);
     const spy1 = spy(global.console, 'log');
     sentry.log('Nothing');
     expect(spy1.calledOnce).to.be.false;
-    sentry.options.logLevel = Sentry.LogLevel.Debug;
+    sentry.options.logLevel = LogLevel.Debug;
     sentry.log('This is fine');
     expect(spy1.calledOnce).to.be.true;
   });
 
   it('should throw error without calling install', async () => {
-    const sentry = new Sentry.Client(dsn).use(MockAdapter);
+    const sentry = new Client(dsn).use(MockAdapter);
     return sentry.captureException(new Error('oops')).catch(err => {
-      expect(err).to.be.instanceof(Sentry.SentryError);
+      expect(err).to.be.instanceof(SentryError);
       expect(err.message).to.equal(
-        'Please call install() before calling other methods on Sentry',
+        'SDK not installed. Please call install() before using the SDK',
       );
     });
   });
 
   it('call setOptions on Adapter', async () => {
-    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const sentry = await new Client(dsn).use(MockAdapter).install();
     const spy1 = spy(sentry.getAdapter(), 'setOptions');
     await sentry.setOptions({ release: '#oops' });
     expect(spy1.calledOnce).to.be.true;
   });
 
   it('setContext', async () => {
-    const sentry = await new Sentry.Client(dsn).use(MockAdapter).install();
+    const sentry = await new Client(dsn).use(MockAdapter).install();
     sentry.setContext({
       extra: { some: 'key' },
       tags: { key: 'test1', key2: 'test2' },
@@ -191,7 +189,7 @@ describe('Sentry.Client', () => {
     const beforeBreadcrumb = spy();
     const afterBreadcrumb = spy();
 
-    const sentry = new Sentry.Client(dsn, {
+    const sentry = new Client(dsn, {
       shouldAddBreadcrumb,
       beforeBreadcrumb,
       afterBreadcrumb,
@@ -213,7 +211,7 @@ describe('Sentry.Client', () => {
     const beforeBreadcrumb = spy();
     const afterBreadcrumb = spy();
 
-    const sentry = new Sentry.Client(dsn, {
+    const sentry = new Client(dsn, {
       shouldAddBreadcrumb,
       beforeBreadcrumb,
       afterBreadcrumb,
@@ -235,7 +233,7 @@ describe('Sentry.Client', () => {
     const beforeSend = spy();
     const afterSend = spy();
 
-    const sentry = new Sentry.Client(dsn, {
+    const sentry = new Client(dsn, {
       shouldSend,
       beforeSend,
       afterSend,
@@ -246,7 +244,7 @@ describe('Sentry.Client', () => {
     const spy2 = spy(sentry.getAdapter(), 'captureMessage');
     const spySend = spy(sentry, 'send');
     const spySend2 = spy(sentry.getAdapter(), 'send');
-    const result = await sentry.captureMessage('+');
+    await sentry.captureMessage('+');
 
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;
@@ -263,7 +261,7 @@ describe('Sentry.Client', () => {
     const beforeSend = spy();
     const afterSend = spy();
 
-    const sentry = new Sentry.Client(dsn, {
+    const sentry = new Client(dsn, {
       shouldSend,
       beforeSend,
       afterSend,
@@ -274,7 +272,7 @@ describe('Sentry.Client', () => {
     const spy2 = spy(sentry.getAdapter(), 'captureMessage');
     const spySend = spy(sentry, 'send');
     const spySend2 = spy(sentry.getAdapter(), 'send');
-    const result = await sentry.captureMessage('+');
+    await sentry.captureMessage('+');
 
     expect(spy1.calledOnce).to.be.true;
     expect(spy2.calledOnce).to.be.true;

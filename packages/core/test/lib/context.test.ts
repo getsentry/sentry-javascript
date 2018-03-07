@@ -1,6 +1,6 @@
 // tslint:disable
 import { expect } from 'chai';
-import ContextManager from '../../src/lib/context';
+import { ContextManager } from '../../src/lib/context';
 
 describe('Context', () => {
   it('should be empty when initialized', () => {

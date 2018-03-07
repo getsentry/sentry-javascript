@@ -1,7 +1,7 @@
 // tslint:disable
 import { expect } from 'chai';
-import DSN from '../../src/lib/dsn';
-import { SentryError } from '../../src/lib/sentry';
+import { DSN } from '../../src/lib/dsn';
+import { SentryError } from '../../src/lib/error';
 
 describe('DSN', () => {
   it('should throw SentryError when provided invalid DSN', () => {

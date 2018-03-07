@@ -1,4 +1,4 @@
-import { SentryError } from './sentry';
+import { SentryError } from './error';
 
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
@@ -12,16 +12,25 @@ export interface DSNComponents {
   path: string;
 }
 
-export default class DSN implements DSNComponents {
-  public source: string;
-  public protocol: string;
-  public user: string;
-  public pass: string;
-  public host: string;
-  public port: string;
-  public path: string;
+/** TODO */
+export class DSN implements DSNComponents {
+  /** TODO */
+  public source!: string;
+  /** TODO */
+  public protocol!: string;
+  /** TODO */
+  public user!: string;
+  /** TODO */
+  public pass!: string;
+  /** TODO */
+  public host!: string;
+  /** TODO */
+  public port!: string;
+  /** TODO */
+  public path!: string;
 
-  constructor(from: string | DSNComponents) {
+  /** TODO */
+  public constructor(from: string | DSNComponents) {
     if (typeof from === 'string') {
       this.fromString(from);
     } else {
@@ -29,15 +38,17 @@ export default class DSN implements DSNComponents {
     }
   }
 
+  /** TODO */
   public toString(withPass: boolean = false): string {
     // tslint:disable-next-line:no-this-assignment
     const { host, path, pass, port, protocol, user } = this;
     return (
       `${protocol}://${user}${withPass ? pass : ''}` +
-      `@${host}${port ? ':' + port : ''}/${path}`
+      `@${host}${port ? `:${port}` : ''}/${path}`
     );
   }
 
+  /** TODO */
   private fromString(str: string): void {
     const match = DSN_REGEX.exec(str);
     if (!match) {
@@ -45,6 +56,6 @@ export default class DSN implements DSNComponents {
     }
 
     const [source, protocol, user, pass = '', host, port = '', path] = match;
-    Object.assign(this, { source, protocol, user, pass, host, port, path });
+    Object.assign(this, { host, pass, path, port, protocol, source, user });
   }
 }

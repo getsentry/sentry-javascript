@@ -1,3 +1,4 @@
+/** TODO */
 export enum Severity {
   Fatal = 'fatal',
   Error = 'error',
@@ -7,6 +8,7 @@ export enum Severity {
   Critical = 'critical',
 }
 
+/** TODO */
 export interface Breadcrumb {
   type?: string;
   level?: Severity;
@@ -17,6 +19,7 @@ export interface Breadcrumb {
   timestamp?: number;
 }
 
+/** TODO */
 export interface User {
   id?: string;
   email?: string;
@@ -24,18 +27,21 @@ export interface User {
   extra?: any;
 }
 
+/** TODO */
 export interface Context {
   tags?: { [key: string]: string };
   extra?: object;
   user?: User;
 }
 
+/** TODO */
 export interface SdkInfo {
   version?: string;
   name?: string;
   integrations?: string[];
 }
 
+/** TODO */
 export interface StackFrame {
   filename?: string;
   function?: string;
@@ -51,11 +57,13 @@ export interface StackFrame {
   vars?: { [name: string]: any };
 }
 
+/** TODO */
 export interface Stacktrace {
   frames?: StackFrame[];
   frames_omitted?: [number, number];
 }
 
+/** TODO */
 export interface Thread {
   id?: number;
   name?: string;
@@ -64,6 +72,7 @@ export interface Thread {
   current?: boolean;
 }
 
+/** TODO */
 export interface SentryException {
   type?: string;
   value?: string;
@@ -72,6 +81,7 @@ export interface SentryException {
   stacktrace?: Stacktrace;
 }
 
+/** TODO */
 export interface Request {
   url?: string;
   method?: string;
@@ -81,7 +91,7 @@ export interface Request {
   env?: { [key: string]: string };
 }
 
-// TODO: Add missing fields
+/** TODO */
 export interface SentryEvent extends Context {
   event_id?: string;
   message?: string;
@@ -100,41 +110,4 @@ export interface SentryEvent extends Context {
   exception?: SentryException[];
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
-}
-
-export enum LogLevel {
-  None = 0,
-  Error = 1,
-  Debug = 2,
-  Verbose = 3,
-}
-
-// TODO: Rework options
-export interface Options {
-  release?: string;
-  environment?: string;
-  logLevel?: LogLevel;
-  maxBreadcrumbs?: number;
-  ignoreErrors?: Array<string | RegExp>;
-  ignoreUrls?: Array<string | RegExp>;
-  whitelistUrls?: Array<string | RegExp>;
-  includePaths?: Array<string | RegExp>;
-  shouldSend?: (e: SentryEvent) => boolean;
-  beforeSend?: (e: SentryEvent) => SentryEvent;
-  afterSend?: (e: SentryEvent) => void;
-  shouldAddBreadcrumb?: (b: Breadcrumb) => boolean;
-  beforeBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
-  afterBreadcrumb?: (b: Breadcrumb) => Breadcrumb;
-}
-
-export interface Adapter {
-  readonly options: {};
-  install(): Promise<boolean>;
-  captureException(exception: any): Promise<SentryEvent>;
-  captureMessage(message: string): Promise<SentryEvent>;
-  captureBreadcrumb(breadcrumb: Breadcrumb): Promise<Breadcrumb>;
-  send(event: SentryEvent): Promise<void>;
-  setOptions(options: Options): Promise<void>;
-  getContext(): Promise<Context>;
-  setContext(context: Context): Promise<void>;
 }
