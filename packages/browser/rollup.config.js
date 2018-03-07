@@ -14,6 +14,7 @@ export default [
     external: ['raven-js'],
     plugins: [
       typescript({
+        tsconfig: 'tsconfig.build.json',
         exclude: ['src/bundle.ts'],
       }),
       commonjs(),
@@ -28,6 +29,7 @@ export default [
     },
     plugins: [
       typescript({
+        tsconfig: 'tsconfig.build.json',
         tsconfigOverride: { compilerOptions: { declaration: false } },
       }),
       resolve({
