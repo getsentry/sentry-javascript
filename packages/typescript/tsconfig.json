@@ -3,6 +3,7 @@
     "declaration": true,
     "downlevelIteration": true,
     "inlineSources": true,
+    "lib": ["es2015"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -14,6 +15,6 @@
     "pretty": true,
     "sourceMap": true,
     "strict": true,
-    "target": "es6"
+    "target": "es5"
   }
 }
