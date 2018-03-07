@@ -14,6 +14,18 @@
 
     // These are too strict in tslint:all
     "comment-format": [true, "check-space"],
+    "completed-docs": [
+      true,
+      {
+        "classes": true,
+        "enums": true,
+        "enum-members": true,
+        "functions": true,
+        "interfaces": true,
+        "methods": { "tags": { "content": {}, "existence": ["inheritDoc"] } },
+        "properties": { "tags": { "content": {}, "existence": ["inheritDoc"] } }
+      }
+    ],
     "interface-name": [true, "never-prefix"],
     "member-ordering": [true, "statics-first"],
     "no-console": [true, "log"],
