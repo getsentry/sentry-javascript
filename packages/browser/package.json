@@ -17,16 +17,12 @@
     "raven-js": "^3.22.1"
   },
   "devDependencies": {
-    "karma": "*",
-    "prettier": "*",
-    "rimraf": "*",
-    "rollup": "*",
-    "rollup-plugin-commonjs": "*",
-    "rollup-plugin-node-resolve": "*",
-    "rollup-plugin-typescript2": "*",
-    "rollup-plugin-uglify": "*",
-    "tslint": "*",
-    "typescript": "*"
+    "karma": "^2.0.0",
+    "prettier": "^1.10.2",
+    "rimraf": "^2.6.2",
+    "rollup": "^0.56.2",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.1"
   },
   "scripts": {
     "build": "rollup --config",

@@ -43,8 +43,6 @@
     "rollup-plugin-uglify": "^3.0.0",
     "sinon": "^4.2.2",
     "ts-jest": "^22.0.4",
-    "ts-loader": "^3.4.0",
-    "ts-node": "^4.1.0",
     "tslint": "^5.9.1",
     "tslint-config-prettier": "^1.7.0",
     "tslint-eslint-rules": "^4.1.1",
