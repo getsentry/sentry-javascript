@@ -1,24 +1,10 @@
 {
+  "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./packages",
+    "types": ["node"],
     "paths": {
       "@sentry/*": ["./*/src"]
-    },
-    "module": "commonjs",
-    "target": "es5",
-    "types": ["node", "mocha", "chai", "sinon"],
-    "lib": ["es2015"],
-    "declaration": true,
-    "sourceMap": true,
-    "inlineSources": true,
-    "allowJs": false,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "downlevelIteration": true,
-    "strictNullChecks": true,
-    "stripInternal": true
-  },
-  "exclude": ["node_modules"]
+    }
+  }
 }
