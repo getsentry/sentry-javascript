@@ -1,0 +1,19 @@
+{
+  "name": "@sentry/typescript",
+  "version": "0.4.0-beta.3",
+  "description": "Typescript configuration used at Sentry",
+  "repository": "https://github.com/getsentry/raven-js",
+  "author": "Sentry",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "tslint-config-prettier": "^1.9.0"
+  },
+  "peerDependencies": {
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2"
+  }
+}
