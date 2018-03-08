@@ -1,8 +1,9 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig.build.json",
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["dist"],
   "compilerOptions": {
-    "outDir": "dist",
-    "baseUrl": "src"
-  },
-  "include": ["src/**/*"]
+    "rootDir": ".",
+    "types": ["node", "jest", "chai", "sinon"]
+  }
 }

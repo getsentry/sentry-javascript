@@ -18,17 +18,24 @@
     "raven": "^2.4.2"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
     "jest": "^22.4.2",
+    "npm-run-all": "^4.1.2",
     "prettier": "^1.11.1",
+    "prettier-check": "^2.0.0",
     "rimraf": "^2.6.2",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist coverage",
-    "lint": "tslint --config ../../tslint.json src/**/*",
-    "format": "prettier --config ../../.prettierrc.json src/**/* --write",
+    "lint": "run-s lint:prettier lint:tslint",
+    "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
+    "lint:tslint": "tslint -t stylish -p .",
+    "fix": "run-s fix:tslint fix:prettier",
+    "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
+    "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch --notify"
   },
