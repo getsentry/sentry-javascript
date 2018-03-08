@@ -11,8 +11,6 @@ describe('Test', () => {
 
   it('works', async () => {
     const context = await SentryClient.getContext();
-    expect(context).to.deep.equal({
-      extra: { abc: 'def' },
-    });
+    expect(context).to.deep.equal({ extra: { abc: 'def' } });
   });
 });
