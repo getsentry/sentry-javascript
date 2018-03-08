@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import * as Sentry from '@sentry/core';
-import { SentryBrowser, SentryBrowserOptions } from '../src/index';
+import { SentryBrowser } from '../src/index';
 
 describe('Test', () => {
   beforeEach(async () => {
@@ -10,7 +10,7 @@ describe('Test', () => {
     )
       .use(SentryBrowser)
       .install()
-      .then(client => client.setContext({ extra: { abc: 'def' } }));
+      .then(async client => client.setContext({ extra: { abc: 'def' } }));
   });
 
   it('works', async () => {
