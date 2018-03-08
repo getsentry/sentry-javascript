@@ -47,6 +47,7 @@
     "tslint": "^5.9.1",
     "tslint-config-prettier": "^1.9.0",
     "tslint-eslint-rules": "^5.1.0",
+    "tslint-language-service": "^0.9.8",
     "typescript": "^2.7.2",
     "vrsource-tslint-rules": "^5.8.1"
   }

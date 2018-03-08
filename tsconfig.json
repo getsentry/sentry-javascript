@@ -1,10 +1,10 @@
 {
   "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./packages",
+    "baseUrl": "packages",
     "types": ["node"],
     "paths": {
-      "@sentry/*": ["./*/src"]
+      "@sentry/*": ["*/src"]
     }
   }
 }
