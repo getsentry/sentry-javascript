@@ -32,7 +32,7 @@
   "dependencies": {
     "cookie": "0.3.1",
     "md5": "^2.2.1",
-    "stack-trace": "0.0.9",
+    "stack-trace": "0.0.10",
     "timed-out": "4.0.1",
     "uuid": "3.0.0"
   },

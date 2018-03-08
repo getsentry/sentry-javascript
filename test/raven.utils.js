@@ -280,6 +280,21 @@ describe('raven.utils', function() {
         raven.utils.parseStack(e, parseCallback);
       }
     });
+
+    it('should handle spaces in paths', function(done) {
+      var parseStack = raven.utils.parseStack;
+      var callback = function(frames) {
+        var frame = frames.pop();
+        frame.module.should.endWith('file with spaces in path');
+        frame.filename.should.endWith('file with spaces in path.js');
+        done();
+      };
+      try {
+        require('./fixtures/file with spaces in path')();
+      } catch (e) {
+        parseStack(e, callback);
+      }
+    });
   });
 
   describe('#getCulprit()', function() {
