@@ -1,4 +1,3 @@
-// tslint:disable
 import { expect } from 'chai';
 import { spy, stub } from 'sinon';
 import { Client, LogLevel } from '../../src/lib/client';
@@ -74,7 +73,7 @@ describe('Client', () => {
     try {
       await sentry.install();
     } catch (e) {
-      expect(e.message).to.equal(
+      expect((e as Error).message).to.equal(
         'No adapter in use, please call .use(<Adapter>)',
       );
     }
@@ -91,13 +90,13 @@ describe('Client', () => {
     try {
       await sentry.captureMessage('fail');
     } catch (e) {
-      expect(e.message).to.equal('Failed because we told it to');
+      expect((e as Error).message).to.equal('Failed because we told it to');
     }
   });
 
   it('call captureMessage on Adapter', async () => {
     const sentry = new Client(dsn).use(MockAdapter);
-    sentry.install();
+    await sentry.install();
     const spy1 = spy(sentry, 'captureMessage');
     const spy2 = spy(sentry.getAdapter(), 'captureMessage');
     const result = await sentry.captureMessage('heyho');
@@ -159,7 +158,7 @@ describe('Client', () => {
     const sentry = new Client(dsn).use(MockAdapter);
     return sentry.captureException(new Error('oops')).catch(err => {
       expect(err).to.be.instanceof(SentryError);
-      expect(err.message).to.equal(
+      expect((err as Error).message).to.equal(
         'SDK not installed. Please call install() before using the SDK',
       );
     });
@@ -174,10 +173,11 @@ describe('Client', () => {
 
   it('setContext', async () => {
     const sentry = await new Client(dsn).use(MockAdapter).install();
-    sentry.setContext({
+    await sentry.setContext({
       extra: { some: 'key' },
       tags: { key: 'test1', key2: 'test2' },
     });
+
     expect(await sentry.getContext()).to.deep.equal({
       extra: { some: 'key' },
       tags: { key: 'test1', key2: 'test2' },
@@ -190,9 +190,9 @@ describe('Client', () => {
     const afterBreadcrumb = spy();
 
     const sentry = new Client(dsn, {
-      shouldAddBreadcrumb,
-      beforeBreadcrumb,
       afterBreadcrumb,
+      beforeBreadcrumb,
+      shouldAddBreadcrumb,
     }).use(MockAdapter);
 
     await sentry.install();
@@ -212,9 +212,9 @@ describe('Client', () => {
     const afterBreadcrumb = spy();
 
     const sentry = new Client(dsn, {
-      shouldAddBreadcrumb,
-      beforeBreadcrumb,
       afterBreadcrumb,
+      beforeBreadcrumb,
+      shouldAddBreadcrumb,
     }).use(MockAdapter);
 
     await sentry.install();
@@ -234,9 +234,9 @@ describe('Client', () => {
     const afterSend = spy();
 
     const sentry = new Client(dsn, {
-      shouldSend,
-      beforeSend,
       afterSend,
+      beforeSend,
+      shouldSend,
     }).use(MockAdapter);
 
     await sentry.install();
@@ -262,9 +262,9 @@ describe('Client', () => {
     const afterSend = spy();
 
     const sentry = new Client(dsn, {
-      shouldSend,
-      beforeSend,
       afterSend,
+      beforeSend,
+      shouldSend,
     }).use(MockAdapter);
 
     await sentry.install();

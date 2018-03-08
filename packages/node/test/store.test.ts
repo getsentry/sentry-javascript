@@ -42,14 +42,14 @@ describe('Store', () => {
   });
 
   it('should update current store', async () => {
-    store.update(current => current.map(value => value + '1'));
+    store.update(current => current.map(value => `${value}1`));
     expect(store.get()).to.deep.equal(['a1', 'b1']);
-    store.update(current => current.map(value => value + '1'));
+    store.update(current => current.map(value => `${value}1`));
     expect(store.get()).to.deep.equal(['a11', 'b11']);
   });
 
   it('should clear current store', async () => {
-    store.update(current => current.map(value => value + '1'));
+    store.update(current => current.map(value => `${value}1`));
     expect(store.get()).to.deep.equal(['a1', 'b1']);
     store.clear();
     jest.runAllTimers();
@@ -60,7 +60,7 @@ describe('Store', () => {
   it('should create all intermediate folders', async () => {
     const newPath = path.join(folder, 'test');
     store = new Store<string[]>(newPath, filename, inital);
-    store.update(current => current.map(value => value + '1'));
+    store.update(current => current.map(value => `${value}1`));
     jest.runAllTimers();
     const realFilename = path.join(newPath, `${filename}.json`);
     expect(fs.existsSync(folder)).to.be.true;

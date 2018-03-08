@@ -1,4 +1,3 @@
-// tslint:disable
 import { expect } from 'chai';
 import { ContextManager } from '../../src/lib/context';
 
@@ -11,18 +10,14 @@ describe('Context', () => {
   it('should set provided data', () => {
     const context = new ContextManager();
     context.set({
-      tags: { abc: 'def' },
       extra: { some: 'key' },
+      tags: { abc: 'def' },
       user: { username: 'rick' },
     });
     expect(context.get()).to.deep.equal({
+      extra: { some: 'key' },
       tags: { abc: 'def' },
-      extra: {
-        some: 'key',
-      },
-      user: {
-        username: 'rick',
-      },
+      user: { username: 'rick' },
     });
   });
 
@@ -32,8 +27,8 @@ describe('Context', () => {
     context.set({ tags: { a: 'b', c: 'd' } });
 
     expect(context.get()).to.deep.equal({
-      tags: { a: 'b', c: 'd' },
       extra: { some: 'key' },
+      tags: { a: 'b', c: 'd' },
     });
   });
 
@@ -45,8 +40,8 @@ describe('Context', () => {
     }));
 
     expect(context.get()).to.deep.equal({
-      tags: { abc: 'def', uvw: 'xyz' },
       extra: { some: 'key' },
+      tags: { abc: 'def', uvw: 'xyz' },
     });
   });
 
@@ -57,9 +52,7 @@ describe('Context', () => {
     });
 
     const currentContext = context.get();
-    Object.assign(currentContext, {
-      more: 'keys',
-    });
+    Object.assign(currentContext, { more: 'keys' });
 
     expect(context.get()).to.deep.equal({
       extra: { some: 'key' },
@@ -83,10 +76,8 @@ describe('Context', () => {
     });
 
     expect(context.get()).to.deep.equal({
+      extra: { some: 'key' },
       tags: { abc: 'def' },
-      extra: {
-        some: 'key',
-      },
     });
   });
 });

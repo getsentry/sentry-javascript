@@ -10,7 +10,7 @@ describe('Test', () => {
     )
       .use(SentryNode)
       .install()
-      .then(client => client.setContext({ extra: { abc: 'def' } }));
+      .then(async client => client.setContext({ extra: { abc: 'def' } }));
   });
 
   it('works', async () => {

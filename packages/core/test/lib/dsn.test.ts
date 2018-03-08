@@ -1,4 +1,3 @@
-// tslint:disable
 import { expect } from 'chai';
 import { DSN } from '../../src/lib/dsn';
 import { SentryError } from '../../src/lib/error';
