@@ -5,9 +5,9 @@
 
 # Sentry TypeScript Configuration
 
-[![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm version](https://img.shields.io/npm/v/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 
 Shared typescript configuration used at Sentry.
 
