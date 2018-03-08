@@ -11,3 +11,8 @@ test/
 karma.*
 Makefile
 npm-debug.log
+Gruntfile.js
+typescript/raven-tests.ts
+AUTHORS
+CHANGELOG.md
+CONTRIBUTING.md
