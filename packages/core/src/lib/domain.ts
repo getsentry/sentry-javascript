@@ -1,10 +1,16 @@
 /** TODO */
 export enum Severity {
+  /** TODO */
   Fatal = 'fatal',
+  /** TODO */
   Error = 'error',
+  /** TODO */
   Warning = 'warning',
+  /** TODO */
   Info = 'info',
+  /** TODO */
   Debug = 'debug',
+  /** TODO */
   Critical = 'critical',
 }
 
