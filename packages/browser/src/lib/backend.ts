@@ -155,6 +155,10 @@ export class BrowserBackend implements Backend {
     // Instead of sending directly with RavenJS, we pass the event to the
     // frontend, which will prepare it, pass it through callbacks and then
     // directly call sendEvent() on this backend again.
-    this.getFrontend().captureEvent(event);
+    this.getFrontend()
+      .captureEvent(event)
+      .catch(e => {
+        console.error(e);
+      });
   }
 }
