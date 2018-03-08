@@ -175,6 +175,14 @@ export interface Frontend<O extends Options = Options> {
   captureMessage(message: string): Promise<void>;
 
   /**
+   * Captures a manually created event and sends it to Sentry.
+   *
+   * @param event The event to send to Sentry.
+   * @returns A Promise that resolves when the event has been sent.
+   */
+  captureEvent(event: SentryEvent): Promise<void>;
+
+  /**
    * Records a new breadcrumb which will be attached to future events.
    *
    * Breadcrumbs will be added to subsequent events to provide more context on

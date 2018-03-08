@@ -29,6 +29,10 @@ export interface BackendClass<B extends Backend, O extends Options> {
  * method. It will internally add meta data from context, breadcrumbs and
  * options.
  *
+ * The implementation of {@link sendEvent} prepares the event by adding context
+ * and breadcrumbs. However, platform specific meta data (such as the User's IP)
+ * address must be added by the SDK implementor.
+ *
  * To issue auto-breadcrumbs, use {@link Frontend.addBreadcrumb}. They will be
  * added automatically when sending events.
  *
@@ -112,6 +116,13 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public abstract captureMessage(message: string): Promise<void>;
+
+  /**
+   * @inheritDoc
+   */
+  public async captureEvent(event: SentryEvent): Promise<void> {
+    await this.sendEvent(event);
+  }
 
   /**
    * @inheritDoc
@@ -207,7 +218,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   }
 
   /**
-   * Sends the event to Sentry.
+   * Sends an event (either error or message) to Sentry.
    *
    * This also adds breadcrumbs and context information to the event. However,
    * platform specific meta data (such as the User's IP address) must be added
@@ -215,10 +226,8 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    *
    * The returned event status offers clues to whether the event was sent to
    * Sentry and accepted there. If the {@link Options.shouldSend} hook returns
-   * `false`, the status will be {@link SendStatus.Skipped}.
-   *
-   * If the server replies with {@link SendStatus.RateLimit}, the SDK
-   * implementor must make sure to queue the event and retry to a later time.
+   * `false`, the status will be {@link SendStatus.Skipped}.If the rate limit
+   * was exceeded, the status will be {@link SendStatus.RateLimit}.
    *
    * @param event The event to send to Sentry.
    * @returns A Promise that resolves with the event status.
@@ -237,6 +246,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
     const code = await this.getBackend().sendEvent(finalEvent);
     const status = SendStatus.fromHttpCode(code);
+
+    // TODO: Handle rate limits and maintain a queue. For now, we require SDK
+    // implementors to override this method and handle it themselves.
 
     if (afterSend) {
       afterSend(finalEvent, status);
