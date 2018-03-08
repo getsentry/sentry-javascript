@@ -15,13 +15,12 @@ export default [
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
-        exclude: ['src/bundle.ts'],
       }),
       commonjs(),
     ],
   },
   {
-    input: 'src/bundle.ts',
+    input: 'src/index.ts',
     output: {
       file: 'build/bundle.min.js',
       format: 'cjs',
