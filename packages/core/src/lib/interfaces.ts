@@ -1,4 +1,5 @@
 import { Breadcrumb, Context, SentryEvent } from './domain';
+import { DSN } from './dsn';
 import { SendStatus } from './status';
 
 /** Console logging verbosity for the SDK. */
@@ -184,6 +185,12 @@ export interface Frontend<O extends Options = Options> {
    * @returns A Promise that resolves when the breadcrumb has been persisted.
    */
   addBreadcrumb(breadcrumb: Breadcrumb): Promise<void>;
+
+  /** Returns the current DSN. */
+  getDSN(): DSN | undefined;
+
+  /** Returns the current options. */
+  getOptions(): O;
 
   /**
    * Updates SDK options with the provided values.

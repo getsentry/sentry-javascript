@@ -11,7 +11,7 @@ const MAX_BREADCRUMBS = 100;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
-  new (frontend: Frontend<O>, options?: O): B;
+  new (frontend: Frontend<O>): B;
 }
 
 /**
@@ -151,6 +151,20 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
+  public getDSN(): DSN | undefined {
+    return this.dsn;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getOptions(): O {
+    return this.options;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public async setOptions(nextOptions: O): Promise<void> {
     if (nextOptions.dsn && this.options.dsn !== nextOptions.dsn) {
       this.dsn = new DSN(nextOptions.dsn);
@@ -172,16 +186,6 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /** Returns the current backend. */
   protected getBackend(): B {
     return this.backend;
-  }
-
-  /** Returns the current options. */
-  protected getOptions(): O {
-    return this.options;
-  }
-
-  /** Returns the current DSN. */
-  protected getDSN(): DSN | undefined {
-    return this.dsn;
   }
 
   /** Resolves all currently known breadcrumbs. */
