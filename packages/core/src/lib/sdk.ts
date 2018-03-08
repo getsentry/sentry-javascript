@@ -80,6 +80,11 @@ export class Sdk<F extends Frontend<O>, O extends Options> {
     await this.withInstance(async f => f.setOptions(options));
   }
 
+  /** Resolves the current context. */
+  public async getContext(): Promise<Context> {
+    return (await this.withInstance(async f => f.getContext())) || {};
+  }
+
   /**
    * Updates context information (user, tags, extras) for future events.
    *

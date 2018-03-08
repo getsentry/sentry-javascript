@@ -208,6 +208,9 @@ export interface Frontend<O extends Options = Options> {
    */
   setOptions(options: O): Promise<void>;
 
+  /** Resolves the current context. */
+  getContext(): Promise<Context>;
+
   /**
    * Updates context information (user, tags, extras) for future events.
    *

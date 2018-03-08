@@ -188,6 +188,17 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
+  public async getContext(): Promise<Context> {
+    if (!this.context) {
+      this.context = await this.getBackend().loadContext();
+    }
+
+    return this.context;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public async setContext(nextContext: Context): Promise<void> {
     const context = await this.getContext();
     Object.assign(context, nextContext);
@@ -206,15 +217,6 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     return this.breadcrumbs;
-  }
-
-  /** Resolves the currently saved context. */
-  protected async getContext(): Promise<Context> {
-    if (!this.context) {
-      this.context = await this.getBackend().loadContext();
-    }
-
-    return this.context;
   }
 
   /**
