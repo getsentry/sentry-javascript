@@ -2,6 +2,7 @@ import { SentryError } from './error';
 
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
+/** TODO */
 export interface DSNComponents {
   source: string;
   protocol: string;

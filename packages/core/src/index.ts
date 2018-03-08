@@ -1,5 +1,5 @@
-export * from './lib/client';
+export * from './lib/base';
 export * from './lib/domain';
 export * from './lib/dsn';
 export * from './lib/error';
-export * from './lib/sentry';
+export * from './lib/interfaces';
