@@ -12,7 +12,10 @@ import { Raven, SendMethod } from './raven';
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
 
-/** TODO */
+/**
+ * Configuration options for the Sentry Node SDK.
+ * @see NodeFrontend for more information.
+ */
 export interface NodeOptions extends Options {
   /**
    * Whether unhandled Promise rejections should be captured or not. If true,
@@ -22,16 +25,16 @@ export interface NodeOptions extends Options {
   captureUnhandledRejections?: boolean;
 }
 
-/** TODO */
+/** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
-  /** TODO */
+  /** Handle to the SDK frontend for callbacks. */
   private readonly frontend: Frontend;
-  /** TODO */
+  /** In memory store for breadcrumbs. */
   private breadcrumbs: Breadcrumb[] = [];
-  /** TODO */
+  /** In memory store for context infos. */
   private context: Context = {};
 
-  /** TODO */
+  /** Creates a new Node backend instance. */
   public constructor(frontend: Frontend) {
     this.frontend = frontend;
   }
@@ -43,35 +46,31 @@ export class NodeBackend implements Backend {
     // We are only called by the frontend if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.getFrontend().getDSN();
+    const dsn = this.frontend.getDSN();
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    Raven.config(dsn.toString(), this.getFrontend().getOptions()).install();
+    Raven.config(dsn.toString(), this.frontend.getOptions()).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept
     // both breadcrumbs created internally by Raven and pass them to the
     // Frontend first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
-      this.getFrontend()
-        .addBreadcrumb(breadcrumb)
-        .catch(e => {
-          console.error(e);
-        });
+      this.frontend.addBreadcrumb(breadcrumb).catch(e => {
+        console.error(e);
+      });
     };
 
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven.send = event => {
-      this.getFrontend()
-        .captureEvent(event)
-        .catch(e => {
-          console.error(e);
-        });
+      this.frontend.captureEvent(event).catch(e => {
+        console.error(e);
+      });
     };
 
     return true;
@@ -116,10 +115,5 @@ export class NodeBackend implements Backend {
    */
   public async loadBreadcrumbs(): Promise<Breadcrumb[]> {
     return [...this.breadcrumbs];
-  }
-
-  /** TODO */
-  private getFrontend(): Frontend {
-    return this.frontend;
   }
 }

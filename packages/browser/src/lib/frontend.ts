@@ -3,7 +3,7 @@ import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 
 /**
- * The Sentry Browser SDK Client.
+ * The Sentry Browser SDK Frontend.
  *
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
@@ -12,7 +12,10 @@ export class BrowserFrontend extends FrontendBase<
   BrowserBackend,
   BrowserOptions
 > {
-  /** TODO */
+  /**
+   * Creates a new Browser SDK instance.
+   * @param options Configuration options for this SDK.
+   */
   public constructor(options: BrowserOptions) {
     super(BrowserBackend, options);
   }
@@ -61,7 +64,28 @@ export class BrowserFrontend extends FrontendBase<
  *   // ...
  * });
  *
- * SentryClient.captureMessage('Hello, world');
+ * @example
+ * SentryClient.setContext({
+ *   extra: { battery: 0.7 },
+ *   tags: { user_mode: 'admin' },
+ *   user: { id: '4711' },
+ * });
+ *
+ * @example
+ * SentryClient.addBreadcrumb({
+ *   message: 'My Breadcrumb',
+ *   // ...
+ * });
+ *
+ * @example
+ * SentryClient.captureMessage('Hello, world!');
+ * SentryClient.captureException(new Error('Good bye'));
+ * SentryClient.captureEvent({
+ *   message: 'Manual',
+ *   stacktrace: [
+ *     // ...
+ *   ],
+ * });
  *
  * @see BrowserOptions for documentation on configuration options.
  */
