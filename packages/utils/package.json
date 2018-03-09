@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/node",
+  "name": "@sentry/utils",
   "version": "0.4.0-beta.3",
-  "description": "Offical Sentry SDK for Node.js",
+  "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
   "license": "MIT",
@@ -12,11 +12,6 @@
   "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
-  },
-  "dependencies": {
-    "@sentry/core": "^0.4.0-beta.3",
-    "@sentry/utils": "^0.4.0-beta.3",
-    "raven": "^2.4.2"
   },
   "devDependencies": {
     "chai": "^4.1.2",

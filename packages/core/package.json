@@ -1,7 +1,7 @@
 {
   "name": "@sentry/core",
   "version": "0.4.0-beta.3",
-  "description": "Sentry core implementation for all JavaScript related SDKs",
+  "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
   "license": "MIT",
@@ -35,23 +35,5 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch --notify"
-  },
-  "jest": {
-    "globals": {
-      "ts-jest": {
-        "tsConfigFile": "./tsconfig.json"
-      }
-    },
-    "collectCoverage": true,
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
-    "testMatch": [
-      "**/*.test.ts"
-    ]
   }
 }

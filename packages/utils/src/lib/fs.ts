@@ -1,13 +1,26 @@
 import { mkdir, mkdirSync, statSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { dirname, resolve } from 'path';
 
 const _0777 = parseInt('0777', 8);
 
-function mkdirAsync(path: string, mode: number): Promise<void> {
+/**
+ * Asynchronously creates the given directory.
+ *
+ * @param path A relative or absolute path to the directory.
+ * @param mode The permission mode.
+ * @returns A Promise that resolves when the path has been created.
+ */
+async function mkdirAsync(path: string, mode: number): Promise<void> {
   // We cannot use util.promisify here because that was only introduced
   // in Node 8 and we need to support older Node versions.
-  return new Promise((res, reject) => {
-    mkdir(path, mode, err => (err ? reject(err) : res()));
+  return new Promise<void>((res, reject) => {
+    mkdir(path, mode, err => {
+      if (err) {
+        reject(err);
+      } else {
+        res();
+      }
+    });
   });
 }
 
@@ -15,7 +28,7 @@ function mkdirAsync(path: string, mode: number): Promise<void> {
  * Recursively creates the given path.
  *
  * @param path A relative or absolute path to create.
- * @returns A promise that resolves when the path has been created.
+ * @returns A Promise that resolves when the path has been created.
  */
 export async function mkdirp(path: string): Promise<void> {
   // tslint:disable-next-line:no-bitwise
@@ -25,7 +38,8 @@ export async function mkdirp(path: string): Promise<void> {
   try {
     return mkdirAsync(realPath, mode);
   } catch (err) {
-    if (err.code === 'ENOENT') {
+    const error = err as { code: string };
+    if (error && error.code === 'ENOENT') {
       await mkdirp(dirname(realPath));
       return mkdirAsync(realPath, mode);
     } else {
@@ -53,7 +67,8 @@ export function mkdirpSync(path: string): void {
   try {
     mkdirSync(realPath, mode);
   } catch (err) {
-    if (err.code === 'ENOENT') {
+    const error = err as { code: string };
+    if (error && error.code === 'ENOENT') {
       mkdirpSync(dirname(realPath));
       mkdirSync(realPath, mode);
     } else {

@@ -1,61 +1,95 @@
 <p align="center">
-    <a href="https://sentry.io" target="_blank" align="center">
-        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
-    </a>
-<br/>
-    <h1>Sentry Node.js SDK Package</h1>
+  <a href="https://sentry.io" target="_blank" align="center">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+  </a>
+  <br />
 </p>
+
+# Official Sentry SDK for NodeJS
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 
-## General
-
-This package is meant to be used with the Core SDK package.
-
 ## Usage
 
-First you have to create the core and `use` a corresponding SDK.
+To use this SDK, call `SentryClient.create(options)` as early as possible in the
+main entry module. This will initialize the SDK and hook into the environment.
+Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
-import * as Sentry from '@sentry/core';
-import { SentryNode } from '@sentry/node';
+import { SentryClient } from '@sentry/node';
 
-Sentry.create('__DSN__')
-  .use(SentryNode)
-  .install();
+SentryClient.create({
+  dsn: '__DSN__',
+  // ...
+});
 ```
 
-After that you can call function on the global `sharedClient`:
+To set context information or send manual events, use the provided methods on
+`SentryClient`. Note that these functions will not perform any action before you
+have called `SentryClient.install()`:
 
 ```javascript
-Sentry.getSharedClient().setTagsContext({ cordova: true });
-Sentry.getSharedClient().captureMessage('test message');
-Sentry.getSharedClient().captureBreadcrumb({ message: 'HOHOHOHO' });
-Sentry.getSharedClient().captureException(new Error('error'));
+// Set user information, as well as tags and further extras
+SentryClient.setContext({
+  extra: { battery: 0.7 },
+  tags: { user_mode: 'admin' },
+  user: { id: '4711' },
+});
+
+// Add a breadcrumb for future events
+SentryClient.addBreadcrumb({
+  message: 'My Breadcrumb',
+  // ...
+});
+
+// Capture exceptions, messages or manual events
+SentryClient.captureMessage('Hello, world!');
+SentryClient.captureException(new Error('Good bye'));
+SentryClient.captureEvent({
+  message: 'Manual',
+  stacktrace: [
+    // ...
+  ],
+});
 ```
+
+## Advanced Usage
 
 If you don't want to use a global static instance of Sentry, you can create one
-on your own:
+yourself:
 
 ```javascript
-const client = await new Sentry.Client(dsn).use(MockAdapter).install()
-client.setTagsContext({ cordova: true });
-client.captureMessage('test message');
-client.captureBreadcrumb({ message: 'HOHOHOHO' });
+import { NodeFrontend } from '@sentry/node';
 
-// OR
+const client = new NodeFrontend({
+  dsn: '__DSN__',
+  // ...
+});
 
-new Sentry.Client('__DSN__')
-  .use(MockAdapter)
-  .install()
-  .then(client => {
-    client.setTagsContext({ cordova: true });
-    client.captureMessage('test message');
-    client.captureBreadcrumb({ message: 'HOHOHOHO' });
-  });
+client.install();
+// ...
 ```
 
-Notice, `install()` is a `Promise` but we internally wait until it is resolved,
-so it is save to call other function without waiting for it.
+Note that `install()` returns a `Promise` that resolves when the installation
+has finished. It is not necessary to wait for the installation before adding
+breadcrumbs, defining context or sending events. However, the return value
+indicates whether the installation was successful and the environment could be
+instrumented:
+
+```javascript
+import { NodeFrontend } from '@sentry/node';
+
+const client = new NodeFrontend({
+  dsn: '__DSN__',
+  // ...
+});
+
+const success = await client.install();
+if (success) {
+  // Will capture unhandled promise rejections, etc...
+} else {
+  // Limited instrumentation, but sending events will still work
+}
+```

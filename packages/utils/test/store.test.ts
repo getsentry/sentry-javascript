@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import Store from '../src/lib/store';
+import { Store } from '../src/lib/store';
 
 jest.useFakeTimers();
 

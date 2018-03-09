@@ -1,9 +1,8 @@
-/** TODO */
+/** An error emitted by Sentry SDKs and related utilities. */
 export class SentryError extends Error {
-  /** TODO */
+  /** Display name of this error instance. */
   public name: string;
 
-  /** TODO */
   public constructor(public message: string) {
     super(message);
 
