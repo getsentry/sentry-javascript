@@ -28,14 +28,14 @@ export interface NodeOptions extends Options {
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
   /** Handle to the SDK frontend for callbacks. */
-  private readonly frontend: Frontend;
+  private readonly frontend: Frontend<NodeOptions>;
   /** In memory store for breadcrumbs. */
   private breadcrumbs: Breadcrumb[] = [];
   /** In memory store for context infos. */
   private context: Context = {};
 
   /** Creates a new Node backend instance. */
-  public constructor(frontend: Frontend) {
+  public constructor(frontend: Frontend<NodeOptions>) {
     this.frontend = frontend;
   }
 

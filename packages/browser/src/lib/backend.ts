@@ -48,14 +48,14 @@ export interface BrowserOptions extends Options {
 /** The Sentry Browser SDK Backend. */
 export class BrowserBackend implements Backend {
   /** Handle to the SDK frontend for callbacks. */
-  private readonly frontend: Frontend;
+  private readonly frontend: Frontend<BrowserOptions>;
   /** In memory store for breadcrumbs. */
   private breadcrumbs: Breadcrumb[] = [];
   /** In memory store for context infos. */
   private context: Context = {};
 
   /** Creates a new browser backend instance. */
-  public constructor(frontend: Frontend) {
+  public constructor(frontend: Frontend<BrowserOptions>) {
     this.frontend = frontend;
   }
 
