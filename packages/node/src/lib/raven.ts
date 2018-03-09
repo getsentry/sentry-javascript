@@ -1,6 +1,8 @@
 import { Breadcrumb, SentryEvent } from '@sentry/core';
 import * as RavenNode from 'raven';
 
+export type SendMethod = (event: SentryEvent, cb: (err: any) => void) => void;
+
 /** Provides access to internal raven functionality. */
 export interface RavenInternal {
   captureBreadcrumb(breadcrumb: Breadcrumb): void;
@@ -8,7 +10,7 @@ export interface RavenInternal {
   captureMessage(message: string): void;
   config(dsn: string, options: object): RavenInternal;
   install(): void;
-  send(event: SentryEvent, cb: (err: any) => void): void;
+  send: SendMethod;
 }
 
 /** Casted raven instance with access to internal functions. */

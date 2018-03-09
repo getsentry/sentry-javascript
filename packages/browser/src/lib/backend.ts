@@ -7,11 +7,10 @@ import {
   SentryError,
   SentryEvent,
 } from '@sentry/core';
-import { Raven } from './raven';
+import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
-// tslint:disable-next-line:no-unbound-method
-const sendRavenEvent = Raven._sendProcessedPayload;
+const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
 /** TODO */
 export interface BrowserOptions extends Options {
