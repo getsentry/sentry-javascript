@@ -106,11 +106,8 @@ describe('integration', function() {
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.stacktrace.frames.length, 1);
-          assert.isAtMost(ravenData.stacktrace.frames.length, 3);
-
-          // verify trimHeadFrames hasn't slipped into final payload
-          assert.isUndefined(ravenData.trimHeadFrames);
+          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 1);
+          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 3);
         }
       );
     });
