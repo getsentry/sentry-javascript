@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "0.4.0-beta.3",
+  "version": "0.4.0-beta.4",
   "description": "Sentry core implementation for all JavaScript related SDKs",
   "author": "Sentry",
   "license": "MIT",

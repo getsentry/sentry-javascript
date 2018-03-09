@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "0.4.0-beta.3",
+  "version": "0.4.0-beta.4",
   "description": "Offical Sentry SDK for Node.js",
   "author": "Sentry",
   "license": "MIT",
@@ -13,16 +13,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "^0.4.0-beta.3",
+    "@sentry/core": "^0.4.0-beta.4",
     "raven": "^2.4.0"
   },
   "devDependencies": {
     "@types/jest": "*",
-    "jest": "*",
     "chai": "*",
-    "sinon": "*",
+    "jest": "*",
     "prettier": "*",
     "rimraf": "*",
+    "sinon": "*",
     "ts-jest": "*",
     "tslint": "*",
     "typescript": "*"
@@ -46,8 +46,15 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": ["js", "ts"],
-    "testMatch": ["**/*.test.ts"],
-    "testPathIgnorePatterns": ["/Mock/"]
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/Mock/"
+    ]
   }
 }
