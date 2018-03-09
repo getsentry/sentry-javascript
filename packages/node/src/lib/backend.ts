@@ -25,8 +25,14 @@ export interface NodeOptions extends Options {
    */
   captureUnhandledRejections?: boolean;
 
-  /** TODO */
-  autoBreadcrumbs?: { [key: string]: boolean };
+  /**
+   * Enables/disables automatic collection of breadcrumbs. Possible values are:
+   * false - all automatic breadcrumb collection disabled (default)
+   * true - all automatic breadcrumb collection enabled
+   * A dictionary of individual breadcrumb types that can be enabled/disabled:
+   * e.g.: { console: true, http: false }
+   */
+  autoBreadcrumbs?: { [key: string]: boolean } | boolean;
 }
 
 /** The Sentry Node SDK Backend. */
@@ -51,7 +57,6 @@ export class NodeBackend implements Backend {
     // has been configured. If no DSN is present, this indicates a programming
     // error.
     const dsn = this.frontend.getDSN();
-    /* istanbul ignore next */
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
