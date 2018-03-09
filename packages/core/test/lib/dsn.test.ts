@@ -7,7 +7,7 @@ describe('DSN', () => {
     it('applies all components', () => {
       const dsn = new DSN({
         host: 'sentry.io',
-        pass: ':xyz',
+        pass: 'xyz',
         path: '123',
         port: '1234',
         protocol: 'https',
@@ -15,7 +15,7 @@ describe('DSN', () => {
       });
       expect(dsn.protocol).to.equal('https');
       expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal(':xyz');
+      expect(dsn.pass).to.equal('xyz');
       expect(dsn.host).to.equal('sentry.io');
       expect(dsn.port).to.equal('1234');
       expect(dsn.path).to.equal('123');
@@ -60,7 +60,7 @@ describe('DSN', () => {
           new DSN({
             host: 'sentry.io',
             path: '123',
-            protocol: '',
+            protocol: '' as 'http', // Trick the type checker here
             user: 'abc',
           }),
       ).to.throw(SentryError);
@@ -74,6 +74,28 @@ describe('DSN', () => {
           }),
       ).to.throw(SentryError);
     });
+
+    it('throws for invalid components', () => {
+      expect(
+        () =>
+          new DSN({
+            host: 'sentry.io',
+            path: '123',
+            protocol: 'httpx' as 'http', // Trick the type checker here
+            user: 'abc',
+          }),
+      ).to.throw(SentryError);
+      expect(
+        () =>
+          new DSN({
+            host: 'sentry.io',
+            path: '123',
+            port: 'xxx',
+            protocol: 'https',
+            user: 'abc',
+          }),
+      ).to.throw(SentryError);
+    });
   });
 
   describe('fromString', () => {
@@ -81,7 +103,7 @@ describe('DSN', () => {
       const dsn = new DSN('https://abc:xyz@sentry.io:1234/123');
       expect(dsn.protocol).to.equal('https');
       expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal(':xyz');
+      expect(dsn.pass).to.equal('xyz');
       expect(dsn.host).to.equal('sentry.io');
       expect(dsn.port).to.equal('1234');
       expect(dsn.path).to.equal('123');
@@ -106,6 +128,13 @@ describe('DSN', () => {
       expect(() => new DSN('https://@sentry.io/123')).to.throw(SentryError);
       expect(() => new DSN('https://abc@123')).to.throw(SentryError);
       expect(() => new DSN('https://abc@sentry.io/')).to.throw(SentryError);
+    });
+
+    it('throws for invalid fields', () => {
+      expect(() => new DSN('httpx://abc@sentry.io/123')).to.throw(SentryError);
+      expect(() => new DSN('httpx://abc@sentry.io:xxx/123')).to.throw(
+        SentryError,
+      );
     });
   });
 
