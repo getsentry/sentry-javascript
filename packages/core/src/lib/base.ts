@@ -151,7 +151,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
 
     const breadcrumbs = await this.getBreadcrumbs();
     this.breadcrumbs = [...breadcrumbs, finalBreadcrumb].slice(-maxBreadcrumbs);
-    await this.getBackend().storeBreadcrumbs(breadcrumbs);
+    await this.getBackend().storeBreadcrumbs(this.breadcrumbs);
 
     if (afterBreadcrumb) {
       afterBreadcrumb(finalBreadcrumb);
@@ -192,7 +192,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async getContext(): Promise<Context> {
     if (!this.context) {
-      this.context = await this.getBackend().loadContext();
+      this.context = { ...(await this.getBackend().loadContext()) };
     }
 
     return this.context;
@@ -225,7 +225,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /** Resolves all currently known breadcrumbs. */
   protected async getBreadcrumbs(): Promise<Breadcrumb[]> {
     if (!this.breadcrumbs) {
-      this.breadcrumbs = await this.getBackend().loadBreadcrumbs();
+      this.breadcrumbs = [...(await this.getBackend().loadBreadcrumbs())];
     }
 
     return this.breadcrumbs;
