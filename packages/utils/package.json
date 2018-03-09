@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/browser",
+  "name": "@sentry/utils",
   "version": "0.4.0-beta.4",
-  "description": "Offical Sentry SDK for browsers",
+  "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
   "license": "MIT",
@@ -13,33 +13,26 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@sentry/core": "^0.4.0-beta.4",
-    "@sentry/utils": "^0.4.0-beta.4",
-    "raven-js": "^3.23.1"
-  },
   "devDependencies": {
     "chai": "^4.1.2",
-    "karma": "^2.0.0",
+    "jest": "^22.4.2",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.11.1",
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.2",
-    "rollup": "^0.56.4",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2"
   },
   "scripts": {
-    "build": "rollup --config",
-    "clean": "rimraf dist coverage .rpt2_cache build",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist coverage",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "karma start karma.config.js",
-    "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
-    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
+    "test": "jest",
+    "test:watch": "jest --watch --notify"
   }
 }

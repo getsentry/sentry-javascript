@@ -10,12 +10,13 @@ yarn lerna publish --skip-git --cd-version=prerelease --preid=beta
 ```
 
 <p align="center">
-    <a href="https://sentry.io" target="_blank" align="center">
-        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
-    </a>
-<br/>
-    <h1>Raven.js - Sentry SDK for JavaScript</h1>
+  <a href="https://sentry.io" target="_blank" align="center">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+  </a>
+  <br />
 </p>
+
+# Official Sentry SDK for JavaScript
 
 [![Sauce Test Status](https://saucelabs.com/buildstatus/sentryio)](https://saucelabs.com/u/sentryio)
 [![Build Status](https://travis-ci.org/getsentry/raven-js.svg?branch=master)](https://travis-ci.org/getsentry/raven-js)

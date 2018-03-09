@@ -1,18 +1,20 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
-import { mkdirpSync } from './utils';
+import { dirname, join } from 'path';
+import { mkdirpSync } from './fs';
 
 /**
  * Lazily serializes data to a JSON file to persist.
  * When created, it loads data from that file if it already exists.
  */
-export default class Store<T> {
-  /** Current state of the data. */
-  private data: T;
+export class Store<T> {
   /** Internal path for JSON file. */
-  private path: string;
+  private readonly path: string;
+  /** Value used to initialize data for the first time. */
+  private readonly initial: T;
+  /** Current state of the data. */
+  private data?: T;
   /** State whether a flush to disk has been requested in this cycle. */
-  private flushing: boolean = false;
+  private flushing: boolean;
 
   /**
    * Creates a new store.
@@ -21,8 +23,10 @@ export default class Store<T> {
    * @param id A unique filename to store this data.
    * @param initial An initial value to initialize data with.
    */
-  constructor(path: string, id: string, private initial?: T) {
+  public constructor(path: string, id: string, initial: T) {
     this.path = join(path, `${id}.json`);
+    this.initial = initial;
+    this.flushing = false;
   }
 
   /**
@@ -34,7 +38,9 @@ export default class Store<T> {
 
     if (!this.flushing) {
       this.flushing = true;
-      setImmediate(() => this.flush());
+      setImmediate(() => {
+        this.flush();
+      });
     }
   }
 
@@ -56,15 +62,16 @@ export default class Store<T> {
   public get(): T {
     if (this.data === undefined) {
       this.data = existsSync(this.path)
-        ? JSON.parse(readFileSync(this.path, 'utf8'))
+        ? (JSON.parse(readFileSync(this.path, 'utf8')) as T)
         : this.initial;
     }
+
     return this.data;
   }
 
   /** Returns store to its initial state */
   public clear(): void {
-    this.set(this.initial as T);
+    this.set(this.initial);
   }
 
   /** Serializes the current data into the JSON file. */

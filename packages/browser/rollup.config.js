@@ -11,16 +11,16 @@ export default [
       format: 'cjs',
       exports: 'named',
     },
-    external: ['raven-js'],
+    external: ['raven-js', '@sentry/core'],
     plugins: [
       typescript({
-        exclude: ['src/bundle.ts'],
+        tsconfig: 'tsconfig.build.json',
       }),
       commonjs(),
     ],
   },
   {
-    input: 'src/bundle.ts',
+    input: 'src/index.ts',
     output: {
       file: 'build/bundle.min.js',
       format: 'cjs',
@@ -28,6 +28,7 @@ export default [
     },
     plugins: [
       typescript({
+        tsconfig: 'tsconfig.build.json',
         tsconfigOverride: { compilerOptions: { declaration: false } },
       }),
       resolve({
@@ -35,7 +36,12 @@ export default [
         main: true,
         browser: true,
       }),
-      commonjs(),
+      commonjs({
+        namedExports: {
+          '../core/dist/index.js': ['FrontendBase', 'Sdk', 'SentryError'],
+          '../utils/dist/index.js': ['forget'],
+        },
+      }),
       uglify(),
     ],
   },

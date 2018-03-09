@@ -1,10 +1,11 @@
 {
-  "editor.rulers": [120],
+  "editor.rulers": [80],
   "search.exclude": {
     "**/node_modules/": true,
     "**/build/": true,
     "**/dist/": true
   },
   "editor.formatOnSave": true,
-  "tslint.autoFixOnSave": true
+  "tslint.enable": false,
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

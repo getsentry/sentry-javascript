@@ -1,8 +1,10 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig.build.json",
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["dist"],
   "compilerOptions": {
-    "outDir": "dist",
-    "baseUrl": "src"
-  },
-  "include": ["src/**/*"]
+    "rootDir": ".",
+    "types": ["node", "mocha", "chai", "sinon"],
+    "plugins": [{ "name": "tslint-language-service" }]
+  }
 }
