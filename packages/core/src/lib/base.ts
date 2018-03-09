@@ -150,8 +150,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       : mergedBreadcrumb;
 
     const breadcrumbs = await this.getBreadcrumbs();
-    breadcrumbs.push(finalBreadcrumb);
-    breadcrumbs.splice(0, breadcrumbs.length - maxBreadcrumbs);
+    this.breadcrumbs = [...breadcrumbs, finalBreadcrumb].slice(-maxBreadcrumbs);
     await this.getBackend().storeBreadcrumbs(breadcrumbs);
 
     if (afterBreadcrumb) {
@@ -177,7 +176,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async setOptions(nextOptions: O): Promise<void> {
-    if (nextOptions.dsn && this.options.dsn !== nextOptions.dsn) {
+    if (
+      nextOptions.dsn &&
+      String(this.options.dsn) !== String(nextOptions.dsn)
+    ) {
       this.dsn = new DSN(nextOptions.dsn);
     }
 
@@ -205,11 +207,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
     }
-
     if (nextContext.tags) {
       context.tags = { ...context.tags, ...nextContext.tags };
     }
-
     if (nextContext.user) {
       context.user = { ...context.user, ...nextContext.user };
     }

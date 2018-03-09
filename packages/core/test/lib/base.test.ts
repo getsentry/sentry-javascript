@@ -22,13 +22,6 @@ describe('FrontendBase', () => {
     it('throws with invalid DSN', () => {
       expect(() => new TestFrontend({ dsn: 'abc' })).to.throw(SentryError);
     });
-
-    it('updates the DSN along with options', async () => {
-      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
-      const dsn = 'https://emanresu@niamod/htap';
-      await frontend.setOptions({ dsn });
-      expect(frontend.getDSN()!.toString()).to.equal(dsn);
-    });
   });
 
   describe('install()', () => {
@@ -78,6 +71,13 @@ describe('FrontendBase', () => {
         dsn: PUBLIC_DSN,
         test: false,
       });
+    });
+
+    it('updates the DSN along with options', async () => {
+      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
+      const dsn = 'https://emanresu@niamod/htap';
+      await frontend.setOptions({ dsn });
+      expect(frontend.getDSN()!.toString()).to.equal(dsn);
     });
   });
 
