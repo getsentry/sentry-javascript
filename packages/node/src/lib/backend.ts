@@ -7,6 +7,7 @@ import {
   SentryError,
   SentryEvent,
 } from '@sentry/core';
+import { forget } from '@sentry/utils';
 import { Raven, SendMethod } from './raven';
 
 /** Original Raven send function. */
@@ -59,18 +60,14 @@ export class NodeBackend implements Backend {
     // both breadcrumbs created internally by Raven and pass them to the
     // Frontend first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
-      this.frontend.addBreadcrumb(breadcrumb).catch(e => {
-        console.error(e);
-      });
+      forget(this.frontend.addBreadcrumb(breadcrumb));
     };
 
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven.send = event => {
-      this.frontend.captureEvent(event).catch(e => {
-        console.error(e);
-      });
+      forget(this.frontend.captureEvent(event));
     };
 
     return true;

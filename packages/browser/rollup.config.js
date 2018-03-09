@@ -39,6 +39,7 @@ export default [
       commonjs({
         namedExports: {
           '../core/dist/index.js': ['FrontendBase', 'Sdk', 'SentryError'],
+          '../utils/dist/index.js': ['forget'],
         },
       }),
       uglify(),
