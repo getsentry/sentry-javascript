@@ -8,11 +8,17 @@ export type DSNProtocol = 'http' | 'https';
 
 /** Primitive components of a DSN. */
 export interface DSNComponents {
+  /** Protocol used to connect to Sentry. */
   protocol: DSNProtocol;
+  /** Public authorization key. */
   user: string;
+  /** Private authorization key (deprecated, optional). */
   pass?: string;
+  /** Hostname of the Sentry instance. */
   host: string;
+  /** Port of the Sentry instance. */
   port?: string;
+  /** Project path */
   path: string;
 }
 

@@ -9,14 +9,21 @@ const PUBLIC_DSN = 'https://username@domain/path';
 describe('Sdk', () => {
   let client: Sdk<TestFrontend, TestOptions>;
 
-  const methods = [
-    'captureException',
-    'captureMessage',
-    'captureEvent',
-    'addBreadcrumb',
-    'setOptions',
-    'getContext',
-    'setContext',
+  type MethodMock = (...args: any[]) => Promise<void>;
+
+  interface MethodDescriptor {
+    name: keyof typeof client & keyof TestFrontend;
+    args: any[];
+  }
+
+  const methods: MethodDescriptor[] = [
+    { name: 'captureException', args: [new Error()] },
+    { name: 'captureMessage', args: ['test'] },
+    { name: 'captureEvent', args: [{ message: 'event' }] },
+    { name: 'addBreadcrumb', args: [{ message: 'breadcrumb' }] },
+    { name: 'setOptions', args: [{ test: true }] },
+    { name: 'getContext', args: [] },
+    { name: 'setContext', args: [{ extra: { a: 1 } }] },
   ];
 
   beforeEach(() => {
@@ -52,9 +59,9 @@ describe('Sdk', () => {
     });
 
     for (const method of methods) {
-      it(`performs no action for ${method}()`, async () => {
+      it(`performs no action for ${method.name}()`, async () => {
         // should not throw:
-        await (client[method] as () => Promise<void>)();
+        await (client[method.name] as MethodMock)(...method.args);
       });
     }
   });
@@ -65,11 +72,11 @@ describe('Sdk', () => {
     });
 
     for (const method of methods) {
-      it(`proxies ${method}() to the frontend`, async () => {
+      it(`proxies ${method.name}() to the frontend`, async () => {
         const mock = spy();
-        TestFrontend.instance![method] = mock;
-        await (client[method] as () => Promise<void>)();
-        expect(mock.callCount).to.equal(1);
+        TestFrontend.instance![method.name] = mock;
+        await (client[method.name] as MethodMock)(...method.args);
+        expect(mock.getCall(0).args).to.deep.equal(method.args);
       });
     }
   });

@@ -20,13 +20,13 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
   }
 
   public async captureException(exception: any): Promise<void> {
-    await this.getBackend().sendEvent({
+    await this.sendEvent({
       message: String(exception),
     });
   }
 
   public async captureMessage(message: string): Promise<void> {
-    await this.getBackend().sendEvent({ message });
+    await this.sendEvent({ message });
   }
 }
 
