@@ -201,7 +201,19 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async setContext(nextContext: Context): Promise<void> {
     const context = await this.getContext();
-    Object.assign(context, nextContext);
+
+    if (nextContext.extra) {
+      context.extra = { ...context.extra, ...nextContext.extra };
+    }
+
+    if (nextContext.tags) {
+      context.tags = { ...context.tags, ...nextContext.tags };
+    }
+
+    if (nextContext.user) {
+      context.user = { ...context.user, ...nextContext.user };
+    }
+
     await this.getBackend().storeContext(context);
   }
 
@@ -277,7 +289,14 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       maxBreadcrumbs = MAX_BREADCRUMBS,
       release,
     } = this.getOptions();
-    const prepared = { environment, release, ...event };
+
+    const prepared = { ...event };
+    if (environment !== undefined) {
+      prepared.environment = environment;
+    }
+    if (release !== undefined) {
+      prepared.release = release;
+    }
 
     const breadcrumbs = await this.getBreadcrumbs();
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
@@ -285,9 +304,15 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     const context = await this.getContext();
-    prepared.extra = { ...context.extra, ...event.extra };
-    prepared.tags = { ...context.tags, ...event.tags };
-    prepared.user = { ...context.user, ...event.user };
+    if (context.extra) {
+      prepared.extra = { ...context.extra, ...event.extra };
+    }
+    if (context.tags) {
+      prepared.tags = { ...context.tags, ...event.tags };
+    }
+    if (context.user) {
+      prepared.user = { ...context.user, ...event.user };
+    }
 
     return prepared;
   }

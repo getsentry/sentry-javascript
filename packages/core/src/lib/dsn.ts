@@ -4,19 +4,16 @@ const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(:\w+)?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
 /** TODO */
 export interface DSNComponents {
-  source: string;
   protocol: string;
   user: string;
-  pass: string;
+  pass?: string;
   host: string;
-  port: string;
+  port?: string;
   path: string;
 }
 
 /** TODO */
 export class DSN implements DSNComponents {
-  /** TODO */
-  public source!: string;
   /** TODO */
   public protocol!: string;
   /** TODO */
@@ -35,8 +32,10 @@ export class DSN implements DSNComponents {
     if (typeof from === 'string') {
       this.fromString(from);
     } else {
-      Object.assign(this, from);
+      this.fromComponents(from);
     }
+
+    this.assert('protocol', 'user', 'host', 'path');
   }
 
   /** TODO */
@@ -56,7 +55,26 @@ export class DSN implements DSNComponents {
       throw new SentryError('Invalid DSN');
     }
 
-    const [source, protocol, user, pass = '', host, port = '', path] = match;
-    Object.assign(this, { host, pass, path, port, protocol, source, user });
+    const [protocol, user, pass = '', host, port = '', path] = match.slice(1);
+    Object.assign(this, { host, pass, path, port, protocol, user });
+  }
+
+  /** TODO */
+  private fromComponents(components: DSNComponents): void {
+    this.protocol = components.protocol;
+    this.user = components.user;
+    this.pass = components.pass || '';
+    this.host = components.host;
+    this.port = components.port || '';
+    this.path = components.path;
+  }
+
+  /** TODO */
+  private assert(...components: Array<keyof DSNComponents>): void {
+    for (const component of components) {
+      if (!this[component]) {
+        throw new SentryError(`Invalid DSN: Missing ${component}`);
+      }
+    }
   }
 }
