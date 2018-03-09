@@ -21,7 +21,6 @@ describe('SentryNode', () => {
       const sendEventStub = stub(backend, 'sendEvent');
 
       sendEventStub.callsFake(async (event: SentryEvent) => {
-        console.log('here', event.breadcrumbs);
         expect(event.breadcrumbs!).to.have.lengthOf(3);
         return Promise.resolve(200);
       });
