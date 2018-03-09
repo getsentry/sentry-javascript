@@ -24,6 +24,9 @@ export interface NodeOptions extends Options {
    * Defaults to false.
    */
   captureUnhandledRejections?: boolean;
+
+  /** TODO */
+  autoBreadcrumbs?: { [key: string]: boolean };
 }
 
 /** The Sentry Node SDK Backend. */
@@ -48,6 +51,7 @@ export class NodeBackend implements Backend {
     // has been configured. If no DSN is present, this indicates a programming
     // error.
     const dsn = this.frontend.getDSN();
+    /* istanbul ignore next */
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
