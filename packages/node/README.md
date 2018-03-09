@@ -13,7 +13,9 @@
 
 ## Usage
 
-First you have to create the core and `use` a corresponding SDK.
+To use this SDK, call `SentryClient.create(options)` as early as possible in the
+main entry module. This will initialize the SDK and hook into the environment.
+Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
 import { SentryClient } from '@sentry/node';
@@ -24,17 +26,39 @@ SentryClient.create({
 });
 ```
 
-After that you can call function on the global `sharedClient`:
+To set context information or send manual events, use the provided methods on
+`SentryClient`. Note that these functions will not perform any action before you
+have called `SentryClient.install()`:
 
 ```javascript
-SentryClient.setContext({ tags: { cordova: true } });
-SentryClient.addBreadcrumb({ message: 'My Breadcrumb' });
+// Set user information, as well as tags and further extras
+SentryClient.setContext({
+  extra: { battery: 0.7 },
+  tags: { user_mode: 'admin' },
+  user: { id: '4711' },
+});
+
+// Add a breadcrumb for future events
+SentryClient.addBreadcrumb({
+  message: 'My Breadcrumb',
+  // ...
+});
+
+// Capture exceptions, messages or manual events
 SentryClient.captureMessage('Hello, world!');
 SentryClient.captureException(new Error('Good bye'));
+SentryClient.captureEvent({
+  message: 'Manual',
+  stacktrace: [
+    // ...
+  ],
+});
 ```
 
+## Advanced Usage
+
 If you don't want to use a global static instance of Sentry, you can create one
-on your own:
+yourself:
 
 ```javascript
 import { NodeFrontend } from '@sentry/node';
@@ -45,12 +69,27 @@ const client = new NodeFrontend({
 });
 
 client.install();
-client.setContext({ tags: { cordova: true } });
-client.addBreadcrumb({ message: 'My Breadcrumb' });
-client.captureMessage('Hello, world!');
-client.captureException(new Error('Good bye'));
+// ...
 ```
 
 Note that `install()` returns a `Promise` that resolves when the installation
-has finished. However, it is not necessary to wait for the installation before
-adding breadcrumbs, defining context or sending events.
+has finished. It is not necessary to wait for the installation before adding
+breadcrumbs, defining context or sending events. However, the return value
+indicates whether the installation was successful and the environment could be
+instrumented:
+
+```javascript
+import { NodeFrontend } from '@sentry/node';
+
+const client = new NodeFrontend({
+  dsn: '__DSN__',
+  // ...
+});
+
+const success = await client.install();
+if (success) {
+  // Will capture unhandled promise rejections, etc...
+} else {
+  // Limited instrumentation, but sending events will still work
+}
+```
