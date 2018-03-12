@@ -159,7 +159,7 @@ export interface Frontend<O extends Options = Options> {
   install(): Promise<boolean>;
 
   /**
-   * Captures an exception evebt and sends it to Sentry.
+   * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
    * @returns A Promise that resolves when the exception has been sent.
@@ -245,13 +245,19 @@ export interface Backend {
   /** Installs the SDK into the environment. */
   install(): Promise<boolean>;
 
+  /** Creates a {@link SentryEvent} from an exception. */
+  eventFromException(exception: any): Promise<SentryEvent>;
+
+  /** Creates a {@link SentryEvent} from a plain message. */
+  eventFromMessage(message: string): Promise<SentryEvent>;
+
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): Promise<number>;
 
   /** Receives the full merged context and stores it persistently. */
   storeContext(context: Context): Promise<void>;
 
-  /** Returns the latest context (or empty object). */
+  /** Returns the latest context including SDK defaults. */
   loadContext(): Promise<Context>;
 
   /**
