@@ -68,6 +68,13 @@ export class NodeBackend implements Backend {
 
     Raven.config(dsn.toString(), this.frontend.getOptions()).install();
 
+    // There is no option for this so we have to overwrite it like this.
+    // We need this in SentryElectron.
+    const { onFatalError } = this.frontend.getOptions();
+    if (onFatalError) {
+      Raven.onFatalError = onFatalError;
+    }
+
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept
     // both breadcrumbs created internally by Raven and pass them to the
     // Frontend first, before actually capturing them.
