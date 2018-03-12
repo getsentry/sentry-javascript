@@ -75,11 +75,33 @@ export class NodeBackend implements Backend {
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
-    Raven.send = event => {
-      forget(this.frontend.captureEvent(event));
+    Raven.send = (event, callback) => {
+      if (callback) {
+        callback(event);
+      } else {
+        forget(this.frontend.captureEvent(event));
+      }
     };
 
     return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromException(exception: any): Promise<SentryEvent> {
+    return new Promise<SentryEvent>(resolve => {
+      Raven.captureException(exception, resolve);
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromMessage(message: string): Promise<SentryEvent> {
+    return new Promise<SentryEvent>(resolve => {
+      Raven.captureMessage(message, resolve);
+    });
   }
 
   /**

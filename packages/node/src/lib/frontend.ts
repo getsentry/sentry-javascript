@@ -1,4 +1,4 @@
-import { FrontendBase, Sdk } from '@sentry/core';
+import { FrontendBase, Sdk, SdkInfo } from '@sentry/core';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
 
@@ -20,15 +20,11 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any): Promise<void> {
-    Raven.captureException(exception);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async captureMessage(message: string): Promise<void> {
-    Raven.captureMessage(message);
+  protected getSdkInfo(): SdkInfo {
+    return {
+      name: 'sentry-node',
+      version: Raven.version,
+    };
   }
 }
 

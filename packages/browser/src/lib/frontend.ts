@@ -1,4 +1,4 @@
-import { FrontendBase, Sdk } from '@sentry/core';
+import { FrontendBase, Sdk, SdkInfo } from '@sentry/core';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 
@@ -23,15 +23,11 @@ export class BrowserFrontend extends FrontendBase<
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any): Promise<void> {
-    Raven.captureException(exception);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async captureMessage(message: string): Promise<void> {
-    Raven.captureMessage(message);
+  protected getSdkInfo(): SdkInfo {
+    return {
+      name: 'sentry-browser',
+      version: Raven.VERSION,
+    };
   }
 
   /**

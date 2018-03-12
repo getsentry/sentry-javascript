@@ -26,6 +26,7 @@
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.2",
     "rollup": "^0.56.4",
+    "sinon": "^4.4.3",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2"
   },
@@ -40,6 +41,7 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
-    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
+    "size:check":
+      "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   }
 }

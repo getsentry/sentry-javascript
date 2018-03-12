@@ -1,4 +1,4 @@
-import { Breadcrumb, Context, SentryEvent } from './domain';
+import { Breadcrumb, Context, SdkInfo, SentryEvent } from './domain';
 import { DSN } from './dsn';
 import { Backend, Frontend, Options } from './interfaces';
 import { SendStatus } from './status';
@@ -110,12 +110,18 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public abstract captureException(exception: any): Promise<void>;
+  public async captureException(exception: any): Promise<void> {
+    const event = await this.getBackend().eventFromException(exception);
+    await this.captureEvent(event);
+  }
 
   /**
    * @inheritDoc
    */
-  public abstract captureMessage(message: string): Promise<void>;
+  public async captureMessage(message: string): Promise<void> {
+    const event = await this.getBackend().eventFromMessage(message);
+    await this.captureEvent(event);
+  }
 
   /**
    * @inheritDoc
@@ -149,6 +155,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
+    // We need to call this.getBreadcrumbs here, since if we assign the value to
+    // a local variable we could get an inconsistent state if mulitple calls to
+    // addBreadcrumb happen at the same time. DO NOT assign this.breadcrumbs to
+    // a local variable as this would lead to a "lost update" race condition.
     await this.getBreadcrumbs();
     this.breadcrumbs = [...this.breadcrumbs, finalBreadcrumb].slice(
       -maxBreadcrumbs,
@@ -186,7 +196,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     Object.assign(this.options, nextOptions);
-    // TODO: Update options in the backend..?
+    // TODO: Update options in the backend
   }
 
   /**
@@ -204,8 +214,11 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async setContext(nextContext: Context): Promise<void> {
+    // We need call this.getContext here, since if we assign the value to a
+    // local variable we could get an inconsistent state if mulitple calls to
+    // setContext happen at the same time. DO NOT assign this.context to a local
+    // variable as this would lead to a "lost update" race condition.
     await this.getContext();
-
     const context = this.context || {};
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
@@ -219,6 +232,12 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
 
     await this.getBackend().storeContext(context);
   }
+
+  /**
+   * Returns the current used SDK version and name. {@link SdkInfo}
+   * @returns SdkInfo
+   */
+  protected abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current backend. */
   protected getBackend(): B {
@@ -234,54 +253,16 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     return this.breadcrumbs;
   }
 
-  /**
-   * Sends an event (either error or message) to Sentry.
-   *
-   * This also adds breadcrumbs and context information to the event. However,
-   * platform specific meta data (such as the User's IP address) must be added
-   * by the SDK implementor.
-   *
-   * The returned event status offers clues to whether the event was sent to
-   * Sentry and accepted there. If the {@link Options.shouldSend} hook returns
-   * `false`, the status will be {@link SendStatus.Skipped}.If the rate limit
-   * was exceeded, the status will be {@link SendStatus.RateLimit}.
-   *
-   * @param event The event to send to Sentry.
-   * @returns A Promise that resolves with the event status.
-   */
-  protected async sendEvent(event: SentryEvent): Promise<SendStatus> {
-    if (!this.isEnabled()) {
-      return SendStatus.Skipped;
-    }
-
-    const prepared = await this.prepareEvent(event);
-    const { shouldSend, beforeSend, afterSend } = this.getOptions();
-    if (shouldSend && !shouldSend(prepared)) {
-      return SendStatus.Skipped;
-    }
-
-    const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
-    const code = await this.getBackend().sendEvent(finalEvent);
-    const status = SendStatus.fromHttpCode(code);
-
-    // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-    // implementors to override this method and handle it themselves.
-
-    if (afterSend) {
-      afterSend(finalEvent, status);
-    }
-
-    return status;
-  }
-
   /** Determines whether this SDK is enabled and a valid DSN is present. */
   protected isEnabled(): boolean {
     return this.getOptions().enabled !== false && this.dsn !== undefined;
   }
 
   /**
-   * Adds common information to events, such as breadcrumbs, context, release
-   * and environment information.
+   * Adds common information to events.
+   *
+   * The information includes: Release, environment, context (extra, tags and
+   * user), breadcrumbs, SDK info.
    *
    * @param event The original event.
    * @returns A new event with more information.
@@ -293,7 +274,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       release,
     } = this.getOptions();
 
-    const prepared = { ...event };
+    const prepared = {
+      ...event,
+      sdk: this.getSdkInfo(),
+    };
     if (environment !== undefined) {
       prepared.environment = environment;
     }
@@ -318,5 +302,47 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     return prepared;
+  }
+
+  /**
+   * Sends an event (either error or message) to Sentry.
+   *
+   * This also adds breadcrumbs and context information to the event. However,
+   * platform specific meta data (such as the User's IP address) must be added
+   * by the SDK implementor.
+   *
+   * The returned event status offers clues to whether the event was sent to
+   * Sentry and accepted there. If the {@link Options.shouldSend} hook returns
+   * `false`, the status will be {@link SendStatus.Skipped}. If the rate limit
+   * was exceeded, the status will be {@link SendStatus.RateLimit}.
+   *
+   * @param event The event to send to Sentry.
+   * @returns A Promise that resolves with the event status.
+   */
+  private async sendEvent(event: SentryEvent): Promise<SendStatus> {
+    if (!this.isEnabled()) {
+      return SendStatus.Skipped;
+    }
+
+    const prepared = await this.prepareEvent(event);
+    const { shouldSend, beforeSend, afterSend } = this.getOptions();
+    if (shouldSend && !shouldSend(prepared)) {
+      return SendStatus.Skipped;
+    }
+
+    const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
+    const code = await this.getBackend().sendEvent(finalEvent);
+    const status = SendStatus.fromHttpCode(code);
+
+    if (status === SendStatus.RateLimit) {
+      // TODO: Handle rate limits and maintain a queue. For now, we require SDK
+      // implementors to override this method and handle it themselves.
+    }
+
+    if (afterSend) {
+      afterSend(finalEvent, status);
+    }
+
+    return status;
   }
 }

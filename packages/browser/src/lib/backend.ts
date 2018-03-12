@@ -6,6 +6,7 @@ import {
   Options,
   SentryError,
   SentryEvent,
+  SentryException,
 } from '@sentry/core';
 import { forget } from '@sentry/utils';
 
@@ -13,6 +14,20 @@ import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
 const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
+
+/**
+ * Normalizes the event so it is consistent with our domain interface.
+ * @param event
+ * @returns
+ */
+function normalizeRavenEvent(event: SentryEvent): SentryEvent {
+  const ex = (event.exception || {}) as { values?: SentryException[] };
+  if (ex && ex.values) {
+    event.exception = ex.values;
+  }
+
+  return event;
+}
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -89,10 +104,46 @@ export class BrowserBackend implements Backend {
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
-      forget(this.frontend.captureEvent(event));
+      forget(this.frontend.captureEvent(normalizeRavenEvent(event)));
     };
 
     return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromException(exception: any): Promise<SentryEvent> {
+    const originalSend = Raven._sendProcessedPayload;
+    try {
+      let event!: SentryEvent;
+      Raven._sendProcessedPayload = evt => {
+        event = evt;
+      };
+
+      Raven.captureException(exception);
+      return normalizeRavenEvent(event);
+    } finally {
+      Raven._sendProcessedPayload = originalSend;
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromMessage(message: string): Promise<SentryEvent> {
+    const originalSend = Raven._sendProcessedPayload;
+    try {
+      let event!: SentryEvent;
+      Raven._sendProcessedPayload = evt => {
+        event = evt;
+      };
+
+      Raven.captureMessage(message);
+      return normalizeRavenEvent(event);
+    } finally {
+      Raven._sendProcessedPayload = originalSend;
+    }
   }
 
   /**
