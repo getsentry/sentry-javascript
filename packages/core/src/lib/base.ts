@@ -119,7 +119,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async captureMessage(message: string): Promise<void> {
-    const event = await this.getBackend().eventFromException(message);
+    const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event);
   }
 

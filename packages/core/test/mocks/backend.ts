@@ -25,7 +25,15 @@ export class TestBackend implements Backend {
   }
 
   public async eventFromException(exception: any): Promise<SentryEvent> {
-    return { message: String(exception) };
+    return {
+      exception: [
+        {
+          type: 'Error',
+          value: 'random error',
+        },
+      ],
+      message: String(exception),
+    };
   }
 
   public async eventFromMessage(message: string): Promise<SentryEvent> {

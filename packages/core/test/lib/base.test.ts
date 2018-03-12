@@ -238,6 +238,12 @@ describe('FrontendBase', () => {
       const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
       await frontend.captureException(new Error('test exception'));
       expect(TestBackend.instance!.event).to.deep.equal({
+        exception: [
+          {
+            type: 'Error',
+            value: 'random error',
+          },
+        ],
         message: 'Error: test exception',
         sdk: TEST_SDK,
       });

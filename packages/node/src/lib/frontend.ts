@@ -26,20 +26,6 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
       version: Raven.version,
     };
   }
-
-  /**
-   * @inheritDoc
-   */
-  public async captureException(exception: any): Promise<void> {
-    Raven.captureException(exception);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async captureMessage(message: string): Promise<void> {
-    Raven.captureMessage(message);
-  }
 }
 
 /**

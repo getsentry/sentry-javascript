@@ -6,8 +6,8 @@ export type SendMethod = (event: SentryEvent, cb: (err: any) => void) => void;
 /** Provides access to internal raven functionality. */
 export interface RavenInternal {
   captureBreadcrumb(breadcrumb: Breadcrumb): void;
-  captureException(exception: any): void;
-  captureMessage(message: string): void;
+  captureException(exception: any, cb?: (event: SentryEvent) => void): void;
+  captureMessage(message: string, cb?: (event: SentryEvent) => void): void;
   config(dsn: string, options: object): RavenInternal;
   install(): void;
   send: SendMethod;
