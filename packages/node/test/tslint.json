@@ -2,7 +2,8 @@
   "extends": ["../tslint.json"],
   "rules": {
     "completed-docs": false,
-    "no-unused-expression": false,
-    "no-implicit-dependencies": [true, "dev"]
+    "no-non-null-assertion": false,
+    "no-implicit-dependencies": [true, "dev"],
+    "no-unused-expression": false
   }
 }

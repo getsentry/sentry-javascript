@@ -24,6 +24,15 @@ export interface NodeOptions extends Options {
    * Defaults to false.
    */
   captureUnhandledRejections?: boolean;
+
+  /**
+   * Enables/disables automatic collection of breadcrumbs. Possible values are:
+   * false - all automatic breadcrumb collection disabled (default)
+   * true - all automatic breadcrumb collection enabled
+   * A dictionary of individual breadcrumb types that can be enabled/disabled:
+   * e.g.: { console: true, http: false }
+   */
+  autoBreadcrumbs?: { [key: string]: boolean } | boolean;
 }
 
 /** The Sentry Node SDK Backend. */

@@ -130,6 +130,21 @@ describe('FrontendBase', () => {
       await frontend.getContext();
       expect(loadContext.callCount).to.equal(1);
     });
+
+    it('allows concurrent updates', async () => {
+      const frontend = new TestFrontend({});
+      const storeContext = spy(TestBackend.instance!, 'storeContext');
+      await Promise.all([
+        frontend.setContext({ user: { email: 'a' } }),
+        frontend.setContext({ user: { id: 'b' } }),
+      ]);
+      expect(storeContext.getCall(1).args[0]).to.deep.equal({
+        user: {
+          email: 'a',
+          id: 'b',
+        },
+      });
+    });
   });
 
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
@@ -199,12 +214,22 @@ describe('FrontendBase', () => {
       expect(breadcrumb.message).to.equal('hello');
     });
 
-    it('caches the context', async () => {
+    it('caches the breadcrumbs', async () => {
       const frontend = new TestFrontend({});
       const loadBreadcrumbs = spy(TestBackend.instance!, 'loadBreadcrumbs');
       await frontend.addBreadcrumb({ message: 'hello' });
       await frontend.addBreadcrumb({ message: 'world' });
       expect(loadBreadcrumbs.callCount).to.equal(1);
+    });
+
+    it('allows concurrent updates', async () => {
+      const frontend = new TestFrontend({});
+      const storeBreadcrumbs = spy(TestBackend.instance!, 'storeBreadcrumbs');
+      await Promise.all([
+        frontend.addBreadcrumb({ message: 'hello' }),
+        frontend.addBreadcrumb({ message: 'world' }),
+      ]);
+      expect(storeBreadcrumbs.getCall(1).args[0]).to.have.lengthOf(2);
     });
   });
 
