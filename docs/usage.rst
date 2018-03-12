@@ -90,7 +90,9 @@ A context might also correspond to, say, a connection lifecycle or a job being h
 Notable keys that you might set include ``user``, ``tags``, and ``extra``.
 These types of extra context data are detailed more under :ref:`raven-node-additional-data`.
 
-Since ``domains`` are not supported in native Promise until Node v8.0.0, the Node LTS version ``>=8.0.0`` environment is required if you want to manage different contexts in Promises. Context for regular ``context/wrap`` and instrumentation is working prior to 8.x just fine. It'll just be skipped and will use globally set context data.
+Since ``domains`` are not supported in native ``Promise`` until Node.js v8, version ``>=8.0.0`` is required if you want to have an access to the context in ``Promise`` rejections.
+When older version of Node.js is used, it'll just be skipped and globally set context will be used instead.
+Context for regular error handlers and ``context/wrap`` calls is working in every version, including v0.x.
 
 Tracking Users
 --------------
