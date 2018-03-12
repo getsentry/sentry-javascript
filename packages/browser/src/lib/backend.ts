@@ -16,6 +16,20 @@ import { Raven, SendMethod } from './raven';
 const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
 /**
+ * Normalizes the event so it is consistent with our domain interface.
+ * @param event
+ * @returns
+ */
+function normalizeRavenEvent(event: SentryEvent): SentryEvent {
+  const ex = (event.exception || {}) as { values?: SentryException[] };
+  if (ex && ex.values) {
+    event.exception = ex.values;
+  }
+
+  return event;
+}
+
+/**
  * Configuration options for the Sentry Browser SDK.
  * @see BrowserFrontend for more information.
  */
@@ -90,11 +104,7 @@ export class BrowserBackend implements Backend {
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
-      // We need to cast event.exception to our defined domain interface
-      if (event.exception && (event.exception as any).values) {
-        event.exception = (event.exception as any).values as SentryException[];
-      }
-      forget(this.frontend.captureEvent(event));
+      forget(this.frontend.captureEvent(normalizeRavenEvent(event)));
     };
 
     return true;
@@ -103,19 +113,37 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(_: any): Promise<SentryEvent> {
-    // This shouldn't be called here since we overwrite capture exception in the
-    // frontend.
-    throw new SentryError('eventFromException should be called');
+  public async eventFromException(exception: any): Promise<SentryEvent> {
+    const originalSend = Raven._sendProcessedPayload;
+    try {
+      let event!: SentryEvent;
+      Raven._sendProcessedPayload = evt => {
+        event = evt;
+      };
+
+      Raven.captureException(exception);
+      return normalizeRavenEvent(event);
+    } finally {
+      Raven._sendProcessedPayload = originalSend;
+    }
   }
 
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(_: string): Promise<SentryEvent> {
-    // This shouldn't be called here since we overwrite capture message in the
-    // frontend.
-    throw new SentryError('eventFromMessage should be called');
+  public async eventFromMessage(message: string): Promise<SentryEvent> {
+    const originalSend = Raven._sendProcessedPayload;
+    try {
+      let event!: SentryEvent;
+      Raven._sendProcessedPayload = evt => {
+        event = evt;
+      };
+
+      Raven.captureMessage(message);
+      return normalizeRavenEvent(event);
+    } finally {
+      Raven._sendProcessedPayload = originalSend;
+    }
   }
 
   /**

@@ -31,20 +31,6 @@ export class BrowserFrontend extends FrontendBase<
   }
 
   /**
-   * @inheritDoc
-   */
-  public async captureException(exception: any): Promise<void> {
-    Raven.captureException(exception);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async captureMessage(message: string): Promise<void> {
-    Raven.captureMessage(message);
-  }
-
-  /**
    * Instruments the given function and sends an event to Sentry every time the
    * function throws an exception.
    *
