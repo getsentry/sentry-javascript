@@ -3,7 +3,7 @@
     "declaration": true,
     "downlevelIteration": true,
     "inlineSources": true,
-    "lib": ["es2015"],
+    "lib": ["es6", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
