@@ -267,7 +267,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @param event The original event.
    * @returns A new event with more information.
    */
-  private async prepareEvent(event: SentryEvent): Promise<SentryEvent> {
+  protected async prepareEvent(event: SentryEvent): Promise<SentryEvent> {
     const {
       environment,
       maxBreadcrumbs = MAX_BREADCRUMBS,
