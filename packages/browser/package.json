@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.4.0-beta.4",
+  "version": "0.4.0-beta.5",
   "description": "Offical Sentry SDK for browsers",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
@@ -14,8 +14,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "^0.4.0-beta.4",
-    "@sentry/utils": "^0.4.0-beta.4",
+    "@sentry/core": "^0.4.0-beta.5",
+    "@sentry/utils": "^0.4.0-beta.5",
     "raven-js": "^3.23.1"
   },
   "devDependencies": {
@@ -41,7 +41,6 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
-    "size:check":
-      "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
+    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   }
 }
