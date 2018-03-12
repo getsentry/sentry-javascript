@@ -24,6 +24,14 @@ export class TestBackend implements Backend {
     return !this.frontend.getOptions().mockInstallFailure;
   }
 
+  public async eventFromException(exception: any): Promise<SentryEvent> {
+    return { message: String(exception) };
+  }
+
+  public async eventFromMessage(message: string): Promise<SentryEvent> {
+    return { message };
+  }
+
   public async sendEvent(event: SentryEvent): Promise<number> {
     this.event = event;
     return 200;

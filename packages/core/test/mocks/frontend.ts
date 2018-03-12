@@ -1,6 +1,12 @@
 import { FrontendBase } from '../../src/lib/base';
+import { SdkInfo } from '../../src/lib/domain';
 import { Sdk } from '../../src/lib/sdk';
 import { TestBackend, TestOptions } from './backend';
+
+export const TEST_SDK = {
+  name: 'sentry-test',
+  version: '0.0.0-dev',
+};
 
 export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
   public static instance?: TestFrontend;
@@ -19,14 +25,8 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
     return result;
   }
 
-  public async captureException(exception: any): Promise<void> {
-    await this.sendEvent({
-      message: String(exception),
-    });
-  }
-
-  public async captureMessage(message: string): Promise<void> {
-    await this.sendEvent({ message });
+  public getSdkInfo(): SdkInfo {
+    return TEST_SDK;
   }
 }
 

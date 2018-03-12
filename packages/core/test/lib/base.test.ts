@@ -3,7 +3,7 @@ import { spy } from 'sinon';
 import { Breadcrumb, SentryEvent } from '../../src/lib/domain';
 import { SentryError } from '../../src/lib/error';
 import { TestBackend } from '../mocks/backend';
-import { TestFrontend } from '../mocks/frontend';
+import { TEST_SDK, TestFrontend } from '../mocks/frontend';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
@@ -208,6 +208,26 @@ describe('FrontendBase', () => {
     });
   });
 
+  describe('captures', () => {
+    it('captures and sends exceptions', async () => {
+      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
+      await frontend.captureException(new Error('test exception'));
+      expect(TestBackend.instance!.event).to.deep.equal({
+        message: 'Error: test exception',
+        sdk: TEST_SDK,
+      });
+    });
+
+    it('captures and sends messages', async () => {
+      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
+      await frontend.captureMessage('test message');
+      expect(TestBackend.instance!.event).to.deep.equal({
+        message: 'test message',
+        sdk: TEST_SDK,
+      });
+    });
+  });
+
   describe('captureEvent() / prepareEvent()', () => {
     it('skips when disabled', async () => {
       const frontend = new TestFrontend({ enabled: false, dsn: PUBLIC_DSN });
@@ -225,7 +245,10 @@ describe('FrontendBase', () => {
       const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
       await frontend.captureEvent({ message: 'message' });
       expect(TestBackend.instance!.event!.message).to.equal('message');
-      expect(TestBackend.instance!.event).to.deep.equal({ message: 'message' });
+      expect(TestBackend.instance!.event).to.deep.equal({
+        message: 'message',
+        sdk: TEST_SDK,
+      });
     });
 
     it('adds the configured environment', async () => {
@@ -238,6 +261,7 @@ describe('FrontendBase', () => {
       expect(TestBackend.instance!.event!).to.deep.equal({
         environment: 'env',
         message: 'message',
+        sdk: TEST_SDK,
       });
     });
 
@@ -251,6 +275,7 @@ describe('FrontendBase', () => {
       expect(TestBackend.instance!.event!).to.deep.equal({
         message: 'message',
         release: 'v1.0.0',
+        sdk: TEST_SDK,
       });
     });
 
@@ -262,6 +287,7 @@ describe('FrontendBase', () => {
       expect(TestBackend.instance!.event!).to.deep.equal({
         breadcrumbs: [{ message: 'breadcrumb' }],
         message: 'message',
+        sdk: TEST_SDK,
       });
     });
 
@@ -273,6 +299,7 @@ describe('FrontendBase', () => {
       expect(TestBackend.instance!.event!).to.deep.equal({
         breadcrumbs: [{ message: '2' }],
         message: 'message',
+        sdk: TEST_SDK,
       });
     });
 
@@ -288,6 +315,7 @@ describe('FrontendBase', () => {
       expect(TestBackend.instance!.event!).to.deep.equal({
         extra: { a: 'a' },
         message: 'message',
+        sdk: TEST_SDK,
         tags: { b: 'b' },
         user: { id: 'user' },
       });
@@ -298,7 +326,10 @@ describe('FrontendBase', () => {
       const frontend = new TestFrontend({ dsn: PUBLIC_DSN, shouldSend });
 
       await frontend.captureEvent({ message: 'hello' });
-      expect(TestBackend.instance!.event).to.deep.equal({ message: 'hello' });
+      expect(TestBackend.instance!.event).to.deep.equal({
+        message: 'hello',
+        sdk: TEST_SDK,
+      });
     });
 
     it('calls shouldSend and discards the event', async () => {
@@ -324,6 +355,13 @@ describe('FrontendBase', () => {
       await frontend.captureEvent({ message: 'hello' });
       const breadcrumb = afterSend.getCall(0).args[0] as SentryEvent;
       expect(breadcrumb.message).to.equal('hello');
+    });
+
+    it("doesn't do anything with rate limits yet", async () => {
+      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
+      TestBackend.instance!.sendEvent = async () => 429;
+      await frontend.captureEvent({});
+      // TODO: Test rate limiting queues here
     });
   });
 });
