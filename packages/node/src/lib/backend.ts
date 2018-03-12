@@ -33,6 +33,9 @@ export interface NodeOptions extends Options {
    * e.g.: { console: true, http: false }
    */
   autoBreadcrumbs?: { [key: string]: boolean } | boolean;
+
+  /** Callback that is executed when a fatal global error occurs. */
+  onFatalError?(error: Error): void;
 }
 
 /** The Sentry Node SDK Backend. */
