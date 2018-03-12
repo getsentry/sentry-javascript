@@ -1,4 +1,4 @@
-import { FrontendBase, Sdk } from '@sentry/core';
+import { FrontendBase, Sdk, SdkInfo } from '@sentry/core';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
 
@@ -15,6 +15,16 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
    */
   public constructor(options: NodeOptions) {
     super(NodeBackend, options);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected getSdkInfo(): SdkInfo {
+    return {
+      name: 'sentry-node',
+      version: Raven.version,
+    };
   }
 
   /**

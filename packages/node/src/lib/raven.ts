@@ -11,6 +11,7 @@ export interface RavenInternal {
   config(dsn: string, options: object): RavenInternal;
   install(): void;
   send: SendMethod;
+  version: string;
 }
 
 /** Casted raven instance with access to internal functions. */

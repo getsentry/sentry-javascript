@@ -226,7 +226,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     await this.getBackend().storeContext(context);
   }
 
-  /** TODO */
+  /**
+   * Returns the current used SDK version and name. {@link SdkInfo}
+   * @returns SdkInfo
+   */
   protected abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current backend. */
