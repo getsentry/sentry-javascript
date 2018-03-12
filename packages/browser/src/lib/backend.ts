@@ -6,6 +6,7 @@ import {
   Options,
   SentryError,
   SentryEvent,
+  SentryException,
 } from '@sentry/core';
 import { forget } from '@sentry/utils';
 
@@ -89,10 +90,32 @@ export class BrowserBackend implements Backend {
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
+      // We need to cast event.exception to our defined domain interface
+      if (event.exception && (event.exception as any).values) {
+        event.exception = (event.exception as any).values as SentryException[];
+      }
       forget(this.frontend.captureEvent(event));
     };
 
     return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromException(_: any): Promise<SentryEvent> {
+    // This shouldn't be called here since we overwrite capture exception in the
+    // frontend.
+    throw new SentryError('eventFromException should be called');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromMessage(_: string): Promise<SentryEvent> {
+    // This shouldn't be called here since we overwrite capture message in the
+    // frontend.
+    throw new SentryError('eventFromMessage should be called');
   }
 
   /**

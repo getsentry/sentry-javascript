@@ -15,6 +15,7 @@ export interface RavenInternal {
   // tslint:disable-next-line:ban-types
   wrap(options: object, fn: Function): Function;
   _sendProcessedPayload: SendMethod;
+  VERSION: string;
 }
 
 /** Casted raven instance with access to internal functions. */

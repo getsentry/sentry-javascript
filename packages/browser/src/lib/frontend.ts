@@ -1,4 +1,4 @@
-import { FrontendBase, Sdk } from '@sentry/core';
+import { FrontendBase, Sdk, SdkInfo } from '@sentry/core';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 
@@ -18,6 +18,16 @@ export class BrowserFrontend extends FrontendBase<
    */
   public constructor(options: BrowserOptions) {
     super(BrowserBackend, options);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected getSdkInfo(): SdkInfo {
+    return {
+      name: 'sentry-browser',
+      version: Raven.VERSION,
+    };
   }
 
   /**

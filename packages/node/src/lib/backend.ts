@@ -85,6 +85,24 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
+  public async eventFromException(_: any): Promise<SentryEvent> {
+    // This shouldn't be called here since we overwrite capture exception in the
+    // frontend.
+    throw new SentryError('eventFromException should be called');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async eventFromMessage(_: string): Promise<SentryEvent> {
+    // This shouldn't be called here since we overwrite capture message in the
+    // frontend.
+    throw new SentryError('eventFromMessage should be called');
+  }
+
+  /**
+   * @inheritDoc
+   */
   public async storeContext(context: Context): Promise<void> {
     this.context = { ...context };
   }
