@@ -12,7 +12,7 @@ export interface RavenInternal {
   config(dsn: string, options: object): RavenInternal;
   install(): void;
   setBreadcrumbCallback(cb: (b: Breadcrumb) => Breadcrumb | boolean): void;
-  // tslint:disable-next-line:ban-types prefer-function-over-method
+  // tslint:disable-next-line:ban-types
   wrap(options: object, fn: Function): Function;
   _sendProcessedPayload: SendMethod;
 }

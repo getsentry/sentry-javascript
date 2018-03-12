@@ -90,7 +90,6 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  // tslint:disable-next-line:prefer-function-over-method
   public async sendEvent(event: SentryEvent): Promise<number> {
     return new Promise<number>(resolve => {
       sendRavenEvent(event, error => {

@@ -23,7 +23,6 @@ export class BrowserFrontend extends FrontendBase<
   /**
    * @inheritDoc
    */
-  // tslint:disable-next-line:prefer-function-over-method
   public async captureException(exception: any): Promise<void> {
     Raven.captureException(exception);
   }
@@ -31,7 +30,6 @@ export class BrowserFrontend extends FrontendBase<
   /**
    * @inheritDoc
    */
-  // tslint:disable-next-line:prefer-function-over-method
   public async captureMessage(message: string): Promise<void> {
     Raven.captureMessage(message);
   }
@@ -43,7 +41,7 @@ export class BrowserFrontend extends FrontendBase<
    * @param fn A function to wrap.
    * @returns The wrapped function.
    */
-  // tslint:disable-next-line:ban-types prefer-function-over-method
+  // tslint:disable-next-line:ban-types
   public wrap(fn: Function, options: object): Function {
     return Raven.wrap(options, fn);
   }

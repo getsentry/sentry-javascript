@@ -20,7 +20,6 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  // tslint:disable-next-line:prefer-function-over-method
   public async captureException(exception: any): Promise<void> {
     Raven.captureException(exception);
   }
@@ -28,7 +27,6 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  // tslint:disable-next-line:prefer-function-over-method
   public async captureMessage(message: string): Promise<void> {
     Raven.captureMessage(message);
   }
