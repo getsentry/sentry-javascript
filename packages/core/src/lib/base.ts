@@ -155,9 +155,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    // We need to go directly over this.getBreadcrumbs here, since if we assign
-    // the value to a local variable we could get an inconsistent state if
-    // mulitple calls to addBreadcrump happen at the same time.
+    // We need to call this.getBreadcrumbs here, since if we assign the value to
+    // a local variable we could get an inconsistent state if mulitple calls to
+    // addBreadcrumb happen at the same time. DO NOT assign this.breadcrumbs to
+    // a local variable as this would lead to a "lost update" race condition.
     await this.getBreadcrumbs();
     this.breadcrumbs = [...this.breadcrumbs, finalBreadcrumb].slice(
       -maxBreadcrumbs,
@@ -213,9 +214,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async setContext(nextContext: Context): Promise<void> {
-    // We need to go directly over this.getContext here, since if we assign
-    // the value to a local variable we could get an inconsistent state if
-    // mulitple calls to setContext happen at the same time.
+    // We need call this.getContext here, since if we assign the value to a
+    // local variable we could get an inconsistent state if mulitple calls to
+    // setContext happen at the same time. DO NOT assign this.context to a local
+    // variable as this would lead to a "lost update" race condition.
     await this.getContext();
     const context = this.context || {};
     if (nextContext.extra) {
