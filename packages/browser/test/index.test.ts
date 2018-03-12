@@ -74,10 +74,7 @@ describe('SentryBrowser', () => {
   describe('capture', () => {
     it('should capture an exception', async () => {
       const afterSend = spy();
-      const frontend = new BrowserFrontend({
-        afterSend,
-        dsn,
-      });
+      const frontend = new BrowserFrontend({ afterSend, dsn });
       // tslint:disable-next-line:no-unsafe-any
       const backend = (frontend as any).getBackend() as BrowserBackend;
       await frontend.install();
@@ -98,10 +95,7 @@ describe('SentryBrowser', () => {
 
     it('should capture a message', async () => {
       const afterSend = spy();
-      const frontend = new BrowserFrontend({
-        afterSend,
-        dsn,
-      });
+      const frontend = new BrowserFrontend({ afterSend, dsn });
       // tslint:disable-next-line:no-unsafe-any
       const backend = (frontend as any).getBackend() as BrowserBackend;
       await frontend.install();
@@ -115,10 +109,7 @@ describe('SentryBrowser', () => {
 
     it('should capture an event', async () => {
       const afterSend = spy();
-      const frontend = new BrowserFrontend({
-        afterSend,
-        dsn,
-      });
+      const frontend = new BrowserFrontend({ afterSend, dsn });
       await frontend.install();
       await frontend.captureEvent({ message: 'test' });
       const event = afterSend.getCall(0).args[0] as SentryEvent;
