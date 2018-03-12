@@ -272,8 +272,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       release,
     } = this.getOptions();
 
-    const prepared = { ...event };
-    prepared.sdk = this.getSdkInfo();
+    const prepared = {
+      ...event,
+      sdk: this.getSdkInfo(),
+    };
     if (environment !== undefined) {
       prepared.environment = environment;
     }
