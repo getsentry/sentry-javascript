@@ -155,8 +155,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    const breadcrumbs = await this.getBreadcrumbs();
-    this.breadcrumbs = [...breadcrumbs, finalBreadcrumb].slice(-maxBreadcrumbs);
+    await this.getBreadcrumbs();
+    this.breadcrumbs = [...this.breadcrumbs, finalBreadcrumb].slice(
+      -maxBreadcrumbs,
+    );
     await this.getBackend().storeBreadcrumbs(this.breadcrumbs);
 
     if (afterBreadcrumb) {
@@ -208,8 +210,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async setContext(nextContext: Context): Promise<void> {
-    const context = await this.getContext();
+    await this.getContext();
 
+    const context = this.context || {};
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
     }
