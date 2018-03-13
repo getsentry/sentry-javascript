@@ -10,6 +10,7 @@ export default [
       file: 'dist/index.js',
       format: 'cjs',
       exports: 'named',
+      interop: false,
     },
     external: ['raven-js', '@sentry/core', '@sentry/utils/dist/lib/async'],
     plugins: [
@@ -25,6 +26,8 @@ export default [
       file: 'build/bundle.min.js',
       format: 'iife',
       name: 'Sentry',
+      sourcemap: true,
+      interop: false,
     },
     plugins: [
       typescript({
@@ -42,7 +45,7 @@ export default [
           '../utils/dist/index.js': ['forget'],
         },
       }),
-      // uglify(),
+      uglify(),
     ],
   },
 ];

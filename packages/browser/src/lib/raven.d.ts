@@ -1,5 +1,4 @@
 import { Breadcrumb, SentryEvent } from '@sentry/core';
-import * as RavenJS from 'raven-js';
 
 /** Signature for the Raven send function */
 export type SendMethod = (event: SentryEvent, cb: (err: any) => void) => void;
@@ -20,4 +19,4 @@ export interface RavenInternal {
 
 /** Casted raven instance with access to internal functions. */
 // tslint:disable-next-line:variable-name
-export const Raven: RavenInternal = RavenJS as any;
+export const Raven: RavenInternal;
