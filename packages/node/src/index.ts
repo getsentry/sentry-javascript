@@ -1,2 +1,2 @@
-export * from './lib/backend';
-export * from './lib/frontend';
+export { NodeBackend, NodeOptions } from './lib/backend';
+export { NodeFrontend, SentryClient } from './lib/frontend';

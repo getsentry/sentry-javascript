@@ -10,8 +10,9 @@ export default [
       file: 'dist/index.js',
       format: 'cjs',
       exports: 'named',
+      interop: false,
     },
-    external: ['raven-js', '@sentry/core', '@sentry/utils/dist/lib/async'],
+    external: ['raven-js', '@sentry/core', '@sentry/utils'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
@@ -23,9 +24,13 @@ export default [
     input: 'src/index.ts',
     output: {
       file: 'build/bundle.min.js',
-      format: 'cjs',
-      exports: 'named',
+      format: 'iife',
+      name: 'window',
+      sourcemap: true,
+      interop: false,
+      extend: true,
     },
+    context: 'window',
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
@@ -36,12 +41,7 @@ export default [
         main: true,
         browser: true,
       }),
-      commonjs({
-        namedExports: {
-          '../core/dist/index.js': ['FrontendBase', 'Sdk', 'SentryError'],
-          '../utils/dist/index.js': ['forget'],
-        },
-      }),
+      commonjs(),
       uglify(),
     ],
   },

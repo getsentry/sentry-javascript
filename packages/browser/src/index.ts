@@ -1,2 +1,2 @@
-export * from './lib/backend';
-export * from './lib/frontend';
+export { BrowserBackend, BrowserOptions } from './lib/backend';
+export { BrowserFrontend, SentryClient } from './lib/frontend';

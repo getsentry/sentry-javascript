@@ -20,4 +20,5 @@ export interface RavenInternal {
 
 /** Casted raven instance with access to internal functions. */
 // tslint:disable-next-line:variable-name
-export const Raven: RavenInternal = RavenJS as any;
+export const Raven = ((RavenJS as any).default ||
+  (RavenJS as any)) as RavenInternal;
