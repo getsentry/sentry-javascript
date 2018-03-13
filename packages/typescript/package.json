@@ -4,7 +4,7 @@
   "description": "Typescript configuration used at Sentry",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "private": false,
   "publishConfig": {
     "access": "public"

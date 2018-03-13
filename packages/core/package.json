@@ -4,7 +4,7 @@
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "engines": {
     "node": ">=6"
   },
