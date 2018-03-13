@@ -2,11 +2,13 @@
 
 var TraceKit = require('../vendor/TraceKit/tracekit');
 var stringify = require('../vendor/json-stringify-safe/stringify');
+var md5 = require('../vendor/md5/md5');
 var RavenConfigError = require('./configError');
 
 var utils = require('./utils');
 var isError = utils.isError;
 var isObject = utils.isObject;
+var isPlainObject = utils.isPlainObject;
 var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
@@ -28,6 +30,8 @@ var parseUrl = utils.parseUrl;
 var fill = utils.fill;
 var supportsFetch = utils.supportsFetch;
 var supportsReferrerPolicy = utils.supportsReferrerPolicy;
+var serializeKeysForMessage = utils.serializeKeysForMessage;
+var serializeException = utils.serializeException;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -456,23 +460,34 @@ Raven.prototype = {
    */
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
-    // Cases for sending ex as a message, rather than an exception
-    var isNotError = !isError(ex);
-    var isNotErrorEvent = !isErrorEvent(ex);
-    var isErrorEventWithoutError = isErrorEvent(ex) && !ex.error;
 
-    if ((isNotError && isNotErrorEvent) || isErrorEventWithoutError) {
-      return this.captureMessage(
-        ex,
-        objectMerge(options, {
-          stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
-          trimHeadFrames: options.trimHeadFrames + 1
-        })
-      );
+    if (isPlainObject(ex)) {
+      // If it is plain Object, serialize it manually and extract options
+      // This will allow us to group events based on top-level keys
+      // which is much better than creating new group when any key/value change
+      options = this._getCaptureExceptionOptionsFromPlainObject(options, ex);
+      ex = new Error(options.message);
+      
+    } else if (isErrorEvent(ex) && ex.error) {
+      // If it is an ErrorEvent with `error` property, extract it to get actual Error
+      ex = ex.error;
+    } else if (isError(ex)){
+      // we have a real Error object
+      ex = ex;
+    } else {
+        // If none of previous checks were valid, then it means that 
+        // it's not a plain Object
+        // it's not a valid ErrorEvent (one with an error property)
+        // it's not an Error
+        // So bail out and capture it as a simple message:
+        return this.captureMessage(
+            ex,
+            objectMerge(options, {
+              stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
+              trimHeadFrames: options.trimHeadFrames + 1
+            })
+          );
     }
-
-    // Get actual Error from ErrorEvent
-    if (isErrorEvent(ex)) ex = ex.error;
 
     // Store the raw exception object for potential debugging and introspection
     this._lastCapturedException = ex;
@@ -492,6 +507,19 @@ Raven.prototype = {
     }
 
     return this;
+  },
+
+  _getCaptureExceptionOptionsFromPlainObject: function(currentOptions, ex) {
+    var exKeys = Object.keys(ex).sort();
+    var options = objectMerge(currentOptions, {
+      message:
+        'Non-Error exception captured with keys: ' + serializeKeysForMessage(exKeys),
+      fingerprint: [md5(exKeys)],
+      extra: currentOptions.extra || {}
+    });
+    options.extra.__serialized__ = serializeException(ex);
+
+    return options;
   },
 
   /*

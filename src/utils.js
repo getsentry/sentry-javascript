@@ -1,3 +1,5 @@
+var stringify = require('../vendor/json-stringify-safe/stringify');
+
 var _window =
   typeof window !== 'undefined'
     ? window
@@ -441,6 +443,98 @@ function safeJoin(input, delimiter) {
   return output.join(delimiter);
 }
 
+// Default Node.js REPL depth
+var MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
+// 50kB, as 100kB is max payload size, so half sounds reasonable
+var MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
+var MAX_SERIALIZE_KEYS_LENGTH = 40;
+
+function utf8Length(value) {
+  return ~-encodeURI(value).split(/%..|./).length;
+}
+
+function jsonSize(value) {
+  return utf8Length(JSON.stringify(value));
+}
+
+function serializeValue(value) {
+  var maxLength = 40;
+
+  if (typeof value === 'string') {
+    return value.length <= maxLength ? value : value.substr(0, maxLength - 1) + '\u2026';
+  } else if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'undefined'
+  ) {
+    return value;
+  }
+
+  var type = Object.prototype.toString.call(value);
+
+  // Node.js REPL notation
+  if (type === '[object Object]') return '[Object]';
+  if (type === '[object Array]') return '[Array]';
+  if (type === '[object Function]')
+    return value.name ? '[Function: ' + value.name + ']' : '[Function]';
+
+  return value;
+}
+
+function serializeObject(value, depth) {
+  if (depth === 0) return serializeValue(value);
+
+  if (isPlainObject(value)) {
+    return Object.keys(value).reduce(function(acc, key) {
+      acc[key] = serializeObject(value[key], depth - 1);
+      return acc;
+    }, {});
+  } else if (Array.isArray(value)) {
+    return value.map(function(val) {
+      return serializeObject(val, depth - 1);
+    });
+  }
+
+  return serializeValue(value);
+}
+
+function serializeException(ex, depth, maxSize) {
+  if (!isPlainObject(ex)) return ex;
+
+  depth = typeof depth !== 'number' ? MAX_SERIALIZE_EXCEPTION_DEPTH : depth;
+  maxSize = typeof depth !== 'number' ? MAX_SERIALIZE_EXCEPTION_SIZE : maxSize;
+
+  var serialized = serializeObject(ex, depth);
+
+  if (jsonSize(stringify(serialized)) > maxSize) {
+    return serializeException(ex, depth - 1);
+  }
+
+  return serialized;
+}
+
+function serializeKeysForMessage(keys, maxLength) {
+  if (typeof keys === 'number' || typeof keys === 'string') return keys.toString();
+  if (!Array.isArray(keys)) return '';
+
+  keys = keys.filter(function(key) {
+    return typeof key === 'string';
+  });
+  if (keys.length === 0) return '[object has no keys]';
+
+  maxLength = typeof maxLength !== 'number' ? MAX_SERIALIZE_KEYS_LENGTH : maxLength;
+  if (keys[0].length >= maxLength) return keys[0];
+
+  for (var usedKeys = keys.length; usedKeys > 0; usedKeys--) {
+    var serialized = keys.slice(0, usedKeys).join(', ');
+    if (serialized.length > maxLength) continue;
+    if (usedKeys === keys.length) return serialized;
+    return serialized + '\u2026';
+  }
+
+  return '';
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -470,5 +564,7 @@ module.exports = {
   isSameStacktrace: isSameStacktrace,
   parseUrl: parseUrl,
   fill: fill,
-  safeJoin: safeJoin
+  safeJoin: safeJoin,
+  serializeException: serializeException,
+  serializeKeysForMessage: serializeKeysForMessage
 };

@@ -24,6 +24,8 @@ var htmlTreeAsString = utils.htmlTreeAsString;
 var htmlElementAsString = utils.htmlElementAsString;
 var parseUrl = utils.parseUrl;
 var safeJoin = utils.safeJoin;
+var serializeException = utils.serializeException;
+var serializeKeysForMessage = utils.serializeKeysForMessage;
 
 describe('utils', function() {
   describe('isUndefined', function() {
@@ -451,6 +453,247 @@ describe('utils', function() {
         safeJoin([new Foo(), 'abc', new Foo(), 42], ' X '),
         '[value cannot be serialized] X abc X [value cannot be serialized] X 42'
       );
+    });
+  });
+
+  describe('serializeException', function() {
+    it('return [Object] when reached depth=0', function() {
+      var actual = serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true
+        },
+        0
+      );
+      var expected = '[Object]';
+
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should serialize one level deep with depth=1', function() {
+      var actual = serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true,
+          d: undefined,
+          e:
+            'very long string that is definitely over 120 characters, which is default for now but can be changed anytime because why not?',
+          f: {foo: 42},
+          g: [1, 'a', true],
+          h: function() {}
+        },
+        1
+      );
+      var expected = {
+        a: 42,
+        b: 'asd',
+        c: true,
+        d: undefined,
+        e: 'very long string that is definitely ove\u2026',
+        f: '[Object]',
+        g: '[Array]'
+      };
+
+      // Unfortunately older browsers are not capable of extracting method names
+      // therefore we have to use `oneOf` here
+      var fn = actual.h;
+      delete actual.h;
+
+      assert.deepEqual(actual, expected);
+      assert.oneOf(fn, ['[Function: h]', '[Function]']);
+    });
+
+    it('should serialize arbitrary number of depths', function() {
+      var actual = serializeException(
+        {
+          a: 42,
+          b: 'asd',
+          c: true,
+          d: undefined,
+          e:
+            'very long string that is definitely over 40 characters, which is default for now but can be changed',
+          f: {
+            foo: 42,
+            bar: {
+              foo: 42,
+              bar: {
+                bar: {
+                  bar: {
+                    bar: 42
+                  }
+                }
+              },
+              baz: ['hello']
+            },
+            baz: [1, 'a', true]
+          },
+          g: [1, 'a', true],
+          h: function bar() {}
+        },
+        5
+      );
+      var expected = {
+        a: 42,
+        b: 'asd',
+        c: true,
+        d: undefined,
+        e: 'very long string that is definitely ove\u2026',
+        f: {
+          foo: 42,
+          bar: {
+            foo: 42,
+            bar: {
+              bar: {
+                bar: '[Object]'
+              }
+            },
+            baz: ['hello']
+          },
+          baz: [1, 'a', true]
+        },
+        g: [1, 'a', true]
+      };
+
+      // Unfortunately older browsers are not capable of extracting method names
+      // therefore we have to use `oneOf` here
+      var fn = actual.h;
+      delete actual.h;
+
+      assert.deepEqual(actual, expected);
+      assert.oneOf(fn, ['[Function: bar]', '[Function]']);
+    });
+
+    it('should reduce depth if payload size was exceeded', function() {
+      var actual = serializeException(
+        {
+          a: {
+            a: '50kB worth of payload pickle rick',
+            b: '50kB worth of payload pickle rick'
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        2,
+        100
+      );
+      var expected = {
+        a: '[Object]',
+        b: '50kB worth of payload pickle rick'
+      };
+
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should reduce depth only one level at the time', function() {
+      var actual = serializeException(
+        {
+          a: {
+            a: {
+              a: {
+                a: [
+                  '50kB worth of payload pickle rick',
+                  '50kB worth of payload pickle rick',
+                  '50kB worth of payload pickle rick'
+                ]
+              }
+            },
+            b: '50kB worth of payload pickle rick'
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        4,
+        200
+      );
+      var expected = {
+        a: {
+          a: {
+            a: {
+              a: '[Array]'
+            }
+          },
+          b: '50kB worth of payload pickle rick'
+        },
+        b: '50kB worth of payload pickle rick'
+      };
+
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should fallback to [Object] if cannot reduce payload size enough', function() {
+      var actual = serializeException(
+        {
+          a: '50kB worth of payload pickle rick',
+          b: '50kB worth of payload pickle rick',
+          c: '50kB worth of payload pickle rick',
+          d: '50kB worth of payload pickle rick'
+        },
+        1,
+        100
+      );
+      var expected = '[Object]';
+
+      assert.deepEqual(actual, expected);
+    });
+  });
+
+  describe('serializeKeysForMessage', function() {
+    it('should fit as many keys as possible in default limit of 40', function() {
+      var actual = serializeKeysForMessage([
+        'pickle',
+        'rick',
+        'morty',
+        'snuffles',
+        'server',
+        'request'
+      ]);
+      var expected = 'pickle, rick, morty, snuffles, server\u2026';
+      assert.equal(actual, expected);
+    });
+
+    it('shouldnt append ellipsis if you use the exact length limit', function() {
+      var actual = serializeKeysForMessage(
+        ['pickle', 'rick', 'morty', 'summer', 'jerry', 'beth'],
+        40
+      );
+      var expected = 'pickle, rick, morty, summer, jerry, beth';
+      // expected.length === 40
+      assert.equal(actual, expected);
+    });
+
+    it('shouldnt append ellipsis if have enough space', function() {
+      var actual = serializeKeysForMessage(['pickle', 'rick', 'morty']);
+      var expected = 'pickle, rick, morty';
+      assert.equal(actual, expected);
+    });
+
+    it('should default to no-keys message if empty array provided', function() {
+      var actual = serializeKeysForMessage([]);
+      var expected = '[object has no keys]';
+      assert.equal(actual, expected);
+    });
+
+    it('should leave first key as is, if its too long for the limit', function() {
+      var actual = serializeKeysForMessage([
+        'imSuchALongKeyThatIDontEvenFitInTheLimitOf40Characters',
+        'pickle'
+      ]);
+      var expected = 'imSuchALongKeyThatIDontEvenFitInTheLimitOf40Characters';
+      assert.equal(actual, expected);
+    });
+
+    it('should work with provided maxLength', function() {
+      var actual = serializeKeysForMessage(['foo', 'bar', 'baz'], 10);
+      var expected = 'foo, bar\u2026';
+      assert.equal(actual, expected);
+    });
+
+    it('handles incorrect input', function() {
+      assert.equal(serializeKeysForMessage({}), '');
+      assert.equal(serializeKeysForMessage(false), '');
+      assert.equal(serializeKeysForMessage(undefined), '');
+      assert.equal(serializeKeysForMessage(42), '42');
+      assert.equal(serializeKeysForMessage('foo'), 'foo');
     });
   });
 });

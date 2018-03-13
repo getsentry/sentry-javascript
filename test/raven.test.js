@@ -3079,13 +3079,6 @@ describe('Raven (public API)', function() {
       });
     }
 
-    it('should send non-Errors as messages', function() {
-      this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'captureMessage');
-      Raven.captureException({}, {foo: 'bar'});
-      assert.isTrue(Raven.captureMessage.calledOnce);
-    });
-
     it('should call handleStackInfo', function() {
       var error = new Error('pickleRick');
       this.sinon.stub(Raven, 'isSetup').returns(true);
@@ -3154,6 +3147,70 @@ describe('Raven (public API)', function() {
       this.sinon.stub(Raven, '_handleStackInfo');
       assert.doesNotThrow(function() {
         Raven.captureException(new Error('err'));
+      });
+    });
+
+    it('should serialize non-error exceptions', function(done) {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_send').callsFake(function stubbedSend(kwargs) {
+        kwargs.message.should.equal(
+          'Non-Error exception captured with keys: aKeyOne, bKeyTwo, cKeyThree, dKeyFour\u2026'
+        );
+
+        var serialized = kwargs.extra.__serialized__;
+        var fn;
+
+        // Yes, I know, it's ugly but...
+        // unfortunately older browsers are not capable of extracting method names
+        // therefore we have to use `oneOf` here
+        fn = serialized.eKeyFive;
+        delete serialized.eKeyFive;
+        assert.oneOf(fn, ['[Function: foo]', '[Function]']);
+
+        fn = serialized.fKeySix.levelTwo.levelThreeAnonymousFunction;
+        delete serialized.fKeySix.levelTwo.levelThreeAnonymousFunction;
+        assert.oneOf(fn, ['[Function: levelThreeAnonymousFunction]', '[Function]']);
+
+        fn = serialized.fKeySix.levelTwo.levelThreeNamedFunction;
+        delete serialized.fKeySix.levelTwo.levelThreeNamedFunction;
+        assert.oneOf(fn, ['[Function: bar]', '[Function]']);
+
+        assert.deepEqual(serialized, {
+          aKeyOne: 'a',
+          bKeyTwo: 42,
+          cKeyThree: {},
+          dKeyFour: ['d'],
+          fKeySix: {
+            levelTwo: {
+              levelThreeObject: '[Object]',
+              levelThreeArray: '[Array]',
+              levelThreeString: 'foo',
+              levelThreeNumber: 42
+            }
+          }
+        });
+
+        done();
+      });
+
+      Raven.captureException({
+        aKeyOne: 'a',
+        bKeyTwo: 42,
+        cKeyThree: {},
+        dKeyFour: ['d'],
+        eKeyFive: function foo() {},
+        fKeySix: {
+          levelTwo: {
+            levelThreeObject: {
+              enough: 42
+            },
+            levelThreeArray: [42],
+            levelThreeAnonymousFunction: function() {},
+            levelThreeNamedFunction: function bar() {},
+            levelThreeString: 'foo',
+            levelThreeNumber: 42
+          }
+        }
       });
     });
   });
