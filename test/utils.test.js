@@ -651,6 +651,16 @@ describe('utils', function() {
       assert.equal(actual, expected);
     });
 
+    it('shouldnt append ellipsis if you use the exact length limit', function() {
+      var actual = serializeKeysForMessage(
+        ['pickle', 'rick', 'morty', 'summer', 'jerry', 'beth'],
+        40
+      );
+      var expected = 'pickle, rick, morty, summer, jerry, beth';
+      // expected.length === 40
+      assert.equal(actual, expected);
+    });
+
     it('shouldnt append ellipsis if have enough space', function() {
       var actual = serializeKeysForMessage(['pickle', 'rick', 'morty']);
       var expected = 'pickle, rick, morty';
@@ -672,7 +682,7 @@ describe('utils', function() {
       assert.equal(actual, expected);
     });
 
-    it('should with with provided maxLength', function() {
+    it('should work with provided maxLength', function() {
       var actual = serializeKeysForMessage(['foo', 'bar', 'baz'], 10);
       var expected = 'foo, bar\u2026';
       assert.equal(actual, expected);

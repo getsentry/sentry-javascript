@@ -461,26 +461,13 @@ Raven.prototype = {
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
 
-    if (isPlainObject(ex)) {
-      // If exception is plain object, serialize it
-      // This will allow us to group events based on top-level keys
-      // which is much better than creating new group when any key/value change
+    var isNotErrorOrErrorEvent = !isErrorEvent(ex) && !isError(ex);
+    var isNotValidErrorEvent = isErrorEvent(ex) && !ex.error;
 
-      var keys = Object.keys(ex).sort();
-      var hash = md5(keys);
-      var message =
-        'Non-Error exception captured with keys: ' + serializeKeysForMessage(keys);
-      var serializedException = serializeException(ex);
-
-      options.message = message;
-      options.fingerprint = [hash];
-      options.extra = options.extra || {};
-      options.extra.__serialized__ = serializedException;
-
-      ex = new Error(message);
-    } else if ((!isErrorEvent(ex) && !isError(ex)) || (isErrorEvent(ex) && !ex.error)) {
-      // If it's not a plain object, Error, ErrorEvent or ErrorEvent without `error` property
-      // Then capture it as a simple message
+    // Bail out and capture it as a simple message in 2 scenarios:
+    // a) if it's not Error, ErrorEvent or plain Object
+    // b) or it is ErrorEvent but without `error` property
+    if ((isNotErrorOrErrorEvent && !isPlainObject(ex)) || isNotValidErrorEvent) {
       return this.captureMessage(
         ex,
         objectMerge(options, {
@@ -488,6 +475,14 @@ Raven.prototype = {
           trimHeadFrames: options.trimHeadFrames + 1
         })
       );
+    }
+
+    if (isPlainObject(ex)) {
+      // If it is plain Object, serialize it manually and extract options
+      // This will allow us to group events based on top-level keys
+      // which is much better than creating new group when any key/value change
+      options = this._getCaptureExceptionOptionsFromPlainObject(options, ex);
+      ex = new Error(options.message);
     } else if (isErrorEvent(ex)) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       ex = ex.error;
@@ -514,6 +509,19 @@ Raven.prototype = {
     }
 
     return this;
+  },
+
+  _getCaptureExceptionOptionsFromPlainObject: function(currentOptions, ex) {
+    var exKeys = Object.keys(ex).sort();
+    var options = objectMerge(currentOptions, {
+      message:
+        'Non-Error exception captured with keys: ' + serializeKeysForMessage(exKeys),
+      fingerprint: [md5(exKeys)],
+      extra: currentOptions.extra || {}
+    });
+    options.extra.__serialized__ = serializeException(ex);
+
+    return options;
   },
 
   /*
