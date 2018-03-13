@@ -44,12 +44,12 @@ The following code should reside in the ``main process`` and ``renderer process`
 
 .. code-block:: javascript
 
-    const Sentry = require('@sentry/core');
-    const SentryElectron = require('@sentry/electron');
-
-    Sentry.create('___PRIVATE_DSN___')
-      .use(SentryElectron)
-      .install();
+    const { SentryClient } = require('@sentry/electron');
+    
+    SentryClient.create({
+      dsn: '___PRIVATE_DSN___',
+      // ...
+    });
 
 This configuration will also take care of unhandled Promise rejections, which can be
 handled in various ways. By default, Electron uses standard JS API.
