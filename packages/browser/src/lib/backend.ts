@@ -32,6 +32,20 @@ function normalizeRavenEvent(event: SentryEvent): SentryEvent {
 }
 
 /**
+ * Prepares an event so it can be send with raven-js.
+ * @param event
+ * @returns
+ */
+function prepareEventForRaven(event: SentryEvent): SentryEvent {
+  const ravenEvent = event as any;
+  if (event.exception) {
+    // tslint:disable-next-line:no-unsafe-any
+    ravenEvent.exception = { values: event.exception };
+  }
+  return ravenEvent as SentryEvent;
+}
+
+/**
  * Configuration options for the Sentry Browser SDK.
  * @see BrowserFrontend for more information.
  */
@@ -167,7 +181,7 @@ export class BrowserBackend implements Backend {
    */
   public async sendEvent(event: SentryEvent): Promise<number> {
     return new Promise<number>(resolve => {
-      sendRavenEvent(event, error => {
+      sendRavenEvent(prepareEventForRaven(event), error => {
         // TODO: Check the response status code
         resolve(error ? 500 : 200);
       });
