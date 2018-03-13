@@ -11,7 +11,7 @@ export default [
       format: 'cjs',
       exports: 'named',
     },
-    external: ['raven-js', '@sentry/core'],
+    external: ['raven-js', '@sentry/core', '@sentry/utils/dist/lib/async'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',

@@ -8,7 +8,9 @@ import {
   SentryEvent,
   SentryException,
 } from '@sentry/core';
-import { forget } from '@sentry/utils';
+// If we import the whole module here, we bundle the whole package
+// tslint:disable-next-line:no-submodule-imports
+import { forget } from '@sentry/utils/dist/lib/async';
 
 import { Raven, SendMethod } from './raven';
 
