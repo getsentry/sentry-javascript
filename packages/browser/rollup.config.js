@@ -30,6 +30,7 @@ export default [
       interop: false,
       extend: true,
     },
+    context: 'window',
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
