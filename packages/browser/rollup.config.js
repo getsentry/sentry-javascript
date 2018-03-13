@@ -23,8 +23,8 @@ export default [
     input: 'src/index.ts',
     output: {
       file: 'build/bundle.min.js',
-      format: 'cjs',
-      exports: 'named',
+      format: 'iife',
+      name: 'Sentry',
     },
     plugins: [
       typescript({
@@ -42,7 +42,7 @@ export default [
           '../utils/dist/index.js': ['forget'],
         },
       }),
-      uglify(),
+      // uglify(),
     ],
   },
 ];
