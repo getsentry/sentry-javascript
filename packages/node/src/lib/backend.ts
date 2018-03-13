@@ -66,7 +66,7 @@ export class NodeBackend implements Backend {
       );
     }
 
-    Raven.config(dsn.toString(), this.frontend.getOptions()).install();
+    Raven.config(dsn.toString(true), this.frontend.getOptions()).install();
 
     // There is no option for this so we have to overwrite it like this.
     // We need this in SentryElectron.
