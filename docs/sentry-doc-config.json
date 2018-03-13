@@ -38,15 +38,6 @@
         "integrations/backbone#configuring-the-client"
       ]
     },
-    "javascript.electron": {
-      "name": "Electron",
-      "type": "framework",
-      "doc_link": "integrations/electron/",
-      "wizard": [
-        "integrations/electron#installation",
-        "integrations/electron#configuring-the-client"
-      ]
-    },
     "javascript.ember": {
       "name": "Ember",
       "type": "framework",
