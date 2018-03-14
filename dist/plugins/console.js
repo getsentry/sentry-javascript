@@ -1,4 +1,4 @@
-/*! Raven.js 3.23.1 (84edddc) | github.com/getsentry/raven-js */
+/*! Raven.js 3.23.2 (72f8e05) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -90,6 +90,8 @@ module.exports = {
 
 },{"3":3}],3:[function(_dereq_,module,exports){
 (function (global){
+var stringify = _dereq_(4);
+
 var _window =
   typeof window !== 'undefined'
     ? window
@@ -533,6 +535,98 @@ function safeJoin(input, delimiter) {
   return output.join(delimiter);
 }
 
+// Default Node.js REPL depth
+var MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
+// 50kB, as 100kB is max payload size, so half sounds reasonable
+var MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
+var MAX_SERIALIZE_KEYS_LENGTH = 40;
+
+function utf8Length(value) {
+  return ~-encodeURI(value).split(/%..|./).length;
+}
+
+function jsonSize(value) {
+  return utf8Length(JSON.stringify(value));
+}
+
+function serializeValue(value) {
+  var maxLength = 40;
+
+  if (typeof value === 'string') {
+    return value.length <= maxLength ? value : value.substr(0, maxLength - 1) + '\u2026';
+  } else if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'undefined'
+  ) {
+    return value;
+  }
+
+  var type = Object.prototype.toString.call(value);
+
+  // Node.js REPL notation
+  if (type === '[object Object]') return '[Object]';
+  if (type === '[object Array]') return '[Array]';
+  if (type === '[object Function]')
+    return value.name ? '[Function: ' + value.name + ']' : '[Function]';
+
+  return value;
+}
+
+function serializeObject(value, depth) {
+  if (depth === 0) return serializeValue(value);
+
+  if (isPlainObject(value)) {
+    return Object.keys(value).reduce(function(acc, key) {
+      acc[key] = serializeObject(value[key], depth - 1);
+      return acc;
+    }, {});
+  } else if (Array.isArray(value)) {
+    return value.map(function(val) {
+      return serializeObject(val, depth - 1);
+    });
+  }
+
+  return serializeValue(value);
+}
+
+function serializeException(ex, depth, maxSize) {
+  if (!isPlainObject(ex)) return ex;
+
+  depth = typeof depth !== 'number' ? MAX_SERIALIZE_EXCEPTION_DEPTH : depth;
+  maxSize = typeof depth !== 'number' ? MAX_SERIALIZE_EXCEPTION_SIZE : maxSize;
+
+  var serialized = serializeObject(ex, depth);
+
+  if (jsonSize(stringify(serialized)) > maxSize) {
+    return serializeException(ex, depth - 1);
+  }
+
+  return serialized;
+}
+
+function serializeKeysForMessage(keys, maxLength) {
+  if (typeof keys === 'number' || typeof keys === 'string') return keys.toString();
+  if (!Array.isArray(keys)) return '';
+
+  keys = keys.filter(function(key) {
+    return typeof key === 'string';
+  });
+  if (keys.length === 0) return '[object has no keys]';
+
+  maxLength = typeof maxLength !== 'number' ? MAX_SERIALIZE_KEYS_LENGTH : maxLength;
+  if (keys[0].length >= maxLength) return keys[0];
+
+  for (var usedKeys = keys.length; usedKeys > 0; usedKeys--) {
+    var serialized = keys.slice(0, usedKeys).join(', ');
+    if (serialized.length > maxLength) continue;
+    if (usedKeys === keys.length) return serialized;
+    return serialized + '\u2026';
+  }
+
+  return '';
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -562,9 +656,87 @@ module.exports = {
   isSameStacktrace: isSameStacktrace,
   parseUrl: parseUrl,
   fill: fill,
-  safeJoin: safeJoin
+  safeJoin: safeJoin,
+  serializeException: serializeException,
+  serializeKeysForMessage: serializeKeysForMessage
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"4":4}],4:[function(_dereq_,module,exports){
+/*
+ json-stringify-safe
+ Like JSON.stringify, but doesn't throw on circular references.
+
+ Originally forked from https://github.com/isaacs/json-stringify-safe
+ version 5.0.1 on 3/8/2017 and modified to handle Errors serialization
+ and IE8 compatibility. Tests for this are in test/vendor.
+
+ ISC license: https://github.com/isaacs/json-stringify-safe/blob/master/LICENSE
+*/
+
+exports = module.exports = stringify;
+exports.getSerialize = serializer;
+
+function indexOf(haystack, needle) {
+  for (var i = 0; i < haystack.length; ++i) {
+    if (haystack[i] === needle) return i;
+  }
+  return -1;
+}
+
+function stringify(obj, replacer, spaces, cycleReplacer) {
+  return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces);
+}
+
+// https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
+function stringifyError(value) {
+  var err = {
+    // These properties are implemented as magical getters and don't show up in for in
+    stack: value.stack,
+    message: value.message,
+    name: value.name
+  };
+
+  for (var i in value) {
+    if (Object.prototype.hasOwnProperty.call(value, i)) {
+      err[i] = value[i];
+    }
+  }
+
+  return err;
+}
+
+function serializer(replacer, cycleReplacer) {
+  var stack = [];
+  var keys = [];
+
+  if (cycleReplacer == null) {
+    cycleReplacer = function(key, value) {
+      if (stack[0] === value) {
+        return '[Circular ~]';
+      }
+      return '[Circular ~.' + keys.slice(0, indexOf(stack, value)).join('.') + ']';
+    };
+  }
+
+  return function(key, value) {
+    if (stack.length > 0) {
+      var thisPos = indexOf(stack, this);
+      ~thisPos ? stack.splice(thisPos + 1) : stack.push(this);
+      ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key);
+
+      if (~indexOf(stack, value)) {
+        value = cycleReplacer.call(this, key, value);
+      }
+    } else {
+      stack.push(value);
+    }
+
+    return replacer == null
+      ? value instanceof Error ? stringifyError(value) : value
+      : replacer.call(this, key, value);
+  };
+}
+
 },{}]},{},[1])(1)
 });

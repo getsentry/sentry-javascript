@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.23.2
+
+**NOTE**:
+This release may introduce some new events for the same errors, as we'll provide more information on them now.
+Your Sentry Issues stream may show new errors, without any changes done to your application's code.
+
+* NEW: Sensible non-Error exception serializer (#1253)
+* BUGFIX: Create correct fingerprint when using synthetic stacktraces (#1246)
+
 ## 3.23.1
 
 * BUGFIX: Check if `addEventListener` and `removeEventListener` are present before calling them
