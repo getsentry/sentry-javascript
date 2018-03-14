@@ -28,7 +28,7 @@ SentryClient.create({
 
 To set context information or send manual events, use the provided methods on
 `SentryClient`. Note that these functions will not perform any action before you
-have called `SentryClient.install()`:
+have called `SentryClient.create()`:
 
 ```javascript
 // Set user information, as well as tags and further extras
