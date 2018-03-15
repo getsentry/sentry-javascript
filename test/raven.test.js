@@ -3086,12 +3086,27 @@ describe('Raven (public API)', function() {
       // Like... error, but not really.
       // But error.
       //
-      // function Foo() {};
-      // Foo.prototype = new Error();
+      // To be more exact, it's an object literal or an instance of constructor function
+      // that has it's prototype set to the Error object itself.
+      // When using `isPlanObject`, which makes a call to `Object.prototype.toString`,
+      // it returns `[object Object]`, because any instance created with `new X`
+      // where X is a custom constructor like `function X () {}`, it's return value
+      // is an object literal.
+      // However, because it has it's prototype set to an Error object,
+      // when using `instanceof Error` check, it returns `true`, because calls
+      // like this, are always going up the prototype chain and will verify
+      // all possible constructors. For example:
+      //
+      // class Foo extends Bar {}
+      // class Bar extends Error {}
+      //
       // var foo = new Foo();
-      // console.log(isPlainObject(foo)); // true
-      // console.log(isError(foo)); // true
-      // console.log(foo instanceof Error); // true
+      //
+      // and now `foo` is instance of every "extension" ever created in the chain
+      //
+      // foo instanceof Foo; // true
+      // foo instanceof Bar; // true (because Foo extends Bar)
+      // foo instanceof Error; // true (because Foo extends Bar that extends Error)
 
       function SchrodingersError() {}
       SchrodingersError.prototype = new Error("Schrödinger's cat was here");
