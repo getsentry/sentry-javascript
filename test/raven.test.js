@@ -3066,8 +3066,10 @@ describe('Raven (public API)', function() {
         var error = new ErrorEvent('pickleRick', {error: new Error('pickleRick')});
         this.sinon.stub(Raven, 'isSetup').returns(true);
         this.sinon.stub(Raven, '_handleStackInfo');
+        this.sinon.spy(Raven, '_getCaptureExceptionOptionsFromPlainObject');
         Raven.captureException(error, {foo: 'bar'});
         assert.isTrue(Raven._handleStackInfo.calledOnce);
+        assert.isFalse(Raven._getCaptureExceptionOptionsFromPlainObject.called);
       });
 
       it('should send ErrorEvents without Errors as messages', function() {
@@ -3078,6 +3080,29 @@ describe('Raven (public API)', function() {
         assert.isTrue(Raven.captureMessage.calledOnce);
       });
     }
+
+    it("should treat Schrodinger's Error in the same way as regular Error", function() {
+      // Schrodinger's Error is an object that is and is not an Error at the same time
+      // Like... error, but not really.
+      // But error.
+      //
+      // function Foo() {};
+      // Foo.prototype = new Error();
+      // var foo = new Foo();
+      // console.log(isPlainObject(foo)); // true
+      // console.log(isError(foo)); // true
+      // console.log(foo instanceof Error); // true
+
+      function SchrodingersError() {}
+      SchrodingersError.prototype = new Error("Schrödinger's cat was here");
+      var error = new SchrodingersError();
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_handleStackInfo');
+      this.sinon.spy(Raven, '_getCaptureExceptionOptionsFromPlainObject');
+      Raven.captureException(error, {foo: 'bar'});
+      assert.isTrue(Raven._handleStackInfo.calledOnce);
+      assert.isFalse(Raven._getCaptureExceptionOptionsFromPlainObject.called);
+    });
 
     it('should call handleStackInfo', function() {
       var error = new Error('pickleRick');

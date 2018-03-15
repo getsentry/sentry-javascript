@@ -461,18 +461,18 @@ Raven.prototype = {
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
 
-    if (isPlainObject(ex)) {
-      // If it is plain Object, serialize it manually and extract options
-      // This will allow us to group events based on top-level keys
-      // which is much better than creating new group when any key/value change
-      options = this._getCaptureExceptionOptionsFromPlainObject(options, ex);
-      ex = new Error(options.message);
-    } else if (isErrorEvent(ex) && ex.error) {
+    if (isErrorEvent(ex) && ex.error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       ex = ex.error;
     } else if (isError(ex)) {
       // we have a real Error object
       ex = ex;
+    } else if (isPlainObject(ex)) {
+      // If it is plain Object, serialize it manually and extract options
+      // This will allow us to group events based on top-level keys
+      // which is much better than creating new group when any key/value change
+      options = this._getCaptureExceptionOptionsFromPlainObject(options, ex);
+      ex = new Error(options.message);
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a plain Object
