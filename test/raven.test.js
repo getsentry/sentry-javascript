@@ -3066,8 +3066,10 @@ describe('Raven (public API)', function() {
         var error = new ErrorEvent('pickleRick', {error: new Error('pickleRick')});
         this.sinon.stub(Raven, 'isSetup').returns(true);
         this.sinon.stub(Raven, '_handleStackInfo');
+        this.sinon.spy(Raven, '_getCaptureExceptionOptionsFromPlainObject');
         Raven.captureException(error, {foo: 'bar'});
         assert.isTrue(Raven._handleStackInfo.calledOnce);
+        assert.isFalse(Raven._getCaptureExceptionOptionsFromPlainObject.called);
       });
 
       it('should send ErrorEvents without Errors as messages', function() {
@@ -3078,6 +3080,44 @@ describe('Raven (public API)', function() {
         assert.isTrue(Raven.captureMessage.calledOnce);
       });
     }
+
+    it("should treat Schrodinger's Error in the same way as regular Error", function() {
+      // Schrodinger's Error is an object that is and is not an Error at the same time
+      // Like... error, but not really.
+      // But error.
+      //
+      // To be more exact, it's an object literal or an instance of constructor function
+      // that has it's prototype set to the Error object itself.
+      // When using `isPlanObject`, which makes a call to `Object.prototype.toString`,
+      // it returns `[object Object]`, because any instance created with `new X`
+      // where X is a custom constructor like `function X () {}`, it's return value
+      // is an object literal.
+      // However, because it has it's prototype set to an Error object,
+      // when using `instanceof Error` check, it returns `true`, because calls
+      // like this, are always going up the prototype chain and will verify
+      // all possible constructors. For example:
+      //
+      // class Foo extends Bar {}
+      // class Bar extends Error {}
+      //
+      // var foo = new Foo();
+      //
+      // and now `foo` is instance of every "extension" ever created in the chain
+      //
+      // foo instanceof Foo; // true
+      // foo instanceof Bar; // true (because Foo extends Bar)
+      // foo instanceof Error; // true (because Foo extends Bar that extends Error)
+
+      function SchrodingersError() {}
+      SchrodingersError.prototype = new Error("Schrödinger's cat was here");
+      var error = new SchrodingersError();
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_handleStackInfo');
+      this.sinon.spy(Raven, '_getCaptureExceptionOptionsFromPlainObject');
+      Raven.captureException(error, {foo: 'bar'});
+      assert.isTrue(Raven._handleStackInfo.calledOnce);
+      assert.isFalse(Raven._getCaptureExceptionOptionsFromPlainObject.called);
+    });
 
     it('should call handleStackInfo', function() {
       var error = new Error('pickleRick');
