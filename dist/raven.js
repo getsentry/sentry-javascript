@@ -1,4 +1,4 @@
-/*! Raven.js 3.23.2 (72f8e05) | github.com/getsentry/raven-js */
+/*! Raven.js 3.23.3 (f261ec2) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -204,7 +204,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.23.2',
+  VERSION: '3.23.3',
 
   debug: false,
 
@@ -529,32 +529,31 @@ Raven.prototype = {
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
 
-    if (isPlainObject(ex)) {
+    if (isErrorEvent(ex) && ex.error) {
+      // If it is an ErrorEvent with `error` property, extract it to get actual Error
+      ex = ex.error;
+    } else if (isError(ex)) {
+      // we have a real Error object
+      ex = ex;
+    } else if (isPlainObject(ex)) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
       options = this._getCaptureExceptionOptionsFromPlainObject(options, ex);
       ex = new Error(options.message);
-      
-    } else if (isErrorEvent(ex) && ex.error) {
-      // If it is an ErrorEvent with `error` property, extract it to get actual Error
-      ex = ex.error;
-    } else if (isError(ex)){
-      // we have a real Error object
-      ex = ex;
     } else {
-        // If none of previous checks were valid, then it means that 
-        // it's not a plain Object
-        // it's not a valid ErrorEvent (one with an error property)
-        // it's not an Error
-        // So bail out and capture it as a simple message:
-        return this.captureMessage(
-            ex,
-            objectMerge(options, {
-              stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
-              trimHeadFrames: options.trimHeadFrames + 1
-            })
-          );
+      // If none of previous checks were valid, then it means that
+      // it's not a plain Object
+      // it's not a valid ErrorEvent (one with an error property)
+      // it's not an Error
+      // So bail out and capture it as a simple message:
+      return this.captureMessage(
+        ex,
+        objectMerge(options, {
+          stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
+          trimHeadFrames: options.trimHeadFrames + 1
+        })
+      );
     }
 
     // Store the raw exception object for potential debugging and introspection

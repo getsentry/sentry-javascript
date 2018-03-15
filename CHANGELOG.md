@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.23.3
+
+* BUGFIX: Fix detection of custom error objects in `captureException` method, aka "Schrodinger's Error"© patch(#1261)
+
 ## 3.23.2
 
 **NOTE**:
