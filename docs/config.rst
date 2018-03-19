@@ -149,6 +149,17 @@ Those configuration options are documented below:
             sampleRate: 0.5 // send 50% of events, drop the other half
         }
 
+.. describe:: sanitizeKeys
+
+    An array of strings representing keys that should be scrubbed from the payload sent to Sentry.
+
+    .. code-block:: javascript
+
+        {
+            sanitizeKeys: ['token', 'userPassword', 'csrf_token']
+        }
+
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being

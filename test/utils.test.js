@@ -26,6 +26,7 @@ var parseUrl = utils.parseUrl;
 var safeJoin = utils.safeJoin;
 var serializeException = utils.serializeException;
 var serializeKeysForMessage = utils.serializeKeysForMessage;
+var sanitize = utils.sanitize;
 
 describe('utils', function() {
   describe('isUndefined', function() {
@@ -694,6 +695,68 @@ describe('utils', function() {
       assert.equal(serializeKeysForMessage(undefined), '');
       assert.equal(serializeKeysForMessage(42), '42');
       assert.equal(serializeKeysForMessage('foo'), 'foo');
+    });
+  });
+
+  describe('sanitize', function() {
+    var sanitizeMask = '********';
+
+    it('should return simple values directly', function() {
+      var actual = sanitize('foo');
+      var expected = 'foo';
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should return same value when no sanitizeKeys passed', function() {
+      var actual = sanitize({foo: 42});
+      var expected = {foo: 42};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should return same value when empty sanitizeKeys array passed', function() {
+      var actual = sanitize({foo: 42}, []);
+      var expected = {foo: 42};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize flat objects', function() {
+      var actual = sanitize({foo: 42}, ['foo']);
+      var expected = {foo: sanitizeMask};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize flat objects with multiple keys', function() {
+      var actual = sanitize({foo: 42, bar: 'abc', baz: 1337}, ['foo', 'baz']);
+      var expected = {foo: sanitizeMask, bar: 'abc', baz: sanitizeMask};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize flat objects when value is a plain object or array', function() {
+      var actual = sanitize({foo: {bar: 42}}, ['foo']);
+      var expected = {foo: sanitizeMask};
+      assert.deepEqual(actual, expected);
+
+      actual = sanitize({foo: [42, 'abc']}, ['foo']);
+      expected = {foo: sanitizeMask};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize nested objects keys', function() {
+      var actual = sanitize({foo: {bar: 42}}, ['bar']);
+      var expected = {foo: {bar: sanitizeMask}};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize objects nested in arrays', function() {
+      var actual = sanitize({foo: [{bar: 42}, 42]}, ['bar']);
+      var expected = {foo: [{bar: sanitizeMask}, 42]};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should sanitize every object when array provided as input', function() {
+      var actual = sanitize([{foo: 42}, {bar: 42}, 42], ['foo', 'bar']);
+      var expected = [{foo: sanitizeMask}, {bar: sanitizeMask}, 42];
+      assert.deepEqual(actual, expected);
     });
   });
 });

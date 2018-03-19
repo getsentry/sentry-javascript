@@ -535,6 +535,30 @@ function serializeKeysForMessage(keys, maxLength) {
   return '';
 }
 
+function sanitize(input, sanitizeKeys) {
+  sanitizeKeys = isArray(sanitizeKeys) ? sanitizeKeys : [];
+  var sanitizeMask = '********';
+
+  if (isArray(input)) {
+    return input.map(function(val) {
+      return sanitize(val, sanitizeKeys);
+    });
+  }
+
+  if (isPlainObject(input)) {
+    return Object.keys(input).reduce(function(acc, k) {
+      if (sanitizeKeys.indexOf(k) > -1) {
+        acc[k] = sanitizeMask;
+      } else {
+        acc[k] = sanitize(input[k], sanitizeKeys);
+      }
+      return acc;
+    }, {});
+  }
+
+  return input;
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -566,5 +590,6 @@ module.exports = {
   fill: fill,
   safeJoin: safeJoin,
   serializeException: serializeException,
-  serializeKeysForMessage: serializeKeysForMessage
+  serializeKeysForMessage: serializeKeysForMessage,
+  sanitize: sanitize
 };
