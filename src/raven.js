@@ -1244,7 +1244,7 @@ Raven.prototype = {
     }
 
     if (autoBreadcrumbs.xhr && 'XMLHttpRequest' in _window) {
-      var xhrproto = XMLHttpRequest.prototype;
+      var xhrproto = _window.XMLHttpRequest.prototype;
       fill(
         xhrproto,
         'open',
