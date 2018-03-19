@@ -1,7 +1,18 @@
+// tslint:disable-next-line:no-submodule-imports
+import { forget } from '@sentry/utils/dist/lib/async';
 import { FrontendBase } from '../../src/lib/base';
 import { SdkInfo } from '../../src/lib/domain';
-import { Sdk } from '../../src/lib/sdk';
 import { TestBackend, TestOptions } from './backend';
+
+import { bindClient, getCurrentClient } from '../../src/lib/shim';
+export {
+  addBreadcrumb,
+  captureException,
+  captureMessage,
+  setExtraContext,
+  setUserContext,
+  setTagsContext,
+} from '../../src/lib/shim';
 
 export const TEST_SDK = {
   name: 'sentry-test',
@@ -30,5 +41,10 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
   }
 }
 
-// tslint:disable-next-line:variable-name
-export const TestClient = new Sdk(TestFrontend);
+export function create(options: TestOptions): void {
+  if (!getCurrentClient()) {
+    const client = new TestFrontend(options);
+    forget(client.install());
+    bindClient(client);
+  }
+}

@@ -1,5 +1,6 @@
 import { Breadcrumb, Context, SentryEvent } from './domain';
 import { DSN } from './dsn';
+import { Scope } from './shim';
 import { SendStatus } from './status';
 
 /** Console logging verbosity for the SDK. */
@@ -154,7 +155,7 @@ export interface Frontend<O extends Options = Options> {
    * the returned Promise has resolved before issuing methods such as
    * {@link Frontend.captureException} or {@link Frontend.captureBreadcrumb}.
    *
-   * @returns A Promise that resolves when installation has finished.
+   * @returns If the installation was the successful or not.
    */
   install(): Promise<boolean>;
 
@@ -162,25 +163,28 @@ export interface Frontend<O extends Options = Options> {
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
-   * @returns A Promise that resolves when the exception has been sent.
+   * TODO
+   * @returns The created event id.
    */
-  captureException(exception: any): Promise<void>;
+  captureException(exception: any, scope: Scope): Promise<void>;
 
   /**
    * Captures a message event and sends it to Sentry.
    *
    * @param message The message to send to Sentry.
-   * @returns A Promise that resolves when the message has been sent.
+   * TODO
+   * @returns The created event id.
    */
-  captureMessage(message: string): Promise<void>;
+  captureMessage(message: string, scope: Scope): Promise<void>;
 
   /**
    * Captures a manually created event and sends it to Sentry.
    *
    * @param event The event to send to Sentry.
-   * @returns A Promise that resolves when the event has been sent.
+   * TODO
+   * @returns The created event id.
    */
-  captureEvent(event: SentryEvent): Promise<void>;
+  captureEvent(event: SentryEvent, scope: Scope): Promise<void>;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -190,9 +194,9 @@ export interface Frontend<O extends Options = Options> {
    * of breadcrumbs, use {@link Options.maxBreadcrumbs}.
    *
    * @param breadcrumb The breadcrumb to record.
-   * @returns A Promise that resolves when the breadcrumb has been persisted.
+   * TODO
    */
-  addBreadcrumb(breadcrumb: Breadcrumb): Promise<void>;
+  addBreadcrumb(breadcrumb: Breadcrumb, scope: Scope): void;
 
   /** Returns the current DSN. */
   getDSN(): DSN | undefined;
@@ -204,20 +208,16 @@ export interface Frontend<O extends Options = Options> {
    * Updates SDK options with the provided values.
    *
    * @param options A partial options object to merge into current options.
-   * @returns A Promise that resolves when the new options have been applied.
    */
-  setOptions(options: O): Promise<void>;
-
-  /** Resolves the current context. */
-  getContext(): Promise<Context>;
+  setOptions(options: O): void;
 
   /**
    * Updates context information (user, tags, extras) for future events.
    *
    * @param context A partial context object to merge into current context.
-   * @returns A Promise that resolves when the new context has been merged.
+   * TODO
    */
-  setContext(context: Context): Promise<void>;
+  setContext(context: Context, scope: Scope): void;
 }
 
 /**
@@ -246,26 +246,11 @@ export interface Backend {
   install(): Promise<boolean>;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any): Promise<SentryEvent>;
+  eventFromException(exception: any, scope: Scope): Promise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string): Promise<SentryEvent>;
+  eventFromMessage(message: string, scope: Scope): Promise<SentryEvent>;
 
   /** Submits the event to Sentry */
-  sendEvent(event: SentryEvent): Promise<number>;
-
-  /** Receives the full merged context and stores it persistently. */
-  storeContext(context: Context): Promise<void>;
-
-  /** Returns the latest context including SDK defaults. */
-  loadContext(): Promise<Context>;
-
-  /**
-   * Receives a list of breadcrumbs and stores them persistently. If previously
-   * stored breadcrumbs are missing, they should be deleted.
-   */
-  storeBreadcrumbs(breadcrumbs: Breadcrumb[]): Promise<void>;
-
-  /** Returns the full list of stored breadcrumbs (or empty) */
-  loadBreadcrumbs(): Promise<Breadcrumb[]>;
+  sendEvent(event: SentryEvent, scope: Scope): Promise<number>;
 }

@@ -1,5 +1,6 @@
 import { Breadcrumb, Context, SentryEvent } from '../../src/lib/domain';
 import { Backend, Frontend, Options } from '../../src/lib/interfaces';
+import { Scope } from '../../src/lib/shim';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -24,7 +25,10 @@ export class TestBackend implements Backend {
     return !this.frontend.getOptions().mockInstallFailure;
   }
 
-  public async eventFromException(exception: any): Promise<SentryEvent> {
+  public async eventFromException(
+    exception: any,
+    _: Scope,
+  ): Promise<SentryEvent> {
     return {
       exception: [
         {
@@ -43,21 +47,5 @@ export class TestBackend implements Backend {
   public async sendEvent(event: SentryEvent): Promise<number> {
     this.event = event;
     return 200;
-  }
-
-  public async storeContext(context: Context): Promise<void> {
-    this.context = context;
-  }
-
-  public async loadContext(): Promise<Context> {
-    return this.context || {};
-  }
-
-  public async storeBreadcrumbs(breadcrumbs: Breadcrumb[]): Promise<void> {
-    this.breadcrumbs = breadcrumbs;
-  }
-
-  public async loadBreadcrumbs(): Promise<Breadcrumb[]> {
-    return this.breadcrumbs;
   }
 }
