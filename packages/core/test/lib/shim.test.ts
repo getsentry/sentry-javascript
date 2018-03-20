@@ -1,4 +1,4 @@
-import { popScope, pushScope, withScope } from '@sentry/shim';
+import { popScope, pushScope } from '@sentry/shim';
 import { expect } from 'chai';
 import { SentryEvent } from '../../src';
 import { TestBackend } from '../mocks/backend';

@@ -1,16 +1,19 @@
 // tslint:disable-next-line:no-submodule-imports
 import { forget } from '@sentry/utils/dist/lib/async';
 import { FrontendBase } from '../../src/lib/base';
-import { SdkInfo } from '../../src/lib/domain';
+import { Breadcrumb, SdkInfo, User } from '../../src/lib/domain';
 import { TestBackend, TestOptions } from './backend';
 
-import { bindClient, getCurrentClient } from '@sentry/shim';
+import {
+  addBreadcrumb as shimAddBreadcrumb,
+  bindClient,
+  getCurrentClient,
+  setUserContext as shimSetUserContext,
+} from '@sentry/shim';
 export {
-  addBreadcrumb,
   captureException,
   captureMessage,
   setExtraContext,
-  setUserContext,
   setTagsContext,
 } from '@sentry/shim';
 
@@ -47,4 +50,12 @@ export function create(options: TestOptions): void {
     forget(client.install());
     bindClient(client);
   }
+}
+
+export function addBreadcrumb(breadcrumb: Breadcrumb): void {
+  shimAddBreadcrumb(breadcrumb);
+}
+
+export function setUserContext(user: User): void {
+  shimSetUserContext(user);
 }

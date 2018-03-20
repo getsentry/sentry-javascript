@@ -65,16 +65,19 @@ function _getProcessStackTop(): ScopeLayer {
  * TODO
  */
 function _getDomainStack(): ScopeLayer[] | undefined {
-  return undefined;
-  // TODO real node domain handling
-  // if (!domain.active) {
-  //   return undefined;
-  // }
-  // let sentry = domain.active.__SENTRY__;
-  // if (!sentry) {
-  //   domain.active.__SENTRY__ = sentry = { domainStack: [] };
-  // }
-  // return sentry.domainStack;
+  try {
+    const domain = require('domain');
+    if (!domain.active) {
+      return undefined;
+    }
+    let sentry = domain.active.__SENTRY__;
+    if (!sentry) {
+      domain.active.__SENTRY__ = sentry = { domainStack: [] };
+    }
+    return sentry.domainStack;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
