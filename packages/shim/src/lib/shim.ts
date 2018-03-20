@@ -1,5 +1,6 @@
 // tslint:disable-next-line:no-submodule-imports
 import { forget } from '@sentry/utils/dist/lib/async';
+import { shimDomain } from './domain';
 
 /**
  * TODO
@@ -52,19 +53,14 @@ function _getProcessStackTop(): ScopeLayer {
  * TODO
  */
 function _getDomainStack(): ScopeLayer[] | undefined {
-  try {
-    const domain = require('domain');
-    if (!domain.active) {
-      return undefined;
-    }
-    let sentry = domain.active.__SENTRY__;
-    if (!sentry) {
-      domain.active.__SENTRY__ = sentry = { domainStack: [] };
-    }
-    return sentry.domainStack;
-  } catch {
+  if (!shimDomain.active) {
     return undefined;
   }
+  let sentry = shimDomain.active.__SENTRY__;
+  if (!sentry) {
+    shimDomain.active.__SENTRY__ = sentry = { domainStack: [] };
+  }
+  return sentry.domainStack;
 }
 
 /**
@@ -178,6 +174,17 @@ export function captureMessage(message: string): void {
   const top = getStackTop();
   if (top.client) {
     forget(top.client.captureMessage(message, top.data));
+  }
+}
+
+/**
+ * TODO
+ * @param event T
+ */
+export function captureEvent(event: any): void {
+  const top = getStackTop();
+  if (top.client) {
+    forget(top.client.captureEvent(event, top.data));
   }
 }
 

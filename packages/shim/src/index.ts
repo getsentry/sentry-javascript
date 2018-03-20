@@ -4,6 +4,7 @@ export {
   pushScope,
   popScope,
   withScope,
+  captureEvent,
   captureException,
   captureMessage,
   addBreadcrumb,

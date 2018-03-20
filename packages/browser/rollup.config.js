@@ -2,6 +2,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
+import shim from 'rollup-plugin-shim';
 
 export default [
   {
@@ -12,7 +13,12 @@ export default [
       exports: 'named',
       interop: false,
     },
-    external: ['raven-js', '@sentry/core', '@sentry/utils'],
+    external: [
+      'raven-js',
+      '@sentry/core',
+      '@sentry/utils/dist/lib/async',
+      '@sentry/shim',
+    ],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
@@ -42,6 +48,9 @@ export default [
         browser: true,
       }),
       commonjs(),
+      shim({
+        domain: `export var active = false;`,
+      }),
       uglify(),
     ],
   },

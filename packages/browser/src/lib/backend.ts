@@ -1,7 +1,5 @@
 import {
   Backend,
-  Breadcrumb,
-  Context,
   Frontend,
   Options,
   SentryError,
@@ -9,9 +7,7 @@ import {
   SentryException,
 } from '@sentry/core';
 // If we import the whole module here, we bundle the whole package
-// tslint:disable-next-line:no-submodule-imports
-import { forget } from '@sentry/utils/dist/lib/async';
-
+import { addBreadcrumb, captureEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
@@ -82,10 +78,6 @@ export interface BrowserOptions extends Options {
 export class BrowserBackend implements Backend {
   /** Handle to the SDK frontend for callbacks. */
   private readonly frontend: Frontend<BrowserOptions>;
-  /** In memory store for breadcrumbs. */
-  private breadcrumbs: Breadcrumb[] = [];
-  /** In memory store for context infos. */
-  private context: Context = {};
 
   /** Creates a new browser backend instance. */
   public constructor(frontend: Frontend<BrowserOptions>) {
@@ -112,16 +104,15 @@ export class BrowserBackend implements Backend {
     // both breadcrumbs created internally by Raven and pass them to the
     // Frontend first, before actually capturing them.
     Raven.setBreadcrumbCallback(breadcrumb => {
-      forget(this.frontend.addBreadcrumb(breadcrumb));
+      addBreadcrumb(breadcrumb);
       return false;
     });
 
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
-    Raven._sendProcessedPayload = event => {
-      forget(this.frontend.captureEvent(normalizeRavenEvent(event)));
-    };
+    Raven._sendProcessedPayload = event =>
+      captureEvent(normalizeRavenEvent(event));
 
     return true;
   }
@@ -165,20 +156,6 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async storeContext(context: Context): Promise<void> {
-    this.context = { ...context };
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async loadContext(): Promise<Context> {
-    return this.context;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public async sendEvent(event: SentryEvent): Promise<number> {
     return new Promise<number>(resolve => {
       sendRavenEvent(prepareEventForRaven(event), error => {
@@ -186,19 +163,5 @@ export class BrowserBackend implements Backend {
         resolve(error ? 500 : 200);
       });
     });
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async storeBreadcrumbs(breadcrumbs: Breadcrumb[]): Promise<void> {
-    this.breadcrumbs = [...breadcrumbs];
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async loadBreadcrumbs(): Promise<Breadcrumb[]> {
-    return [...this.breadcrumbs];
   }
 }
