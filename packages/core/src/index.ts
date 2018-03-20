@@ -15,4 +15,3 @@ export {
 export { DSN, DSNComponents, DSNLike, DSNProtocol } from './lib/dsn';
 export { SentryError } from './lib/error';
 export { Backend, Frontend, LogLevel, Options } from './lib/interfaces';
-export { FrontendClass, Sdk } from './lib/sdk';

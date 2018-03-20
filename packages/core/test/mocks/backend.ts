@@ -1,4 +1,4 @@
-import { Breadcrumb, Context, SentryEvent } from '../../src/lib/domain';
+import { SentryEvent } from '../../src/lib/domain';
 import { Backend, Frontend, Options } from '../../src/lib/interfaces';
 import { Scope } from '../../src/lib/shim';
 
@@ -12,8 +12,6 @@ export class TestBackend implements Backend {
 
   public installed: number;
   public event?: SentryEvent;
-  public context?: Context;
-  public breadcrumbs: Breadcrumb[] = [];
 
   public constructor(private readonly frontend: Frontend<TestOptions>) {
     TestBackend.instance = this;
