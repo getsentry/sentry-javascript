@@ -1,7 +1,14 @@
-import { Breadcrumb, Context, SentryEvent } from './domain';
+import { Breadcrumb, Context, Scope, SentryEvent } from './domain';
 import { DSN } from './dsn';
-import { Scope } from './shim';
 import { SendStatus } from './status';
+
+/**
+ * tet
+ */
+export interface Scope {
+  breadcrumbs: Breadcrumb[];
+  context: Context;
+}
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {

@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/core",
+  "name": "@sentry/shim",
   "version": "0.4.1",
-  "description": "Base implementation for all Sentry JavaScript SDKs",
+  "description": "Sentry shim which can be used in libraries",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
   "license": "BSD-3-Clause",
@@ -14,7 +14,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/shim": "0.4.1",
     "@sentry/utils": "0.4.1"
   },
   "devDependencies": {
@@ -24,7 +23,6 @@
     "prettier": "^1.11.1",
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.2",
-    "sinon": "^4.4.2",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2"
   },

@@ -1,6 +1,5 @@
 // tslint:disable-next-line:no-submodule-imports
 import { forget } from '@sentry/utils/dist/lib/async';
-import { Breadcrumb, Context, Frontend, Options, User } from '..';
 
 export type StackType = 'process' | 'domain' | 'local';
 
@@ -8,8 +7,8 @@ export type StackType = 'process' | 'domain' | 'local';
  * TODO
  */
 export interface Scope {
-  breadcrumbs: Breadcrumb[];
-  context: Context;
+  breadcrumbs: object[];
+  context: object;
 }
 
 const defaultStackData: Scope = {
@@ -24,7 +23,8 @@ export class ScopeLayer {
   public constructor(
     public type: StackType,
     public data: Scope = defaultStackData,
-    public client?: Frontend,
+    // tslint:disable-next-line:use-default-type-parameter
+    public client?: any,
   ) {}
 }
 
@@ -39,7 +39,7 @@ interface Global {
 
 declare var global: Global;
 
-global.__SENTRY__ = {
+global.__SENTRY__ = global.__SENTRY__ || {
   processStack: [],
 };
 
@@ -103,25 +103,25 @@ function getStackTop(): ScopeLayer {
 /**
  * TODO
  */
-export function getCurrentClient(): Frontend | undefined {
+export function getCurrentClient(): any | undefined {
   return getStackTop().client;
 }
 
 /**
  * TODO
  */
-export function bindClient(client: Frontend): void {
+export function bindClient(client: any): void {
   getStackTop().client = client;
 }
 
 /**
  * TODO
  */
-export function pushScope(frontend?: Frontend): void {
+export function pushScope(client?: any): void {
   const layer = new ScopeLayer(
     'local',
     defaultStackData,
-    frontend || getCurrentClient(),
+    client || getCurrentClient(),
   );
   const stack = _getDomainStack();
   if (stack !== undefined) {
@@ -193,7 +193,7 @@ export function captureMessage(message: string): void {
  * TODO
  * @returns A Promise that resolves when the breadcrumb has been persisted.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): void {
+export function addBreadcrumb(breadcrumb: object): void {
   const top = getStackTop();
   if (top.client) {
     top.client.addBreadcrumb(breadcrumb, top.data);
@@ -207,7 +207,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param context A partial context object to merge into current context.
  * @returns A Promise that resolves when the new context has been merged.
  */
-export function setUserContext(user: User): void {
+export function setUserContext(user: object): void {
   const top = getStackTop();
   if (top.client) {
     top.client.setContext({ user }, top.data);

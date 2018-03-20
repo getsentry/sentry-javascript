@@ -4,7 +4,7 @@ import { FrontendBase } from '../../src/lib/base';
 import { SdkInfo } from '../../src/lib/domain';
 import { TestBackend, TestOptions } from './backend';
 
-import { bindClient, getCurrentClient } from '../../src/lib/shim';
+import { bindClient, getCurrentClient } from '@sentry/shim';
 export {
   addBreadcrumb,
   captureException,
@@ -12,7 +12,7 @@ export {
   setExtraContext,
   setUserContext,
   setTagsContext,
-} from '../../src/lib/shim';
+} from '@sentry/shim';
 
 export const TEST_SDK = {
   name: 'sentry-test',

@@ -1,8 +1,11 @@
-import { Breadcrumb, Context, SdkInfo, SentryEvent } from './domain';
+import { Breadcrumb, Context, Scope, SdkInfo, SentryEvent } from './domain';
 import { DSN } from './dsn';
 import { Backend, Frontend, Options } from './interfaces';
-import { Scope } from './shim';
 import { SendStatus } from './status';
+
+/**
+ * tet
+ */
 
 /**
  * Default maximum number of breadcrumbs added to an event.

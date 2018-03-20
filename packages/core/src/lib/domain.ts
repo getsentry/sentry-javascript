@@ -117,3 +117,9 @@ export interface SentryEvent extends Context {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
 }
+
+/** TODO */
+export interface Scope {
+  breadcrumbs: Breadcrumb[];
+  context: Context;
+}
