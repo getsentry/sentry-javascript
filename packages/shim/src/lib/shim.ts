@@ -26,7 +26,6 @@ class ScopeLayer {
   public constructor(
     public type: StackType,
     public data: any = {},
-    // tslint:disable-next-line:use-default-type-parameter
     public client?: any,
   ) {}
 }
@@ -96,17 +95,21 @@ export function getCurrentClient(): any | undefined {
 /**
  * TODO
  */
-export function getInitalScope(): any {
-  return getStackTop().data;
+function getInitalScope(): any {
+  let initalScope = {};
+  try {
+    initalScope = getCurrentClient() && getCurrentClient().getInitialScope();
+  } catch {
+    // we do nothing
+  }
+  return initalScope;
 }
 
 /**
  * TODO
  */
-export function bindClient(client: any, initalScope: object): void {
-  const stack = getStackTop();
-  stack.client = client;
-  stack.data = initalScope;
+export function bindClient(client: any): void {
+  getStackTop().client = client;
 }
 
 /**

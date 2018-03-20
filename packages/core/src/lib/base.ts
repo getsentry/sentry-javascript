@@ -211,6 +211,16 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   }
 
   /**
+   * @inheritDoc
+   */
+  public getInitialScope(): Scope {
+    return {
+      breadcrumbs: [],
+      context: {},
+    };
+  }
+
+  /**
    * Returns the current used SDK version and name. {@link SdkInfo}
    * @returns SdkInfo
    */

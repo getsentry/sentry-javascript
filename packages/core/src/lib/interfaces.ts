@@ -225,6 +225,9 @@ export interface Frontend<O extends Options = Options> {
    * TODO
    */
   setContext(context: Context, scope: Scope): void;
+
+  /** Returns the inital scope for the shim. */
+  getInitialScope(): Scope;
 }
 
 /**
