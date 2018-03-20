@@ -1,6 +1,24 @@
-import { FrontendBase, Sdk, SdkInfo } from '@sentry/core';
+import { Breadcrumb, FrontendBase, SdkInfo, User } from '@sentry/core';
+import {
+  addBreadcrumb as shimAddBreadcrumb,
+  bindClient,
+  getCurrentClient,
+  setUserContext as shimSetUserContext,
+} from '@sentry/shim';
+// tslint:disable-next-line:no-submodule-imports
+import { forget } from '@sentry/utils/dist/lib/async';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
+
+export {
+  captureEvent,
+  captureException,
+  captureMessage,
+  popScope,
+  pushScope,
+  setExtraContext,
+  setTagsContext,
+} from '@sentry/shim';
 
 /**
  * The Sentry Node SDK Frontend.
@@ -68,5 +86,26 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
  *
  * @see NodeOptions for documentation on configuration options.
  */
-// tslint:disable-next-line:variable-name
-export const SentryClient = new Sdk(NodeFrontend);
+export function create(options: NodeOptions): void {
+  if (!getCurrentClient()) {
+    const client = new NodeFrontend(options);
+    forget(client.install());
+    bindClient(client);
+  }
+}
+
+/**
+ * TODO
+ * @param breadcrumb
+ */
+export function addBreadcrumb(breadcrumb: Breadcrumb): void {
+  shimAddBreadcrumb(breadcrumb);
+}
+
+/**
+ * TODO
+ * @param breadcrumb
+ */
+export function setUserContext(user: User): void {
+  shimSetUserContext(user);
+}

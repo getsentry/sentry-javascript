@@ -155,6 +155,7 @@ describe('SentryBrowser', () => {
         }),
       );
       captureEvent({ message: 'test' });
+      popScope();
     });
   });
 });

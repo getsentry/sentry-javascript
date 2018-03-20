@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@sentry/core": "0.4.1",
+    "@sentry/shim": "0.4.1",
     "@sentry/utils": "0.4.1",
     "raven": "^2.4.2"
   },

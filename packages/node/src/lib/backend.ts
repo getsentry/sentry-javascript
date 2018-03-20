@@ -7,9 +7,8 @@ import {
   SentryError,
   SentryEvent,
 } from '@sentry/core';
-import { forget } from '@sentry/utils';
+import { addBreadcrumb, captureEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
-
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
 
@@ -42,10 +41,6 @@ export interface NodeOptions extends Options {
 export class NodeBackend implements Backend {
   /** Handle to the SDK frontend for callbacks. */
   private readonly frontend: Frontend<NodeOptions>;
-  /** In memory store for breadcrumbs. */
-  private breadcrumbs: Breadcrumb[] = [];
-  /** In memory store for context infos. */
-  private context: Context = {};
 
   /** Creates a new Node backend instance. */
   public constructor(frontend: Frontend<NodeOptions>) {
@@ -79,7 +74,7 @@ export class NodeBackend implements Backend {
     // both breadcrumbs created internally by Raven and pass them to the
     // Frontend first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
-      forget(this.frontend.addBreadcrumb(breadcrumb));
+      addBreadcrumb(breadcrumb);
     };
 
     // Hook into Raven's internal event sending mechanism. This allows us to
@@ -89,7 +84,7 @@ export class NodeBackend implements Backend {
       if (callback) {
         callback(event);
       } else {
-        forget(this.frontend.captureEvent(event));
+        captureEvent(event);
       }
     };
 
@@ -117,20 +112,6 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async storeContext(context: Context): Promise<void> {
-    this.context = { ...context };
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async loadContext(): Promise<Context> {
-    return this.context;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public async sendEvent(event: SentryEvent): Promise<number> {
     return new Promise<number>(resolve => {
       sendRavenEvent(event, error => {
@@ -138,19 +119,5 @@ export class NodeBackend implements Backend {
         resolve(error ? 500 : 200);
       });
     });
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async storeBreadcrumbs(breadcrumbs: Breadcrumb[]): Promise<void> {
-    this.breadcrumbs = [...breadcrumbs];
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async loadBreadcrumbs(): Promise<Breadcrumb[]> {
-    return [...this.breadcrumbs];
   }
 }
