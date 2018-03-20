@@ -55,35 +55,58 @@ describe('SentryBrowser', () => {
   });
 
   describe('breadcrumbs', () => {
-    it('should record auto breadcrumbs', async () => {
-      new Promise<void>(async resolve => {
-        const sendEventStub = stub(BrowserBackend.prototype, 'sendEvent');
-        sendEventStub.callsFake(async (event: SentryEvent) => {
-          expect(event.breadcrumbs!).to.have.lengthOf(3);
-          resolve();
-          sendEventStub.restore();
-          return Promise.resolve(200);
-        });
+    let s: sinon.SinonStub;
 
-        addBreadcrumb({ message: 'test1' });
+    beforeEach(() => {
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(
+        Promise.resolve(200),
+      );
+    });
 
-        // Simulates internal capture breadcrumb from raven
-        RavenJS.captureBreadcrumb({
-          category: 'console',
-          level: 'warning',
-          message: 'testy',
-        });
+    afterEach(() => {
+      s.restore();
+    });
 
-        addBreadcrumb({ message: 'test2' });
+    it('should record auto breadcrumbs', done => {
+      pushScope(
+        new BrowserFrontend({
+          afterSend: (event: SentryEvent) => {
+            expect(event.breadcrumbs!).to.have.lengthOf(3);
+            done();
+          },
+          dsn,
+        }),
+      );
 
-        captureMessage('event');
+      addBreadcrumb({ message: 'test1' });
+
+      // Simulates internal capture breadcrumb from raven
+      RavenJS.captureBreadcrumb({
+        category: 'console',
+        level: 'warning',
+        message: 'testy',
       });
+
+      addBreadcrumb({ message: 'test2' });
+
+      captureMessage('event');
     });
   });
 
   describe('capture', () => {
+    let s: sinon.SinonStub;
+
+    beforeEach(() => {
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(
+        Promise.resolve(200),
+      );
+    });
+
+    afterEach(() => {
+      s.restore();
+    });
+
     it('should capture an exception', done => {
-      const sendEventStub = stub(BrowserBackend.prototype, 'sendEvent');
       pushScope(
         new BrowserFrontend({
           afterSend: (event: SentryEvent) => {
@@ -92,13 +115,11 @@ describe('SentryBrowser', () => {
             expect(event.exception![0].type).to.equal('Error');
             expect(event.exception![0].value).to.equal('test');
             expect(event.exception![0].stacktrace).to.not.be.empty;
-            sendEventStub.restore();
             done();
           },
           dsn,
         }),
       );
-      sendEventStub.returns(Promise.resolve(200));
       try {
         throw new Error('test');
       } catch (e) {
@@ -108,32 +129,26 @@ describe('SentryBrowser', () => {
     });
 
     it('should capture a message', done => {
-      const sendEventStub = stub(BrowserBackend.prototype, 'sendEvent');
       pushScope(
         new BrowserFrontend({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
-            sendEventStub.restore();
             done();
           },
           dsn,
         }),
       );
-      sendEventStub.returns(Promise.resolve(200));
-
       captureMessage('test');
       popScope();
     });
 
     it('should capture an event', done => {
-      const sendEventStub = stub(BrowserBackend.prototype, 'sendEvent');
       pushScope(
         new BrowserFrontend({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
-            sendEventStub.restore();
             done();
           },
           dsn,

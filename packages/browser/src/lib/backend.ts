@@ -111,8 +111,9 @@ export class BrowserBackend implements Backend {
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
-    Raven._sendProcessedPayload = event =>
+    Raven._sendProcessedPayload = event => {
       captureEvent(normalizeRavenEvent(event));
+    };
 
     return true;
   }

@@ -105,7 +105,7 @@ export function create(options: BrowserOptions): void {
   if (!getCurrentClient()) {
     const client = new BrowserFrontend(options);
     forget(client.install());
-    bindClient(client, { breadcrumbs: [], context: {} });
+    bindClient(client);
   }
 }
 
