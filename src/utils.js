@@ -412,6 +412,7 @@ function isSameStacktrace(stack1, stack2) {
  * @param track {optional} record instrumentation to an array
  */
 function fill(obj, name, replacement, track) {
+  if (obj == null) return;
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
