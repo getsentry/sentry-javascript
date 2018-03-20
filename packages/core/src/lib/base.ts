@@ -198,7 +198,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * @inheritDoc
    */
   public async setContext(nextContext: Context, scope: Scope): Promise<void> {
-    const context = scope.context;
+    const context = scope.context || {};
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
     }
@@ -257,12 +257,12 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    const breadcrumbs = scope.breadcrumbs;
+    const breadcrumbs = scope.breadcrumbs || [];
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
       prepared.breadcrumbs = breadcrumbs.slice(-maxBreadcrumbs);
     }
 
-    const context = scope.context;
+    const context = scope.context || {};
     if (context.extra) {
       prepared.extra = { ...context.extra, ...event.extra };
     }
@@ -307,7 +307,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
-    const code = await this.getBackend().sendEvent(finalEvent, scope);
+    const code = await this.getBackend().sendEvent(finalEvent);
     const status = SendStatus.fromHttpCode(code);
 
     if (status === SendStatus.RateLimit) {

@@ -48,7 +48,7 @@ export function create(options: TestOptions): void {
   if (!getCurrentClient()) {
     const client = new TestFrontend(options);
     forget(client.install());
-    bindClient(client);
+    bindClient(client, { breadcrumbs: [], context: {} });
   }
 }
 

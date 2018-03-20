@@ -259,5 +259,5 @@ export interface Backend {
   eventFromMessage(message: string, scope: Scope): Promise<SentryEvent>;
 
   /** Submits the event to Sentry */
-  sendEvent(event: SentryEvent, scope: Scope): Promise<number>;
+  sendEvent(event: SentryEvent): Promise<number>;
 }

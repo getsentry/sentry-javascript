@@ -1,6 +1,4 @@
 export {
-  ScopeLayer,
-  Scope,
   getCurrentClient,
   bindClient,
   pushScope,

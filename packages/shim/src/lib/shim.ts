@@ -1,33 +1,6 @@
 // tslint:disable-next-line:no-submodule-imports
 import { forget } from '@sentry/utils/dist/lib/async';
 
-export type StackType = 'process' | 'domain' | 'local';
-
-/**
- * TODO
- */
-export interface Scope {
-  breadcrumbs: object[];
-  context: object;
-}
-
-const defaultStackData: Scope = {
-  breadcrumbs: [],
-  context: {},
-};
-
-/**
- * TODO
- */
-export class ScopeLayer {
-  public constructor(
-    public type: StackType,
-    public data: Scope = defaultStackData,
-    // tslint:disable-next-line:use-default-type-parameter
-    public client?: any,
-  ) {}
-}
-
 /**
  * TODO
  */
@@ -42,6 +15,20 @@ declare var global: Global;
 global.__SENTRY__ = global.__SENTRY__ || {
   processStack: [],
 };
+
+type StackType = 'process' | 'domain' | 'local';
+
+/**
+ * TODO
+ */
+class ScopeLayer {
+  public constructor(
+    public type: StackType,
+    public data: any = {},
+    // tslint:disable-next-line:use-default-type-parameter
+    public client?: any,
+  ) {}
+}
 
 /**
  * TODO
@@ -90,7 +77,7 @@ function _getDomainStackTop(): ScopeLayer | undefined {
   }
   if (stack.length === 0) {
     stack.push(
-      new ScopeLayer('domain', defaultStackData, _getProcessStackTop().client),
+      new ScopeLayer('domain', getInitalScope(), _getProcessStackTop().client),
     );
   }
   return stack[stack.length - 1];
@@ -113,8 +100,17 @@ export function getCurrentClient(): any | undefined {
 /**
  * TODO
  */
-export function bindClient(client: any): void {
-  getStackTop().client = client;
+export function getInitalScope(): any {
+  return getStackTop().data;
+}
+
+/**
+ * TODO
+ */
+export function bindClient(client: any, initalScope: object): void {
+  const stack = getStackTop();
+  stack.client = client;
+  stack.data = initalScope;
 }
 
 /**
@@ -123,7 +119,7 @@ export function bindClient(client: any): void {
 export function pushScope(client?: any): void {
   const layer = new ScopeLayer(
     'local',
-    defaultStackData,
+    getInitalScope(),
     client || getCurrentClient(),
   );
   const stack = _getDomainStack();
@@ -203,7 +199,6 @@ export function addBreadcrumb(breadcrumb: object): void {
   }
 }
 
-// TODO create seperate functions for user and context
 /**
  * Updates context information (user, tags, extras) for future events.
  *
