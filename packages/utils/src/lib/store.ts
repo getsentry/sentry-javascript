@@ -61,9 +61,13 @@ export class Store<T> {
    */
   public get(): T {
     if (this.data === undefined) {
-      this.data = existsSync(this.path)
-        ? (JSON.parse(readFileSync(this.path, 'utf8')) as T)
-        : this.initial;
+      try {
+        this.data = existsSync(this.path)
+          ? (JSON.parse(readFileSync(this.path, 'utf8')) as T)
+          : this.initial;
+      } catch (e) {
+        this.data = this.initial;
+      }
     }
 
     return this.data;
@@ -76,8 +80,11 @@ export class Store<T> {
 
   /** Serializes the current data into the JSON file. */
   private flush(): void {
-    mkdirpSync(dirname(this.path));
-    writeFileSync(this.path, JSON.stringify(this.data));
-    this.flushing = false;
+    try {
+      mkdirpSync(dirname(this.path));
+      writeFileSync(this.path, JSON.stringify(this.data));
+    } finally {
+      this.flushing = false;
+    }
   }
 }
