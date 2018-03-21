@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",

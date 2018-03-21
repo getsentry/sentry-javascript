@@ -1,6 +1,6 @@
 {
   "name": "@sentry/typescript",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Typescript configuration used at Sentry",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
