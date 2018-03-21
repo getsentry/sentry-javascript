@@ -106,6 +106,10 @@ module.exports = function(grunt) {
       src: 'src/singleton.js',
       dest: 'build/raven.js'
     },
+    bloodRaven: {
+      src: 'src/bloodRaven.js',
+      dest: 'build/bloodRaven.js'
+    },
     'plugins-combined': {
       files: pluginConcatFiles,
       options: {
@@ -320,12 +324,9 @@ module.exports = function(grunt) {
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
   grunt.registerTask(
     'browserify.core',
-    ['_prep', 'browserify:core'].concat(browserifyPluginTaskNames)
+    ['browserify:core'].concat(browserifyPluginTaskNames)
   );
-  grunt.registerTask('browserify.plugins-combined', [
-    '_prep',
-    'browserify:plugins-combined'
-  ]);
+
   grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
   grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
   grunt.registerTask('build.plugins-combined', [
@@ -334,8 +335,8 @@ module.exports = function(grunt) {
     'sri:dist',
     'sri:build'
   ]);
-  grunt.registerTask('build', ['build.plugins-combined']);
-  grunt.registerTask('dist', ['build.core', 'copy:dist']);
+  grunt.registerTask('build', ['_prep', 'browserify:bloodRaven', 'browserify:plugins-combined']);
+  grunt.registerTask('dist', ['_prep', 'browserify:bloodRaven', 'build.core', 'copy:dist']);
 
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 
@@ -343,5 +344,5 @@ module.exports = function(grunt) {
   grunt.registerTask('run:test', ['build.test', 'connect:test']);
   grunt.registerTask('run:docs', ['connect:docs']);
 
-  grunt.registerTask('publish', ['build.plugins-combined', 's3']);
+  grunt.registerTask('publish', ['build', 's3']);
 };
