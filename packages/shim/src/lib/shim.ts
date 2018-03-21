@@ -1,5 +1,3 @@
-// tslint:disable-next-line:no-submodule-imports
-import { forget } from '@sentry/utils/dist/lib/async';
 import { shimDomain } from './domain';
 
 const API_VERSION = 1;
@@ -189,6 +187,18 @@ function _getLatestShim(): Shim {
     global.__SENTRY__.shim = new Shim();
   }
   return global.__SENTRY__.shim;
+}
+
+/**
+ * TODO
+ * @param promise
+ */
+function forget(promise?: any): void {
+  if (promise && typeof promise.catch === 'function') {
+    promise.catch((e: any) => {
+      console.error(e);
+    });
+  }
 }
 
 /**
