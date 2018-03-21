@@ -1,4 +1,4 @@
-import { popScope, pushScope, withScope } from '@sentry/shim';
+import { clearScope, popScope, pushScope, withScope } from '@sentry/shim';
 import { expect } from 'chai';
 import { SentryEvent } from '../../src';
 import { TestBackend } from '../mocks/backend';
@@ -74,5 +74,22 @@ describe('Shim', () => {
     addBreadcrumb({ message: 'world' });
     captureException(new Error('test exception'));
     popScope();
+  });
+
+  it('clear scope', done => {
+    withScope(
+      new TestFrontend({
+        afterSend: (event: SentryEvent) => {
+          expect(event.user).to.be.undefined;
+          done();
+        },
+        dsn,
+      }),
+      () => {
+        setUserContext({ id: '1234' });
+        clearScope();
+        captureException(new Error('test exception'));
+      },
+    );
   });
 });

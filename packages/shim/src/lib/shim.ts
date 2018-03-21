@@ -2,24 +2,7 @@
 import { forget } from '@sentry/utils/dist/lib/async';
 import { shimDomain } from './domain';
 
-// We have to hardcode the version here since rollup will include the whole
-// package.json and therefore increase the package size by a lot.
-const CURRENT_VERSION = '0.4.1';
-
-/**
- * TODO
- * @param version
- */
-function versionToInt(version: string): number {
-  let rv = 0;
-  version.split(/\./g).forEach((value: string, index: number) => {
-    const newValue = value.replace(/\D/g, '');
-    if (newValue !== '') {
-      rv += parseInt(newValue, 10) * Math.pow(10000, index);
-    }
-  });
-  return rv;
-}
+const API_VERSION = 1;
 
 /**
  * TODO
@@ -38,22 +21,22 @@ global.__SENTRY__ = global.__SENTRY__ || {
   shim: undefined,
 };
 
-type StackType = 'process' | 'domain' | 'local';
+type LayerType = 'process' | 'domain' | 'local';
 
 /**
  * TODO
  */
 interface ScopeLayer {
   client?: any;
-  data: any;
-  type: StackType;
+  scope: any;
+  type: LayerType;
 }
 
 /**
  * TODO
  */
 class Shim {
-  public constructor(public version: string = CURRENT_VERSION) {}
+  public constructor(public version: number = API_VERSION) {}
 
   /**
    * TODO
@@ -65,8 +48,8 @@ class Shim {
   /**
    * TODO
    */
-  public isOlderThan(version: string): boolean {
-    return versionToInt(CURRENT_VERSION) < versionToInt(version);
+  public isOlderThan(version: number): boolean {
+    return API_VERSION < version;
   }
 
   /**
@@ -76,7 +59,7 @@ class Shim {
     const usedClient = client || getCurrentClient();
     const layer: ScopeLayer = {
       client: usedClient,
-      data: usedClient.getInitialScope(),
+      scope: usedClient.getInitialScope(),
       type: 'local',
     };
     const stack = this.getDomainStack();
@@ -123,6 +106,14 @@ class Shim {
   /**
    * TODO
    */
+  public clearScope(): void {
+    const top = this.getStackTop();
+    top.scope = top.client.getInitialScope();
+  }
+
+  /**
+   * TODO
+   */
   private getProcessStack(): ScopeLayer[] {
     return global.__SENTRY__.processStack;
   }
@@ -134,7 +125,7 @@ class Shim {
     const stack = this.getProcessStack();
     if (stack.length === 0) {
       stack.push({
-        data: {},
+        scope: {},
         type: 'process',
       });
     }
@@ -166,7 +157,7 @@ class Shim {
     if (stack.length === 0) {
       stack.push({
         client: getCurrentClient(),
-        data: this.getInitialScope(),
+        scope: this.getInitialScope(),
         type: 'domain',
       });
     }
@@ -193,7 +184,7 @@ class Shim {
 function _getLatestShim(): Shim {
   if (
     global.__SENTRY__.shim === undefined ||
-    global.__SENTRY__.shim.isOlderThan(CURRENT_VERSION)
+    global.__SENTRY__.shim.isOlderThan(API_VERSION)
   ) {
     global.__SENTRY__.shim = new Shim();
   }
@@ -226,6 +217,13 @@ export function withScope(arg1: any, arg2: any): void {
 /**
  * TODO
  */
+export function clearScope(): void {
+  _getLatestShim().clearScope();
+}
+
+/**
+ * TODO
+ */
 export function getCurrentClient(): any | undefined {
   return _getLatestShim().getStackTop().client;
 }
@@ -236,7 +234,7 @@ export function getCurrentClient(): any | undefined {
 export function bindClient(client: any): void {
   const top = _getLatestShim().getStackTop();
   top.client = client;
-  top.data = client.getInitialScope();
+  top.scope = client.getInitialScope();
 }
 
 // api
@@ -250,7 +248,7 @@ export function bindClient(client: any): void {
 export function captureException(exception: any): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    forget(top.client.captureException(exception, top.data));
+    forget(top.client.captureException(exception, top.scope));
   }
 }
 /**
@@ -263,7 +261,7 @@ export function captureException(exception: any): void {
 export function captureMessage(message: string): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    forget(top.client.captureMessage(message, top.data));
+    forget(top.client.captureMessage(message, top.scope));
   }
 }
 
@@ -274,7 +272,7 @@ export function captureMessage(message: string): void {
 export function captureEvent(event: any): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    forget(top.client.captureEvent(event, top.data));
+    forget(top.client.captureEvent(event, top.scope));
   }
 }
 
@@ -292,7 +290,7 @@ export function captureEvent(event: any): void {
 export function addBreadcrumb(breadcrumb: object): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    top.client.addBreadcrumb(breadcrumb, top.data);
+    top.client.addBreadcrumb(breadcrumb, top.scope);
   }
 }
 
@@ -305,7 +303,7 @@ export function addBreadcrumb(breadcrumb: object): void {
 export function setUserContext(user: object): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    top.client.setContext({ user }, top.data);
+    top.client.setContext({ user }, top.scope);
   }
 }
 
@@ -316,7 +314,7 @@ export function setUserContext(user: object): void {
 export function setTagsContext(tags: { [key: string]: string }): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    top.client.setContext({ tags }, top.data);
+    top.client.setContext({ tags }, top.scope);
   }
 }
 
@@ -327,6 +325,6 @@ export function setTagsContext(tags: { [key: string]: string }): void {
 export function setExtraContext(extra: object): void {
   const top = _getLatestShim().getStackTop();
   if (top.client) {
-    top.client.setContext({ extra }, top.data);
+    top.client.setContext({ extra }, top.scope);
   }
 }

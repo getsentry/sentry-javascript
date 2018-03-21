@@ -57,27 +57,11 @@ describe('FrontendBase', () => {
     });
   });
 
-  describe('getOptions() / setOptions()', () => {
+  describe('getOptions()', () => {
     it('returns the options', () => {
       const options = { dsn: PUBLIC_DSN, test: true };
       const frontend = new TestFrontend(options);
       expect(frontend.getOptions()).to.deep.equal(options);
-    });
-
-    it('merges options on update', async () => {
-      const frontend = new TestFrontend({ dsn: PUBLIC_DSN, test: true });
-      await frontend.setOptions({ test: false });
-      expect(frontend.getOptions()).to.deep.equal({
-        dsn: PUBLIC_DSN,
-        test: false,
-      });
-    });
-
-    it('updates the DSN along with options', async () => {
-      const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
-      const dsn = 'https://emanresu@niamod/htap';
-      await frontend.setOptions({ dsn });
-      expect(frontend.getDSN()!.toString()).to.equal(dsn);
     });
   });
 
