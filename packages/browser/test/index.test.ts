@@ -90,6 +90,7 @@ describe('SentryBrowser', () => {
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
+      popScope();
     });
   });
 

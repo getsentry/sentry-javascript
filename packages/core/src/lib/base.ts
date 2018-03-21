@@ -4,10 +4,6 @@ import { Backend, Frontend, Options } from './interfaces';
 import { SendStatus } from './status';
 
 /**
- * tet
- */
-
-/**
  * Default maximum number of breadcrumbs added to an event.
  * Can be overwritten with {@link Options.maxBreadcrumbs}.
  */

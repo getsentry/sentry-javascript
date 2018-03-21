@@ -1,7 +1,5 @@
 import {
   Backend,
-  Breadcrumb,
-  Context,
   Frontend,
   Options,
   SentryError,

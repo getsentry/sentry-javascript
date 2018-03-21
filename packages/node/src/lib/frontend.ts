@@ -1,15 +1,7 @@
-import { Breadcrumb, FrontendBase, SdkInfo, User } from '@sentry/core';
-import {
-  addBreadcrumb as shimAddBreadcrumb,
-  bindClient,
-  getCurrentClient,
-  setUserContext as shimSetUserContext,
-} from '@sentry/shim';
-// tslint:disable-next-line:no-submodule-imports
-import { forget } from '@sentry/utils/dist/lib/async';
+import { createAndBind, FrontendBase, SdkInfo } from '@sentry/core';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
-
+export { addBreadcrumb, setUserContext } from '@sentry/core';
 export {
   captureEvent,
   captureException,
@@ -83,29 +75,9 @@ export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
  *     // ...
  *   ],
  * });
- *
+ * TODO
  * @see NodeOptions for documentation on configuration options.
  */
 export function create(options: NodeOptions): void {
-  if (!getCurrentClient()) {
-    const client = new NodeFrontend(options);
-    forget(client.install());
-    bindClient(client);
-  }
-}
-
-/**
- * TODO
- * @param breadcrumb
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  shimAddBreadcrumb(breadcrumb);
-}
-
-/**
- * TODO
- * @param breadcrumb
- */
-export function setUserContext(user: User): void {
-  shimSetUserContext(user);
+  createAndBind(NodeFrontend, options);
 }
