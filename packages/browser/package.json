@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@sentry/core": "0.4.2",
-    "@sentry/shim": "0.4.1",
+    "@sentry/shim": "0.4.2",
     "@sentry/utils": "0.4.2",
     "raven-js": "^3.23.1"
   },
@@ -43,6 +43,7 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
-    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
+    "size:check":
+      "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'"
   }
 }

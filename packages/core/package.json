@@ -14,8 +14,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/shim": "0.4.1",
-    "@sentry/utils": "0.4.1"
+    "@sentry/shim": "0.4.2",
+    "@sentry/utils": "0.4.2"
   },
   "devDependencies": {
     "chai": "^4.1.2",
