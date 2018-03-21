@@ -2,8 +2,9 @@
 import { forget } from '@sentry/utils/dist/lib/async';
 import { shimDomain } from './domain';
 
-// tslint:disable-next-line:no-var-requires
-const CURRENT_VERSION = require('../../package.json').version;
+// We have to hardcode the version here since rollup will include the whole
+// package.json and therefore increase the package size by a lot.
+const CURRENT_VERSION = '0.4.1';
 
 /**
  * TODO
@@ -96,11 +97,20 @@ class Shim {
     return this.getProcessStack().pop() !== undefined;
   }
 
-  // with scope and client
   /**
    * TODO
    */
-  public withScope(callback: () => void, client?: any): void {
+  public withScope(arg1: (() => void) | any, arg2?: (() => void) | any): void {
+    let client: any = arg2;
+    let callback: () => void = arg1;
+    if (!!(arg1 && arg1.constructor && arg1.call && arg1.apply)) {
+      callback = arg1;
+      client = arg2;
+    }
+    if (!!(arg2 && arg2.constructor && arg2.call && arg2.apply)) {
+      callback = arg2;
+      client = arg1;
+    }
     this.pushScope(client);
     try {
       callback();
@@ -206,8 +216,10 @@ export function popScope(): void {
 /**
  * TODO
  */
-export function withScope(callback: () => void, client?: any): void {
-  _getLatestShim().withScope(callback, client);
+export function withScope(client: any, callback: () => void): void;
+export function withScope(callback: () => void, client?: any): void;
+export function withScope(arg1: any, arg2: any): void {
+  _getLatestShim().withScope(arg1, arg2);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { popScope, pushScope } from '@sentry/shim';
+import { popScope, pushScope, withScope } from '@sentry/shim';
 import { expect } from 'chai';
 import { SentryEvent } from '../../src';
 import { TestBackend } from '../mocks/backend';
@@ -19,7 +19,7 @@ describe('Shim', () => {
   });
 
   it('captures an exception', done => {
-    pushScope(
+    withScope(
       new TestFrontend({
         afterSend: (event: SentryEvent) => {
           expect(event).to.deep.equal({
@@ -36,9 +36,10 @@ describe('Shim', () => {
         },
         dsn,
       }),
+      () => {
+        captureException(new Error('test exception'));
+      },
     );
-    captureException(new Error('test exception'));
-    popScope();
   });
 
   it('sets user context', done => {

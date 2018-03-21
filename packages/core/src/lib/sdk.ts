@@ -17,7 +17,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 }
 
 /**
- * {@see Frontend.addBreadcrumb}
+ * TODO
  */
 export function setUserContext(user: User): void {
   shimSetUserContext(user);

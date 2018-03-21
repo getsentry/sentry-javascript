@@ -31,7 +31,7 @@ export default [
     output: {
       file: 'build/bundle.min.js',
       format: 'iife',
-      name: 'window',
+      name: 'Sentry',
       sourcemap: true,
       interop: false,
       extend: true,
@@ -51,7 +51,12 @@ export default [
       shim({
         domain: `export var active = false;`,
       }),
-      uglify(),
+      // uglify(),
+      uglify({
+        output: {
+          beautify: true,
+        },
+      }),
     ],
   },
 ];

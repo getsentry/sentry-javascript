@@ -3,7 +3,7 @@ import { DSN } from './dsn';
 import { SendStatus } from './status';
 
 /**
- * tet
+ * TODO
  */
 export interface Scope {
   breadcrumbs: Breadcrumb[];
