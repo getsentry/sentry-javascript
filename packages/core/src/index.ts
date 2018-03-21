@@ -18,6 +18,7 @@ export { SentryError } from './lib/error';
 export { Backend, Frontend, LogLevel, Options } from './lib/interfaces';
 export {
   addBreadcrumb,
+  captureEvent,
   createAndBind,
   FrontendClass,
   setUserContext,

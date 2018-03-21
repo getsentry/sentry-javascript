@@ -1,13 +1,13 @@
 import {
+  addBreadcrumb,
   Backend,
+  captureEvent,
   Frontend,
   Options,
   SentryError,
   SentryEvent,
   SentryException,
 } from '@sentry/core';
-// If we import the whole module here, we bundle the whole package
-import { addBreadcrumb, captureEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
@@ -87,7 +87,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async install(): Promise<boolean> {
+  public install(): boolean {
     // We are only called by the frontend if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.

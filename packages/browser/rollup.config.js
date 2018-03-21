@@ -51,12 +51,12 @@ export default [
       shim({
         domain: `export var active = false;`,
       }),
-      // uglify(),
-      uglify({
-        output: {
-          beautify: true,
-        },
-      }),
+      uglify(),
+      // uglify({
+      //   output: {
+      //     beautify: true,
+      //   },
+      // }),
     ],
   },
 ];

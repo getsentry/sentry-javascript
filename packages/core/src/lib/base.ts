@@ -65,10 +65,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * The client DSN, if specified in options. Without this DSN, the SDK will be
    * disabled.
    */
-  private dsn?: DSN;
+  private readonly dsn?: DSN;
 
-  /** A promise that resolves during installation. */
-  private installation?: Promise<boolean>;
+  /** A promise that resolves during installation. TODO */
+  private installation?: boolean;
 
   /**
    * Initializes this frontend instance.
@@ -88,7 +88,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async install(): Promise<boolean> {
+  public install(): boolean {
     if (!this.isEnabled()) {
       return false;
     }
@@ -178,23 +178,8 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async setOptions(nextOptions: O): Promise<void> {
-    if (
-      nextOptions.dsn &&
-      String(this.options.dsn) !== String(nextOptions.dsn)
-    ) {
-      this.dsn = new DSN(nextOptions.dsn);
-    }
-
-    Object.assign(this.options, nextOptions);
-    // TODO: Update options in the backend
-  }
-
-  /**
-   * @inheritDoc
-   */
   public async setContext(nextContext: Context, scope: Scope): Promise<void> {
-    const context = scope.context || {};
+    const context = scope.context;
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
     }
@@ -263,12 +248,12 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    const breadcrumbs = scope.breadcrumbs || [];
+    const breadcrumbs = scope.breadcrumbs;
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
       prepared.breadcrumbs = breadcrumbs.slice(-maxBreadcrumbs);
     }
 
-    const context = scope.context || {};
+    const context = scope.context;
     if (context.extra) {
       prepared.extra = { ...context.extra, ...event.extra };
     }

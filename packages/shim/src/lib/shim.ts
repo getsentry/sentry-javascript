@@ -73,9 +73,10 @@ class Shim {
    * TODO
    */
   public pushScope(client?: any): void {
+    const usedClient = client || getCurrentClient();
     const layer: ScopeLayer = {
-      client: client || getCurrentClient(),
-      data: this.getInitalScope(),
+      client: usedClient,
+      data: usedClient.getInitialScope(),
       type: 'local',
     };
     const stack = this.getDomainStack();
@@ -165,7 +166,7 @@ class Shim {
     if (stack.length === 0) {
       stack.push({
         client: getCurrentClient(),
-        data: this.getInitalScope(),
+        data: this.getInitialScope(),
         type: 'domain',
       });
     }
@@ -175,7 +176,7 @@ class Shim {
   /**
    * TODO
    */
-  private getInitalScope(): any {
+  private getInitialScope(): any {
     let initalScope = {};
     try {
       initalScope = getCurrentClient() && getCurrentClient().getInitialScope();
@@ -233,7 +234,9 @@ export function getCurrentClient(): any | undefined {
  * TODO
  */
 export function bindClient(client: any): void {
-  _getLatestShim().getStackTop().client = client;
+  const top = _getLatestShim().getStackTop();
+  top.client = client;
+  top.data = client.getInitialScope();
 }
 
 // api

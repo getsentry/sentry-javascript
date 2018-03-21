@@ -1,9 +1,8 @@
 import { createAndBind, FrontendBase, SdkInfo } from '@sentry/core';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
-export { addBreadcrumb, setUserContext } from '@sentry/core';
+export { addBreadcrumb, captureEvent, setUserContext } from '@sentry/core';
 export {
-  captureEvent,
   captureException,
   captureMessage,
   popScope,

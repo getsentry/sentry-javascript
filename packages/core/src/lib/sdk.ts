@@ -1,16 +1,22 @@
 import {
   addBreadcrumb as shimAddBreadcrumb,
   bindClient,
+  captureEvent as shimCaptureEvent,
   getCurrentClient,
   setUserContext as shimSetUserContext,
 } from '@sentry/shim';
-// tslint:disable-next-line:no-submodule-imports
-import { forget } from '@sentry/utils/dist/lib/async';
-import { Breadcrumb, User } from './domain';
+import { Breadcrumb, SentryEvent, User } from './domain';
 import { Frontend, Options } from './interfaces';
 
 /**
- * {@link Frontend.addBreadcrumb}
+ * TODO
+ */
+export function captureEvent(event: SentryEvent): void {
+  shimCaptureEvent(event);
+}
+
+/**
+ * TODO
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
   shimAddBreadcrumb(breadcrumb);
@@ -38,7 +44,7 @@ export function createAndBind<F extends Frontend, O extends Options>(
 ): void {
   if (!getCurrentClient()) {
     const client = new frontendClass(options);
-    forget(client.install());
+    client.install();
     bindClient(client);
   }
 }

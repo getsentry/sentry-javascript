@@ -164,7 +164,7 @@ export interface Frontend<O extends Options = Options> {
    *
    * @returns If the installation was the successful or not.
    */
-  install(): Promise<boolean>;
+  install(): boolean;
 
   /**
    * Captures an exception event and sends it to Sentry.
@@ -212,13 +212,6 @@ export interface Frontend<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * Updates SDK options with the provided values.
-   *
-   * @param options A partial options object to merge into current options.
-   */
-  setOptions(options: O): void;
-
-  /**
    * Updates context information (user, tags, extras) for future events.
    *
    * @param context A partial context object to merge into current context.
@@ -253,7 +246,7 @@ export interface Frontend<O extends Options = Options> {
  */
 export interface Backend {
   /** Installs the SDK into the environment. */
-  install(): Promise<boolean>;
+  install(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
   eventFromException(exception: any, scope: Scope): Promise<SentryEvent>;

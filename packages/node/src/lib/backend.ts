@@ -48,7 +48,7 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async install(): Promise<boolean> {
+  public install(): boolean {
     // We are only called by the frontend if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
