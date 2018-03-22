@@ -22,10 +22,7 @@ export class TestBackend implements Backend {
     return !this.frontend.getOptions().mockInstallFailure;
   }
 
-  public async eventFromException(
-    exception: any,
-    _: Scope,
-  ): Promise<SentryEvent> {
+  public async eventFromException(exception: any): Promise<SentryEvent> {
     return {
       exception: [
         {
