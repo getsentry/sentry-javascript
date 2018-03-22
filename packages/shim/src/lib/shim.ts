@@ -193,7 +193,7 @@ function _getLatestShim(): Shim {
  * TODO
  * @param promise
  */
-function forget(promise?: any): void {
+function _forget(promise?: any): void {
   if (promise && typeof promise.catch === 'function') {
     promise.catch((e: any) => {
       console.error(e);
@@ -247,19 +247,25 @@ export function bindClient(client: any): void {
   top.scope = client.getInitialScope();
 }
 
-// api
 /**
- * Captures an exception evebt and sends it to Sentry.
+ * TODO
+ */
+function _callOnLatestShim(method: string, ...args: any[]): void {
+  const top = _getLatestShim().getStackTop();
+  if (top && top.client && top.client[method]) {
+    _forget(top.client[method](...args, top.scope));
+  }
+}
+
+/**
+ * Captures an exception event and sends it to Sentry.
  *
  * @param exception An exception-like object.
  * TODO
  * @returns A Promise that resolves when the exception has been sent.
  */
 export function captureException(exception: any): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    forget(top.client.captureException(exception, top.scope));
-  }
+  _callOnLatestShim('captureException', exception);
 }
 /**
  * Captures a message event and sends it to Sentry.
@@ -269,10 +275,7 @@ export function captureException(exception: any): void {
  * @returns A Promise that resolves when the message has been sent.
  */
 export function captureMessage(message: string): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    forget(top.client.captureMessage(message, top.scope));
-  }
+  _callOnLatestShim('captureMessage', message);
 }
 
 /**
@@ -280,10 +283,7 @@ export function captureMessage(message: string): void {
  * @param event T
  */
 export function captureEvent(event: any): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    forget(top.client.captureEvent(event, top.scope));
-  }
+  _callOnLatestShim('captureEvent', event);
 }
 
 /**
@@ -298,10 +298,7 @@ export function captureEvent(event: any): void {
  * @returns A Promise that resolves when the breadcrumb has been persisted.
  */
 export function addBreadcrumb(breadcrumb: object): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    top.client.addBreadcrumb(breadcrumb, top.scope);
-  }
+  _callOnLatestShim('addBreadcrumb', breadcrumb);
 }
 
 /**
@@ -311,10 +308,7 @@ export function addBreadcrumb(breadcrumb: object): void {
  * @returns A Promise that resolves when the new context has been merged.
  */
 export function setUserContext(user: object): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    top.client.setContext({ user }, top.scope);
-  }
+  _callOnLatestShim('setContext', { user });
 }
 
 /**
@@ -322,10 +316,7 @@ export function setUserContext(user: object): void {
  * @param tags T
  */
 export function setTagsContext(tags: { [key: string]: string }): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    top.client.setContext({ tags }, top.scope);
-  }
+  _callOnLatestShim('setContext', { tags });
 }
 
 /**
@@ -333,8 +324,5 @@ export function setTagsContext(tags: { [key: string]: string }): void {
  * @param tags T
  */
 export function setExtraContext(extra: object): void {
-  const top = _getLatestShim().getStackTop();
-  if (top.client) {
-    top.client.setContext({ extra }, top.scope);
-  }
+  _callOnLatestShim('setContext', { extra });
 }
