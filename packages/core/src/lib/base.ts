@@ -1,6 +1,6 @@
 import { Breadcrumb, Context, SdkInfo, SentryEvent } from './domain';
 import { DSN } from './dsn';
-import { Backend, Frontend, Options } from './interfaces';
+import { Backend, Frontend, Options, Scope } from './interfaces';
 import { SendStatus } from './status';
 
 /**
@@ -65,16 +65,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * The client DSN, if specified in options. Without this DSN, the SDK will be
    * disabled.
    */
-  private dsn?: DSN;
+  private readonly dsn?: DSN;
 
-  /** A promise that resolves during installation. */
-  private installation?: Promise<boolean>;
-
-  /** Lazy cache of breadcrumbs, initialized when first accessed. */
-  private breadcrumbs?: Breadcrumb[];
-
-  /** Lazy cache of context data, initialized when first accessed. */
-  private context?: Context;
+  /** A promise that resolves during installation. TODO */
+  private installation?: boolean;
 
   /**
    * Initializes this frontend instance.
@@ -94,7 +88,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async install(): Promise<boolean> {
+  public install(): boolean {
     if (!this.isEnabled()) {
       return false;
     }
@@ -110,30 +104,42 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any): Promise<void> {
+  public async captureException(
+    exception: any,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
-    await this.captureEvent(event);
+    await this.captureEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string): Promise<void> {
+  public async captureMessage(
+    message: string,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
-    await this.captureEvent(event);
+    await this.captureEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent): Promise<void> {
-    await this.sendEvent(event);
+  public async captureEvent(
+    event: SentryEvent,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
+    await this.sendEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async addBreadcrumb(breadcrumb: Breadcrumb): Promise<void> {
+  public async addBreadcrumb(
+    breadcrumb: Breadcrumb,
+    scope: Scope,
+  ): Promise<void> {
     const {
       shouldAddBreadcrumb,
       beforeBreadcrumb,
@@ -155,15 +161,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    // We need to call this.getBreadcrumbs here, since if we assign the value to
-    // a local variable we could get an inconsistent state if mulitple calls to
-    // addBreadcrumb happen at the same time. DO NOT assign this.breadcrumbs to
-    // a local variable as this would lead to a "lost update" race condition.
-    await this.getBreadcrumbs();
-    this.breadcrumbs = [...this.breadcrumbs, finalBreadcrumb].slice(
+    scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
       -maxBreadcrumbs,
     );
-    await this.getBackend().storeBreadcrumbs(this.breadcrumbs);
 
     if (afterBreadcrumb) {
       afterBreadcrumb(finalBreadcrumb);
@@ -187,39 +187,11 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async setOptions(nextOptions: O): Promise<void> {
-    if (
-      nextOptions.dsn &&
-      String(this.options.dsn) !== String(nextOptions.dsn)
-    ) {
-      this.dsn = new DSN(nextOptions.dsn);
-    }
-
-    Object.assign(this.options, nextOptions);
-    // TODO: Update options in the backend
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async getContext(): Promise<Context> {
-    if (!this.context) {
-      this.context = { ...(await this.getBackend().loadContext()) };
-    }
-
-    return this.context;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async setContext(nextContext: Context): Promise<void> {
-    // We need call this.getContext here, since if we assign the value to a
-    // local variable we could get an inconsistent state if mulitple calls to
-    // setContext happen at the same time. DO NOT assign this.context to a local
-    // variable as this would lead to a "lost update" race condition.
-    await this.getContext();
-    const context = this.context || {};
+  public async setContext(
+    nextContext: Context,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
+    const context = scope.context;
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
     }
@@ -229,8 +201,16 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     if (nextContext.user) {
       context.user = { ...context.user, ...nextContext.user };
     }
+  }
 
-    await this.getBackend().storeContext(context);
+  /**
+   * @inheritDoc
+   */
+  public getInitialScope(): Scope {
+    return {
+      breadcrumbs: [],
+      context: {},
+    };
   }
 
   /**
@@ -242,15 +222,6 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /** Returns the current backend. */
   protected getBackend(): B {
     return this.backend;
-  }
-
-  /** Resolves all currently known breadcrumbs. */
-  protected async getBreadcrumbs(): Promise<Breadcrumb[]> {
-    if (!this.breadcrumbs) {
-      this.breadcrumbs = [...(await this.getBackend().loadBreadcrumbs())];
-    }
-
-    return this.breadcrumbs;
   }
 
   /** Determines whether this SDK is enabled and a valid DSN is present. */
@@ -265,9 +236,13 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * user), breadcrumbs, SDK info.
    *
    * @param event The original event.
+   * TODO
    * @returns A new event with more information.
    */
-  protected async prepareEvent(event: SentryEvent): Promise<SentryEvent> {
+  protected async prepareEvent(
+    event: SentryEvent,
+    scope: Scope,
+  ): Promise<SentryEvent> {
     const {
       environment,
       maxBreadcrumbs = MAX_BREADCRUMBS,
@@ -285,12 +260,12 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    const breadcrumbs = await this.getBreadcrumbs();
+    const breadcrumbs = scope.breadcrumbs;
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
       prepared.breadcrumbs = breadcrumbs.slice(-maxBreadcrumbs);
     }
 
-    const context = await this.getContext();
+    const context = scope.context;
     if (context.extra) {
       prepared.extra = { ...context.extra, ...event.extra };
     }
@@ -317,14 +292,18 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * was exceeded, the status will be {@link SendStatus.RateLimit}.
    *
    * @param event The event to send to Sentry.
+   * TODO
    * @returns A Promise that resolves with the event status.
    */
-  private async sendEvent(event: SentryEvent): Promise<SendStatus> {
+  private async sendEvent(
+    event: SentryEvent,
+    scope: Scope,
+  ): Promise<SendStatus> {
     if (!this.isEnabled()) {
       return SendStatus.Skipped;
     }
 
-    const prepared = await this.prepareEvent(event);
+    const prepared = await this.prepareEvent(event, scope);
     const { shouldSend, beforeSend, afterSend } = this.getOptions();
     if (shouldSend && !shouldSend(prepared)) {
       return SendStatus.Skipped;

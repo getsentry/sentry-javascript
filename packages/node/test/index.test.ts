@@ -1,5 +1,6 @@
-import { SentryEvent } from '@sentry/core';
+import { Context, SentryEvent } from '@sentry/core';
 import { expect } from 'chai';
+import * as domain from 'domain';
 import * as RavenNode from 'raven';
 import { spy, stub } from 'sinon';
 
@@ -9,57 +10,84 @@ stub(RavenNode as any, 'send').callsFake((_: SentryEvent, cb: () => void) => {
   cb();
 });
 
-import { NodeBackend, NodeFrontend, SentryClient } from '../src';
+import {
+  addBreadcrumb,
+  captureEvent,
+  captureException,
+  captureMessage,
+  create,
+  NodeBackend,
+  NodeFrontend,
+  popScope,
+  pushScope,
+  setExtraContext,
+  setTagsContext,
+  setUserContext,
+} from '../src';
 // -----------------------------------------------------------------------------
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 describe('SentryNode', () => {
-  beforeEach(async () => {
-    await SentryClient.create({ dsn });
+  beforeEach(() => {
+    create({ dsn });
   });
 
   describe('getContext() / setContext()', () => {
+    let s: sinon.SinonSpy;
+
+    beforeEach(() => {
+      s = spy(NodeFrontend.prototype, 'setContext');
+    });
+
+    afterEach(() => {
+      s.restore();
+    });
+
     it('should store/load extra', async () => {
-      await SentryClient.setContext({ extra: { abc: { def: [1] } } });
-      const context = await SentryClient.getContext();
+      setExtraContext({ abc: { def: [1] } });
+      const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
     });
 
     it('should store/load tags', async () => {
-      await SentryClient.setContext({ tags: { abc: 'def' } });
-      const context = await SentryClient.getContext();
+      setTagsContext({ abc: 'def' });
+      const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ tags: { abc: 'def' } });
     });
 
     it('should store/load user', async () => {
-      await SentryClient.setContext({ user: { id: 'def' } });
-      const context = await SentryClient.getContext();
+      setUserContext({ id: 'def' });
+      const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ user: { id: 'def' } });
     });
   });
 
   describe('breadcrumbs', () => {
-    it('should store breadcrumbs', async () => {
-      await SentryClient.create({ dsn });
-      await SentryClient.addBreadcrumb({ message: 'test' });
+    let s: sinon.SinonStub;
+
+    beforeEach(() => {
+      s = stub(NodeBackend.prototype, 'sendEvent').returns(
+        Promise.resolve(200),
+      );
     });
 
-    it('should record auto breadcrumbs', async () => {
-      const frontend = new NodeFrontend({ dsn });
-      await frontend.install();
+    afterEach(() => {
+      s.restore();
+    });
 
-      // tslint:disable-next-line:no-unsafe-any
-      const backend = (frontend as any).getBackend() as NodeBackend;
+    it('should record auto breadcrumbs', done => {
+      pushScope(
+        new NodeFrontend({
+          afterSend: (event: SentryEvent) => {
+            expect(event.breadcrumbs!).to.have.lengthOf(3);
+            done();
+          },
+          dsn,
+        }),
+      );
 
-      const sendEventStub = stub(backend, 'sendEvent');
-
-      sendEventStub.callsFake(async (event: SentryEvent) => {
-        expect(event.breadcrumbs!).to.have.lengthOf(3);
-        return Promise.resolve(200);
-      });
-
-      await frontend.addBreadcrumb({ message: 'test1' });
+      addBreadcrumb({ message: 'test1' });
 
       // Simulates internal capture breadcrumb from raven
       RavenNode.captureBreadcrumb({
@@ -68,50 +96,96 @@ describe('SentryNode', () => {
         message: 'testy',
       });
 
-      await frontend.addBreadcrumb({ message: 'test2' });
+      addBreadcrumb({ message: 'test2' });
 
-      await frontend.captureMessage('event');
-
-      expect(sendEventStub.calledOnce);
+      captureMessage('event');
     });
   });
 
   describe('capture', () => {
-    it('should capture an exception', async () => {
-      const afterSend = spy();
-      const frontend = new NodeFrontend({ afterSend, dsn });
-      await frontend.install();
+    let s: sinon.SinonStub;
+
+    beforeEach(() => {
+      s = stub(NodeBackend.prototype, 'sendEvent').returns(
+        Promise.resolve(200),
+      );
+    });
+
+    afterEach(() => {
+      s.restore();
+    });
+
+    it('should capture an exception', done => {
+      pushScope(
+        new NodeFrontend({
+          afterSend: (event: SentryEvent) => {
+            expect(event.exception).to.not.be.undefined;
+            expect(event.exception![0]).to.not.be.undefined;
+            expect(event.exception![0].type).to.equal('Error');
+            expect(event.exception![0].value).to.equal('test');
+            expect(event.exception![0].stacktrace).to.not.be.empty;
+            done();
+          },
+          dsn,
+        }),
+      );
       try {
-        throw new Error(`test`);
+        throw new Error('test');
       } catch (e) {
-        await frontend.captureException(e);
-        const event = afterSend.getCall(0).args[0] as SentryEvent;
-        expect(event.message).to.equal(`Error: test`);
-        expect(event.exception).to.not.be.undefined;
-        expect(event.exception![0]).to.not.be.undefined;
-        expect(event.exception![0].type).to.equal('Error');
-        expect(event.exception![0].value).to.equal(`test`);
-        expect(event.exception![0].stacktrace).to.not.be.empty;
+        captureException(e);
       }
+      popScope();
     });
 
-    it('should capture a message', async () => {
-      const afterSend = spy();
-      const frontend = new NodeFrontend({ afterSend, dsn });
-      await frontend.install();
-      await frontend.captureMessage(`test`);
-      const event = afterSend.getCall(0).args[0] as SentryEvent;
-      expect(event.message).to.equal(`test`);
-      expect(event.exception).to.be.undefined;
+    it('should capture a message', done => {
+      pushScope(
+        new NodeFrontend({
+          afterSend: (event: SentryEvent) => {
+            expect(event.message).to.equal('test');
+            expect(event.exception).to.be.undefined;
+            done();
+          },
+          dsn,
+        }),
+      );
+      captureMessage('test');
+      popScope();
     });
 
-    it('should capture an event', async () => {
-      const afterSend = spy();
-      const frontend = new NodeFrontend({ afterSend, dsn });
-      await frontend.install();
-      await frontend.captureEvent({ message: 'test' });
-      const event = afterSend.getCall(0).args[0] as SentryEvent;
-      expect(event.message).to.equal('test');
+    it('should capture an event', done => {
+      pushScope(
+        new NodeFrontend({
+          afterSend: (event: SentryEvent) => {
+            expect(event.message).to.equal('test');
+            expect(event.exception).to.be.undefined;
+            done();
+          },
+          dsn,
+        }),
+      );
+      captureEvent({ message: 'test' });
+      popScope();
+    });
+
+    it('should capture an event in a domain', async () => {
+      new Promise<void>(resolve => {
+        const d = domain.create();
+        d.run(() => {
+          pushScope(
+            new NodeFrontend({
+              afterSend: (event: SentryEvent) => {
+                expect(event.message).to.equal('test');
+                expect(event.exception).to.be.undefined;
+                resolve();
+                d.exit();
+              },
+              dsn,
+            }),
+          );
+          captureEvent({ message: 'test' });
+          popScope();
+        });
+      });
     });
   });
 });

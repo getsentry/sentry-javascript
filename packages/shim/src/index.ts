@@ -1,0 +1,15 @@
+export {
+  addBreadcrumb,
+  bindClient,
+  captureMessage,
+  captureException,
+  captureEvent,
+  clearScope,
+  getCurrentClient,
+  popScope,
+  pushScope,
+  setUserContext,
+  setTagsContext,
+  setExtraContext,
+  withScope,
+} from './lib/shim';

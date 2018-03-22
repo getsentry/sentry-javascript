@@ -10,7 +10,7 @@
     "no-magic-numbers": false,
     "no-parameter-properties": false,
     "no-require-imports": false,
-    "prefer-function-over-method": [true, "allow-public", "allow-protected"],
+    "prefer-function-over-method": [false],
     "strict-boolean-expressions": false,
 
     // These are too strict in tslint:all

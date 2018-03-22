@@ -1,7 +1,14 @@
 import { FrontendBase } from '../../src/lib/base';
 import { SdkInfo } from '../../src/lib/domain';
-import { Sdk } from '../../src/lib/sdk';
+import { createAndBind } from '../../src/lib/sdk';
 import { TestBackend, TestOptions } from './backend';
+export {
+  captureException,
+  captureMessage,
+  setExtraContext,
+  setTagsContext,
+} from '@sentry/shim';
+export { addBreadcrumb, setUserContext } from '../../src/lib/sdk';
 
 export const TEST_SDK = {
   name: 'sentry-test',
@@ -19,8 +26,8 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
     this.installed = false;
   }
 
-  public async install(): Promise<boolean> {
-    const result = await super.install();
+  public install(): boolean {
+    const result = super.install();
     this.installed = true;
     return result;
   }
@@ -30,5 +37,6 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
   }
 }
 
-// tslint:disable-next-line:variable-name
-export const TestClient = new Sdk(TestFrontend);
+export function create(options: TestOptions): void {
+  createAndBind(TestFrontend, options);
+}
