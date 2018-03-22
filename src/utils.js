@@ -536,27 +536,41 @@ function serializeKeysForMessage(keys, maxLength) {
 }
 
 function sanitize(input, sanitizeKeys) {
-  sanitizeKeys = isArray(sanitizeKeys) ? sanitizeKeys : [];
+  if (!isArray(sanitizeKeys) || (isArray(sanitizeKeys) && sanitizeKeys.length === 0))
+    return input;
+
+  var sanitizeRegExp = joinRegExp(sanitizeKeys);
   var sanitizeMask = '********';
+  var safeInput;
 
-  if (isArray(input)) {
-    return input.map(function(val) {
-      return sanitize(val, sanitizeKeys);
-    });
+  try {
+    safeInput = JSON.parse(stringify(input));
+  } catch (o_O) {
+    return input;
   }
 
-  if (isPlainObject(input)) {
-    return Object.keys(input).reduce(function(acc, k) {
-      if (sanitizeKeys.indexOf(k) > -1) {
-        acc[k] = sanitizeMask;
-      } else {
-        acc[k] = sanitize(input[k], sanitizeKeys);
-      }
-      return acc;
-    }, {});
+  function sanitizeWorker(workerInput) {
+    if (isArray(workerInput)) {
+      return workerInput.map(function(val) {
+        return sanitizeWorker(val);
+      });
+    }
+
+    if (isPlainObject(workerInput)) {
+      return Object.keys(workerInput).reduce(function(acc, k) {
+        if (sanitizeRegExp.test(k)) {
+          acc[k] = sanitizeMask;
+        } else {
+          acc[k] = sanitizeWorker(workerInput[k]);
+        }
+        return acc;
+      }, {});
+    }
+
+    return workerInput;
   }
 
-  return input;
+  return sanitizeWorker(safeInput);
 }
 
 module.exports = {

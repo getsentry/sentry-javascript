@@ -758,5 +758,44 @@ describe('utils', function() {
       var expected = [{foo: sanitizeMask}, {bar: sanitizeMask}, 42];
       assert.deepEqual(actual, expected);
     });
+
+    it('shouldnt break with cyclic references', function() {
+      var input = {
+        foo: {},
+        baz: 42
+      };
+      input.foo.bar = input.foo;
+
+      var actual = sanitize(input, ['baz']);
+      var expected = {foo: {bar: '[Circular ~.foo]'}, baz: sanitizeMask};
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should work with keys as RegExps', function() {
+      var actual = sanitize(
+        {
+          foo: {
+            bar: 42,
+            baz: 1337,
+            qux: 'rick',
+            forgotFifthWord: 'whoops',
+            thisShouldMatch123_32: 'hello',
+            butThisNot123_42_X: 'morty'
+          }
+        },
+        [/^ba/i, 'forgotFifthWord', /\d{3}_\d{2}$/i]
+      );
+      var expected = {
+        foo: {
+          bar: sanitizeMask,
+          baz: sanitizeMask,
+          qux: 'rick',
+          forgotFifthWord: sanitizeMask,
+          thisShouldMatch123_32: sanitizeMask,
+          butThisNot123_42_X: 'morty'
+        }
+      };
+      assert.deepEqual(actual, expected);
+    });
   });
 });
