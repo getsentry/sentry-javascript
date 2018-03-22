@@ -9,13 +9,12 @@ export {
   Severity,
   StackFrame,
   Stacktrace,
-  Scope,
   Thread,
   User,
 } from './lib/domain';
 export { DSN, DSNComponents, DSNLike, DSNProtocol } from './lib/dsn';
 export { SentryError } from './lib/error';
-export { Backend, Frontend, LogLevel, Options } from './lib/interfaces';
+export { Backend, Frontend, LogLevel, Options, Scope } from './lib/interfaces';
 export {
   addBreadcrumb,
   captureEvent,

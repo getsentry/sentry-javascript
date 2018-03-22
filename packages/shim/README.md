@@ -7,8 +7,8 @@
 
 # Sentry JavaScript SDK Shim
 
-[![npm version](https://img.shields.io/npm/v/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
+[![npm version](https://img.shields.io/npm/v/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
 
 shim that can be used by other libraries.

@@ -1,7 +1,7 @@
 export { BrowserBackend, BrowserOptions } from './lib/backend';
+export { BrowserFrontend } from './lib/frontend';
 export {
   addBreadcrumb,
-  BrowserFrontend,
   create,
   captureEvent,
   captureException,
@@ -11,4 +11,4 @@ export {
   setUserContext,
   setExtraContext,
   setTagsContext,
-} from './lib/frontend';
+} from './lib/sdk';

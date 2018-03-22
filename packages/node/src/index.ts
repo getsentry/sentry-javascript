@@ -1,14 +1,14 @@
 export { NodeBackend, NodeOptions } from './lib/backend';
+export { NodeFrontend } from './lib/frontend';
 export {
   addBreadcrumb,
   create,
   captureEvent,
   captureException,
   captureMessage,
-  NodeFrontend,
   popScope,
   pushScope,
   setUserContext,
   setExtraContext,
   setTagsContext,
-} from './lib/frontend';
+} from './lib/sdk';
