@@ -173,7 +173,7 @@ export interface Frontend<O extends Options = Options> {
    * TODO
    * @returns The created event id.
    */
-  captureException(exception: any, scope: Scope): Promise<void>;
+  captureException(exception: any, scope?: Scope): Promise<void>;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -182,7 +182,7 @@ export interface Frontend<O extends Options = Options> {
    * TODO
    * @returns The created event id.
    */
-  captureMessage(message: string, scope: Scope): Promise<void>;
+  captureMessage(message: string, scope?: Scope): Promise<void>;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -191,7 +191,7 @@ export interface Frontend<O extends Options = Options> {
    * TODO
    * @returns The created event id.
    */
-  captureEvent(event: SentryEvent, scope: Scope): Promise<void>;
+  captureEvent(event: SentryEvent, scope?: Scope): Promise<void>;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -203,7 +203,7 @@ export interface Frontend<O extends Options = Options> {
    * @param breadcrumb The breadcrumb to record.
    * TODO
    */
-  addBreadcrumb(breadcrumb: Breadcrumb, scope: Scope): void;
+  addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): void;
 
   /** Returns the current DSN. */
   getDSN(): DSN | undefined;
@@ -249,10 +249,10 @@ export interface Backend {
   install(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any, scope: Scope): Promise<SentryEvent>;
+  eventFromException(exception: any): Promise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string, scope: Scope): Promise<SentryEvent>;
+  eventFromMessage(message: string): Promise<SentryEvent>;
 
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): Promise<number>;

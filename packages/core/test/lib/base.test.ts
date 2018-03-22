@@ -27,32 +27,32 @@ describe('FrontendBase', () => {
   describe('install()', () => {
     it('calls install() on Backend', async () => {
       const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
-      await frontend.install();
+      frontend.install();
       expect(TestBackend.instance!.installed).to.equal(1);
     });
 
     it('calls install() only once', async () => {
       const frontend = new TestFrontend({ dsn: PUBLIC_DSN });
-      await frontend.install();
-      await frontend.install();
+      frontend.install();
+      frontend.install();
       expect(TestBackend.instance!.installed).to.equal(1);
     });
 
     it('resolves the result of install()', async () => {
       const frontend = new TestFrontend({ mockInstallFailure: true });
-      const installed = await frontend.install();
+      const installed = frontend.install();
       expect(installed).to.be.false;
     });
 
     it('does not install() when disabled', async () => {
       const frontend = new TestFrontend({ enabled: false, dsn: PUBLIC_DSN });
-      await frontend.install();
+      frontend.install();
       expect(TestBackend.instance!.installed).to.equal(0);
     });
 
     it('does not install() without DSN', async () => {
       const frontend = new TestFrontend({});
-      await frontend.install();
+      frontend.install();
       expect(TestBackend.instance!.installed).to.equal(0);
     });
   });

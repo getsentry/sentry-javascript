@@ -26,8 +26,8 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
     this.installed = false;
   }
 
-  public async install(): Promise<boolean> {
-    const result = await super.install();
+  public install(): boolean {
+    const result = super.install();
     this.installed = true;
     return result;
   }

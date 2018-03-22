@@ -1,5 +1,5 @@
-import { Scope, SentryEvent } from '../../src/lib/domain';
-import { Backend, Frontend, Options } from '../../src/lib/interfaces';
+import { SentryEvent } from '../../src/lib/domain';
+import { Backend, Frontend, Options, Scope } from '../../src/lib/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -17,7 +17,7 @@ export class TestBackend implements Backend {
     this.installed = 0;
   }
 
-  public async install(): Promise<boolean> {
+  public install(): boolean {
     this.installed += 1;
     return !this.frontend.getOptions().mockInstallFailure;
   }

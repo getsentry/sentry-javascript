@@ -104,23 +104,32 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, scope: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromException(exception, scope);
+  public async captureException(
+    exception: any,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
+    const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string, scope: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromMessage(message, scope);
+  public async captureMessage(
+    message: string,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
+    const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, scope: Scope): Promise<void> {
+  public async captureEvent(
+    event: SentryEvent,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
     await this.sendEvent(event, scope);
   }
 
@@ -178,7 +187,10 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async setContext(nextContext: Context, scope: Scope): Promise<void> {
+  public async setContext(
+    nextContext: Context,
+    scope: Scope = this.getInitialScope(),
+  ): Promise<void> {
     const context = scope.context;
     if (nextContext.extra) {
       context.extra = { ...context.extra, ...nextContext.extra };
