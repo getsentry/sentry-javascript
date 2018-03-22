@@ -13,12 +13,7 @@ export default [
       exports: 'named',
       interop: false,
     },
-    external: [
-      'raven-js',
-      '@sentry/core',
-      '@sentry/utils/dist/lib/async',
-      '@sentry/shim',
-    ],
+    external: ['raven-js', '@sentry/core', '@sentry/shim'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
@@ -52,11 +47,6 @@ export default [
         domain: `export var active = false;`,
       }),
       uglify(),
-      // uglify({
-      //   output: {
-      //     beautify: true,
-      //   },
-      // }),
     ],
   },
 ];
