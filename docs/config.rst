@@ -151,12 +151,16 @@ Those configuration options are documented below:
 
 .. describe:: sanitizeKeys
 
-    An array of strings representing keys that should be scrubbed from the payload sent to Sentry.
+    An array of strings or regex patterns representing keys that should be scrubbed from the payload sent to Sentry.
+    We'll go through every field in the payload and mask the values with simple `********` string instead.
+    This will match *only* keys of the object, not the values.
+    Sentry also sanitize all events sent to it on the server-side, but this allows you to strip the payload before it gets to the server.
+
 
     .. code-block:: javascript
 
         {
-            sanitizeKeys: ['token', 'userPassword', 'csrf_token']
+            sanitizeKeys: [/_token$/, /password/i, 'someHidiousKey']
         }
 
 
