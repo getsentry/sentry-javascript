@@ -1,5 +1,5 @@
 import { SentryEvent } from '../../src/lib/domain';
-import { Backend, Frontend, Options, Scope } from '../../src/lib/interfaces';
+import { Backend, Frontend, Options } from '../../src/lib/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
