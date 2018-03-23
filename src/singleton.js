@@ -29,3 +29,39 @@ Raven.noConflict = function() {
 Raven.afterLoad();
 
 module.exports = Raven;
+
+/**
+ * DISCLAIMER:
+ *
+ * Expose `Client` constructor for cases where user want to track multiple "sub-applications" in one larger app.
+ * It's not meant to be used by a wide audience, so pleaaase make sure that you know what you're doing before using it.
+ * Accidentally calling `install` multiple times, may result in an unexpected behavior that's very hard to debug.
+ *
+ * It's called `Client' to be in-line with Raven Node implementation.
+ *
+ * HOWTO:
+ *
+ * import Raven from 'raven-js';
+ *
+ * const someAppReporter = new Raven.Client();
+ * const someOtherAppReporter = new Raven.Client();
+ *
+ * someAppReporter('__DSN__', {
+ *   ...config goes here
+ * });
+ *
+ * someOtherAppReporter('__OTHER_DSN__', {
+ *   ...config goes here
+ * });
+ *
+ * someAppReporter.captureMessage(...);
+ * someAppReporter.captureException(...);
+ * someAppReporter.captureBreadcrumb(...);
+ *
+ * someOtherAppReporter.captureMessage(...);
+ * someOtherAppReporter.captureException(...);
+ * someOtherAppReporter.captureBreadcrumb(...);
+ *
+ * It should "just work".
+ */
+module.exports.Client = RavenConstructor;
