@@ -6,6 +6,7 @@ export {
   captureEvent,
   captureException,
   captureMessage,
+  clearScope,
   popScope,
   pushScope,
   setUserContext,

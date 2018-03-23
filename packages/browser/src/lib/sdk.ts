@@ -6,6 +6,7 @@ export { addBreadcrumb, captureEvent, setUserContext } from '@sentry/core';
 export {
   captureException,
   captureMessage,
+  clearScope,
   popScope,
   pushScope,
   setExtraContext,
