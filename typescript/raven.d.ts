@@ -48,6 +48,9 @@ declare namespace Raven {
     /** In some cases you may see issues where Sentry groups multiple events together when they should be separate entities. In other cases, Sentry simply doesn’t group events together because they’re so sporadic that they never look the same. */
     fingerprint?: string[];
 
+    /** An array of strings representing keys that should be scrubbed from the payload sent to Sentry */
+    sanitizeKeys?: string[];
+
     /** A function which allows mutation of the data payload right before being sent to Sentry */
     dataCallback?: (data: any) => any;
 

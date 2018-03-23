@@ -32,6 +32,7 @@ var supportsFetch = utils.supportsFetch;
 var supportsReferrerPolicy = utils.supportsReferrerPolicy;
 var serializeKeysForMessage = utils.serializeKeysForMessage;
 var serializeException = utils.serializeException;
+var sanitize = utils.sanitize;
 
 var wrapConsoleMethod = require('./console').wrapMethod;
 
@@ -85,13 +86,13 @@ function Raven() {
     collectWindowErrors: true,
     captureUnhandledRejections: true,
     maxMessageLength: 0,
-
     // By default, truncates URL values to 250 chars
     maxUrlLength: 250,
     stackTraceLimit: 50,
     autoBreadcrumbs: true,
     instrument: true,
-    sampleRate: 1
+    sampleRate: 1,
+    sanitizeKeys: []
   };
   this._fetchDefaults = {
     method: 'POST',
@@ -1865,6 +1866,8 @@ Raven.prototype = {
     // Include server_name if it's defined in globalOptions
     if (globalOptions.serverName) data.server_name = globalOptions.serverName;
 
+    data = this._sanitizeData(data);
+
     // Cleanup empty properties before sending them to the server
     Object.keys(data).forEach(function(key) {
       if (data[key] == null || data[key] === '' || isEmptyObject(data[key])) {
@@ -1903,6 +1906,10 @@ Raven.prototype = {
     } else {
       this._sendProcessedPayload(data);
     }
+  },
+
+  _sanitizeData: function(data) {
+    return sanitize(data, this._globalOptions.sanitizeKeys);
   },
 
   _getUuid: function() {

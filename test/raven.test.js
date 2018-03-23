@@ -576,6 +576,33 @@ describe('globals', function() {
       assert.isTrue(Raven._send.calledOnce);
     });
 
+    it('should respect `sanitizeKeys`', function() {
+      this.sinon.stub(Raven, '_sendProcessedPayload');
+      Raven._globalOptions.sanitizeKeys = ['password', 'token'];
+      Raven.captureMessage('hello', {
+        extra: {
+          password: 'foo',
+          token: 'abc',
+          user: 'rick'
+        },
+        user: {
+          password: 'foo'
+        }
+      });
+
+      // It's not the main thing we test here and it's a variable with every run
+      delete Raven._sendProcessedPayload.lastCall.args[0].extra['session:duration'];
+
+      assert.deepEqual(Raven._sendProcessedPayload.lastCall.args[0].extra, {
+        password: '********',
+        token: '********',
+        user: 'rick'
+      });
+      assert.deepEqual(Raven._sendProcessedPayload.lastCall.args[0].user, {
+        password: '********'
+      });
+    });
+
     it('should send a proper payload with frames', function() {
       this.sinon.stub(Raven, '_send');
 
