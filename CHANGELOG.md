@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.24.0
+
+* NEW: Introduce `sanitizeKeys` config option (#1264)
+* NEW: Expose Ravens constructor publicly. Kinda. (#1272)
+* BUGFIX: Guard for invalid input to `fill` helper method (#1265)
+* BUGFIX: Check if `XMLHttpRequest` exists before using it (#1265)
+
 ## 3.23.3
 
 * BUGFIX: Fix detection of custom error objects in `captureException` method, aka "Schrodinger's Error"© patch(#1261)

@@ -1,4 +1,4 @@
-/*! Raven.js 3.23.3 (f261ec2) | github.com/getsentry/raven-js */
+/*! Raven.js 3.24.0 (cf87968) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -100,6 +100,7 @@ var supportsFetch = utils.supportsFetch;
 var supportsReferrerPolicy = utils.supportsReferrerPolicy;
 var serializeKeysForMessage = utils.serializeKeysForMessage;
 var serializeException = utils.serializeException;
+var sanitize = utils.sanitize;
 
 var wrapConsoleMethod = _dereq_(2).wrapMethod;
 
@@ -153,13 +154,13 @@ function Raven() {
     collectWindowErrors: true,
     captureUnhandledRejections: true,
     maxMessageLength: 0,
-
     // By default, truncates URL values to 250 chars
     maxUrlLength: 250,
     stackTraceLimit: 50,
     autoBreadcrumbs: true,
     instrument: true,
-    sampleRate: 1
+    sampleRate: 1,
+    sanitizeKeys: []
   };
   this._fetchDefaults = {
     method: 'POST',
@@ -204,7 +205,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.23.3',
+  VERSION: '3.24.0',
 
   debug: false,
 
@@ -1312,7 +1313,7 @@ Raven.prototype = {
     }
 
     if (autoBreadcrumbs.xhr && 'XMLHttpRequest' in _window) {
-      var xhrproto = XMLHttpRequest.prototype;
+      var xhrproto = _window.XMLHttpRequest && _window.XMLHttpRequest.prototype;
       fill(
         xhrproto,
         'open',
@@ -1933,6 +1934,8 @@ Raven.prototype = {
     // Include server_name if it's defined in globalOptions
     if (globalOptions.serverName) data.server_name = globalOptions.serverName;
 
+    data = this._sanitizeData(data);
+
     // Cleanup empty properties before sending them to the server
     Object.keys(data).forEach(function(key) {
       if (data[key] == null || data[key] === '' || isEmptyObject(data[key])) {
@@ -1971,6 +1974,10 @@ Raven.prototype = {
     } else {
       this._sendProcessedPayload(data);
     }
+  },
+
+  _sanitizeData: function(data) {
+    return sanitize(data, this._globalOptions.sanitizeKeys);
   },
 
   _getUuid: function() {
@@ -2230,6 +2237,42 @@ Raven.noConflict = function() {
 Raven.afterLoad();
 
 module.exports = Raven;
+
+/**
+ * DISCLAIMER:
+ *
+ * Expose `Client` constructor for cases where user want to track multiple "sub-applications" in one larger app.
+ * It's not meant to be used by a wide audience, so pleaaase make sure that you know what you're doing before using it.
+ * Accidentally calling `install` multiple times, may result in an unexpected behavior that's very hard to debug.
+ *
+ * It's called `Client' to be in-line with Raven Node implementation.
+ *
+ * HOWTO:
+ *
+ * import Raven from 'raven-js';
+ *
+ * const someAppReporter = new Raven.Client();
+ * const someOtherAppReporter = new Raven.Client();
+ *
+ * someAppReporter('__DSN__', {
+ *   ...config goes here
+ * });
+ *
+ * someOtherAppReporter('__OTHER_DSN__', {
+ *   ...config goes here
+ * });
+ *
+ * someAppReporter.captureMessage(...);
+ * someAppReporter.captureException(...);
+ * someAppReporter.captureBreadcrumb(...);
+ *
+ * someOtherAppReporter.captureMessage(...);
+ * someOtherAppReporter.captureException(...);
+ * someOtherAppReporter.captureBreadcrumb(...);
+ *
+ * It should "just work".
+ */
+module.exports.Client = RavenConstructor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"3":3}],5:[function(_dereq_,module,exports){
@@ -2648,6 +2691,7 @@ function isSameStacktrace(stack1, stack2) {
  * @param track {optional} record instrumentation to an array
  */
 function fill(obj, name, replacement, track) {
+  if (obj == null) return;
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
@@ -2771,6 +2815,44 @@ function serializeKeysForMessage(keys, maxLength) {
   return '';
 }
 
+function sanitize(input, sanitizeKeys) {
+  if (!isArray(sanitizeKeys) || (isArray(sanitizeKeys) && sanitizeKeys.length === 0))
+    return input;
+
+  var sanitizeRegExp = joinRegExp(sanitizeKeys);
+  var sanitizeMask = '********';
+  var safeInput;
+
+  try {
+    safeInput = JSON.parse(stringify(input));
+  } catch (o_O) {
+    return input;
+  }
+
+  function sanitizeWorker(workerInput) {
+    if (isArray(workerInput)) {
+      return workerInput.map(function(val) {
+        return sanitizeWorker(val);
+      });
+    }
+
+    if (isPlainObject(workerInput)) {
+      return Object.keys(workerInput).reduce(function(acc, k) {
+        if (sanitizeRegExp.test(k)) {
+          acc[k] = sanitizeMask;
+        } else {
+          acc[k] = sanitizeWorker(workerInput[k]);
+        }
+        return acc;
+      }, {});
+    }
+
+    return workerInput;
+  }
+
+  return sanitizeWorker(safeInput);
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -2802,7 +2884,8 @@ module.exports = {
   fill: fill,
   safeJoin: safeJoin,
   serializeException: serializeException,
-  serializeKeysForMessage: serializeKeysForMessage
+  serializeKeysForMessage: serializeKeysForMessage,
+  sanitize: sanitize
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})

@@ -1,4 +1,4 @@
-/*! Raven.js 3.23.3 (f261ec2) | github.com/getsentry/raven-js */
+/*! Raven.js 3.24.0 (cf87968) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -502,6 +502,7 @@ function isSameStacktrace(stack1, stack2) {
  * @param track {optional} record instrumentation to an array
  */
 function fill(obj, name, replacement, track) {
+  if (obj == null) return;
   var orig = obj[name];
   obj[name] = replacement(orig);
   obj[name].__raven__ = true;
@@ -625,6 +626,44 @@ function serializeKeysForMessage(keys, maxLength) {
   return '';
 }
 
+function sanitize(input, sanitizeKeys) {
+  if (!isArray(sanitizeKeys) || (isArray(sanitizeKeys) && sanitizeKeys.length === 0))
+    return input;
+
+  var sanitizeRegExp = joinRegExp(sanitizeKeys);
+  var sanitizeMask = '********';
+  var safeInput;
+
+  try {
+    safeInput = JSON.parse(stringify(input));
+  } catch (o_O) {
+    return input;
+  }
+
+  function sanitizeWorker(workerInput) {
+    if (isArray(workerInput)) {
+      return workerInput.map(function(val) {
+        return sanitizeWorker(val);
+      });
+    }
+
+    if (isPlainObject(workerInput)) {
+      return Object.keys(workerInput).reduce(function(acc, k) {
+        if (sanitizeRegExp.test(k)) {
+          acc[k] = sanitizeMask;
+        } else {
+          acc[k] = sanitizeWorker(workerInput[k]);
+        }
+        return acc;
+      }, {});
+    }
+
+    return workerInput;
+  }
+
+  return sanitizeWorker(safeInput);
+}
+
 module.exports = {
   isObject: isObject,
   isError: isError,
@@ -656,7 +695,8 @@ module.exports = {
   fill: fill,
   safeJoin: safeJoin,
   serializeException: serializeException,
-  serializeKeysForMessage: serializeKeysForMessage
+  serializeKeysForMessage: serializeKeysForMessage,
+  sanitize: sanitize
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
