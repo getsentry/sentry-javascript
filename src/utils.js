@@ -160,7 +160,7 @@ function objectFrozen(obj) {
 }
 
 function truncate(str, max) {
-  if (!isString(str)) {
+  if (isObject(str)) {
     str = JSON.stringify(str);
   }
   return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
