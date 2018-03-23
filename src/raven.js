@@ -1065,7 +1065,7 @@ Raven.prototype = {
     var wrappedBuiltIns = self._wrappedBuiltIns;
 
     function wrapTimeFn(orig) {
-      return function(fn, t) {
+      return function() {
         // preserve arity
         // Make a copy of the arguments to prevent deoptimization
         // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#32-leaking-arguments
@@ -1544,7 +1544,7 @@ Raven.prototype = {
     var self = this;
     var frames = [];
     if (stackInfo.stack && stackInfo.stack.length) {
-      each(stackInfo.stack, function(i, stack) {
+      each(stackInfo.stack, function(_, stack) {
         var frame = self._normalizeFrame(stack, stackInfo.url);
         if (frame) {
           frames.push(frame);
