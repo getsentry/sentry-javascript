@@ -326,3 +326,11 @@ export function setTagsContext(tags: { [key: string]: string }): void {
 export function setExtraContext(extra: object): void {
   _callOnLatestShim('setContext', { extra });
 }
+
+/**
+ * TODO
+ * @param tags T
+ */
+export function callOnClient(method: string, ...args: any[]): void {
+  _callOnLatestShim(method, ...args);
+}

@@ -1,6 +1,7 @@
 export {
   addBreadcrumb,
   bindClient,
+  callOnClient,
   captureMessage,
   captureException,
   captureEvent,
