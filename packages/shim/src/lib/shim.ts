@@ -25,7 +25,7 @@ global.__SENTRY__ = global.__SENTRY__ || {
 type LayerType = 'process' | 'domain' | 'local';
 
 /**
- * This is our internal layer for each layer in the stack
+ * This is our internal interface for each layer in the current stack.
  */
 interface ScopeLayer {
   client?: any;
