@@ -54,10 +54,22 @@ class Shim {
    * TODO
    */
   public pushScope(client?: any): void {
-    const usedClient = client || getCurrentClient();
+    const currentClient = getCurrentClient();
+    const usedClient = client || currentClient;
+    const topClient = this.getStackTop().client;
+
+    if (
+      topClient &&
+      topClient.constructor.name !== usedClient.constructor.name
+    ) {
+      throw new Error(
+        'All pushed clients must have the same type as the top client called with bindClient()',
+      );
+    }
+
     const layer: ScopeLayer = {
       client: usedClient,
-      scope: usedClient.getInitialScope(),
+      scope: this.getInitialScope(usedClient),
       type: 'local',
     };
     const stack = this.getDomainStack();
@@ -106,7 +118,7 @@ class Shim {
    */
   public clearScope(): void {
     const top = this.getStackTop();
-    top.scope = top.client.getInitialScope();
+    top.scope = this.getInitialScope(top.client);
   }
 
   /**
@@ -153,9 +165,10 @@ class Shim {
       return undefined;
     }
     if (stack.length === 0) {
+      const client = getCurrentClient();
       stack.push({
-        client: getCurrentClient(),
-        scope: this.getInitialScope(),
+        client,
+        scope: this.getInitialScope(client),
         type: 'domain',
       });
     }
@@ -165,10 +178,10 @@ class Shim {
   /**
    * TODO
    */
-  private getInitialScope(): any {
+  public getInitialScope(client: any): any {
     let initalScope = {};
     try {
-      initalScope = getCurrentClient() && getCurrentClient().getInitialScope();
+      initalScope = client && client.getInitialScope();
     } catch {
       // we do nothing
     }
@@ -242,9 +255,10 @@ export function getCurrentClient(): any | undefined {
  * TODO
  */
 export function bindClient(client: any): void {
-  const top = _getLatestShim().getStackTop();
+  const shim = _getLatestShim();
+  const top = shim.getStackTop();
   top.client = client;
-  top.scope = client.getInitialScope();
+  top.scope = shim.getInitialScope(client);
 }
 
 /**
@@ -331,6 +345,6 @@ export function setExtraContext(extra: object): void {
  * TODO
  * @param tags T
  */
-export function callOnClient(method: string, ...args: any[]): void {
+export function _callOnClient(method: string, ...args: any[]): void {
   _callOnLatestShim(method, ...args);
 }

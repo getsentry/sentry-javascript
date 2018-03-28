@@ -5767,6 +5767,18 @@ sinon@^4.4.3:
     supports-color "^5.1.0"
     type-detect "^4.0.5"
 
+sinon@^4.4.9:
+  version "4.4.9"
+  resolved "https://registry.yarnpkg.com/sinon/-/sinon-4.4.9.tgz#0792a2a5171eb0cf242edacb0eba3898b8b4297f"
+  dependencies:
+    "@sinonjs/formatio" "^2.0.0"
+    diff "^3.1.0"
+    lodash.get "^4.4.2"
+    lolex "^2.2.0"
+    nise "^1.2.0"
+    supports-color "^5.1.0"
+    type-detect "^4.0.5"
+
 slack-node@~0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/slack-node/-/slack-node-0.2.0.tgz#de4b8dddaa8b793f61dbd2938104fdabf37dfa30"

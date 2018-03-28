@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "prebuild": "lerna --scope '@sentry/core' run build",
-    "pretest": "lerna --scope '@sentry/core' run build",
+    "prebuild": "lerna --scope '@sentry/shim' run build && lerna --scope '@sentry/core' run build",
+    "pretest": "lerna --scope '@sentry/shim' run build && lerna --scope '@sentry/core' run build",
     "bootstrap": "lerna bootstrap",
     "build": "lerna run build",
     "clean": "lerna run clean",
