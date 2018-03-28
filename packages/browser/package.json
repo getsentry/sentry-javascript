@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "0.5.0-beta.0",
+  "version": "0.5.0-beta.1",
   "description": "Offical Sentry SDK for browsers",
   "repository": "https://github.com/getsentry/raven-js",
   "author": "Sentry",
@@ -14,8 +14,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "0.5.0-beta.0",
-    "@sentry/shim": "0.5.0-beta.0",
+    "@sentry/core": "0.5.0-beta.1",
+    "@sentry/shim": "0.5.0-beta.1",
     "raven-js": "^3.23.3"
   },
   "devDependencies": {
