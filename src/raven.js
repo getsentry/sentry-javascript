@@ -426,7 +426,7 @@ Raven.prototype = {
    */
   _promiseRejectionHandler: function(event) {
     this._logDebug('debug', 'Raven caught unhandled promise rejection:', event);
-    this.captureException(event.reason);
+    this.captureException(event.reason, { unhandledPromiseRejection: true });
   },
 
   /**
