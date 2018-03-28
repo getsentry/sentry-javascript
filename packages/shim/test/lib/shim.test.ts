@@ -1,6 +1,6 @@
-import { clearScope, popScope, pushScope, withScope } from '@sentry/shim';
+import { SentryEvent } from '@sentry/core';
+import { clearScope, popScope, pushScope, withScope } from '../../src/index';
 import { expect } from 'chai';
-import { SentryEvent } from '../../src';
 import { TestBackend } from '../mocks/backend';
 import {
   addBreadcrumb,
