@@ -256,4 +256,21 @@ export interface Backend {
 
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): Promise<number>;
+
+  /**
+   * Will be called from the frontend before the after callback.
+   * Return false if you want to prevent the breadcrumb from being merged into
+   * the scope.
+   */
+  storeBreadcrumb(
+    breadcrumb: Breadcrumb,
+    scope: Scope,
+  ): boolean | Promise<boolean>;
+
+  /**
+   * Will be called from the frontend after merging the context.
+   * Return fasle if you want to prevent the context from being merged into
+   * the scope.
+   */
+  storeContext(context: Context, scope: Scope): boolean | Promise<boolean>;
 }

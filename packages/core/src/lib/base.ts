@@ -70,6 +70,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /** A promise that resolves during installation. TODO */
   private installation?: boolean;
 
+  /** TODO */
+  private readonly internalScope: Scope = this.getInitialScope();
+
   /**
    * Initializes this frontend instance.
    *
@@ -106,7 +109,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async captureException(
     exception: any,
-    scope: Scope = this.getInitialScope(),
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
@@ -117,7 +120,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async captureMessage(
     message: string,
-    scope: Scope = this.getInitialScope(),
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
@@ -128,7 +131,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async captureEvent(
     event: SentryEvent,
-    scope: Scope = this.getInitialScope(),
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     await this.sendEvent(event, scope);
   }
@@ -138,7 +141,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async addBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: Scope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const {
       shouldAddBreadcrumb,
@@ -161,9 +164,11 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
-      -maxBreadcrumbs,
-    );
+    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb, scope)) {
+      scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
+        -maxBreadcrumbs,
+      );
+    }
 
     if (afterBreadcrumb) {
       afterBreadcrumb(finalBreadcrumb);
@@ -189,17 +194,19 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    */
   public async setContext(
     nextContext: Context,
-    scope: Scope = this.getInitialScope(),
+    scope: Scope = this.internalScope,
   ): Promise<void> {
-    const context = scope.context;
-    if (nextContext.extra) {
-      context.extra = { ...context.extra, ...nextContext.extra };
-    }
-    if (nextContext.tags) {
-      context.tags = { ...context.tags, ...nextContext.tags };
-    }
-    if (nextContext.user) {
-      context.user = { ...context.user, ...nextContext.user };
+    if (await this.getBackend().storeContext(nextContext, scope)) {
+      const context = scope.context;
+      if (nextContext.extra) {
+        context.extra = { ...context.extra, ...nextContext.extra };
+      }
+      if (nextContext.tags) {
+        context.tags = { ...context.tags, ...nextContext.tags };
+      }
+      if (nextContext.user) {
+        context.user = { ...context.user, ...nextContext.user };
+      }
     }
   }
 
@@ -211,6 +218,13 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       breadcrumbs: [],
       context: {},
     };
+  }
+
+  /**
+   * TODO
+   */
+  protected getInternalScope(): Scope {
+    return this.internalScope;
   }
 
   /**
