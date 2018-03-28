@@ -137,13 +137,13 @@ describe('Shim', () => {
     });
   });
 
-  it('should throw an error when pushing different clients', () => {
+  it('should not throw an error when pushing different clients', () => {
     create({});
     expect(() => {
       withScope(new TestClient2(), () => {
         //
       });
-    }).to.throw();
+    }).to.not.throw();
   });
 
   it('should not throw an error when pushing same clients', () => {
