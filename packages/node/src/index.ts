@@ -26,6 +26,6 @@ export {
   withScope,
 } from '@sentry/shim';
 
-export { NodeBackend, NodeOptions } from './lib/backend';
-export { NodeFrontend } from './lib/frontend';
-export { create, getCurrentFrontend } from './lib/sdk';
+export { NodeBackend, NodeOptions } from './backend';
+export { NodeFrontend } from './frontend';
+export { create, getCurrentFrontend } from './sdk';
