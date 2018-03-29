@@ -1,7 +1,11 @@
 import { bindClient } from '../../src';
 
 export class TestClient {
-  public constructor(public options: object) {}
+  public static instance?: TestClient;
+
+  public constructor(public options: object) {
+    TestClient.instance = this;
+  }
 
   public mySecretPublicMethod(str: string): string {
     return `secret: ${str}`;

@@ -7,13 +7,14 @@ import {
   captureException,
   captureMessage,
   clearScope,
+  getCurrentClient,
   popScope,
   pushScope,
   setExtraContext,
   setTagsContext,
   setUserContext,
   withScope,
-} from '../../src/index';
+} from '../../src';
 import { create, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
@@ -21,12 +22,12 @@ declare var global: any;
 describe('Shim', () => {
   beforeEach(() => {
     global.__SENTRY__ = {
-      processStack: [],
       shim: undefined,
+      stack: [],
     };
   });
 
-  it('should capture an exception', () => {
+  it('captures an exception', () => {
     const client = {
       captureException: spy(),
     };
@@ -37,7 +38,7 @@ describe('Shim', () => {
     });
   });
 
-  it('should capture a message', () => {
+  it('captures a message', () => {
     const client = {
       captureMessage: spy(),
     };
@@ -48,7 +49,7 @@ describe('Shim', () => {
     });
   });
 
-  it('should capture an event', () => {
+  it('captures an event', () => {
     const client = {
       captureEvent: spy(),
     };
@@ -59,7 +60,7 @@ describe('Shim', () => {
     });
   });
 
-  it('should set user context', () => {
+  it('sets the user context', () => {
     const client = {
       setContext: spy(),
     };
@@ -83,7 +84,7 @@ describe('Shim', () => {
     popScope();
   });
 
-  it('should set tags context', () => {
+  it('sets the tags context', () => {
     const client = {
       setContext: spy(),
     };
@@ -95,7 +96,7 @@ describe('Shim', () => {
     popScope();
   });
 
-  it('should clears scope', () => {
+  it('clears the scope', () => {
     const client = {
       getInitialScope: () => ({ context: {} }),
       setContext: (nextContext: any, scope: any) => {
@@ -104,18 +105,19 @@ describe('Shim', () => {
       },
     };
     withScope(client, () => {
+      expect(global.__SENTRY__.stack.length).to.equal(2);
       setUserContext({ id: '1234' });
-      expect(global.__SENTRY__.processStack[1].scope).to.deep.equal({
+      expect(global.__SENTRY__.stack[1].scope).to.deep.equal({
         context: { user: { id: '1234' } },
       });
       clearScope();
-      expect(global.__SENTRY__.processStack[1].scope).to.deep.equal({
+      expect(global.__SENTRY__.stack[1].scope).to.deep.equal({
         context: {},
       });
     });
   });
 
-  it('should add a breadcrumb', () => {
+  it('adds a breadcrumb', () => {
     const client = {
       addBreadcrumb: spy(),
     };
@@ -127,7 +129,16 @@ describe('Shim', () => {
     popScope();
   });
 
-  it('should call function on client', done => {
+  it('returns undefined before binding a client', () => {
+    expect(getCurrentClient()).to.be.undefined;
+  });
+
+  it('returns the bound client', () => {
+    create({});
+    expect(getCurrentClient()).to.equal(TestClient.instance);
+  });
+
+  it('calls a function on the client', done => {
     const s = spy(TestClient.prototype, 'mySecretPublicMethod');
     withScope(new TestClient({}), () => {
       _callOnClient('mySecretPublicMethod', 'test');
@@ -137,7 +148,7 @@ describe('Shim', () => {
     });
   });
 
-  it('should not throw an error when pushing different clients', () => {
+  it('does not throw an error when pushing different clients', () => {
     create({});
     expect(() => {
       withScope(new TestClient2(), () => {
@@ -146,7 +157,7 @@ describe('Shim', () => {
     }).to.not.throw();
   });
 
-  it('should not throw an error when pushing same clients', () => {
+  it('does not throw an error when pushing same clients', () => {
     create({});
     expect(() => {
       withScope(new TestClient({}), () => {
