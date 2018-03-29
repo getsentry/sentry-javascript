@@ -1,50 +1,60 @@
-import {
-  addBreadcrumb as shimAddBreadcrumb,
-  bindClient,
-  captureEvent as shimCaptureEvent,
-  getCurrentClient,
-  setUserContext as shimSetUserContext,
-} from '@sentry/shim';
+import * as Shim from '@sentry/shim';
 import { Breadcrumb, SentryEvent, User } from './domain';
 import { Frontend, Options } from './interfaces';
+
+export {
+  captureException,
+  captureMessage,
+  clearScope,
+  popScope,
+  pushScope,
+  setExtraContext,
+  setTagsContext,
+} from '@sentry/shim';
 
 /**
  * TODO
  */
 export function captureEvent(event: SentryEvent): void {
-  shimCaptureEvent(event);
+  Shim.captureEvent(event);
 }
 
 /**
  * TODO
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  shimAddBreadcrumb(breadcrumb);
+  Shim.addBreadcrumb(breadcrumb);
 }
 
 /**
  * TODO
  */
 export function setUserContext(user: User): void {
-  shimSetUserContext(user);
+  Shim.setUserContext(user);
 }
 
-/** A class object that can instanciate Backend objects. */
+/** A class object that can instanciate Frontend objects. */
 export interface FrontendClass<F extends Frontend, O extends Options> {
   new (options: O): F;
 }
 
 /**
- * TODO
- * @param options
+ * Internal function to create a new SDK frontend instance. The frontend is
+ * installed and then bound to the current scope.
+ *
+ * @param frontendClass The frontend class to instanciate.
+ * @param options Options to pass to the frontend.
+ * @returns The installed and bound frontend instance.
  */
 export function createAndBind<F extends Frontend, O extends Options>(
   frontendClass: FrontendClass<F, O>,
   options: O,
 ): void {
-  if (!getCurrentClient()) {
-    const client = new frontendClass(options);
-    client.install();
-    bindClient(client);
+  if (Shim.getCurrentClient()) {
+    return;
   }
+
+  const frontend = new frontendClass(options);
+  frontend.install();
+  Shim.bindClient(frontend);
 }
