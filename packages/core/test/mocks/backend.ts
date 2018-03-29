@@ -1,5 +1,5 @@
-import { SentryEvent } from '../../src/lib/domain';
-import { Backend, Frontend, Options } from '../../src/lib/interfaces';
+import { Breadcrumb, Context, SentryEvent } from '@sentry/shim';
+import { Backend, Frontend, Options, Scope } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -41,5 +41,19 @@ export class TestBackend implements Backend {
   public async sendEvent(event: SentryEvent): Promise<number> {
     this.event = event;
     return 200;
+  }
+
+  public storeBreadcrumb(
+    _breadcrumb: Breadcrumb,
+    _scope: Scope,
+  ): boolean | Promise<boolean> {
+    return true;
+  }
+
+  public storeContext(
+    _context: Context,
+    _scope: Scope,
+  ): boolean | Promise<boolean> {
+    return true;
   }
 }

@@ -1,4 +1,4 @@
-import { Breadcrumb, Context, SentryEvent } from './domain';
+import { Breadcrumb, Context, SentryEvent } from '@sentry/shim';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
 
