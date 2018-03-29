@@ -1,15 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "prebuild": "lerna --scope '@sentry/shim' run build && lerna --scope '@sentry/core' run build",
-    "pretest": "lerna --scope '@sentry/shim' run build && lerna --scope '@sentry/core' run build",
-    "bootstrap": "lerna bootstrap",
-    "build": "lerna run build",
-    "clean": "lerna run clean",
-    "format": "lerna run format",
-    "lint": "lerna run lint",
-    "test": "lerna run test",
-    "test:watch": "lerna run --parallel test:watch"
+    "build": "lerna run --stream --concurrency 1 --sort build",
+    "clean": "lerna run --stream clean",
+    "fix": "lerna run --stream --concurrency 1 fix",
+    "lint": "lerna run --stream --concurrency 1 lint",
+    "test": "lerna run --stream --concurrency 1 --sort test"
   },
   "workspaces": [
     "packages/*"
