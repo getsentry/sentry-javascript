@@ -13,8 +13,8 @@
 
 **WARNING:** This SDK is part of an early access preview for the
 [next generation](https://github.com/getsentry/raven-js/tree/next#readme) of
-Sentry JavaScript SDKs. Interface might change and break backwards compatibility
-from time to time. We absolutely recommend
+Sentry JavaScript SDKs. Public interfaces might change and break backwards
+compatibility from time to time. We absolutely recommend
 [raven-js](https://github.com/getsentry/raven-js) in production!
 
 ## Usage
