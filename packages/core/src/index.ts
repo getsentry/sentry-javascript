@@ -1,4 +1,4 @@
-export { BackendClass, FrontendBase } from './lib/base';
+export { BackendClass, FrontendBase } from './base';
 export {
   Breadcrumb,
   Context,
@@ -11,14 +11,14 @@ export {
   Stacktrace,
   Thread,
   User,
-} from './lib/domain';
-export { DSN, DSNComponents, DSNLike, DSNProtocol } from './lib/dsn';
-export { SentryError } from './lib/error';
-export { Backend, Frontend, LogLevel, Options, Scope } from './lib/interfaces';
+} from './domain';
+export { DSN, DSNComponents, DSNLike, DSNProtocol } from './dsn';
+export { SentryError } from './error';
+export { Backend, Frontend, LogLevel, Options, Scope } from './interfaces';
 export {
   addBreadcrumb,
   captureEvent,
   createAndBind,
   FrontendClass,
   setUserContext,
-} from './lib/sdk';
+} from './sdk';
