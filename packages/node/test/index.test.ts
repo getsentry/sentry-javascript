@@ -1,30 +1,31 @@
-import { Context, SentryEvent } from '@sentry/core';
 import { expect } from 'chai';
 import * as domain from 'domain';
 import * as RavenNode from 'raven';
 import { spy, stub } from 'sinon';
 
 // -----------------------------------------------------------------------------
-// It's important that we stub this before we include the backend
+// It's important that we stub this before we import the backend
 stub(RavenNode as any, 'send').callsFake((_: SentryEvent, cb: () => void) => {
   cb();
 });
+// -----------------------------------------------------------------------------
 
 import {
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
+  Context,
   create,
   NodeBackend,
   NodeFrontend,
   popScope,
   pushScope,
+  SentryEvent,
   setExtraContext,
   setTagsContext,
   setUserContext,
 } from '../src';
-// -----------------------------------------------------------------------------
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 

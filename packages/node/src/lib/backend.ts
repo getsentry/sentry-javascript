@@ -1,12 +1,7 @@
-import {
-  Backend,
-  Frontend,
-  Options,
-  SentryError,
-  SentryEvent,
-} from '@sentry/core';
-import { addBreadcrumb, captureEvent } from '@sentry/shim';
+import { Backend, Frontend, Options, SentryError } from '@sentry/core';
+import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
+
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
 
@@ -117,5 +112,19 @@ export class NodeBackend implements Backend {
         resolve(error ? 500 : 200);
       });
     });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public storeBreadcrumb(): boolean {
+    return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public storeContext(): boolean {
+    return true;
   }
 }

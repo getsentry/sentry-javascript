@@ -1,15 +1,31 @@
-export { NodeBackend, NodeOptions } from './lib/backend';
-export { NodeFrontend } from './lib/frontend';
+export {
+  Breadcrumb,
+  Context,
+  Request,
+  SdkInfo,
+  SentryEvent,
+  SentryException,
+  Severity,
+  StackFrame,
+  Stacktrace,
+  Thread,
+  User,
+} from '@sentry/shim';
+
 export {
   addBreadcrumb,
-  create,
-  captureEvent,
-  captureException,
   captureMessage,
+  captureException,
+  captureEvent,
   clearScope,
   popScope,
   pushScope,
   setUserContext,
-  setExtraContext,
   setTagsContext,
-} from './lib/sdk';
+  setExtraContext,
+  withScope,
+} from '@sentry/shim';
+
+export { NodeBackend, NodeOptions } from './lib/backend';
+export { NodeFrontend } from './lib/frontend';
+export { create, getCurrentFrontend } from './lib/sdk';
