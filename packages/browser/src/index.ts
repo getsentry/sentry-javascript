@@ -1,4 +1,18 @@
 export {
+  Breadcrumb,
+  Context,
+  Request,
+  SdkInfo,
+  SentryEvent,
+  SentryException,
+  Severity,
+  StackFrame,
+  Stacktrace,
+  Thread,
+  User,
+} from '@sentry/shim';
+
+export {
   addBreadcrumb,
   captureMessage,
   captureException,
@@ -12,6 +26,6 @@ export {
   withScope,
 } from '@sentry/shim';
 
-export { BrowserBackend, BrowserOptions } from './lib/backend';
-export { BrowserFrontend } from './lib/frontend';
-export { create, getCurrentFrontend } from './lib/sdk';
+export { BrowserBackend, BrowserOptions } from './backend';
+export { BrowserFrontend } from './frontend';
+export { create, getCurrentFrontend } from './sdk';
