@@ -1,4 +1,5 @@
-import { FrontendBase, SdkInfo } from '@sentry/core';
+import { FrontendBase } from '@sentry/core';
+import { SdkInfo } from '@sentry/shim';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 

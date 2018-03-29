@@ -1,13 +1,10 @@
+import { Backend, Frontend, Options, SentryError } from '@sentry/core';
 import {
   addBreadcrumb,
-  Backend,
   captureEvent,
-  Frontend,
-  Options,
-  SentryError,
   SentryEvent,
   SentryException,
-} from '@sentry/core';
+} from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
@@ -164,5 +161,19 @@ export class BrowserBackend implements Backend {
         resolve(error ? 500 : 200);
       });
     });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public storeBreadcrumb(): boolean {
+    return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public storeContext(): boolean {
+    return true;
   }
 }

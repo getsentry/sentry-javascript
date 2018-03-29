@@ -1,15 +1,17 @@
-export { BrowserBackend, BrowserOptions } from './lib/backend';
-export { BrowserFrontend } from './lib/frontend';
 export {
   addBreadcrumb,
-  create,
-  captureEvent,
-  captureException,
   captureMessage,
+  captureException,
+  captureEvent,
   clearScope,
   popScope,
   pushScope,
   setUserContext,
-  setExtraContext,
   setTagsContext,
-} from './lib/sdk';
+  setExtraContext,
+  withScope,
+} from '@sentry/shim';
+
+export { BrowserBackend, BrowserOptions } from './lib/backend';
+export { BrowserFrontend } from './lib/frontend';
+export { create, getCurrentFrontend } from './lib/sdk';

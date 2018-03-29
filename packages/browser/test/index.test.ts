@@ -1,4 +1,4 @@
-import { Context, SentryEvent } from '@sentry/core';
+import { Context, SentryEvent } from '@sentry/shim';
 import { expect } from 'chai';
 import * as RavenJS from 'raven-js';
 import { spy, stub } from 'sinon';

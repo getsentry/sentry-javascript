@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent } from '@sentry/core';
+import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import * as RavenJS from 'raven-js';
 
 /** Signature for the Raven send function */
