@@ -10,7 +10,7 @@ export {
   Stacktrace,
   Thread,
   User,
-} from './lib/models';
+} from './models';
 export {
   _callOnClient,
   addBreadcrumb,
@@ -26,4 +26,4 @@ export {
   setTagsContext,
   setExtraContext,
   withScope,
-} from './lib/sdk';
+} from './sdk';
