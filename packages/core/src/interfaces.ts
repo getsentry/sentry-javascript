@@ -143,12 +143,12 @@ export interface Options {
  * possible so that even errors during startup can be recorded reliably:
  *
  * @example
- * import { SentryClient } from '@sentry/node';
- * SentryClient.create({ dsn: '__DSN__' });
+ * import { create } from '@sentry/node';
+ * create({ dsn: '__DSN__' });
  *
  * @example
- * import { SentryClient } from '@sentry/node';
- * SentryClient.captureMessage('Custom message');
+ * import { captureMessage } from '@sentry/node';
+ * captureMessage('Custom message');
  */
 export interface Frontend<O extends Options = Options> {
   /**
