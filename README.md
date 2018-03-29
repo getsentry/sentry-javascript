@@ -11,20 +11,27 @@ This is a preview of the next line of Sentry JavaScript SDKs, comprised in the
 `@sentry/` namespace. It will provide a more convenient interface and improved
 consistency between various JavaScript environments.
 
-**WARNING:** All of these SDKs are still undergoing active development, so we
-might change the public interface and introduce breaking changes from time to
-time. We still recommend you to use
-[raven-js](https://github.com/getsentry/raven-js) and
-[raven](https://github.com/getsentry/raven-node) for production use.
+**WARNING:** All of these SDKs are still undergoing active development, so the
+public interface might change and break backwards compatibility from time to
+time. We absolutely recommend [raven-js](https://github.com/getsentry/raven-js)
+and [raven](https://github.com/getsentry/raven-node) for production use.
 
-## Usage
+## Contents
 
-We offer a specific high-level SDK for each JavaScript platform, which you can
-import and use directly. Each of these packages offers instructions and
-information on its specifics:
+* [Supported Platforms](#supported-platforms)
+* [Installation and Usage](#installation-and-usage)
+* [Other Packages](#other-packages)
+* [SDK Development](#sdk-development)
+* [Join the Discussion](#join-the-discussion)
+
+## Supported Platforms
+
+For each major JavaScript platform there is a specific high-level SDK that
+provides all the tools you need in a single package. Please refer to the README
+and instructions of those SDKs for more detailed information:
 
 * [`@sentry/shim`](https://github.com/getsentry/raven-js/tree/next/packages/shim):
-  SDK targeted for library authors if the library is used next to a Sentry SDK.
+  Minimal SDK for library authors to add Sentry support
 * [`@sentry/browser`](https://github.com/getsentry/raven-js/tree/next/packages/browser):
   SDK for Browsers, including integrations for React, Angular, Ember, Vue and
   Backbone
@@ -36,10 +43,23 @@ information on its specifics:
 * [`sentry-cordova`](https://github.com/getsentry/sentry-cordova): SDK for
   Cordova Apps and Ionic with support for native crashes
 
-The integration always looks the same. In Node, for example:
+**NOTE:** Are you missing an SDK here? It has probably not been integrated into
+the `next` line yet.
+
+## Installation and Usage
+
+To install an SDK, simply add the high-level package, for example:
+
+```sh
+npm install --save @sentry/node
+yarn add @sentry/node
+```
+
+Setup and usage of these SDKs always follows the same principle. In Node, for
+example (on another platform simply substitute the import):
 
 ```javascript
-import { create, captureMessage } from '@sentry/node';
+const { create, captureMessage } = require('@sentry/node');
 
 create({
   dsn: '__DSN__',
@@ -49,14 +69,11 @@ create({
 captureMessage('Hello, world!');
 ```
 
-**NOTE:** Are you missing an SDK here? We've probably not updated it for the
-`next` line just yet.
-
-## Packages
+## Other Packages
 
 Besides the high-level SDKs, this repository contains shared packages, helpers
-and configuration useful for development of SDKs. If you're thinking about
-creating a new JavaScript-based SDK for Sentry, have a look at the resources
+and configuration used for SDK development. If you're thinking about
+contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
 * [`@sentry/core`](https://github.com/getsentry/raven-js/tree/next/packages/core):
@@ -67,7 +84,7 @@ below:
 * [`@sentry/typescript`](https://github.com/getsentry/raven-js/tree/next/packages/typescript):
   Shared Typescript compiler and linter options.
 
-## Implementing a new SDK
+## SDK Development
 
 TODO:
 
