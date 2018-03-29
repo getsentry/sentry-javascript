@@ -1,7 +1,7 @@
+import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { Breadcrumb, SentryEvent } from '../../src/lib/domain';
-import { SentryError } from '../../src/lib/error';
+import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TEST_SDK, TestFrontend } from '../mocks/frontend';
 

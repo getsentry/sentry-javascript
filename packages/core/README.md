@@ -11,6 +11,26 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 
-This package contains the base for all Sentry JavaScript SDKs, like
-`@sentry/node`, `@sentry/browser` or `@sentry/cordova`. It contains common type
-definitions, domain classes and base implementations.
+This package contains interface definitions, base classes and utilities for
+building Sentry JavaScript SDKs, like `@sentry/node` or `@sentry/browser`.
+
+## Overview
+
+TODO
+
+## Specializing the Frontend
+
+TODO
+
+## Implementing the Backend
+
+TODO
+
+## Exporting the Public Interface
+
+TODO
+
+## General Advice
+
+* A word on overloading functions
+* Differences for native backends

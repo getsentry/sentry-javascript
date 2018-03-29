@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { DSN } from '../../src/lib/dsn';
-import { SentryError } from '../../src/lib/error';
+import { DSN } from '../../src/dsn';
+import { SentryError } from '../../src/error';
 
 describe('DSN', () => {
   describe('fromComponents', () => {

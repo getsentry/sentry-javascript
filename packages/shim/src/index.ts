@@ -1,7 +1,20 @@
 export {
+  Breadcrumb,
+  Context,
+  Request,
+  SdkInfo,
+  SentryEvent,
+  SentryException,
+  Severity,
+  StackFrame,
+  Stacktrace,
+  Thread,
+  User,
+} from './models';
+export {
+  _callOnClient,
   addBreadcrumb,
   bindClient,
-  _callOnClient,
   captureMessage,
   captureException,
   captureEvent,
@@ -13,4 +26,4 @@ export {
   setTagsContext,
   setExtraContext,
   withScope,
-} from './lib/shim';
+} from './sdk';

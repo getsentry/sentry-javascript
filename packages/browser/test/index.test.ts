@@ -1,4 +1,3 @@
-import { Context, SentryEvent } from '@sentry/core';
 import { expect } from 'chai';
 import * as RavenJS from 'raven-js';
 import { spy, stub } from 'sinon';
@@ -9,9 +8,11 @@ import {
   captureEvent,
   captureException,
   captureMessage,
+  Context,
   create,
   popScope,
   pushScope,
+  SentryEvent,
   setExtraContext,
   setTagsContext,
   setUserContext,

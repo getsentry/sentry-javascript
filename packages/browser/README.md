@@ -5,49 +5,55 @@
   <br />
 </p>
 
-# Official Sentry SDK for Browsers (JavaScript)
+# Official Sentry SDK for Browsers (Preview)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 
+**WARNING:** This SDK is part of an early access preview for the
+[next generation](https://github.com/getsentry/raven-js/tree/next#readme) of
+Sentry JavaScript SDKs. Public interfaces might change and break backwards
+compatibility from time to time. We absolutely recommend
+[raven-js](https://github.com/getsentry/raven-js) in production!
+
 ## Usage
 
-To use this SDK, call `SentryClient.create(options)` as early as possible after
-loading the page. This will initialize the SDK and hook into the environment.
-Note that you can turn off almost all side effects using the respective options.
+To use this SDK, call `create(options)` as early as possible after loading the
+page. This will initialize the SDK and hook into the environment. Note that you
+can turn off almost all side effects using the respective options.
 
 ```javascript
-import { SentryClient } from '@sentry/browser';
+import { create } from '@sentry/browser';
 
-SentryClient.create({
+create({
   dsn: '__DSN__',
   // ...
 });
 ```
 
-To set context information or send manual events, use the provided methods on
-`SentryClient`. Note that these functions will not perform any action before you
-have called `SentryClient.create()`:
+To set context information or send manual events, use the exported functions of
+`@sentry/browser`. Note that these functions will not perform any action before
+you have called `create()`:
 
 ```javascript
+import * as Sentry from '@sentry/browser';
+
 // Set user information, as well as tags and further extras
-SentryClient.setContext({
-  extra: { battery: 0.7 },
-  tags: { user_mode: 'admin' },
-  user: { id: '4711' },
-});
+Sentry.setExtraContext({ battery: 0.7 });
+Sentry.setTagsContext({ user_mode: 'admin' });
+Sentry.setUserContext({ id: '4711' });
 
 // Add a breadcrumb for future events
-SentryClient.addBreadcrumb({
+Sentry.addBreadcrumb({
   message: 'My Breadcrumb',
   // ...
 });
 
 // Capture exceptions, messages or manual events
-SentryClient.captureMessage('Hello, world!');
-SentryClient.captureException(new Error('Good bye'));
-SentryClient.captureEvent({
+Sentry.captureMessage('Hello, world!');
+Sentry.captureException(new Error('Good bye'));
+Sentry.captureEvent({
   message: 'Manual',
   stacktrace: [
     // ...
@@ -70,26 +76,4 @@ const client = new BrowserFrontend({
 
 client.install();
 // ...
-```
-
-Note that `install()` returns a `Promise` that resolves when the installation
-has finished. It is not necessary to wait for the installation before adding
-breadcrumbs, defining context or sending events. However, the return value
-indicates whether the installation was successful and the environment could be
-instrumented:
-
-```javascript
-import { BrowserFrontend } from '@sentry/browser';
-
-const client = new BrowserFrontend({
-  dsn: '__DSN__',
-  // ...
-});
-
-const success = await client.install();
-if (success) {
-  // Will catch global exceptions, record breadcrumbs for DOM events, etc...
-} else {
-  // Limited instrumentation, but sending events will still work
-}
 ```
