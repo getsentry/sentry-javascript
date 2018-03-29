@@ -26,7 +26,7 @@ and [raven](https://github.com/getsentry/raven-node) for production use.
 
 ## Supported Platforms
 
-For each major JavaScript platform there is a specific high-level SDK that
+For each major JavaScript platform, there is a specific high-level SDK that
 provides all the tools you need in a single package. Please refer to the README
 and instructions of those SDKs for more detailed information:
 
@@ -84,20 +84,8 @@ below:
 * [`@sentry/typescript`](https://github.com/getsentry/raven-js/tree/next/packages/typescript):
   Shared Typescript compiler and linter options.
 
-## SDK Development
-
-TODO:
-
-* Overview over interfaces and classes
-* Implement `Backend`
-* Derive `Frontend`
-* Scopes and the Shim
-* A word on overloading functions
-* Differences for native backends
-
 ## Join the Discussion
 
-TODO:
-
-* Create a tracking issue and point there
-* Encourage people to give feedback
+Join the discussion in our
+[tracking issue](https://github.com/getsentry/raven-js/issues/1281) and let us
+know what you think of the updated interface and new possibilities.
