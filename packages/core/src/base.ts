@@ -72,7 +72,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * specified to the public methods. This is specifically used in standalone
    * mode, when the Frontend is directly instanciated by the user.
    */
-  private readonly internalScope: Scope = this.getInitialScope();
+  private readonly internalScope: Scope;
 
   /**
    * Stores whether installation has been performed and was successful. Before
@@ -93,6 +93,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     if (options.dsn) {
       this.dsn = new DSN(options.dsn);
     }
+
+    // The initial scope must have access to backend, options and DSN
+    this.internalScope = this.getInitialScope();
   }
 
   /**

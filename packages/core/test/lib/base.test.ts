@@ -2,7 +2,8 @@ import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import { expect } from 'chai';
 import { spy } from 'sinon';
 import { SentryError } from '../../src/error';
-import { TestBackend } from '../mocks/backend';
+import { Scope } from '../../src/interfaces';
+import { TestBackend, TestOptions } from '../mocks/backend';
 import { TEST_SDK, TestFrontend } from '../mocks/frontend';
 
 const PUBLIC_DSN = 'https://username@domain/path';
@@ -21,6 +22,27 @@ describe('FrontendBase', () => {
 
     it('throws with invalid DSN', () => {
       expect(() => new TestFrontend({ dsn: 'abc' })).to.throw(SentryError);
+    });
+
+    it('initializes the internal scope', () => {
+      const options = { dsn: PUBLIC_DSN };
+      const scope = { breadcrumbs: [], context: { extra: { custom: true } } };
+
+      class TempFrontend extends TestFrontend {
+        public constructor(opts: TestOptions) {
+          super(opts);
+          expect(this.getInternalScope()).to.equal(scope);
+        }
+
+        public getInitialScope(): Scope {
+          expect(this.getBackend()).to.equal(TestBackend.instance);
+          expect(this.getOptions()).to.equal(options);
+          expect(this.getDSN()!.toString()).to.equal(PUBLIC_DSN);
+          return scope;
+        }
+      }
+
+      new TempFrontend(options);
     });
   });
 
