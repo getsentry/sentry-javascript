@@ -10,7 +10,7 @@
     "access": "public"
   },
   "dependencies": {
-    "tslint-config-prettier": "^1.9.0"
+    "tslint-config-prettier": "^1.10.0"
   },
   "peerDependencies": {
     "tslint": "^5.9.1",
