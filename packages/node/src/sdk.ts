@@ -3,16 +3,6 @@ import { getCurrentClient } from '@sentry/shim';
 import { NodeOptions } from './backend';
 import { NodeFrontend } from './frontend';
 
-export {
-  captureException,
-  captureMessage,
-  clearScope,
-  popScope,
-  pushScope,
-  setExtraContext,
-  setTagsContext,
-} from '@sentry/shim';
-
 /**
  * The Sentry Node SDK Client.
  *
