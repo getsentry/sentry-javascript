@@ -29,7 +29,7 @@ describe('Shim', () => {
 
   it('captures an exception', () => {
     const client = {
-      captureException: spy(),
+      captureException: spy(async () => Promise.resolve()),
     };
     withScope(client, () => {
       const e = new Error('test exception');
@@ -40,7 +40,7 @@ describe('Shim', () => {
 
   it('captures a message', () => {
     const client = {
-      captureMessage: spy(),
+      captureMessage: spy(async () => Promise.resolve()),
     };
     withScope(client, () => {
       const message = 'yo';
@@ -51,7 +51,7 @@ describe('Shim', () => {
 
   it('captures an event', () => {
     const client = {
-      captureEvent: spy(),
+      captureEvent: spy(async () => Promise.resolve()),
     };
     withScope(client, () => {
       const e = { message: 'test' };
