@@ -1,6 +1,6 @@
 {
   "name": "@sentry/shim",
-  "version": "0.5.0-beta.3",
+  "version": "0.5.0-beta.4",
   "description": "Sentry shim which can be used in libraries",
   "repository": "https://github.com/getsentry/raven-js/tree/next",
   "author": "Sentry",
