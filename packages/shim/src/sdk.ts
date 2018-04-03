@@ -2,12 +2,10 @@ import { getGlobalRegistry } from './global';
 import { Breadcrumb, SentryEvent, User } from './models';
 import { API_VERSION, Shim } from './shim';
 
-/** Internal helper function to silently catch rejected promises. */
-function forget(promise?: any): void {
-  if (promise && typeof promise.catch === 'function') {
-    promise.catch((e: any) => {
-      console.error(e);
-    });
+/** Default callback used for catching async errors. */
+function logError(e?: any): void {
+  if (e) {
+    console.error(e);
   }
 }
 
@@ -20,7 +18,32 @@ function forget(promise?: any): void {
 function invokeClient(method: string, ...args: any[]): void {
   const top = getOrCreateShim().getStackTop();
   if (top && top.client && top.client[method]) {
-    forget(top.client[method](...args, top.scope));
+    top.client[method](...args, top.scope);
+  }
+}
+
+/**
+ * Internal helper function to call an async method on the top client if it
+ * exists.
+ *
+ * @param method The method to call on the client/frontend.
+ * @param callback A callback called with the error or success return value.
+ * @param args Arguments to pass to the client/fontend.
+ */
+function invokeClientAsync<T>(
+  method: string,
+  callback: (error?: any, value?: T) => void,
+  ...args: any[]
+): void {
+  const top = getOrCreateShim().getStackTop();
+  if (top && top.client && top.client[method]) {
+    top.client[method](...args, top.scope)
+      .then((value: T) => {
+        callback(undefined, value);
+      })
+      .catch((err: any) => {
+        callback(err);
+      });
   }
 }
 
@@ -124,26 +147,41 @@ export function bindClient(client: any): void {
 
 /**
  * Captures an exception event and sends it to Sentry.
+ *
  * @param exception An exception-like object.
+ * @param callback A callback that is invoked when the exception has been sent.
  */
-export function captureException(exception: any): void {
-  invokeClient('captureException', exception);
+export function captureException(
+  exception: any,
+  callback: (error?: any) => void = logError,
+): void {
+  invokeClientAsync('captureException', callback, exception);
 }
 
 /**
  * Captures a message event and sends it to Sentry.
+ *
  * @param message The message to send to Sentry.
+ * @param callback A callback that is invoked when the message has been sent.
  */
-export function captureMessage(message: string): void {
-  invokeClient('captureMessage', message);
+export function captureMessage(
+  message: string,
+  callback: (error?: any) => void = logError,
+): void {
+  invokeClientAsync('captureMessage', callback, message);
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
+ *
  * @param event The event to send to Sentry.
+ * @param callback A callback that is invoked when the event has been sent.
  */
-export function captureEvent(event: SentryEvent): void {
-  invokeClient('captureEvent', event);
+export function captureEvent(
+  event: SentryEvent,
+  callback: (error?: any) => void = logError,
+): void {
+  invokeClientAsync('captureEvent', callback, event);
 }
 
 /**

@@ -3,8 +3,8 @@ import { dirname, join } from 'path';
 import { mkdirpSync } from './fs';
 
 /**
- * Lazily serializes data to a JSON file to persist.
- * When created, it loads data from that file if it already exists.
+ * Lazily serializes data to a JSON file to persist. When created, it loads data
+ * from that file if it already exists.
  */
 export class Store<T> {
   /** Internal path for JSON file. */

@@ -5,8 +5,8 @@ import { ScopeLayer } from './interfaces';
 /**
  * API compatibility version of this shim.
  *
- * WARNING: This number should only be incresed when the global interface changes a
- * and new methods are introduced.
+ * WARNING: This number should only be incresed when the global interface
+ * changes a and new methods are introduced.
  */
 export const API_VERSION = 1;
 

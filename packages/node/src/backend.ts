@@ -5,6 +5,11 @@ import { Raven, SendMethod } from './raven';
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
 
+/** Extension to the Function type. */
+interface FunctionExt extends Function {
+  __SENTRY_CAPTURE__?: boolean;
+}
+
 /**
  * Configuration options for the Sentry Node SDK.
  * @see NodeFrontend for more information.
@@ -19,10 +24,11 @@ export interface NodeOptions extends Options {
 
   /**
    * Enables/disables automatic collection of breadcrumbs. Possible values are:
-   * false - all automatic breadcrumb collection disabled (default)
-   * true - all automatic breadcrumb collection enabled
-   * A dictionary of individual breadcrumb types that can be enabled/disabled:
-   * e.g.: { console: true, http: false }
+   *
+   *  - `false`: all automatic breadcrumb collection disabled (default)
+   *  - `true`: all automatic breadcrumb collection enabled
+   *  - A dictionary of individual breadcrumb types that can be
+   *    enabled/disabled: e.g.: `{ console: true, http: false }`
    */
   autoBreadcrumbs?: { [key: string]: boolean } | boolean;
 
@@ -54,18 +60,14 @@ export class NodeBackend implements Backend {
       );
     }
 
-    Raven.config(dsn.toString(true), this.frontend.getOptions()).install();
-
-    // There is no option for this so we have to overwrite it like this.
-    // We need this in SentryElectron.
     const { onFatalError } = this.frontend.getOptions();
-    if (onFatalError) {
-      Raven.onFatalError = onFatalError;
-    }
+    Raven.config(dsn.toString(true), this.frontend.getOptions()).install(
+      onFatalError,
+    );
 
-    // Hook into Raven's breadcrumb mechanism. This allows us to intercept
-    // both breadcrumbs created internally by Raven and pass them to the
-    // Frontend first, before actually capturing them.
+    // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
+    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
       addBreadcrumb(breadcrumb);
     };
@@ -74,10 +76,10 @@ export class NodeBackend implements Backend {
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
     Raven.send = (event, callback) => {
-      if (callback) {
+      if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(event);
       } else {
-        captureEvent(event);
+        captureEvent(event, callback);
       }
     };
 
@@ -89,6 +91,7 @@ export class NodeBackend implements Backend {
    */
   public async eventFromException(exception: any): Promise<SentryEvent> {
     return new Promise<SentryEvent>(resolve => {
+      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
       Raven.captureException(exception, resolve);
     });
   }
@@ -98,6 +101,7 @@ export class NodeBackend implements Backend {
    */
   public async eventFromMessage(message: string): Promise<SentryEvent> {
     return new Promise<SentryEvent>(resolve => {
+      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
       Raven.captureMessage(message, resolve);
     });
   }
