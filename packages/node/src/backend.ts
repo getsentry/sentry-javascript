@@ -1,9 +1,21 @@
 import { Backend, Frontend, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
+import { addBreadcrumb, SentryEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
+
+/** Default callback used when catching unhandled exceptions with Raven. */
+const DEFAULT_CALLBACK = (e: any) => {
+  if (e) {
+    console.error(e);
+  }
+};
 
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
+
+/** Extension to the Function type. */
+interface FunctionExt extends Function {
+  __SENTRY_CAPTURE__?: boolean;
+}
 
 /**
  * Configuration options for the Sentry Node SDK.
@@ -55,14 +67,10 @@ export class NodeBackend implements Backend {
       );
     }
 
-    Raven.config(dsn.toString(true), this.frontend.getOptions()).install();
-
-    // There is no option for this so we have to overwrite it like this. We need
-    // this in SentryElectron.
     const { onFatalError } = this.frontend.getOptions();
-    if (onFatalError) {
-      Raven.onFatalError = onFatalError;
-    }
+    Raven.config(dsn.toString(true), this.frontend.getOptions()).install(
+      onFatalError,
+    );
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Frontend
@@ -74,11 +82,17 @@ export class NodeBackend implements Backend {
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
-    Raven.send = (event, callback) => {
-      if (callback) {
+    Raven.send = (event, callback = DEFAULT_CALLBACK) => {
+      if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(event);
       } else {
-        captureEvent(event);
+        // TODO: Implemen callback-based version of captureEvent in @sentry/shim
+        this.frontend
+          .captureEvent(event)
+          .then(() => {
+            callback(undefined);
+          })
+          .catch(callback);
       }
     };
 
@@ -90,6 +104,7 @@ export class NodeBackend implements Backend {
    */
   public async eventFromException(exception: any): Promise<SentryEvent> {
     return new Promise<SentryEvent>(resolve => {
+      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
       Raven.captureException(exception, resolve);
     });
   }
@@ -99,6 +114,7 @@ export class NodeBackend implements Backend {
    */
   public async eventFromMessage(message: string): Promise<SentryEvent> {
     return new Promise<SentryEvent>(resolve => {
+      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
       Raven.captureMessage(message, resolve);
     });
   }
