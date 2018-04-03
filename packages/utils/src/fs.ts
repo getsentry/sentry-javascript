@@ -11,8 +11,8 @@ const _0777 = parseInt('0777', 8);
  * @returns A Promise that resolves when the path has been created.
  */
 async function mkdirAsync(path: string, mode: number): Promise<void> {
-  // We cannot use util.promisify here because that was only introduced
-  // in Node 8 and we need to support older Node versions.
+  // We cannot use util.promisify here because that was only introduced in Node
+  // 8 and we need to support older Node versions.
   return new Promise<void>((res, reject) => {
     mkdir(path, mode, err => {
       if (err) {

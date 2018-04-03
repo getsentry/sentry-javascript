@@ -15,6 +15,7 @@ export class BrowserFrontend extends FrontendBase<
 > {
   /**
    * Creates a new Browser SDK instance.
+   *
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserOptions) {

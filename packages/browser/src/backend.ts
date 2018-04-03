@@ -10,11 +10,7 @@ import { Raven, SendMethod } from './raven';
 /** Original raven send function. */
 const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
-/**
- * Normalizes the event so it is consistent with our domain interface.
- * @param event
- * @returns
- */
+/** Normalizes the event so it is consistent with our domain interface. */
 function normalizeRavenEvent(event: SentryEvent): SentryEvent {
   const ex = (event.exception || {}) as { values?: SentryException[] };
   if (ex && ex.values) {
@@ -24,11 +20,7 @@ function normalizeRavenEvent(event: SentryEvent): SentryEvent {
   return event;
 }
 
-/**
- * Prepares an event so it can be send with raven-js.
- * @param event
- * @returns
- */
+/** Prepares an event so it can be send with raven-js. */
 function prepareEventForRaven(event: SentryEvent): SentryEvent {
   const ravenEvent = event as any;
   if (event.exception) {
@@ -44,29 +36,29 @@ function prepareEventForRaven(event: SentryEvent): SentryEvent {
  */
 export interface BrowserOptions extends Options {
   /**
-   * A pattern for error messages which should not be sent to Sentry.
-   * By default, all errors will be sent.
+   * A pattern for error messages which should not be sent to Sentry. By
+   * default, all errors will be sent.
    */
   ignoreErrors?: Array<string | RegExp>;
 
   /**
-   * A pattern for error URLs which should not be sent to Sentry.
-   * To whitelist certain errors instead, use {@link Options.whitelistUrls}.
-   * By default, all errors will be sent.
+   * A pattern for error URLs which should not be sent to Sentry. To whitelist
+   * certain errors instead, use {@link Options.whitelistUrls}. By default, all
+   * errors will be sent.
    */
   ignoreUrls?: Array<string | RegExp>;
 
   /**
-   * A pattern for error URLs which should exclusively be sent to Sentry.
-   * This is the opposite of {@link Options.ignoreUrls}.
-   * By default, all errors will be sent.
+   * A pattern for error URLs which should exclusively be sent to Sentry. This
+   * is the opposite of {@link Options.ignoreUrls}. By default, all errors will
+   * be sent.
    */
   whitelistUrls?: Array<string | RegExp>;
 
   /**
    * Defines a list source code file paths. Only errors including these paths in
-   * their stack traces will be sent to Sentry.
-   * By default, all errors will be sent.
+   * their stack traces will be sent to Sentry. By default, all errors will be
+   * sent.
    */
   includePaths?: Array<string | RegExp>;
 }
@@ -97,9 +89,9 @@ export class BrowserBackend implements Backend {
 
     Raven.config(dsn.toString(), this.frontend.getOptions()).install();
 
-    // Hook into Raven's breadcrumb mechanism. This allows us to intercept
-    // both breadcrumbs created internally by Raven and pass them to the
-    // Frontend first, before actually capturing them.
+    // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
+    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // first, before actually capturing them.
     Raven.setBreadcrumbCallback(breadcrumb => {
       addBreadcrumb(breadcrumb);
       return false;

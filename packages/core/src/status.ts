@@ -14,8 +14,7 @@ export enum SendStatus {
   Failed = 'failed',
 }
 
-// tslint:disable:no-unnecessary-qualifier
-// tslint:disable-next-line:no-namespace
+// tslint:disable:no-unnecessary-qualifier no-namespace
 export namespace SendStatus {
   /**
    * Converts a HTTP status code into a {@link SendStatus}.

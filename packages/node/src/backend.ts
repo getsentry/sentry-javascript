@@ -19,10 +19,11 @@ export interface NodeOptions extends Options {
 
   /**
    * Enables/disables automatic collection of breadcrumbs. Possible values are:
-   * false - all automatic breadcrumb collection disabled (default)
-   * true - all automatic breadcrumb collection enabled
-   * A dictionary of individual breadcrumb types that can be enabled/disabled:
-   * e.g.: { console: true, http: false }
+   *
+   *  - `false`: all automatic breadcrumb collection disabled (default)
+   *  - `true`: all automatic breadcrumb collection enabled
+   *  - A dictionary of individual breadcrumb types that can be
+   *    enabled/disabled: e.g.: `{ console: true, http: false }`
    */
   autoBreadcrumbs?: { [key: string]: boolean } | boolean;
 
@@ -56,16 +57,16 @@ export class NodeBackend implements Backend {
 
     Raven.config(dsn.toString(true), this.frontend.getOptions()).install();
 
-    // There is no option for this so we have to overwrite it like this.
-    // We need this in SentryElectron.
+    // There is no option for this so we have to overwrite it like this. We need
+    // this in SentryElectron.
     const { onFatalError } = this.frontend.getOptions();
     if (onFatalError) {
       Raven.onFatalError = onFatalError;
     }
 
-    // Hook into Raven's breadcrumb mechanism. This allows us to intercept
-    // both breadcrumbs created internally by Raven and pass them to the
-    // Frontend first, before actually capturing them.
+    // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
+    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
       addBreadcrumb(breadcrumb);
     };
