@@ -1,7 +1,7 @@
 import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import * as RavenNode from 'raven';
 
-export type SendMethod = (event: SentryEvent, cb: (err: any) => void) => void;
+export type SendMethod = (event: SentryEvent, cb?: (err: any) => void) => void;
 
 /** Provides access to internal raven functionality. */
 export interface RavenInternal {

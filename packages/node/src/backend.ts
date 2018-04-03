@@ -1,13 +1,6 @@
 import { Backend, Frontend, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, SentryEvent } from '@sentry/shim';
+import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
 import { Raven, SendMethod } from './raven';
-
-/** Default callback used when catching unhandled exceptions with Raven. */
-const DEFAULT_CALLBACK = (e: any) => {
-  if (e) {
-    console.error(e);
-  }
-};
 
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
@@ -82,17 +75,11 @@ export class NodeBackend implements Backend {
     // Hook into Raven's internal event sending mechanism. This allows us to
     // pass events to the frontend, before they will be sent back here for
     // actual submission.
-    Raven.send = (event, callback = DEFAULT_CALLBACK) => {
+    Raven.send = (event, callback) => {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(event);
       } else {
-        // TODO: Implemen callback-based version of captureEvent in @sentry/shim
-        this.frontend
-          .captureEvent(event)
-          .then(() => {
-            callback(undefined);
-          })
-          .catch(callback);
+        captureEvent(event, callback);
       }
     };
 
