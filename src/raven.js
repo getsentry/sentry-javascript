@@ -1387,7 +1387,7 @@ Raven.prototype = {
       if (_document.addEventListener) {
         _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
         _document.addEventListener('keypress', self._keypressEventHandler(), false);
-      } else {
+      } else if(_document.attachEvent){
         // IE8 Compatibility
         _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
         _document.attachEvent('onkeypress', self._keypressEventHandler());
