@@ -1444,6 +1444,33 @@ describe('raven.Client', function() {
         });
       });
 
+      it('should instrument http and log non-standard http (:80) port', function(done) {
+        var testUrl = 'http://example.com:1337/';
+        var scope = nock(testUrl)
+          .get('/')
+          .reply(200, 'OK');
+
+        client.context(function() {
+          var http = require('http');
+          http.get(url.parse(testUrl), function(response) {
+            response._readableState.should.have.property('flowing', initialFlowingState);
+            // need to wait a tick here because nock will make this callback fire
+            // before our req.emit monkeypatch captures the breadcrumb :/
+            setTimeout(function() {
+              response._readableState.should.have.property(
+                'flowing',
+                initialFlowingState
+              );
+              client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
+              client.getContext().breadcrumbs.length.should.equal(1);
+              scope.done();
+              done();
+            }, 0);
+          });
+        });
+      });
+
       it('should instrument https to capture breadcrumbs', function(done) {
         var testUrl = 'https://example.com/';
         var scope = nock(testUrl)
@@ -1481,6 +1508,32 @@ describe('raven.Client', function() {
             // need to wait a tick because the response handler that captures the breadcrumb might run after this one
             setTimeout(function() {
               client.getContext().should.not.have.key('breadcrumbs');
+              scope.done();
+              done();
+            }, 0);
+          });
+        });
+      });
+
+      it('should instrument https and log non-standard https (:443) port', function(done) {
+        var testUrl = 'https://example.com:1337/';
+        var scope = nock(testUrl)
+          .get('/')
+          .reply(200, 'OK');
+
+        client.context(function() {
+          var https = require('https');
+          https.get(url.parse(testUrl), function(response) {
+            response._readableState.should.have.property('flowing', initialFlowingState);
+            // need to wait a tick here because nock will make this callback fire
+            // before our req.emit monkeypatch captures the breadcrumb :/
+            setTimeout(function() {
+              response._readableState.should.have.property(
+                'flowing',
+                initialFlowingState
+              );
+              client.getContext().breadcrumbs[0].data.url.should.equal(testUrl);
+              client.getContext().breadcrumbs[0].data.status_code.should.equal(200);
               scope.done();
               done();
             }, 0);
