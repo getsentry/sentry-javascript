@@ -1,11 +1,22 @@
 {
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
   "editor.rulers": [80],
+  "editor.tabSize": 2,
+  "files.autoSave": "onWindowChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
   "search.exclude": {
     "**/node_modules/": true,
     "**/build/": true,
     "**/dist/": true
   },
-  "editor.formatOnSave": true,
+  "typescript.tsdk": "./node_modules/typescript/lib",
   "tslint.enable": false,
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "[json]": {
+    "editor.formatOnType": false,
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": false
+  }
 }
