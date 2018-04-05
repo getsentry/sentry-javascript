@@ -13,10 +13,15 @@ export default [
       exports: 'named',
       interop: false,
     },
-    external: ['raven-js', '@sentry/core', '@sentry/shim'],
+    external: ['@sentry/core', '@sentry/shim'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
+      }),
+      resolve({
+        jsnext: true,
+        main: true,
+        browser: true,
       }),
       commonjs(),
     ],
