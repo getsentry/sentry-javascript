@@ -24,7 +24,7 @@ export interface FrontendClass<F extends Frontend, O extends Options> {
  * @param options Options to pass to the frontend.
  * @returns The installed and bound frontend instance.
  */
-export function createAndBind<F extends Frontend, O extends Options>(
+export function initAndBind<F extends Frontend, O extends Options>(
   frontendClass: FrontendClass<F, O>,
   options: O,
 ): void {

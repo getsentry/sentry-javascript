@@ -15,7 +15,7 @@ import {
   setUserContext,
   withScope,
 } from '../../src';
-import { create, TestClient, TestClient2 } from '../mocks/client';
+import { init, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
 
@@ -134,7 +134,7 @@ describe('Shim', () => {
   });
 
   it('returns the bound client', () => {
-    create({});
+    init({});
     expect(getCurrentClient()).to.equal(TestClient.instance);
   });
 
@@ -149,7 +149,7 @@ describe('Shim', () => {
   });
 
   it('does not throw an error when pushing different clients', () => {
-    create({});
+    init({});
     expect(() => {
       withScope(new TestClient2(), () => {
         //
@@ -158,7 +158,7 @@ describe('Shim', () => {
   });
 
   it('does not throw an error when pushing same clients', () => {
-    create({});
+    init({});
     expect(() => {
       withScope(new TestClient({}), () => {
         //

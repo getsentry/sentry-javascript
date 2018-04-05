@@ -14,6 +14,6 @@ export class TestClient {
 
 export class TestClient2 {}
 
-export function create(options: object): void {
+export function init(options: object): void {
   bindClient(new TestClient(options));
 }

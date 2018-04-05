@@ -59,9 +59,9 @@ Setup and usage of these SDKs always follows the same principle. In Node, for
 example (on another platform simply substitute the import):
 
 ```javascript
-const { create, captureMessage } = require('@sentry/node');
+const { init, captureMessage } = require('@sentry/node');
 
-create({
+init({
   dsn: '__DSN__',
   // ...
 });

@@ -1,6 +1,6 @@
 import { SdkInfo } from '@sentry/shim';
 import { FrontendBase } from '../../src/base';
-import { createAndBind } from '../../src/sdk';
+import { initAndBind } from '../../src/sdk';
 import { TestBackend, TestOptions } from './backend';
 
 export const TEST_SDK = {
@@ -21,6 +21,6 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
   }
 }
 
-export function create(options: TestOptions): void {
-  createAndBind(TestFrontend, options);
+export function init(options: TestOptions): void {
+  initAndBind(TestFrontend, options);
 }

@@ -9,7 +9,7 @@ import {
   captureException,
   captureMessage,
   Context,
-  create,
+  init,
   popScope,
   pushScope,
   SentryEvent,
@@ -22,7 +22,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 describe('SentryBrowser', () => {
   before(() => {
-    create({ dsn });
+    init({ dsn });
   });
 
   describe('getContext() / setContext()', () => {
