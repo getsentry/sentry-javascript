@@ -1,4 +1,4 @@
-import { createAndBind } from '@sentry/core';
+import { initAndBind } from '@sentry/core';
 import { getCurrentClient } from '@sentry/shim';
 import { NodeOptions } from './backend';
 import { NodeFrontend } from './frontend';
@@ -6,14 +6,14 @@ import { NodeFrontend } from './frontend';
 /**
  * The Sentry Node SDK Client.
  *
- * To use this SDK, call the {@link create} function as early as possible in the
+ * To use this SDK, call the {@link init} function as early as possible in the
  * main entry module. To set context information or send manual events, use the
  * provided methods.
  *
  * @example
- * const { create } = require('@sentry/node');
+ * const { init } = require('@sentry/node');
  *
- * create({
+ * init({
  *   dsn: '__DSN__',
  *   // ...
  * });
@@ -46,8 +46,8 @@ import { NodeFrontend } from './frontend';
  *
  * @see NodeOptions for documentation on configuration options.
  */
-export function create(options: NodeOptions): void {
-  createAndBind(NodeFrontend, options);
+export function init(options: NodeOptions): void {
+  initAndBind(NodeFrontend, options);
 }
 
 /** Returns the current NodeFrontend, if any. */

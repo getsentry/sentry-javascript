@@ -19,14 +19,14 @@ compatibility from time to time. We absolutely recommend
 
 ## Usage
 
-To use this SDK, call `create(options)` as early as possible in the main entry
+To use this SDK, call `init(options)` as early as possible in the main entry
 module. This will initialize the SDK and hook into the environment. Note that
 you can turn off almost all side effects using the respective options.
 
 ```javascript
 const Sentry = require('@sentry/node');
 
-Sentry.create({
+Sentry.init({
   dsn: '__DSN__',
   // ...
 });
@@ -34,7 +34,7 @@ Sentry.create({
 
 To set context information or send manual events, use the exported functions of
 `@sentry/node`. Note that these functions will not perform any action before you
-have called `create()`:
+have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras

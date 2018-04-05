@@ -16,7 +16,7 @@ import {
   captureException,
   captureMessage,
   Context,
-  create,
+  init,
   NodeBackend,
   NodeFrontend,
   popScope,
@@ -31,7 +31,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 describe('SentryNode', () => {
   beforeEach(() => {
-    create({ dsn });
+    init({ dsn });
   });
 
   describe('getContext() / setContext()', () => {

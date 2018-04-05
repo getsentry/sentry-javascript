@@ -1,4 +1,4 @@
-import { createAndBind } from '@sentry/core';
+import { initAndBind } from '@sentry/core';
 import { getCurrentClient } from '@sentry/shim';
 import { BrowserOptions } from './backend';
 import { BrowserFrontend } from './frontend';
@@ -6,14 +6,14 @@ import { BrowserFrontend } from './frontend';
 /**
  * The Sentry Browser SDK Client.
  *
- * To use this SDK, call the {@link create} function as early as possible when
+ * To use this SDK, call the {@link init} function as early as possible when
  * loading the web page. To set context information or send manual events, use
  * the provided methods.
  *
  * @example
- * import { create } from '@sentry/browser';
+ * import { init } from '@sentry/browser';
  *
- * create({
+ * init({
  *   dsn: '__DSN__',
  *   // ...
  * });
@@ -46,8 +46,8 @@ import { BrowserFrontend } from './frontend';
  *
  * @see BrowserOptions for documentation on configuration options.
  */
-export function create(options: BrowserOptions): void {
-  createAndBind(BrowserFrontend, options);
+export function init(options: BrowserOptions): void {
+  initAndBind(BrowserFrontend, options);
 }
 
 /** Returns the current BrowserFrontend, if any. */

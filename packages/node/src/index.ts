@@ -28,4 +28,4 @@ export {
 
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeFrontend } from './frontend';
-export { create, getCurrentFrontend } from './sdk';
+export { init, getCurrentFrontend } from './sdk';

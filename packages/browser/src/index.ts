@@ -28,4 +28,4 @@ export {
 
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserFrontend } from './frontend';
-export { create, getCurrentFrontend } from './sdk';
+export { init, getCurrentFrontend } from './sdk';
