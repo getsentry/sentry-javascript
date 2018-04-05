@@ -7,7 +7,7 @@ Connect
   var Raven = require('raven');
 
   // Must configure Raven before doing anything else with it
-  Raven.config('___DSN___').install();
+  Raven.config('___PUBLIC_DSN___').install();
 
   function mainHandler(req, res) {
       throw new Error('Broke!');

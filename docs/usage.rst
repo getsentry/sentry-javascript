@@ -28,7 +28,7 @@ The recommended usage pattern, though, is to run your entire program inside a Ra
 
   var Raven = require('raven');
 
-  Raven.config('___DSN___').install();
+  Raven.config('___PUBLIC_DSN___').install();
   Raven.context(function () {
     // all your stuff goes here
   });
@@ -283,7 +283,7 @@ By default, Raven does not capture unhandled promise rejections. You can have it
 
 .. code-block:: javascript
 
-  Raven.config('___DSN___', {
+  Raven.config('___PUBLIC_DSN___', {
     captureUnhandledRejections: true
   }).install();
 
@@ -345,7 +345,7 @@ Configuring the HTTP Transport
 
 .. code-block:: javascript
 
-    Raven.config('___DSN___', {
+    Raven.config('___PUBLIC_DSN___', {
       transport: new raven.transports.HTTPSTransport({rejectUnauthorized: false})
     });
 
@@ -356,7 +356,7 @@ Passing any falsey value as the DSN will disable sending events upstream:
 
 .. code-block:: javascript
 
-  Raven.config(process.env.NODE_ENV === 'production' && '___DSN___');
+  Raven.config(process.env.NODE_ENV === 'production' && '___PUBLIC_DSN___');
 
 Disable Console Alerts
 ----------------------

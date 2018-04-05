@@ -10,7 +10,7 @@ Traceback you can pass your own stackFunction in the options. For example:
 
 .. code-block:: coffeescript
 
-    client = new raven.Client('___DSN___', {
+    client = new raven.Client('___PUBLIC_DSN___', {
         stackFunction: {{ Your stack function }}
     });
 
@@ -19,6 +19,6 @@ So for example:
 
 .. code-block:: coffeescript
 
-    client = new raven.Client('___DSN___', {
+    client = new raven.Client('___PUBLIC_DSN___', {
         stackFunction: Error.prepareStackTrace
     });

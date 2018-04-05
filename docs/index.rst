@@ -33,7 +33,7 @@ Next you need to initialize the Raven client and configure it to use your `Sentr
 .. code-block:: javascript
 
     var Raven = require('raven');
-    Raven.config('___DSN___').install();
+    Raven.config('___PUBLIC_DSN___').install();
 
 At this point, Raven is set up to capture and report any uncaught exceptions.
 

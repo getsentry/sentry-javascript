@@ -7,7 +7,7 @@ Koa
     var Raven = require('raven');
 
     var app = koa();
-    Raven.config('___DSN___').install();
+    Raven.config('___PUBLIC_DSN___').install();
 
     app.on('error', function (err) {
         Raven.captureException(err, function (err, eventId) {
