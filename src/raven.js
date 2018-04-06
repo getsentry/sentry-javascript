@@ -1378,6 +1378,17 @@ Raven.prototype = {
               });
 
               return response;
+            }).catch(function(err) {
+
+              // if there is an error performing the request
+              self.captureBreadcrumb({
+                type: 'http',
+                category: 'fetch',
+                data: fetchData,
+                level: 'error',
+              });
+
+              throw err;
             });
           };
         },
