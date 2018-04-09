@@ -1,11 +1,21 @@
 # Changelog
 
+## 2.5.0 - 2018-04-09
+
+- feat: log non-standard ports in breadcrumbs (#440)
+- feat: add flag for unhandled promise rejections (#446)
+- fix: Remove a redundant try-catch block (#445)
+- fix: Do not override context when capturing non-error exceptions (#444)
+- fix: Update stack-trace to handle spaces in paths (#437)
+- docs: Remove private DSNs from the docs (#447)
+- docs: Update Usage docs to include Domains in Promise support (#438)
+
 ## 2.4.2 - 2018-02-27
 
-fix: Dont throw exception when called captureException without config (#431)
-fix: Preserve context in for rejected promises (#428)
-ref: Log promise rejection reason alongside eventid (#434)
-ref: Use named function for middlewares (#429)
+- fix: Dont throw exception when called captureException without config (#431)
+- fix: Preserve context in for rejected promises (#428)
+- ref: Log promise rejection reason alongside eventid (#434)
+- ref: Use named function for middlewares (#429)
 
 ## 2.4.1 - 2018-02-09
 
