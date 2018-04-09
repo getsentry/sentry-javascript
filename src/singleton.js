@@ -46,11 +46,11 @@ module.exports = Raven;
  * const someAppReporter = new Raven.Client();
  * const someOtherAppReporter = new Raven.Client();
  *
- * someAppReporter('__DSN__', {
+ * someAppReporter.config('__DSN__', {
  *   ...config goes here
  * });
  *
- * someOtherAppReporter('__OTHER_DSN__', {
+ * someOtherAppReporter.config('__OTHER_DSN__', {
  *   ...config goes here
  * });
  *
