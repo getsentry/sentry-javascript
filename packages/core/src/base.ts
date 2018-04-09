@@ -7,7 +7,7 @@ import { SendStatus } from './status';
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
  * with {@link Options.maxBreadcrumbs}.
  */
-const MAX_BREADCRUMBS = 100;
+const MAX_BREADCRUMBS = 30;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -159,7 +159,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       maxBreadcrumbs = MAX_BREADCRUMBS,
     } = this.getOptions();
 
-    if (maxBreadcrumbs === 0) {
+    if (maxBreadcrumbs <= 0) {
       return;
     }
 
@@ -175,7 +175,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
 
     if (await this.getBackend().storeBreadcrumb(finalBreadcrumb, scope)) {
       scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
-        -maxBreadcrumbs,
+        -Math.max(0, Math.min(maxBreadcrumbs, 100)),
       );
     }
 
@@ -281,7 +281,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
 
     const breadcrumbs = scope.breadcrumbs;
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
-      prepared.breadcrumbs = breadcrumbs.slice(-maxBreadcrumbs);
+      prepared.breadcrumbs = breadcrumbs.slice(
+        -Math.max(0, Math.min(maxBreadcrumbs, 100)),
+      );
     }
 
     const context = scope.context;
