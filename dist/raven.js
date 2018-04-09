@@ -1,4 +1,4 @@
-/*! Raven.js 3.24.0 (cf87968) | github.com/getsentry/raven-js */
+/*! Raven.js 3.24.1 (f3b3500) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -205,7 +205,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.24.0',
+  VERSION: '3.24.1',
 
   debug: false,
 
@@ -494,7 +494,11 @@ Raven.prototype = {
    */
   _promiseRejectionHandler: function(event) {
     this._logDebug('debug', 'Raven caught unhandled promise rejection:', event);
-    this.captureException(event.reason);
+    this.captureException(event.reason, {
+      extra: {
+        unhandledPromiseRejection: true
+      }
+    });
   },
 
   /**
@@ -1455,7 +1459,7 @@ Raven.prototype = {
       if (_document.addEventListener) {
         _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
         _document.addEventListener('keypress', self._keypressEventHandler(), false);
-      } else {
+      } else if(_document.attachEvent){
         // IE8 Compatibility
         _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
         _document.attachEvent('onkeypress', self._keypressEventHandler());
@@ -2254,11 +2258,11 @@ module.exports = Raven;
  * const someAppReporter = new Raven.Client();
  * const someOtherAppReporter = new Raven.Client();
  *
- * someAppReporter('__DSN__', {
+ * someAppReporter.config('__DSN__', {
  *   ...config goes here
  * });
  *
- * someOtherAppReporter('__OTHER_DSN__', {
+ * someOtherAppReporter.config('__OTHER_DSN__', {
  *   ...config goes here
  * });
  *

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.24.1
+
+* FEAT: Add flag for unhandled promise rejections (#1278)
+* BUGFIX: Use guard for document.attachEvent calls (#1289)
+
 ## 3.24.0
 
 * NEW: Introduce `sanitizeKeys` config option (#1264)
