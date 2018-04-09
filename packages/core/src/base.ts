@@ -7,7 +7,13 @@ import { SendStatus } from './status';
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
  * with {@link Options.maxBreadcrumbs}.
  */
-const MAX_BREADCRUMBS = 30;
+const DEFAULT_BREADCRUMBS = 30;
+
+/**
+ * Absolute maximum number of breadcrumbs added to an event. The
+ * `maxBreadcrumbs` option cannot be higher than this value.
+ */
+const MAX_BREADCRUMBS = 100;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -156,7 +162,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
       shouldAddBreadcrumb,
       beforeBreadcrumb,
       afterBreadcrumb,
-      maxBreadcrumbs = MAX_BREADCRUMBS,
+      maxBreadcrumbs = DEFAULT_BREADCRUMBS,
     } = this.getOptions();
 
     if (maxBreadcrumbs <= 0) {
@@ -175,7 +181,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
 
     if (await this.getBackend().storeBreadcrumb(finalBreadcrumb, scope)) {
       scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, 100)),
+        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
       );
     }
 
@@ -267,7 +273,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   ): Promise<SentryEvent> {
     const {
       environment,
-      maxBreadcrumbs = MAX_BREADCRUMBS,
+      maxBreadcrumbs = DEFAULT_BREADCRUMBS,
       release,
     } = this.getOptions();
 
@@ -282,7 +288,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     const breadcrumbs = scope.breadcrumbs;
     if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
       prepared.breadcrumbs = breadcrumbs.slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, 100)),
+        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
       );
     }
 
