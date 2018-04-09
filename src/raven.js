@@ -1368,28 +1368,30 @@ Raven.prototype = {
               status_code: null
             };
 
-            return origFetch.apply(this, args).then(function(response) {
-              fetchData.status_code = response.status;
+            return origFetch
+              .apply(this, args)
+              .then(function(response) {
+                fetchData.status_code = response.status;
 
-              self.captureBreadcrumb({
-                type: 'http',
-                category: 'fetch',
-                data: fetchData
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData
+                });
+
+                return response;
+              })
+              ['catch'](function(err) {
+                // if there is an error performing the request
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData,
+                  level: 'error'
+                });
+
+                throw err;
               });
-
-              return response;
-            }).catch(function(err) {
-
-              // if there is an error performing the request
-              self.captureBreadcrumb({
-                type: 'http',
-                category: 'fetch',
-                data: fetchData,
-                level: 'error',
-              });
-
-              throw err;
-            });
           };
         },
         wrappedBuiltIns
@@ -1402,7 +1404,7 @@ Raven.prototype = {
       if (_document.addEventListener) {
         _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
         _document.addEventListener('keypress', self._keypressEventHandler(), false);
-      } else if(_document.attachEvent){
+      } else if (_document.attachEvent) {
         // IE8 Compatibility
         _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
         _document.attachEvent('onkeypress', self._keypressEventHandler());
