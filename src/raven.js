@@ -1368,17 +1368,30 @@ Raven.prototype = {
               status_code: null
             };
 
-            return origFetch.apply(this, args).then(function(response) {
-              fetchData.status_code = response.status;
+            return origFetch
+              .apply(this, args)
+              .then(function(response) {
+                fetchData.status_code = response.status;
 
-              self.captureBreadcrumb({
-                type: 'http',
-                category: 'fetch',
-                data: fetchData
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData
+                });
+
+                return response;
+              })
+              ['catch'](function(err) {
+                // if there is an error performing the request
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData,
+                  level: 'error'
+                });
+
+                throw err;
               });
-
-              return response;
-            });
           };
         },
         wrappedBuiltIns
