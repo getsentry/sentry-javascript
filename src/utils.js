@@ -160,7 +160,13 @@ function objectFrozen(obj) {
 }
 
 function truncate(str, max) {
-  return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
+  if (typeof max !== 'number') {
+    throw new Error('2nd argument to `truncate` function should be a number');
+  }
+  if (typeof str !== 'string' || max === 0) {
+    return str;
+  }
+  return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
 /**
@@ -459,10 +465,9 @@ function jsonSize(value) {
 }
 
 function serializeValue(value) {
-  var maxLength = 40;
-
   if (typeof value === 'string') {
-    return value.length <= maxLength ? value : value.substr(0, maxLength - 1) + '\u2026';
+    var maxLength = 40;
+    return truncate(value, maxLength);
   } else if (
     typeof value === 'number' ||
     typeof value === 'boolean' ||
