@@ -1114,7 +1114,7 @@ Raven.prototype = {
 
               // More breadcrumb DOM capture ... done here and not in `_instrumentBreadcrumbs`
               // so that we don't have more than one wrapper function
-              var before, clickHandler, keypressHandler;
+              var before, clickHandler, tapHandler, keypressHandler;
 
               if (
                 autoBreadcrumbs &&
@@ -1124,6 +1124,7 @@ Raven.prototype = {
                 // NOTE: generating multiple handlers per addEventListener invocation, should
                 //       revisit and verify we can just use one (almost certainly)
                 clickHandler = self._breadcrumbEventHandler('click');
+                tapHandler = self._breadcrumbEventHandler('tap');
                 keypressHandler = self._keypressEventHandler();
                 before = function(evt) {
                   // need to intercept every DOM event in `before` argument, in case that
@@ -1140,6 +1141,7 @@ Raven.prototype = {
                     return;
                   }
                   if (eventType === 'click') return clickHandler(evt);
+                  else if (eventType === 'tap') return tapHandler(evt);
                   else if (eventType === 'keypress') return keypressHandler(evt);
                 };
               }
@@ -1403,10 +1405,12 @@ Raven.prototype = {
     if (autoBreadcrumbs.dom && this._hasDocument) {
       if (_document.addEventListener) {
         _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
+        _document.addEventListener('tap', self._breadcrumbEventHandler('tap'), false);
         _document.addEventListener('keypress', self._keypressEventHandler(), false);
       } else if (_document.attachEvent) {
         // IE8 Compatibility
         _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
+        _document.attachEvent('ontap', self._breadcrumbEventHandler('tap'));
         _document.attachEvent('onkeypress', self._keypressEventHandler());
       }
     }
