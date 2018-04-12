@@ -427,6 +427,31 @@ describe('integration', function() {
       );
     });
 
+    it('should NOT catch an exception already caught [but rethrow because of transport error]', function(done) {
+      var iframe = this.iframe;
+      iframeExecute(
+        iframe,
+        done,
+        function() {
+          var oldTransport = Raven._globalOptions.transport;
+          Raven._globalOptions.transport = function() {
+            throw new Error('Transport Exception');
+          };
+          Raven.captureException(new Error('Original Exception'));
+          Raven._globalOptions.transport = oldTransport;
+          setTimeout(done);
+        },
+        function() {
+          var ravenData = iframe.contentWindow.ravenData;
+          assert.equal(ravenData.length, 2);
+          assert.deepEqual(ravenData.map(a => a.exception.values[0].value), [
+            'Original Exception',
+            'Transport Exception'
+          ]);
+        }
+      );
+    });
+
     it('should catch an exception already caught [but rethrown] via Raven.captureException', function(done) {
       // unlike Raven.wrap which ALWAYS re-throws, we don't know if the user will
       // re-throw an exception passed to Raven.captureException, and so we cannot
