@@ -828,10 +828,10 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
-      };
+      });
       Raven._breadcrumbs = [
         {
           type: 'request',
@@ -875,13 +875,13 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         autoBreadcrumbs: {
           sentry: true
         }
-      };
+      });
       Raven._breadcrumbs = [
         {
           type: 'http',
@@ -979,11 +979,11 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         autoBreadcrumbs: false
-      };
+      });
 
       Raven._send({message: 'bar'});
 
@@ -1014,10 +1014,10 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
-      };
+      });
       Raven._globalContext = {user: {name: 'Matt'}};
 
       Raven._send({message: 'bar'});
@@ -1049,10 +1049,6 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
-        logger: 'javascript',
-        maxMessageLength: 100
-      };
       Raven._globalContext = {tags: {tag1: 'value1'}};
 
       Raven._send({message: 'bar', tags: {tag2: 'value2'}});
@@ -1072,10 +1068,6 @@ describe('globals', function() {
         extra: {'session:duration': 100}
       });
 
-      assert.deepEqual(Raven._globalOptions, {
-        logger: 'javascript',
-        maxMessageLength: 100
-      });
       assert.deepEqual(Raven._globalContext, {
         tags: {tag1: 'value1'}
       });
@@ -1090,10 +1082,6 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
-        logger: 'javascript',
-        maxMessageLength: 100
-      };
       Raven._globalContext = {extra: {key1: 'value1'}};
 
       Raven._send({message: 'bar', extra: {key2: 'value2'}});
@@ -1113,10 +1101,6 @@ describe('globals', function() {
         extra: {key1: 'value1', key2: 'value2', 'session:duration': 100}
       });
 
-      assert.deepEqual(Raven._globalOptions, {
-        logger: 'javascript',
-        maxMessageLength: 100
-      });
       assert.deepEqual(Raven._globalContext, {
         extra: {key1: 'value1'}
       });
@@ -1126,14 +1110,14 @@ describe('globals', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         dataCallback: function() {
           return {message: 'ibrokeit'};
         }
-      };
+      });
       Raven._globalContext = {user: {name: 'Matt'}};
 
       Raven._send({message: 'bar'});
@@ -1152,13 +1136,13 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         dataCallback: function() {
           return;
         }
-      };
+      });
 
       Raven._send({message: 'bar'});
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -1207,13 +1191,13 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         tags: {},
         extra: {}
-      };
+      });
 
       Raven._send({
         message: 'bar',
@@ -1247,12 +1231,12 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         environment: 'abc123'
-      };
+      });
 
       Raven._send({message: 'bar'});
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -1280,12 +1264,12 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         release: 'abc123'
-      };
+      });
 
       Raven._send({message: 'bar'});
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -1313,12 +1297,12 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         serverName: 'abc123'
-      };
+      });
 
       Raven._send({message: 'bar'});
       assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
@@ -1346,14 +1330,15 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      var globalOptions = {
+      var globalOptions = Object.assign({}, Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         release: 'abc123'
-      };
-      Raven._globalEndpoint = 'http://localhost/store/';
+      });
+
       Raven._globalOptions = globalOptions;
+      Raven._globalEndpoint = 'http://localhost/store/';
 
       Raven._send({message: 'bar'});
       var args = Raven._makeRequest.lastCall.args;
@@ -1394,12 +1379,12 @@ describe('globals', function() {
       });
 
       Raven._globalEndpoint = 'http://localhost/store/';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
         release: 'abc123'
-      };
+      });
       Raven._globalSecret = 'def'; // <-- secret
 
       Raven._send({message: 'bar'});
@@ -1437,14 +1422,14 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      var globalOptions = {
+      var globalOptions = Object.assign({}, Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         transport: sinon.stub()
-      };
+      });
 
-      Raven._globalProject = '2';
       Raven._globalOptions = globalOptions;
+      Raven._globalProject = '2';
 
       Raven._send({message: 'bar'});
       assert.deepEqual(globalOptions.transport.lastCall.args[0].data, {
@@ -1468,13 +1453,13 @@ describe('globals', function() {
         this.sinon.stub(window, 'fetch').resolves(true);
 
         Raven._globalProject = '2';
-        Raven._globalOptions = {
+        Object.assign(Raven._globalOptions, {
           logger: 'javascript',
           maxMessageLength: 100,
           headers: {
             'custom-header': 'value'
           }
-        };
+        });
 
         Raven._send({message: 'bar'});
 
@@ -1487,7 +1472,7 @@ describe('globals', function() {
         this.sinon.stub(window, 'fetch').resolves(true);
 
         Raven._globalProject = '2';
-        Raven._globalOptions = {
+        Object.assign(Raven._globalOptions, {
           logger: 'javascript',
           maxMessageLength: 100,
           headers: {
@@ -1495,7 +1480,7 @@ describe('globals', function() {
               return 'computed-header-value';
             }
           }
-        };
+        });
 
         Raven._send({message: 'bar'});
 
@@ -1516,14 +1501,14 @@ describe('globals', function() {
         requests.push(xhr);
       };
 
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         headers: {
           'custom-string-header': 'pickle-rick',
           'custom-function-header': function() {
             return 'morty';
           }
         }
-      };
+      });
 
       Raven._send({message: 'bar'});
 
@@ -1713,10 +1698,10 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
-      };
+      });
       Raven._globalOptions.maxUrlLength = 30;
 
       var longUrl = new Array(50).join('a');
@@ -1758,10 +1743,10 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
-      };
+      });
       Raven._globalOptions.maxUrlLength = 35;
 
       var longUrl = new Array(50).join('a');
@@ -1809,10 +1794,10 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Raven._globalOptions = {
+      Object.assign(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
-      };
+      });
       Raven._globalOptions.maxUrlLength = 35;
 
       var obj = {method: 'POST', url: undefined};

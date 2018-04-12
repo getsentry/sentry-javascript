@@ -169,6 +169,32 @@ describe('utils', function() {
       assert.equal(truncate('lolol', 10), 'lolol');
       assert.equal(truncate('lol', 3), 'lol');
       assert.equal(truncate(new Array(1000).join('f'), 0), new Array(1000).join('f'));
+      // Invalid input
+      assert.equal(truncate(42, 10), 42);
+      assert.deepEqual(truncate([1, 2, 3], 10), [1, 2, 3]);
+      assert.deepEqual(truncate({foo: 'bar'}, 10), {foo: 'bar'});
+    });
+
+    it('should throw when `max` is not a number', function() {
+      assert.throws(function() {
+        truncate('something');
+      });
+      assert.throws(function() {
+        truncate('something', null);
+      });
+      assert.throws(function() {
+        truncate('something', undefined);
+      });
+      assert.throws(function() {
+        truncate('something', 'notNumber');
+      });
+
+      assert.doesNotThrow(function() {
+        truncate('something', 0);
+      });
+      assert.doesNotThrow(function() {
+        truncate('something', 42);
+      });
     });
   });
 
@@ -492,7 +518,7 @@ describe('utils', function() {
         b: 'asd',
         c: true,
         d: undefined,
-        e: 'very long string that is definitely ove\u2026',
+        e: 'very long string that is definitely over\u2026',
         f: '[Object]',
         g: '[Array]'
       };
@@ -540,7 +566,7 @@ describe('utils', function() {
         b: 'asd',
         c: true,
         d: undefined,
-        e: 'very long string that is definitely ove\u2026',
+        e: 'very long string that is definitely over\u2026',
         f: {
           foo: 42,
           bar: {
