@@ -828,7 +828,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
       });
@@ -875,7 +875,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         autoBreadcrumbs: {
@@ -979,7 +979,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         autoBreadcrumbs: false
@@ -1014,7 +1014,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
       });
@@ -1110,7 +1110,7 @@ describe('globals', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1136,7 +1136,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         dataCallback: function() {
@@ -1191,7 +1191,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1231,7 +1231,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1264,7 +1264,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1297,7 +1297,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1330,7 +1330,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      var globalOptions = Object.assign({}, Raven._globalOptions, {
+      var globalOptions = utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1379,7 +1379,7 @@ describe('globals', function() {
       });
 
       Raven._globalEndpoint = 'http://localhost/store/';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
         logger: 'javascript',
         maxMessageLength: 100,
@@ -1422,7 +1422,7 @@ describe('globals', function() {
         headers: {'User-Agent': 'lolbrowser'}
       });
 
-      var globalOptions = Object.assign({}, Raven._globalOptions, {
+      var globalOptions = utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100,
         transport: sinon.stub()
@@ -1453,7 +1453,7 @@ describe('globals', function() {
         this.sinon.stub(window, 'fetch').resolves(true);
 
         Raven._globalProject = '2';
-        Object.assign(Raven._globalOptions, {
+        utils.objectMerge(Raven._globalOptions, {
           logger: 'javascript',
           maxMessageLength: 100,
           headers: {
@@ -1472,7 +1472,7 @@ describe('globals', function() {
         this.sinon.stub(window, 'fetch').resolves(true);
 
         Raven._globalProject = '2';
-        Object.assign(Raven._globalOptions, {
+        utils.objectMerge(Raven._globalOptions, {
           logger: 'javascript',
           maxMessageLength: 100,
           headers: {
@@ -1501,7 +1501,7 @@ describe('globals', function() {
         requests.push(xhr);
       };
 
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         headers: {
           'custom-string-header': 'pickle-rick',
           'custom-function-header': function() {
@@ -1698,7 +1698,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
       });
@@ -1743,7 +1743,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
       });
@@ -1794,7 +1794,7 @@ describe('globals', function() {
       });
 
       Raven._globalProject = '2';
-      Object.assign(Raven._globalOptions, {
+      utils.objectMerge(Raven._globalOptions, {
         logger: 'javascript',
         maxMessageLength: 100
       });
