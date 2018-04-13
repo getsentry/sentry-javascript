@@ -1,4 +1,5 @@
 import { Breadcrumb, SentryEvent } from '@sentry/shim';
+// tslint:disable-next-line:no-implicit-dependencies
 import * as RavenJS from 'raven-js';
 
 /** Signature for the Raven send function */
