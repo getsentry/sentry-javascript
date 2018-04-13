@@ -95,6 +95,7 @@ export interface Request {
   query_string?: string;
   cookies?: { [key: string]: string };
   env?: { [key: string]: string };
+  headers?: { [key: string]: string };
 }
 
 /** TODO */
@@ -116,4 +117,5 @@ export interface SentryEvent extends Context {
   exception?: SentryException[];
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
+  contexts?: { [key: string]: object };
 }
