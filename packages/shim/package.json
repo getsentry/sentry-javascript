@@ -2,7 +2,8 @@
   "name": "@sentry/shim",
   "version": "0.5.0",
   "description": "Sentry shim which can be used in libraries",
-  "repository": "https://github.com/getsentry/raven-js/tree/next",
+  "repository": "git://github.com/getsentry/raven-js.git",
+  "homepage": "https://github.com/getsentry/raven-js/tree/next/packages/shim",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
