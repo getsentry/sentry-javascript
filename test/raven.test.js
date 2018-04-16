@@ -3015,6 +3015,30 @@ describe('Raven (public API)', function() {
       assert.isTrue(Raven._send.calledOnce);
     });
 
+    it('should use 3rd frame from stack to get a fileurl if captureMessage was just a redirect from captureException', function() {
+      this.sinon.stub(Raven, '_send');
+      var TraceKitStub = this.sinon.stub(TraceKit, 'computeStackTrace');
+      TraceKitStub.returns({
+        stack: [
+          {url: 'http://example.com', func: 'Raven.captureMessage'},
+          {url: 'http://example.com', func: 'Raven.captureException'},
+          {url: '<anonymous>', func: '?'}
+        ]
+      });
+      Raven._globalOptions.whitelistUrls = {
+        test: function() {
+          return false;
+        }
+      };
+      this.sinon.spy(Raven._globalOptions.whitelistUrls, 'test');
+      this.sinon.spy(Raven, 'captureMessage');
+
+      Raven.captureException('some string');
+
+      assert.isTrue(Raven.captureMessage.calledWith('some string'));
+      assert.isTrue(Raven._globalOptions.whitelistUrls.test.calledWith('<anonymous>'));
+    });
+
     describe('synthetic traces', function() {
       function assertSynthetic(frames) {
         // Raven.captureMessage
