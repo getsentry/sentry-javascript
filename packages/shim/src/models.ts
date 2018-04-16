@@ -28,6 +28,7 @@ export interface Breadcrumb {
 /** TODO */
 export interface User {
   id?: string;
+  ip_address?: string;
   email?: string;
   username?: string;
   extra?: any;
