@@ -571,6 +571,14 @@ Raven.prototype = {
 
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
     var initialCall = isArray(stack.stack) && stack.stack[1];
+
+    // if stack[1] is `Raven.captureException`, it means that someone passed a string to it and we redirected that call
+    // to be handled by `captureMessage`, thus `initialCall` is the 3rd one, not 2nd
+    // initialCall => captureException(string) => captureMessage(string)
+    if (initialCall && initialCall.func === 'Raven.captureException') {
+      initialCall = stack.stack[2];
+    }
+
     var fileurl = (initialCall && initialCall.url) || '';
 
     if (
