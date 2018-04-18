@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.24.2
+
+* FEAT: Capture breadcrumbs on failed fetch request (#1293)
+* BUGFIX: Make debug mode actually work (#1305)
+* BUGFIX: Use correct frame url in ignore/whitelisturl calls (#1304)
+* BUGFIX: Check input type before doing truncation (#1299)
+
 ## 3.24.1
 
 * FEAT: Add flag for unhandled promise rejections (#1278)

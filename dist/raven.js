@@ -1,4 +1,4 @@
-/*! Raven.js 3.24.1 (f3b3500) | github.com/getsentry/raven-js */
+/*! Raven.js 3.24.2 (d92b6a2) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -205,7 +205,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.24.1',
+  VERSION: '3.24.2',
 
   debug: false,
 
@@ -639,6 +639,14 @@ Raven.prototype = {
 
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
     var initialCall = isArray(stack.stack) && stack.stack[1];
+
+    // if stack[1] is `Raven.captureException`, it means that someone passed a string to it and we redirected that call
+    // to be handled by `captureMessage`, thus `initialCall` is the 3rd one, not 2nd
+    // initialCall => captureException(string) => captureMessage(string)
+    if (initialCall && initialCall.func === 'Raven.captureException') {
+      initialCall = stack.stack[2];
+    }
+
     var fileurl = (initialCall && initialCall.url) || '';
 
     if (
@@ -1436,17 +1444,30 @@ Raven.prototype = {
               status_code: null
             };
 
-            return origFetch.apply(this, args).then(function(response) {
-              fetchData.status_code = response.status;
+            return origFetch
+              .apply(this, args)
+              .then(function(response) {
+                fetchData.status_code = response.status;
 
-              self.captureBreadcrumb({
-                type: 'http',
-                category: 'fetch',
-                data: fetchData
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData
+                });
+
+                return response;
+              })
+              ['catch'](function(err) {
+                // if there is an error performing the request
+                self.captureBreadcrumb({
+                  type: 'http',
+                  category: 'fetch',
+                  data: fetchData,
+                  level: 'error'
+                });
+
+                throw err;
               });
-
-              return response;
-            });
           };
         },
         wrappedBuiltIns
@@ -1459,7 +1480,7 @@ Raven.prototype = {
       if (_document.addEventListener) {
         _document.addEventListener('click', self._breadcrumbEventHandler('click'), false);
         _document.addEventListener('keypress', self._keypressEventHandler(), false);
-      } else if(_document.attachEvent){
+      } else if (_document.attachEvent) {
         // IE8 Compatibility
         _document.attachEvent('onclick', self._breadcrumbEventHandler('click'));
         _document.attachEvent('onkeypress', self._keypressEventHandler());
@@ -2182,7 +2203,11 @@ Raven.prototype = {
   },
 
   _logDebug: function(level) {
-    if (this._originalConsoleMethods[level] && this.debug) {
+    // We allow `Raven.debug` and `Raven.config(DSN, { debug: true })` to not make backward incompatible API change
+    if (
+      this._originalConsoleMethods[level] &&
+      (this.debug || this._globalOptions.debug)
+    ) {
       // In IE<10 console methods do not have their own 'apply' method
       Function.prototype.apply.call(
         this._originalConsoleMethods[level],
@@ -2443,7 +2468,13 @@ function objectFrozen(obj) {
 }
 
 function truncate(str, max) {
-  return !max || str.length <= max ? str : str.substr(0, max) + '\u2026';
+  if (typeof max !== 'number') {
+    throw new Error('2nd argument to `truncate` function should be a number');
+  }
+  if (typeof str !== 'string' || max === 0) {
+    return str;
+  }
+  return str.length <= max ? str : str.substr(0, max) + '\u2026';
 }
 
 /**
@@ -2742,10 +2773,9 @@ function jsonSize(value) {
 }
 
 function serializeValue(value) {
-  var maxLength = 40;
-
   if (typeof value === 'string') {
-    return value.length <= maxLength ? value : value.substr(0, maxLength - 1) + '\u2026';
+    var maxLength = 40;
+    return truncate(value, maxLength);
   } else if (
     typeof value === 'number' ||
     typeof value === 'boolean' ||
