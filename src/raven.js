@@ -2135,7 +2135,11 @@ Raven.prototype = {
   },
 
   _logDebug: function(level) {
-    if (this._originalConsoleMethods[level] && this.debug) {
+    // We allow `Raven.debug` and `Raven.config(DSN, { debug: true })` to not make backward incompatible API change
+    if (
+      this._originalConsoleMethods[level] &&
+      (this.debug || this._globalOptions.debug)
+    ) {
       // In IE<10 console methods do not have their own 'apply' method
       Function.prototype.apply.call(
         this._originalConsoleMethods[level],

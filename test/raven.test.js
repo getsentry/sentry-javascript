@@ -262,6 +262,13 @@ describe('globals', function() {
       assert.isTrue(originalConsoleMethods[level].calledOnce);
     });
 
+    it('should write to console when Raven.config(DSN, { debug: true })', function() {
+      Raven._globalOptions.debug = true;
+      this.sinon.stub(originalConsoleMethods, level);
+      Raven._logDebug(level, message);
+      assert.isTrue(originalConsoleMethods[level].calledOnce);
+    });
+
     it('should handle variadic arguments', function() {
       Raven.debug = true;
       this.sinon.stub(originalConsoleMethods, level);
