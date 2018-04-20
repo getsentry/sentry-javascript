@@ -12,7 +12,9 @@ const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
 /** Normalizes the event so it is consistent with our domain interface. */
 function normalizeRavenEvent(event: SentryEvent): SentryEvent {
-  const ex = (event.exception || {}) as { values?: SentryException[] };
+  const ex = ((event && event.exception) || {}) as {
+    values?: SentryException[];
+  };
   if (ex && ex.values) {
     event.exception = ex.values;
   }
