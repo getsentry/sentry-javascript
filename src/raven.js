@@ -1873,7 +1873,11 @@ Raven.prototype = {
       // intentionally make shallow copy so that additions
       // to breadcrumbs aren't accidentally sent in this request
       data.breadcrumbs = {
-        values: [].slice.call(this._breadcrumbs, 0)
+        values: [].slice.call(this._breadcrumbs, 0).sort(function(prev, next) {
+          if (prev.timestamp > next.timestamp) return 1;
+          if (prev.timestamp < next.timestamp) return -1;
+          return 0;
+        })
       };
     }
 

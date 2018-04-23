@@ -1696,6 +1696,7 @@ describe('globals', function() {
       assert.equal(Raven._backoffStart, null); // clock is at 100ms
       assert.equal(Raven._backoffDuration, 0);
     });
+
     it('should truncate url in breadcrumb', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_makeRequest');
@@ -1815,6 +1816,56 @@ describe('globals', function() {
       assert.doesNotThrow(function() {
         Raven._send({message: 'bar'});
       }, TypeError);
+    });
+
+    it('should sort all breadcrumbs based on their timestamps', function() {
+      this.sinon.stub(Raven, 'isSetup').returns(true);
+      this.sinon.stub(Raven, '_makeRequest');
+      this.sinon.stub(Raven, '_getHttpData').returns({
+        url: 'http://localhost/?a=b',
+        headers: {'User-Agent': 'lolbrowser'}
+      });
+      this.sinon.spy(Raven, '_sendProcessedPayload');
+
+      Raven._breadcrumbs = [
+        {
+          type: 'ui.something',
+          message: 'something click 100',
+          timestamp: 100
+        },
+        {
+          type: 'ui.something',
+          message: 'something click 300',
+          timestamp: 300
+        },
+        {
+          type: 'ui.something',
+          message: 'something click 200',
+          timestamp: 200
+        }
+      ];
+
+      Raven._send({message: 'bar'});
+
+      var data = Raven._sendProcessedPayload.getCall(0).args[0];
+
+      assert.deepEqual(data.breadcrumbs.values, [
+        {
+          type: 'ui.something',
+          message: 'something click 100',
+          timestamp: 100
+        },
+        {
+          type: 'ui.something',
+          message: 'something click 200',
+          timestamp: 200
+        },
+        {
+          type: 'ui.something',
+          message: 'something click 300',
+          timestamp: 300
+        }
+      ]);
     });
   });
 
