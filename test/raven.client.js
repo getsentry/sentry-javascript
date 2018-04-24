@@ -223,22 +223,6 @@ describe('raven.Client', function() {
         done();
       });
     });
-
-    it('should copy object with extra data instead of using its reference directly', function(done) {
-      var old = client.send;
-      var info = {
-        extra: {
-          hello: 'there'
-        }
-      };
-      client.send = function mockSend(kwargs) {
-        client.send = old;
-        kwargs.extra.should.have.property('hello', 'there');
-        kwargs.extra.should.not.equal(info);
-        done();
-      };
-      client.captureMessage('exception', info);
-    });
   });
 
   describe('#captureException()', function() {
@@ -343,12 +327,9 @@ describe('raven.Client', function() {
       var old = zlib.deflate;
       zlib.deflate = function mockSend(skwargs) {
         zlib.deflate = old;
-
         var kwargs = JSON.parse(skwargs);
-        // Remove superfluous node version data to simplify the test itself
-        delete kwargs.extra.node;
-        kwargs.should.have.property('extra', {
-          foo: '[Circular ~]'
+        kwargs.extra.should.have.property('foo', {
+          foo: '[Circular ~.extra.foo]'
         });
         done();
       };
@@ -359,7 +340,7 @@ describe('raven.Client', function() {
           foo: null
         }
       };
-      kwargs.extra.foo = kwargs;
+      kwargs.extra.foo = kwargs.extra;
       client.captureException(new Error('wtf?'), kwargs);
     });
 
@@ -415,45 +396,6 @@ describe('raven.Client', function() {
           tags: ['whoop']
         }
       );
-    });
-
-    it('should copy object with extra data instead of using its reference directly', function(done) {
-      var old = client.send;
-      var info = {
-        extra: {
-          hello: 'there'
-        }
-      };
-      client.send = function mockSend(kwargs) {
-        client.send = old;
-        kwargs.extra.should.have.property('hello', 'there');
-        kwargs.extra.should.not.equal(info.extra);
-        done();
-      };
-      client.captureException({some: 'exception'}, info);
-    });
-
-    it('should preserve same reference to `req` attribute in kwargs', function(done) {
-      var old = client.process;
-      var info = {
-        extra: {
-          hello: 'there'
-        },
-        req: {
-          something: 'else'
-        }
-      };
-      // Use `process` instead of `send` as `req` is stripped from the final payload
-      client.process = function mockProcess(id, kwargs) {
-        client.process = old;
-        kwargs.extra.should.have.property('hello', 'there');
-        kwargs.extra.should.not.equal(info.extra);
-
-        kwargs.req.should.have.property('something', 'else');
-        kwargs.req.should.equal(info.req);
-        done();
-      };
-      client.captureException({some: 'exception'}, info);
     });
   });
 
