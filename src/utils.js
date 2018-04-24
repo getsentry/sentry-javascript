@@ -12,7 +12,7 @@ function isObject(what) {
 // Yanked from https://git.io/vS8DV re-used under CC0
 // with some tiny modifications
 function isError(value) {
-  switch ({}.toString.call(value)) {
+  switch (Object.prototype.toString.call(value)) {
     case '[object Error]':
       return true;
     case '[object Exception]':
@@ -25,7 +25,15 @@ function isError(value) {
 }
 
 function isErrorEvent(value) {
-  return supportsErrorEvent() && {}.toString.call(value) === '[object ErrorEvent]';
+  return Object.prototype.toString.call(value) === '[object ErrorEvent]';
+}
+
+function isDOMError(value) {
+  return Object.prototype.toString.call(value) === '[object DOMError]';
+}
+
+function isDOMException(value) {
+  return Object.prototype.toString.call(value) === '[object DOMException]';
 }
 
 function isUndefined(what) {
@@ -62,6 +70,24 @@ function isEmptyObject(what) {
 function supportsErrorEvent() {
   try {
     new ErrorEvent(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function supportsDOMError() {
+  try {
+    new DOMError(''); // eslint-disable-line no-new
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function supportsDOMException() {
+  try {
+    new DOMException(''); // eslint-disable-line no-new
     return true;
   } catch (e) {
     return false;
@@ -583,6 +609,8 @@ module.exports = {
   isObject: isObject,
   isError: isError,
   isErrorEvent: isErrorEvent,
+  isDOMError: isDOMError,
+  isDOMException: isDOMException,
   isUndefined: isUndefined,
   isFunction: isFunction,
   isPlainObject: isPlainObject,
@@ -590,6 +618,8 @@ module.exports = {
   isArray: isArray,
   isEmptyObject: isEmptyObject,
   supportsErrorEvent: supportsErrorEvent,
+  supportsDOMError: supportsDOMError,
+  supportsDOMException: supportsDOMException,
   supportsFetch: supportsFetch,
   supportsReferrerPolicy: supportsReferrerPolicy,
   supportsPromiseRejectionEvent: supportsPromiseRejectionEvent,
