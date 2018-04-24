@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.0 - 2018-04-24
+
+- fix: Use shallow-copy instead of deep-copy when working with context to prevent too large memory usage and slowing down request resonses [See #452]
+
 ## 2.5.0 - 2018-04-09
 
 - feat: log non-standard ports in breadcrumbs (#440)
