@@ -23,6 +23,8 @@ _Raven.prototype._getUuid = function() {
 var utils = require('../src/utils');
 var joinRegExp = utils.joinRegExp;
 var supportsErrorEvent = utils.supportsErrorEvent;
+var supportsDOMError = utils.supportsDOMError;
+var supportsDOMException = utils.supportsDOMException;
 var supportsFetch = utils.supportsFetch;
 var supportsReferrerPolicy = utils.supportsReferrerPolicy;
 var supportsPromiseRejectionEvent = utils.supportsPromiseRejectionEvent;
@@ -3121,6 +3123,29 @@ describe('Raven (public API)', function() {
         this.sinon.stub(Raven, 'captureMessage');
         Raven.captureException(error, {foo: 'bar'});
         assert.isTrue(Raven.captureMessage.calledOnce);
+      });
+    }
+
+    if (supportsDOMError()) {
+      it('should just pull name and message from DOMError and call captureMessage', function() {
+        var error = new DOMError('pickleRick', 'Morty');
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.spy(Raven, 'captureMessage');
+        Raven.captureException(error);
+        var call = Raven.captureMessage.getCall(0).args[0];
+        assert.equal(call, 'pickleRick: Morty');
+      });
+    }
+
+    if (supportsDOMException()) {
+      it('should just pull name and message from DOMException and call captureMessage', function() {
+        // Yes, in DOMException order of arguments is reversed...
+        var error = new DOMException('Morty', 'pickleRick');
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.spy(Raven, 'captureMessage');
+        Raven.captureException(error);
+        var call = Raven.captureMessage.getCall(0).args[0];
+        assert.equal(call, 'pickleRick: Morty');
       });
     }
 

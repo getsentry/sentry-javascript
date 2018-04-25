@@ -12,9 +12,13 @@ var isString = utils.isString;
 var isArray = utils.isArray;
 var isObject = utils.isObject;
 var isEmptyObject = utils.isEmptyObject;
+var isDOMError = utils.isDOMError;
+var isDOMException = utils.isDOMException;
 var isError = utils.isError;
 var isErrorEvent = utils.isErrorEvent;
 var supportsErrorEvent = utils.supportsErrorEvent;
+var supportsDOMError = utils.supportsDOMError;
+var supportsDOMException = utils.supportsDOMException;
 var wrappedCallback = utils.wrappedCallback;
 var joinRegExp = utils.joinRegExp;
 var objectMerge = utils.objectMerge;
@@ -109,6 +113,24 @@ describe('utils', function() {
       it('should work as advertised', function() {
         assert.isFalse(isErrorEvent(new Error()));
         assert.isTrue(isErrorEvent(new ErrorEvent('')));
+      });
+    });
+  }
+
+  if (supportsDOMError()) {
+    describe('isDOMError', function() {
+      it('should work as advertised', function() {
+        assert.isFalse(isDOMError(new Error()));
+        assert.isTrue(isDOMError(new DOMError('')));
+      });
+    });
+  }
+
+  if (supportsDOMException()) {
+    describe('isDOMException', function() {
+      it('should work as advertised', function() {
+        assert.isFalse(isDOMException(new Error()));
+        assert.isTrue(isDOMException(new DOMException('')));
       });
     });
   }

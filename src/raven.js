@@ -6,10 +6,12 @@ var md5 = require('../vendor/md5/md5');
 var RavenConfigError = require('./configError');
 
 var utils = require('./utils');
+var isErrorEvent = utils.isErrorEvent;
+var isDOMError = utils.isDOMError;
+var isDOMException = utils.isDOMException;
 var isError = utils.isError;
 var isObject = utils.isObject;
 var isPlainObject = utils.isPlainObject;
-var isErrorEvent = utils.isErrorEvent;
 var isUndefined = utils.isUndefined;
 var isFunction = utils.isFunction;
 var isString = utils.isString;
@@ -469,6 +471,23 @@ Raven.prototype = {
     if (isErrorEvent(ex) && ex.error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       ex = ex.error;
+    } else if (isDOMError(ex) || isDOMException(ex)) {
+      // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
+      // then we just extract the name and message, as they don't provide anything else
+      // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
+      // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
+      var name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
+      var message = ex.message ? name + ': ' + ex.message : name;
+
+      return this.captureMessage(
+        message,
+        objectMerge(options, {
+          // neither DOMError or DOMException provide stack trace and we most likely wont get it this way as well
+          // but it's barely any overhead so we may at least try
+          stacktrace: true,
+          trimHeadFrames: options.trimHeadFrames + 1
+        })
+      );
     } else if (isError(ex)) {
       // we have a real Error object
       ex = ex;
@@ -480,6 +499,7 @@ Raven.prototype = {
       ex = new Error(options.message);
     } else {
       // If none of previous checks were valid, then it means that
+      // it's not a DOMError/DOMException
       // it's not a plain Object
       // it's not a valid ErrorEvent (one with an error property)
       // it's not an Error
