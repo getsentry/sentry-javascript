@@ -1,20 +1,578 @@
 {
-  "@dist/raven.js": {
+  "@build/angular,console,ember,require,vue/raven.js": {
     "hashes": {
-      "sha256": "986P+XPpcUAsCgHIffZrLXOM3qF8hwwRAf8Pbj3+l0U=",
-      "sha512": "B1SSEgalruqKHRjLG3hl+g55bgm5ucuCRg8oBCyB0DcIXhNlsHxeG3XwmDn93lAy9yLIMAW3hXKehkZj+h+8HQ=="
+      "sha256": "RgAHTRYtEPflF6Ai71hxugYo9tk0iL8SZFoDw1pTHEM=",
+      "sha512": "LhJIy6EE8dEvMtkBQH3JXvcl3f5IHlM0+ms9mp0zmySXJCltDGNtK6Imje/XYF79DBGQIUT+5WfNHvpP3KEnDQ=="
     },
     "type": null,
-    "integrity": "sha256-986P+XPpcUAsCgHIffZrLXOM3qF8hwwRAf8Pbj3+l0U= sha512-B1SSEgalruqKHRjLG3hl+g55bgm5ucuCRg8oBCyB0DcIXhNlsHxeG3XwmDn93lAy9yLIMAW3hXKehkZj+h+8HQ==",
-    "path": "dist/raven.js"
+    "integrity": "sha256-RgAHTRYtEPflF6Ai71hxugYo9tk0iL8SZFoDw1pTHEM= sha512-LhJIy6EE8dEvMtkBQH3JXvcl3f5IHlM0+ms9mp0zmySXJCltDGNtK6Imje/XYF79DBGQIUT+5WfNHvpP3KEnDQ==",
+    "path": "build/angular,console,ember,require,vue/raven.js"
   },
-  "@dist/raven.min.js": {
+  "@build/angular,console,ember,require,vue/raven.min.js": {
     "hashes": {
-      "sha256": "iSi2Hd/fgRrUbyfELh7lQ0S4iqkOSNmEBMeb+rED1gI=",
-      "sha512": "VLhKf10cRS55TuheDYJRq3t5EU86sjfnu3ZEbIjGgo6AlZXJIZfvTSbOYTFliA9QABBfl057rAEyptvDPYuOMA=="
+      "sha256": "j89LiAGPnnA/6ffyeRqZ+Zt1GbtazvCwlvfDFWanQIc=",
+      "sha512": "TKEq07EcHvRRQieSgcEtiGdD9/rlb8ZbkORkWC/ttLDYLIlM9oBFdQOtG5JmGCfUmIgSGiHwKlRPESeCMb2uqg=="
     },
     "type": null,
-    "integrity": "sha256-iSi2Hd/fgRrUbyfELh7lQ0S4iqkOSNmEBMeb+rED1gI= sha512-VLhKf10cRS55TuheDYJRq3t5EU86sjfnu3ZEbIjGgo6AlZXJIZfvTSbOYTFliA9QABBfl057rAEyptvDPYuOMA==",
-    "path": "dist/raven.min.js"
+    "integrity": "sha256-j89LiAGPnnA/6ffyeRqZ+Zt1GbtazvCwlvfDFWanQIc= sha512-TKEq07EcHvRRQieSgcEtiGdD9/rlb8ZbkORkWC/ttLDYLIlM9oBFdQOtG5JmGCfUmIgSGiHwKlRPESeCMb2uqg==",
+    "path": "build/angular,console,ember,require,vue/raven.min.js"
+  },
+  "@build/angular,console,ember,require/raven.js": {
+    "hashes": {
+      "sha256": "+MdGmzxMypaJF4QZRhiaL4yR8GbSG+lf0WPtvZRwCX4=",
+      "sha512": "+CVagmxa53MF8nHJ+iRUkpxHN3Kc2bpuVQLpRTk8EWWEIhXJJjI2jN2rL1RVKB2Fd3xdiG6HmJkrtv0Dt0qMSQ=="
+    },
+    "type": null,
+    "integrity": "sha256-+MdGmzxMypaJF4QZRhiaL4yR8GbSG+lf0WPtvZRwCX4= sha512-+CVagmxa53MF8nHJ+iRUkpxHN3Kc2bpuVQLpRTk8EWWEIhXJJjI2jN2rL1RVKB2Fd3xdiG6HmJkrtv0Dt0qMSQ==",
+    "path": "build/angular,console,ember,require/raven.js"
+  },
+  "@build/angular,console,ember,require/raven.min.js": {
+    "hashes": {
+      "sha256": "VqmtF3uDgyUyLt2JFEs00YsI+Wo0x0UaivGrMXU+qkA=",
+      "sha512": "C9kY0j87yzIa2Vnr4nCdX1muPHAKf0uFIBicLyVaPbqRltL/h48nC2qL9xBNvAa+Dai0aBK3tlEB5+sWjbAf+A=="
+    },
+    "type": null,
+    "integrity": "sha256-VqmtF3uDgyUyLt2JFEs00YsI+Wo0x0UaivGrMXU+qkA= sha512-C9kY0j87yzIa2Vnr4nCdX1muPHAKf0uFIBicLyVaPbqRltL/h48nC2qL9xBNvAa+Dai0aBK3tlEB5+sWjbAf+A==",
+    "path": "build/angular,console,ember,require/raven.min.js"
+  },
+  "@build/angular,console,ember,vue/raven.js": {
+    "hashes": {
+      "sha256": "HyhSrEfWjaejNuFa60b57gRLVYNbB38482fQcTt7aCY=",
+      "sha512": "v3ZC8rKFOW+z94ARzLDP+7chEI6txdBQSKKmmrRcYc7/ikKZIlYAXm4+Rjcm2VLVFTGeRJH4KxSHn2LKwWi3YA=="
+    },
+    "type": null,
+    "integrity": "sha256-HyhSrEfWjaejNuFa60b57gRLVYNbB38482fQcTt7aCY= sha512-v3ZC8rKFOW+z94ARzLDP+7chEI6txdBQSKKmmrRcYc7/ikKZIlYAXm4+Rjcm2VLVFTGeRJH4KxSHn2LKwWi3YA==",
+    "path": "build/angular,console,ember,vue/raven.js"
+  },
+  "@build/angular,console,ember,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "DcmsVpY+4csSEEm3sYlz9/Wm8jGXmEOOsNz8gRoYlS4=",
+      "sha512": "BLxj9VAcEnK5MJ4kZwfhN2AMoRGRfvnXUv/x9Xhly0+pmePWBhUXGa0Hfdpkasv+UU9MkgQMBSGrTV+L6AIJbw=="
+    },
+    "type": null,
+    "integrity": "sha256-DcmsVpY+4csSEEm3sYlz9/Wm8jGXmEOOsNz8gRoYlS4= sha512-BLxj9VAcEnK5MJ4kZwfhN2AMoRGRfvnXUv/x9Xhly0+pmePWBhUXGa0Hfdpkasv+UU9MkgQMBSGrTV+L6AIJbw==",
+    "path": "build/angular,console,ember,vue/raven.min.js"
+  },
+  "@build/angular,console,ember/raven.js": {
+    "hashes": {
+      "sha256": "hyk6I4y34+eFv7YRwcZh3xOkcvyADHpDWDXNGfrAbCM=",
+      "sha512": "po0LnWcEuN21cqkMxY6ypPH62i22rUeJml+ZEotUVR8kr27hD+z2Gx3J8Jy+dk/F6bgzEdGMnYS757QaBzfe9A=="
+    },
+    "type": null,
+    "integrity": "sha256-hyk6I4y34+eFv7YRwcZh3xOkcvyADHpDWDXNGfrAbCM= sha512-po0LnWcEuN21cqkMxY6ypPH62i22rUeJml+ZEotUVR8kr27hD+z2Gx3J8Jy+dk/F6bgzEdGMnYS757QaBzfe9A==",
+    "path": "build/angular,console,ember/raven.js"
+  },
+  "@build/angular,console,ember/raven.min.js": {
+    "hashes": {
+      "sha256": "snwWfycI/FRy1C1PeuR/aPRAO3BySxRZnNXROLf8sRo=",
+      "sha512": "gyvciXB4NhZXVDNh3khFlhYDZPf9Kk8Pw75d0MHytOdciHRRTQU3zqey+LGeVwpQhbF+8HVor+//VTy1P2rTHQ=="
+    },
+    "type": null,
+    "integrity": "sha256-snwWfycI/FRy1C1PeuR/aPRAO3BySxRZnNXROLf8sRo= sha512-gyvciXB4NhZXVDNh3khFlhYDZPf9Kk8Pw75d0MHytOdciHRRTQU3zqey+LGeVwpQhbF+8HVor+//VTy1P2rTHQ==",
+    "path": "build/angular,console,ember/raven.min.js"
+  },
+  "@build/angular,console,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "jBKldkr4G7Tk+8jgDvP7LqsYh5Z8N9yHTPT7c4+k7DQ=",
+      "sha512": "cx7W95cjkqvziZ5wF+7MGUtViuaFmYAln7EwkFp9xg3XbrlEPFPdI58cKoYT/ax0eSt1bXKGMhDpTZjtgvTbEg=="
+    },
+    "type": null,
+    "integrity": "sha256-jBKldkr4G7Tk+8jgDvP7LqsYh5Z8N9yHTPT7c4+k7DQ= sha512-cx7W95cjkqvziZ5wF+7MGUtViuaFmYAln7EwkFp9xg3XbrlEPFPdI58cKoYT/ax0eSt1bXKGMhDpTZjtgvTbEg==",
+    "path": "build/angular,console,require,vue/raven.js"
+  },
+  "@build/angular,console,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "3fT87vNRzaZ/qYrIapA5C4Y4g9T0QXbz7eavLvPcaGg=",
+      "sha512": "0E62PczoMq2GDH8gFpo6HTQrUe+ezuf0+74m42q6/6IjYejxs9A/jdkt2XN3o1Oy8yi290F9F8NyA4Lv2wLhxA=="
+    },
+    "type": null,
+    "integrity": "sha256-3fT87vNRzaZ/qYrIapA5C4Y4g9T0QXbz7eavLvPcaGg= sha512-0E62PczoMq2GDH8gFpo6HTQrUe+ezuf0+74m42q6/6IjYejxs9A/jdkt2XN3o1Oy8yi290F9F8NyA4Lv2wLhxA==",
+    "path": "build/angular,console,require,vue/raven.min.js"
+  },
+  "@build/angular,console,require/raven.js": {
+    "hashes": {
+      "sha256": "HmZCcCRPcSheoN1lbWRjT8CGNSJmTbrXXRRpgj2yjjE=",
+      "sha512": "7PT+gwBjS30EFtrNfDxtSVj55wIjc0XQImq1tlLXIPV0kTOfMj7ls9O+C4rGfjutGEtvtmRG9F6wLJ4PXNyAAQ=="
+    },
+    "type": null,
+    "integrity": "sha256-HmZCcCRPcSheoN1lbWRjT8CGNSJmTbrXXRRpgj2yjjE= sha512-7PT+gwBjS30EFtrNfDxtSVj55wIjc0XQImq1tlLXIPV0kTOfMj7ls9O+C4rGfjutGEtvtmRG9F6wLJ4PXNyAAQ==",
+    "path": "build/angular,console,require/raven.js"
+  },
+  "@build/angular,console,require/raven.min.js": {
+    "hashes": {
+      "sha256": "aKczXLNWLFVf1Vc1vV8tslbVCvVDC4r2TqV19mW0T8g=",
+      "sha512": "coWJfql+Gu+bEM5/Cubg/GEavbUdZcYmS3Ci8eVqqilvDXJex4Jl+kFEGLZwNKSCPj3WNDvGHZ/F9nBiFC2iHQ=="
+    },
+    "type": null,
+    "integrity": "sha256-aKczXLNWLFVf1Vc1vV8tslbVCvVDC4r2TqV19mW0T8g= sha512-coWJfql+Gu+bEM5/Cubg/GEavbUdZcYmS3Ci8eVqqilvDXJex4Jl+kFEGLZwNKSCPj3WNDvGHZ/F9nBiFC2iHQ==",
+    "path": "build/angular,console,require/raven.min.js"
+  },
+  "@build/angular,console,vue/raven.js": {
+    "hashes": {
+      "sha256": "WmH69cDBxDcspfEZyPdx/4AKUrhUbelkYoacQExzpYQ=",
+      "sha512": "o7AW4Tl2fnWMUDx0TaPkx6dm/MAZk7cRllTb6LQ9WQS1Wr4i0JVeFw24BUh4tTy03CP6wqaQJF7yClrBTzz6kA=="
+    },
+    "type": null,
+    "integrity": "sha256-WmH69cDBxDcspfEZyPdx/4AKUrhUbelkYoacQExzpYQ= sha512-o7AW4Tl2fnWMUDx0TaPkx6dm/MAZk7cRllTb6LQ9WQS1Wr4i0JVeFw24BUh4tTy03CP6wqaQJF7yClrBTzz6kA==",
+    "path": "build/angular,console,vue/raven.js"
+  },
+  "@build/angular,console,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "aQcxpIzUW9uZZ6207NvduJ/oG1oLT3H6hJTfazuVGsI=",
+      "sha512": "sg1K7iBZCeKpIwQJZyz2uhyLlUTwsogGYXuCfwegg6sSUOrLEV7LfKtAKFngSgLkEVix9MGPX51c4wHq9MH68w=="
+    },
+    "type": null,
+    "integrity": "sha256-aQcxpIzUW9uZZ6207NvduJ/oG1oLT3H6hJTfazuVGsI= sha512-sg1K7iBZCeKpIwQJZyz2uhyLlUTwsogGYXuCfwegg6sSUOrLEV7LfKtAKFngSgLkEVix9MGPX51c4wHq9MH68w==",
+    "path": "build/angular,console,vue/raven.min.js"
+  },
+  "@build/angular,console/raven.js": {
+    "hashes": {
+      "sha256": "Q+zX57duGVsLbJoUiucHzrgMAVkb9FHBnkldMz2eIto=",
+      "sha512": "XDPLKbIrA4GFL2KJvpScqdr53yC+vT+zBXx9CjqjmTGMWh1bxOgwb89LNvWcgVRYIsIwuhJHJUqhPVFeTWc4oQ=="
+    },
+    "type": null,
+    "integrity": "sha256-Q+zX57duGVsLbJoUiucHzrgMAVkb9FHBnkldMz2eIto= sha512-XDPLKbIrA4GFL2KJvpScqdr53yC+vT+zBXx9CjqjmTGMWh1bxOgwb89LNvWcgVRYIsIwuhJHJUqhPVFeTWc4oQ==",
+    "path": "build/angular,console/raven.js"
+  },
+  "@build/angular,console/raven.min.js": {
+    "hashes": {
+      "sha256": "w/2w66pSvBA+2wfsItQjuCoH5a8O/mLmLSOyMTg2zfM=",
+      "sha512": "qw7pLNyMEdusF6UyDeCstI6ZMpXb2rpisoqggNdKuXugMwaGaoXzg+H+xFn5Dy6IsRj0SnjKzXd34ut9LrtV8A=="
+    },
+    "type": null,
+    "integrity": "sha256-w/2w66pSvBA+2wfsItQjuCoH5a8O/mLmLSOyMTg2zfM= sha512-qw7pLNyMEdusF6UyDeCstI6ZMpXb2rpisoqggNdKuXugMwaGaoXzg+H+xFn5Dy6IsRj0SnjKzXd34ut9LrtV8A==",
+    "path": "build/angular,console/raven.min.js"
+  },
+  "@build/angular,ember,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "LXXqmFVMlL3k3TcnIMXX5ABz6w8QTZUyNPWuMh2lZwk=",
+      "sha512": "YsS+tn1P6lXtKlFRwsEimNFYzALhTEHwRC8gwQfUxJDfw26ecageuvEKCONvL8o4/a7dPHT+6LqSD2EqoQ/tgg=="
+    },
+    "type": null,
+    "integrity": "sha256-LXXqmFVMlL3k3TcnIMXX5ABz6w8QTZUyNPWuMh2lZwk= sha512-YsS+tn1P6lXtKlFRwsEimNFYzALhTEHwRC8gwQfUxJDfw26ecageuvEKCONvL8o4/a7dPHT+6LqSD2EqoQ/tgg==",
+    "path": "build/angular,ember,require,vue/raven.js"
+  },
+  "@build/angular,ember,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "nBeF9gZDcnDs1cr1E8kSdLTV+n27xGIVP5QpqVmJcLY=",
+      "sha512": "M7LWjiIOl5fHpK38slW2xCmf5AGg0cmc36ehDmbqKCWwL156KndfVwFnaXhBgF6UtF2dWXrwPbcLrSASPXpW9Q=="
+    },
+    "type": null,
+    "integrity": "sha256-nBeF9gZDcnDs1cr1E8kSdLTV+n27xGIVP5QpqVmJcLY= sha512-M7LWjiIOl5fHpK38slW2xCmf5AGg0cmc36ehDmbqKCWwL156KndfVwFnaXhBgF6UtF2dWXrwPbcLrSASPXpW9Q==",
+    "path": "build/angular,ember,require,vue/raven.min.js"
+  },
+  "@build/angular,ember,require/raven.js": {
+    "hashes": {
+      "sha256": "0LyrDEhKhpMADeQfD/HuQUUE+wRX7KpMPG4910n8cgo=",
+      "sha512": "Z80DXRsPAThyPu1ndrVmyvSALHTqquF2GuP8ZWD/CDrakrgMsnhlLyBKKyYh5fpmFwTUxhKvCenn+VwomMcrIA=="
+    },
+    "type": null,
+    "integrity": "sha256-0LyrDEhKhpMADeQfD/HuQUUE+wRX7KpMPG4910n8cgo= sha512-Z80DXRsPAThyPu1ndrVmyvSALHTqquF2GuP8ZWD/CDrakrgMsnhlLyBKKyYh5fpmFwTUxhKvCenn+VwomMcrIA==",
+    "path": "build/angular,ember,require/raven.js"
+  },
+  "@build/angular,ember,require/raven.min.js": {
+    "hashes": {
+      "sha256": "vuGnjuLGtCm69Z3qW0noc2vG3/KbCdrXFq2X8rJQvlk=",
+      "sha512": "Q34EgGWb4a1QSgqeY9e09A4pCDu7K/j7A+sxplIKOgulSghtGRMR7zFyd/LY6Vt9QraCWWbvx/YOMfjx8KBZHA=="
+    },
+    "type": null,
+    "integrity": "sha256-vuGnjuLGtCm69Z3qW0noc2vG3/KbCdrXFq2X8rJQvlk= sha512-Q34EgGWb4a1QSgqeY9e09A4pCDu7K/j7A+sxplIKOgulSghtGRMR7zFyd/LY6Vt9QraCWWbvx/YOMfjx8KBZHA==",
+    "path": "build/angular,ember,require/raven.min.js"
+  },
+  "@build/angular,ember,vue/raven.js": {
+    "hashes": {
+      "sha256": "avJRryk7Qv4HzVkZdcS8q9Tn6stLVrJcZyDDmaDnU1E=",
+      "sha512": "Wa7o/K+vh2n53qigfOy7QwmpPoKG9VWkLuP60t5eLG5D0Uz94uzuokCjSj/SILf87yJG8Or7p9FGQEWMw2ji4w=="
+    },
+    "type": null,
+    "integrity": "sha256-avJRryk7Qv4HzVkZdcS8q9Tn6stLVrJcZyDDmaDnU1E= sha512-Wa7o/K+vh2n53qigfOy7QwmpPoKG9VWkLuP60t5eLG5D0Uz94uzuokCjSj/SILf87yJG8Or7p9FGQEWMw2ji4w==",
+    "path": "build/angular,ember,vue/raven.js"
+  },
+  "@build/angular,ember,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "JsJA9j4tjkmBQwIgvQaIqflZ2lu3sRRWRn64vAS/mKI=",
+      "sha512": "zElo2CAiSh0JLiRNl+RP6x2HmTtit2792w+WLsXXxkLtQU972SxaSj5kBZM0thQqivJIwl0wcfnCCiS3xcst6A=="
+    },
+    "type": null,
+    "integrity": "sha256-JsJA9j4tjkmBQwIgvQaIqflZ2lu3sRRWRn64vAS/mKI= sha512-zElo2CAiSh0JLiRNl+RP6x2HmTtit2792w+WLsXXxkLtQU972SxaSj5kBZM0thQqivJIwl0wcfnCCiS3xcst6A==",
+    "path": "build/angular,ember,vue/raven.min.js"
+  },
+  "@build/angular,ember/raven.js": {
+    "hashes": {
+      "sha256": "ElkTI4wNM4hPHSbDomNTOoymnPjBjIbdMmrSzO/fuOI=",
+      "sha512": "FjiD249bStHbwX7TAJYvBA8CM9FSNgOLmvrvQYCvNXyXOJHrVOQwr1+UpVcwa1wLZFl3yMp2KfvQViH5GBgjyw=="
+    },
+    "type": null,
+    "integrity": "sha256-ElkTI4wNM4hPHSbDomNTOoymnPjBjIbdMmrSzO/fuOI= sha512-FjiD249bStHbwX7TAJYvBA8CM9FSNgOLmvrvQYCvNXyXOJHrVOQwr1+UpVcwa1wLZFl3yMp2KfvQViH5GBgjyw==",
+    "path": "build/angular,ember/raven.js"
+  },
+  "@build/angular,ember/raven.min.js": {
+    "hashes": {
+      "sha256": "QuhTRqqrIBDdbuf49rd0FOhU/BPQRYLGr6ZsrEgPLnE=",
+      "sha512": "yhQhARrda16FLogH64sY7Wi8i31D71fhV8bwZ6FhcAQlmm7M79oLAk4lKvXA6Fu1We0J8JkjAHJvmX01+mbNpQ=="
+    },
+    "type": null,
+    "integrity": "sha256-QuhTRqqrIBDdbuf49rd0FOhU/BPQRYLGr6ZsrEgPLnE= sha512-yhQhARrda16FLogH64sY7Wi8i31D71fhV8bwZ6FhcAQlmm7M79oLAk4lKvXA6Fu1We0J8JkjAHJvmX01+mbNpQ==",
+    "path": "build/angular,ember/raven.min.js"
+  },
+  "@build/angular,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "q2KRzAuGXiRhnI1IN/72FTD/e/dOLYm+Y/ZNUswKSZs=",
+      "sha512": "QKgqnpH8fGIz7bHOsRL5T5LkqAQuAlPXRX+b/hN/sei1yMMlIhvwXJL/zkmNbEuEULQYoxsMXQ7U2zwKYMqiEQ=="
+    },
+    "type": null,
+    "integrity": "sha256-q2KRzAuGXiRhnI1IN/72FTD/e/dOLYm+Y/ZNUswKSZs= sha512-QKgqnpH8fGIz7bHOsRL5T5LkqAQuAlPXRX+b/hN/sei1yMMlIhvwXJL/zkmNbEuEULQYoxsMXQ7U2zwKYMqiEQ==",
+    "path": "build/angular,require,vue/raven.js"
+  },
+  "@build/angular,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "SfOOdB+MrMAr9skR/SB5CSniOwbq5XXIBrek4xarNNg=",
+      "sha512": "GUxhQBXKqFiMhJ95h3uETNiUt9YhAKqpcWtif8EPeammc4h8d14/pucj9yFKjOyzTHkpqitN22yv0yeNJ1b/hA=="
+    },
+    "type": null,
+    "integrity": "sha256-SfOOdB+MrMAr9skR/SB5CSniOwbq5XXIBrek4xarNNg= sha512-GUxhQBXKqFiMhJ95h3uETNiUt9YhAKqpcWtif8EPeammc4h8d14/pucj9yFKjOyzTHkpqitN22yv0yeNJ1b/hA==",
+    "path": "build/angular,require,vue/raven.min.js"
+  },
+  "@build/angular,require/raven.js": {
+    "hashes": {
+      "sha256": "hztFCWwKxX/L3UGdksGM86L/HUIHMesFp5wPMLk28ac=",
+      "sha512": "TkUtk1isAOMMIK/XzKPrtN8TfSTyZVxMgpd2xqsCw0uc8MwKySSNwe97v3jAw0vC7I0C8ynCr5iVwU6Ay1I0ng=="
+    },
+    "type": null,
+    "integrity": "sha256-hztFCWwKxX/L3UGdksGM86L/HUIHMesFp5wPMLk28ac= sha512-TkUtk1isAOMMIK/XzKPrtN8TfSTyZVxMgpd2xqsCw0uc8MwKySSNwe97v3jAw0vC7I0C8ynCr5iVwU6Ay1I0ng==",
+    "path": "build/angular,require/raven.js"
+  },
+  "@build/angular,require/raven.min.js": {
+    "hashes": {
+      "sha256": "/I0QqFKZiK1bBcZpeo/Q+BT6p26mxOEfEpHLEz0tBPA=",
+      "sha512": "t4LHklsYwHOK3DZtieJBOLxzUbtPBeRyBFA79djGG+mH/FInHj4fR+naFQKIrvzfnDyLZaPpJpMTULsL94r7sA=="
+    },
+    "type": null,
+    "integrity": "sha256-/I0QqFKZiK1bBcZpeo/Q+BT6p26mxOEfEpHLEz0tBPA= sha512-t4LHklsYwHOK3DZtieJBOLxzUbtPBeRyBFA79djGG+mH/FInHj4fR+naFQKIrvzfnDyLZaPpJpMTULsL94r7sA==",
+    "path": "build/angular,require/raven.min.js"
+  },
+  "@build/angular,vue/raven.js": {
+    "hashes": {
+      "sha256": "yKMTDmNF0jr8eds1PaYy/0CLCEAIckL0XxpnhXVRcsE=",
+      "sha512": "R4jQvfinNyRR/ZNI6mGA19GxUah3N9hP2c5w1PGKNR8Qj8iamPhl4mOychLrLsOUmz4VLp+Zg1u/KcbHZV+B/g=="
+    },
+    "type": null,
+    "integrity": "sha256-yKMTDmNF0jr8eds1PaYy/0CLCEAIckL0XxpnhXVRcsE= sha512-R4jQvfinNyRR/ZNI6mGA19GxUah3N9hP2c5w1PGKNR8Qj8iamPhl4mOychLrLsOUmz4VLp+Zg1u/KcbHZV+B/g==",
+    "path": "build/angular,vue/raven.js"
+  },
+  "@build/angular,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "J6cThlCfrZ/WieIA3/3YqRylNWxVEyxrJshFW8uOzPE=",
+      "sha512": "u7raC++omUyORq2vYWrGQdyazGfvbSdNp/pfpj5GFQPcW5EWdmUrs8zwgklUWMVchlGWMsncsu3sZEk93mkeKA=="
+    },
+    "type": null,
+    "integrity": "sha256-J6cThlCfrZ/WieIA3/3YqRylNWxVEyxrJshFW8uOzPE= sha512-u7raC++omUyORq2vYWrGQdyazGfvbSdNp/pfpj5GFQPcW5EWdmUrs8zwgklUWMVchlGWMsncsu3sZEk93mkeKA==",
+    "path": "build/angular,vue/raven.min.js"
+  },
+  "@build/angular/raven.js": {
+    "hashes": {
+      "sha256": "ZXDCxmG17rA+Jum9tcBb9zaniET/nL70C5ObEZnI7rE=",
+      "sha512": "XCwFoBHFwhXApzwZLaLEioAaoQzC3QXhENtVIBFEjHCP8MLUW7Cnu4HlTwRy3kKRGXgasI4gWAFSRs4oMygl9Q=="
+    },
+    "type": null,
+    "integrity": "sha256-ZXDCxmG17rA+Jum9tcBb9zaniET/nL70C5ObEZnI7rE= sha512-XCwFoBHFwhXApzwZLaLEioAaoQzC3QXhENtVIBFEjHCP8MLUW7Cnu4HlTwRy3kKRGXgasI4gWAFSRs4oMygl9Q==",
+    "path": "build/angular/raven.js"
+  },
+  "@build/angular/raven.min.js": {
+    "hashes": {
+      "sha256": "HVuHzZg6iYY9iAJC0YbYVtEXSl2hQJ25wK2hen+96TQ=",
+      "sha512": "KNPKkJq4adomgYHM5mw1n5ukNmeiBckg7n6HKG0ZinkBif7yN7icTV6vNjKmE51IRFiYp0yilG8TZhyA235N2A=="
+    },
+    "type": null,
+    "integrity": "sha256-HVuHzZg6iYY9iAJC0YbYVtEXSl2hQJ25wK2hen+96TQ= sha512-KNPKkJq4adomgYHM5mw1n5ukNmeiBckg7n6HKG0ZinkBif7yN7icTV6vNjKmE51IRFiYp0yilG8TZhyA235N2A==",
+    "path": "build/angular/raven.min.js"
+  },
+  "@build/console,ember,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "htWMEYzmNWkOCCx9PKWLF/DB2VTmhUz2suhTxKxmHII=",
+      "sha512": "e6ZprAuwrxfacTnRN07TeMzT0K8QC+O7cIVYSyxR6M5GmCLOek3qmmrKpVkANc3QgZ+aCwYLGvuRqFs1SkK92w=="
+    },
+    "type": null,
+    "integrity": "sha256-htWMEYzmNWkOCCx9PKWLF/DB2VTmhUz2suhTxKxmHII= sha512-e6ZprAuwrxfacTnRN07TeMzT0K8QC+O7cIVYSyxR6M5GmCLOek3qmmrKpVkANc3QgZ+aCwYLGvuRqFs1SkK92w==",
+    "path": "build/console,ember,require,vue/raven.js"
+  },
+  "@build/console,ember,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "i35Atja9w+XnwGgLP6JDaQMDe4SHGnbJZGtpQwPOr9Y=",
+      "sha512": "+FSCFF7bp4z+HymIXus2ry/xDvpSQxo+wW49417tWukBVsoTvcYEUA+iWOnwEC7y/peUoKDk8Ds5fOWAY2tEtw=="
+    },
+    "type": null,
+    "integrity": "sha256-i35Atja9w+XnwGgLP6JDaQMDe4SHGnbJZGtpQwPOr9Y= sha512-+FSCFF7bp4z+HymIXus2ry/xDvpSQxo+wW49417tWukBVsoTvcYEUA+iWOnwEC7y/peUoKDk8Ds5fOWAY2tEtw==",
+    "path": "build/console,ember,require,vue/raven.min.js"
+  },
+  "@build/console,ember,require/raven.js": {
+    "hashes": {
+      "sha256": "3DmCXpGB/UwdrI2Oxw5cUugfAYkUaKTBt2yyy+0s5qY=",
+      "sha512": "nuV3YDBXlFOoaBLQI9WJTcPLzrJDbibLueqI0op5nxRjjBnVeHmpvUM9DRFwXcrWPdBeQ2BEGYkZDbI0F2lsfg=="
+    },
+    "type": null,
+    "integrity": "sha256-3DmCXpGB/UwdrI2Oxw5cUugfAYkUaKTBt2yyy+0s5qY= sha512-nuV3YDBXlFOoaBLQI9WJTcPLzrJDbibLueqI0op5nxRjjBnVeHmpvUM9DRFwXcrWPdBeQ2BEGYkZDbI0F2lsfg==",
+    "path": "build/console,ember,require/raven.js"
+  },
+  "@build/console,ember,require/raven.min.js": {
+    "hashes": {
+      "sha256": "kRGT4RiKNA3WlattCFM4WE5XBERgNpwIK8DKiFwawOw=",
+      "sha512": "dSG/DkN54EcR5f+1ASoyEfZongx6QQRQpVRJ2d48cfVBFgzb6PlejKub6DzimdQTqW6frjsuWY9Dmk85s2VsMA=="
+    },
+    "type": null,
+    "integrity": "sha256-kRGT4RiKNA3WlattCFM4WE5XBERgNpwIK8DKiFwawOw= sha512-dSG/DkN54EcR5f+1ASoyEfZongx6QQRQpVRJ2d48cfVBFgzb6PlejKub6DzimdQTqW6frjsuWY9Dmk85s2VsMA==",
+    "path": "build/console,ember,require/raven.min.js"
+  },
+  "@build/console,ember,vue/raven.js": {
+    "hashes": {
+      "sha256": "oCQz5nB3/LtgfYmtxvoo5r6ZjqJAwpF1dVof96PIc6A=",
+      "sha512": "0BGBZmYL+p+v9mRl6DqxeY1ZnFRrWWI4XA7UAI3+9JH0/HxU08y6++A0mzK+h69SYUMwCdSOO7XL0xI7lC+Bow=="
+    },
+    "type": null,
+    "integrity": "sha256-oCQz5nB3/LtgfYmtxvoo5r6ZjqJAwpF1dVof96PIc6A= sha512-0BGBZmYL+p+v9mRl6DqxeY1ZnFRrWWI4XA7UAI3+9JH0/HxU08y6++A0mzK+h69SYUMwCdSOO7XL0xI7lC+Bow==",
+    "path": "build/console,ember,vue/raven.js"
+  },
+  "@build/console,ember,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "vBhkV9E8Oj3+9LSttF7Qtmd1vv+n1FnRxIWwWFkg/tg=",
+      "sha512": "1Yfysgx32ebt6Ho4YYQbTGCg65TzadO72/ZltMSSbFbnEyG2AsR3AlAM7gXC+GzyyBvdvH3Xfstptu8D8C3cvw=="
+    },
+    "type": null,
+    "integrity": "sha256-vBhkV9E8Oj3+9LSttF7Qtmd1vv+n1FnRxIWwWFkg/tg= sha512-1Yfysgx32ebt6Ho4YYQbTGCg65TzadO72/ZltMSSbFbnEyG2AsR3AlAM7gXC+GzyyBvdvH3Xfstptu8D8C3cvw==",
+    "path": "build/console,ember,vue/raven.min.js"
+  },
+  "@build/console,ember/raven.js": {
+    "hashes": {
+      "sha256": "pub2wQfPANBhTVDi9NDX98HrPNckS4MZ5SGB+8+Iq4o=",
+      "sha512": "goLkZ6LZ1qfAiMJpc2ZLHGigVxUMj6QI8QXyZaLXJ2sMuIZipmhqtKZOTP4rcCMfxl+uTtht6eksdUzEaNQlCg=="
+    },
+    "type": null,
+    "integrity": "sha256-pub2wQfPANBhTVDi9NDX98HrPNckS4MZ5SGB+8+Iq4o= sha512-goLkZ6LZ1qfAiMJpc2ZLHGigVxUMj6QI8QXyZaLXJ2sMuIZipmhqtKZOTP4rcCMfxl+uTtht6eksdUzEaNQlCg==",
+    "path": "build/console,ember/raven.js"
+  },
+  "@build/console,ember/raven.min.js": {
+    "hashes": {
+      "sha256": "82ekjBG7bcmXSYtJQSnjt3J8zHoMnFC1jCWNXtCBwYs=",
+      "sha512": "eo7MZX55xlCmNfVW2V5CxwXmgxb5+cVOnC08zFrviIkaA9skNbFPLqQ6/U4Dt9e9vD7g3+ZEfN38F3jWb5uJqA=="
+    },
+    "type": null,
+    "integrity": "sha256-82ekjBG7bcmXSYtJQSnjt3J8zHoMnFC1jCWNXtCBwYs= sha512-eo7MZX55xlCmNfVW2V5CxwXmgxb5+cVOnC08zFrviIkaA9skNbFPLqQ6/U4Dt9e9vD7g3+ZEfN38F3jWb5uJqA==",
+    "path": "build/console,ember/raven.min.js"
+  },
+  "@build/console,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "+rD56nT7abWq/yHQYhmmff8/Icobkq6R3vNa2494HXI=",
+      "sha512": "sp7FdooNzYQzwIJUZVQXFNvG8U63p6MzSFy0mgR5DcmqOY7XZS0F3Bq2iuMI5sxR9k/xCTKcBCEonD8Y2vxJCQ=="
+    },
+    "type": null,
+    "integrity": "sha256-+rD56nT7abWq/yHQYhmmff8/Icobkq6R3vNa2494HXI= sha512-sp7FdooNzYQzwIJUZVQXFNvG8U63p6MzSFy0mgR5DcmqOY7XZS0F3Bq2iuMI5sxR9k/xCTKcBCEonD8Y2vxJCQ==",
+    "path": "build/console,require,vue/raven.js"
+  },
+  "@build/console,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "Z8SBVx0isuvOZse6/hkKHJjna7osRb6MCn9d9v4EIAg=",
+      "sha512": "wLoT0PS9Vxlb9pmPgrnZvWHp+4fGrzGE8vaCU4/6LbmnVowsr0I4sAycOl3ey46nI2unb4ugAK9izGA5CQkasA=="
+    },
+    "type": null,
+    "integrity": "sha256-Z8SBVx0isuvOZse6/hkKHJjna7osRb6MCn9d9v4EIAg= sha512-wLoT0PS9Vxlb9pmPgrnZvWHp+4fGrzGE8vaCU4/6LbmnVowsr0I4sAycOl3ey46nI2unb4ugAK9izGA5CQkasA==",
+    "path": "build/console,require,vue/raven.min.js"
+  },
+  "@build/console,require/raven.js": {
+    "hashes": {
+      "sha256": "EVYiBLK8o4BID++ay0yRYe4YO0aTDmLeBtIMH3yHfIA=",
+      "sha512": "R2e1h2X3hi9Q13R+qbXzJIt3qd4NBXRg8ZpFNKaNtCbTo7xuXmNnsyKoh8YW/5FORDEkHSs8IB6W7emW+BS84A=="
+    },
+    "type": null,
+    "integrity": "sha256-EVYiBLK8o4BID++ay0yRYe4YO0aTDmLeBtIMH3yHfIA= sha512-R2e1h2X3hi9Q13R+qbXzJIt3qd4NBXRg8ZpFNKaNtCbTo7xuXmNnsyKoh8YW/5FORDEkHSs8IB6W7emW+BS84A==",
+    "path": "build/console,require/raven.js"
+  },
+  "@build/console,require/raven.min.js": {
+    "hashes": {
+      "sha256": "Pj7qMciUtv6fCc6WOZ9GrJfC2ETRb+Xox1CAK3qc/SY=",
+      "sha512": "9KSTuavDIRmIuhK9flw+v0pgR6dRZYDe/AaDMNJS6GxhaEyFwvgTG6h8wOIJZbcpyipIsoElUEPb/U7InZ+w4Q=="
+    },
+    "type": null,
+    "integrity": "sha256-Pj7qMciUtv6fCc6WOZ9GrJfC2ETRb+Xox1CAK3qc/SY= sha512-9KSTuavDIRmIuhK9flw+v0pgR6dRZYDe/AaDMNJS6GxhaEyFwvgTG6h8wOIJZbcpyipIsoElUEPb/U7InZ+w4Q==",
+    "path": "build/console,require/raven.min.js"
+  },
+  "@build/console,vue/raven.js": {
+    "hashes": {
+      "sha256": "XC37O66kckrcVbje3FzyCpAYE0Jb26fPrmKKiYqR7PY=",
+      "sha512": "z72zkXwehSzuMrcBbiYvScPEspTVHMBU7rDrO6kjQZW0+ccfXbk6Ky4DLK0UXoT91lmI3eIHwLHmVtL+vxz2EA=="
+    },
+    "type": null,
+    "integrity": "sha256-XC37O66kckrcVbje3FzyCpAYE0Jb26fPrmKKiYqR7PY= sha512-z72zkXwehSzuMrcBbiYvScPEspTVHMBU7rDrO6kjQZW0+ccfXbk6Ky4DLK0UXoT91lmI3eIHwLHmVtL+vxz2EA==",
+    "path": "build/console,vue/raven.js"
+  },
+  "@build/console,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "OdNsbw2BkyMRsKevEVgccb4CBkzXVKbNi3C4ECbch90=",
+      "sha512": "OZi68gBxelMZg29G94v5G4NUUkbfQxg1FjvjWy+ELED24h6aYPNZv1mzaGRMtKQVpTKKwWrW9e4RqfbWD4MObQ=="
+    },
+    "type": null,
+    "integrity": "sha256-OdNsbw2BkyMRsKevEVgccb4CBkzXVKbNi3C4ECbch90= sha512-OZi68gBxelMZg29G94v5G4NUUkbfQxg1FjvjWy+ELED24h6aYPNZv1mzaGRMtKQVpTKKwWrW9e4RqfbWD4MObQ==",
+    "path": "build/console,vue/raven.min.js"
+  },
+  "@build/console/raven.js": {
+    "hashes": {
+      "sha256": "PGn0gJLuRSldTLg/PGlRgCwGiIcuxO89l2ccvUKthgE=",
+      "sha512": "+ATnInDlqKotomoxk3VIPxpdwLsO1PDzw2lTPFRx0Mloyy4hskM4uItZTgiuJ2ZFPrR6/U2oWO1nqlTmNlAbig=="
+    },
+    "type": null,
+    "integrity": "sha256-PGn0gJLuRSldTLg/PGlRgCwGiIcuxO89l2ccvUKthgE= sha512-+ATnInDlqKotomoxk3VIPxpdwLsO1PDzw2lTPFRx0Mloyy4hskM4uItZTgiuJ2ZFPrR6/U2oWO1nqlTmNlAbig==",
+    "path": "build/console/raven.js"
+  },
+  "@build/console/raven.min.js": {
+    "hashes": {
+      "sha256": "24+TwDEDOKAgILWD4JAiDpsOiYarHAMSYeV6ZW+4uy8=",
+      "sha512": "JZMAtnFH43WH3hA8CuxxLCGQPEB3VEJREkbLZVbQEuDTm7meREGR0PmxNg3tLnmnQtJiLUltGVIXF3DdUUfpGQ=="
+    },
+    "type": null,
+    "integrity": "sha256-24+TwDEDOKAgILWD4JAiDpsOiYarHAMSYeV6ZW+4uy8= sha512-JZMAtnFH43WH3hA8CuxxLCGQPEB3VEJREkbLZVbQEuDTm7meREGR0PmxNg3tLnmnQtJiLUltGVIXF3DdUUfpGQ==",
+    "path": "build/console/raven.min.js"
+  },
+  "@build/ember,require,vue/raven.js": {
+    "hashes": {
+      "sha256": "lA4x+yItN9JekeH+IzitkcNq1pAPE6x5zhn6vwJTxnA=",
+      "sha512": "BPUjeN864Y3yRzrEq5rvzNjyskoO0g9S2PIFkLlcj/POKwLvswimhkHvXW+aMHrenWIMJ6Elm7fR+UlDgUJzhg=="
+    },
+    "type": null,
+    "integrity": "sha256-lA4x+yItN9JekeH+IzitkcNq1pAPE6x5zhn6vwJTxnA= sha512-BPUjeN864Y3yRzrEq5rvzNjyskoO0g9S2PIFkLlcj/POKwLvswimhkHvXW+aMHrenWIMJ6Elm7fR+UlDgUJzhg==",
+    "path": "build/ember,require,vue/raven.js"
+  },
+  "@build/ember,require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "XZIY1hbqd+JrmBRLS9nXZEsS+8UeHIPc1Q5E3+2uvds=",
+      "sha512": "w9N/je4CuLcn6EWnbcPvSFRSsUwkOqpFQpPM8TJbr8PHLFzklwQtDxWdWbzO0/1bcRZ1su3m93WMqFHAHAc6DQ=="
+    },
+    "type": null,
+    "integrity": "sha256-XZIY1hbqd+JrmBRLS9nXZEsS+8UeHIPc1Q5E3+2uvds= sha512-w9N/je4CuLcn6EWnbcPvSFRSsUwkOqpFQpPM8TJbr8PHLFzklwQtDxWdWbzO0/1bcRZ1su3m93WMqFHAHAc6DQ==",
+    "path": "build/ember,require,vue/raven.min.js"
+  },
+  "@build/ember,require/raven.js": {
+    "hashes": {
+      "sha256": "KHb7cV9HBvz93ju5TwVizeE5jSIZTUVq7ogmR4dgzqg=",
+      "sha512": "6RQNAfImqawCS/VixPVLUiTmApxobtM648JO/TZF36Kh6DowLKiFlC4gBJIgy39KpFTOfIz+BzZEut6AckY+rw=="
+    },
+    "type": null,
+    "integrity": "sha256-KHb7cV9HBvz93ju5TwVizeE5jSIZTUVq7ogmR4dgzqg= sha512-6RQNAfImqawCS/VixPVLUiTmApxobtM648JO/TZF36Kh6DowLKiFlC4gBJIgy39KpFTOfIz+BzZEut6AckY+rw==",
+    "path": "build/ember,require/raven.js"
+  },
+  "@build/ember,require/raven.min.js": {
+    "hashes": {
+      "sha256": "sakZlnL1lPP6bJN141gNnq7b65/LeUttPzVWXFBowWA=",
+      "sha512": "a0ByEbqmPf5o32MBgichuN7lZST9Fiuy5UqEdvGPIrOIJt7xzqWK/elYkOqkaiqvA7XYehxhhacdHy6QAL1Cgg=="
+    },
+    "type": null,
+    "integrity": "sha256-sakZlnL1lPP6bJN141gNnq7b65/LeUttPzVWXFBowWA= sha512-a0ByEbqmPf5o32MBgichuN7lZST9Fiuy5UqEdvGPIrOIJt7xzqWK/elYkOqkaiqvA7XYehxhhacdHy6QAL1Cgg==",
+    "path": "build/ember,require/raven.min.js"
+  },
+  "@build/ember,vue/raven.js": {
+    "hashes": {
+      "sha256": "KIDa9EJwqe0SL/2OLTQAIwoNTMMtc+ImaLDphDc4E3E=",
+      "sha512": "g3TDIJ8BPfHoxkwRw891VPOZG+Wukvr/O9ritLGtNTJe17pjpfSdyTxA1mV9sTg9YxEvg1r+//Mt7KYJVb/tyQ=="
+    },
+    "type": null,
+    "integrity": "sha256-KIDa9EJwqe0SL/2OLTQAIwoNTMMtc+ImaLDphDc4E3E= sha512-g3TDIJ8BPfHoxkwRw891VPOZG+Wukvr/O9ritLGtNTJe17pjpfSdyTxA1mV9sTg9YxEvg1r+//Mt7KYJVb/tyQ==",
+    "path": "build/ember,vue/raven.js"
+  },
+  "@build/ember,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "JLRw+rcdcpnb56KkJPHD1GbER3Bu2QCdbZZ8H0ZsabI=",
+      "sha512": "l+m2cLL/AeRBK7u2GhU4KGybwIyZctPOK9M4lhrEVYvVael+nsCSaWzA2qmU1ZLmGw3Kzf6poHJLtPpJA+eH3w=="
+    },
+    "type": null,
+    "integrity": "sha256-JLRw+rcdcpnb56KkJPHD1GbER3Bu2QCdbZZ8H0ZsabI= sha512-l+m2cLL/AeRBK7u2GhU4KGybwIyZctPOK9M4lhrEVYvVael+nsCSaWzA2qmU1ZLmGw3Kzf6poHJLtPpJA+eH3w==",
+    "path": "build/ember,vue/raven.min.js"
+  },
+  "@build/ember/raven.js": {
+    "hashes": {
+      "sha256": "0XQa7upJA+oVRz2TV70tdreCIF7nwJHlTQU6veWJAM0=",
+      "sha512": "QQFGnMe1+O6h9bgxkit2b7akr4gfVtvRrFpdURRH9UI1Jg/p+5RnIFMRJH2152BlvVwEDqGUWw/krRC9a6SLIw=="
+    },
+    "type": null,
+    "integrity": "sha256-0XQa7upJA+oVRz2TV70tdreCIF7nwJHlTQU6veWJAM0= sha512-QQFGnMe1+O6h9bgxkit2b7akr4gfVtvRrFpdURRH9UI1Jg/p+5RnIFMRJH2152BlvVwEDqGUWw/krRC9a6SLIw==",
+    "path": "build/ember/raven.js"
+  },
+  "@build/ember/raven.min.js": {
+    "hashes": {
+      "sha256": "ka4rWCcJtVmcSBvsoN0IBt1Vbv0HAQ3ASZoi1PDizew=",
+      "sha512": "YG9x1nviYBjQREsfBZy+TEqvBVWnMdnkl0TsNs87nVUXyl80iz2lb6Q+fnhHf0GtHv++FVnDm/iXuskkCZZPQw=="
+    },
+    "type": null,
+    "integrity": "sha256-ka4rWCcJtVmcSBvsoN0IBt1Vbv0HAQ3ASZoi1PDizew= sha512-YG9x1nviYBjQREsfBZy+TEqvBVWnMdnkl0TsNs87nVUXyl80iz2lb6Q+fnhHf0GtHv++FVnDm/iXuskkCZZPQw==",
+    "path": "build/ember/raven.min.js"
+  },
+  "@build/raven.js": {
+    "hashes": {
+      "sha256": "blC5tb4zks+av3ttSL9UorzDnJcldKYA+7CLAlvnDJE=",
+      "sha512": "J0ySQly0HhVoGFK6ndrOkreMV9k1KgXLpQxo6HcuiTTrM+NS5MA+pquLKxxet/oWuGwqx4bzp9JvCoEv4tuamQ=="
+    },
+    "type": null,
+    "integrity": "sha256-blC5tb4zks+av3ttSL9UorzDnJcldKYA+7CLAlvnDJE= sha512-J0ySQly0HhVoGFK6ndrOkreMV9k1KgXLpQxo6HcuiTTrM+NS5MA+pquLKxxet/oWuGwqx4bzp9JvCoEv4tuamQ==",
+    "path": "build/raven.js"
+  },
+  "@build/raven.min.js": {
+    "hashes": {
+      "sha256": "KXpfHsDysbH3ETwiZzn0DnDOqzSehgGxoZkp3IbBxng=",
+      "sha512": "9i35ax6PH1GqqUprURQujIfnD27ORix9AxaS6fJH7QDD1YW6KOOM0tERSzfzk2CBq4jlJVTMSKGMo2uHa6LgUg=="
+    },
+    "type": null,
+    "integrity": "sha256-KXpfHsDysbH3ETwiZzn0DnDOqzSehgGxoZkp3IbBxng= sha512-9i35ax6PH1GqqUprURQujIfnD27ORix9AxaS6fJH7QDD1YW6KOOM0tERSzfzk2CBq4jlJVTMSKGMo2uHa6LgUg==",
+    "path": "build/raven.min.js"
+  },
+  "@build/require,vue/raven.js": {
+    "hashes": {
+      "sha256": "LxN1I29QtdWOs6OOWSGOkJNC5QEFvtfiiV81fa5Oc5E=",
+      "sha512": "0tsS6741Nr9O4MkYcN2Rea7HUGzlbtmCXgQnpkJJziMbUnY+t0P7LK8y2BOv9zRgOgDhXdAZ5rtyh4KjXfEG+A=="
+    },
+    "type": null,
+    "integrity": "sha256-LxN1I29QtdWOs6OOWSGOkJNC5QEFvtfiiV81fa5Oc5E= sha512-0tsS6741Nr9O4MkYcN2Rea7HUGzlbtmCXgQnpkJJziMbUnY+t0P7LK8y2BOv9zRgOgDhXdAZ5rtyh4KjXfEG+A==",
+    "path": "build/require,vue/raven.js"
+  },
+  "@build/require,vue/raven.min.js": {
+    "hashes": {
+      "sha256": "tgfp20NxITRNw5kz1EMtmeEY90GQaYgt6co5QVNhbrE=",
+      "sha512": "qQ5QZgbU3bT9e1T6dbLEGi1lUDr+yze79jhEULJdHeHHqiOg9/Ncm5ZZh3dsw8S64LRmseO9AfKUxLOJqFJt7Q=="
+    },
+    "type": null,
+    "integrity": "sha256-tgfp20NxITRNw5kz1EMtmeEY90GQaYgt6co5QVNhbrE= sha512-qQ5QZgbU3bT9e1T6dbLEGi1lUDr+yze79jhEULJdHeHHqiOg9/Ncm5ZZh3dsw8S64LRmseO9AfKUxLOJqFJt7Q==",
+    "path": "build/require,vue/raven.min.js"
+  },
+  "@build/require/raven.js": {
+    "hashes": {
+      "sha256": "SH7HvktOmQvF+KP3MEo7BKZRh4T4T6rIq7TLfpcdNsQ=",
+      "sha512": "S45rlZ3BnVf3dzp8sqlhlH9hyjMQ8tgmWqwUBtJYoSx3Mke1EUcq4iZtaUDqtA6Eml4Ivse6XEIOTvrl0Lw9GA=="
+    },
+    "type": null,
+    "integrity": "sha256-SH7HvktOmQvF+KP3MEo7BKZRh4T4T6rIq7TLfpcdNsQ= sha512-S45rlZ3BnVf3dzp8sqlhlH9hyjMQ8tgmWqwUBtJYoSx3Mke1EUcq4iZtaUDqtA6Eml4Ivse6XEIOTvrl0Lw9GA==",
+    "path": "build/require/raven.js"
+  },
+  "@build/require/raven.min.js": {
+    "hashes": {
+      "sha256": "Uytmj6gZkIM6jXfxKG1QlN/2spl92I/fqVSUoaO+7lo=",
+      "sha512": "DjqGArUjhtn8d6DiGXljGxri2kCwxEeYPNczFxWe1D+HEML+vQVbQOLC3cBlsbrMNdPtMDSZSuTp6FRc/yhTgw=="
+    },
+    "type": null,
+    "integrity": "sha256-Uytmj6gZkIM6jXfxKG1QlN/2spl92I/fqVSUoaO+7lo= sha512-DjqGArUjhtn8d6DiGXljGxri2kCwxEeYPNczFxWe1D+HEML+vQVbQOLC3cBlsbrMNdPtMDSZSuTp6FRc/yhTgw==",
+    "path": "build/require/raven.min.js"
+  },
+  "@build/vue/raven.js": {
+    "hashes": {
+      "sha256": "u/Zn8tF3GVn+0wKNCH0Ipgw/wJgaoP2PyOnu488XzyE=",
+      "sha512": "lAJMB6O0MlnX0Ab8vhQwhVlv9yL8d9EgqcXQXnhIUxwAdOWhs6CeFGbPdW/jbKb5DlUKawDnAvROkpETCfAr7A=="
+    },
+    "type": null,
+    "integrity": "sha256-u/Zn8tF3GVn+0wKNCH0Ipgw/wJgaoP2PyOnu488XzyE= sha512-lAJMB6O0MlnX0Ab8vhQwhVlv9yL8d9EgqcXQXnhIUxwAdOWhs6CeFGbPdW/jbKb5DlUKawDnAvROkpETCfAr7A==",
+    "path": "build/vue/raven.js"
+  },
+  "@build/vue/raven.min.js": {
+    "hashes": {
+      "sha256": "Y44ImyroeKJohpcHod0YTeawJW3uKDJ+yF/SjXN52/o=",
+      "sha512": "/dMg5CygY75LEYhvucZDq3K/P1OSbFtHsY1NDSDe4Qs6MReUaUh0kn3LDXVWWYjf470dJ2NrMh5ft+J2wzomDQ=="
+    },
+    "type": null,
+    "integrity": "sha256-Y44ImyroeKJohpcHod0YTeawJW3uKDJ+yF/SjXN52/o= sha512-/dMg5CygY75LEYhvucZDq3K/P1OSbFtHsY1NDSDe4Qs6MReUaUh0kn3LDXVWWYjf470dJ2NrMh5ft+J2wzomDQ==",
+    "path": "build/vue/raven.min.js"
   }
 }
