@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/next/packages/core",
@@ -15,7 +15,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/shim": "0.5.3"
+    "@sentry/shim": "0.5.4"
   },
   "devDependencies": {
     "chai": "^4.1.2",
