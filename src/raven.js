@@ -523,7 +523,7 @@ Raven.prototype = {
     // report on.
     try {
       var stack = TraceKit.computeStackTrace(ex);
-      
+
       // Handle exceptions that happen inside of a blob
       stack = this._patchStackTraceForBlobs(stack);
 
@@ -1615,10 +1615,15 @@ Raven.prototype = {
   },
 
   _patchStackTraceForBlobs: function(stack) {
-    for (frameId in stack.stack) {
-      var frame = stack.stack[frameId];
+    // If there's no stack frames there's nothing to do, so return the stack untouched.
+    if (stack.stack === undefined) {
+      return stack;
+    }
 
-      if (frame.url.substr(0, 5) === 'blob:') {
+    for (var i = 0; i < stack.stack.length; i++) {
+      var frame = stack.stack[i];
+
+      if (frame.url && frame.url.substr(0, 5) === 'blob:') {
         // Special case for handling JavaScript loaded into a blob.
         // We use a synchronous AJAX request here as a blob is already in
         // memory - it's not making a network request.  This will generate a warning
@@ -1627,6 +1632,11 @@ Raven.prototype = {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', frame.url, false);
         xhr.send(null);
+
+        // If we failed to download the source, skip the frame.
+        if (xhr.status !== 200) {
+          continue;
+        }
 
         var source = xhr.responseText;
 
