@@ -441,6 +441,47 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         element.func = UNKNOWN_FUNCTION;
       }
 
+      if (element.url && element.url.substr(0, 5) === 'blob:') {
+        // Special case for handling JavaScript loaded into a blob.
+        // We use a synchronous AJAX request here as a blob is already in
+        // memory - it's not making a network request.  This will generate a warning
+        // in the browser console, but there has already been an error so that's not
+        // that much of an issue.
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', element.url, false);
+        xhr.send(null);
+
+        // If we failed to download the source, skip the element.
+        if (xhr.status === 200) {
+          var source = xhr.responseText;
+
+          // We trim the source down to the last 300 characters here as
+          // sourceMappingURL is usually at the end of the file.
+          source = source.substr(source.length - 300);
+
+          // Now we dig out the source map URL
+          var sourceMaps = source.match(/\/\/# {0,1}sourceMappingURL=(.*) {0,1}/);
+
+          // If we don't find a source map comment or we find more than one,
+          // continue on to the next element.  We check for a length of 2 as the
+          // first result is always the entire match, subsequent indices are
+          // the group matches.
+          if (sourceMaps.length === 2) {
+            var sourceMapAddress = sourceMaps[1];
+
+            // Now we check to see if it's a relative URL.  If it is, convert it
+            // to an absolute one.
+            if (sourceMapAddress.substr(0, 1) === '~') {
+              sourceMapAddress = window.location.origin + sourceMapAddress.substr(1);
+            }
+
+            // Now we strip the '.map' off of the end of the URL and update the
+            // element so that Sentry can match the map to the blob.
+            element.url = sourceMapAddress.substr(0, sourceMapAddress.length - 4);
+          }
+        }
+      }
+
       stack.push(element);
     }
 
