@@ -566,4 +566,37 @@ describe('raven.utils', function() {
       raven.utils.serializeKeysForMessage('foo').should.eql('foo');
     });
   });
+
+  describe('isError', function() {
+    it('should work as advertised', function() {
+      function RavenError(message) {
+        this.name = 'RavenError';
+        this.message = message;
+      }
+      RavenError.prototype = new Error();
+      RavenError.prototype.constructor = RavenError;
+
+      raven.utils.isError(new Error()).should.be.true;
+      raven.utils.isError(new RavenError()).should.be.true;
+      raven.utils.isError({}).should.be.false;
+      raven.utils.isError({
+        message: 'A fake error',
+        stack: 'no stack here'
+      }).should.be.false;
+      raven.utils.isError('').should.be.false;
+      raven.utils.isError(true).should.be.false;
+    });
+
+    it('should work with errors from different contexts, eg. vm module', function(done) {
+      var vm = require('vm');
+      var script = new vm.Script("throw new Error('this is the error')");
+
+      try {
+        script.runInNewContext();
+      } catch (e) {
+        raven.utils.isError(e).should.be.true;
+        done();
+      }
+    });
+  });
 });
