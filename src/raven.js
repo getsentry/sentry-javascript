@@ -524,9 +524,6 @@ Raven.prototype = {
     try {
       var stack = TraceKit.computeStackTrace(ex);
 
-      // Handle exceptions that happen inside of a blob
-      stack = this._patchStackTraceForBlobs(stack);
-
       this._handleStackInfo(stack, options);
     } catch (ex1) {
       if (ex !== ex1) {
@@ -592,9 +589,6 @@ Raven.prototype = {
     // null exception name so `Error` isn't prefixed to msg
     ex.name = null;
     var stack = TraceKit.computeStackTrace(ex);
-
-    // Handle exceptions that happen inside of a blob
-    stack = this._patchStackTraceForBlobs(stack);
 
     // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
     var initialCall = isArray(stack.stack) && stack.stack[1];
@@ -1612,65 +1606,6 @@ Raven.prototype = {
     }
     frames = frames.slice(0, this._globalOptions.stackTraceLimit);
     return frames;
-  },
-
-  _patchStackTraceForBlobs: function(stack) {
-    // If there's no stack frames there's nothing to do, so return the stack untouched.
-    if (stack.stack === undefined) {
-      return stack;
-    }
-
-    for (var i = 0; i < stack.stack.length; i++) {
-      var frame = stack.stack[i];
-
-      if (frame.url && frame.url.substr(0, 5) === 'blob:') {
-        // Special case for handling JavaScript loaded into a blob.
-        // We use a synchronous AJAX request here as a blob is already in
-        // memory - it's not making a network request.  This will generate a warning
-        // in the browser console, but there has already been an error so that's not
-        // that much of an issue.
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', frame.url, false);
-        xhr.send(null);
-
-        // If we failed to download the source, skip the frame.
-        if (xhr.status !== 200) {
-          continue;
-        }
-
-        var source = xhr.responseText;
-
-        // We trim the source down to the last 300 characters here as
-        // sourceMappingURL is usually at the end of the file.
-        source = source.substr(source.length - 300);
-
-        // Now we dig out the source map URL
-        var sourceMappingRegEx = /\/\/# {0,1}sourceMappingURL=(.*) {0,1}/;
-        var sourceMaps = source.match(sourceMappingRegEx);
-
-        // If we don't find a source map comment or we find more than one,
-        // continue on to the next frame.  We check for a length of 2 as the
-        // first result is always the entire match, subsequent indices are
-        // the group matches.
-        if (sourceMaps.length !== 2) {
-          continue;
-        }
-
-        var sourceMapAddress = sourceMaps[1];
-
-        // Now we check to see if it's a relative URL.  If it is, convert it
-        // to an absolute one.
-        if (sourceMapAddress.substr(0, 1) === '~') {
-          sourceMapAddress = window.location.origin + sourceMapAddress.substr(1);
-        }
-
-        // Now we strip the '.map' off of the end of the URL and update the
-        // frame so that Sentry can match the map to the blob.
-        frame.url = sourceMapAddress.substr(0, sourceMapAddress.length - 4);
-      }
-    }
-
-    return stack;
   },
 
   _normalizeFrame: function(frame, stackInfoUrl) {
