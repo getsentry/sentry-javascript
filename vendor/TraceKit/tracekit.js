@@ -455,29 +455,26 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         if (xhr.status === 200) {
           var source = xhr.responseText;
 
-          // We trim the source down to the last 300 characters here as
-          // sourceMappingURL is usually at the end of the file.
-          source = source.substr(source.length - 300);
+          // We trim the source down to the last 300 characters as sourceMappingURL is always at the end of the file.
+          // Why 300? To be in line with: https://github.com/getsentry/sentry/blob/4af29e8f2350e20c28a6933354e4f42437b4ba42/src/sentry/lang/javascript/processor.py#L164-L175
+          source = source.slice(-300);
 
           // Now we dig out the source map URL
-          var sourceMaps = source.match(/\/\/# {0,1}sourceMappingURL=(.*) {0,1}/);
+          var sourceMaps = source.match(/\/\/# sourceMappingURL=(.*)$/);
 
-          // If we don't find a source map comment or we find more than one,
-          // continue on to the next element.  We check for a length of 2 as the
-          // first result is always the entire match, subsequent indices are
-          // the group matches.
-          if (sourceMaps.length === 2) {
+          // If we don't find a source map comment or we find more than one, continue on to the next element.
+          if (!sourceMaps) {
             var sourceMapAddress = sourceMaps[1];
 
-            // Now we check to see if it's a relative URL.  If it is, convert it
-            // to an absolute one.
-            if (sourceMapAddress.substr(0, 1) === '~') {
-              sourceMapAddress = window.location.origin + sourceMapAddress.substr(1);
+            // Now we check to see if it's a relative URL.
+            // If it is, convert it to an absolute one.
+            if (sourceMapAddress.charAt(0) === '~') {
+              sourceMapAddress = window.location.origin + sourceMapAddress.slice(1);
             }
 
             // Now we strip the '.map' off of the end of the URL and update the
             // element so that Sentry can match the map to the blob.
-            element.url = sourceMapAddress.substr(0, sourceMapAddress.length - 4);
+            element.url = sourceMapAddress.slice(0, -4);
           }
         }
       }
