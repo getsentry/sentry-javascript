@@ -148,7 +148,9 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     event: SentryEvent,
     scope: Scope = this.internalScope,
   ): Promise<void> {
-    await this.sendEvent(event, scope);
+    await this.processEvent(event, scope, async finalEvent =>
+      this.getBackend().sendEvent(finalEvent),
+    );
   }
 
   /**
@@ -307,7 +309,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   }
 
   /**
-   * Sends an event (either error or message) to Sentry.
+   * Processes an event (either error or message) and sends it to Sentry.
    *
    * This also adds breadcrumbs and context information to the event. However,
    * platform specific meta data (such as the User's IP address) must be added
@@ -320,11 +322,13 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    *
    * @param event The event to send to Sentry.
    * @param scope A scope containing event metadata.
+   * @param send A function to actually send the event.
    * @returns A Promise that resolves with the event status.
    */
-  private async sendEvent(
+  protected async processEvent(
     event: SentryEvent,
     scope: Scope,
+    send: (finalEvent: SentryEvent) => Promise<number>,
   ): Promise<SendStatus> {
     if (!this.isEnabled()) {
       return SendStatus.Skipped;
@@ -337,7 +341,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
     }
 
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
-    const code = await this.getBackend().sendEvent(finalEvent);
+    const code = await send(finalEvent);
     const status = SendStatus.fromHttpCode(code);
 
     if (status === SendStatus.RateLimit) {

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/typescript",
-  "version": "0.5.2",
+  "version": "0.5.4",
   "description": "Typescript configuration used at Sentry",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/next/packages/typescript",
@@ -11,7 +11,7 @@
     "access": "public"
   },
   "dependencies": {
-    "tslint-config-prettier": "^1.10.0"
+    "tslint-config-prettier": "^1.12.0"
   },
   "peerDependencies": {
     "tslint": "^5.9.1",

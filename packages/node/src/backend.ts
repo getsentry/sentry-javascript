@@ -1,6 +1,12 @@
 import { Backend, Frontend, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
-import { Raven, SendMethod } from './raven';
+import {
+  HTTPSTransport,
+  HTTPTransport,
+  Raven,
+  SendMethod,
+  Transport,
+} from './raven';
 
 /** Original Raven send function. */
 const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
@@ -130,5 +136,25 @@ export class NodeBackend implements Backend {
    */
   public storeContext(): boolean {
     return true;
+  }
+
+  /**
+   * Set the transport module used for submitting events.
+   *
+   * This can be set to modules like "http" or "https" or any other object that
+   * provides a `request` method with options.
+   *
+   * @param transport The transport to use for submitting events.
+   */
+  public setTransport(transport: Transport): void {
+    const dsn = this.frontend.getDSN();
+    if (!dsn) {
+      return;
+    }
+
+    Raven.transport =
+      dsn.protocol === 'http'
+        ? new HTTPTransport({ transport })
+        : new HTTPSTransport({ transport });
   }
 }
