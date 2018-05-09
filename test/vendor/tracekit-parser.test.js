@@ -3,8 +3,18 @@
 
 var TraceKit = require('../../vendor/TraceKit/tracekit');
 var CapturedExceptions = require('./fixtures/captured-errors');
+var sinon = require('sinon');
+var xhr;
 
 describe('TraceKit', function() {
+  beforeEach(function() {
+    xhr = sinon.useFakeXMLHttpRequest();
+  });
+
+  afterEach(function() {
+    xhr.restore();
+  });
+
   describe('Parser', function() {
     it('should parse Safari 6 error', function() {
       var stackFrames = TraceKit.computeStackTrace(CapturedExceptions.SAFARI_6);
