@@ -8,7 +8,7 @@ import { TEST_SDK, TestClient } from '../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
-describe('ClientBase', () => {
+describe('BaseClient', () => {
   describe('constructor() / getDSN()', () => {
     it('returns the DSN', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });

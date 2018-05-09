@@ -37,7 +37,7 @@ export interface BackendClass<B extends Backend, O extends Options> {
  * without a valid DSN, the SDK will not send any events to Sentry.
  *
  * Before sending an event via the backend, it is passed through
- * {@link ClientBase.prepareEvent} to add SDK information and scope data
+ * {@link BaseClient.prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
@@ -47,7 +47,7 @@ export interface BackendClass<B extends Backend, O extends Options> {
  * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeClient extends ClientBase<NodeBackend, NodeOptions> {
+ * class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
  *   public constructor(options: NodeOptions) {
  *     super(NodeBackend, options);
  *   }
@@ -55,7 +55,7 @@ export interface BackendClass<B extends Backend, O extends Options> {
  *   // ...
  * }
  */
-export abstract class ClientBase<B extends Backend, O extends Options>
+export abstract class BaseClient<B extends Backend, O extends Options>
   implements Client<O> {
   /**
    * The backend used to physically interact in the enviornment. Usually, this
@@ -259,7 +259,7 @@ export abstract class ClientBase<B extends Backend, O extends Options>
    * Adds common information to events.
    *
    * The information includes release and environment from `options`, SDK
-   * information returned by {@link ClientBase.getSdkInfo}, as well as
+   * information returned by {@link BaseClient.getSdkInfo}, as well as
    * breadcrumbs and context (extra, tags and user) from the scope.
    *
    * Information that is already present in the event is never overwritten. For

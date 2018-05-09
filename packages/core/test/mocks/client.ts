@@ -1,5 +1,5 @@
 import { SdkInfo } from '@sentry/shim';
-import { ClientBase } from '../../src/base';
+import { BaseClient } from '../../src/base';
 import { initAndBind } from '../../src/sdk';
 import { TestBackend, TestOptions } from './backend';
 
@@ -8,7 +8,7 @@ export const TEST_SDK = {
   version: '0.0.0-dev',
 };
 
-export class TestClient extends ClientBase<TestBackend, TestOptions> {
+export class TestClient extends BaseClient<TestBackend, TestOptions> {
   public static instance?: TestClient;
 
   public constructor(options: TestOptions) {
