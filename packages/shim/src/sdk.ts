@@ -12,7 +12,7 @@ function logError(e?: any): void {
 /**
  * Internal helper function to call a method on the top client if it exists.
  *
- * @param method The method to call on the client/frontend.
+ * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
  */
 function invokeClient(method: string, ...args: any[]): void {
@@ -26,7 +26,7 @@ function invokeClient(method: string, ...args: any[]): void {
  * Internal helper function to call an async method on the top client if it
  * exists.
  *
- * @param method The method to call on the client/frontend.
+ * @param method The method to call on the client/client.
  * @param callback A callback called with the error or success return value.
  * @param args Arguments to pass to the client/fontend.
  */
@@ -136,7 +136,7 @@ export function getCurrentClient(): any | undefined {
 
 /**
  * This binds the given client to the current scope.
- * @param client An SDK client (frontend) instance.
+ * @param client An SDK client (client) instance.
  */
 export function bindClient(client: any): void {
   const shim = getOrCreateShim();
@@ -226,7 +226,7 @@ export function setExtraContext(extra: object): void {
  * the shim. It is not guaranteed that the client actually implements the
  * function.
  *
- * @param method The method to call on the client/frontend.
+ * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {

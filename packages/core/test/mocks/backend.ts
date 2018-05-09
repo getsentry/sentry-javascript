@@ -1,5 +1,5 @@
 import { Breadcrumb, Context, SentryEvent } from '@sentry/shim';
-import { Backend, Frontend, Options, Scope } from '../../src/interfaces';
+import { Backend, Client, Options, Scope } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -12,14 +12,14 @@ export class TestBackend implements Backend {
   public installed: number;
   public event?: SentryEvent;
 
-  public constructor(private readonly frontend: Frontend<TestOptions>) {
+  public constructor(private readonly client: Client<TestOptions>) {
     TestBackend.instance = this;
     this.installed = 0;
   }
 
   public install(): boolean {
     this.installed += 1;
-    return !this.frontend.getOptions().mockInstallFailure;
+    return !this.client.getOptions().mockInstallFailure;
   }
 
   public async eventFromException(exception: any): Promise<SentryEvent> {

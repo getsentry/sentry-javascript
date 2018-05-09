@@ -18,7 +18,7 @@ building Sentry JavaScript SDKs, like `@sentry/node` or `@sentry/browser`.
 
 TODO
 
-## Specializing the Frontend
+## Specializing the Client
 
 TODO
 

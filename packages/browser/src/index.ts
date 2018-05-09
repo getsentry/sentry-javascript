@@ -27,5 +27,5 @@ export {
 } from '@sentry/shim';
 
 export { BrowserBackend, BrowserOptions } from './backend';
-export { BrowserFrontend } from './frontend';
-export { init, getCurrentFrontend } from './sdk';
+export { BrowserClient } from './client';
+export { init, getCurrentClient } from './sdk';

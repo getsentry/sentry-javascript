@@ -1,15 +1,15 @@
-import { FrontendBase } from '@sentry/core';
+import { ClientBase } from '@sentry/core';
 import { SdkInfo } from '@sentry/shim';
 import { NodeBackend, NodeOptions } from './backend';
 import { Raven } from './raven';
 
 /**
- * The Sentry Node SDK Frontend.
+ * The Sentry Node SDK Client.
  *
  * @see NodeOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
+export class NodeClient extends ClientBase<NodeBackend, NodeOptions> {
   /**
    * Creates a new Node SDK instance.
    * @param options Configuration options for this SDK.

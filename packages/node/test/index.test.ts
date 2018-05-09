@@ -18,7 +18,7 @@ import {
   Context,
   init,
   NodeBackend,
-  NodeFrontend,
+  NodeClient,
   popScope,
   pushScope,
   SentryEvent,
@@ -38,7 +38,7 @@ describe('SentryNode', () => {
     let s: sinon.SinonSpy;
 
     beforeEach(() => {
-      s = spy(NodeFrontend.prototype, 'setContext');
+      s = spy(NodeClient.prototype, 'setContext');
     });
 
     afterEach(() => {
@@ -79,7 +79,7 @@ describe('SentryNode', () => {
 
     it('should record auto breadcrumbs', done => {
       pushScope(
-        new NodeFrontend({
+        new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).to.have.lengthOf(3);
             done();
@@ -118,7 +118,7 @@ describe('SentryNode', () => {
 
     it('should capture an exception', done => {
       pushScope(
-        new NodeFrontend({
+        new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
             expect(event.exception![0]).to.not.be.undefined;
@@ -140,7 +140,7 @@ describe('SentryNode', () => {
 
     it('should capture a message', done => {
       pushScope(
-        new NodeFrontend({
+        new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
@@ -155,7 +155,7 @@ describe('SentryNode', () => {
 
     it('should capture an event', done => {
       pushScope(
-        new NodeFrontend({
+        new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
@@ -173,7 +173,7 @@ describe('SentryNode', () => {
         const d = domain.create();
         d.run(() => {
           pushScope(
-            new NodeFrontend({
+            new NodeClient({
               afterSend: (event: SentryEvent) => {
                 expect(event.message).to.equal('test');
                 expect(event.exception).to.be.undefined;

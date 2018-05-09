@@ -1,4 +1,4 @@
-import { Backend, Frontend, Options, SentryError } from '@sentry/core';
+import { Backend, Client, Options, SentryError } from '@sentry/core';
 import {
   addBreadcrumb,
   captureEvent,
@@ -34,7 +34,7 @@ function prepareEventForRaven(event: SentryEvent): SentryEvent {
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see BrowserFrontend for more information.
+ * @see BrowserClient for more information.
  */
 export interface BrowserOptions extends Options {
   /**
@@ -67,32 +67,32 @@ export interface BrowserOptions extends Options {
 
 /** The Sentry Browser SDK Backend. */
 export class BrowserBackend implements Backend {
-  /** Handle to the SDK frontend for callbacks. */
-  private readonly frontend: Frontend<BrowserOptions>;
+  /** Handle to the SDK client for callbacks. */
+  private readonly client: Client<BrowserOptions>;
 
   /** Creates a new browser backend instance. */
-  public constructor(frontend: Frontend<BrowserOptions>) {
-    this.frontend = frontend;
+  public constructor(client: Client<BrowserOptions>) {
+    this.client = client;
   }
 
   /**
    * @inheritDoc
    */
   public install(): boolean {
-    // We are only called by the frontend if the SDK is enabled and a valid DSN
+    // We are only called by the client if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.frontend.getDSN();
+    const dsn = this.client.getDSN();
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    Raven.config(dsn.toString(), this.frontend.getOptions()).install();
+    Raven.config(dsn.toString(), this.client.getOptions()).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
-    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // breadcrumbs created internally by Raven and pass them to the Client
     // first, before actually capturing them.
     Raven.setBreadcrumbCallback(breadcrumb => {
       addBreadcrumb(breadcrumb);
@@ -100,7 +100,7 @@ export class BrowserBackend implements Backend {
     });
 
     // Hook into Raven's internal event sending mechanism. This allows us to
-    // pass events to the frontend, before they will be sent back here for
+    // pass events to the client, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
       captureEvent(normalizeRavenEvent(event));

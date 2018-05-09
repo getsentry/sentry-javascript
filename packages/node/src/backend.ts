@@ -1,4 +1,4 @@
-import { Backend, Frontend, Options, SentryError } from '@sentry/core';
+import { Backend, Client, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
 import {
   HTTPSTransport,
@@ -18,7 +18,7 @@ interface FunctionExt extends Function {
 
 /**
  * Configuration options for the Sentry Node SDK.
- * @see NodeFrontend for more information.
+ * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
   /**
@@ -44,42 +44,42 @@ export interface NodeOptions extends Options {
 
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
-  /** Handle to the SDK frontend for callbacks. */
-  private readonly frontend: Frontend<NodeOptions>;
+  /** Handle to the SDK client for callbacks. */
+  private readonly client: Client<NodeOptions>;
 
   /** Creates a new Node backend instance. */
-  public constructor(frontend: Frontend<NodeOptions>) {
-    this.frontend = frontend;
+  public constructor(client: Client<NodeOptions>) {
+    this.client = client;
   }
 
   /**
    * @inheritDoc
    */
   public install(): boolean {
-    // We are only called by the frontend if the SDK is enabled and a valid DSN
+    // We are only called by the client if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.frontend.getDSN();
+    const dsn = this.client.getDSN();
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    const { onFatalError } = this.frontend.getOptions();
-    Raven.config(dsn.toString(true), this.frontend.getOptions()).install(
+    const { onFatalError } = this.client.getOptions();
+    Raven.config(dsn.toString(true), this.client.getOptions()).install(
       onFatalError,
     );
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
-    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // breadcrumbs created internally by Raven and pass them to the Client
     // first, before actually capturing them.
     Raven.captureBreadcrumb = breadcrumb => {
       addBreadcrumb(breadcrumb);
     };
 
     // Hook into Raven's internal event sending mechanism. This allows us to
-    // pass events to the frontend, before they will be sent back here for
+    // pass events to the client, before they will be sent back here for
     // actual submission.
     Raven.send = (event, callback) => {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
@@ -147,7 +147,7 @@ export class NodeBackend implements Backend {
    * @param transport The transport to use for submitting events.
    */
   public setTransport(transport: Transport): void {
-    const dsn = this.frontend.getDSN();
+    const dsn = this.client.getDSN();
     if (!dsn) {
       return;
     }
