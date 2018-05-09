@@ -523,6 +523,7 @@ Raven.prototype = {
     // report on.
     try {
       var stack = TraceKit.computeStackTrace(ex);
+
       this._handleStackInfo(stack, options);
     } catch (ex1) {
       if (ex !== ex1) {
