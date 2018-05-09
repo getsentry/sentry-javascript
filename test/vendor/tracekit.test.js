@@ -4,6 +4,7 @@
 var TraceKit = require('../../vendor/TraceKit/tracekit');
 var utils = require('../../src/utils');
 var supportsErrorEvent = utils.supportsErrorEvent;
+var sinon = require('sinon');
 
 describe('TraceKit', function() {
   describe('stacktrace info', function() {
@@ -80,6 +81,52 @@ describe('TraceKit', function() {
       assert.equal(trace.stack[2].url, 'http://example.com/js/test.js');
       assert.equal(trace.stack[2].line, 26);
       assert.equal(trace.stack[2].column, 5);
+    });
+
+    it('should update url based on sourcemap suffix in blob: based frames if full url available', function() {
+      var server = sinon.createFakeServer();
+      server.respondImmediately = true;
+      server.respondWith('GET', 'blob:http://localhost:8080/some-blob', [
+        200,
+        {'Content-Type': 'application/javascript'},
+        'just a random stream of bytes, as we care only about the sourcemaps suffix there\n' +
+          'oh, here it comes! //# sourceMappingURL=http://awesome.com/file.js.map'
+      ]);
+
+      var stack_str =
+        'Error: test\n' +
+        '    at Error (native)\n' +
+        '    at s (blob:http://localhost:8080/some-blob:31:29146)';
+
+      var mock_err = {stack: stack_str};
+      var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
+
+      assert.equal(trace.stack[1].url, 'http://awesome.com/file.js');
+
+      server.restore();
+    });
+
+    it('should update url based on sourcemap suffix in blob: based frames if relative url available, by adding location.origin to it', function() {
+      var server = sinon.createFakeServer();
+      server.respondImmediately = true;
+      server.respondWith('GET', 'blob:http://localhost:8080/some-blob', [
+        200,
+        {'Content-Type': 'application/javascript'},
+        'just a random stream of bytes, as we care only about the sourcemaps suffix there\n' +
+          'oh, here it comes! //# sourceMappingURL=~/awesome.com/file.js.map'
+      ]);
+
+      var stack_str =
+        'Error: test\n' +
+        '    at Error (native)\n' +
+        '    at s (blob:http://localhost:8080/some-blob:31:29146)';
+
+      var mock_err = {stack: stack_str};
+      var trace = TraceKit.computeStackTrace.computeStackTraceFromStackProp(mock_err);
+
+      assert.equal(trace.stack[1].url, 'http://localhost:9876/awesome.com/file.js');
+
+      server.restore();
     });
   });
 

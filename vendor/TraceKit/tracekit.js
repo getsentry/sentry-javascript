@@ -30,8 +30,12 @@ var ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Ran
 
 function getLocationHref() {
   if (typeof document === 'undefined' || document.location == null) return '';
-
   return document.location.href;
+}
+
+function getLocationOrigin() {
+  if (typeof document === 'undefined' || document.location == null) return '';
+  return document.location.origin;
 }
 
 /**
@@ -451,9 +455,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         xhr.open('GET', element.url, false);
         xhr.send(null);
 
-        // If we failed to download the source, skip the element.
+        // If we failed to download the source, skip this patch
         if (xhr.status === 200) {
-          var source = xhr.responseText;
+          var source = xhr.responseText || '';
 
           // We trim the source down to the last 300 characters as sourceMappingURL is always at the end of the file.
           // Why 300? To be in line with: https://github.com/getsentry/sentry/blob/4af29e8f2350e20c28a6933354e4f42437b4ba42/src/sentry/lang/javascript/processor.py#L164-L175
@@ -463,13 +467,13 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
           var sourceMaps = source.match(/\/\/# sourceMappingURL=(.*)$/);
 
           // If we don't find a source map comment or we find more than one, continue on to the next element.
-          if (!sourceMaps) {
+          if (sourceMaps) {
             var sourceMapAddress = sourceMaps[1];
 
             // Now we check to see if it's a relative URL.
             // If it is, convert it to an absolute one.
             if (sourceMapAddress.charAt(0) === '~') {
-              sourceMapAddress = window.location.origin + sourceMapAddress.slice(1);
+              sourceMapAddress = getLocationOrigin() + sourceMapAddress.slice(1);
             }
 
             // Now we strip the '.map' off of the end of the URL and update the
