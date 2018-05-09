@@ -24,8 +24,12 @@ module.exports = function(grunt) {
   // custom browserify transformer to re-write plugins to
   // self-register with Raven via addPlugin
   function AddPluginBrowserifyTransformer() {
-    var noop = function (chunk, _, cb) { cb(null, chunk); };
-    var append = function (cb) { cb(null, "\nrequire('../src/singleton').addPlugin(module.exports);"); };
+    var noop = function(chunk, _, cb) {
+      cb(null, chunk);
+    };
+    var append = function(cb) {
+      cb(null, "\nrequire('../src/singleton').addPlugin(module.exports);");
+    };
     return function(file) {
       return through(noop, /plugins/.test(file) ? append : undefined);
     };
@@ -222,25 +226,6 @@ module.exports = function(grunt) {
       }
     },
 
-    connect: {
-      test: {
-        options: {
-          port: 8000,
-          debug: true,
-          keepalive: true
-        }
-      },
-
-      docs: {
-        options: {
-          port: 8000,
-          debug: true,
-          base: 'docs/_build/html',
-          keepalive: true
-        }
-      }
-    },
-
     copy: {
       dist: {
         expand: true,
@@ -306,7 +291,6 @@ module.exports = function(grunt) {
   // Grunt contrib tasks
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-contrib-copy');
 
   // 3rd party Grunt tasks
@@ -326,6 +310,7 @@ module.exports = function(grunt) {
     '_prep',
     'browserify:plugins-combined'
   ]);
+  grunt.registerTask('build', ['build.core', 'build.plugins-combined']);
   grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
   grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
   grunt.registerTask('build.plugins-combined', [
@@ -334,14 +319,7 @@ module.exports = function(grunt) {
     'sri:dist',
     'sri:build'
   ]);
-  grunt.registerTask('build', ['build.plugins-combined']);
-  grunt.registerTask('dist', ['build.core', 'copy:dist']);
-
+  grunt.registerTask('dist', ['build', 'copy:dist']);
+  grunt.registerTask('publish', ['build', 's3']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
-
-  // Webserver tasks
-  grunt.registerTask('run:test', ['build.test', 'connect:test']);
-  grunt.registerTask('run:docs', ['connect:docs']);
-
-  grunt.registerTask('publish', ['build.plugins-combined', 's3']);
 };
