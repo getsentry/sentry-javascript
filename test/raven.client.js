@@ -11,8 +11,6 @@ var raven = require('../'),
   zlib = require('zlib'),
   child_process = require('child_process');
 
-raven.utils.disableConsoleAlerts();
-
 var dsn = 'https://public:private@app.getsentry.com/269';
 
 var _oldConsoleWarn = console.warn;
@@ -43,6 +41,12 @@ describe('raven.Client', function() {
   var client;
   beforeEach(function() {
     client = new raven.Client(dsn);
+    raven.utils.disableConsoleAlerts();
+  });
+
+  afterEach(function() {
+    client = new raven.Client(dsn);
+    raven.utils.enableConsoleAlerts();
   });
 
   it('should parse the DSN with options', function() {

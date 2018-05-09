@@ -6,6 +6,21 @@ var majorVersion = parseInt(versionRegexp.exec(process.version)[1], 10);
 
 var raven = require('../');
 
+var _oldConsoleWarn = console.warn;
+
+function mockConsoleWarn() {
+  console.warn = function() {
+    console.warn._called = true;
+    ++console.warn._callCount;
+  };
+  console.warn._called = false;
+  console.warn._callCount = 0;
+}
+
+function restoreConsoleWarn() {
+  console.warn = _oldConsoleWarn;
+}
+
 describe('raven.utils', function() {
   describe('#parseDSN()', function() {
     it('should parse hosted Sentry DSN without path', function() {
@@ -599,4 +614,57 @@ describe('raven.utils', function() {
       }
     });
   });
+
+  describe('#consoleAlert()', function() {
+    it('should call console.warn if enabled', function() {
+      mockConsoleWarn();
+      raven.utils.consoleAlert('foo');
+      raven.utils.consoleAlert('foo');
+      console.warn._called.should.eql(true);
+      console.warn._callCount.should.eql(2);
+      restoreConsoleWarn();
+    });
+
+    it('should be disabled after calling disableConsoleAlerts', function() {
+      mockConsoleWarn();
+      raven.utils.disableConsoleAlerts();
+      raven.utils.consoleAlert('foo');
+      console.warn._called.should.eql(false);
+      console.warn._callCount.should.eql(0);
+      raven.utils.enableConsoleAlerts();
+      restoreConsoleWarn();
+    });
+
+    it('should be disabled after calling disableConsoleAlerts, even after previous successful calls', function() {
+      mockConsoleWarn();
+      raven.utils.consoleAlert('foo');
+      console.warn._called.should.eql(true);
+      console.warn._callCount.should.eql(1);
+      raven.utils.disableConsoleAlerts();
+      raven.utils.consoleAlert('foo');
+      console.warn._callCount.should.eql(1);
+      raven.utils.enableConsoleAlerts();
+      restoreConsoleWarn();
+    });
+  });
+
+  describe('#consoleAlertOnce()', function() {
+    it('should call console.warn if enabled, but only once with the same message', function() {
+      mockConsoleWarn();
+      raven.utils.consoleAlertOnce('foo');
+      console.warn._called.should.eql(true);
+      console.warn._callCount.should.eql(1);
+      raven.utils.consoleAlertOnce('foo');
+      console.warn._callCount.should.eql(1);
+      restoreConsoleWarn();
+    });
+
+    it('should be disable after calling disableConsoleAlerts', function() {
+      mockConsoleWarn();
+      raven.utils.disableConsoleAlerts();
+      raven.utils.consoleAlertOnce('foo');
+      console.warn._called.should.eql(false);
+      console.warn._callCount.should.eql(0);
+      raven.utils.enableConsoleAlerts();
+      restoreConsoleWarn();
 });
