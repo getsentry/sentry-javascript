@@ -12,14 +12,14 @@ export class TestBackend implements Backend {
   public installed: number;
   public event?: SentryEvent;
 
-  public constructor(private readonly client: Client<TestOptions>) {
+  public constructor(private readonly options: TestOptions) {
     TestBackend.instance = this;
     this.installed = 0;
   }
 
   public install(): boolean {
     this.installed += 1;
-    return !this.client.getOptions().mockInstallFailure;
+    return !this.options.mockInstallFailure;
   }
 
   public async eventFromException(exception: any): Promise<SentryEvent> {

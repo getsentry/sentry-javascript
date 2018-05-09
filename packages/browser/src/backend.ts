@@ -1,4 +1,4 @@
-import { Backend, Client, Options, SentryError } from '@sentry/core';
+import { Backend, Options, SentryError } from '@sentry/core';
 import {
   addBreadcrumb,
   captureEvent,
@@ -67,13 +67,8 @@ export interface BrowserOptions extends Options {
 
 /** The Sentry Browser SDK Backend. */
 export class BrowserBackend implements Backend {
-  /** Handle to the SDK client for callbacks. */
-  private readonly client: Client<BrowserOptions>;
-
   /** Creates a new browser backend instance. */
-  public constructor(client: Client<BrowserOptions>) {
-    this.client = client;
-  }
+  public constructor(private readonly options: BrowserOptions) {}
 
   /**
    * @inheritDoc
@@ -82,14 +77,14 @@ export class BrowserBackend implements Backend {
     // We are only called by the client if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.client.getDSN();
+    const dsn = this.options.dsn;
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    Raven.config(dsn.toString(), this.client.getOptions()).install();
+    Raven.config(dsn, this.options).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client

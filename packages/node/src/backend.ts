@@ -1,4 +1,4 @@
-import { Backend, Client, Options, SentryError } from '@sentry/core';
+import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
 import {
   HTTPSTransport,
@@ -44,13 +44,8 @@ export interface NodeOptions extends Options {
 
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
-  /** Handle to the SDK client for callbacks. */
-  private readonly client: Client<NodeOptions>;
-
   /** Creates a new Node backend instance. */
-  public constructor(client: Client<NodeOptions>) {
-    this.client = client;
-  }
+  public constructor(private readonly options: NodeOptions) {}
 
   /**
    * @inheritDoc
@@ -59,17 +54,15 @@ export class NodeBackend implements Backend {
     // We are only called by the client if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.client.getDSN();
+    const dsn = this.options.dsn;
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    const { onFatalError } = this.client.getOptions();
-    Raven.config(dsn.toString(true), this.client.getOptions()).install(
-      onFatalError,
-    );
+    const { onFatalError } = this.options;
+    Raven.config(dsn, this.options).install(onFatalError);
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client
@@ -147,13 +140,14 @@ export class NodeBackend implements Backend {
    * @param transport The transport to use for submitting events.
    */
   public setTransport(transport: Transport): void {
-    const dsn = this.client.getDSN();
+    const dsn = this.options.dsn;
     if (!dsn) {
       return;
     }
+    const dsnObject = new DSN(dsn);
 
     Raven.transport =
-      dsn.protocol === 'http'
+      dsnObject.protocol === 'http'
         ? new HTTPTransport({ transport })
         : new HTTPSTransport({ transport });
   }

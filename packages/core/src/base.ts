@@ -17,7 +17,7 @@ const MAX_BREADCRUMBS = 100;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
-  new (client: Client<O>): B;
+  new (options: O): B;
 }
 
 /**
@@ -93,7 +93,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    * @param options Options for the client.
    */
   protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    this.backend = new backendClass(this);
+    this.backend = new backendClass(options);
     this.options = options;
 
     if (options.dsn) {
