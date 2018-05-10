@@ -112,6 +112,7 @@ function Raven() {
   // before the console plugin has a chance to monkey patch
   this._originalConsole = _window.console || {};
   this._originalConsoleMethods = {};
+  this._originalSetTimeout = _window.setTimeout.bind(_window);
   this._plugins = [];
   this._startTime = now();
   this._wrappedBuiltIns = [];
@@ -468,6 +469,9 @@ Raven.prototype = {
   captureException: function(ex, options) {
     options = objectMerge({trimHeadFrames: 0}, options ? options : {});
 
+    // Store the raw exception object for potential debugging and introspection
+    this._lastCapturedException = ex;
+
     if (isErrorEvent(ex) && ex.error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       ex = ex.error;
@@ -512,9 +516,6 @@ Raven.prototype = {
         })
       );
     }
-
-    // Store the raw exception object for potential debugging and introspection
-    this._lastCapturedException = ex;
 
     // TraceKit.report will re-raise any exception passed to it,
     // which means you have to wrap it in try/catch. Instead, we
@@ -909,7 +910,7 @@ Raven.prototype = {
   _ignoreNextOnError: function() {
     var self = this;
     this._ignoreOnError += 1;
-    setTimeout(function() {
+    this._originalSetTimeout(function() {
       // onerror should trigger before setTimeout
       self._ignoreOnError -= 1;
     });
@@ -1030,7 +1031,7 @@ Raven.prototype = {
         self._breadcrumbEventHandler('input')(evt);
       }
       clearTimeout(timeout);
-      self._keypressTimeout = setTimeout(function() {
+      self._keypressTimeout = self._originalSetTimeout(function() {
         self._keypressTimeout = null;
       }, debounceDuration);
     };
@@ -1202,6 +1203,7 @@ Raven.prototype = {
 
     fill(_window, 'setTimeout', wrapTimeFn, wrappedBuiltIns);
     fill(_window, 'setInterval', wrapTimeFn, wrappedBuiltIns);
+
     if (_window.requestAnimationFrame) {
       fill(
         _window,
@@ -2016,35 +2018,59 @@ Raven.prototype = {
     }
 
     var url = this._globalEndpoint;
-    (globalOptions.transport || this._makeRequest).call(this, {
-      url: url,
-      auth: auth,
-      data: data,
-      options: globalOptions,
-      onSuccess: function success() {
-        self._resetBackoff();
 
-        self._triggerEvent('success', {
-          data: data,
-          src: url
-        });
-        callback && callback();
-      },
-      onError: function failure(error) {
-        self._logDebug('error', 'Raven transport failed to send: ', error);
+    try {
+      (globalOptions.transport || this._makeRequest).call(this, {
+        url: url,
+        auth: auth,
+        data: data,
+        options: globalOptions,
+        onSuccess: function success() {
+          self._resetBackoff();
 
-        if (error.request) {
-          self._setBackoffState(error.request);
+          self._triggerEvent('success', {
+            data: data,
+            src: url
+          });
+          callback && callback();
+        },
+        onError: function failure(error) {
+          self._logDebug('error', 'Raven transport failed to send: ', error);
+
+          if (error.request) {
+            self._setBackoffState(error.request);
+          }
+
+          self._triggerEvent('failure', {
+            data: data,
+            src: url
+          });
+          error =
+            error || new Error('Raven send failed (no additional details provided)');
+          callback && callback(error);
         }
+      });
+    } catch (e) {
+      // Something went wrong while invoking either default or user-provided transport function
+      // that should send previously caught exception
+      //
+      // We catch this error, try to send it to Sentry so that user knows what went wrong
+      // and then rethrow original exception so it's not magically swallowed,
+      // while making sure it's not caught again by our code
 
-        self._triggerEvent('failure', {
-          data: data,
-          src: url
-        });
-        error = error || new Error('Raven send failed (no additional details provided)');
-        callback && callback(error);
-      }
-    });
+      // `setTimeout` is required in order for `captureException` below not accidentally trigger
+      // this exact block again and fall into infinite loop.
+      // `e !== lastException` check will only work, once first exception
+      // is actually assigned to our private variable
+      self._originalSetTimeout(function() {
+        var lastException = self.lastException();
+        if (e !== lastException) {
+          self.captureException(e);
+          self._ignoreNextOnError();
+          throw lastException;
+        }
+      });
+    }
   },
 
   _makeRequest: function(opts) {
