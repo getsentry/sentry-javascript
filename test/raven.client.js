@@ -514,7 +514,11 @@ describe('raven.Client', function() {
 
       client.install();
 
-      listeners = process.listeners('uncaughtException');
+      // Since Node v9, any listener will be prepended with domain specific listener and it cannot be altered
+      // https://github.com/nodejs/node/blob/ca41a30afa825373f2711a46965dfd4ca4a4ca3a/lib/domain.js#L146-L170
+      listeners = process.listeners('uncaughtException').filter(function(listener) {
+        return listener.name !== 'domainUncaughtExceptionClear';
+      });
       listeners.length.should.equal(1);
     });
 
