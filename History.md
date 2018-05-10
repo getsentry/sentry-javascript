@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.1 - 2018-05-10
+
+- fix: correctly detect errors from vm (#457)
+- ref: use console.warn for alerts and store them in Set (#455)
+- ci: Add node 9 and 10 to travis builds (#456)
+
 ## 2.6.0 - 2018-04-24
 
 - fix: Use shallow-copy instead of deep-copy when working with context to prevent too large memory usage and slowing down request resonses [See #452]
