@@ -26,7 +26,6 @@ function restoreConsoleWarn() {
   console.warn = _oldConsoleWarn;
 }
 
-raven.utils.disableConsoleAlerts();
 describe('raven.version', function() {
   it('should be valid', function() {
     raven.version.should.match(/^\d+\.\d+\.\d+(-\w+(\.\d+)?)?$/);
