@@ -15,7 +15,7 @@
   "homepage": "https://github.com/getsentry/raven-js",
   "main": "src/singleton.js",
   "scripts": {
-    "deploy": ".npm run test && /scripts/deploy.js",
+    "deploy": "npm run test && ./scripts/deploy.js",
     "lint": "eslint .",
     "precommit": "lint-staged",
     "publish": "grunt publish",
