@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "3.24.2",
+  "version": "3.25.0",
   "dependencies": {},
   "main": "dist/raven.js",
   "ignore": [

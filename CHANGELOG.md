@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.25.0
+
+* FEAT: Handle JavaScript loaded in the browser inside a blob (#1322)
+* FEAT: Handle DOMError and DOMException gracefully (#1310)
+* BUILD: include plugins-combination in dist and clear some old grunt config (#1313)
+
 ## 3.24.2
 
 * FEAT: Capture breadcrumbs on failed fetch request (#1293)
