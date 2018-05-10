@@ -353,7 +353,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
 
@@ -463,7 +463,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
 
@@ -654,7 +654,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             var extra = msg.extra;
@@ -745,7 +745,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body, cb) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.extra.foo.should.equal('bar');
@@ -818,7 +818,7 @@ describe('raven.Client', function() {
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
           .reply(200, function(uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
               var extra = msg.extra;
@@ -850,7 +850,7 @@ describe('raven.Client', function() {
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
           .reply(200, function(uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               done();
             });
@@ -875,7 +875,7 @@ describe('raven.Client', function() {
         .post('/api/269/store/', '*')
         .delay(10)
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.should.equal('test');
@@ -929,7 +929,7 @@ describe('raven.Client', function() {
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
           .reply(200, function(uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
 
@@ -970,7 +970,7 @@ describe('raven.Client', function() {
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
           .reply(200, function(uri, body) {
-            zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+            zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
               if (err) return done(err);
               var msg = JSON.parse(dec.toString());
 
@@ -1033,7 +1033,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var modules = msg.modules;
@@ -1061,7 +1061,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var extra = msg.extra;
@@ -1097,7 +1097,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
           var tags = msg.tags;
@@ -1128,7 +1128,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
 
@@ -1154,7 +1154,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
 
@@ -1190,7 +1190,7 @@ describe('raven.Client', function() {
       .filteringRequestBody(/.*/, '*')
       .post('/api/269/store/', '*')
       .reply(200, function(uri, body) {
-        zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+        zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
           if (err) return done(err);
           var msg = JSON.parse(dec.toString());
 
@@ -1222,7 +1222,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
 
@@ -1273,7 +1273,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.indexOf('foo').should.not.equal(-1);
@@ -1296,7 +1296,7 @@ describe('raven.Client', function() {
         .filteringRequestBody(/.*/, '*')
         .post('/api/269/store/', '*')
         .reply(200, function(uri, body) {
-          zlib.inflate(new Buffer(body, 'base64'), function(err, dec) {
+          zlib.inflate(Buffer.from(body, 'base64'), function(err, dec) {
             if (err) return done(err);
             var msg = JSON.parse(dec.toString());
             msg.message.indexOf('foo').should.not.equal(-1);

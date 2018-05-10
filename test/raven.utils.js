@@ -236,9 +236,6 @@ describe('raven.utils', function() {
       var parseStack = raven.utils.parseStack;
 
       var callback = function(frames) {
-        // querystring was different back in old node, compat hack
-        if (process.version < 'v4') frames.pop();
-
         var frame1 = frames.pop();
         frame1.in_app.should.be.false;
         frame1.filename.should.equal('querystring.js');
