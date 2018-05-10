@@ -26,6 +26,7 @@ function restoreConsoleWarn() {
   console.warn = _oldConsoleWarn;
 }
 
+raven.utils.disableConsoleAlerts();
 describe('raven.version', function() {
   it('should be valid', function() {
     raven.version.should.match(/^\d+\.\d+\.\d+(-\w+(\.\d+)?)?$/);
@@ -40,13 +41,13 @@ describe('raven.version', function() {
 describe('raven.Client', function() {
   var client;
   beforeEach(function() {
-    client = new raven.Client(dsn);
     raven.utils.disableConsoleAlerts();
+    client = new raven.Client(dsn);
   });
 
   afterEach(function() {
-    client = new raven.Client(dsn);
     raven.utils.enableConsoleAlerts();
+    client = new raven.Client(dsn);
   });
 
   it('should parse the DSN with options', function() {

@@ -667,4 +667,6 @@ describe('raven.utils', function() {
       console.warn._callCount.should.eql(0);
       raven.utils.enableConsoleAlerts();
       restoreConsoleWarn();
+    });
+  });
 });
