@@ -35,6 +35,16 @@ function getLocationHref() {
 
 function getLocationOrigin() {
   if (typeof document === 'undefined' || document.location == null) return '';
+
+  // Oh dear IE10...
+  if (!document.location.origin) {
+    document.location.origin =
+      document.location.protocol +
+      '//' +
+      document.location.hostname +
+      (document.location.port ? ':' + document.location.port : '');
+  }
+
   return document.location.origin;
 }
 
