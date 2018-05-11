@@ -1448,8 +1448,8 @@ Raven.prototype = {
     var hasPushAndReplaceState =
       !isChromePackagedApp &&
       _window.history &&
-      history.pushState &&
-      history.replaceState;
+      _window.history.pushState &&
+      _window.history.replaceState;
     if (autoBreadcrumbs.location && hasPushAndReplaceState) {
       // TODO: remove onpopstate handler on uninstall()
       var oldOnPopState = _window.onpopstate;
@@ -1478,8 +1478,8 @@ Raven.prototype = {
         };
       };
 
-      fill(history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
-      fill(history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
+      fill(_window.history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
+      fill(_window.history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
     }
 
     if (autoBreadcrumbs.console && 'console' in _window && console.log) {
@@ -1769,7 +1769,7 @@ Raven.prototype = {
 
     if (this._hasNavigator && _navigator.userAgent) {
       httpData.headers = {
-        'User-Agent': navigator.userAgent
+        'User-Agent': _navigator.userAgent
       };
     }
 
