@@ -85,17 +85,22 @@ module.exports = function(grunt) {
   });
 
   var pluginCombinations = combine(plugins);
-  var pluginConcatFiles = pluginCombinations.reduce(function(dict, comb) {
-    var key = comb.map(function(plugin) {
-      return path.basename(plugin, '.js');
-    });
-    key.sort();
 
-    var dest = path.join('build/', key.join(','), '/raven.js');
-    dict[dest] = ['src/singleton.js'].concat(comb);
+  var pluginConcatFiles = pluginCombinations
+    .filter(function(comb) {
+      return comb.length > 0;
+    })
+    .reduce(function(dict, comb) {
+      var key = comb.map(function(plugin) {
+        return path.basename(plugin, '.js');
+      });
+      key.sort();
 
-    return dict;
-  }, {});
+      var dest = path.join('build/', key.join(','), '/raven.js');
+      dict[dest] = ['src/singleton.js'].concat(comb);
+
+      return dict;
+    }, {});
 
   var browserifyConfig = {
     options: {
@@ -302,24 +307,14 @@ module.exports = function(grunt) {
 
   // Build tasks
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
+  grunt.registerTask('build', ['_prep', 'build.core', 'build.plugins', 'sri:build']);
+  grunt.registerTask('build.test', ['_prep', 'build.core', 'browserify:test']);
+  grunt.registerTask('build.core', ['browserify:core']);
   grunt.registerTask(
-    'browserify.core',
-    ['_prep', 'browserify:core'].concat(browserifyPluginTaskNames)
+    'build.plugins',
+    browserifyPluginTaskNames.concat('browserify:plugins-combined')
   );
-  grunt.registerTask('browserify.plugins-combined', [
-    '_prep',
-    'browserify:plugins-combined'
-  ]);
-  grunt.registerTask('build', ['build.core', 'build.plugins-combined']);
-  grunt.registerTask('build.test', ['_prep', 'browserify.core', 'browserify:test']);
-  grunt.registerTask('build.core', ['browserify.core', 'uglify', 'sri:dist']);
-  grunt.registerTask('build.plugins-combined', [
-    'browserify.plugins-combined',
-    'uglify',
-    'sri:dist',
-    'sri:build'
-  ]);
-  grunt.registerTask('dist', ['build', 'copy:dist']);
+  grunt.registerTask('dist', ['build', 'uglify', 'copy:dist', 'sri:dist']);
   grunt.registerTask('publish', ['build', 's3']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 };
