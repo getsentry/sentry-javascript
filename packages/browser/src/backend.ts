@@ -11,14 +11,13 @@ import { Raven, SendMethod } from './raven';
 const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
 /** Normalizes the event so it is consistent with our domain interface. */
-function normalizeRavenEvent(event: SentryEvent): SentryEvent {
+function normalizeRavenEvent(event?: SentryEvent): SentryEvent | undefined {
   const ex = ((event && event.exception) || {}) as {
     values?: SentryException[];
   };
-  if (ex && ex.values) {
+  if (event && ex && ex.values) {
     event.exception = ex.values;
   }
-
   return event;
 }
 
@@ -98,7 +97,10 @@ export class BrowserBackend implements Backend {
     // pass events to the client, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
-      captureEvent(normalizeRavenEvent(event));
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        captureEvent(normalizedEvent);
+      }
     };
 
     return true;
@@ -114,9 +116,12 @@ export class BrowserBackend implements Backend {
       Raven._sendProcessedPayload = evt => {
         event = evt;
       };
-
       Raven.captureException(exception);
-      return normalizeRavenEvent(event);
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        return normalizedEvent;
+      }
+      throw new SentryError('Event was undefined when it should be an event');
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
@@ -132,9 +137,12 @@ export class BrowserBackend implements Backend {
       Raven._sendProcessedPayload = evt => {
         event = evt;
       };
-
       Raven.captureMessage(message);
-      return normalizeRavenEvent(event);
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        return normalizedEvent;
+      }
+      throw new SentryError('Event was undefined when it should be an event');
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
