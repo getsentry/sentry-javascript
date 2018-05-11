@@ -307,14 +307,20 @@ module.exports = function(grunt) {
 
   // Build tasks
   grunt.registerTask('_prep', ['clean', 'gitinfo', 'version']);
-  grunt.registerTask('build', ['_prep', 'build.core', 'build.plugins', 'sri:build']);
+  grunt.registerTask('build', [
+    '_prep',
+    'build.core',
+    'build.plugins',
+    'uglify',
+    'sri:build'
+  ]);
   grunt.registerTask('build.test', ['_prep', 'build.core', 'browserify:test']);
   grunt.registerTask('build.core', ['browserify:core']);
   grunt.registerTask(
     'build.plugins',
     browserifyPluginTaskNames.concat('browserify:plugins-combined')
   );
-  grunt.registerTask('dist', ['build', 'uglify', 'copy:dist', 'sri:dist']);
+  grunt.registerTask('dist', ['build', 'copy:dist', 'sri:dist']);
   grunt.registerTask('publish', ['build', 's3']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 };
