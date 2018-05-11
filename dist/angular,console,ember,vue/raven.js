@@ -1,4 +1,4 @@
-/*! Raven.js 3.25.0 (80dffad) | github.com/getsentry/raven-js */
+/*! Raven.js 3.25.1 (b6f3c7a) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -402,7 +402,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.25.0',
+  VERSION: '3.25.1',
 
   debug: false,
 
@@ -1711,8 +1711,8 @@ Raven.prototype = {
     var hasPushAndReplaceState =
       !isChromePackagedApp &&
       _window.history &&
-      history.pushState &&
-      history.replaceState;
+      _window.history.pushState &&
+      _window.history.replaceState;
     if (autoBreadcrumbs.location && hasPushAndReplaceState) {
       // TODO: remove onpopstate handler on uninstall()
       var oldOnPopState = _window.onpopstate;
@@ -1741,8 +1741,8 @@ Raven.prototype = {
         };
       };
 
-      fill(history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
-      fill(history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
+      fill(_window.history, 'pushState', historyReplacementFunction, wrappedBuiltIns);
+      fill(_window.history, 'replaceState', historyReplacementFunction, wrappedBuiltIns);
     }
 
     if (autoBreadcrumbs.console && 'console' in _window && console.log) {
@@ -2032,7 +2032,7 @@ Raven.prototype = {
 
     if (this._hasNavigator && _navigator.userAgent) {
       httpData.headers = {
-        'User-Agent': navigator.userAgent
+        'User-Agent': _navigator.userAgent
       };
     }
 
@@ -3207,6 +3207,16 @@ function getLocationHref() {
 
 function getLocationOrigin() {
   if (typeof document === 'undefined' || document.location == null) return '';
+
+  // Oh dear IE10...
+  if (!document.location.origin) {
+    document.location.origin =
+      document.location.protocol +
+      '//' +
+      document.location.hostname +
+      (document.location.port ? ':' + document.location.port : '');
+  }
+
   return document.location.origin;
 }
 

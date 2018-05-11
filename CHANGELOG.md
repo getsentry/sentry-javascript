@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.25.1
+
+* BUILD: fix missing plugins in dist directory and simplify grunt build (#1327)
+* BUGFIX: Polyfill location.origin for IE10 (#1325)
+* BUGFIX: use safe _window and _navigator references (#1324)
+
 ## 3.25.0
 
 * FEAT: Handle JavaScript loaded in the browser inside a blob (#1322)
