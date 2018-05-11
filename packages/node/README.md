@@ -65,9 +65,9 @@ If you don't want to use a global static instance of Sentry, you can create one
 yourself:
 
 ```javascript
-const { NodeFrontend } = require('@sentry/node');
+const { NodeClient } = require('@sentry/node');
 
-const client = new NodeFrontend({
+const client = new NodeClient({
   dsn: '__DSN__',
   // ...
 });

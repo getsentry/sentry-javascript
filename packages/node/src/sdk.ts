@@ -1,7 +1,7 @@
 import { initAndBind } from '@sentry/core';
-import { getCurrentClient } from '@sentry/shim';
+import { getCurrentClient as shimGetCurrentClient } from '@sentry/shim';
 import { NodeOptions } from './backend';
-import { NodeFrontend } from './frontend';
+import { NodeClient } from './client';
 
 /**
  * The Sentry Node SDK Client.
@@ -47,10 +47,10 @@ import { NodeFrontend } from './frontend';
  * @see NodeOptions for documentation on configuration options.
  */
 export function init(options: NodeOptions): void {
-  initAndBind(NodeFrontend, options);
+  initAndBind(NodeClient, options);
 }
 
-/** Returns the current NodeFrontend, if any. */
-export function getCurrentFrontend(): NodeFrontend {
-  return getCurrentClient() as NodeFrontend;
+/** Returns the current NodeClient, if any. */
+export function getCurrentClient(): NodeClient {
+  return shimGetCurrentClient() as NodeClient;
 }

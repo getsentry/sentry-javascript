@@ -1,6 +1,6 @@
 import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/shim';
 import { DSN } from './dsn';
-import { Backend, Frontend, Options, Scope } from './interfaces';
+import { Backend, Client, Options, Scope } from './interfaces';
 import { SendStatus } from './status';
 
 /**
@@ -17,37 +17,37 @@ const MAX_BREADCRUMBS = 100;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
-  new (frontend: Frontend<O>): B;
+  new (options: O): B;
 }
 
 /**
- * Base implementation for all JavaScript SDK frontends.
+ * Base implementation for all JavaScript SDK clients.
  *
  * Call the constructor with the corresponding backend constructor and options
- * specific to the frontend subclass. To access these options later, use
- * {@link Frontend.getOptions}. Also, the Backend instance is available via
- * {@link Frontend.getBackend}.
+ * specific to the client subclass. To access these options later, use
+ * {@link Client.getOptions}. Also, the Backend instance is available via
+ * {@link Client.getBackend}.
  *
  * Subclasses must implement one abstract method: {@link getSdkInfo}. It must
  * return the unique name and the version of the SDK.
  *
  * If a DSN is specified in the options, it will be parsed and stored. Use
- * {@link Frontend.getDSN} to retrieve the DSN at any moment. In case the DSN is
+ * {@link Client.getDSN} to retrieve the DSN at any moment. In case the DSN is
  * invalid, the constructor will throw a {@link SentryException}. Note that
  * without a valid DSN, the SDK will not send any events to Sentry.
  *
  * Before sending an event via the backend, it is passed through
- * {@link FrontendBase.prepareEvent} to add SDK information and scope data
+ * {@link BaseClient.prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
  * To issue automatically created events (e.g. via instrumentation), use
- * {@link Frontend.captureEvent}. It will prepare the event and pass it through
+ * {@link Client.captureEvent}. It will prepare the event and pass it through
  * the callback lifecycle. To issue auto-breadcrumbs, use
- * {@link Frontend.addBreadcrumb}.
+ * {@link Client.addBreadcrumb}.
  *
  * @example
- * class NodeFrontend extends FrontendBase<NodeBackend, NodeOptions> {
+ * class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
  *   public constructor(options: NodeOptions) {
  *     super(NodeBackend, options);
  *   }
@@ -55,11 +55,11 @@ export interface BackendClass<B extends Backend, O extends Options> {
  *   // ...
  * }
  */
-export abstract class FrontendBase<B extends Backend, O extends Options>
-  implements Frontend<O> {
+export abstract class BaseClient<B extends Backend, O extends Options>
+  implements Client<O> {
   /**
    * The backend used to physically interact in the enviornment. Usually, this
-   * will correspond to the frontend. When composing SDKs, however, the Backend
+   * will correspond to the client. When composing SDKs, however, the Backend
    * from the root SDK will be used.
    */
   private readonly backend: B;
@@ -76,7 +76,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   /**
    * A scope instance containing breadcrumbs and context, used if none is
    * specified to the public methods. This is specifically used in standalone
-   * mode, when the Frontend is directly instanciated by the user.
+   * mode, when the Client is directly instanciated by the user.
    */
   private readonly internalScope: Scope;
 
@@ -87,13 +87,13 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
   private installed?: boolean;
 
   /**
-   * Initializes this frontend instance.
+   * Initializes this client instance.
    *
    * @param backendClass A constructor function to create the backend.
-   * @param options Options for the frontend.
+   * @param options Options for the client.
    */
   protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    this.backend = new backendClass(this);
+    this.backend = new backendClass(options);
     this.options = options;
 
     if (options.dsn) {
@@ -259,7 +259,7 @@ export abstract class FrontendBase<B extends Backend, O extends Options>
    * Adds common information to events.
    *
    * The information includes release and environment from `options`, SDK
-   * information returned by {@link FrontendBase.getSdkInfo}, as well as
+   * information returned by {@link BaseClient.getSdkInfo}, as well as
    * breadcrumbs and context (extra, tags and user) from the scope.
    *
    * Information that is already present in the event is never overwritten. For

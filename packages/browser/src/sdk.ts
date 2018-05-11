@@ -1,7 +1,7 @@
 import { initAndBind } from '@sentry/core';
-import { getCurrentClient } from '@sentry/shim';
+import { getCurrentClient as shimGetCurrentClient } from '@sentry/shim';
 import { BrowserOptions } from './backend';
-import { BrowserFrontend } from './frontend';
+import { BrowserClient } from './client';
 
 /**
  * The Sentry Browser SDK Client.
@@ -47,10 +47,10 @@ import { BrowserFrontend } from './frontend';
  * @see BrowserOptions for documentation on configuration options.
  */
 export function init(options: BrowserOptions): void {
-  initAndBind(BrowserFrontend, options);
+  initAndBind(BrowserClient, options);
 }
 
-/** Returns the current BrowserFrontend, if any. */
-export function getCurrentFrontend(): BrowserFrontend {
-  return getCurrentClient() as BrowserFrontend;
+/** Returns the current BrowserClient, if any. */
+export function getCurrentClient(): BrowserClient {
+  return shimGetCurrentClient() as BrowserClient;
 }

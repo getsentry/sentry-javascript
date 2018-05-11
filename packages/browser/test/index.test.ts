@@ -4,7 +4,7 @@ import { spy, stub } from 'sinon';
 import {
   addBreadcrumb,
   BrowserBackend,
-  BrowserFrontend,
+  BrowserClient,
   captureEvent,
   captureException,
   captureMessage,
@@ -29,7 +29,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonSpy;
 
     beforeEach(() => {
-      s = spy(BrowserFrontend.prototype, 'setContext');
+      s = spy(BrowserClient.prototype, 'setContext');
     });
 
     afterEach(() => {
@@ -70,7 +70,7 @@ describe('SentryBrowser', () => {
 
     it('should record auto breadcrumbs', done => {
       pushScope(
-        new BrowserFrontend({
+        new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).to.have.lengthOf(3);
             done();
@@ -110,7 +110,7 @@ describe('SentryBrowser', () => {
 
     it('should capture an exception', done => {
       pushScope(
-        new BrowserFrontend({
+        new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
             expect(event.exception![0]).to.not.be.undefined;
@@ -132,7 +132,7 @@ describe('SentryBrowser', () => {
 
     it('should capture a message', done => {
       pushScope(
-        new BrowserFrontend({
+        new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
@@ -147,7 +147,7 @@ describe('SentryBrowser', () => {
 
     it('should capture an event', done => {
       pushScope(
-        new BrowserFrontend({
+        new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;

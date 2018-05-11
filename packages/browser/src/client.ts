@@ -1,18 +1,15 @@
-import { FrontendBase } from '@sentry/core';
+import { BaseClient } from '@sentry/core';
 import { SdkInfo } from '@sentry/shim';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 
 /**
- * The Sentry Browser SDK Frontend.
+ * The Sentry Browser SDK Client.
  *
  * @see BrowserOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class BrowserFrontend extends FrontendBase<
-  BrowserBackend,
-  BrowserOptions
-> {
+export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * Creates a new Browser SDK instance.
    *

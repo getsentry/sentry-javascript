@@ -27,5 +27,5 @@ export {
 } from '@sentry/shim';
 
 export { NodeBackend, NodeOptions } from './backend';
-export { NodeFrontend } from './frontend';
-export { init, getCurrentFrontend } from './sdk';
+export { NodeClient } from './client';
+export { init, getCurrentClient } from './sdk';
