@@ -15,7 +15,7 @@ describe('Angular plugin', function() {
         logger: 'javascript',
         platform: 'javascript',
 
-        culprit: 'http://example.org/app.js',
+        transaction: 'http://example.org/app.js',
         message: 'Error: crap',
         exception: {
           type: 'Error',
@@ -50,7 +50,7 @@ describe('Angular plugin', function() {
         logger: 'javascript',
         platform: 'javascript',
 
-        culprit: 'http://example.org/app.js',
+        transaction: 'http://example.org/app.js',
         message: 'Error: crap',
         exception: {
           type: 'Error',

@@ -136,6 +136,128 @@ describe('React Native plugin', function() {
       assert.equal(frames[0].filename, '/file1.js');
       assert.equal(frames[1].filename, '/file2.js');
     });
+
+    it('should normalize transaction and frame filenames/URLs from .app directory', function() {
+      var data = {
+        project: '2',
+        logger: 'javascript',
+        platform: 'javascript',
+
+        transaction:
+          'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/app.js',
+        message: 'Error: crap',
+        exception: {
+          type: 'Error',
+          values: [
+            {
+              stacktrace: {
+                frames: [
+                  {
+                    filename:
+                      'file:///var/containers/Bundle/Application/ABC/123.app/file1.js',
+                    lineno: 10,
+                    colno: 11,
+                    function: 'broken'
+                  },
+                  {
+                    filename:
+                      'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/file2.js',
+                    lineno: 12,
+                    colno: 13,
+                    function: 'lol'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      };
+      reactNativePlugin._normalizeData(data);
+
+      assert.equal(data.transaction, '/app.js');
+      var frames = data.exception.values[0].stacktrace.frames;
+      assert.equal(frames[0].filename, '/file1.js');
+      assert.equal(frames[1].filename, '/file2.js');
+    });
+
+    it('should normalize transaction and frame filenames/URLs from stacktrace interface', function() {
+      var data = {
+        project: '2',
+        logger: 'javascript',
+        platform: 'javascript',
+
+        transaction:
+          'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/app.js',
+        message: 'Error: crap',
+
+        stacktrace: {
+          frames: [
+            {
+              filename: 'file:///var/containers/Bundle/Application/ABC/123.app/file1.js',
+              lineno: 10,
+              colno: 11,
+              function: 'broken'
+            },
+            {
+              filename:
+                'file:///var/mobile/Containers/Bundle/Application/ABC/123.app/file2.js',
+              lineno: 12,
+              colno: 13,
+              function: 'lol'
+            }
+          ]
+        }
+      };
+      reactNativePlugin._normalizeData(data);
+
+      assert.equal(data.transaction, '/app.js');
+      var frames = data.stacktrace.frames;
+      assert.equal(frames[0].filename, '/file1.js');
+      assert.equal(frames[1].filename, '/file2.js');
+    });
+
+    it('should normalize transaction and frame filenames/URLs from CodePush', function() {
+      var data = {
+        project: '2',
+        logger: 'javascript',
+        platform: 'javascript',
+
+        transaction:
+          'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/app.js',
+        message: 'Error: crap',
+        exception: {
+          type: 'Error',
+          values: [
+            {
+              stacktrace: {
+                frames: [
+                  {
+                    filename:
+                      'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/file1.js',
+                    lineno: 10,
+                    colno: 11,
+                    function: 'broken'
+                  },
+                  {
+                    filename:
+                      'file:///var/mobile/Containers/Data/Application/ABC/Library/Application%20Support/CodePush/CDE/CodePush/file2.js',
+                    lineno: 12,
+                    colno: 13,
+                    function: 'lol'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      };
+      reactNativePlugin._normalizeData(data);
+
+      assert.equal(data.transaction, '/app.js');
+      var frames = data.exception.values[0].stacktrace.frames;
+      assert.equal(frames[0].filename, '/file1.js');
+      assert.equal(frames[1].filename, '/file2.js');
+    });
   });
 
   describe('_transport()', function() {
