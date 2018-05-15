@@ -218,7 +218,7 @@ reactNativePlugin._transport = function(options) {
 };
 
 /**
- * Strip device-specific IDs found in culprit and frame filenames
+ * Strip device-specific IDs found in transaction and frame filenames
  * when running React Native applications on a physical device.
  */
 reactNativePlugin._normalizeData = function(data, pathStripRe) {
@@ -228,6 +228,10 @@ reactNativePlugin._normalizeData = function(data, pathStripRe) {
 
   if (data.culprit) {
     data.culprit = normalizeUrl(data.culprit, pathStripRe);
+  }
+
+  if (data.transaction) {
+    data.transaction = normalizeUrl(data.transaction, pathStripRe);
   }
 
   // NOTE: if data.exception exists, exception.values and exception.values[0] are

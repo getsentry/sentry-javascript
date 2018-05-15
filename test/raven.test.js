@@ -648,7 +648,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/file1.js'
+          transaction: 'http://example.com/file1.js'
         }
       ]);
 
@@ -666,7 +666,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/file1.js'
+          transaction: 'http://example.com/file1.js'
         }
       ]);
 
@@ -686,7 +686,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/file1.js',
+          transaction: 'http://example.com/file1.js',
           extra: 'awesome'
         }
       ]);
@@ -722,7 +722,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/override.js'
+          transaction: 'http://example.com/override.js'
         }
       ]);
 
@@ -753,7 +753,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/override.js'
+          transaction: 'http://example.com/override.js'
         }
       ]);
 
@@ -779,7 +779,7 @@ describe('globals', function() {
               }
             ]
           },
-          culprit: 'http://example.com/override.js',
+          transaction: 'http://example.com/override.js',
           extra: 'awesome'
         }
       ]);
@@ -2071,7 +2071,7 @@ describe('globals', function() {
                         pre_context: ['line4']
                     }]
                 },
-                culprit: 'http://example.com',
+                transaction: 'http://example.com',
                 message: 'Error: pickleRick',
                 foo: 'bar'
             }]);
@@ -3805,7 +3805,7 @@ describe('Raven (private methods)', function() {
     describe('from captureException/onerror', function() {
       beforeEach(function() {
         Raven._lastData = {
-          culprit: 'https://example.com/js/foo.js',
+          transaction: 'https://example.com/js/foo.js',
           exception: {
             type: 'TypeError',
             value: 'foo is not defined',
@@ -3834,7 +3834,7 @@ describe('Raven (private methods)', function() {
 
       it('should return false for different exceptions', function() {
         var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
-        data.culprit = 'https://example.com/js/bar.js';
+        data.transaction = 'https://example.com/js/bar.js';
         assert.isFalse(Raven._isRepeatData(data));
 
         data = JSON.parse(JSON.stringify(Raven._lastData)); // copy

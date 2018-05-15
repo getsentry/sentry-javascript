@@ -49,7 +49,11 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -1695,7 +1699,7 @@ Raven.prototype = {
             }
           ]
         },
-        culprit: fileurl
+        transaction: fileurl
       },
       options
     );
@@ -1810,7 +1814,7 @@ Raven.prototype = {
     if (
       !last ||
       current.message !== last.message || // defined for captureMessage
-      current.culprit !== last.culprit // defined for captureException/onerror
+      current.transaction !== last.transaction // defined for captureException/onerror
     )
       return false;
 
