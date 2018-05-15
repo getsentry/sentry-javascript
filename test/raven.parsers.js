@@ -561,6 +561,23 @@ describe('raven.parsers', function() {
       }
     });
 
+    it('should allow specifying a custom `transaction`', function(done) {
+      try {
+        throw new Error('Foobar');
+      } catch (e) {
+        raven.parsers.parseError(
+          e,
+          {
+            transaction: 'foobar'
+          },
+          function(parsed) {
+            parsed.transaction.should.equal('foobar');
+            done();
+          }
+        );
+      }
+    });
+
     it('should have a string stack after parsing', function(done) {
       try {
         throw new Error('Derp');

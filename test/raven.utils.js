@@ -309,14 +309,14 @@ describe('raven.utils', function() {
     });
   });
 
-  describe('#getCulprit()', function() {
+  describe('#getTransaction()', function() {
     it('should handle empty', function() {
-      raven.utils.getCulprit({}).should.eql('<unknown>');
+      raven.utils.getTransaction({}).should.eql('<unknown>');
     });
 
     it('should handle missing module', function() {
       raven.utils
-        .getCulprit({
+        .getTransaction({
           function: 'foo'
         })
         .should.eql('? at foo');
@@ -324,7 +324,7 @@ describe('raven.utils', function() {
 
     it('should handle missing function', function() {
       raven.utils
-        .getCulprit({
+        .getTransaction({
           module: 'foo'
         })
         .should.eql('foo at ?');
@@ -332,7 +332,7 @@ describe('raven.utils', function() {
 
     it('should work', function() {
       raven.utils
-        .getCulprit({
+        .getTransaction({
           module: 'foo',
           function: 'bar'
         })

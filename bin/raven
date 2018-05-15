@@ -46,7 +46,7 @@ try {
     message: 'This is a test message generated using ``raven test``',
     level: 'info',
     logger: 'sentry.test',
-    culprit: 'bin:raven at main',
+    transaction: 'bin:raven at main',
     request: {
       method: 'GET',
       url: 'http://example.com'
