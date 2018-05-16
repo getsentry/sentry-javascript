@@ -1,4 +1,4 @@
-import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { Backend, Client, Options, Scope } from './interfaces';
 import { SendStatus } from './status';

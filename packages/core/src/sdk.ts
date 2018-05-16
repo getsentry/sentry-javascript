@@ -1,4 +1,7 @@
-import * as Shim from '@sentry/shim';
+import {
+  bindClient as shimBindClient,
+  getCurrentClient as shimGetCurrentClient,
+} from '@sentry/shim';
 import { Client, Options } from './interfaces';
 
 export {
@@ -28,11 +31,11 @@ export function initAndBind<F extends Client, O extends Options>(
   clientClass: ClientClass<F, O>,
   options: O,
 ): void {
-  if (Shim.getCurrentClient()) {
+  if (shimGetCurrentClient()) {
     return;
   }
 
   const client = new clientClass(options);
   client.install();
-  Shim.bindClient(client);
+  shimBindClient(client);
 }

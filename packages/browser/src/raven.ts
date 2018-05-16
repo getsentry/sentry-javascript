@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 // tslint:disable-next-line:no-implicit-dependencies
 import * as RavenJS from 'raven-js';
 

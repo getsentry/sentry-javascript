@@ -1,5 +1,5 @@
+import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 import { getGlobalRegistry } from './global';
-import { Breadcrumb, SentryEvent, User } from './models';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
