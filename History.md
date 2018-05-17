@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.2 - 2018-05-17
+
+- ref: Emit transaction instead of culprit (#458)
+
 ## 2.6.1 - 2018-05-10
 
 - fix: correctly detect errors from vm (#457)
