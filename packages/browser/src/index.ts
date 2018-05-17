@@ -10,7 +10,7 @@ export {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/shim';
+} from '@sentry/types';
 
 export {
   addBreadcrumb,

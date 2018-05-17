@@ -1,5 +1,5 @@
 import { BaseClient } from '@sentry/core';
-import { SdkInfo } from '@sentry/shim';
+import { SdkInfo } from '@sentry/types';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 

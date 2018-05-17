@@ -1,5 +1,6 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent, SentryEvent } from '@sentry/shim';
+import { addBreadcrumb, captureEvent } from '@sentry/shim';
+import { SentryEvent } from '@sentry/types';
 import {
   HTTPSTransport,
   HTTPTransport,
