@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.25.2
+
+* REF: Emit transaction instead of culprit (#1330)
+
 ## 3.25.1
 
 * BUILD: fix missing plugins in dist directory and simplify grunt build (#1327)

@@ -1,4 +1,4 @@
-/*! Raven.js 3.25.1 (b6f3c7a) | github.com/getsentry/raven-js */
+/*! Raven.js 3.25.2 (30b6d4e) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -217,7 +217,11 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -307,7 +311,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.25.1',
+  VERSION: '3.25.2',
 
   debug: false,
 
@@ -1863,7 +1867,7 @@ Raven.prototype = {
             }
           ]
         },
-        culprit: fileurl
+        transaction: fileurl
       },
       options
     );
@@ -1978,7 +1982,7 @@ Raven.prototype = {
     if (
       !last ||
       current.message !== last.message || // defined for captureMessage
-      current.culprit !== last.culprit // defined for captureException/onerror
+      current.transaction !== last.transaction // defined for captureException/onerror
     )
       return false;
 
