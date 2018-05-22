@@ -9,12 +9,13 @@ var testFiles = [
   {pattern: 'test/integration/throw-object.js', included: false},
   {pattern: 'test/integration/example.json', included: false},
   {pattern: 'test/integration/frame.html', included: false},
-  'test/integration/test.js',
-  'test/globals.js',
-  'build/raven.js',
+  {pattern: 'build/raven.js', included: false},
+  'test/integration/test.js'
 ];
 
 module.exports = function(config) {
   var testConfig = Object.assign({}, commonConfig, {files: testFiles});
   config.set(testConfig);
 };
+
+module.exports.files = testFiles;

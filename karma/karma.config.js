@@ -3,7 +3,7 @@
 
 module.exports = {
   // base path that will be used to resolve all patterns (eg. files, exclude)
-  basePath: '',
+  basePath: '../',
 
   // frameworks to use
   // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
@@ -58,9 +58,12 @@ module.exports = {
     }
   },
 
+  // https://docs.travis-ci.com/user/gui-and-headless-browsers/#Karma-and-Firefox-inactivity-timeouts
+  browserNoActivityTimeout: 30000,
+
   // Continuous Integration mode
   // if true, Karma captures browsers, runs the tests and exits
-  singleRun: false,
+  singleRun: true,
 
   // Concurrency level
   // how many browser should be started simultaneous
