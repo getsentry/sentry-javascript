@@ -10,7 +10,7 @@ export {
   Stacktrace,
   Thread,
   User,
-} from './models';
+} from '@sentry/types';
 export {
   _callOnClient,
   addBreadcrumb,

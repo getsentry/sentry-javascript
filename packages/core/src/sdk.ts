@@ -1,5 +1,8 @@
-import * as Shim from '@sentry/shim';
-import { Frontend, Options } from './interfaces';
+import {
+  bindClient as shimBindClient,
+  getCurrentClient as shimGetCurrentClient,
+} from '@sentry/shim';
+import { Client, Options } from './interfaces';
 
 export {
   captureException,
@@ -11,28 +14,28 @@ export {
   setTagsContext,
 } from '@sentry/shim';
 
-/** A class object that can instanciate Frontend objects. */
-export interface FrontendClass<F extends Frontend, O extends Options> {
+/** A class object that can instanciate Client objects. */
+export interface ClientClass<F extends Client, O extends Options> {
   new (options: O): F;
 }
 
 /**
- * Internal function to create a new SDK frontend instance. The frontend is
+ * Internal function to create a new SDK client instance. The client is
  * installed and then bound to the current scope.
  *
- * @param frontendClass The frontend class to instanciate.
- * @param options Options to pass to the frontend.
- * @returns The installed and bound frontend instance.
+ * @param clientClass The client class to instanciate.
+ * @param options Options to pass to the client.
+ * @returns The installed and bound client instance.
  */
-export function initAndBind<F extends Frontend, O extends Options>(
-  frontendClass: FrontendClass<F, O>,
+export function initAndBind<F extends Client, O extends Options>(
+  clientClass: ClientClass<F, O>,
   options: O,
 ): void {
-  if (Shim.getCurrentClient()) {
+  if (shimGetCurrentClient()) {
     return;
   }
 
-  const frontend = new frontendClass(options);
-  frontend.install();
-  Shim.bindClient(frontend);
+  const client = new clientClass(options);
+  client.install();
+  shimBindClient(client);
 }

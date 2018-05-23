@@ -1,5 +1,5 @@
 import { SdkInfo } from '@sentry/shim';
-import { FrontendBase } from '../../src/base';
+import { BaseClient } from '../../src/base';
 import { initAndBind } from '../../src/sdk';
 import { TestBackend, TestOptions } from './backend';
 
@@ -8,12 +8,12 @@ export const TEST_SDK = {
   version: '0.0.0-dev',
 };
 
-export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
-  public static instance?: TestFrontend;
+export class TestClient extends BaseClient<TestBackend, TestOptions> {
+  public static instance?: TestClient;
 
   public constructor(options: TestOptions) {
     super(TestBackend, options);
-    TestFrontend.instance = this;
+    TestClient.instance = this;
   }
 
   public getSdkInfo(): SdkInfo {
@@ -22,5 +22,5 @@ export class TestFrontend extends FrontendBase<TestBackend, TestOptions> {
 }
 
 export function init(options: TestOptions): void {
-  initAndBind(TestFrontend, options);
+  initAndBind(TestClient, options);
 }

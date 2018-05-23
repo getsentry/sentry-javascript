@@ -67,9 +67,9 @@ If you don't want to use a global static instance of Sentry, you can create one
 yourself:
 
 ```javascript
-import { BrowserFrontend } from '@sentry/browser';
+import { BrowserClient } from '@sentry/browser';
 
-const client = new BrowserFrontend({
+const client = new BrowserClient({
   dsn: '__DSN__',
   // ...
 });

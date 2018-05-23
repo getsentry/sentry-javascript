@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import * as RavenNode from 'raven';
 
 export type SendMethod = (event: SentryEvent, cb?: (err: any) => void) => void;

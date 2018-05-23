@@ -83,6 +83,10 @@ export class Store<T> {
     try {
       mkdirpSync(dirname(this.path));
       writeFileSync(this.path, JSON.stringify(this.data));
+    } catch (e) {
+      // This usually fails due to anti virus scanners, issues in the file
+      // system, or problems with network drives. We cannot fix or handle this
+      // issue and must resume gracefully. Thus, we have to ignore this error.
     } finally {
       this.flushing = false;
     }

@@ -1,24 +1,19 @@
-import { Backend, Frontend, Options, SentryError } from '@sentry/core';
-import {
-  addBreadcrumb,
-  captureEvent,
-  SentryEvent,
-  SentryException,
-} from '@sentry/shim';
+import { Backend, Options, SentryError } from '@sentry/core';
+import { addBreadcrumb, captureEvent } from '@sentry/shim';
+import { SentryEvent, SentryException } from '@sentry/types';
 import { Raven, SendMethod } from './raven';
 
 /** Original raven send function. */
 const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
 
 /** Normalizes the event so it is consistent with our domain interface. */
-function normalizeRavenEvent(event: SentryEvent): SentryEvent {
+function normalizeRavenEvent(event?: SentryEvent): SentryEvent | undefined {
   const ex = ((event && event.exception) || {}) as {
     values?: SentryException[];
   };
-  if (ex && ex.values) {
+  if (event && ex && ex.values) {
     event.exception = ex.values;
   }
-
   return event;
 }
 
@@ -34,7 +29,7 @@ function prepareEventForRaven(event: SentryEvent): SentryEvent {
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see BrowserFrontend for more information.
+ * @see BrowserClient for more information.
  */
 export interface BrowserOptions extends Options {
   /**
@@ -67,32 +62,27 @@ export interface BrowserOptions extends Options {
 
 /** The Sentry Browser SDK Backend. */
 export class BrowserBackend implements Backend {
-  /** Handle to the SDK frontend for callbacks. */
-  private readonly frontend: Frontend<BrowserOptions>;
-
   /** Creates a new browser backend instance. */
-  public constructor(frontend: Frontend<BrowserOptions>) {
-    this.frontend = frontend;
-  }
+  public constructor(private readonly options: BrowserOptions) {}
 
   /**
    * @inheritDoc
    */
   public install(): boolean {
-    // We are only called by the frontend if the SDK is enabled and a valid DSN
+    // We are only called by the client if the SDK is enabled and a valid DSN
     // has been configured. If no DSN is present, this indicates a programming
     // error.
-    const dsn = this.frontend.getDSN();
+    const dsn = this.options.dsn;
     if (!dsn) {
       throw new SentryError(
         'Invariant exception: install() must not be called when disabled',
       );
     }
 
-    Raven.config(dsn.toString(), this.frontend.getOptions()).install();
+    Raven.config(dsn, this.options).install();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
-    // breadcrumbs created internally by Raven and pass them to the Frontend
+    // breadcrumbs created internally by Raven and pass them to the Client
     // first, before actually capturing them.
     Raven.setBreadcrumbCallback(breadcrumb => {
       addBreadcrumb(breadcrumb);
@@ -100,10 +90,13 @@ export class BrowserBackend implements Backend {
     });
 
     // Hook into Raven's internal event sending mechanism. This allows us to
-    // pass events to the frontend, before they will be sent back here for
+    // pass events to the client, before they will be sent back here for
     // actual submission.
     Raven._sendProcessedPayload = event => {
-      captureEvent(normalizeRavenEvent(event));
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        captureEvent(normalizedEvent);
+      }
     };
 
     return true;
@@ -119,9 +112,12 @@ export class BrowserBackend implements Backend {
       Raven._sendProcessedPayload = evt => {
         event = evt;
       };
-
       Raven.captureException(exception);
-      return normalizeRavenEvent(event);
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        return normalizedEvent;
+      }
+      throw new SentryError('Event was undefined when it should be an event');
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
@@ -137,9 +133,12 @@ export class BrowserBackend implements Backend {
       Raven._sendProcessedPayload = evt => {
         event = evt;
       };
-
       Raven.captureMessage(message);
-      return normalizeRavenEvent(event);
+      const normalizedEvent = normalizeRavenEvent(event);
+      if (normalizedEvent) {
+        return normalizedEvent;
+      }
+      throw new SentryError('Event was undefined when it should be an event');
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
