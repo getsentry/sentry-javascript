@@ -49,7 +49,11 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -308,15 +312,7 @@ Raven.prototype = {
       options = {};
     }
 
-    return this.wrap(
-      objectMerge(options, {
-        mechanism: {
-          type: 'context',
-          description: 'some description'
-        }
-      }),
-      func
-    ).apply(this, args);
+    return this.wrap(options, func).apply(this, args);
   },
 
   /*
@@ -335,25 +331,10 @@ Raven.prototype = {
       return options;
     }
 
-    var defaultMechanism = {
-      type: 'wrap',
-      description: 'something descriptive'
-    };
-
     // options is optional
     if (isFunction(options)) {
       func = options;
-      options = {
-        mechanism: defaultMechanism
-      };
-    }
-
-    // passed options
-    if (isPlainObject(options)) {
-      options = objectMerge(options, {
-        // allows for passing `extra = {}` throgh options
-        mechanism: objectMerge(defaultMechanism, options.mechanism)
-      });
+      options = undefined;
     }
 
     // At this point, we've passed along 2 arguments, and the second one
@@ -382,7 +363,7 @@ Raven.prototype = {
     function wrapped() {
       var args = [],
         i = arguments.length,
-        deep = options.deep !== false;
+        deep = !options || (options && options.deep !== false);
 
       if (_before && isFunction(_before)) {
         _before.apply(this, arguments);
@@ -453,11 +434,8 @@ Raven.prototype = {
     this._logDebug('debug', 'Raven caught unhandled promise rejection:', event);
     this.captureException(event.reason, {
       mechanism: {
-        type: 'promise',
-        description: 'unhandledPromiseRejection'
-      },
-      extra: {
-        unhandledPromiseRejection: true
+        type: 'onunhandledrejection',
+        handled: false
       }
     });
   },
@@ -535,22 +513,7 @@ Raven.prototype = {
         ex,
         objectMerge(options, {
           stacktrace: true, // if we fall back to captureMessage, default to attempting a new trace
-          trimHeadFrames: options.trimHeadFrames + 1,
-          // TODO: `transaction` will go here
-          // transaction: 'something awesome'
-
-          // TODO: Tinker if this is a good approach
-          // fake sentry.interfaces.Exception to provide mechanism data
-          exception: {
-            mechanism: {
-              type: 'something',
-              description: 'something else',
-              extra: {
-                pid: 0,
-                or: 'anything really'
-              }
-            }
-          }
+          trimHeadFrames: options.trimHeadFrames + 1
         })
       );
     }
@@ -1150,7 +1113,12 @@ Raven.prototype = {
         var originalCallback = args[0];
         if (isFunction(originalCallback)) {
           args[0] = self.wrap(
-            {mechanism: {extra: {function: orig.name}}},
+            {
+              mechanism: {
+                type: 'instrument',
+                data: {function: orig.name}
+              }
+            },
             originalCallback
           );
         }
@@ -1182,7 +1150,8 @@ Raven.prototype = {
                   fn.handleEvent = self.wrap(
                     {
                       mechanism: {
-                        extra: {target: global, function: 'handleEvent', handler: fn.name}
+                        type: 'instrument',
+                        data: {target: global, function: 'handleEvent', handler: fn.name}
                       }
                     },
                     fn.handleEvent
@@ -1229,7 +1198,8 @@ Raven.prototype = {
                 self.wrap(
                   {
                     mechanism: {
-                      extra: {
+                      type: 'instrument',
+                      data: {
                         target: global,
                         function: 'addEventListener',
                         handler: fn.name
@@ -1276,7 +1246,8 @@ Raven.prototype = {
               self.wrap(
                 {
                   mechanism: {
-                    extra: {function: 'requestAnimationFrame', handler: orig.name}
+                    type: 'instrument',
+                    data: {function: 'requestAnimationFrame', handler: orig.name}
                   }
                 },
                 cb
@@ -1345,7 +1316,12 @@ Raven.prototype = {
       if (prop in xhr && isFunction(xhr[prop])) {
         fill(xhr, prop, function(orig) {
           return self.wrap(
-            {mechanism: {extra: {function: prop, handler: orig.name}}},
+            {
+              mechanism: {
+                type: 'instrument',
+                data: {function: prop, handler: orig.name}
+              }
+            },
             orig
           );
         }); // intentionally don't track filled methods on XHR instances
@@ -1415,7 +1391,8 @@ Raven.prototype = {
                   return self.wrap(
                     {
                       mechanism: {
-                        extra: {
+                        type: 'instrument',
+                        data: {
                           function: 'onreadystatechange',
                           handler: orig.name
                         }
@@ -1647,10 +1624,20 @@ Raven.prototype = {
     return globalServer;
   },
 
-  _handleOnErrorStackInfo: function() {
+  _handleOnErrorStackInfo: function(stackInfo, options) {
+    options = options || {};
+
     // if we are intentionally ignoring errors via onerror, bail out
     if (!this._ignoreOnError) {
-      this._handleStackInfo.apply(this, arguments);
+      this._handleStackInfo(
+        stackInfo,
+        objectMerge(options, {
+          mechanism: options.mechanism || {
+            type: 'onerror',
+            handled: false
+          }
+        })
+      );
     }
   },
 
@@ -1789,20 +1776,17 @@ Raven.prototype = {
     );
 
     // Move mechanism from options to exception interface
-    // We do this, as requiring user to pass `{exception:{mechanism:{ ... }}}` would be too much
-    if (data.mechanism) {
+    // We do this, as requiring user to pass `{exception:{mechanism:{ ... }}}` would be
+    // too much
+    if (!data.exception.mechanism && data.mechanism) {
       data.exception.mechanism = data.mechanism;
       delete data.mechanism;
-    } else {
-      data.exception.mechanism = {
-        type: 'onerror',
-        description: 'global onerror handler',
-        extra: {
-          pid: 0,
-          or: 'anything really'
-        }
-      };
     }
+
+    data.exception.mechanism = objectMerge(data.exception.mechanism || {}, {
+      type: 'generic',
+      handled: true
+    });
 
     // Fire away!
     this._send(data);

@@ -647,7 +647,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/file1.js'
         }
@@ -666,7 +669,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/file1.js'
         }
@@ -688,7 +694,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/file1.js',
           extra: 'awesome'
@@ -720,7 +729,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/override.js'
         }
@@ -747,7 +759,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/override.js'
         }
@@ -775,7 +790,10 @@ describe('globals', function() {
                 }
               }
             ],
-            mechanism: {}
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           culprit: 'http://example.com/override.js',
           extra: 'awesome'
@@ -1978,7 +1996,16 @@ describe('globals', function() {
       Raven._handleOnErrorStackInfo(stackInfo, {foo: 'bar'});
 
       assert.equal(Raven._handleStackInfo.callCount, 1);
-      assert.deepEqual(Raven._handleStackInfo.lastCall.args, [stackInfo, {foo: 'bar'}]);
+      assert.deepEqual(Raven._handleStackInfo.lastCall.args, [
+        stackInfo,
+        {
+          foo: 'bar',
+          mechanism: {
+            type: 'onerror',
+            handled: false
+          }
+        }
+      ]);
     });
   });
 
@@ -2653,16 +2680,7 @@ describe('Raven (public API)', function() {
         Raven.context({foo: 'bar'}, broken);
       }, error);
       assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [
-        error,
-        {
-          foo: 'bar',
-          mechanism: {
-            type: 'context',
-            description: 'some description'
-          }
-        }
-      ]);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, {foo: 'bar'}]);
     });
 
     it('should capture the exception without options', function() {
@@ -2675,15 +2693,7 @@ describe('Raven (public API)', function() {
         Raven.context(broken);
       }, error);
       assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [
-        error,
-        {
-          mechanism: {
-            type: 'context',
-            description: 'some description'
-          }
-        }
-      ]);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, {}]);
     });
 
     it('should execute the callback without arguments', function() {
