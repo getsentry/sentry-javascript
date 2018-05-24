@@ -7,12 +7,11 @@ import {
   captureException,
   captureMessage,
   clearScope,
+  configureScope,
   getCurrentClient,
   popScope,
   pushScope,
-  setExtraContext,
-  setTagsContext,
-  setUserContext,
+  Scope,
   withScope,
 } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
@@ -65,7 +64,9 @@ describe('Shim', () => {
       setContext: spy(),
     };
     pushScope(client);
-    setUserContext({ id: '1234' });
+    configureScope((scope: Scope) => {
+      scope.setUserContext({ id: '1234' });
+    });
     expect(client.setContext.getCall(0).args[0]).to.deep.equal({
       user: { id: '1234' },
     });
@@ -77,7 +78,9 @@ describe('Shim', () => {
       setContext: spy(),
     };
     pushScope(client);
-    setExtraContext({ id: '1234' });
+    configureScope((scope: Scope) => {
+      scope.setExtraContext({ id: '1234' });
+    });
     expect(client.setContext.getCall(0).args[0]).to.deep.equal({
       extra: { id: '1234' },
     });
@@ -89,7 +92,9 @@ describe('Shim', () => {
       setContext: spy(),
     };
     pushScope(client);
-    setTagsContext({ id: '1234' });
+    configureScope((scope: Scope) => {
+      scope.setTagsContext({ id: '1234' });
+    });
     expect(client.setContext.getCall(0).args[0]).to.deep.equal({
       tags: { id: '1234' },
     });
@@ -106,7 +111,9 @@ describe('Shim', () => {
     };
     withScope(client, () => {
       expect(global.__SENTRY__.stack.length).to.equal(2);
-      setUserContext({ id: '1234' });
+      configureScope((scope: Scope) => {
+        scope.setUserContext({ id: '1234' });
+      });
       expect(global.__SENTRY__.stack[1].scope).to.deep.equal({
         context: { user: { id: '1234' } },
       });

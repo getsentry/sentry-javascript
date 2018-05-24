@@ -19,11 +19,10 @@ export {
   captureException,
   captureEvent,
   clearScope,
+  configureScope,
   getCurrentClient,
   popScope,
   pushScope,
-  setUserContext,
-  setTagsContext,
-  setExtraContext,
   withScope,
 } from './sdk';
+export { Scope } from './interfaces';

@@ -1,5 +1,6 @@
 import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 import { getGlobalRegistry } from './global';
+import { Scope } from './interfaces';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
@@ -197,27 +198,22 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 }
 
 /**
- * Updates user context information for future events.
- * @param extra User context object to merge into current context.
+ * Callback to set context information onto the scope
+ *
+ * @param scope Scope
  */
-export function setUserContext(user: User): void {
-  invokeClient('setContext', { user });
-}
-
-/**
- * Updates tags context information for future events.
- * @param extra Tags context object to merge into current context.
- */
-export function setTagsContext(tags: { [key: string]: string }): void {
-  invokeClient('setContext', { tags });
-}
-
-/**
- * Updates extra context information for future events.
- * @param extra Extra context object to merge into current context.
- */
-export function setExtraContext(extra: object): void {
-  invokeClient('setContext', { extra });
+export function configureScope(callback: (scope: Scope) => void): void {
+  callback({
+    setExtraContext: (extra: object) => {
+      invokeClient('setContext', { extra });
+    },
+    setTagsContext: (tags: { [key: string]: string }) => {
+      invokeClient('setContext', { tags });
+    },
+    setUserContext: (user: User) => {
+      invokeClient('setContext', { user });
+    },
+  });
 }
 
 /**
