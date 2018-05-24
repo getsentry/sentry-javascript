@@ -70,9 +70,10 @@
     }
   });
 
-  // TODO: Figure out how to work around this for tests. We cannot just attach it without the delay
-  // as raven.js file is pre-loaded and XHR will behave like a synchronous call
+  // Markers used to remove setTimeout (used for testing) from prod build, DO NOT REMOVE
+  // build_marker
   setTimeout(function() {
     _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+    // build_marker
   }, 500);
 })(window, document, 'script', 'onerror', 'onunhandledrejection');
