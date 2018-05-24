@@ -18,11 +18,10 @@ export {
   captureException,
   captureEvent,
   clearScope,
+  configureScope,
   popScope,
   pushScope,
-  setUserContext,
-  setTagsContext,
-  setExtraContext,
+  ScopeInstance,
   withScope,
 } from '@sentry/shim';
 
