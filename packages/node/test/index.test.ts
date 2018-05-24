@@ -1,13 +1,13 @@
-import { expect } from 'chai';
 import * as domain from 'domain';
 import * as RavenNode from 'raven';
-import { spy, stub } from 'sinon';
 
 // -----------------------------------------------------------------------------
 // It's important that we stub this before we import the backend
-stub(RavenNode as any, 'send').callsFake((_: SentryEvent, cb: () => void) => {
-  cb();
-});
+jest
+  .spyOn(RavenNode as any, 'send')
+  .mockImplementation((_: SentryEvent, cb: () => void) => {
+    cb();
+  });
 // -----------------------------------------------------------------------------
 
 import {
@@ -34,59 +34,59 @@ describe('SentryNode', () => {
   });
 
   describe('getContext() / setContext()', () => {
-    let s: sinon.SinonSpy;
+    let s: jest.SpyInstance;
 
     beforeEach(() => {
-      s = spy(NodeClient.prototype, 'setContext');
+      s = jest.spyOn(NodeClient.prototype, 'setContext');
     });
 
     afterEach(() => {
-      s.restore();
+      s.mockRestore();
     });
 
-    it('should store/load extra', async () => {
+    test('store/load extra', async () => {
       configureScope((scope: ScopeInstance) => {
         scope.setExtraContext({ abc: { def: [1] } });
       });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
+      const context = s.mock.calls[0][0] as Context;
+      expect(context).toEqual({ extra: { abc: { def: [1] } } });
     });
 
-    it('should store/load tags', async () => {
+    test('store/load tags', async () => {
       configureScope((scope: ScopeInstance) => {
         scope.setTagsContext({ abc: 'def' });
       });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ tags: { abc: 'def' } });
+      const context = s.mock.calls[0][0] as Context;
+      expect(context).toEqual({ tags: { abc: 'def' } });
     });
 
-    it('should store/load user', async () => {
+    test('store/load user', async () => {
       configureScope((scope: ScopeInstance) => {
         scope.setUserContext({ id: 'def' });
       });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ user: { id: 'def' } });
+      const context = s.mock.calls[0][0] as Context;
+      expect(context).toEqual({ user: { id: 'def' } });
     });
   });
 
   describe('breadcrumbs', () => {
-    let s: sinon.SinonStub;
+    let s: jest.Mock<(event: SentryEvent) => Promise<number>>;
 
     beforeEach(() => {
-      s = stub(NodeBackend.prototype, 'sendEvent').returns(
-        Promise.resolve(200),
-      );
+      s = jest
+        .spyOn(NodeBackend.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve(200));
     });
 
     afterEach(() => {
-      s.restore();
+      s.mockReset();
     });
 
-    it('should record auto breadcrumbs', done => {
+    test('record auto breadcrumbs', done => {
       pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.breadcrumbs!).to.have.lengthOf(3);
+            expect(event.breadcrumbs!).toHaveLength(3);
             done();
           },
           dsn,
@@ -109,27 +109,27 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: sinon.SinonStub;
+    let s: jest.Mock<(event: SentryEvent) => Promise<number>>;
 
     beforeEach(() => {
-      s = stub(NodeBackend.prototype, 'sendEvent').returns(
-        Promise.resolve(200),
-      );
+      s = jest
+        .spyOn(NodeBackend.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve(200));
     });
 
     afterEach(() => {
-      s.restore();
+      s.mockReset();
     });
 
-    it('should capture an exception', done => {
+    test('capture an exception', done => {
       pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.exception).to.not.be.undefined;
-            expect(event.exception![0]).to.not.be.undefined;
-            expect(event.exception![0].type).to.equal('Error');
-            expect(event.exception![0].value).to.equal('test');
-            expect(event.exception![0].stacktrace).to.not.be.empty;
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception![0]).not.toBeUndefined();
+            expect(event.exception![0].type).toBe('Error');
+            expect(event.exception![0].value).toBe('test');
+            expect(event.exception![0].stacktrace).toBeTruthy();
             done();
           },
           dsn,
@@ -143,12 +143,12 @@ describe('SentryNode', () => {
       popScope();
     });
 
-    it('should capture a message', done => {
+    test('capture a message', done => {
       pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.message).to.equal('test');
-            expect(event.exception).to.be.undefined;
+            expect(event.message).toBe('test');
+            expect(event.exception).toBeUndefined();
             done();
           },
           dsn,
@@ -158,12 +158,12 @@ describe('SentryNode', () => {
       popScope();
     });
 
-    it('should capture an event', done => {
+    test('capture an event', done => {
       pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.message).to.equal('test');
-            expect(event.exception).to.be.undefined;
+            expect(event.message).toBe('test');
+            expect(event.exception).toBeUndefined();
             done();
           },
           dsn,
@@ -173,15 +173,15 @@ describe('SentryNode', () => {
       popScope();
     });
 
-    it('should capture an event in a domain', async () => {
+    test('capture an event in a domain', async () => {
       new Promise<void>(resolve => {
         const d = domain.create();
         d.run(() => {
           pushScope(
             new NodeClient({
               afterSend: (event: SentryEvent) => {
-                expect(event.message).to.equal('test');
-                expect(event.exception).to.be.undefined;
+                expect(event.message).toBe('test');
+                expect(event.exception).toBeUndefined();
                 resolve();
                 d.exit();
               },
