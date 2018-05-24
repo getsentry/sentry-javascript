@@ -18,12 +18,11 @@ export {
   captureException,
   captureEvent,
   clearScope,
+  configureScope,
   popScope,
   pushScope,
-  setUserContext,
-  setTagsContext,
-  setExtraContext,
   withScope,
+  ScopeInstance,
 } from '@sentry/shim';
 
 export { BrowserBackend, BrowserOptions } from './backend';

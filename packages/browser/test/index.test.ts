@@ -8,14 +8,13 @@ import {
   captureEvent,
   captureException,
   captureMessage,
+  configureScope,
   Context,
   init,
   popScope,
   pushScope,
+  ScopeInstance,
   SentryEvent,
-  setExtraContext,
-  setTagsContext,
-  setUserContext,
 } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
@@ -37,19 +36,25 @@ describe('SentryBrowser', () => {
     });
 
     it('should store/load extra', () => {
-      setExtraContext({ abc: { def: [1] } });
+      configureScope((scope: ScopeInstance) => {
+        scope.setExtraContext({ abc: { def: [1] } });
+      });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
     });
 
     it('should store/load tags', () => {
-      setTagsContext({ abc: 'def' });
+      configureScope((scope: ScopeInstance) => {
+        scope.setTagsContext({ abc: 'def' });
+      });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ tags: { abc: 'def' } });
     });
 
     it('should store/load user', () => {
-      setUserContext({ id: 'def' });
+      configureScope((scope: ScopeInstance) => {
+        scope.setUserContext({ id: 'def' });
+      });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ user: { id: 'def' } });
     });
