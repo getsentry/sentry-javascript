@@ -6,7 +6,7 @@ export type LayerType = 'process' | 'domain' | 'local';
 /** A layer in the process stack. */
 export interface ScopeLayer {
   client?: any;
-  fingerprint?: string;
+  fingerprint?: string[];
   scope: any;
   type: LayerType;
 }
@@ -36,4 +36,6 @@ export interface Scope {
    * @param extra Extra context object to merge into current context.
    */
   setExtraContext(extra: object): void;
+
+  setFingerprint(fingerprint: string | string[]): void;
 }

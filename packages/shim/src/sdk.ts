@@ -207,6 +207,11 @@ export function configureScope(callback: (scope: Scope) => void): void {
     setExtraContext: (extra: object) => {
       invokeClient('setContext', { extra });
     },
+    setFingerprint: (fingerprint: string | string[]) => {
+      const top = getOrCreateShim().getStackTop();
+      top.fingerprint =
+        typeof fingerprint === 'string' ? [fingerprint] : fingerprint;
+    },
     setTagsContext: (tags: { [key: string]: string }) => {
       invokeClient('setContext', { tags });
     },

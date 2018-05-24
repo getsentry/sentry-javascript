@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-import { spy } from 'sinon';
 import {
   _callOnClient,
   addBreadcrumb,
@@ -26,82 +24,88 @@ describe('Shim', () => {
     };
   });
 
-  it('captures an exception', () => {
-    const client = {
-      captureException: spy(async () => Promise.resolve()),
-    };
-    withScope(client, () => {
-      const e = new Error('test exception');
-      captureException(e);
-      expect(client.captureException.getCall(0).args[0]).to.equal(e);
+  describe('Capture', () => {
+    test('Exception', () => {
+      const client = {
+        captureException: jest.fn(async () => Promise.resolve()),
+      };
+      withScope(client, () => {
+        const e = new Error('test exception');
+        captureException(e);
+        expect(client.captureException.mock.calls[0][0]).toBe(e);
+      });
+    });
+
+    test('Message', () => {
+      const client = { captureMessage: jest.fn(async () => Promise.resolve()) };
+      withScope(client, () => {
+        const message = 'yo';
+        captureMessage(message);
+        expect(client.captureMessage.mock.calls[0][0]).toBe(message);
+      });
+    });
+
+    test('Event', () => {
+      const client = { captureEvent: jest.fn(async () => Promise.resolve()) };
+      withScope(client, () => {
+        const e = { message: 'test' };
+        captureEvent(e);
+        expect(client.captureEvent.mock.calls[0][0]).toBe(e);
+      });
     });
   });
 
-  it('captures a message', () => {
-    const client = {
-      captureMessage: spy(async () => Promise.resolve()),
-    };
-    withScope(client, () => {
-      const message = 'yo';
-      captureMessage(message);
-      expect(client.captureMessage.getCall(0).args[0]).to.equal(message);
+  describe('configureScope', () => {
+    test('User Context', () => {
+      const client = {
+        setContext: jest.fn(),
+      };
+      pushScope(client);
+      configureScope((scope: Scope) => {
+        scope.setUserContext({ id: '1234' });
+      });
+      expect(client.setContext.mock.calls[0][0]).toEqual({
+        user: { id: '1234' },
+      });
+      popScope();
+    });
+
+    test('Extra Context', () => {
+      const client = { setContext: jest.fn() };
+      pushScope(client);
+      configureScope((scope: Scope) => {
+        scope.setExtraContext({ id: '1234' });
+      });
+      expect(client.setContext.mock.calls[0][0]).toEqual({
+        extra: { id: '1234' },
+      });
+      popScope();
+    });
+
+    test('Tags Context', () => {
+      const client = {
+        setContext: jest.fn(),
+      };
+      pushScope(client);
+      configureScope((scope: Scope) => {
+        scope.setTagsContext({ id: '1234' });
+      });
+      expect(client.setContext.mock.calls[0][0]).toEqual({
+        tags: { id: '1234' },
+      });
+      popScope();
+    });
+
+    test('Fingerprint', () => {
+      init({});
+      configureScope((scope: Scope) => {
+        scope.setFingerprint('abcd');
+      });
+      expect(global.__SENTRY__.stack[0].fingerprint).toEqual(['abcd']);
     });
   });
 
-  it('captures an event', () => {
-    const client = {
-      captureEvent: spy(async () => Promise.resolve()),
-    };
-    withScope(client, () => {
-      const e = { message: 'test' };
-      captureEvent(e);
-      expect(client.captureEvent.getCall(0).args[0]).to.equal(e);
-    });
-  });
-
-  it('sets the user context', () => {
-    const client = {
-      setContext: spy(),
-    };
-    pushScope(client);
-    configureScope((scope: Scope) => {
-      scope.setUserContext({ id: '1234' });
-    });
-    expect(client.setContext.getCall(0).args[0]).to.deep.equal({
-      user: { id: '1234' },
-    });
-    popScope();
-  });
-
-  it('should set extra context', () => {
-    const client = {
-      setContext: spy(),
-    };
-    pushScope(client);
-    configureScope((scope: Scope) => {
-      scope.setExtraContext({ id: '1234' });
-    });
-    expect(client.setContext.getCall(0).args[0]).to.deep.equal({
-      extra: { id: '1234' },
-    });
-    popScope();
-  });
-
-  it('sets the tags context', () => {
-    const client = {
-      setContext: spy(),
-    };
-    pushScope(client);
-    configureScope((scope: Scope) => {
-      scope.setTagsContext({ id: '1234' });
-    });
-    expect(client.setContext.getCall(0).args[0]).to.deep.equal({
-      tags: { id: '1234' },
-    });
-    popScope();
-  });
-
-  it('clears the scope', () => {
+  test('Clear Scope', () => {
     const client = {
       getInitialScope: () => ({ context: {} }),
       setContext: (nextContext: any, scope: any) => {
@@ -110,66 +114,64 @@ describe('Shim', () => {
       },
     };
     withScope(client, () => {
-      expect(global.__SENTRY__.stack.length).to.equal(2);
+      expect(global.__SENTRY__.stack.length).toBe(2);
       configureScope((scope: Scope) => {
         scope.setUserContext({ id: '1234' });
       });
-      expect(global.__SENTRY__.stack[1].scope).to.deep.equal({
+      expect(global.__SENTRY__.stack[1].scope).toEqual({
         context: { user: { id: '1234' } },
       });
       clearScope();
-      expect(global.__SENTRY__.stack[1].scope).to.deep.equal({
-        context: {},
-      });
+      expect(global.__SENTRY__.stack[1].scope).toEqual({ context: {} });
     });
   });
 
-  it('adds a breadcrumb', () => {
+  test('Add Breadcrumb', () => {
     const client = {
-      addBreadcrumb: spy(),
+      addBreadcrumb: jest.fn(),
     };
     pushScope(client);
     addBreadcrumb({ message: 'world' });
-    expect(client.addBreadcrumb.getCall(0).args[0]).to.deep.equal({
+    expect(client.addBreadcrumb.mock.calls[0][0]).toEqual({
       message: 'world',
     });
     popScope();
   });
 
-  it('returns undefined before binding a client', () => {
-    expect(getCurrentClient()).to.be.undefined;
+  test('returns undefined before binding a client', () => {
+    expect(getCurrentClient()).toBeUndefined();
   });
 
-  it('returns the bound client', () => {
+  test('returns the bound client', () => {
     init({});
-    expect(getCurrentClient()).to.equal(TestClient.instance);
+    expect(getCurrentClient()).toBe(TestClient.instance);
   });
 
-  it('calls a function on the client', done => {
-    const s = spy(TestClient.prototype, 'mySecretPublicMethod');
+  test('Calls function on the client', done => {
+    const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
     withScope(new TestClient({}), () => {
       _callOnClient('mySecretPublicMethod', 'test');
-      expect(s.getCall(0).args[0]).to.equal('test');
-      s.restore();
+      expect(s.mock.calls[0][0]).toBe('test');
+      s.mockRestore();
       done();
     });
   });
 
-  it('does not throw an error when pushing different clients', () => {
+  test('does not throw an error when pushing different clients', () => {
     init({});
     expect(() => {
       withScope(new TestClient2(), () => {
         //
       });
-    }).to.not.throw();
+    }).not.toThrow();
   });
 
-  it('does not throw an error when pushing same clients', () => {
+  test('does not throw an error when pushing same clients', () => {
     init({});
     expect(() => {
       withScope(new TestClient({}), () => {
         //
       });
-    }).to.not.throw();
+    }).not.toThrow();
   });
 });
