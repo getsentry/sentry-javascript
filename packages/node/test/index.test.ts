@@ -22,7 +22,7 @@ import {
   NodeClient,
   popScope,
   pushScope,
-  ScopeInstance,
+  Scope,
   SentryEvent,
 } from '../src';
 
@@ -45,24 +45,24 @@ describe('SentryNode', () => {
     });
 
     test('store/load extra', async () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setExtraContext({ abc: { def: [1] } });
+      configureScope((scope: Scope) => {
+        scope.setExtra({ abc: { def: [1] } });
       });
       const context = s.mock.calls[0][0] as Context;
       expect(context).toEqual({ extra: { abc: { def: [1] } } });
     });
 
     test('store/load tags', async () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setTagsContext({ abc: 'def' });
+      configureScope((scope: Scope) => {
+        scope.setTags({ abc: 'def' });
       });
       const context = s.mock.calls[0][0] as Context;
       expect(context).toEqual({ tags: { abc: 'def' } });
     });
 
     test('store/load user', async () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setUserContext({ id: 'def' });
+      configureScope((scope: Scope) => {
+        scope.setUser({ id: 'def' });
       });
       const context = s.mock.calls[0][0] as Context;
       expect(context).toEqual({ user: { id: 'def' } });

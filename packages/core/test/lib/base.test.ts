@@ -1,6 +1,6 @@
 import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import { SentryError } from '../../src/error';
-import { Scope } from '../../src/interfaces';
+import { ScopeContent } from '../../src/interfaces';
 import { TestBackend, TestOptions } from '../mocks/backend';
 import { TEST_SDK, TestClient } from '../mocks/client';
 
@@ -32,7 +32,7 @@ describe('BaseClient', () => {
           expect(this.getInternalScope()).toBe(scope);
         }
 
-        public getInitialScope(): Scope {
+        public getInitialScope(): ScopeContent {
           expect(this.getBackend()).toBe(TestBackend.instance);
           expect(this.getOptions()).toBe(options);
           expect(this.getDSN()!.toString()).toBe(PUBLIC_DSN);

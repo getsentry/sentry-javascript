@@ -1,6 +1,6 @@
 import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 import { getGlobalRegistry } from './global';
-import { ScopeInstance } from './interfaces';
+import { Scope } from './interfaces';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
@@ -202,9 +202,9 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  *
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(callback: (scope: ScopeInstance) => void): void {
+export function configureScope(callback: (scope: Scope) => void): void {
   callback({
-    setExtraContext: (extra: object) => {
+    setExtra: (extra: object) => {
       invokeClient('setContext', { extra });
     },
     setFingerprint: (fingerprint: string | string[]) => {
@@ -212,10 +212,10 @@ export function configureScope(callback: (scope: ScopeInstance) => void): void {
       top.fingerprint =
         typeof fingerprint === 'string' ? [fingerprint] : fingerprint;
     },
-    setTagsContext: (tags: { [key: string]: string }) => {
+    setTags: (tags: { [key: string]: string }) => {
       invokeClient('setContext', { tags });
     },
-    setUserContext: (user: User) => {
+    setUser: (user: User) => {
       invokeClient('setContext', { user });
     },
   });

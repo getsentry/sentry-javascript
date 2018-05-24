@@ -1,6 +1,6 @@
 import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
-import { Backend, Client, Options, Scope } from './interfaces';
+import { Backend, Client, Options, ScopeContent } from './interfaces';
 import { SendStatus } from './status';
 
 /**
@@ -78,7 +78,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    * specified to the public methods. This is specifically used in standalone
    * mode, when the Client is directly instanciated by the user.
    */
-  private readonly internalScope: Scope;
+  private readonly internalScope: ScopeContent;
 
   /**
    * Stores whether installation has been performed and was successful. Before
@@ -124,7 +124,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureException(
     exception: any,
-    scope: Scope = this.internalScope,
+    scope: ScopeContent = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
@@ -135,7 +135,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureMessage(
     message: string,
-    scope: Scope = this.internalScope,
+    scope: ScopeContent = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
@@ -146,7 +146,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureEvent(
     event: SentryEvent,
-    scope: Scope = this.internalScope,
+    scope: ScopeContent = this.internalScope,
   ): Promise<void> {
     await this.processEvent(event, scope, async finalEvent =>
       this.getBackend().sendEvent(finalEvent),
@@ -158,7 +158,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async addBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: Scope = this.internalScope,
+    scope: ScopeContent = this.internalScope,
   ): Promise<void> {
     const {
       shouldAddBreadcrumb,
@@ -211,7 +211,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async setContext(
     nextContext: Context,
-    scope: Scope = this.internalScope,
+    scope: ScopeContent = this.internalScope,
   ): Promise<void> {
     if (await this.getBackend().storeContext(nextContext, scope)) {
       const context = scope.context;
@@ -230,7 +230,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public getInitialScope(): Scope {
+  public getInitialScope(): ScopeContent {
     return {
       breadcrumbs: [],
       context: {},
@@ -241,7 +241,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   protected abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current internal scope of this instance. */
-  protected getInternalScope(): Scope {
+  protected getInternalScope(): ScopeContent {
     return this.internalScope;
   }
 
@@ -271,7 +271,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async prepareEvent(
     event: SentryEvent,
-    scope: Scope,
+    scope: ScopeContent,
   ): Promise<SentryEvent> {
     const {
       environment,
@@ -327,7 +327,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async processEvent(
     event: SentryEvent,
-    scope: Scope,
+    scope: ScopeContent,
     send: (finalEvent: SentryEvent) => Promise<number>,
   ): Promise<SendStatus> {
     if (!this.isEnabled()) {

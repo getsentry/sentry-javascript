@@ -1,6 +1,6 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { ScopeLayer } from './interfaces';
+import { Layer } from './interfaces';
 
 /**
  * API compatibility version of this shim.
@@ -88,23 +88,23 @@ export class Shim {
   }
 
   /** Returns the scope stack for domains or the process. */
-  public getStack(): ScopeLayer[] {
+  public getStack(): Layer[] {
     return getDomainStack() || getGlobalStack();
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
-  public getStackTop(): ScopeLayer {
+  public getStackTop(): Layer {
     return this.getDomainStackTop() || this.getGlobalStackTop();
   }
 
   /** Returns the topmost ScopeLayer from the global stack. */
-  private getGlobalStackTop(): ScopeLayer {
+  private getGlobalStackTop(): Layer {
     const stack = getGlobalStack();
     return stack[stack.length - 1];
   }
 
   /** Tries to return the top most ScopeLayer from the domainStack. */
-  private getDomainStackTop(): ScopeLayer | undefined {
+  private getDomainStackTop(): Layer | undefined {
     const stack = getDomainStack();
     if (!stack) {
       return undefined;

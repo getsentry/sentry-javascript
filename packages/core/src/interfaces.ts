@@ -10,7 +10,7 @@ import { SendStatus } from './status';
  * top-level exported functions, however, the shim maintains a stack of scopes
  * and injects them into the client.
  */
-export interface Scope {
+export interface ScopeContent {
   breadcrumbs: Breadcrumb[];
   context: Context;
 }
@@ -169,7 +169,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The created event id.
    */
-  captureException(exception: any, scope?: Scope): Promise<void>;
+  captureException(exception: any, scope?: ScopeContent): Promise<void>;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -178,7 +178,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The created event id.
    */
-  captureMessage(message: string, scope?: Scope): Promise<void>;
+  captureMessage(message: string, scope?: ScopeContent): Promise<void>;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -187,7 +187,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The created event id.
    */
-  captureEvent(event: SentryEvent, scope?: Scope): Promise<void>;
+  captureEvent(event: SentryEvent, scope?: ScopeContent): Promise<void>;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -199,7 +199,7 @@ export interface Client<O extends Options = Options> {
    * @param breadcrumb The breadcrumb to record.
    * @param scope An optional scope to store this breadcrumb in.
    */
-  addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): void;
+  addBreadcrumb(breadcrumb: Breadcrumb, scope?: ScopeContent): void;
 
   /** Returns the current DSN. */
   getDSN(): DSN | undefined;
@@ -213,10 +213,10 @@ export interface Client<O extends Options = Options> {
    * @param context A partial context object to merge into current context.
    * @param scope An optional scope to store this the context in.
    */
-  setContext(context: Context, scope: Scope): void;
+  setContext(context: Context, scope: ScopeContent): void;
 
   /** Returns the inital scope for the shim. */
-  getInitialScope(): Scope;
+  getInitialScope(): ScopeContent;
 }
 
 /**
@@ -269,7 +269,7 @@ export interface Backend {
    */
   storeBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: Scope,
+    scope: ScopeContent,
   ): boolean | Promise<boolean>;
 
   /**
@@ -286,5 +286,8 @@ export interface Backend {
    * @param scope The scope instance currently managed by the client.
    * @returns True if the breadcrumb should be merged by the client.
    */
-  storeContext(context: Context, scope: Scope): boolean | Promise<boolean>;
+  storeContext(
+    context: Context,
+    scope: ScopeContent,
+  ): boolean | Promise<boolean>;
 }

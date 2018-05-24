@@ -21,7 +21,7 @@ export {
   configureScope,
   popScope,
   pushScope,
-  ScopeInstance,
+  Scope,
   withScope,
 } from '@sentry/shim';
 

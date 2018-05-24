@@ -13,7 +13,7 @@ import {
   init,
   popScope,
   pushScope,
-  ScopeInstance,
+  Scope,
   SentryEvent,
 } from '../src';
 
@@ -36,24 +36,24 @@ describe('SentryBrowser', () => {
     });
 
     it('should store/load extra', () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setExtraContext({ abc: { def: [1] } });
+      configureScope((scope: Scope) => {
+        scope.setExtra({ abc: { def: [1] } });
       });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
     });
 
     it('should store/load tags', () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setTagsContext({ abc: 'def' });
+      configureScope((scope: Scope) => {
+        scope.setTags({ abc: 'def' });
       });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ tags: { abc: 'def' } });
     });
 
     it('should store/load user', () => {
-      configureScope((scope: ScopeInstance) => {
-        scope.setUserContext({ id: 'def' });
+      configureScope((scope: Scope) => {
+        scope.setUser({ id: 'def' });
       });
       const context = s.getCall(0).args[0] as Context;
       expect(context).to.deep.equal({ user: { id: 'def' } });

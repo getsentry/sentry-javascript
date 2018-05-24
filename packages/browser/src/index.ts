@@ -22,7 +22,7 @@ export {
   popScope,
   pushScope,
   withScope,
-  ScopeInstance,
+  Scope,
 } from '@sentry/shim';
 
 export { BrowserBackend, BrowserOptions } from './backend';
