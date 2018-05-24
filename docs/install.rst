@@ -108,8 +108,8 @@ And place the snippet below as soon as possible in your HTML code. For example:
 
   <script>
     window.SENTRY_SDK = {
-      url: 'https://cdn.ravenjs.com/3.25.0/raven.min.js',
-      dsn: 'https://ooohyou@sentry.io/1337',
+      url: 'https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js',
+      dsn: '___PUBLIC_DSN___',
       options: {
         release: '1.3.0'
       }
