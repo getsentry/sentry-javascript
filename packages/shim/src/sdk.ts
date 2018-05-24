@@ -1,7 +1,7 @@
 import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 import { getGlobalRegistry } from './global';
 import { Scope } from './interfaces';
-import { API_VERSION, Shim } from './shim';
+import { API_VERSION, getEmptyScope, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
 function logError(e?: any): void {
@@ -125,11 +125,6 @@ export function withScope(arg1: any, arg2?: any): void {
   getOrCreateShim().withScope(arg1, arg2);
 }
 
-/** Clears the current scope and resets it to the initalScope. */
-export function clearScope(): void {
-  getOrCreateShim().clearScope();
-}
-
 /** Returns the current client, if any. */
 export function getCurrentClient(): any | undefined {
   return getOrCreateShim().getCurrentClient();
@@ -143,7 +138,7 @@ export function bindClient(client: any): void {
   const shim = getOrCreateShim();
   const top = shim.getStackTop();
   top.client = client;
-  top.scope = shim.getInitialScope(client);
+  top.scope = getEmptyScope();
 }
 
 /**
@@ -203,14 +198,21 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
+  const top = getOrCreateShim().getStackTop().scope;
   callback({
+    breadcrumbs: top.breadcrumbs,
+    clear: () => {
+      top.breadcrumbs = [];
+      top.context = {};
+      top.fingerprint = undefined;
+    },
+    context: top.context,
+    fingerprint: top.fingerprint,
     setExtra: (extra: object) => {
       invokeClient('setContext', { extra });
     },
-    setFingerprint: (fingerprint: string | string[]) => {
-      const top = getOrCreateShim().getStackTop().scope;
-      top.fingerprint =
-        typeof fingerprint === 'string' ? [fingerprint] : fingerprint;
+    setFingerprint: (fingerprint: string[]) => {
+      top.fingerprint = fingerprint;
     },
     setTags: (tags: { [key: string]: string }) => {
       invokeClient('setContext', { tags });

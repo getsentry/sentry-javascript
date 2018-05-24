@@ -17,7 +17,6 @@ export {
   captureMessage,
   captureException,
   captureEvent,
-  clearScope,
   configureScope,
   popScope,
   pushScope,

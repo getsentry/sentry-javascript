@@ -4,7 +4,6 @@ import {
   captureEvent,
   captureException,
   captureMessage,
-  clearScope,
   configureScope,
   getCurrentClient,
   popScope,
@@ -99,7 +98,7 @@ describe('Shim', () => {
     test('Fingerprint', () => {
       init({});
       configureScope((scope: Scope) => {
-        scope.setFingerprint('abcd');
+        scope.setFingerprint(['abcd']);
       });
       expect(global.__SENTRY__.stack[0].scope.fingerprint).toEqual(['abcd']);
     });
@@ -107,7 +106,6 @@ describe('Shim', () => {
 
   test('Clear Scope', () => {
     const client = {
-      getInitialScope: () => ({ context: {} }),
       setContext: (nextContext: any, scope: any) => {
         const sc = scope.context;
         sc.user = { ...nextContext.user };
@@ -118,11 +116,13 @@ describe('Shim', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(global.__SENTRY__.stack[1].scope).toEqual({
-        context: { user: { id: '1234' } },
+      expect(global.__SENTRY__.stack[1].scope.context).toEqual({
+        user: { id: '1234' },
       });
-      clearScope();
-      expect(global.__SENTRY__.stack[1].scope).toEqual({ context: {} });
+      configureScope((scope: Scope) => {
+        scope.clear();
+      });
+      expect(global.__SENTRY__.stack[1].scope.context).toEqual({});
     });
   });
 

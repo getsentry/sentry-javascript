@@ -1,6 +1,6 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { Layer } from './interfaces';
+import { Layer, Scope } from './interfaces';
 
 /**
  * API compatibility version of this shim.
@@ -11,6 +11,36 @@ import { Layer } from './interfaces';
 export const API_VERSION = 2;
 
 /**
+ * Empty noop scope helper. Only used for layer creation.
+ */
+const emptyScope: Scope = {
+  breadcrumbs: [],
+  clear: () => {
+    /* Noop */
+  },
+  context: {},
+  setExtra: () => {
+    /* Noop */
+  },
+  setFingerprint: () => {
+    /* Noop */
+  },
+  setTags: () => {
+    /* Noop */
+  },
+  setUser: () => {
+    /* Noop */
+  },
+};
+
+/**
+ * Returns an empty scope
+ */
+export function getEmptyScope(): Scope {
+  return { ...emptyScope };
+}
+
+/**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
@@ -19,23 +49,7 @@ export class Shim {
   public constructor(public readonly version: number = API_VERSION) {
     const stack = getGlobalStack();
     if (stack.length === 0) {
-      stack.push({
-        scope: {
-          setExtra: () => {
-            /* Noop */
-          },
-          setFingerprint: () => {
-            /* Noop */
-          },
-          setTags: () => {
-            /* Noop */
-          },
-          setUser: () => {
-            /* Noop */
-          },
-        },
-        type: 'process',
-      });
+      stack.push({ scope: getEmptyScope(), type: 'process' });
     }
   }
 
@@ -57,7 +71,7 @@ export class Shim {
     const usedClient = client || this.getCurrentClient();
     this.getStack().push({
       client: usedClient,
-      scope: this.getInitialScope(usedClient),
+      scope: getEmptyScope(),
       type: 'local',
     });
   }
@@ -92,12 +106,6 @@ export class Shim {
     }
   }
 
-  /** Resets the current scope to the initialScope. */
-  public clearScope(): void {
-    const top = this.getStackTop();
-    top.scope = this.getInitialScope(top.client);
-  }
-
   /** Returns the client of the currently active scope. */
   public getCurrentClient(): any | undefined {
     return this.getStackTop().client;
@@ -128,27 +136,9 @@ export class Shim {
 
     if (stack.length === 0) {
       const client = this.getCurrentClient();
-      stack.push({
-        client,
-        scope: this.getInitialScope(client),
-        type: 'domain',
-      });
+      stack.push({ client, scope: getEmptyScope(), type: 'domain' });
     }
 
     return stack[stack.length - 1];
-  }
-
-  /**
-   * Obtains a new scope instance from the client.
-   *
-   * @param client An SDK client that implements `getInitialScope`.
-   * @returns The scope instance or an empty object on error.
-   */
-  public getInitialScope(client?: any): any {
-    try {
-      return client && client.getInitialScope();
-    } catch {
-      return {};
-    }
   }
 }

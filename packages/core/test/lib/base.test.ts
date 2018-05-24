@@ -1,11 +1,13 @@
 import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import { SentryError } from '../../src/error';
-import { Scope } from '../../src/interfaces';
-import { TestBackend, TestOptions } from '../mocks/backend';
+import { TestBackend } from '../mocks/backend';
 import { TEST_SDK, TestClient } from '../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 const scopeNoopFunctions = {
+  clear: () => {
+    /* Noop */
+  },
   setExtra: () => {
     /* Noop */
   },
@@ -34,31 +36,6 @@ describe('BaseClient', () => {
 
     test('throws with invalid DSN', () => {
       expect(() => new TestClient({ dsn: 'abc' })).toThrow(SentryError);
-    });
-
-    test('initializes the internal scope', () => {
-      const options = { dsn: PUBLIC_DSN };
-      const scope = {
-        breadcrumbs: [],
-        context: { extra: { custom: true } },
-        ...scopeNoopFunctions,
-      };
-
-      class TempClient extends TestClient {
-        public constructor(opts: TestOptions) {
-          super(opts);
-          expect(this.getInternalScope()).toBe(scope);
-        }
-
-        public getInitialScope(): Scope {
-          expect(this.getBackend()).toBe(TestBackend.instance);
-          expect(this.getOptions()).toBe(options);
-          expect(this.getDSN()!.toString()).toBe(PUBLIC_DSN);
-          return scope;
-        }
-      }
-
-      new TempClient(options);
     });
   });
 

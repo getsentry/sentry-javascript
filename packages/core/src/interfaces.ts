@@ -1,20 +1,7 @@
-import { Scope as ShimScope } from '@sentry/shim';
+import { Scope } from '@sentry/shim';
 import { Breadcrumb, Context, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
-
-/**
- * An exchangable object containing event metadata that will be merged into the
- * event payload before sending it to Sentry.
- *
- * Each Client creates an implicit scope when used directly. When using the
- * top-level exported functions, however, the shim maintains a stack of scopes
- * and injects them into the client.
- */
-export interface Scope extends ShimScope {
-  breadcrumbs: Breadcrumb[];
-  context: Context;
-}
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -215,9 +202,6 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope to store this the context in.
    */
   setContext(context: Context, scope: Scope): void;
-
-  /** Returns the inital scope for the shim. */
-  getInitialScope(): Scope;
 }
 
 /**

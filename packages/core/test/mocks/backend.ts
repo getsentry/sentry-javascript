@@ -1,5 +1,5 @@
-import { Breadcrumb, Context, SentryEvent } from '@sentry/shim';
-import { Backend, Options, Scope } from '../../src/interfaces';
+import { Breadcrumb, Context, Scope, SentryEvent } from '@sentry/shim';
+import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;

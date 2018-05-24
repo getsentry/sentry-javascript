@@ -1,4 +1,4 @@
-import { User } from '@sentry/types';
+import { Breadcrumb, Context, User } from '@sentry/types';
 
 /** The type of a process stack layer. */
 export type LayerType = 'process' | 'domain' | 'local';
@@ -18,6 +18,9 @@ export interface Registry {
 
 /** An object to call setter functions on to enhance the event */
 export interface Scope {
+  breadcrumbs: Breadcrumb[];
+  context: Context;
+
   /**
    * A string array uniquely identifying an event.
    */
@@ -45,5 +48,8 @@ export interface Scope {
    * Sets the fingerprint on the scope to send with the events.
    * @param fingerprint
    */
-  setFingerprint(fingerprint: string | string[]): void;
+  setFingerprint(fingerprint: string[]): void;
+
+  /** Clears the current scope and resets its properties. */
+  clear(): void;
 }

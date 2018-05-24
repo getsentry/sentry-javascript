@@ -4,15 +4,6 @@ import {
 } from '@sentry/shim';
 import { Client, Options } from './interfaces';
 
-export {
-  captureException,
-  captureMessage,
-  clearScope,
-  configureScope,
-  popScope,
-  pushScope,
-} from '@sentry/shim';
-
 /** A class object that can instanciate Client objects. */
 export interface ClientClass<F extends Client, O extends Options> {
   new (options: O): F;
