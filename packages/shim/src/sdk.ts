@@ -208,7 +208,7 @@ export function configureScope(callback: (scope: Scope) => void): void {
       invokeClient('setContext', { extra });
     },
     setFingerprint: (fingerprint: string | string[]) => {
-      const top = getOrCreateShim().getStackTop();
+      const top = getOrCreateShim().getStackTop().scope;
       top.fingerprint =
         typeof fingerprint === 'string' ? [fingerprint] : fingerprint;
     },

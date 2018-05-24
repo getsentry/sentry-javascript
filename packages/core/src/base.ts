@@ -1,6 +1,6 @@
 import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
-import { Backend, Client, Options, ScopeContent } from './interfaces';
+import { Backend, Client, Options, Scope } from './interfaces';
 import { SendStatus } from './status';
 
 /**
@@ -78,7 +78,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    * specified to the public methods. This is specifically used in standalone
    * mode, when the Client is directly instanciated by the user.
    */
-  private readonly internalScope: ScopeContent;
+  private readonly internalScope: Scope;
 
   /**
    * Stores whether installation has been performed and was successful. Before
@@ -124,7 +124,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureException(
     exception: any,
-    scope: ScopeContent = this.internalScope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
@@ -135,7 +135,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureMessage(
     message: string,
-    scope: ScopeContent = this.internalScope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
@@ -146,7 +146,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async captureEvent(
     event: SentryEvent,
-    scope: ScopeContent = this.internalScope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     await this.processEvent(event, scope, async finalEvent =>
       this.getBackend().sendEvent(finalEvent),
@@ -158,7 +158,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async addBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: ScopeContent = this.internalScope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     const {
       shouldAddBreadcrumb,
@@ -211,7 +211,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async setContext(
     nextContext: Context,
-    scope: ScopeContent = this.internalScope,
+    scope: Scope = this.internalScope,
   ): Promise<void> {
     if (await this.getBackend().storeContext(nextContext, scope)) {
       const context = scope.context;
@@ -230,10 +230,22 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public getInitialScope(): ScopeContent {
+  public getInitialScope(): Scope {
     return {
       breadcrumbs: [],
       context: {},
+      setExtra: () => {
+        /* Noop */
+      },
+      setFingerprint: () => {
+        /* Noop */
+      },
+      setTags: () => {
+        /* Noop */
+      },
+      setUser: () => {
+        /* Noop */
+      },
     };
   }
 
@@ -241,7 +253,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   protected abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current internal scope of this instance. */
-  protected getInternalScope(): ScopeContent {
+  protected getInternalScope(): Scope {
     return this.internalScope;
   }
 
@@ -271,7 +283,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async prepareEvent(
     event: SentryEvent,
-    scope: ScopeContent,
+    scope: Scope,
   ): Promise<SentryEvent> {
     const {
       environment,
@@ -304,6 +316,9 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     if (context.user) {
       prepared.user = { ...context.user, ...event.user };
     }
+    if (prepared.fingerprint === undefined && scope.fingerprint) {
+      prepared.fingerprint = scope.fingerprint;
+    }
 
     return prepared;
   }
@@ -327,7 +342,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async processEvent(
     event: SentryEvent,
-    scope: ScopeContent,
+    scope: Scope,
     send: (finalEvent: SentryEvent) => Promise<number>,
   ): Promise<SendStatus> {
     if (!this.isEnabled()) {

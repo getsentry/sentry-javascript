@@ -6,8 +6,7 @@ export type LayerType = 'process' | 'domain' | 'local';
 /** A layer in the process stack. */
 export interface Layer {
   client?: any;
-  fingerprint?: string[];
-  scope: any;
+  scope: Scope;
   type: LayerType;
 }
 
@@ -19,6 +18,11 @@ export interface Registry {
 
 /** An object to call setter functions on to enhance the event */
 export interface Scope {
+  /**
+   * A string array uniquely identifying an event.
+   */
+  fingerprint?: string[];
+
   /**
    * Updates user context information for future events.
    * @param user User context object to merge into current context.

@@ -19,7 +19,23 @@ export class Shim {
   public constructor(public readonly version: number = API_VERSION) {
     const stack = getGlobalStack();
     if (stack.length === 0) {
-      stack.push({ scope: {}, type: 'process' });
+      stack.push({
+        scope: {
+          setExtra: () => {
+            /* Noop */
+          },
+          setFingerprint: () => {
+            /* Noop */
+          },
+          setTags: () => {
+            /* Noop */
+          },
+          setUser: () => {
+            /* Noop */
+          },
+        },
+        type: 'process',
+      });
     }
   }
 

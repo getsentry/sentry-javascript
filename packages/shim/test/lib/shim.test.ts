@@ -101,7 +101,7 @@ describe('Shim', () => {
       configureScope((scope: Scope) => {
         scope.setFingerprint('abcd');
       });
-      expect(global.__SENTRY__.stack[0].fingerprint).toEqual(['abcd']);
+      expect(global.__SENTRY__.stack[0].scope.fingerprint).toEqual(['abcd']);
     });
   });
 
