@@ -21,13 +21,13 @@ export interface Registry {
 export interface Scope {
   /**
    * Updates user context information for future events.
-   * @param extra User context object to merge into current context.
+   * @param user User context object to merge into current context.
    */
   setUserContext(user: User): void;
 
   /**
    * Updates tags context information for future events.
-   * @param extra Tags context object to merge into current context.
+   * @param tags Tags context object to merge into current context.
    */
   setTagsContext(tags: { [key: string]: string }): void;
 
@@ -37,5 +37,9 @@ export interface Scope {
    */
   setExtraContext(extra: object): void;
 
+  /**
+   * Sets the fingerprint on the scope to send with the events.
+   * @param fingerprint
+   */
   setFingerprint(fingerprint: string | string[]): void;
 }

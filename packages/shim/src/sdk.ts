@@ -198,9 +198,9 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 }
 
 /**
- * Callback to set context information onto the scope
+ * Callback to set context information onto the scope.
  *
- * @param scope Scope
+ * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
   callback({
