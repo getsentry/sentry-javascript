@@ -9,7 +9,7 @@ import {
   getCurrentClient,
   popScope,
   pushScope,
-  Scope,
+  ScopeInstance,
   withScope,
 } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
@@ -61,7 +61,7 @@ describe('Shim', () => {
         setContext: jest.fn(),
       };
       pushScope(client);
-      configureScope((scope: Scope) => {
+      configureScope((scope: ScopeInstance) => {
         scope.setUserContext({ id: '1234' });
       });
       expect(client.setContext.mock.calls[0][0]).toEqual({
@@ -73,7 +73,7 @@ describe('Shim', () => {
     test('Extra Context', () => {
       const client = { setContext: jest.fn() };
       pushScope(client);
-      configureScope((scope: Scope) => {
+      configureScope((scope: ScopeInstance) => {
         scope.setExtraContext({ id: '1234' });
       });
       expect(client.setContext.mock.calls[0][0]).toEqual({
@@ -87,7 +87,7 @@ describe('Shim', () => {
         setContext: jest.fn(),
       };
       pushScope(client);
-      configureScope((scope: Scope) => {
+      configureScope((scope: ScopeInstance) => {
         scope.setTagsContext({ id: '1234' });
       });
       expect(client.setContext.mock.calls[0][0]).toEqual({
@@ -98,7 +98,7 @@ describe('Shim', () => {
 
     test('Fingerprint', () => {
       init({});
-      configureScope((scope: Scope) => {
+      configureScope((scope: ScopeInstance) => {
         scope.setFingerprint('abcd');
       });
       expect(global.__SENTRY__.stack[0].fingerprint).toEqual(['abcd']);
@@ -115,7 +115,7 @@ describe('Shim', () => {
     };
     withScope(client, () => {
       expect(global.__SENTRY__.stack.length).toBe(2);
-      configureScope((scope: Scope) => {
+      configureScope((scope: ScopeInstance) => {
         scope.setUserContext({ id: '1234' });
       });
       expect(global.__SENTRY__.stack[1].scope).toEqual({

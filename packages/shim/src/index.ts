@@ -25,4 +25,4 @@ export {
   pushScope,
   withScope,
 } from './sdk';
-export { Scope } from './interfaces';
+export { ScopeInstance } from './interfaces';

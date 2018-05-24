@@ -1,6 +1,6 @@
 import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 import { getGlobalRegistry } from './global';
-import { Scope } from './interfaces';
+import { ScopeInstance } from './interfaces';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
@@ -202,7 +202,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  *
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(callback: (scope: Scope) => void): void {
+export function configureScope(callback: (scope: ScopeInstance) => void): void {
   callback({
     setExtraContext: (extra: object) => {
       invokeClient('setContext', { extra });

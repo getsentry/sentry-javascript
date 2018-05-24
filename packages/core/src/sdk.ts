@@ -8,10 +8,9 @@ export {
   captureException,
   captureMessage,
   clearScope,
+  configureScope,
   popScope,
   pushScope,
-  setExtraContext,
-  setTagsContext,
 } from '@sentry/shim';
 
 /** A class object that can instanciate Client objects. */

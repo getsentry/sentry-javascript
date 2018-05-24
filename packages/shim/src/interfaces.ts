@@ -18,7 +18,7 @@ export interface Registry {
 }
 
 /** An object to call setter functions on to enhance the event */
-export interface Scope {
+export interface ScopeInstance {
   /**
    * Updates user context information for future events.
    * @param user User context object to merge into current context.
