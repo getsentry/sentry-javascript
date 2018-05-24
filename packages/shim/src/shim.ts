@@ -8,7 +8,7 @@ import { ScopeLayer } from './interfaces';
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
  */
-export const API_VERSION = 1;
+export const API_VERSION = 2;
 
 /**
  * Internal class used to make sure we always have the latest internal functions
