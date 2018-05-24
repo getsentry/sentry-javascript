@@ -1,10 +1,9 @@
-import { expect } from 'chai';
 import { DSN } from '../../src/dsn';
 import { SentryError } from '../../src/error';
 
 describe('DSN', () => {
   describe('fromComponents', () => {
-    it('applies all components', () => {
+    test('applies all components', () => {
       const dsn = new DSN({
         host: 'sentry.io',
         pass: 'xyz',
@@ -13,30 +12,30 @@ describe('DSN', () => {
         protocol: 'https',
         user: 'abc',
       });
-      expect(dsn.protocol).to.equal('https');
-      expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal('xyz');
-      expect(dsn.host).to.equal('sentry.io');
-      expect(dsn.port).to.equal('1234');
-      expect(dsn.path).to.equal('123');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('xyz');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('1234');
+      expect(dsn.path).toBe('123');
     });
 
-    it('applies partial components', () => {
+    test('applies partial components', () => {
       const dsn = new DSN({
         host: 'sentry.io',
         path: '123',
         protocol: 'https',
         user: 'abc',
       });
-      expect(dsn.protocol).to.equal('https');
-      expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal('');
-      expect(dsn.host).to.equal('sentry.io');
-      expect(dsn.port).to.equal('');
-      expect(dsn.path).to.equal('123');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('123');
     });
 
-    it('throws for missing components', () => {
+    test('throws for missing components', () => {
       expect(
         () =>
           new DSN({
@@ -45,7 +44,7 @@ describe('DSN', () => {
             protocol: 'https',
             user: 'abc',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
       expect(
         () =>
           new DSN({
@@ -54,7 +53,7 @@ describe('DSN', () => {
             protocol: 'https',
             user: 'abc',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
       expect(
         () =>
           new DSN({
@@ -63,7 +62,7 @@ describe('DSN', () => {
             protocol: '' as 'http', // Trick the type checker here
             user: 'abc',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
       expect(
         () =>
           new DSN({
@@ -72,10 +71,10 @@ describe('DSN', () => {
             protocol: 'https',
             user: '',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
     });
 
-    it('throws for invalid components', () => {
+    test('throws for invalid components', () => {
       expect(
         () =>
           new DSN({
@@ -84,7 +83,7 @@ describe('DSN', () => {
             protocol: 'httpx' as 'http', // Trick the type checker here
             user: 'abc',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
       expect(
         () =>
           new DSN({
@@ -94,69 +93,69 @@ describe('DSN', () => {
             protocol: 'https',
             user: 'abc',
           }),
-      ).to.throw(SentryError);
+      ).toThrow(SentryError);
     });
   });
 
   describe('fromString', () => {
-    it('parses a valid full DSN', () => {
+    test('parses a valid full DSN', () => {
       const dsn = new DSN('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.protocol).to.equal('https');
-      expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal('xyz');
-      expect(dsn.host).to.equal('sentry.io');
-      expect(dsn.port).to.equal('1234');
-      expect(dsn.path).to.equal('123');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('xyz');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('1234');
+      expect(dsn.path).toBe('123');
     });
 
-    it('parses a valid partial DSN', () => {
+    test('parses a valid partial DSN', () => {
       const dsn = new DSN('https://abc@sentry.io/123');
-      expect(dsn.protocol).to.equal('https');
-      expect(dsn.user).to.equal('abc');
-      expect(dsn.pass).to.equal('');
-      expect(dsn.host).to.equal('sentry.io');
-      expect(dsn.port).to.equal('');
-      expect(dsn.path).to.equal('123');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('123');
     });
 
-    it('throws when provided invalid DSN', () => {
-      expect(() => new DSN('some@random.dsn')).to.throw(SentryError);
+    test('throws when provided invalid DSN', () => {
+      expect(() => new DSN('some@random.dsn')).toThrow(SentryError);
     });
 
-    it('throws without mandatory fields', () => {
-      expect(() => new DSN('://abc@sentry.io/123')).to.throw(SentryError);
-      expect(() => new DSN('https://@sentry.io/123')).to.throw(SentryError);
-      expect(() => new DSN('https://abc@123')).to.throw(SentryError);
-      expect(() => new DSN('https://abc@sentry.io/')).to.throw(SentryError);
+    test('throws without mandatory fields', () => {
+      expect(() => new DSN('://abc@sentry.io/123')).toThrow(SentryError);
+      expect(() => new DSN('https://@sentry.io/123')).toThrow(SentryError);
+      expect(() => new DSN('https://abc@123')).toThrow(SentryError);
+      expect(() => new DSN('https://abc@sentry.io/')).toThrow(SentryError);
     });
 
-    it('throws for invalid fields', () => {
-      expect(() => new DSN('httpx://abc@sentry.io/123')).to.throw(SentryError);
-      expect(() => new DSN('httpx://abc@sentry.io:xxx/123')).to.throw(
+    test('throws for invalid fields', () => {
+      expect(() => new DSN('httpx://abc@sentry.io/123')).toThrow(SentryError);
+      expect(() => new DSN('httpx://abc@sentry.io:xxx/123')).toThrow(
         SentryError,
       );
     });
   });
 
   describe('toString', () => {
-    it('excludes the password by default', () => {
+    test('excludes the password by default', () => {
       const dsn = new DSN('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString()).to.equal('https://abc@sentry.io:1234/123');
+      expect(dsn.toString()).toBe('https://abc@sentry.io:1234/123');
     });
 
-    it('optionally includes the password', () => {
+    test('optionally includes the password', () => {
       const dsn = new DSN('https://abc:xyz@sentry.io:1234/123');
-      expect(dsn.toString(true)).to.equal('https://abc:xyz@sentry.io:1234/123');
+      expect(dsn.toString(true)).toBe('https://abc:xyz@sentry.io:1234/123');
     });
 
-    it('renders no password if missing', () => {
+    test('renders no password if missing', () => {
       const dsn = new DSN('https://abc@sentry.io:1234/123');
-      expect(dsn.toString(true)).to.equal('https://abc@sentry.io:1234/123');
+      expect(dsn.toString(true)).toBe('https://abc@sentry.io:1234/123');
     });
 
-    it('renders no port if missing', () => {
+    test('renders no port if missing', () => {
       const dsn = new DSN('https://abc@sentry.io/123');
-      expect(dsn.toString()).to.equal('https://abc@sentry.io/123');
+      expect(dsn.toString()).toBe('https://abc@sentry.io/123');
     });
   });
 });
