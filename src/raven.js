@@ -316,7 +316,7 @@ Raven.prototype = {
      *
      * @param {object} options A specific set of options for this context [optional]
      * @param {function} func The function to be wrapped in a new context
-     * @param {function} func A function to call before the try/catch wrapper [optional, private]
+     * @param {function} _before A function to call before the try/catch wrapper [optional, private]
      * @return {function} The newly wrapped functions with a context
      */
   wrap: function(options, func, _before) {
