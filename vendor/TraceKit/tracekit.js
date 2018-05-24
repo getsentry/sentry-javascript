@@ -38,11 +38,12 @@ function getLocationOrigin() {
 
   // Oh dear IE10...
   if (!document.location.origin) {
-    document.location.origin =
+    return (
       document.location.protocol +
       '//' +
       document.location.hostname +
-      (document.location.port ? ':' + document.location.port : '');
+      (document.location.port ? ':' + document.location.port : '')
+    );
   }
 
   return document.location.origin;
