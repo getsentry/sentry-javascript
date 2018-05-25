@@ -1,4 +1,4 @@
-import { Scope } from './sdk';
+import { Scope } from './scope';
 
 /** The type of a process stack layer. */
 export type LayerType = 'process' | 'domain' | 'local';

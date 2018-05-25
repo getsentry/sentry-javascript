@@ -131,10 +131,6 @@ export interface Options {
  * possible so that even errors during startup can be recorded reliably:
  *
  * @example
- * import { create } from '@sentry/node';
- * create({ dsn: '__DSN__' });
- *
- * @example
  * import { captureMessage } from '@sentry/node';
  * captureMessage('Custom message');
  */

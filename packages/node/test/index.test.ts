@@ -16,7 +16,6 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  Context,
   init,
   NodeBackend,
   NodeClient,

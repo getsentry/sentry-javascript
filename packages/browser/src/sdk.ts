@@ -19,11 +19,11 @@ import { BrowserClient } from './client';
  * });
  *
  * @example
- * import { setContext } from '@sentry/browser';
- * setContext({
- *   extra: { battery: 0.7 },
- *   tags: { user_mode: 'admin' },
- *   user: { id: '4711' },
+ * import { configureScope } from '@sentry/browser';
+ * configureScope((scope: Scope) => {
+ *   scope.setExtra({ battery: 0.7 });
+ *   scope.setTags({ user_mode: 'admin' });
+ *   scope.setUser({ id: '4711' });
  * });
  *
  * @example
