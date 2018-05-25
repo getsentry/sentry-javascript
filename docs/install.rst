@@ -113,17 +113,17 @@ And place the snippet below as soon as possible in your HTML code. For example:
       options: {
         release: '1.3.0'
       }
-    }; // Don't forget the semicolon, otherwise ASI will kick-in
+    }
 
-    (function(a,b,g,e,h){var k=a.SENTRY_SDK,f=function(a){f.data.push(a)};f.data=[];var l=a[e];a[e]=function(c,b,e,d,h){f({e:[].slice.call(arguments)});l&&l.apply(a,arguments)};var m=a[h];a[h]=function(c){f({p:c.reason});m&&m.apply(a,arguments)};var n=b.getElementsByTagName(g)[0];b=b.createElement(g);b.src=k.url;b.crossorigin="anonymous";b.addEventListener("load",function(){try{a[e]=l;a[h]=m;var c=f.data,b=a.Raven;b.config(k.dsn,k.options).install();var g=a[e];if(c.length)for(var d=0;d<c.length;d++)c[d].e?g.apply(b.TraceKit,c[d].e):c[d].p&&b.captureException(c[d].p)}catch(p){console.log(p)}});n.parentNode.insertBefore(b,n)})(window,document,"script","onerror","onunhandledrejection");
+    ;(function(a,b,g,e,h){var k=a.SENTRY_SDK,f=function(a){f.data.push(a)};f.data=[];var l=a[e];a[e]=function(c,b,e,d,h){f({e:[].slice.call(arguments)});l&&l.apply(a,arguments)};var m=a[h];a[h]=function(c){f({p:c.reason});m&&m.apply(a,arguments)};var n=b.getElementsByTagName(g)[0];b=b.createElement(g);b.src=k.url;b.crossorigin="anonymous";b.addEventListener("load",function(){try{a[e]=l;a[h]=m;var c=f.data,b=a.Raven;b.config(k.dsn,k.options).install();var g=a[e];if(c.length)for(var d=0;d<c.length;d++)c[d].e?g.apply(b.TraceKit,c[d].e):c[d].p&&b.captureException(c[d].p)}catch(p){console.log(p)}});n.parentNode.insertBefore(b,n)})(window,document,"script","onerror","onunhandledrejection");
   </script>
 
-Or you can place those two things in a separate script tags.
-This will queue all errors (and promises if the environment supports ``unhandledrejection`` handler) that happened before SDK was loaded and send them once it's configured and installed.
+Or you can place those two things in a separate script tags. This will queue all errors (and promises if the environment supports ``unhandledrejection`` handler) that happened before SDK was loaded and send them once it's configured and installed.
+
 Be aware however, that there are some trade-offs to this solution, as errors might provide less information due to them being "retriggered" instead of being caught from the original source.
 
-NOTE: This won't work when opening ``index.html`` or any other html file from the file system, as it doesn't support anonymous crossorigin scripts.
-It has to run on the server or any local dev environment in order to correctly catch and send errors to our system.
+NOTE: This won't work when opening ``index.html`` or any other html file from the file system, as it doesn't support anonymous cross-origin scripts.
+The same thing can happen for any cross-origin scripts as well. To read more about it, see `What the heck is "Script error"?<https://blog.sentry.io/2016/05/17/what-is-script-error>`_.
 
 To read un-minified source code for this loader, see `loader.js<https://github.com/getsentry/raven-js/blob/master/src/loader.js>`_
 

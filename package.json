@@ -28,7 +28,7 @@
     "test:typescript": "tsc --noEmit --noImplicitAny typescript/raven-tests.ts",
     "test:ci": "npm run lint && grunt test:ci && npm run test:loader-sauce && npm run test:integration-sauce",
     "test:size": "grunt dist && bundlesize && git checkout -- dist/",
-    "loader": "cat src/loader.js | sed '/build_marker/{N;d;}' | npx google-closure-compiler-js"
+    "loader": "cat src/loader.js | sed '/build_marker/{N;d;}' | npx google-closure-compiler-js | perl -e \"print ';'; print <STDIN>;\""
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
