@@ -196,12 +196,11 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * Updates context information (user, tags, extras) for future events.
+   * TODO Updates context information (user, tags, extras) for future events.
    *
-   * @param context A partial context object to merge into current context.
-   * @param scope An optional scope to store this the context in.
+   * @param context
    */
-  setContext(context: Context, scope: Scope): void;
+  contextChanged(context: Context): void;
 }
 
 /**
@@ -239,6 +238,7 @@ export interface Backend {
   sendEvent(event: SentryEvent): Promise<number>;
 
   /**
+   * TODO
    * Receives a breadcrumb and stores it in a platform-dependent way.
    *
    * This function is invoked by the client before merging the breadcrumb into
@@ -249,15 +249,12 @@ export interface Backend {
    * simply return `true`. It can either be synchronous or asynchronous.
    *
    * @param breadcrumb The breadcrumb to store.
-   * @param scope The scope instance currently managed by the client.
    * @returns True if the breadcrumb should be merged by the client.
    */
-  storeBreadcrumb(
-    breadcrumb: Breadcrumb,
-    scope: Scope,
-  ): boolean | Promise<boolean>;
+  storeBreadcrumb(breadcrumb: Breadcrumb): boolean | Promise<boolean>;
 
   /**
+   * TODO
    * Receives a context and merges it in a platform-dependent way.
    *
    * This function is invoked by the client before merging the context into
@@ -268,8 +265,7 @@ export interface Backend {
    * simply return `true`. It can either be synchronous or asynchronous.
    *
    * @param context The context to store.
-   * @param scope The scope instance currently managed by the client.
    * @returns True if the breadcrumb should be merged by the client.
    */
-  storeContext(context: Context, scope: Scope): boolean | Promise<boolean>;
+  storeContext(context: Context): boolean | Promise<boolean>;
 }

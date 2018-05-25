@@ -1,26 +1,9 @@
-import { Breadcrumb, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, Scope, SentryEvent } from '@sentry/shim';
 import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TEST_SDK, TestClient } from '../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/path';
-const scopeNoopFunctions = {
-  clear: () => {
-    /* Noop */
-  },
-  setExtra: () => {
-    /* Noop */
-  },
-  setFingerprint: () => {
-    /* Noop */
-  },
-  setTags: () => {
-    /* Noop */
-  },
-  setUser: () => {
-    /* Noop */
-  },
-};
 
 describe('BaseClient', () => {
   describe('constructor() / getDSN()', () => {
@@ -80,100 +63,24 @@ describe('BaseClient', () => {
     });
   });
 
-  describe('getContext() / setContext()', () => {
-    test('stores the context on the scope', async () => {
-      const client = new TestClient({});
-      const context = { extra: { updated: true } };
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
-      await client.setContext(context, scope);
-      expect(scope.context).toEqual(context);
-    });
-
-    test('merges extra into context', async () => {
-      const client = new TestClient({});
-      const scope = {
-        breadcrumbs: [],
-        context: { extra: { a: 'a' } },
-        ...scopeNoopFunctions,
-      };
-      await client.setContext({ extra: { b: 'b' } }, scope);
-      expect(scope.context).toEqual({
-        extra: { a: 'a', b: 'b' },
-      });
-    });
-
-    test('merges tags into context', async () => {
-      const client = new TestClient({});
-      const scope = {
-        breadcrumbs: [],
-        context: { tags: { a: 'a' } },
-        ...scopeNoopFunctions,
-      };
-      await client.setContext({ tags: { b: 'b' } }, scope);
-      expect(scope.context).toEqual({
-        tags: { a: 'a', b: 'b' },
-      });
-    });
-
-    test('merges user into context', async () => {
-      const client = new TestClient({});
-      const scope = {
-        breadcrumbs: [],
-        context: { user: { id: 'a' } },
-        ...scopeNoopFunctions,
-      };
-      await client.setContext({ user: { email: 'b' } }, scope);
-      expect(scope.context).toEqual({
-        user: { id: 'a', email: 'b' },
-      });
-    });
-
-    test('allows concurrent updates', async () => {
-      const client = new TestClient({});
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
-      await Promise.all([
-        client.setContext({ user: { email: 'a' } }, scope),
-        client.setContext({ user: { id: 'b' } }, scope),
-      ]);
-      expect(scope.context).toEqual({
-        user: {
-          email: 'a',
-          id: 'b',
-        },
-      });
-    });
-  });
-
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
     test('adds a breadcrumb', async () => {
       const client = new TestClient({});
-      const scope = {
-        breadcrumbs: [{ message: 'hello' }],
-        context: {},
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([{ message: 'hello' }]);
       await client.addBreadcrumb({ message: 'world' }, scope);
       expect(scope.breadcrumbs[1].message).toBe('world');
     });
 
     test('adds a timestamp to new breadcrumbs', async () => {
       const client = new TestClient({});
-      const scope = {
-        breadcrumbs: [{ message: 'hello' }],
-        context: {},
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([{ message: 'hello' }]);
       await client.addBreadcrumb({ message: 'world' }, scope);
-      expect((scope.breadcrumbs[1] as Breadcrumb).timestamp).toBeGreaterThan(1);
+      expect(scope.breadcrumbs[1].timestamp).toBeGreaterThan(1);
     });
 
     test('discards breadcrumbs beyond maxBreadcrumbs', async () => {
       const client = new TestClient({ maxBreadcrumbs: 1 });
-      const scope = {
-        breadcrumbs: [{ message: 'hello' }],
-        context: {},
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([{ message: 'hello' }]);
       await client.addBreadcrumb({ message: 'world' }, scope);
       expect(scope.breadcrumbs.length).toBe(1);
       expect(scope.breadcrumbs[0].message).toBe('world');
@@ -185,7 +92,7 @@ describe('BaseClient', () => {
         maxBreadcrumbs: 0,
         shouldAddBreadcrumb,
       });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
       expect(shouldAddBreadcrumb.mock.calls).toHaveLength(0);
     });
@@ -193,7 +100,7 @@ describe('BaseClient', () => {
     test('calls shouldAddBreadcrumb and adds the breadcrumb', async () => {
       const shouldAddBreadcrumb = jest.fn(() => true);
       const client = new TestClient({ shouldAddBreadcrumb });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
       expect(scope.breadcrumbs.length).toBe(1);
     });
@@ -201,7 +108,7 @@ describe('BaseClient', () => {
     test('calls shouldAddBreadcrumb and discards the breadcrumb', async () => {
       const shouldAddBreadcrumb = jest.fn(() => false);
       const client = new TestClient({ shouldAddBreadcrumb });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
       expect(scope.breadcrumbs.length).toBe(0);
     });
@@ -209,15 +116,15 @@ describe('BaseClient', () => {
     test('calls beforeBreadcrumb and uses the new one', async () => {
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ beforeBreadcrumb });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
-      expect((scope.breadcrumbs[0] as Breadcrumb).message).toBe('changed');
+      expect(scope.breadcrumbs[0].message).toBe('changed');
     });
 
     test('calls afterBreadcrumb', async () => {
       const afterBreadcrumb = jest.fn();
       const client = new TestClient({ afterBreadcrumb });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
       const breadcrumb = afterBreadcrumb.mock.calls[0][0] as Breadcrumb;
       expect(breadcrumb.message).toBe('hello');
@@ -225,7 +132,7 @@ describe('BaseClient', () => {
 
     test('allows concurrent updates', async () => {
       const client = new TestClient({});
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await Promise.all([
         client.addBreadcrumb({ message: 'hello' }, scope),
         client.addBreadcrumb({ message: 'world' }, scope),
@@ -237,7 +144,7 @@ describe('BaseClient', () => {
   describe('captures', () => {
     test('captures and sends exceptions', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureException(new Error('test exception'), scope);
       expect(TestBackend.instance!.event).toEqual({
         exception: [
@@ -253,7 +160,7 @@ describe('BaseClient', () => {
 
     test('captures and sends messages', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureMessage('test message', scope);
       expect(TestBackend.instance!.event).toEqual({
         message: 'test message',
@@ -265,21 +172,21 @@ describe('BaseClient', () => {
   describe('captureEvent() / prepareEvent()', () => {
     test('skips when disabled', async () => {
       const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({}, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
     test('skips without a DSN', async () => {
       const client = new TestClient({});
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({}, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
     test('sends an event', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
@@ -293,7 +200,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         environment: 'env',
       });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'env',
@@ -307,7 +214,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         release: 'v1.0.0',
       });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         message: 'message',
@@ -318,11 +225,7 @@ describe('BaseClient', () => {
 
     test('adds breadcrumbs', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = {
-        breadcrumbs: [{ message: 'breadcrumb' }],
-        context: {},
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([{ message: 'breadcrumb' }]);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: 'breadcrumb' }],
@@ -333,11 +236,7 @@ describe('BaseClient', () => {
 
     test('limits previously saved breadcrumbs', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
-      const scope = {
-        breadcrumbs: [{ message: '1' }, { message: '2' }],
-        context: {},
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([{ message: '1' }, { message: '2' }]);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: '2' }],
@@ -348,15 +247,11 @@ describe('BaseClient', () => {
 
     test('adds context data', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = {
-        breadcrumbs: [],
-        context: {
-          extra: { a: 'a' },
-          tags: { b: 'b' },
-          user: { id: 'user' },
-        },
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([], {
+        extra: { a: 'a' },
+        tags: { b: 'b' },
+        user: { id: 'user' },
+      });
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         extra: { a: 'a' },
@@ -369,12 +264,7 @@ describe('BaseClient', () => {
 
     test('adds fingerprint', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = {
-        breadcrumbs: [],
-        context: {},
-        fingerprint: ['abcd'],
-        ...scopeNoopFunctions,
-      };
+      const scope = new Scope([], {}, ['abcd']);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         fingerprint: ['abcd'],
@@ -386,7 +276,7 @@ describe('BaseClient', () => {
     test('calls shouldSend and adds the event', async () => {
       const shouldSend = jest.fn(() => true);
       const client = new TestClient({ dsn: PUBLIC_DSN, shouldSend });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, scope);
       expect(TestBackend.instance!.event).toEqual({
         message: 'hello',
@@ -397,7 +287,7 @@ describe('BaseClient', () => {
     test('calls shouldSend and discards the event', async () => {
       const shouldSend = jest.fn(() => false);
       const client = new TestClient({ dsn: PUBLIC_DSN, shouldSend });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
@@ -405,7 +295,7 @@ describe('BaseClient', () => {
     test('calls beforeSend and uses the new one', async () => {
       const beforeSend = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, scope);
       expect(TestBackend.instance!.event!.message).toBe('changed');
     });
@@ -413,7 +303,7 @@ describe('BaseClient', () => {
     test('calls afterSend', async () => {
       const afterSend = jest.fn();
       const client = new TestClient({ dsn: PUBLIC_DSN, afterSend });
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, scope);
       const breadcrumb = afterSend.mock.calls[0][0] as SentryEvent;
       expect(breadcrumb.message).toBe('hello');
@@ -422,7 +312,7 @@ describe('BaseClient', () => {
     it("doesn't do anything with rate limits yet", async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       TestBackend.instance!.sendEvent = async () => 429;
-      const scope = { breadcrumbs: [], context: {}, ...scopeNoopFunctions };
+      const scope = new Scope();
       await client.captureEvent({}, scope);
       // TODO: Test rate limiting queues here
     });

@@ -1,7 +1,7 @@
-import { Breadcrumb, SentryEvent, User } from '@sentry/types';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getGlobalRegistry } from './global';
 import { Scope } from './interfaces';
-import { API_VERSION, getEmptyScope, Shim } from './shim';
+import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
 function logError(e?: any): void {
@@ -138,7 +138,6 @@ export function bindClient(client: any): void {
   const shim = getOrCreateShim();
   const top = shim.getStackTop();
   top.client = client;
-  top.scope = getEmptyScope();
 }
 
 /**
@@ -198,29 +197,11 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  const top = getOrCreateShim().getStackTop().scope;
-  callback({
-    breadcrumbs: top.breadcrumbs,
-    clear: () => {
-      top.breadcrumbs = [];
-      top.context = {};
-      top.fingerprint = undefined;
-    },
-    context: top.context,
-    fingerprint: top.fingerprint,
-    setExtra: (extra: object) => {
-      invokeClient('setContext', { extra });
-    },
-    setFingerprint: (fingerprint: string[]) => {
-      top.fingerprint = fingerprint;
-    },
-    setTags: (tags: { [key: string]: string }) => {
-      invokeClient('setContext', { tags });
-    },
-    setUser: (user: User) => {
-      invokeClient('setContext', { user });
-    },
-  });
+  const top = getOrCreateShim().getStackTop();
+  callback(top.scope);
+  if (top.client) {
+    top.scope._notifyClient(top.client);
+  }
 }
 
 /**

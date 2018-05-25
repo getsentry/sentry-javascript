@@ -23,12 +23,15 @@ describe('SentryBrowser', () => {
   before(() => {
     init({ dsn });
   });
+  beforeEach(() => {
+    pushScope();
+  });
 
   describe('getContext() / setContext()', () => {
     let s: sinon.SinonSpy;
 
     beforeEach(() => {
-      s = spy(BrowserClient.prototype, 'setContext');
+      s = spy(BrowserClient.prototype, 'contextChanged');
     });
 
     afterEach(() => {

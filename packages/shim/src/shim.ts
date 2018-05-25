@@ -11,36 +11,6 @@ import { Layer, Scope } from './interfaces';
 export const API_VERSION = 2;
 
 /**
- * Empty noop scope helper. Only used for layer creation.
- */
-const emptyScope: Scope = {
-  breadcrumbs: [],
-  clear: () => {
-    /* Noop */
-  },
-  context: {},
-  setExtra: () => {
-    /* Noop */
-  },
-  setFingerprint: () => {
-    /* Noop */
-  },
-  setTags: () => {
-    /* Noop */
-  },
-  setUser: () => {
-    /* Noop */
-  },
-};
-
-/**
- * Returns an empty scope
- */
-export function getEmptyScope(): Scope {
-  return { ...emptyScope };
-}
-
-/**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
@@ -49,7 +19,7 @@ export class Shim {
   public constructor(public readonly version: number = API_VERSION) {
     const stack = getGlobalStack();
     if (stack.length === 0) {
-      stack.push({ scope: getEmptyScope(), type: 'process' });
+      stack.push({ scope: new Scope(), type: 'process' });
     }
   }
 
@@ -71,7 +41,7 @@ export class Shim {
     const usedClient = client || this.getCurrentClient();
     this.getStack().push({
       client: usedClient,
-      scope: getEmptyScope(),
+      scope: new Scope(),
       type: 'local',
     });
   }
@@ -136,7 +106,7 @@ export class Shim {
 
     if (stack.length === 0) {
       const client = this.getCurrentClient();
-      stack.push({ client, scope: getEmptyScope(), type: 'domain' });
+      stack.push({ client, scope: new Scope(), type: 'domain' });
     }
 
     return stack[stack.length - 1];

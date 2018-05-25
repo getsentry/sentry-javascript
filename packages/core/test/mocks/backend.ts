@@ -43,17 +43,11 @@ export class TestBackend implements Backend {
     return 200;
   }
 
-  public storeBreadcrumb(
-    _breadcrumb: Breadcrumb,
-    _scope: Scope,
-  ): boolean | Promise<boolean> {
+  public storeBreadcrumb(_breadcrumb: Breadcrumb): boolean | Promise<boolean> {
     return true;
   }
 
-  public storeContext(
-    _context: Context,
-    _scope: Scope,
-  ): boolean | Promise<boolean> {
+  public storeContext(_context: Context): boolean | Promise<boolean> {
     return true;
   }
 }

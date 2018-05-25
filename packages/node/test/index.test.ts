@@ -29,15 +29,18 @@ import {
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 describe('SentryNode', () => {
-  beforeEach(() => {
+  beforeAll(() => {
     init({ dsn });
+  });
+  beforeEach(() => {
+    pushScope();
   });
 
   describe('getContext() / setContext()', () => {
     let s: jest.SpyInstance;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'setContext');
+      s = jest.spyOn(NodeClient.prototype, 'contextChanged');
     });
 
     afterEach(() => {
@@ -125,6 +128,7 @@ describe('SentryNode', () => {
       pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
+            expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
             expect(event.exception![0]).not.toBeUndefined();
             expect(event.exception![0].type).toBe('Error');
@@ -135,6 +139,9 @@ describe('SentryNode', () => {
           dsn,
         }),
       );
+      configureScope((scope: Scope) => {
+        scope.setTags({ test: '1' });
+      });
       try {
         throw new Error('test');
       } catch (e) {

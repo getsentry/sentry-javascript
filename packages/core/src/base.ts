@@ -163,7 +163,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb, scope)) {
+    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb)) {
       scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
         -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
       );
@@ -191,19 +191,8 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async setContext(nextContext: Context, scope: Scope): Promise<void> {
-    if (await this.getBackend().storeContext(nextContext, scope)) {
-      const context = scope.context;
-      if (nextContext.extra) {
-        context.extra = { ...context.extra, ...nextContext.extra };
-      }
-      if (nextContext.tags) {
-        context.tags = { ...context.tags, ...nextContext.tags };
-      }
-      if (nextContext.user) {
-        context.user = { ...context.user, ...nextContext.user };
-      }
-    }
+  public async contextChanged(context: Context): Promise<void> {
+    await this.getBackend().storeContext(context);
   }
 
   /** Returns the current used SDK version and name. */
@@ -258,19 +247,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       );
     }
 
-    const context = scope.context;
-    if (context.extra) {
-      prepared.extra = { ...context.extra, ...event.extra };
-    }
-    if (context.tags) {
-      prepared.tags = { ...context.tags, ...event.tags };
-    }
-    if (context.user) {
-      prepared.user = { ...context.user, ...event.user };
-    }
-    if (prepared.fingerprint === undefined && scope.fingerprint) {
-      prepared.fingerprint = scope.fingerprint;
-    }
+    scope.applyToEvent(prepared);
 
     return prepared;
   }
