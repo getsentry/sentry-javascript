@@ -57,25 +57,25 @@ describe('Shim', () => {
   describe('configureScope', () => {
     test('User Context', () => {
       const client = {
-        contextChanged: jest.fn(),
+        scopeChanged: jest.fn(),
       };
       pushScope(client);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(client.contextChanged.mock.calls[0][0]).toEqual({
+      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
         user: { id: '1234' },
       });
       popScope();
     });
 
     test('Extra Context', () => {
-      const client = { contextChanged: jest.fn() };
+      const client = { scopeChanged: jest.fn() };
       pushScope(client);
       configureScope((scope: Scope) => {
         scope.setExtra({ id: '1234' });
       });
-      expect(client.contextChanged.mock.calls[0][0]).toEqual({
+      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
         extra: { id: '1234' },
       });
       popScope();
@@ -83,13 +83,13 @@ describe('Shim', () => {
 
     test('Tags Context', () => {
       const client = {
-        contextChanged: jest.fn(),
+        scopeChanged: jest.fn(),
       };
       pushScope(client);
       configureScope((scope: Scope) => {
         scope.setTags({ id: '1234' });
       });
-      expect(client.contextChanged.mock.calls[0][0]).toEqual({
+      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
         tags: { id: '1234' },
       });
       popScope();
@@ -106,7 +106,7 @@ describe('Shim', () => {
 
   test('Clear Scope', () => {
     const client = {
-      contextChanged: jest.fn(),
+      scopeChanged: jest.fn(),
     };
     withScope(client, () => {
       expect(global.__SENTRY__.stack.length).toBe(2);

@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/shim';
-import { Breadcrumb, Context, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
 
@@ -196,11 +196,11 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * TODO Updates context information (user, tags, extras) for future events.
+   * Will be called from the scope after configureScope is finished.
    *
-   * @param context
+   * @param scope Scope
    */
-  contextChanged(context: Context): void;
+  scopeChanged(scope: Scope): void;
 }
 
 /**
@@ -238,7 +238,6 @@ export interface Backend {
   sendEvent(event: SentryEvent): Promise<number>;
 
   /**
-   * TODO
    * Receives a breadcrumb and stores it in a platform-dependent way.
    *
    * This function is invoked by the client before merging the breadcrumb into
@@ -254,18 +253,12 @@ export interface Backend {
   storeBreadcrumb(breadcrumb: Breadcrumb): boolean | Promise<boolean>;
 
   /**
-   * TODO
-   * Receives a context and merges it in a platform-dependent way.
+   * Receives the whole scope and stores it in a platform-dependent way.
    *
-   * This function is invoked by the client before merging the context into
-   * the scope. Return `false` to prevent this context from being merged. This
-   * should be done for custom context management in the backend.
+   * This function is invoked by the scope after the scope is configured.
+   * This should be done for custom context management in the backend.
    *
-   * In most cases, this method does not have to perform any action and can
-   * simply return `true`. It can either be synchronous or asynchronous.
-   *
-   * @param context The context to store.
-   * @returns True if the breadcrumb should be merged by the client.
+   * @param scope The scope to store.
    */
-  storeContext(context: Context): boolean | Promise<boolean>;
+  storeScope(scope: Scope): void;
 }

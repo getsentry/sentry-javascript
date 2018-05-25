@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/shim';
-import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 import { SendStatus } from './status';
@@ -191,8 +191,8 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async contextChanged(context: Context): Promise<void> {
-    await this.getBackend().storeContext(context);
+  public scopeChanged(scope: Scope): void {
+    this.getBackend().storeScope(scope);
   }
 
   /** Returns the current used SDK version and name. */

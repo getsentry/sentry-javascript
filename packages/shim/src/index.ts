@@ -22,6 +22,6 @@ export {
   getCurrentClient,
   popScope,
   pushScope,
+  Scope,
   withScope,
 } from './sdk';
-export { Scope } from './interfaces';

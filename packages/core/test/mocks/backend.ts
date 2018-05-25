@@ -1,4 +1,4 @@
-import { Breadcrumb, Context, Scope, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, Scope, SentryEvent } from '@sentry/shim';
 import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
@@ -47,7 +47,7 @@ export class TestBackend implements Backend {
     return true;
   }
 
-  public storeContext(_context: Context): boolean | Promise<boolean> {
-    return true;
+  public storeScope(_: Scope): void {
+    // noop
   }
 }

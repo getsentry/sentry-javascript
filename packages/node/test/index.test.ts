@@ -40,7 +40,7 @@ describe('SentryNode', () => {
     let s: jest.SpyInstance;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'contextChanged');
+      s = jest.spyOn(NodeClient.prototype, 'scopeChanged');
     });
 
     afterEach(() => {
@@ -51,7 +51,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setExtra({ abc: { def: [1] } });
       });
-      const context = s.mock.calls[0][0] as Context;
+      const context = (s.mock.calls[0][0] as Scope).context;
       expect(context).toEqual({ extra: { abc: { def: [1] } } });
     });
 
@@ -59,7 +59,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setTags({ abc: 'def' });
       });
-      const context = s.mock.calls[0][0] as Context;
+      const context = (s.mock.calls[0][0] as Scope).context;
       expect(context).toEqual({ tags: { abc: 'def' } });
     });
 
@@ -67,7 +67,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      const context = s.mock.calls[0][0] as Context;
+      const context = (s.mock.calls[0][0] as Scope).context;
       expect(context).toEqual({ user: { id: 'def' } });
     });
   });

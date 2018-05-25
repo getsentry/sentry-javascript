@@ -166,7 +166,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public storeContext(): boolean {
-    return true;
+  public storeScope(): void {
+    // Noop
   }
 }

@@ -9,7 +9,6 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  Context,
   init,
   popScope,
   pushScope,
@@ -31,7 +30,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonSpy;
 
     beforeEach(() => {
-      s = spy(BrowserClient.prototype, 'contextChanged');
+      s = spy(BrowserClient.prototype, 'scopeChanged');
     });
 
     afterEach(() => {
@@ -42,7 +41,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setExtra({ abc: { def: [1] } });
       });
-      const context = s.getCall(0).args[0] as Context;
+      const context = (s.getCall(0).args[0] as Scope).context;
       expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
     });
 
@@ -50,7 +49,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setTags({ abc: 'def' });
       });
-      const context = s.getCall(0).args[0] as Context;
+      const context = (s.getCall(0).args[0] as Scope).context;
       expect(context).to.deep.equal({ tags: { abc: 'def' } });
     });
 
@@ -58,7 +57,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      const context = s.getCall(0).args[0] as Context;
+      const context = (s.getCall(0).args[0] as Scope).context;
       expect(context).to.deep.equal({ user: { id: 'def' } });
     });
   });

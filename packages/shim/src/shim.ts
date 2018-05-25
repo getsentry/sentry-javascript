@@ -1,6 +1,7 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { Layer, Scope } from './interfaces';
+import { Layer } from './interfaces';
+import { Scope } from './sdk';
 
 /**
  * API compatibility version of this shim.
