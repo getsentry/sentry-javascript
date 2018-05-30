@@ -1,6 +1,7 @@
-import { Breadcrumb, Context, SdkInfo, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
-import { Backend, Client, Options, Scope } from './interfaces';
+import { Backend, Client, Options } from './interfaces';
+import { Scope } from './scope';
 import { SendStatus } from './status';
 
 /**
@@ -74,13 +75,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   private readonly dsn?: DSN;
 
   /**
-   * A scope instance containing breadcrumbs and context, used if none is
-   * specified to the public methods. This is specifically used in standalone
-   * mode, when the Client is directly instanciated by the user.
-   */
-  private readonly internalScope: Scope;
-
-  /**
    * Stores whether installation has been performed and was successful. Before
    * installing, this is undefined. Then it contains the success state.
    */
@@ -99,9 +93,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     if (options.dsn) {
       this.dsn = new DSN(options.dsn);
     }
-
-    // The initial scope must have access to backend, options and DSN
-    this.internalScope = this.getInitialScope();
   }
 
   /**
@@ -122,10 +113,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureException(
-    exception: any,
-    scope: Scope = this.internalScope,
-  ): Promise<void> {
+  public async captureException(exception: any, scope: Scope): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
   }
@@ -133,10 +121,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureMessage(
-    message: string,
-    scope: Scope = this.internalScope,
-  ): Promise<void> {
+  public async captureMessage(message: string, scope: Scope): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
   }
@@ -144,10 +129,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureEvent(
-    event: SentryEvent,
-    scope: Scope = this.internalScope,
-  ): Promise<void> {
+  public async captureEvent(event: SentryEvent, scope: Scope): Promise<void> {
     await this.processEvent(event, scope, async finalEvent =>
       this.getBackend().sendEvent(finalEvent),
     );
@@ -158,7 +140,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async addBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: Scope = this.internalScope,
+    scope: Scope,
   ): Promise<void> {
     const {
       shouldAddBreadcrumb,
@@ -181,9 +163,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb, scope)) {
-      scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
+    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb)) {
+      scope.addBreadcrumb(
+        finalBreadcrumb,
+        Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
       );
     }
 
@@ -209,41 +192,16 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async setContext(
-    nextContext: Context,
-    scope: Scope = this.internalScope,
-  ): Promise<void> {
-    if (await this.getBackend().storeContext(nextContext, scope)) {
-      const context = scope.context;
-      if (nextContext.extra) {
-        context.extra = { ...context.extra, ...nextContext.extra };
-      }
-      if (nextContext.tags) {
-        context.tags = { ...context.tags, ...nextContext.tags };
-      }
-      if (nextContext.user) {
-        context.user = { ...context.user, ...nextContext.user };
-      }
-    }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getInitialScope(): Scope {
-    return {
-      breadcrumbs: [],
-      context: {},
-    };
+  public createScope(): Scope {
+    const newScope = new Scope();
+    newScope.setOnChange((scope: Scope) => {
+      this.getBackend().storeScope(scope);
+    });
+    return newScope;
   }
 
   /** Returns the current used SDK version and name. */
   protected abstract getSdkInfo(): SdkInfo;
-
-  /** Returns the current internal scope of this instance. */
-  protected getInternalScope(): Scope {
-    return this.internalScope;
-  }
 
   /** Returns the current backend. */
   protected getBackend(): B {
@@ -287,23 +245,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    const breadcrumbs = scope.breadcrumbs;
-    if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
-      prepared.breadcrumbs = breadcrumbs.slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
-      );
-    }
-
-    const context = scope.context;
-    if (context.extra) {
-      prepared.extra = { ...context.extra, ...event.extra };
-    }
-    if (context.tags) {
-      prepared.tags = { ...context.tags, ...event.tags };
-    }
-    if (context.user) {
-      prepared.user = { ...context.user, ...event.user };
-    }
+    scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
 
     return prepared;
   }

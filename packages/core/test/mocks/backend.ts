@@ -1,5 +1,5 @@
-import { Breadcrumb, Context, SentryEvent } from '@sentry/shim';
-import { Backend, Client, Options, Scope } from '../../src/interfaces';
+import { Breadcrumb, Scope, SentryEvent } from '@sentry/shim';
+import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -43,17 +43,11 @@ export class TestBackend implements Backend {
     return 200;
   }
 
-  public storeBreadcrumb(
-    _breadcrumb: Breadcrumb,
-    _scope: Scope,
-  ): boolean | Promise<boolean> {
+  public storeBreadcrumb(_breadcrumb: Breadcrumb): boolean | Promise<boolean> {
     return true;
   }
 
-  public storeContext(
-    _context: Context,
-    _scope: Scope,
-  ): boolean | Promise<boolean> {
-    return true;
+  public storeScope(_: Scope): void {
+    // noop
   }
 }

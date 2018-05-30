@@ -1,6 +1,6 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { ScopeLayer } from './interfaces';
+import { Layer, Scope } from './interfaces';
 
 /**
  * API compatibility version of this shim.
@@ -8,7 +8,7 @@ import { ScopeLayer } from './interfaces';
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
  */
-export const API_VERSION = 1;
+export const API_VERSION = 2;
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -19,7 +19,7 @@ export class Shim {
   public constructor(public readonly version: number = API_VERSION) {
     const stack = getGlobalStack();
     if (stack.length === 0) {
-      stack.push({ scope: {}, type: 'process' });
+      stack.push({ scope: this.createScope(), type: 'process' });
     }
   }
 
@@ -41,7 +41,7 @@ export class Shim {
     const usedClient = client || this.getCurrentClient();
     this.getStack().push({
       client: usedClient,
-      scope: this.getInitialScope(usedClient),
+      scope: this.createScope(usedClient),
       type: 'local',
     });
   }
@@ -76,35 +76,29 @@ export class Shim {
     }
   }
 
-  /** Resets the current scope to the initialScope. */
-  public clearScope(): void {
-    const top = this.getStackTop();
-    top.scope = this.getInitialScope(top.client);
-  }
-
   /** Returns the client of the currently active scope. */
   public getCurrentClient(): any | undefined {
     return this.getStackTop().client;
   }
 
   /** Returns the scope stack for domains or the process. */
-  public getStack(): ScopeLayer[] {
+  public getStack(): Layer[] {
     return getDomainStack() || getGlobalStack();
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
-  public getStackTop(): ScopeLayer {
+  public getStackTop(): Layer {
     return this.getDomainStackTop() || this.getGlobalStackTop();
   }
 
   /** Returns the topmost ScopeLayer from the global stack. */
-  private getGlobalStackTop(): ScopeLayer {
+  private getGlobalStackTop(): Layer {
     const stack = getGlobalStack();
     return stack[stack.length - 1];
   }
 
   /** Tries to return the top most ScopeLayer from the domainStack. */
-  private getDomainStackTop(): ScopeLayer | undefined {
+  private getDomainStackTop(): Layer | undefined {
     const stack = getDomainStack();
     if (!stack) {
       return undefined;
@@ -114,7 +108,7 @@ export class Shim {
       const client = this.getCurrentClient();
       stack.push({
         client,
-        scope: this.getInitialScope(client),
+        scope: this.createScope(client),
         type: 'domain',
       });
     }
@@ -125,14 +119,14 @@ export class Shim {
   /**
    * Obtains a new scope instance from the client.
    *
-   * @param client An SDK client that implements `getInitialScope`.
+   * @param client A SDK client that implements `createScope`.
    * @returns The scope instance or an empty object on error.
    */
-  public getInitialScope(client?: any): any {
+  public createScope(client?: any): Scope | undefined {
     try {
-      return client && client.getInitialScope();
+      return client && client.createScope();
     } catch {
-      return {};
+      return undefined;
     }
   }
 }

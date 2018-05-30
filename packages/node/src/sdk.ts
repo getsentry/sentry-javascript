@@ -18,17 +18,18 @@ import { NodeClient } from './client';
  *   // ...
  * });
  *
+ *
  * @example
- * const { setContext } = require('@sentry/node');
- * setContext({
- *   extra: { battery: 0.7 },
- *   tags: { user_mode: 'admin' },
- *   user: { id: '4711' },
+ * const { configureScope } = require('@sentry/node');
+ * configureScope((scope: Scope) => {
+ *   scope.setExtra({ battery: 0.7 });
+ *   scope.setTags({ user_mode: 'admin' });
+ *   scope.setUser({ id: '4711' });
  * });
  *
  * @example
  * const { addBreadcrumb } = require('@sentry/node');
- * SentryClient.addBreadcrumb({
+ * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
  * });

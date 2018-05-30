@@ -1,4 +1,4 @@
-import { Registry, ScopeLayer } from './interfaces';
+import { Layer, Registry } from './interfaces';
 
 /** Global interface helper for type safety. */
 interface Global {
@@ -18,6 +18,6 @@ export function getGlobalRegistry(): Registry {
 }
 
 /** Returns the global stack of scope layers. */
-export function getGlobalStack(): ScopeLayer[] {
+export function getGlobalStack(): Layer[] {
   return global.__SENTRY__.stack;
 }

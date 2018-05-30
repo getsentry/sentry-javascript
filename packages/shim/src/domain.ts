@@ -1,4 +1,4 @@
-import { Registry, ScopeLayer } from './interfaces';
+import { Layer, Registry } from './interfaces';
 
 /** A compatibility version for Node's "domain" module. */
 let domain: {
@@ -15,7 +15,7 @@ try {
 }
 
 /** Checks for an active domain and returns its stack, if present. */
-export function getDomainStack(): ScopeLayer[] | undefined {
+export function getDomainStack(): Layer[] | undefined {
   const active = domain.active;
   if (!active) {
     return undefined;

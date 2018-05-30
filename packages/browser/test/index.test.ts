@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import * as RavenJS from 'raven-js';
-import { spy, stub } from 'sinon';
+import { stub } from 'sinon';
 import {
   addBreadcrumb,
   BrowserBackend,
@@ -8,50 +8,57 @@ import {
   captureEvent,
   captureException,
   captureMessage,
-  Context,
+  configureScope,
   init,
   popScope,
   pushScope,
+  Scope,
   SentryEvent,
-  setExtraContext,
-  setTagsContext,
-  setUserContext,
 } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
+
+declare var global: any;
 
 describe('SentryBrowser', () => {
   before(() => {
     init({ dsn });
   });
 
+  beforeEach(() => {
+    pushScope();
+  });
+
+  afterEach(() => {
+    popScope();
+  });
+
   describe('getContext() / setContext()', () => {
-    let s: sinon.SinonSpy;
-
-    beforeEach(() => {
-      s = spy(BrowserClient.prototype, 'setContext');
-    });
-
-    afterEach(() => {
-      s.restore();
-    });
-
     it('should store/load extra', () => {
-      setExtraContext({ abc: { def: [1] } });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ extra: { abc: { def: [1] } } });
+      configureScope((scope: Scope) => {
+        scope.setExtra('abc', { def: [1] });
+      });
+      expect(global.__SENTRY__.stack[1].scope.extra).to.deep.equal({
+        abc: { def: [1] },
+      });
     });
 
     it('should store/load tags', () => {
-      setTagsContext({ abc: 'def' });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ tags: { abc: 'def' } });
+      configureScope((scope: Scope) => {
+        scope.setTag('abc', 'def');
+      });
+      expect(global.__SENTRY__.stack[1].scope.tags).to.deep.equal({
+        abc: 'def',
+      });
     });
 
     it('should store/load user', () => {
-      setUserContext({ id: 'def' });
-      const context = s.getCall(0).args[0] as Context;
-      expect(context).to.deep.equal({ user: { id: 'def' } });
+      configureScope((scope: Scope) => {
+        scope.setUser({ id: 'def' });
+      });
+      expect(global.__SENTRY__.stack[1].scope.user).to.deep.equal({
+        id: 'def',
+      });
     });
   });
 

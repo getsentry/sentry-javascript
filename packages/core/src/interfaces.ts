@@ -1,19 +1,7 @@
-import { Breadcrumb, Context, SentryEvent } from '@sentry/types';
+import { Scope } from '@sentry/shim';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
-
-/**
- * An exchangable object containing event metadata that will be merged into the
- * event payload before sending it to Sentry.
- *
- * Each Client creates an implicit scope when used directly. When using the
- * top-level exported functions, however, the shim maintains a stack of scopes
- * and injects them into the client.
- */
-export interface Scope {
-  breadcrumbs: Breadcrumb[];
-  context: Context;
-}
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -143,10 +131,6 @@ export interface Options {
  * possible so that even errors during startup can be recorded reliably:
  *
  * @example
- * import { create } from '@sentry/node';
- * create({ dsn: '__DSN__' });
- *
- * @example
  * import { captureMessage } from '@sentry/node';
  * captureMessage('Custom message');
  */
@@ -207,16 +191,8 @@ export interface Client<O extends Options = Options> {
   /** Returns the current options. */
   getOptions(): O;
 
-  /**
-   * Updates context information (user, tags, extras) for future events.
-   *
-   * @param context A partial context object to merge into current context.
-   * @param scope An optional scope to store this the context in.
-   */
-  setContext(context: Context, scope: Scope): void;
-
-  /** Returns the inital scope for the shim. */
-  getInitialScope(): Scope;
+  /** Returns a new internal scope used by the shim to handle state. */
+  createScope(): Scope;
 }
 
 /**
@@ -264,27 +240,17 @@ export interface Backend {
    * simply return `true`. It can either be synchronous or asynchronous.
    *
    * @param breadcrumb The breadcrumb to store.
-   * @param scope The scope instance currently managed by the client.
    * @returns True if the breadcrumb should be merged by the client.
    */
-  storeBreadcrumb(
-    breadcrumb: Breadcrumb,
-    scope: Scope,
-  ): boolean | Promise<boolean>;
+  storeBreadcrumb(breadcrumb: Breadcrumb): boolean | Promise<boolean>;
 
   /**
-   * Receives a context and merges it in a platform-dependent way.
+   * Receives the whole scope and stores it in a platform-dependent way.
    *
-   * This function is invoked by the client before merging the context into
-   * the scope. Return `false` to prevent this context from being merged. This
-   * should be done for custom context management in the backend.
+   * This function is invoked by the scope after the scope is configured.
+   * This should be done for custom context management in the backend.
    *
-   * In most cases, this method does not have to perform any action and can
-   * simply return `true`. It can either be synchronous or asynchronous.
-   *
-   * @param context The context to store.
-   * @param scope The scope instance currently managed by the client.
-   * @returns True if the breadcrumb should be merged by the client.
+   * @param scope The scope to store.
    */
-  storeContext(context: Context, scope: Scope): boolean | Promise<boolean>;
+  storeScope(scope: Scope): void;
 }

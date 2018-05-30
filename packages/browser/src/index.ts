@@ -1,6 +1,5 @@
 export {
   Breadcrumb,
-  Context,
   Request,
   SdkInfo,
   SentryEvent,
@@ -17,13 +16,11 @@ export {
   captureMessage,
   captureException,
   captureEvent,
-  clearScope,
+  configureScope,
   popScope,
   pushScope,
-  setUserContext,
-  setTagsContext,
-  setExtraContext,
   withScope,
+  Scope,
 } from '@sentry/shim';
 
 export { BrowserBackend, BrowserOptions } from './backend';

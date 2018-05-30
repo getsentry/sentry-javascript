@@ -1,5 +1,6 @@
-import { Breadcrumb, SentryEvent, User } from '@sentry/types';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getGlobalRegistry } from './global';
+import { Scope } from './interfaces';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
@@ -124,11 +125,6 @@ export function withScope(arg1: any, arg2?: any): void {
   getOrCreateShim().withScope(arg1, arg2);
 }
 
-/** Clears the current scope and resets it to the initalScope. */
-export function clearScope(): void {
-  getOrCreateShim().clearScope();
-}
-
 /** Returns the current client, if any. */
 export function getCurrentClient(): any | undefined {
   return getOrCreateShim().getCurrentClient();
@@ -142,7 +138,7 @@ export function bindClient(client: any): void {
   const shim = getOrCreateShim();
   const top = shim.getStackTop();
   top.client = client;
-  top.scope = shim.getInitialScope(client);
+  top.scope = shim.createScope(client);
 }
 
 /**
@@ -197,27 +193,16 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 }
 
 /**
- * Updates user context information for future events.
- * @param extra User context object to merge into current context.
+ * Callback to set context information onto the scope.
+ *
+ * @param callback Callback function that receives Scope.
  */
-export function setUserContext(user: User): void {
-  invokeClient('setContext', { user });
-}
-
-/**
- * Updates tags context information for future events.
- * @param extra Tags context object to merge into current context.
- */
-export function setTagsContext(tags: { [key: string]: string }): void {
-  invokeClient('setContext', { tags });
-}
-
-/**
- * Updates extra context information for future events.
- * @param extra Extra context object to merge into current context.
- */
-export function setExtraContext(extra: object): void {
-  invokeClient('setContext', { extra });
+export function configureScope(callback: (scope: Scope) => void): void {
+  const top = getOrCreateShim().getStackTop();
+  if (top.client && top.scope) {
+    // TODO: freeze flag
+    callback(top.scope);
+  }
 }
 
 /**

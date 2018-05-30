@@ -128,8 +128,8 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public storeContext(): boolean {
-    return true;
+  public storeScope(): void {
+    // Noop
   }
 
   /**
