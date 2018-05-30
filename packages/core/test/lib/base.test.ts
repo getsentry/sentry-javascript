@@ -1,5 +1,6 @@
-import { Breadcrumb, Scope, SentryEvent } from '@sentry/shim';
+import { Breadcrumb, SentryEvent } from '@sentry/shim';
 import { SentryError } from '../../src/error';
+import { Scope } from '../../src/scope';
 import { TestBackend } from '../mocks/backend';
 import { TEST_SDK, TestClient } from '../mocks/client';
 
@@ -247,24 +248,20 @@ describe('BaseClient', () => {
 
     test('adds context data', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope([], {
-        extra: { a: 'a' },
-        tags: { b: 'b' },
-        user: { id: 'user' },
-      });
+      const scope = new Scope([], { id: 'user' }, { a: 'a' }, { b: 'b' });
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
-        extra: { a: 'a' },
+        extra: { b: 'b' },
         message: 'message',
         sdk: TEST_SDK,
-        tags: { b: 'b' },
+        tags: { a: 'a' },
         user: { id: 'user' },
       });
     });
 
     test('adds fingerprint', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope([], {}, ['abcd']);
+      const scope = new Scope([], {}, {}, {}, ['abcd']);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         fingerprint: ['abcd'],

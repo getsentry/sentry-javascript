@@ -1,6 +1,5 @@
 export {
   Breadcrumb,
-  Context,
   Request,
   SdkInfo,
   SentryEvent,

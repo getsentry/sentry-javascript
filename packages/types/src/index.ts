@@ -35,13 +35,6 @@ export interface User {
 }
 
 /** TODO */
-export interface Context {
-  tags?: { [key: string]: string };
-  extra?: object;
-  user?: User;
-}
-
-/** TODO */
 export interface SdkInfo {
   version?: string;
   name?: string;
@@ -100,7 +93,7 @@ export interface Request {
 }
 
 /** TODO */
-export interface SentryEvent extends Context {
+export interface SentryEvent {
   event_id?: string;
   message?: string;
   timestamp?: number;
@@ -119,4 +112,7 @@ export interface SentryEvent extends Context {
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: { [key: string]: object };
+  tags?: { [key: string]: string };
+  extra?: { [key: string]: object };
+  user?: User;
 }

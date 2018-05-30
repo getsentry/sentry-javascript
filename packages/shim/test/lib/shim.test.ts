@@ -56,70 +56,65 @@ describe('Shim', () => {
 
   describe('configureScope', () => {
     test('User Context', () => {
-      const client = {
-        scopeChanged: jest.fn(),
-      };
+      const client = new TestClient({});
       pushScope(client);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
-        user: { id: '1234' },
+      expect(global.__SENTRY__.stack[1].scope.user).toEqual({
+        id: '1234',
       });
       popScope();
     });
 
     test('Extra Context', () => {
-      const client = { scopeChanged: jest.fn() };
+      const client = new TestClient({});
       pushScope(client);
       configureScope((scope: Scope) => {
-        scope.setExtra({ id: '1234' });
+        scope.setExtra('id', '1234');
       });
-      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
-        extra: { id: '1234' },
+      expect(global.__SENTRY__.stack[1].scope.extra).toEqual({
+        id: '1234',
       });
       popScope();
     });
 
     test('Tags Context', () => {
-      const client = {
-        scopeChanged: jest.fn(),
-      };
+      const client = new TestClient({});
       pushScope(client);
       configureScope((scope: Scope) => {
-        scope.setTags({ id: '1234' });
+        scope.setTag('id', '1234');
       });
-      expect(client.scopeChanged.mock.calls[0][0].context).toEqual({
-        tags: { id: '1234' },
+      expect(global.__SENTRY__.stack[1].scope.tags).toEqual({
+        id: '1234',
       });
       popScope();
     });
 
     test('Fingerprint', () => {
-      init({});
+      const client = new TestClient({});
+      pushScope(client);
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
-      expect(global.__SENTRY__.stack[0].scope.fingerprint).toEqual(['abcd']);
+      expect(global.__SENTRY__.stack[1].scope.fingerprint).toEqual(['abcd']);
     });
   });
 
   test('Clear Scope', () => {
-    const client = {
-      scopeChanged: jest.fn(),
-    };
+    const client = new TestClient({});
     withScope(client, () => {
       expect(global.__SENTRY__.stack.length).toBe(2);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(global.__SENTRY__.stack[1].scope.context).toEqual({
-        user: { id: '1234' },
+      expect(global.__SENTRY__.stack[1].scope.user).toEqual({
+        id: '1234',
       });
       configureScope((scope: Scope) => {
         scope.clear();
       });
-      expect(global.__SENTRY__.stack[1].scope.context).toEqual({});
+      expect(global.__SENTRY__.stack[1].scope.user).toBeUndefined();
     });
   });
 

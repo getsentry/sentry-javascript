@@ -191,12 +191,8 @@ export interface Client<O extends Options = Options> {
   /** Returns the current options. */
   getOptions(): O;
 
-  /**
-   * Will be called from the scope after configureScope is finished.
-   *
-   * @param scope Scope
-   */
-  scopeChanged(scope: Scope): void;
+  /** Returns a new internal scope used by the shim to handle state. */
+  createScope(): Scope;
 }
 
 /**

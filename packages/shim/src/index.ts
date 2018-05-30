@@ -1,6 +1,5 @@
 export {
   Breadcrumb,
-  Context,
   Request,
   SdkInfo,
   SentryEvent,
@@ -24,4 +23,4 @@ export {
   pushScope,
   withScope,
 } from './sdk';
-export { Scope } from './scope';
+export { Scope } from './interfaces';

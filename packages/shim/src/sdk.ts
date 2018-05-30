@@ -1,6 +1,6 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getGlobalRegistry } from './global';
-import { Scope } from './scope';
+import { Scope } from './interfaces';
 import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
@@ -198,9 +198,9 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  */
 export function configureScope(callback: (scope: Scope) => void): void {
   const top = getOrCreateShim().getStackTop();
-  callback(top.scope);
   if (top.client) {
-    top.scope._notifyClient(top.client);
+    // TODO: freeze flag
+    callback(top.scope);
   }
 }
 

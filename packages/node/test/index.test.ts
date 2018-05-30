@@ -27,47 +27,47 @@ import {
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
+declare var global: any;
+
 describe('SentryNode', () => {
   beforeAll(() => {
     init({ dsn });
   });
+
   beforeEach(() => {
     pushScope();
   });
 
+  afterEach(() => {
+    popScope();
+  });
+
   describe('getContext() / setContext()', () => {
-    let s: jest.SpyInstance;
-
-    beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'scopeChanged');
-    });
-
-    afterEach(() => {
-      s.mockRestore();
-    });
-
     test('store/load extra', async () => {
       configureScope((scope: Scope) => {
-        scope.setExtra({ abc: { def: [1] } });
+        scope.setExtra('abc', { def: [1] });
       });
-      const context = (s.mock.calls[0][0] as Scope).context;
-      expect(context).toEqual({ extra: { abc: { def: [1] } } });
+      expect(global.__SENTRY__.stack[1].scope.extra).toEqual({
+        abc: { def: [1] },
+      });
     });
 
     test('store/load tags', async () => {
       configureScope((scope: Scope) => {
-        scope.setTags({ abc: 'def' });
+        scope.setTag('abc', 'def');
       });
-      const context = (s.mock.calls[0][0] as Scope).context;
-      expect(context).toEqual({ tags: { abc: 'def' } });
+      expect(global.__SENTRY__.stack[1].scope.tags).toEqual({
+        abc: 'def',
+      });
     });
 
     test('store/load user', async () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      const context = (s.mock.calls[0][0] as Scope).context;
-      expect(context).toEqual({ user: { id: 'def' } });
+      expect(global.__SENTRY__.stack[1].scope.user).toEqual({
+        id: 'def',
+      });
     });
   });
 
@@ -139,7 +139,7 @@ describe('SentryNode', () => {
         }),
       );
       configureScope((scope: Scope) => {
-        scope.setTags({ test: '1' });
+        scope.setTag('test', '1');
       });
       try {
         throw new Error('test');

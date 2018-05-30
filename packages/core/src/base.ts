@@ -1,7 +1,7 @@
-import { Scope } from '@sentry/shim';
 import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
+import { Scope } from './scope';
 import { SendStatus } from './status';
 
 /**
@@ -164,8 +164,9 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       : mergedBreadcrumb;
 
     if (await this.getBackend().storeBreadcrumb(finalBreadcrumb)) {
-      scope.breadcrumbs = [...scope.breadcrumbs, finalBreadcrumb].slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
+      scope.addBreadcrumb(
+        finalBreadcrumb,
+        Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
       );
     }
 
@@ -191,8 +192,12 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public scopeChanged(scope: Scope): void {
-    this.getBackend().storeScope(scope);
+  public createScope(): Scope {
+    const newScope = new Scope();
+    newScope.setOnChange((scope: Scope) => {
+      this.getBackend().storeScope(scope);
+    });
+    return newScope;
   }
 
   /** Returns the current used SDK version and name. */
@@ -240,14 +245,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    const breadcrumbs = scope.breadcrumbs;
-    if (breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
-      prepared.breadcrumbs = breadcrumbs.slice(
-        -Math.max(0, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS)),
-      );
-    }
-
-    scope.applyToEvent(prepared);
+    scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
 
     return prepared;
   }

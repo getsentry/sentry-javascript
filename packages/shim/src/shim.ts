@@ -1,7 +1,6 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
 import { Layer } from './interfaces';
-import { Scope } from './scope';
 
 /**
  * API compatibility version of this shim.
@@ -20,7 +19,7 @@ export class Shim {
   public constructor(public readonly version: number = API_VERSION) {
     const stack = getGlobalStack();
     if (stack.length === 0) {
-      stack.push({ scope: new Scope(), type: 'process' });
+      stack.push({ scope: this.createScope(), type: 'process' });
     }
   }
 
@@ -42,7 +41,7 @@ export class Shim {
     const usedClient = client || this.getCurrentClient();
     this.getStack().push({
       client: usedClient,
-      scope: new Scope(),
+      scope: this.createScope(usedClient),
       type: 'local',
     });
   }
@@ -107,9 +106,27 @@ export class Shim {
 
     if (stack.length === 0) {
       const client = this.getCurrentClient();
-      stack.push({ client, scope: new Scope(), type: 'domain' });
+      stack.push({
+        client,
+        scope: this.createScope(client),
+        type: 'domain',
+      });
     }
 
     return stack[stack.length - 1];
+  }
+
+  /**
+   * Obtains a new scope instance from the client.
+   * TODO
+   * @param client An SDK client that implements `getInitialScope`.
+   * @returns The scope instance or an empty object on error.
+   */
+  public createScope(client?: any): any {
+    try {
+      return client && client.createScope();
+    } catch {
+      return {};
+    }
   }
 }
