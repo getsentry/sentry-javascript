@@ -1626,18 +1626,14 @@ Raven.prototype = {
 
   _handleOnErrorStackInfo: function(stackInfo, options) {
     options = options || {};
+    options.mechanism = options.mechanism || {
+      type: 'onerror',
+      handled: false
+    };
 
     // if we are intentionally ignoring errors via onerror, bail out
     if (!this._ignoreOnError) {
-      this._handleStackInfo(
-        stackInfo,
-        objectMerge(options, {
-          mechanism: options.mechanism || {
-            type: 'onerror',
-            handled: false
-          }
-        })
-      );
+      this._handleStackInfo(stackInfo, options);
     }
   },
 
@@ -1769,7 +1765,6 @@ Raven.prototype = {
             }
           ]
         },
-        // TODO: Change `culprit` to `transaction`
         culprit: fileurl
       },
       options
@@ -1898,7 +1893,6 @@ Raven.prototype = {
     if (
       !last ||
       current.message !== last.message || // defined for captureMessage
-      // TODO: Change `culprit` to `transaction`
       current.culprit !== last.culprit // defined for captureException/onerror
     )
       return false;
