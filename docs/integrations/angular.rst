@@ -62,6 +62,7 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
     import { BrowserModule } from '@angular/platform-browser';
     import { NgModule, ErrorHandler } from '@angular/core';
     import { AppComponent } from './app.component';
+    import { environment } from '../environments/environment';
 
     Raven
       .config('___PUBLIC_DSN___')
@@ -70,6 +71,9 @@ Then, in your main module file (where ``@NgModule`` is called, e.g. app.module.t
     export class RavenErrorHandler implements ErrorHandler {
       handleError(err:any) : void {
         Raven.captureException(err.originalError || err);
+        if(!environment.production) {
+          super.handleError(err);
+        }
       }
     }
 
