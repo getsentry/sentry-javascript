@@ -1314,6 +1314,17 @@ Raven.prototype = {
                   // touching statusCode in some platforms throws
                   // an exception
                   xhr.__raven_xhr.status_code = xhr.status;
+                  // inject response header parameters
+                  if (isFunction(self._globalOptions.injectResponseHeader)) {
+                    var injections = self._globalOptions.injectResponseHeader(xhr.getAllResponseHeaders());
+                    if (injections) {
+                      for (var i in injections) {
+                        if (injections.hasOwnProperty(i)) {
+                          xhr.__raven_xhr[i] = injections[i];
+                        }
+                      }
+                    }
+                  }
                 } catch (e) {
                   /* do nothing */
                 }
@@ -1400,6 +1411,17 @@ Raven.prototype = {
               .apply(this, args)
               .then(function(response) {
                 fetchData.status_code = response.status;
+                // inject response header parameters
+                if (isFunction(self._globalOptions.injectResponseHeader)) {
+                  var injections = self._globalOptions.injectResponseHeader(response.headers);
+                  if (injections) {
+                    for (var i in injections) {
+                      if (injections.hasOwnProperty(i)) {
+                        fetchData[i] = injections[i];
+                      }
+                    }
+                  }
+                }
 
                 self.captureBreadcrumb({
                   type: 'http',
