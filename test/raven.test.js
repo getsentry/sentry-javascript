@@ -633,7 +633,7 @@ describe('globals', function() {
         'http://example.com/override.js',
         10,
         frames.slice(0),
-        {}
+        {mechanism: {}}
       );
       assert.deepEqual(Raven._send.lastCall.args, [
         {
@@ -646,13 +646,17 @@ describe('globals', function() {
                   frames: framesFlipped
                 }
               }
-            ]
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           transaction: 'http://example.com/file1.js'
         }
       ]);
 
-      Raven._processException('Error', 'lol', '', 10, frames.slice(0), {});
+      Raven._processException('Error', 'lol', '', 10, frames.slice(0), {mechanism: {}});
       assert.deepEqual(Raven._send.lastCall.args, [
         {
           exception: {
@@ -664,14 +668,19 @@ describe('globals', function() {
                   frames: framesFlipped
                 }
               }
-            ]
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           transaction: 'http://example.com/file1.js'
         }
       ]);
 
       Raven._processException('Error', 'lol', '', 10, frames.slice(0), {
-        extra: 'awesome'
+        extra: 'awesome',
+        mechanism: {}
       });
       assert.deepEqual(Raven._send.lastCall.args, [
         {
@@ -684,7 +693,11 @@ describe('globals', function() {
                   frames: framesFlipped
                 }
               }
-            ]
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           transaction: 'http://example.com/file1.js',
           extra: 'awesome'
@@ -695,70 +708,8 @@ describe('globals', function() {
     it('should send a proper payload without frames', function() {
       this.sinon.stub(Raven, '_send');
 
-      Raven._processException(
-        'Error',
-        'lol',
-        'http://example.com/override.js',
-        10,
-        [],
-        {}
-      );
-      assert.deepEqual(Raven._send.lastCall.args, [
-        {
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'lol',
-                stacktrace: {
-                  frames: [
-                    {
-                      filename: 'http://example.com/override.js',
-                      lineno: 10,
-                      in_app: true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          transaction: 'http://example.com/override.js'
-        }
-      ]);
-
-      Raven._processException(
-        'Error',
-        'lol',
-        'http://example.com/override.js',
-        10,
-        [],
-        {}
-      );
-      assert.deepEqual(Raven._send.lastCall.args, [
-        {
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'lol',
-                stacktrace: {
-                  frames: [
-                    {
-                      filename: 'http://example.com/override.js',
-                      lineno: 10,
-                      in_app: true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          transaction: 'http://example.com/override.js'
-        }
-      ]);
-
       Raven._processException('Error', 'lol', 'http://example.com/override.js', 10, [], {
-        extra: 'awesome'
+        mechanism: {}
       });
       assert.deepEqual(Raven._send.lastCall.args, [
         {
@@ -777,7 +728,72 @@ describe('globals', function() {
                   ]
                 }
               }
-            ]
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
+          },
+          transaction: 'http://example.com/override.js'
+        }
+      ]);
+
+      Raven._processException('Error', 'lol', 'http://example.com/override.js', 10, [], {
+        mechanism: {}
+      });
+      assert.deepEqual(Raven._send.lastCall.args, [
+        {
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'lol',
+                stacktrace: {
+                  frames: [
+                    {
+                      filename: 'http://example.com/override.js',
+                      lineno: 10,
+                      in_app: true
+                    }
+                  ]
+                }
+              }
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
+          },
+          transaction: 'http://example.com/override.js'
+        }
+      ]);
+
+      Raven._processException('Error', 'lol', 'http://example.com/override.js', 10, [], {
+        extra: 'awesome',
+        mechanism: {}
+      });
+      assert.deepEqual(Raven._send.lastCall.args, [
+        {
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'lol',
+                stacktrace: {
+                  frames: [
+                    {
+                      filename: 'http://example.com/override.js',
+                      lineno: 10,
+                      in_app: true
+                    }
+                  ]
+                }
+              }
+            ],
+            mechanism: {
+              type: 'generic',
+              handled: true
+            }
           },
           transaction: 'http://example.com/override.js',
           extra: 'awesome'
@@ -1980,7 +1996,16 @@ describe('globals', function() {
       Raven._handleOnErrorStackInfo(stackInfo, {foo: 'bar'});
 
       assert.equal(Raven._handleStackInfo.callCount, 1);
-      assert.deepEqual(Raven._handleStackInfo.lastCall.args, [stackInfo, {foo: 'bar'}]);
+      assert.deepEqual(Raven._handleStackInfo.lastCall.args, [
+        stackInfo,
+        {
+          foo: 'bar',
+          mechanism: {
+            type: 'onerror',
+            handled: false
+          }
+        }
+      ]);
     });
   });
 
@@ -2655,12 +2680,7 @@ describe('Raven (public API)', function() {
         Raven.context({foo: 'bar'}, broken);
       }, error);
       assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [
-        error,
-        {
-          foo: 'bar'
-        }
-      ]);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, {foo: 'bar'}]);
     });
 
     it('should capture the exception without options', function() {
@@ -2673,7 +2693,7 @@ describe('Raven (public API)', function() {
         Raven.context(broken);
       }, error);
       assert.isTrue(Raven.captureException.called);
-      assert.deepEqual(Raven.captureException.lastCall.args, [error, undefined]);
+      assert.deepEqual(Raven.captureException.lastCall.args, [error, {}]);
     });
 
     it('should execute the callback without arguments', function() {
