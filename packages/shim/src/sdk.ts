@@ -138,6 +138,7 @@ export function bindClient(client: any): void {
   const shim = getOrCreateShim();
   const top = shim.getStackTop();
   top.client = client;
+  top.scope = shim.createScope(client);
 }
 
 /**
@@ -198,7 +199,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  */
 export function configureScope(callback: (scope: Scope) => void): void {
   const top = getOrCreateShim().getStackTop();
-  if (top.client) {
+  if (top.client && top.scope) {
     // TODO: freeze flag
     callback(top.scope);
   }

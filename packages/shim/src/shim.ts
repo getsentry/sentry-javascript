@@ -1,6 +1,6 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { Layer } from './interfaces';
+import { Layer, Scope } from './interfaces';
 
 /**
  * API compatibility version of this shim.
@@ -118,15 +118,15 @@ export class Shim {
 
   /**
    * Obtains a new scope instance from the client.
-   * TODO
-   * @param client An SDK client that implements `getInitialScope`.
+   *
+   * @param client A SDK client that implements `createScope`.
    * @returns The scope instance or an empty object on error.
    */
-  public createScope(client?: any): any {
+  public createScope(client?: any): Scope | undefined {
     try {
       return client && client.createScope();
     } catch {
-      return {};
+      return undefined;
     }
   }
 }

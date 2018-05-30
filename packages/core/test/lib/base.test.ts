@@ -67,24 +67,27 @@ describe('BaseClient', () => {
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
     test('adds a breadcrumb', async () => {
       const client = new TestClient({});
-      const scope = new Scope([{ message: 'hello' }]);
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'hello' }, 100);
       await client.addBreadcrumb({ message: 'world' }, scope);
-      expect(scope.breadcrumbs[1].message).toBe('world');
+      expect(scope.getBreadcrumbs()[1].message).toBe('world');
     });
 
     test('adds a timestamp to new breadcrumbs', async () => {
       const client = new TestClient({});
-      const scope = new Scope([{ message: 'hello' }]);
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'hello' }, 100);
       await client.addBreadcrumb({ message: 'world' }, scope);
-      expect(scope.breadcrumbs[1].timestamp).toBeGreaterThan(1);
+      expect(scope.getBreadcrumbs()[1].timestamp).toBeGreaterThan(1);
     });
 
     test('discards breadcrumbs beyond maxBreadcrumbs', async () => {
       const client = new TestClient({ maxBreadcrumbs: 1 });
-      const scope = new Scope([{ message: 'hello' }]);
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'hello' }, 100);
       await client.addBreadcrumb({ message: 'world' }, scope);
-      expect(scope.breadcrumbs.length).toBe(1);
-      expect(scope.breadcrumbs[0].message).toBe('world');
+      expect(scope.getBreadcrumbs().length).toBe(1);
+      expect(scope.getBreadcrumbs()[0].message).toBe('world');
     });
 
     test('exits early when breadcrumbs are deactivated', async () => {
@@ -103,7 +106,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ shouldAddBreadcrumb });
       const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
-      expect(scope.breadcrumbs.length).toBe(1);
+      expect(scope.getBreadcrumbs().length).toBe(1);
     });
 
     test('calls shouldAddBreadcrumb and discards the breadcrumb', async () => {
@@ -111,7 +114,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ shouldAddBreadcrumb });
       const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
-      expect(scope.breadcrumbs.length).toBe(0);
+      expect(scope.getBreadcrumbs().length).toBe(0);
     });
 
     test('calls beforeBreadcrumb and uses the new one', async () => {
@@ -119,7 +122,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, scope);
-      expect(scope.breadcrumbs[0].message).toBe('changed');
+      expect(scope.getBreadcrumbs()[0].message).toBe('changed');
     });
 
     test('calls afterBreadcrumb', async () => {
@@ -138,7 +141,7 @@ describe('BaseClient', () => {
         client.addBreadcrumb({ message: 'hello' }, scope),
         client.addBreadcrumb({ message: 'world' }, scope),
       ]);
-      expect(scope.breadcrumbs).toHaveLength(2);
+      expect(scope.getBreadcrumbs()).toHaveLength(2);
     });
   });
 
@@ -226,7 +229,8 @@ describe('BaseClient', () => {
 
     test('adds breadcrumbs', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope([{ message: 'breadcrumb' }]);
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: 'breadcrumb' }],
@@ -237,7 +241,9 @@ describe('BaseClient', () => {
 
     test('limits previously saved breadcrumbs', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
-      const scope = new Scope([{ message: '1' }, { message: '2' }]);
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: '1' }, 100);
+      scope.addBreadcrumb({ message: '2' }, 200);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: '2' }],
@@ -248,7 +254,10 @@ describe('BaseClient', () => {
 
     test('adds context data', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope([], { id: 'user' }, { a: 'a' }, { b: 'b' });
+      const scope = new Scope();
+      scope.setExtra('b', 'b');
+      scope.setTag('a', 'a');
+      scope.setUser({ id: 'user' });
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         extra: { b: 'b' },
@@ -261,7 +270,8 @@ describe('BaseClient', () => {
 
     test('adds fingerprint', async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      const scope = new Scope([], {}, {}, {}, ['abcd']);
+      const scope = new Scope();
+      scope.setFingerprint(['abcd']);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         fingerprint: ['abcd'],

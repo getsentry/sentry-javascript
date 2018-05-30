@@ -4,23 +4,38 @@ import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 /** An object to call setter functions on to enhance the event */
 export class Scope implements BaseScope {
   /**
-   * Create a new empty internal scope. This will not be exposed to the user.
-   *
-   * @param breadcrumbs
-   * @param user
-   * @param tags
-   * @param extra
-   * @param fingerprint
-   * @param scopeChanged
+   * Flag if notifiying is happening.
    */
-  public constructor(
-    public breadcrumbs: Breadcrumb[] = [],
-    public user: User = {},
-    public tags: { [key: string]: string } = {},
-    public extra: { [key: string]: any } = {},
-    public fingerprint?: string[],
-    private scopeChanged?: (scope: Scope) => void,
-  ) {}
+  private notifying: boolean;
+
+  /**
+   * Callback for client to receive scope changes.
+   */
+  private scopeChanged: (scope: Scope) => void = () => {
+    // noop
+  };
+
+  /** Array of breadcrumbs. */
+  private breadcrumbs: Breadcrumb[] = [];
+
+  /** User */
+  private user: User = {};
+
+  /** Tags */
+  private tags: { [key: string]: string } = {};
+
+  /** Extra */
+  private extra: { [key: string]: any } = {};
+
+  /** Fingerprint */
+  private fingerprint?: string[];
+
+  /**
+   * Create a new empty internal scope. This will not be exposed to the user.
+   */
+  public constructor() {
+    this.notifying = false;
+  }
 
   /**
    * Set internal on change listener.
@@ -33,8 +48,12 @@ export class Scope implements BaseScope {
    * This will be called on every set call.
    */
   private notifyListeners(): void {
-    if (this.scopeChanged) {
-      this.scopeChanged(this);
+    if (!this.notifying) {
+      this.notifying = true;
+      setTimeout(() => {
+        this.scopeChanged(this);
+        this.notifying = false;
+      }, 0);
     }
   }
 
@@ -74,13 +93,38 @@ export class Scope implements BaseScope {
     this.notifyListeners();
   }
 
+  /** Returns breadcrumbs. */
+  public getBreadcrumbs(): Breadcrumb[] {
+    return this.breadcrumbs;
+  }
+
+  /** Returns tags. */
+  public getTags(): { [key: string]: string } {
+    return this.tags;
+  }
+
+  /** Returns extra. */
+  public getExtra(): { [key: string]: any } {
+    return this.extra;
+  }
+
+  /** Returns extra. */
+  public getUser(): User {
+    return this.user;
+  }
+
+  /** Returns fingerprint. */
+  public getFingerprint(): string[] | undefined {
+    return this.fingerprint;
+  }
+
   /**
    * Sets the breadcrumbs in the scope
    * @param breadcrumbs
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, max: number): void {
+  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs: number): void {
     this.breadcrumbs = [...this.breadcrumbs, breadcrumb].slice(
-      -Math.max(0, max),
+      -Math.max(0, maxBreadcrumbs),
     );
     this.notifyListeners();
   }
@@ -100,7 +144,7 @@ export class Scope implements BaseScope {
    * Note that breadcrumbs will be added by the client.
    * @param event SentryEvent
    */
-  public applyToEvent(event: SentryEvent, max: number): void {
+  public applyToEvent(event: SentryEvent, maxBreadcrumbs: number): void {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -114,13 +158,12 @@ export class Scope implements BaseScope {
       event.fingerprint = this.fingerprint;
     }
     // We only want to set breadcrumbs in the event if there are none
-    if (
-      (event.breadcrumbs === undefined ||
-        event.breadcrumbs.values.length === 0) &&
-      this.breadcrumbs.length > 0 &&
-      max > 0
-    ) {
-      event.breadcrumbs = this.breadcrumbs.slice(-Math.max(0, max));
+    const hasNoBreadcrumbs =
+      !event.breadcrumbs ||
+      event.breadcrumbs.length === 0 ||
+      (event.breadcrumbs.values && event.breadcrumbs.values.length === 0);
+    if (hasNoBreadcrumbs && this.breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
+      event.breadcrumbs = this.breadcrumbs.slice(-Math.max(0, maxBreadcrumbs));
     }
   }
 }
