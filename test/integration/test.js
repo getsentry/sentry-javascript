@@ -44,7 +44,7 @@ function isEdge14() {
 }
 
 describe('integration', function() {
-  this.timeout(10000);
+  this.timeout(30000);
 
   beforeEach(function(done) {
     this.iframe = createIframe(done);
