@@ -41,7 +41,8 @@ export class Shim {
     const usedClient = client || this.getCurrentClient();
     // We want to clone the last scope and not create a new one
     const stack = this.getStack();
-    const parentScope = stack[stack.length - 1].scope;
+    const parentScope =
+      stack.length > 0 ? stack[stack.length - 1].scope : undefined;
     this.getStack().push({
       client: usedClient,
       scope: this.createScope(usedClient, parentScope),
