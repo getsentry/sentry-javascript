@@ -194,7 +194,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public createScope(parentScope?: Scope): Scope {
     const newScope = new Scope();
-      newScope.setParentScope(parentScope);
+    newScope.setParentScope(parentScope);
     newScope.setOnChange((scope: Scope) => {
       this.getBackend().storeScope(scope);
     });
