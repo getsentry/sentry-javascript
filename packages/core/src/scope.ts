@@ -62,7 +62,10 @@ export class Scope implements BaseScope {
    * @param user User context object to merge into current context.
    */
   public setUser(user: User): void {
-    this.user = user;
+    this.user = {
+      ...this.user,
+      ...user,
+    };
     this.notifyListeners();
   }
 
@@ -71,7 +74,10 @@ export class Scope implements BaseScope {
    * @param tags Tags context object to merge into current context.
    */
   public setTag(key: string, value: string): void {
-    this.tags[key] = value;
+    this.tags = {
+      ...this.tags,
+      [key]: value,
+    };
     this.notifyListeners();
   }
 
@@ -80,7 +86,10 @@ export class Scope implements BaseScope {
    * @param extra Extra context object to merge into current context.
    */
   public setExtra(key: string, extra: any): void {
-    this.extra[key] = extra;
+    this.extra = {
+      ...this.extra,
+      [key]: extra,
+    };
     this.notifyListeners();
   }
 
@@ -89,8 +98,16 @@ export class Scope implements BaseScope {
    * @param fingerprint
    */
   public setFingerprint(fingerprint: string[]): void {
-    this.fingerprint = fingerprint;
+    this.fingerprint = [...fingerprint];
     this.notifyListeners();
+  }
+
+  /**
+   * Inherit values from the parent scope.
+   * @param scope
+   */
+  public setParentScope(scope?: Scope): void {
+    Object.assign(this, scope);
   }
 
   /** Returns breadcrumbs. */

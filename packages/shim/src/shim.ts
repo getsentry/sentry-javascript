@@ -39,9 +39,12 @@ export class Shim {
    */
   public pushScope(client?: any): void {
     const usedClient = client || this.getCurrentClient();
+    // We want to clone the last scope and not create a new one
+    const stack = this.getStack();
+    const parentScope = stack[stack.length - 1].scope;
     this.getStack().push({
       client: usedClient,
-      scope: this.createScope(usedClient),
+      scope: this.createScope(usedClient, parentScope),
       type: 'local',
     });
   }
@@ -120,11 +123,12 @@ export class Shim {
    * Obtains a new scope instance from the client.
    *
    * @param client A SDK client that implements `createScope`.
+   * @param parentScope Optional parent scope to inherit from.
    * @returns The scope instance or an empty object on error.
    */
-  public createScope(client?: any): Scope | undefined {
+  public createScope(client?: any, parentScope?: Scope): Scope | undefined {
     try {
-      return client && client.createScope();
+      return client && client.createScope(parentScope);
     } catch {
       return undefined;
     }
