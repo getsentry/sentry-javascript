@@ -46,7 +46,7 @@ export interface NodeOptions extends Options {
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
   /** Creates a new Node backend instance. */
-  public constructor(private readonly options: NodeOptions) {}
+  public constructor(private readonly options: NodeOptions = {}) {}
 
   /**
    * @inheritDoc

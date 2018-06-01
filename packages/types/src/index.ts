@@ -116,3 +116,9 @@ export interface SentryEvent {
   extra?: { [key: string]: object };
   user?: User;
 }
+
+/** TODO */
+export interface Integration {
+  install(): void;
+  uninstall?(): void;
+}

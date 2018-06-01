@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/shim';
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent, Integration } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
 
@@ -29,6 +29,11 @@ export interface Options {
    * SDK will not send any data to Sentry.
    */
   dsn?: string;
+
+  /** TODO */
+  integrations?:
+    | Integration[]
+    | ((integrations: Integration[]) => Integration[]);
 
   /**
    * The release identifier used when uploading respective source maps. Specify
