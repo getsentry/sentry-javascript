@@ -17,7 +17,10 @@ export class ScopeMock implements Scope {
   }
 
   public setExtra(key: string, extra: any): void {
-    this.extra[key] = extra;
+    this.extra = {
+      ...this.extra,
+      [key]: extra,
+    };
   }
 
   public setFingerprint(fingerprint: string[]): void {
@@ -26,6 +29,8 @@ export class ScopeMock implements Scope {
 
   public clear(): void {
     this.user = undefined;
+    this.extra = {};
+    this.fingerprint = undefined;
   }
 }
 
