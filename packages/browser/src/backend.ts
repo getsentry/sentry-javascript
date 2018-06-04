@@ -79,7 +79,22 @@ export class BrowserBackend implements Backend {
       );
     }
 
-    Raven.config(dsn, this.options); //.install();
+    Raven.config(dsn, this.options);
+
+    // if (Raven._globalOptions.captureUnhandledRejections) {
+    //   Raven._attachPromiseRejectionHandler();
+    // }
+
+    // Raven._patchFunctionToString();
+
+    // if (Raven._globalOptions.instrument && Raven._globalOptions.instrument.tryCatch) {
+    //   Raven._instrumentTryCatch();
+    // }
+
+    // if (Raven._globalOptions.autoBreadcrumbs) Raven._instrumentBreadcrumbs();
+
+    // // Install all of the plugins
+    // Raven._drainPlugins();
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client

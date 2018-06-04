@@ -119,6 +119,7 @@ export interface SentryEvent {
 
 /** TODO */
 export interface Integration {
+  name: string;
   install(): void;
   uninstall?(): void;
 }

@@ -16,6 +16,7 @@ export interface RavenInternal {
   // tslint:disable-next-line:ban-types
   wrap(options: object, fn: Function): Function;
   _sendProcessedPayload: SendMethod;
+  _handleOnErrorStackInfo: Function;
   VERSION: string;
 }
 
