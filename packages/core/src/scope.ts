@@ -71,10 +71,7 @@ export class Scope implements BaseScope {
    * @param tags Tags context object to merge into current context.
    */
   public setTag(key: string, value: string): void {
-    this.tags = {
-      ...this.tags,
-      [key]: value,
-    };
+    this.tags = { ...this.tags, [key]: value };
     this.notifyListeners();
   }
 
@@ -83,10 +80,7 @@ export class Scope implements BaseScope {
    * @param extra Extra context object to merge into current context.
    */
   public setExtra(key: string, extra: any): void {
-    this.extra = {
-      ...this.extra,
-      [key]: extra,
-    };
+    this.extra = { ...this.extra, [key]: extra };
     this.notifyListeners();
   }
 
@@ -135,11 +129,13 @@ export class Scope implements BaseScope {
   /**
    * Sets the breadcrumbs in the scope
    * @param breadcrumbs
+   * @param maxBreadcrumbs
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs: number): void {
-    this.breadcrumbs = [...this.breadcrumbs, breadcrumb].slice(
-      -Math.max(0, maxBreadcrumbs),
-    );
+  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
+    this.breadcrumbs =
+      maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+        ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
+        : [...this.breadcrumbs, breadcrumb];
     this.notifyListeners();
   }
 
@@ -156,9 +152,10 @@ export class Scope implements BaseScope {
   /**
    * Applies the current context and fingerprint to the event.
    * Note that breadcrumbs will be added by the client.
-   * @param event SentryEvent
+   * @param event
+   * @param maxBreadcrumbs
    */
-  public applyToEvent(event: SentryEvent, maxBreadcrumbs: number): void {
+  public applyToEvent(event: SentryEvent, maxBreadcrumbs?: number): void {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -176,8 +173,11 @@ export class Scope implements BaseScope {
       !event.breadcrumbs ||
       event.breadcrumbs.length === 0 ||
       (event.breadcrumbs.values && event.breadcrumbs.values.length === 0);
-    if (hasNoBreadcrumbs && this.breadcrumbs.length > 0 && maxBreadcrumbs > 0) {
-      event.breadcrumbs = this.breadcrumbs.slice(-Math.max(0, maxBreadcrumbs));
+    if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
+      event.breadcrumbs =
+        maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+          ? this.breadcrumbs.slice(-maxBreadcrumbs)
+          : this.breadcrumbs;
     }
   }
 }

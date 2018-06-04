@@ -113,7 +113,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, scope: Scope): Promise<void> {
+  public async captureException(exception: any, scope?: Scope): Promise<void> {
     const event = await this.getBackend().eventFromException(exception);
     await this.captureEvent(event, scope);
   }
@@ -121,7 +121,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string, scope: Scope): Promise<void> {
+  public async captureMessage(message: string, scope?: Scope): Promise<void> {
     const event = await this.getBackend().eventFromMessage(message);
     await this.captureEvent(event, scope);
   }
@@ -129,9 +129,11 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, scope: Scope): Promise<void> {
-    await this.processEvent(event, scope, async finalEvent =>
-      this.getBackend().sendEvent(finalEvent),
+  public async captureEvent(event: SentryEvent, scope?: Scope): Promise<void> {
+    await this.processEvent(
+      event,
+      async finalEvent => this.getBackend().sendEvent(finalEvent),
+      scope,
     );
   }
 
@@ -140,7 +142,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public async addBreadcrumb(
     breadcrumb: Breadcrumb,
-    scope: Scope,
+    scope?: Scope,
   ): Promise<void> {
     const {
       shouldAddBreadcrumb,
@@ -163,7 +165,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       ? beforeBreadcrumb(mergedBreadcrumb)
       : mergedBreadcrumb;
 
-    if (await this.getBackend().storeBreadcrumb(finalBreadcrumb)) {
+    if ((await this.getBackend().storeBreadcrumb(finalBreadcrumb)) && scope) {
       scope.addBreadcrumb(
         finalBreadcrumb,
         Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
@@ -230,7 +232,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async prepareEvent(
     event: SentryEvent,
-    scope: Scope,
+    scope?: Scope,
   ): Promise<SentryEvent> {
     const {
       environment,
@@ -246,7 +248,9 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    if (scope) {
+      scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    }
 
     return prepared;
   }
@@ -264,14 +268,14 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    * was exceeded, the status will be {@link SendStatus.RateLimit}.
    *
    * @param event The event to send to Sentry.
-   * @param scope A scope containing event metadata.
    * @param send A function to actually send the event.
+   * @param scope A scope containing event metadata.
    * @returns A Promise that resolves with the event status.
    */
   protected async processEvent(
     event: SentryEvent,
-    scope: Scope,
     send: (finalEvent: SentryEvent) => Promise<number>,
+    scope?: Scope,
   ): Promise<SendStatus> {
     if (!this.isEnabled()) {
       return SendStatus.Skipped;
