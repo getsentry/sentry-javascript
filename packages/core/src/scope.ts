@@ -132,9 +132,10 @@ export class Scope implements BaseScope {
    * @param maxBreadcrumbs
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
-    this.breadcrumbs = maxBreadcrumbs
-      ? [...this.breadcrumbs, breadcrumb].slice(-Math.max(0, maxBreadcrumbs))
-      : [...this.breadcrumbs, breadcrumb];
+    this.breadcrumbs =
+      maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+        ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
+        : [...this.breadcrumbs, breadcrumb];
     this.notifyListeners();
   }
 
@@ -174,9 +175,9 @@ export class Scope implements BaseScope {
       (event.breadcrumbs.values && event.breadcrumbs.values.length === 0);
     if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
       event.breadcrumbs =
-        maxBreadcrumbs && maxBreadcrumbs > 0
-          ? this.breadcrumbs.slice(-Math.max(0, maxBreadcrumbs))
-          : this.breadcrumbs.slice();
+        maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+          ? this.breadcrumbs.slice(-maxBreadcrumbs)
+          : this.breadcrumbs;
     }
   }
 }
