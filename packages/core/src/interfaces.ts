@@ -191,7 +191,10 @@ export interface Client<O extends Options = Options> {
   /** Returns the current options. */
   getOptions(): O;
 
-  /** Returns a new internal scope used by the shim to handle state. */
+  /**
+   * Returns a new internal scope used by the shim to handle state.
+   * This also notifies the backend on scope changes {@link Backend.storeScope}
+   */
   createScope(): Scope;
 }
 
