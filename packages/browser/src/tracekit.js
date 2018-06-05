@@ -172,12 +172,8 @@ TraceKit.report = (function reportModuleWrapper() {
     var message = isErrorEvent(msg) ? msg.message : msg;
 
     if (lastExceptionStack) {
-      TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
-        lastExceptionStack,
-        url,
-        lineNo,
-        message,
-      );
+      // prettier-ignore
+      TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
       processLastException();
     } else if (exception && isError(exception)) {
       // non-string `exception` arg; attempt to extract stack trace
@@ -531,12 +527,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * @return {boolean} Whether or not the stack information was
    * augmented.
    */
-  function augmentStackTraceWithInitialElement(
-    stackInfo,
-    url,
-    lineNo,
-    message,
-  ) {
+  // prettier-ignore
+  function augmentStackTraceWithInitialElement(stackInfo, url, lineNo, message) {
     var initial = {
       url: url,
       line: lineNo,
@@ -601,12 +593,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         continue;
       }
 
-      item = {
-        url: null,
-        func: UNKNOWN_FUNCTION,
-        line: null,
-        column: null,
-      };
+      item = { url: null, func: UNKNOWN_FUNCTION, line: null, column: null };
 
       if (curr.name) {
         item.func = curr.name;
@@ -641,12 +628,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       url: getLocationHref(),
       stack: stack,
     };
-    augmentStackTraceWithInitialElement(
-      result,
-      ex.sourceURL || ex.fileName,
-      ex.line || ex.lineNumber,
-      ex.message || ex.description,
-    );
+    // prettier-ignore
+    augmentStackTraceWithInitialElement(result, ex.sourceURL || ex.fileName, ex.line || ex.lineNumber, ex.message || ex.description);
     return result;
   }
 
@@ -680,11 +663,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         throw e;
       }
     }
-    return {
-      name: ex.name,
-      message: ex.message,
-      url: getLocationHref(),
-    };
+    return { name: ex.name, message: ex.message, url: getLocationHref() };
   }
 
   computeStackTrace.augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;

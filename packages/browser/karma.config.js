@@ -18,6 +18,7 @@ module.exports = function(config) {
       tsconfig: 'tsconfig.json',
       bundlerOptions: {
         sourceMap: true,
+        transforms: [require('karma-typescript-es6-transform')()],
       },
       include: ['test/**/*.ts'],
       reports: {
