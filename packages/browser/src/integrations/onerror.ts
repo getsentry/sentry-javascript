@@ -12,22 +12,22 @@ export class OnError implements Integration {
   /**
    * @inheritDoc
    */
-  public handler: () => void = () => {
+  public handler(...args: any[]): void {
     // tslint:disable-next-line:no-unsafe-any
-    Raven._handleOnErrorStackInfo.bind(Raven);
-  };
+    Raven._handleOnErrorStackInfo.call(Raven, ...args);
+  }
   /**
    * @inheritDoc
    */
-  public install: () => void = () => {
+  public install(): void {
     // tslint:disable-next-line:no-unsafe-any
     TraceKit.report.subscribe(this.handler);
-  };
+  }
   /**
    * @inheritDoc
    */
-  public uninstall: () => void = () => {
+  public uninstall(): void {
     // tslint:disable-next-line:no-unsafe-any
     TraceKit.report.unsubscribe(this.handler);
-  };
+  }
 }

@@ -18,23 +18,21 @@ export class OnUnhandledRejection implements Integration {
   /**
    * @inheritDoc
    */
-  public handler: (event: PromiseRejectionEvent) => void = (
-    event: PromiseRejectionEvent,
-  ) => {
+  public handler(event: PromiseRejectionEvent): void {
     captureException(event.reason);
-  };
+  }
   /**
    * @inheritDoc
    */
-  public install: () => void = () => {
+  public install(): void {
     _window.addEventListener('unhandledrejection', this
       .handler as EventListener);
-  };
+  }
   /**
    * @inheritDoc
    */
-  public uninstall: () => void = () => {
+  public uninstall(): void {
     _window.removeEventListener('unhandledrejection', this
       .handler as EventListener);
-  };
+  }
 }
