@@ -18,10 +18,10 @@ export interface RavenInternal {
   _sendProcessedPayload: SendMethod;
   VERSION: string;
   // TODO: Remove once integrations are ported
-  _handleOnErrorStackInfo: Function;
-  _patchFunctionToString: Function;
-  _instrumentTryCatch: Function;
-  _instrumentBreadcrumbs: Function;
+  _handleOnErrorStackInfo(): void;
+  _patchFunctionToString(): void;
+  _instrumentTryCatch(): void;
+  _instrumentBreadcrumbs(): void;
 }
 
 /** Casted raven instance with access to internal functions. */

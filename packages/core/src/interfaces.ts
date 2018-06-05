@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/shim';
-import { Breadcrumb, SentryEvent, Integration } from '@sentry/types';
+import { Breadcrumb, Integration, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
 

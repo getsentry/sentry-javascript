@@ -40,10 +40,7 @@ export function initAndBind<F extends Client, O extends Options>(
   // Just in case someone will return non-array from a `itegrations` callback
   if (Array.isArray(integrations)) {
     integrations.forEach(integration => {
-      // Safety first
-      if (integration && typeof integration.install === 'function') {
-        integration.install();
-      }
+      integration.install();
     });
   }
 
