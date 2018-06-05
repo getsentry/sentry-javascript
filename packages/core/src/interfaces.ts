@@ -30,7 +30,11 @@ export interface Options {
    */
   dsn?: string;
 
-  /** TODO */
+  /**
+   * List of integrations that should be installed after SDK was initialized
+   * Accepts either a list of integrations or a function that receives
+   * default integrations and returns a new, updated list
+   */
   integrations?:
     | Integration[]
     | ((integrations: Integration[]) => Integration[]);
