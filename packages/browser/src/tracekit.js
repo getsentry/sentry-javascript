@@ -1,19 +1,4 @@
-function isError(wat) {
-  switch (Object.prototype.toString.call(wat)) {
-    case '[object Error]':
-      return true;
-    case '[object Exception]':
-      return true;
-    case '[object DOMException]':
-      return true;
-    default:
-      return wat instanceof Error;
-  }
-}
-
-function isErrorEvent(wat) {
-  return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
-}
+import { isError, isErrorEvent } from '@sentry/utils/dist/is';
 
 /*
  TraceKit - Cross brower stack traces

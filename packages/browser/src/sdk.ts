@@ -3,6 +3,7 @@ import { getCurrentClient as shimGetCurrentClient } from '@sentry/shim';
 import { Integration } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
+
 import { OnError, OnUnhandledRejection } from './integrations';
 
 const DEFAULT_INTEGRATIONS: Integration[] = [
