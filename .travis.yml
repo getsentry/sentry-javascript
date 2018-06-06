@@ -23,9 +23,9 @@ matrix:
         firefox: latest
         sauce_connect: true
       script: .travis/raven-js.sh
-    - env: NAME="packages/*/lint"
+    - env: NAME="packages/lint"
       install: true
       script: .travis/lint.sh
-    - env: NAME="packages/*/test"
+    - env: NAME="packages/test"
       install: true
       script: .travis/test.sh
