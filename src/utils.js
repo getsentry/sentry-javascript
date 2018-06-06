@@ -3,7 +3,11 @@ var stringify = require('../vendor/json-stringify-safe/stringify');
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 
 function isObject(what) {
   return typeof what === 'object' && what !== null;
@@ -416,6 +420,9 @@ function isSameStacktrace(stack1, stack2) {
 
   var frames1 = stack1.frames;
   var frames2 = stack2.frames;
+
+  // Exit early if stacktrace is malformed
+  if (frames1 === undefined || frames2 === undefined) return false;
 
   // Exit early if frame count differs
   if (frames1.length !== frames2.length) return false;
