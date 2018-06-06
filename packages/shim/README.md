@@ -18,7 +18,7 @@ having to bundle the entire SDK or being dependent on a specific platform.
 ## Usage
 
 To use the shim, you do not have to initialize an SDK. This should be handled by
-the user of your library. Instead, direcly use the exported functions of
+the user of your library. Instead, directly use the exported functions of
 `@sentry/shim` to add breadcrumbs or capture events:
 
 ```javascript
@@ -41,13 +41,16 @@ Sentry.captureEvent({
 });
 ```
 
-Note that while strictly possible, it is discouraged to interfer with the event
+Note that while strictly possible, it is discouraged to interfere with the event
 context. If for some reason your library needs to inject context information,
 beware that this might override the user's context values:
 
 ```javascript
 // Set user information, as well as tags and further extras
-Sentry.setExtraContext({ battery: 0.7 });
-Sentry.setTagsContext({ user_mode: 'admin' });
-Sentry.setUserContext({ id: '4711' });
+Sentry.configureScope(scope => {
+  scope.setExtra('battery', 0.7);
+  scope.setTag('user_mode', 'admin');
+  scope.setUser({ id: '4711' });
+  // scope.clear();
+});
 ```

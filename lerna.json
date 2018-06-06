@@ -4,6 +4,7 @@
   "packages": [
     "packages/*"
   ],
+  "ignore": "raven-js",
   "npmClient": "yarn",
   "useWorkspaces": true
 }

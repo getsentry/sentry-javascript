@@ -333,11 +333,11 @@ And set an ``Access-Control-Allow-Origin`` HTTP header on that file.
 Promises
 --------
 
-By default, Raven.js does not capture unhandled promise rejections.
+By default, Raven.js capture unhandled promise rejections as described in official ECMAScript 6 standard.
 
-Most Promise libraries have a global hook for capturing unhandled errors. You will need to
-manually hook into such an event handler and call ``Raven.captureException`` or ``Raven.captureMessage``
-directly.
+Most Promise libraries however, have a global hook for capturing unhandled errors. You may want to disable default behaviour
+by setting ``captureUnhandledRejections`` option to ``false`` and manually hook into such event handler
+and call ``Raven.captureException`` or ``Raven.captureMessage`` directly.
 
 For example, the `RSVP.js library
 <https://github.com/tildeio/rsvp.js/>`_ (used by Ember.js) allows you to bind an event handler to a `global error event
@@ -350,13 +350,8 @@ For example, the `RSVP.js library
     });
 
 `Bluebird
-<http://bluebirdjs.com/>`_ and other promise libraries report unhandled rejections to a global DOM event, ``unhandledrejection``:
-
-.. code-block:: javascript
-
-    window.onunhandledrejection = function(evt) {
-        Raven.captureException(evt.reason);
-    };
+<http://bluebirdjs.com/>`_ and other promise libraries report unhandled rejections to a global DOM event, ``unhandledrejection``.
+In this case, you don't need to do anything, we've already got you covered by with default ``captureUnhandledRejections: true`` setting.
 
 Please consult your promise library documentation on how to hook into its global unhandled rejection handler, if it exposes one.
 

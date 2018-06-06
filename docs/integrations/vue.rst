@@ -27,8 +27,7 @@ Example:
 .. sourcecode:: html
 
     <script src="https://cdn.jsdelivr.net/vue/2.0.0-rc/vue.min.js"></script>
-    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/vue/raven.min.js"
-        crossorigin="anonymous"></script>
+    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/vue/raven.min.js" crossorigin="anonymous"></script>
     <script>Raven.config('___PUBLIC_DSN___').install();</script>
 
 Note that this CDN build auto-initializes the Vue plugin.
@@ -45,6 +44,17 @@ npm
 
     $ npm install raven-js --save
 
+.. code-block:: html
+
+    <script src="/node_modules/vue/dist/vue.js"></script>
+    <script src="/node_modules/raven-js/dist/raven.js"></script>
+    <script src="/node_modules/raven-js/dist/plugins/vue.js"></script>
+    <script>
+      Raven
+        .config('___PUBLIC_DSN___')
+        .addPlugin(Raven.Plugins.Vue)
+        .install();
+    </script>
 
 Bower
 `````
@@ -52,6 +62,27 @@ Bower
 .. code-block:: sh
 
     $ bower install raven-js --save
+
+.. code-block:: html
+
+    <script src="/bower_components/vue/dist/vue.js"></script>
+    <script src="/bower_components/raven-js/dist/raven.js"></script>
+    <script src="/bower_components/raven-js/dist/plugins/vue.js"></script>
+    <script>
+      Raven
+        .config('___PUBLIC_DSN___')
+        .addPlugin(Raven.Plugins.Vue)
+        .install();
+    </script>
+
+These examples assume that Vue is exported globally as `window.Vue`. You can alternatively pass a reference to the `Vue` object directly as the second argument to `addPlugin`:
+
+.. code-block:: javascript
+
+  Raven.addPlugin(Raven.Plugins.Vue, Vue);
+
+Module loaders
+~~~~~~~~~~~~~~
 
 In your main application file, import and configure both Raven.js and the Raven.js Vue plugin as follows:
 

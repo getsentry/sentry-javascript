@@ -149,6 +149,21 @@ Those configuration options are documented below:
             sampleRate: 0.5 // send 50% of events, drop the other half
         }
 
+.. describe:: sanitizeKeys
+
+    An array of strings or regex patterns representing keys that should be scrubbed from the payload sent to Sentry.
+    We'll go through every field in the payload and mask the values with simple `********` string instead.
+    This will match *only* keys of the object, not the values.
+    Sentry also sanitize all events sent to it on the server-side, but this allows you to strip the payload before it gets to the server.
+
+
+    .. code-block:: javascript
+
+        {
+            sanitizeKeys: [/_token$/, /password/i, 'someHidiousKey']
+        }
+
+
 .. describe:: dataCallback
 
     A function that allows mutation of the data payload right before being
@@ -218,7 +233,7 @@ Those configuration options are documented below:
             'xhr': false,      // XMLHttpRequest
             'console': false,  // console logging
             'dom': true,       // DOM interactions, i.e. clicks/typing
-            'location': false  // url changes, including pushState/popState
+            'location': false, // url changes, including pushState/popState
             'sentry': true     // sentry events
         }
 
@@ -226,6 +241,11 @@ Those configuration options are documented below:
 
     By default, Raven captures as many as 100 breadcrumb entries. If you find this too noisy, you can reduce this
     number by setting `maxBreadcrumbs`. Note that this number cannot be set higher than the default of 100.
+
+.. describe:: captureUnhandledRejections
+
+    By default, Raven captures all unhandled promise rejections using standard ``unhandledrejection`` event.
+    If you want to disable this behaviour, set this option to ``false``.
 
 .. describe:: transport
 

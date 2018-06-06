@@ -17,22 +17,15 @@ before_install:
 matrix:
   include:
     - env: NAME="raven-js"
+      install: true
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script:
-        - npm run test && if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then npm run test:ci; else exit 0; fi
-    - env: NAME="@sentry/core"
+      script: .travis/raven-js.sh
+    - env: NAME="packages/*/lint"
       install: true
-      script:
-      - cd packages/core && yarn install && yarn test
-    - env: NAME="@sentry/browser"
+      script: .travis/lint.sh
+    - env: NAME="packages/*/test"
       install: true
-      script:
-      - yarn link
-      - cd packages/core && yarn link && yarn install && yarn dist
-      - cd ../browser
-      - yarn link "@sentry/core"
-      - yarn link "raven-js"
-      - yarn install && yarn test
+      script: .travis/test.sh
