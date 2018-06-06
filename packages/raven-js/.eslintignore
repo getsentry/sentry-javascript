@@ -1,0 +1,7 @@
+build/
+dist/
+example/
+vendor/
+test/
+scripts/
+plugins/
