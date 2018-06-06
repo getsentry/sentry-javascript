@@ -25,6 +25,10 @@ export interface RavenInternal {
   _instrumentBreadcrumbs(): void;
   _restoreBuiltIns(): void;
   _restoreConsole(): void;
+  _isRavenInstalled: boolean;
+  _globalOptions: {
+    stackTraceLimit: number;
+  };
 }
 
 /** Casted raven instance with access to internal functions. */

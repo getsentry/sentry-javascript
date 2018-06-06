@@ -81,6 +81,12 @@ export class BrowserBackend implements Backend {
 
     Raven.config(dsn, this.options);
 
+    // We need to leave it here for now, as we are skipping `install` call,
+    // due to integrations migration
+    // TODO: Remove it once we fully migrate our code
+    Raven._isRavenInstalled = true;
+    Error.stackTraceLimit = Raven._globalOptions.stackTraceLimit;
+
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client
     // first, before actually capturing them.
