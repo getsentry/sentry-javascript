@@ -38,9 +38,12 @@ have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras
-Sentry.setExtraContext({ battery: 0.7 });
-Sentry.setTagsContext({ user_mode: 'admin' });
-Sentry.setUserContext({ id: '4711' });
+Sentry.configureScope(scope => {
+  scope.setExtra('battery', 0.7);
+  scope.setTag('user_mode', 'admin');
+  scope.setUser({ id: '4711' });
+  // scope.clear();
+});
 
 // Add a breadcrumb for future events
 Sentry.addBreadcrumb({
