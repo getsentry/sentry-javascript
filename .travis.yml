@@ -23,16 +23,9 @@ matrix:
         firefox: latest
         sauce_connect: true
       script: .travis/raven-js.sh
-    - env: NAME="@sentry/core"
+    - env: NAME="packages/*/lint"
       install: true
-      script:
-      - cd packages/core && yarn install && yarn test
-    - env: NAME="@sentry/browser"
+      script: .travis/lint.sh
+    - env: NAME="packages/*/test"
       install: true
-      script:
-      - yarn link
-      - cd packages/core && yarn link && yarn install && yarn dist
-      - cd ../browser
-      - yarn link "@sentry/core"
-      - yarn link "raven-js"
-      - yarn install && yarn test
+      script: .travis/test.sh
