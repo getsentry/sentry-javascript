@@ -25,14 +25,16 @@ export class OnUnhandledRejection implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    _window.addEventListener('unhandledrejection', this
-      .handler as EventListener);
+    _window.addEventListener('unhandledrejection', this.handler.bind(
+      this,
+    ) as EventListener);
   }
   /**
    * @inheritDoc
    */
   public uninstall(): void {
-    _window.removeEventListener('unhandledrejection', this
-      .handler as EventListener);
+    _window.removeEventListener('unhandledrejection', this.handler.bind(
+      this,
+    ) as EventListener);
   }
 }
