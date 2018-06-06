@@ -26,6 +26,7 @@ var truncate = utils.truncate;
 var urlencode = utils.urlencode;
 var htmlTreeAsString = utils.htmlTreeAsString;
 var htmlElementAsString = utils.htmlElementAsString;
+var isSameStacktrace = utils.isSameStacktrace;
 var parseUrl = utils.parseUrl;
 var safeJoin = utils.safeJoin;
 var serializeException = utils.serializeException;
@@ -370,6 +371,17 @@ describe('utils', function() {
         }),
         'input#the-username[name="username"]'
       );
+    });
+  });
+
+  describe('isSameStacktrace', function() {
+    it('does not fail if frames are not present', function() {
+      var validStack = {frames: []};
+      var invalidStack = {};
+      var invalidResult = isSameStacktrace(validStack, invalidStack);
+      assert.equal(invalidResult, false);
+      invalidResult = isSameStacktrace(invalidStack, validStack);
+      assert.equal(invalidResult, false);
     });
   });
 
