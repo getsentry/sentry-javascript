@@ -81,11 +81,6 @@ export class BrowserBackend implements Backend {
 
     Raven.config(dsn, this.options);
 
-    // TODO: Remove once integrations are ported
-    Raven._patchFunctionToString();
-    Raven._instrumentTryCatch();
-    Raven._instrumentBreadcrumbs();
-
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client
     // first, before actually capturing them.
