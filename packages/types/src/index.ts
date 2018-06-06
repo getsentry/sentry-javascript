@@ -7,6 +7,8 @@ export enum Severity {
   /** TODO */
   Warning = 'warning',
   /** TODO */
+  Log = 'log',
+  /** TODO */
   Info = 'info',
   /** TODO */
   Debug = 'debug',
