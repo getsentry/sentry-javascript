@@ -22,14 +22,7 @@ matrix:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script:
-        - cd packages/raven-js &&
-        - npm install &&
-        - npm run test &&
-        - if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
-        - npm run test:ci;
-        - else exit 0;
-        - fi
+      script: .travis/raven-js.sh
     - env: NAME="@sentry/core"
       install: true
       script:
