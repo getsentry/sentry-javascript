@@ -32,10 +32,10 @@ To get started with Raven.js, please see
 
 ## Repository
 
-> As of June 2018 this repository will slowly change into a mono repo containing
-> all related Sentry JavaScript SDKs. raven-js will still be available as it is
-> but living under `packages/raven-js`. For now nothing should change, we will
-> slowly updating the repo/readme as we go forward.
+> As of June 2018 this repository will slowly transition into a mono repo
+> containing all related Sentry JavaScript SDKs. raven-js will still be
+> available as it is but living under `packages/raven-js`. For now nothing
+> should change, we will slowly updating the repo/readme as we go forward.
 
 ## Resources
 
