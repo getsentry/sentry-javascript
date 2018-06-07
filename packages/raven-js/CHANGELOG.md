@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.26.0
+
+* REF: Rename internal function \_makeRequest to sentryInternalMakeRequest
+* REF: Return location.origin instead of assigning it for IE10
+* FEAT: Send exception mechanisms
+
 ## 3.25.2
 
 * REF: Emit transaction instead of culprit (#1330)
@@ -8,7 +14,7 @@
 
 * BUILD: fix missing plugins in dist directory and simplify grunt build (#1327)
 * BUGFIX: Polyfill location.origin for IE10 (#1325)
-* BUGFIX: use safe _window and _navigator references (#1324)
+* BUGFIX: use safe \_window and \_navigator references (#1324)
 
 ## 3.25.0
 
@@ -153,25 +159,31 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * BUGFIX: Prevent breadcrumbs with undefined url to throw an error https://github.com/getsentry/raven-js/pull/1018
 
 ## 3.17.0
+
 * CHANGE: Export TypeScript definitions as a CommonJS module. See: https://github.com/getsentry/raven-js/pull/977
 
 ## 3.16.1
+
 * BUGFIX: Fixed stacktrace on Android for React Native release builds. See: https://github.com/getsentry/raven-js/pull/985
 * BUGFIX: TypeScript: Change loglevel option "warn" to "warning".
 
 ## 3.16.0
+
 * CHANGE: Plugins no longer disrupt data callback behavior. See: https://github.com/getsentry/raven-js/pull/891
 * BUGFIX: Fixed event object copying in React Native. See: https://github.com/getsentry/raven-js/pull/960
 * BUGFIX: More TypeScript definitions for API properties and methods. See: https://github.com/getsentry/raven-js/pull/968, https://github.com/getsentry/raven-js/pull/963
 
 ## 3.15.0
+
 * NEW: Added new `instrument` config option for disabling portions of instrumentation. See: https://github.com/getsentry/raven-js/pull/938
 * NEW: Support CJS use of AngularJS module. See documentation: https://docs.sentry.io/clients/javascript/integrations/angularjs/
 
 ## 3.14.2
+
 * BUGFIX: Fix bug in breadcrumb URL truncation when `fetch` is used with a `Request` argument. See: https://github.com/getsentry/raven-js/issues/924
 
 ## 3.14.1
+
 * BUGFIX: Fix TypeError caused by breadcrumb URL truncation in some situations. See: https://github.com/getsentry/raven-js/issues/925
 * BUGFIX: Made URL truncation more defensive for some rare cases. See: https://github.com/getsentry/raven-js/pull/918
 * BUGFIX: Raven.js now treats DOMExceptions as "Error" objects w/ traces. See: https://github.com/getsentry/raven-js/pull/919/
@@ -179,31 +191,37 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * CHANGE: Removed json-stringify-safe from package.json (was already vendored). See: https://github.com/getsentry/raven-js/pull/917
 
 ## 3.14.0
+
 * NEW: URL values captured in http + breadcrumb interfaces are now trimmed to new `maxUrlLength` config (default 250). See: https://github.com/getsentry/raven-js/pull/906
 * CHANGE: Better extraction of URLs from eval frames on Chrome, Firefox. This may affect issue grouping of some events. See: https://github.com/getsentry/raven-js/pull/907
 * BUGFIX: Raven.js now parses webpack:// URLs (generated when using devtool: eval). See: https://github.com/getsentry/raven-js/pull/908
 * BUGFIX: React Native frames on Android no longer show [native code]. See: https://github.com/getsentry/raven-js/pull/875
 
-
 ## 3.13.1
+
 * BUGFIX: Revert TypeScript declaration changes from 3.13.0 that resulted in bad imports. See: https://github.com/getsentry/raven-js/issues/898
 
 ## 3.13.0
+
 * NEW: Added new `sampleRate` config option. See: https://github.com/getsentry/raven-js/pull/885
 * CHANGE: TypeScript declaration file (raven.d.ts) has been improved considerably. See: https://github.com/getsentry/raven-js/pull/827
 
 ## 3.12.2
+
 * BUGFIX: Fix Raven.js not capturing IE8 errors. See: https://github.com/getsentry/raven-js/pull/883
 
 ## 3.12.1
+
 * BUGFIX: Fix Raven.js not properly catching some thrown messages, objects. See: https://github.com/getsentry/raven-js/pull/872
 
 ## 3.12.0
+
 * NEW: Raven.js now attempts to suppress back-to-back duplicate errors by default. See: https://github.com/getsentry/raven-js/pull/861
 * BUGFIX: Fix case where breadcrumb instrumention could sometimes throw errors on custom DOM events. See: https://github.com/getsentry/raven-js/pull/857
 * BUGFIX: Fix Raven.js incorrectly interpreting Retry-After header in ms; should be seconds. See: https://github.com/getsentry/raven-js/pull/862
 
 ## 3.11.0
+
 * CHANGE: Raven.js no longer auto-wraps jQuery.ready (if present); fixes jQuery deprecation warnings. See: https://github.com/getsentry/raven-js/pull/849
 * BUGFIX: Fix User-Agent not collected in web worker environment. See: https://github.com/getsentry/raven-js/issues/853
 * BUGFIX: Fix DOM tree summarizer (breadcrumbs) not splitting on breadcrumbs effectively. See: https://github.com/getsentry/raven-js/pull/852
@@ -211,19 +229,23 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * NEW: Added comment to Raven.wrap to indicate stack traces containing this frame are not indicative of a bug. See: https://github.com/getsentry/raven-js/pull/847
 
 ## 3.10.0
+
 * NEW: Raven.js will exponentially back off if server returns a 400-level error (e.g. 429 too many requests). See: https://github.com/getsentry/raven-js/pull/839
 * CHANGE: Raven.js will not set lastEventId if transmission failed because Raven is not configured. See: https://github.com/getsentry/raven-js/pull/839
 * BUGFIX: Raven.js now properly handles Firefox resource:// URLs (extensions). See: https://github.com/getsentry/raven-js/pull/837
 
 ## 3.9.2
+
 * BUGFIX: Use json-stringify-safe in React Native plugin to avoid circular refs. See: https://github.com/getsentry/raven-js/pull/829
 * BUGFIX: Avoid document.location access in React Native plugin. See: https://github.com/getsentry/raven-js/issues/800
 
 ## 3.9.1
+
 * BUGFIX: Fix TypeError triggered by some event listeners. See: https://github.com/getsentry/raven-js/issues/793
 * BUGFIX: Fix bad `window` access in web worker environments. See: https://github.com/getsentry/raven-js/pull/792
 
 ## 3.9.0
+
 * NEW: `breadcrumbCallback` and `setBreadcrumbCallback` for filtering/mutating breadcrumbs. See: https://github.com/getsentry/raven-js/pull/788
 * NEW: Can enable synthetic traces globally via `stacktrace: true` config option. See: https://github.com/getsentry/raven-js/pull/763
 * CHANGE: Can set user context via `config` under `user` key. See: https://github.com/getsentry/raven-js/pull/762
@@ -233,31 +255,38 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * BUGFIX: Doesn't break when window is absent (e.g. inside web workers). See: https://github.com/getsentry/raven-js/pull/785
 
 ## 3.8.1
+
 * BUGFIX: Fix dangling comma affecting IE8. See: https://github.com/getsentry/raven-js/pull/769
 
 ## 3.8.0
+
 * NEW: Record fetch request breadcrumbs. See: https://github.com/getsentry/raven-js/pull/744
 * NEW: Record contentEditable input event breadcrumbs. See: https://github.com/getsentry/raven-js/pull/748
 * BUGFIX: Updated Typescript declaration file. See: https://github.com/getsentry/raven-js/pull/746
-* NEW: File size improvements for raven.min.js  See: https://github.com/getsentry/raven-js/pull/721
+* NEW: File size improvements for raven.min.js See: https://github.com/getsentry/raven-js/pull/721
 
 ## 3.7.0
+
 * BUGFIX: Add missing return types from TypeScript declaration file. See: https://github.com/getsentry/raven-js/pull/718
 * BUGFIX: Fix "Permission denied" error in Firefox via WebDriver. See: https://github.com/getsentry/raven-js/pull/720
 * REMOVED: Legacy stack trace parsing from Opera 9, 10. See: https://github.com/getsentry/raven-js/pull/716
 
 ## 3.6.1
+
 * BUGFIX: Fix `trimHeadFrames` appearing in some data payloads when using synthetic traces. See: https://github.com/getsentry/raven-js/pull/714
 
 ## 3.6.0
+
 * NEW: `Raven.captureMessage` will generate synthetic stacktraces if passed `stacktrace: true` via options. See: https://github.com/getsentry/raven-js/pull/582
 * NEW: Added `Raven.setDSN` for changing target DSN after Raven has been configured. See: https://github.com/getsentry/raven-js/pull/706
 * CHANGE: Added missing TypeScript type declarations for Raven API methods. See: https://github.com/getsentry/raven-js/pull/698
 
 ## 3.5.1
+
 * BUGFIX: Fix non-fatals crashing React Native plugin unless `shouldSendCallback` is specified. See: https://github.com/getsentry/raven-js/pull/694
 
 ## 3.5.0
+
 * NEW: Can now disable automatic collection of breadcrumbs via `autoBreadcrumbs` config option. See: https://github.com/getsentry/raven-js/pull/686
 * NEW: Can now configure max number of breadcrumbs to collect via `maxBreadcrumbs`. See: https://github.com/getsentry/raven-js/pull/685
 * NEW: Added Vue.js plugin. See: https://github.com/getsentry/raven-js/pull/688
@@ -265,68 +294,84 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * CHANGE: React Native plugin now also normalizes paths from CodePush. See: https://github.com/getsentry/raven-js/pull/683
 
 ## 3.4.1
+
 * BUGFIX: Fix exception breadcrumbs having "undefined" for exception value. See: https://github.com/getsentry/raven-js/pull/681
 
 ## 3.4.0
+
 * CHANGE: React Native plugin now stores errors in AsyncStorage and sends error data on app init. See: https://github.com/getsentry/raven-js/pull/626
 * BUGFIX: React Native path normalization regex has been updated. See: https://github.com/getsentry/raven-js/pull/666
 * BUGFIX: Angular 1 plugin now extracts errors from minified exception strings. See: https://github.com/getsentry/raven-js/pull/667
 
 ## 3.3.0
+
 * NEW: Can now specify `environment` configuration option. See: https://github.com/getsentry/raven-js/pull/661
 * CHANGE: Raven.js now serializes data payload w/ json-stringify-safe to avoid circular references. See: https://github.com/getsentry/raven-js/pull/652
 * BUGFIX: Angular 1.x plugin no longer clobbers user-specified `dataCallback`. See: https://github.com/getsentry/raven-js/pull/658
 
 ## 3.2.1
+
 * BUGFIX: Fixed error when manually calling captureException with Error objects w/ maxMessageLength > 0. See: https://github.com/getsentry/raven-js/pull/647
 * BUGFIX: Fixed TypeScript language declaration file for compatibility w/ Webpack loaders. See: https://github.com/getsentry/raven-js/pull/645
 * BUGFIX: Fixed Raven dropping file:/// frames from Phantom 1.x. See: https://github.com/getsentry/raven-js/pull/642
 
 ## 3.2.0
+
 * CHANGE: Callbacks set via `setDataCallback`, `setShouldSendCallback` now receive any prior-set callback as the 2nd argument. See: https://github.com/getsentry/raven-js/pull/636
 * CHANGE: Raven.js no longer passes a 'message' interface for exceptions. See: https://github.com/getsentry/raven-js/pull/632
 * CHANGE: Log level now recorded for "sentry" breadcrumbs. See: https://github.com/getsentry/raven-js/pull/633
 
 ## 3.1.1
+
 * BUGFIX: Fix message truncation occurring before dataCallback is invoked. See: https://github.com/getsentry/raven-js/issues/605
 * BUGFIX: Fix pushState error in Chrome Apps. See: https://github.com/getsentry/raven-js/issues/601
 * BUGFIX: Fix error in addEventListener call affecting very old Firefox versions. See: https://github.com/getsentry/raven-js/issues/603
 
 ## 3.1.0
+
 * NEW: Added TypeScript declaration file for compatibility with TypeScript projects. See: https://github.com/getsentry/raven-js/pull/610
 
 ## 3.0.5
+
 * BUGFIX: Fix breadcrumb instrumentation failing in IE8. See: https://github.com/getsentry/raven-js/issues/594
 
 ## 3.0.4
+
 * BUGFIX: Navigation breadcrumbs now include query strings and document fragment (#). See: https://github.com/getsentry/raven-js/issues/573
-* BUGFIX: Remove errant `throw` call in _makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
+* BUGFIX: Remove errant `throw` call in \_makeRequest affecting some Raven configs. See: https://github.com/getsentry/raven-js/pull/572
 
 ## 3.0.3
+
 * BUGFIX: Fix pushState instrumentation breaking on non-string URL args. See: https://github.com/getsentry/raven-js/issues/569
 
 ## 3.0.2
+
 * BUGFIX: Fix XMLHttpRequest.prototype.open breaking on non-string `url` arguments. See: https://github.com/getsentry/raven-js/issues/567
 
 ## 3.0.1
+
 * BUGFIX: Fix broken CDN builds. See: https://github.com/getsentry/raven-js/pull/566
 
 ## 3.0.0
+
 * NEW: Raven.js now collects breadcrumbs from XMLHttpRequest objects, URL changes (pushState), console log calls, UI clicks, and errors.
 * BUGFIX: Fix parsing error messages from Opera Mini. See: https://github.com/getsentry/raven-js/pull/554
 * REMOVED: Fallback Image transport (HTTP GET) has been removed. See: https://github.com/getsentry/raven-js/pull/545
 * REMOVED: TraceKit client-side source fetching has been removed. See: https://github.com/getsentry/raven-js/pull/542
 
 ## 2.3.0
+
 * NEW: `pathStrip` option now available in React Native plugin. See: https://github.com/getsentry/raven-js/pull/515
 * BUGFIX: Handle stacks from internal exceptions sometimes thrown by Firefox. See: https://github.com/getsentry/raven-js/pull/536
 * BUGFIX: Better error message strings in browsers w/ limited onerror implementations. See: https://github.com/getsentry/raven-js/pull/538
 
 ## 2.2.1
+
 * BUGFIX: Fix HTTP requests not sending with React Native on Android devices. See: https://github.com/getsentry/raven-js/issues/526
 * BUGFIX: Raven.js now captures stack traces caused by Firefox internal errors. See: https://github.com/getsentry/raven-js/pull/528
 
 ## 2.2.0
+
 * NEW: `allowSecretKey` configuration option. See: https://github.com/getsentry/raven-js/pull/525
 * NEW: Console plugin can be configured to capture specific log levels. See: https://github.com/getsentry/raven-js/pull/514
 * CHANGE: React Native plugin now calls default exception handler. See: https://github.com/getsentry/raven-js/pull/492
@@ -334,10 +379,12 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * BUGFIX: Fix Raven throwing exception when run via Webdriver. See: https://github.com/getsentry/raven-js/issues/495
 
 ## 2.1.1
+
 * BUGFIX: Fixed IE8 regression introduced in 2.1.0. See: https://github.com/getsentry/raven-js/issues/498
 * BUGFIX: Fixed initialization error when run via Selenium. See: https://github.com/getsentry/raven-js/issues/495
 
 ## 2.1.0
+
 * BUGFIX: Fixed Raven.js rejecting frames w/ blob URLs. See: https://github.com/getsentry/raven-js/issues/463
 * BUGFIX: Fixed plugin files not consumable without module loader. See: https://github.com/getsentry/raven-js/issues/446
 * BUGFIX: Fixed bug in console.js plugin where `level` wasn't passed. See: https://github.com/getsentry/raven-js/pull/474
@@ -349,16 +396,20 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * NEW: `Raven.showReportDialog` (experimental). See: https://github.com/getsentry/raven-js/pull/456
 
 ## 2.0.5
+
 * BUGFIX: Fixed exception thrown by React Native plugin. See: https://github.com/getsentry/raven-js/issues/468
 * BUGFIX: Fixed "pre-built JavaScript" warning when loading Raven.js via Webpack. See: https://github.com/getsentry/raven-js/issues/465
 
 ## 2.0.4
+
 * BUGFIX: Fixed bug where Raven.VERSION was not set when required as a CommonJS module.
 
 ## 2.0.2
+
 * BUGFIX: Fixed bug where wrapped requestAnimationFrame didn't return callback ID. See: https://github.com/getsentry/raven-js/pull/460
 
 ## 2.0.1
+
 * BUGFIX: Fixed bug where unwrapped errors might be suppressed. See: https://github.com/getsentry/raven-js/pull/447
 
 ## 2.0.0
@@ -371,6 +422,7 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * NEW: Integration tests (/test/integration/index.html)
 
 ## 1.3.0
+
 * CHANGE: `console` plugin will now send all arguments as an `extra` value. See: https://github.com/getsentry/raven-js/pull/398
 * CHANGE: Bump to v7 of the Sentry API spec. This now requires a Sentry 7.7.0+ https://github.com/getsentry/raven-js/pull/403
 * CHANGE: Revamp of AngularJS plugin. Please see documentation. See: https://github.com/getsentry/raven-js/pull/405
@@ -380,6 +432,7 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * NEW: Experimental support for React Native added.
 
 ## 1.2.0
+
 * BUGFIX: Error in cases where a `document` context doesn't exist. See: https://github.com/getsentry/raven-js/pull/383
 * BUGFIX: Trailing comma when using unminified dist which affects IE9. See: https://github.com/getsentry/raven-js/pull/385
 * NEW: Add ability to swap in a custom transport. Adds `Raven.setTransport`, and `transport` option to config. Docs: https://docs.sentry.io/hosted/clients/javascript/config/
@@ -448,7 +501,7 @@ Your Sentry Issues stream may show new errors, without any changes done to your 
 * Fixed a bug that was preventing stack frames from `raven.js` from being hidden correctly. See: https://github.com/getsentry/raven-js/pull/216
 * Fixed an IE bug with the `console` plugin. See: https://github.com/getsentry/raven-js/issues/217
 * Added support for `chrome-extension://` protocol in Chrome in stack traces.
-* Added `setExtraContext` and `setTagsContext`.  See: https://github.com/getsentry/raven-js/pull/219
+* Added `setExtraContext` and `setTagsContext`. See: https://github.com/getsentry/raven-js/pull/219
 * Renamed `setUser` to `setUserContext` to match. `setUser` still exists, but will be deprecated in a future release.
 * New `backbone.js` plugin. See: https://github.com/getsentry/raven-js/pull/220
 * Added support for `chrome://` protocol in Firefox in stack traces. See: https://github.com/getsentry/raven-js/pull/225
@@ -526,15 +579,19 @@ These were a bunch of super small incremental updates trying to get better integ
 ## 1.1.0
 
 ### Plugins
+
 If you're upgrading from 1.0.x, 2 "plugins" were included with the package. These 2 plugins are now stripped out of core and included as the `jquery` and `native` plugins. If you'd like to start using 1.1.0 and maintain existing functionality, you'll want to use: http://cdn.ravenjs.com/1.1.0/jquery,native/raven.min.js For a list of other plugins, checkout http://ravenjs.com
 
 ### ravenjs.com
+
 A new website dedicated to helping you compile a custom build of raven.js
 
 ### whitelistUrls
+
 `whitelistUrls` are recommended over `ignoreUrls`. `whitelistUrls` drastically helps cut out noisy error messages from other scripts running on your site.
 
 ### Misc
+
 * `ignoreUrls`, `ignoreErrors`, `includePaths` have all been unified to accept both a regular expression and strings to avoid confusion and backwards compatability
 * `Raven.wrap` recursively wraps arguments
 * Events are dispatched when an exception is received, recorded or failed sending to Sentry

@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <title></title>
@@ -13,27 +14,27 @@
 
     // MIT license
 
-    (function() {
+    (function () {
       var lastTime = 0;
       var vendors = ['ms', 'moz', 'webkit', 'o'];
-      for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame']
-                || window[vendors[x]+'CancelRequestAnimationFrame'];
+      for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame']
+          || window[vendors[x] + 'CancelRequestAnimationFrame'];
       }
 
       if (!window.requestAnimationFrame)
-        window.requestAnimationFrame = function(callback, element) {
+        window.requestAnimationFrame = function (callback, element) {
           var currTime = new Date().getTime();
           var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-          var id = window.setTimeout(function() { callback(currTime + timeToCall); },
-                  timeToCall);
+          var id = window.setTimeout(function () { callback(currTime + timeToCall); },
+            timeToCall);
           lastTime = currTime + timeToCall;
           return id;
         };
 
       if (!window.cancelAnimationFrame)
-        window.cancelAnimationFrame = function(id) {
+        window.cancelAnimationFrame = function (id) {
           clearTimeout(id);
         };
     }());
@@ -85,15 +86,15 @@
   </script>
   <script src="../../build/raven.js"></script>
   <script>
-    // stub _makeRequest so we don't actually transmit any data
-    Raven._makeRequest = function () {};
+    // stub sentryInternalMakeRequest so we don't actually transmit any data
+    Raven.sentryInternalMakeRequest = function () { };
 
     // store references to original, unwrapped built-ins in order to:
     // - get a clean, unwrapped setTimeout (so stack traces don't include
     //   frames from mocha)
     // - make assertions re: wrapped functions
 
-    window.originalBuiltIns  = {
+    window.originalBuiltIns = {
       setTimeout: setTimeout,
       setInterval: setInterval,
       requestAnimationFrame: requestAnimationFrame,
@@ -129,17 +130,19 @@
     }
   </script>
 </head>
+
 <body>
   <!-- test element for breadcrumbs -->
   <form id="foo-form">
-    <input name="foo" placeholder="lol"/>
+    <input name="foo" placeholder="lol" />
     <div class="contenteditable" contenteditable="true"></div>
   </form>
 
   <div class="c">
     <div class="b">
-      <div class="a"/>
+      <div class="a" />
     </div>
   </div>
 </body>
+
 </html>
