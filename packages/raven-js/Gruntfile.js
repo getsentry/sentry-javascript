@@ -238,6 +238,13 @@ module.exports = function(grunt) {
         cwd: 'build/',
         src: '**',
         dest: 'dist/'
+      },
+      distRoot: {
+        expand: true,
+        flatten: false,
+        cwd: 'dist/',
+        src: '**',
+        dest: '../../dist'
       }
     },
 
@@ -320,7 +327,7 @@ module.exports = function(grunt) {
     'build.plugins',
     browserifyPluginTaskNames.concat('browserify:plugins-combined')
   );
-  grunt.registerTask('dist', ['build', 'copy:dist', 'sri:dist']);
+  grunt.registerTask('dist', ['build', 'copy:dist', 'sri:dist', 'copy:distRoot']);
   grunt.registerTask('publish', ['build', 's3']);
   grunt.registerTask('cdn', ['version', 's3']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);

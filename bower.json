@@ -1,6 +1,6 @@
 {
   "name": "raven-js",
-  "version": "3.26.0",
+  "version": "3.26.1",
   "dependencies": {},
   "main": "dist/raven.js",
   "ignore": [
@@ -19,6 +19,9 @@
     "package.json",
     "example",
     "test",
-    "dist/sri.json"
+    "dist/sri.json",
+    "yarn.lock",
+    "tsconfig.json",
+    "lerna.json"
   ]
 }

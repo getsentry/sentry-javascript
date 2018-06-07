@@ -1,4 +1,4 @@
-/*! Raven.js 3.26.0 (6d8f2b9) | github.com/getsentry/raven-js */
+/*! Raven.js 3.26.1 (d8f8951) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -207,7 +207,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.26.0',
+  VERSION: '3.26.1',
 
   debug: false,
 

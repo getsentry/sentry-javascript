@@ -145,8 +145,8 @@ function updatePackageConfig(nextVersion) {
 }
 
 function updateBowerConfig(nextVersion) {
-  const filePath = path.join(__dirname, '../bower.json');
-  const originalData = require('../bower.json');
+  const filePath = path.join(__dirname, '../../../bower.json');
+  const originalData = require('../../../bower.json');
   const data = Object.assign({}, originalData, {version: nextVersion});
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
   console.log(`✔ bower.json updated`);

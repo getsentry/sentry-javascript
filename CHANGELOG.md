@@ -1,5 +1,9 @@
 # Changelog
 
+## raven-js - 3.26.1
+
+* FIX: Bower build
+
 ## 3.26.0
 
 * REF: Return location.origin instead of assigning it for IE10
