@@ -59,7 +59,7 @@ Those configuration options are documented below:
     .. versionadded:: 1.3.0
 
     Typically this would be the server name, but that doesn’t exist on
-    all platforms. Instead you may use something like the device ID, as it
+    all platforms. Instead, you may use something like the device ID, as it
     indicates the host which the client is running on.
 
     .. code-block:: javascript
@@ -83,9 +83,9 @@ Those configuration options are documented below:
 
 .. describe:: whitelistUrls
 
-    The inverse of ``ignoreUrls``. Only report errors from whole urls
+    The inverse of ``ignoreUrls``. Only report errors from whole URLs
     matching a regex pattern or an exact string. ``whitelistUrls`` should
-    match the url of your actual JavaScript files. It should match the url
+    match the URL of your actual JavaScript files. It should match the URL
     of your site if and only if you are inlining code inside ``<script>``
     tags. Not setting this value is equivalent to a catch-all and will not
     filter out any values.
@@ -115,7 +115,7 @@ Those configuration options are documented below:
 .. describe:: ignoreUrls
 
     The inverse of ``whitelistUrls`` and similar to ``ignoreErrors``, but
-    will ignore errors from whole urls matching a regex pattern or an
+    will ignore errors from whole URLs matching a regex pattern or an
     exact string.
 
     .. code-block:: javascript
@@ -126,11 +126,11 @@ Those configuration options are documented below:
 
 .. describe:: includePaths
 
-    An array of regex patterns to indicate which urls are a part of your
+    An array of regex patterns to indicate which URLs are a part of your
     app in the stack trace. All other frames will appear collapsed inside
     Sentry to make it easier to discern between frames that happened in
     your code vs other code. It'd be suggested to add the current page
-    url, and the host for your CDN.
+    URL, and the host for your CDN.
 
     .. code-block:: javascript
 
@@ -154,7 +154,7 @@ Those configuration options are documented below:
     An array of strings or regex patterns representing keys that should be scrubbed from the payload sent to Sentry.
     We'll go through every field in the payload and mask the values with simple `********` string instead.
     This will match *only* keys of the object, not the values.
-    Sentry also sanitize all events sent to it on the server-side, but this allows you to strip the payload before it gets to the server.
+    Sentry also sanitizes all events sent to it on the server-side, but this allows you to strip the payload before it gets to the server.
 
 
     .. code-block:: javascript
@@ -245,7 +245,7 @@ Those configuration options are documented below:
 .. describe:: captureUnhandledRejections
 
     By default, Raven captures all unhandled promise rejections using standard ``unhandledrejection`` event.
-    If you want to disable this behaviour, set this option to ``false``.
+    If you want to disable this behavior, set this option to ``false``.
 
 .. describe:: transport
 
@@ -310,7 +310,7 @@ Those configuration options are documented below:
             }
         }
 
-    Headers value can be in form of a function, to compute value in time of a request:
+    Headers value can be in the form of a function, to the compute value in time of a request:
 
     .. code-block:: javascript
 
