@@ -1212,6 +1212,32 @@ describe('raven.Client', function() {
     });
   });
 
+  it('should captureBreadcrumb with processed exception', function(done) {
+    var calls = 0;
+    client = new raven.Client(dsn, {
+      shouldSendCallback: function(data) {
+        // Don't test first call, as there's no breadcrumbs there
+        if (calls === 0) {
+          calls += 1;
+          return false;
+        }
+
+        if (calls === 1) {
+          data.breadcrumbs.values.length.should.equal(1);
+          data.breadcrumbs.values[0].category.should.equal('sentry');
+          data.breadcrumbs.values[0].message.should.equal('Error: foo');
+          data.breadcrumbs.values[0].level.should.equal('error');
+          client.uninstall();
+          done();
+        }
+      }
+    });
+
+    client.install();
+    client.captureException(new Error('foo'));
+    client.captureException(new Error('bar'));
+  });
+
   describe('#setContext', function() {
     afterEach(function() {
       process.domain && process.domain.exit();
@@ -1517,7 +1543,7 @@ describe('raven.Client', function() {
         });
       });
 
-      it('should not capture breadcrumbs for requests to sentry', function(done) {
+      it('should not capture breadcrumbs for requests to sentry, but should capture exception call itself', function(done) {
         var scope = nock('https://app.getsentry.com')
           .filteringRequestBody(/.*/, '*')
           .post('/api/269/store/', '*')
@@ -1527,7 +1553,8 @@ describe('raven.Client', function() {
           client.captureException(new Error('test'), function() {
             // need to wait a tick because the response handler that captures the breadcrumb might run after this one
             setTimeout(function() {
-              client.getContext().should.not.have.key('breadcrumbs');
+              client.getContext().breadcrumbs.length.should.equal(1);
+              client.getContext().breadcrumbs[0].category.should.equal('sentry');
               scope.done();
               done();
             }, 0);
