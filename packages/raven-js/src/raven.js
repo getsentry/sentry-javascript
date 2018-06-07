@@ -49,11 +49,7 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined'
-      ? global
-      : typeof self !== 'undefined'
-        ? self
-        : {};
+    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -2099,7 +2095,7 @@ Raven.prototype = {
     }
 
     var url = this._globalEndpoint;
-    (globalOptions.transport || this.sentryInternalMakeRequest).call(this, {
+    (globalOptions.transport || this._makeRequest).call(this, {
       url: url,
       auth: auth,
       data: data,
@@ -2130,7 +2126,7 @@ Raven.prototype = {
     });
   },
 
-  sentryInternalMakeRequest: function(opts) {
+  _makeRequest: function(opts) {
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
     var url = opts.url + '?' + urlencode(opts.auth);
 

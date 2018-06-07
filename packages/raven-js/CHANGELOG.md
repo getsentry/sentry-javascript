@@ -2,7 +2,6 @@
 
 ## 3.26.0
 
-* REF: Rename internal function \_makeRequest to sentryInternalMakeRequest
 * REF: Return location.origin instead of assigning it for IE10
 * FEAT: Send exception mechanisms
 

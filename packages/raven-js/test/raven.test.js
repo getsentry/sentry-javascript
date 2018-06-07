@@ -846,7 +846,7 @@ describe('globals', function() {
   describe('send', function() {
     it('should build a good data payload', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -866,7 +866,7 @@ describe('globals', function() {
       ];
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -893,7 +893,7 @@ describe('globals', function() {
 
     it("should create and append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is truthy", function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -997,7 +997,7 @@ describe('globals', function() {
 
     it("should not create nor append 'sentry' breadcrumb when `_globalOptions.autoBreadcrumbs.sentry` is falsy", function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1032,7 +1032,7 @@ describe('globals', function() {
 
     it('should build a good data payload with a User', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1046,7 +1046,7 @@ describe('globals', function() {
       Raven._globalContext = {user: {name: 'Matt'}};
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1067,7 +1067,7 @@ describe('globals', function() {
 
     it('should merge in global tags', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1077,7 +1077,7 @@ describe('globals', function() {
       Raven._globalContext = {tags: {tag1: 'value1'}};
 
       Raven._send({message: 'bar', tags: {tag2: 'value2'}});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1100,7 +1100,7 @@ describe('globals', function() {
 
     it('should merge in global extra', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1110,7 +1110,7 @@ describe('globals', function() {
       Raven._globalContext = {extra: {key1: 'value1'}};
 
       Raven._send({message: 'bar', extra: {key2: 'value2'}});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1133,7 +1133,7 @@ describe('globals', function() {
 
     it('should let dataCallback override everything', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       utils.objectMerge(Raven._globalOptions, {
         projectId: 2,
@@ -1146,7 +1146,7 @@ describe('globals', function() {
       Raven._globalContext = {user: {name: 'Matt'}};
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         message: 'ibrokeit',
         event_id: 'abc123'
       });
@@ -1154,7 +1154,7 @@ describe('globals', function() {
 
     it('should ignore dataCallback if it does not return anything', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1170,7 +1170,7 @@ describe('globals', function() {
       });
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1203,14 +1203,14 @@ describe('globals', function() {
     });
 
     it('should always send if `globalOptions.sampleRate` is omitted', function() {
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       Raven._send({message: 'bar'});
-      assert.isTrue(Raven.sentryInternalMakeRequest.called);
+      assert.isTrue(Raven._makeRequest.called);
     });
 
     it('should strip empty attributes', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1232,7 +1232,7 @@ describe('globals', function() {
         attribute: null,
         something: undefined
       });
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1250,7 +1250,7 @@ describe('globals', function() {
 
     it('should attach environment if available', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1264,7 +1264,7 @@ describe('globals', function() {
       });
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         environment: 'abc123',
         logger: 'javascript',
@@ -1283,7 +1283,7 @@ describe('globals', function() {
 
     it('should attach release if available', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1297,7 +1297,7 @@ describe('globals', function() {
       });
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         release: 'abc123',
         logger: 'javascript',
@@ -1316,7 +1316,7 @@ describe('globals', function() {
 
     it('should attach server_name if available', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1330,7 +1330,7 @@ describe('globals', function() {
       });
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         server_name: 'abc123',
         logger: 'javascript',
@@ -1349,7 +1349,7 @@ describe('globals', function() {
 
     it('should pass correct opts to makeRequest', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1366,7 +1366,7 @@ describe('globals', function() {
       Raven._globalEndpoint = 'http://localhost/store/';
 
       Raven._send({message: 'bar'});
-      var args = Raven.sentryInternalMakeRequest.lastCall.args;
+      var args = Raven._makeRequest.lastCall.args;
       assert.equal(args.length, 1);
       var opts = args[0];
       assert.equal(opts.url, 'http://localhost/store/');
@@ -1397,7 +1397,7 @@ describe('globals', function() {
 
     it('should pass sentry_secret as part of auth params if specified', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1413,7 +1413,7 @@ describe('globals', function() {
       Raven._globalSecret = 'def'; // <-- secret
 
       Raven._send({message: 'bar'});
-      var args = Raven.sentryInternalMakeRequest.lastCall.args;
+      var args = Raven._makeRequest.lastCall.args;
       assert.equal(args.length, 1);
       var opts = args[0];
       assert.equal(opts.url, 'http://localhost/store/');
@@ -1546,29 +1546,29 @@ describe('globals', function() {
 
     it('should check `Raven.isSetup`', function() {
       this.sinon.stub(Raven, 'isSetup').returns(false);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       Raven._send({message: 'bar'});
       assert.isTrue(Raven.isSetup.called);
     });
 
     it('should not makeRequest if `Raven.isSetup` is false', function() {
       this.sinon.stub(Raven, 'isSetup').returns(false);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       Raven._send({message: 'bar'});
-      assert.isFalse(Raven.sentryInternalMakeRequest.called);
+      assert.isFalse(Raven._makeRequest.called);
     });
 
     it('should log to console', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
       this.sinon.stub(Raven, '_logDebug');
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       Raven._send({message: 'bar'});
       assert.isTrue(Raven._logDebug.called);
     });
 
     it('should truncate messages to the specified length', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._globalOptions.maxMessageLength = 150;
 
@@ -1586,7 +1586,7 @@ describe('globals', function() {
         }
       });
 
-      var args = Raven.sentryInternalMakeRequest.lastCall.args;
+      var args = Raven._makeRequest.lastCall.args;
       assert.equal(args.length, 1);
       var data = args[0].data;
       assert.equal(data.message, shortMessage);
@@ -1595,34 +1595,34 @@ describe('globals', function() {
 
     it('should bail out if time elapsed does not exceed backoffDuration', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._backoffDuration = 1000;
       Raven._backoffStart = 100;
       this.clock.tick(100); // tick 100 ms - NOT past backoff duration
 
       Raven._send({message: 'bar'});
-      assert.isFalse(Raven.sentryInternalMakeRequest.called);
+      assert.isFalse(Raven._makeRequest.called);
     });
 
     it('should proceed if time elapsed exceeds backoffDuration', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._backoffDuration = 1000;
       Raven._backoffStart = 100;
       this.clock.tick(1000); // advance clock 1000 ms - past backoff duration
 
       Raven._send({message: 'bar'});
-      assert.isTrue(Raven.sentryInternalMakeRequest.called);
+      assert.isTrue(Raven._makeRequest.called);
     });
 
     it('should set backoffDuration and backoffStart if onError is fired w/ 429 response', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._send({message: 'bar'});
-      var opts = Raven.sentryInternalMakeRequest.lastCall.args[0];
+      var opts = Raven._makeRequest.lastCall.args[0];
       var mockError = new Error('429: Too many requests');
       mockError.request = {
         status: 429
@@ -1653,10 +1653,10 @@ describe('globals', function() {
       delete window.fetch;
 
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._send({message: 'bar'});
-      var opts = Raven.sentryInternalMakeRequest.lastCall.args[0];
+      var opts = Raven._makeRequest.lastCall.args[0];
       var mockError = new Error('401: Unauthorized');
       mockError.request = {
         status: 401,
@@ -1677,10 +1677,10 @@ describe('globals', function() {
     if (supportsFetch()) {
       it('should set backoffDuration to value of Retry-If header if present - FETCH API', function() {
         this.sinon.stub(Raven, 'isSetup').returns(true);
-        this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+        this.sinon.stub(Raven, '_makeRequest');
 
         Raven._send({message: 'bar'});
-        var opts = Raven.sentryInternalMakeRequest.lastCall.args[0];
+        var opts = Raven._makeRequest.lastCall.args[0];
         var mockError = new Error('401: Unauthorized');
         mockError.request = {
           status: 401,
@@ -1701,14 +1701,14 @@ describe('globals', function() {
 
     it('should reset backoffDuration and backoffStart if onSuccess is fired (200)', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
 
       Raven._backoffDuration = 1000;
       Raven._backoffStart = 0;
       this.clock.tick(1001); // tick clock just past time necessary
 
       Raven._send({message: 'bar'});
-      var opts = Raven.sentryInternalMakeRequest.lastCall.args[0];
+      var opts = Raven._makeRequest.lastCall.args[0];
       opts.onSuccess({});
 
       assert.equal(Raven._backoffStart, null); // clock is at 100ms
@@ -1716,7 +1716,7 @@ describe('globals', function() {
     });
     it('should truncate url in breadcrumb', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1734,7 +1734,7 @@ describe('globals', function() {
       Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: obj}];
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1761,7 +1761,7 @@ describe('globals', function() {
 
     it('should skip truncating url in breadcrumb if object is frozen', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1781,7 +1781,7 @@ describe('globals', function() {
       Raven._breadcrumbs = [{type: 'request', timestamp: 0.1, data: obj}];
 
       Raven._send({message: 'bar'});
-      assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args[0].data, {
+      assert.deepEqual(Raven._makeRequest.lastCall.args[0].data, {
         project: '2',
         logger: 'javascript',
         platform: 'javascript',
@@ -1812,7 +1812,7 @@ describe('globals', function() {
 
     it('should not throw error when url in breadcrumb is undefined', function() {
       this.sinon.stub(Raven, 'isSetup').returns(true);
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       this.sinon.stub(Raven, '_getHttpData').returns({
         url: 'http://localhost/?a=b',
         headers: {'User-Agent': 'lolbrowser'}
@@ -1846,7 +1846,7 @@ describe('globals', function() {
         it('should create an XMLHttpRequest object with body as JSON payload', function() {
           this.sinon.spy(window, 'fetch');
 
-          Raven.sentryInternalMakeRequest({
+          Raven._makeRequest({
             url: 'http://localhost/',
             auth: {a: '1', b: '2'},
             data: {foo: 'bar'},
@@ -1878,7 +1878,7 @@ describe('globals', function() {
             )
           );
 
-          Raven.sentryInternalMakeRequest({
+          Raven._makeRequest({
             url: 'http://localhost/',
             auth: {a: '1', b: '2'},
             data: {foo: 'bar'},
@@ -1922,7 +1922,7 @@ describe('globals', function() {
       });
 
       it('should create an XMLHttpRequest object with body as JSON payload', function() {
-        Raven.sentryInternalMakeRequest({
+        Raven._makeRequest({
           url: 'http://localhost/',
           auth: {a: '1', b: '2'},
           data: {foo: 'bar'},
@@ -1935,7 +1935,7 @@ describe('globals', function() {
       });
 
       it('should pass a request object to onError', function(done) {
-        Raven.sentryInternalMakeRequest({
+        Raven._makeRequest({
           url: 'http://localhost/',
           auth: {a: '1', b: '2'},
           data: {foo: 'bar'},
@@ -1958,7 +1958,7 @@ describe('globals', function() {
         var oldXDR = window.XDomainRequest;
         window.XDomainRequest = undefined;
 
-        Raven.sentryInternalMakeRequest({
+        Raven._makeRequest({
           url: 'http://localhost/',
           auth: {a: '1', b: '2'},
           data: {foo: 'bar'},
@@ -2035,7 +2035,7 @@ describe('globals', function() {
     });
 
     it('should work as advertised #integration', function() {
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       var stackInfo = {
         name: 'Error',
         message: 'pickleRick',
@@ -2060,10 +2060,10 @@ describe('globals', function() {
       };
 
       Raven._handleStackInfo(stackInfo, {foo: 'bar'});
-      assert.isTrue(Raven.sentryInternalMakeRequest.calledOnce);
+      assert.isTrue(Raven._makeRequest.calledOnce);
       /* This is commented out because chai is broken.
 
-            assert.deepEqual(Raven.sentryInternalMakeRequest.lastCall.args, [{
+            assert.deepEqual(Raven._makeRequest.lastCall.args, [{
                 project: '2',
                 logger: 'javascript',
                 platform: 'javascript',
@@ -2950,10 +2950,10 @@ describe('Raven (public API)', function() {
     it('should work as advertised #integration', function() {
       var imageCache = [];
 
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       setupRaven();
       Raven.captureMessage('lol', {foo: 'bar'});
-      assert.equal(Raven.sentryInternalMakeRequest.callCount, 1);
+      assert.equal(Raven._makeRequest.callCount, 1);
       // It'd be hard to assert the actual payload being sent
       // since it includes the generated url, which is going to
       // vary between users running the tests
@@ -2961,7 +2961,7 @@ describe('Raven (public API)', function() {
     });
 
     it('should tag lastEventId #integration', function() {
-      this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+      this.sinon.stub(Raven, '_makeRequest');
       setupRaven();
       Raven.captureMessage('lol');
       assert.equal(Raven.lastEventId(), 'abc123');
@@ -3620,7 +3620,7 @@ describe('Raven (public API)', function() {
       });
 
       it('should specify embed API endpoint and basic query string (DSN, eventId)', function() {
-        this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+        this.sinon.stub(Raven, '_makeRequest');
 
         Raven.showReportDialog({
           eventId: 'abc123',
@@ -3647,7 +3647,7 @@ describe('Raven (public API)', function() {
       });
 
       it('should specify embed API endpoint and full query string (DSN, eventId, user)', function() {
-        this.sinon.stub(Raven, 'sentryInternalMakeRequest');
+        this.sinon.stub(Raven, '_makeRequest');
 
         Raven.showReportDialog({
           eventId: 'abc123',

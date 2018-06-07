@@ -176,7 +176,7 @@ module.exports = function(grunt) {
         // Minify object properties that begin with _ ("private"
         // methods and values)
         mangleProperties: {
-          regex: /^_/
+          regex: /^_(?!makeRequest)/
         },
 
         compress: {
