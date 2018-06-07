@@ -2099,7 +2099,7 @@ Raven.prototype = {
     }
 
     var url = this._globalEndpoint;
-    (globalOptions.transport || this._makeRequest).call(this, {
+    (globalOptions.transport || this.sentryInternalMakeRequest).call(this, {
       url: url,
       auth: auth,
       data: data,
@@ -2130,7 +2130,7 @@ Raven.prototype = {
     });
   },
 
-  _makeRequest: function(opts) {
+  sentryInternalMakeRequest: function(opts) {
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header) to avoid preflight CORS requests
     var url = opts.url + '?' + urlencode(opts.auth);
 

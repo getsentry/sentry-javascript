@@ -6,7 +6,6 @@ docs/_build
 docs/doctrees
 build/
 dist/
-!packages/raven-js/dist/
 coverage/
 scratch/
 *.pyc
