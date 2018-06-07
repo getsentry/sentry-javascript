@@ -322,5 +322,6 @@ module.exports = function(grunt) {
   );
   grunt.registerTask('dist', ['build', 'copy:dist', 'sri:dist']);
   grunt.registerTask('publish', ['build', 's3']);
+  grunt.registerTask('cdn', ['version', 's3']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 };
