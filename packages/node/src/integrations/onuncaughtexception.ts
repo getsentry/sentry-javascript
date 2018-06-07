@@ -13,10 +13,4 @@ export class OnUncaughtException implements Integration {
   public install(): void {
     global.process.on('uncaughtException', Raven.uncaughtErrorHandler);
   }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    global.process.removeAllListeners('uncaughtException');
-  }
 }

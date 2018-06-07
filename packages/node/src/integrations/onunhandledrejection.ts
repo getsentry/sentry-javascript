@@ -35,10 +35,4 @@ export class OnUnhandledRejection implements Integration {
       });
     });
   }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    global.process.removeAllListeners('unhandledRejection');
-  }
 }

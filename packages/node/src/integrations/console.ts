@@ -9,7 +9,6 @@ import { Severity } from '@sentry/types';
 
 /** Console module integration */
 export class Console implements Integration {
-  private originals: any[] = [];
   /**
    * @inheritDoc
    */
@@ -19,7 +18,6 @@ export class Console implements Integration {
    */
   public install(): void {
     const Module = require('module');
-    const self = this;
 
     function loadWrapper(origLoad: Function) {
       return function(moduleId: string) {
@@ -63,7 +61,7 @@ export class Console implements Integration {
             };
           }
 
-          fill(origModule, level, levelWrapper, self.originals);
+          fill(origModule, level, levelWrapper);
         }
 
         ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper);
@@ -72,23 +70,9 @@ export class Console implements Integration {
       };
     }
 
-    fill(Module, '_load', loadWrapper, self.originals);
+    fill(Module, '_load', loadWrapper);
 
     // special case: since console is built-in and app-level code won't require() it, do that here
     require('console');
-  }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    if (!this.originals.length) return;
-    let original;
-    // eslint-disable-next-line no-cond-assign
-    while ((original = this.originals.shift())) {
-      const obj = original[0];
-      const name = original[1];
-      const orig = original[2];
-      obj[name] = orig;
-    }
   }
 }

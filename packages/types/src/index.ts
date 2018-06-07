@@ -124,5 +124,4 @@ export interface Integration {
   name: string;
   handler?: any;
   install(): void;
-  uninstall?(): void;
 }

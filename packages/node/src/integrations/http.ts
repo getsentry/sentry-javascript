@@ -8,7 +8,6 @@ import { ClientRequestArgs, RequestOptions, ServerResponse } from 'http';
 
 /** http module integration */
 export class Http implements Integration {
-  private originals: any[] = [];
   /**
    * @inheritDoc
    */
@@ -18,7 +17,6 @@ export class Http implements Integration {
    */
   public install(): void {
     const Module = require('module');
-    const self = this;
     let lastResponse: ServerResponse;
 
     function loadWrapper(origLoad: Function) {
@@ -105,49 +103,34 @@ export class Http implements Integration {
           };
         }
 
-        fill(ClientRequest.prototype, 'emit', emitWrapper, self.originals);
+        fill(ClientRequest.prototype, 'emit', emitWrapper);
 
-        fill(
-          origModule,
-          'ClientRequest',
-          function() {
-            return ClientRequest;
-          },
-          self.originals,
-        );
+        fill(origModule, 'ClientRequest', function() {
+          return ClientRequest;
+        });
 
         // http.request orig refs module-internal ClientRequest, not exported one, so
         // it still points at orig ClientRequest after our monkeypatch; these reimpls
         // just get that reference updated to use our new ClientRequest
-        fill(
-          origModule,
-          'request',
-          function() {
-            return function(options: ClientRequestArgs, callback: Function) {
-              return new origModule.ClientRequest(options, callback);
-            };
-          },
-          self.originals,
-        );
+        fill(origModule, 'request', function() {
+          return function(options: ClientRequestArgs, callback: Function) {
+            return new origModule.ClientRequest(options, callback);
+          };
+        });
 
-        fill(
-          origModule,
-          'get',
-          function() {
-            return function(options: RequestOptions, callback: Function) {
-              var req = origModule.request(options, callback);
-              req.end();
-              return req;
-            };
-          },
-          self.originals,
-        );
+        fill(origModule, 'get', function() {
+          return function(options: RequestOptions, callback: Function) {
+            var req = origModule.request(options, callback);
+            req.end();
+            return req;
+          };
+        });
 
         return origModule;
       };
     }
 
-    fill(Module, '_load', loadWrapper, self.originals);
+    fill(Module, '_load', loadWrapper);
 
     // observation: when the https module does its own require('http'), it *does not* hit our hooked require to instrument http on the fly
     // but if we've previously instrumented http, https *does* get our already-instrumented version
@@ -155,19 +138,5 @@ export class Http implements Integration {
     // so module cache will have uninstrumented http; proactively loading it here ensures instrumented version is in module cache
     // alternatively we could refactor to load our transports later, but this is easier and doesn't have much drawback
     require('http');
-  }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    if (!this.originals.length) return;
-    let original;
-    // eslint-disable-next-line no-cond-assign
-    while ((original = this.originals.shift())) {
-      const obj = original[0];
-      const name = original[1];
-      const orig = original[2];
-      obj[name] = orig;
-    }
   }
 }
