@@ -1,0 +1,48 @@
+{
+  "extends": ["tslint:all", "tslint-config-prettier"],
+  "rules": {
+    // This rule has side effects and must be disabled
+    "no-unused-variable": false,
+
+    // We don't want these
+    "newline-before-return": false,
+    "no-any": false,
+    "no-magic-numbers": false,
+    "no-parameter-properties": false,
+    "no-require-imports": false,
+    "prefer-function-over-method": [false],
+    "strict-boolean-expressions": false,
+
+    // These are too strict in tslint:all
+    "comment-format": [true, "check-space"],
+    "completed-docs": [
+      true,
+      {
+        "classes": true,
+        "enums": true,
+        "enum-members": true,
+        "functions": true,
+        "interfaces": true,
+        "methods": { "tags": { "content": {}, "existence": ["inheritDoc"] } },
+        "properties": { "tags": { "content": {}, "existence": ["inheritDoc"] } }
+      }
+    ],
+    "interface-name": [true, "never-prefix"],
+    "member-ordering": [true, "statics-first"],
+    "no-console": [true, "log"],
+    "only-arrow-functions": [true, "allow-named-functions"],
+    "typedef": [
+      true,
+      "call-signature",
+      "parameter",
+      "property-declaration",
+      "member-variable-declaration"
+    ],
+    "variable-name": [
+      true,
+      "check-format",
+      "allow-leading-underscore",
+      "ban-keywords"
+    ]
+  }
+}

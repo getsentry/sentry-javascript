@@ -1,20 +1,22 @@
 {
-    "editor.tabSize": 2,
-    "editor.rulers": [90],
-    "[typescript]": {
-        "editor.formatOnSave": true
-    },
-    "[javascript]": {
-        "editor.formatOnSave": true
-    },
-    "prettier.typescriptEnable": [
-        "typescript",
-        "typescriptreact"
-    ],
-    "search.exclude": {
-        "**/node_modules": true,
-        "**/bower_components": true,
-        "**/dist/**": true
-    },
-    "tslint.autoFixOnSave": true,
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.rulers": [80],
+  "editor.tabSize": 2,
+  "files.autoSave": "onWindowChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "search.exclude": {
+    "**/node_modules/": true,
+    "**/build/": true,
+    "**/dist/": true
+  },
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "tslint.enable": false,
+  "[json]": {
+    "editor.formatOnType": false,
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": false
+  }
 }

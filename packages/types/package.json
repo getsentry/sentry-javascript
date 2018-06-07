@@ -1,0 +1,33 @@
+{
+  "name": "@sentry/types",
+  "version": "0.5.4",
+  "description": "Types for all Sentry JavaScript SDKs",
+  "repository": "git://github.com/getsentry/raven-js.git",
+  "homepage": "https://github.com/getsentry/raven-js/tree/next/packages/types",
+  "author": "Sentry",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.2",
+    "prettier": "^1.12.1",
+    "prettier-check": "^2.0.0",
+    "tslint": "^5.9.1",
+    "typescript": "^2.8.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "run-s lint:prettier lint:tslint",
+    "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
+    "lint:tslint": "tslint -t stylish -p .",
+    "fix": "run-s fix:tslint fix:prettier",
+    "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
+    "fix:tslint": "tslint --fix -t stylish -p ."
+  }
+}

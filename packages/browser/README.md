@@ -1,58 +1,82 @@
 <p align="center">
-    <a href="https://sentry.io" target="_blank" align="center">
-        <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
-    </a>
-<br/>
-    <h1>Sentry Browser SDK Package</h1>
+  <a href="https://sentry.io" target="_blank" align="center">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
+  </a>
+  <br />
 </p>
+
+# Official Sentry SDK for Browsers (Preview)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 
-## General
-
-This package is meant to be used with the Core SDK package.
+**WARNING:** This SDK is part of an early access preview for the
+[next generation](https://github.com/getsentry/raven-js/tree/next#readme) of
+Sentry JavaScript SDKs. Public interfaces might change and break backwards
+compatibility from time to time. We absolutely recommend
+[raven-js](https://github.com/getsentry/raven-js) in production!
 
 ## Usage
 
-First you have to create the core and `use` a corresponding SDK.
-```javascript
-import * as Sentry from '@sentry/core';
-import { Browser } from '@sentry/browser';
-
-Sentry.create('__DSN__')
-  .use(Browser)
-  .install();
-```
-
-After that you can call function on the global `sharedClient`:
-```javascript
-Sentry.getSharedClient().setTagsContext({ cordova: true });
-Sentry.getSharedClient().captureMessage('test message');
-Sentry.getSharedClient().captureBreadcrumb({ message: 'HOHOHOHO' });
-Sentry.getSharedClient().captureException(new Error('error'));
-```
-
-If you don't want to use a global static instance of Sentry, you can create one on your own:
+To use this SDK, call `init(options)` as early as possible after loading the
+page. This will initialize the SDK and hook into the environment. Note that you
+can turn off almost all side effects using the respective options.
 
 ```javascript
-const client = await new Sentry.Client(dsn).use(MockAdapter).install()
-client.setTagsContext({ cordova: true });
-client.captureMessage('test message');
-client.captureBreadcrumb({ message: 'HOHOHOHO' });
+import { init } from '@sentry/browser';
 
-// OR
-
-new Sentry.Client('__DSN__')
-  .use(MockAdapter)
-  .install()
-  .then(client => {
-    client.setTagsContext({ cordova: true });
-    client.captureMessage('test message');
-    client.captureBreadcrumb({ message: 'HOHOHOHO' });
-  });
+init({
+  dsn: '__DSN__',
+  // ...
+});
 ```
 
-Notice, `install()` is a `Promise` but we internally wait until it is resolved,
-so it is save to call other function without waiting for it.
+To set context information or send manual events, use the exported functions of
+`@sentry/browser`. Note that these functions will not perform any action before
+you have called `init()`:
+
+```javascript
+import * as Sentry from '@sentry/browser';
+
+// Set user information, as well as tags and further extras
+Sentry.configureScope(scope => {
+  scope.setExtra('battery', 0.7);
+  scope.setTag('user_mode', 'admin');
+  scope.setUser({ id: '4711' });
+  // scope.clear();
+});
+
+// Add a breadcrumb for future events
+Sentry.addBreadcrumb({
+  message: 'My Breadcrumb',
+  // ...
+});
+
+// Capture exceptions, messages or manual events
+Sentry.captureMessage('Hello, world!');
+Sentry.captureException(new Error('Good bye'));
+Sentry.captureEvent({
+  message: 'Manual',
+  stacktrace: [
+    // ...
+  ],
+});
+```
+
+## Advanced Usage
+
+If you don't want to use a global static instance of Sentry, you can create one
+yourself:
+
+```javascript
+import { BrowserClient } from '@sentry/browser';
+
+const client = new BrowserClient({
+  dsn: '__DSN__',
+  // ...
+});
+
+client.install();
+// ...
+```

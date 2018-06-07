@@ -1,0 +1,10 @@
+{
+  "lerna": "2.9.0",
+  "version": "0.5.4",
+  "packages": [
+    "packages/*"
+  ],
+  "ignore": "raven-js",
+  "npmClient": "yarn",
+  "useWorkspaces": true
+}

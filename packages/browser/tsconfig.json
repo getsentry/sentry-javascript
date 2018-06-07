@@ -1,19 +1,10 @@
 {
-    "extends": "../tsconfig.build.json",
-
-    "compilerOptions": {
-        "types": [
-            "node"
-        ],
-        "lib": ["es2015", "dom"],
-        "allowJs": false,
-        "outDir": "dist"
-    },
-    "include": [
-      "__tests__",
-      "index.ts",
-      "standalone.ts",
-      "lib/**/*",
-      "spec/**/*"
-    ]
+  "extends": "./tsconfig.build.json",
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["dist"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node", "mocha", "chai", "sinon"],
+    "plugins": [{ "name": "tslint-language-service" }]
+  }
 }

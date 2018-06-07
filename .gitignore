@@ -1,24 +1,28 @@
-.DS_Store
+# dependencies
+node_modules/
 
-# Thumbnails
-._*
-
-# Files that might appear on external disk
-.Spotlight-V100
-.Trashes
-
+# build and test
 docs/_build
 docs/doctrees
-
-build
-node_modules
-npm-debug.log
-
+build/
+dist/
+coverage/
 scratch/
-
 *.pyc
 
+# logs
+yarn-error.log
+npm-debug.log
+lerna-debug.log
+
+# ide
 .idea
 *.sublime-*
 
-yarn-error.log
+# misc
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+.rpt2_cache
