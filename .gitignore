@@ -5,8 +5,7 @@ node_modules/
 docs/_build
 docs/doctrees
 build/
-dist/
-!packages/raven-js/dist
+packages/*/dist/
 coverage/
 scratch/
 *.pyc

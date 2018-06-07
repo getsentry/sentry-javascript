@@ -5,6 +5,9 @@
   "main": "dist/raven.js",
   "ignore": [
     "**/.*",
+    ".travis",
+    ".vscode",
+    ".github",
     "AUTHORS",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
@@ -12,6 +15,7 @@
     "Makefile",
     "README.md",
     "docs",
+    "packages",
     "package.json",
     "example",
     "test",
