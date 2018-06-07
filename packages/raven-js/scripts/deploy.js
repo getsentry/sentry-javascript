@@ -153,8 +153,8 @@ function updateBowerConfig(nextVersion) {
 }
 
 function updateDocsConfig(nextVersion) {
-  const filePath = path.join(__dirname, '../docs/sentry-doc-config.json');
-  const originalData = require('../docs/sentry-doc-config.json');
+  const filePath = path.join(__dirname, '../../../docs/sentry-doc-config.json');
+  const originalData = require('../../../docs/sentry-doc-config.json');
   const data = Object.assign({}, originalData, {
     vars: Object.assign({}, originalData.vars, {
       RAVEN_VERSION: nextVersion
@@ -198,7 +198,7 @@ function execCommand(command) {
 }
 
 function runBuild() {
-  execCommand(`grunt dist`);
+  execCommand(`node ./node_modules/.bin/grunt dist`);
   console.log('✔ Build process completed');
 }
 
