@@ -123,9 +123,9 @@ Or you can place those two things in a separate script tags. This will queue all
 Be aware however, that there are some trade-offs to this solution, as errors might provide less information due to them being "retriggered" instead of being caught from the original source.
 
 NOTE: This won't work when opening ``index.html`` or any other html file from the file system, as it doesn't support anonymous cross-origin scripts.
-The same thing can happen for any cross-origin scripts as well. To read more about it, see `What the heck is "Script error"?<https://blog.sentry.io/2016/05/17/what-is-script-error>`_.
+The same thing can happen for any cross-origin scripts as well. To read more about it, see `What the heck is Script error?<https://blog.sentry.io/2016/05/17/what-is-script-error>`_.
 
-To read un-minified source code for this loader, see `loader.js<https://github.com/getsentry/raven-js/blob/master/src/loader.js>`_
+To read un-minified source code for this loader, see `loader.js<https://github.com/getsentry/raven-js/blob/master/packages/raven-js/src/loader.js>`_
 
 Requirements
 ~~~~~~~~~~~~

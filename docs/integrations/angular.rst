@@ -11,7 +11,7 @@ TypeScript Support
 ------------------
 
 Raven.js ships with a `TypeScript declaration file
-<https://github.com/getsentry/raven-js/blob/master/typescript/raven.d.ts>`_, which helps static checking correctness of
+<https://github.com/getsentry/raven-js/blob/master/packages/raven-js/typescript/raven.d.ts>`_, which helps static checking correctness of
 Raven.js API calls, and facilitates auto-complete in TypeScript-aware IDEs like Visual Studio Code.
 
 

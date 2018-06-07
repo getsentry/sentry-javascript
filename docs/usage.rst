@@ -294,7 +294,7 @@ Raven and Sentry support `Source Maps
 
 We have provided some instructions to creating Source Maps over at
 https://docs.sentry.io/hosted/clients/javascript/sourcemaps/. Also, checkout our `Gruntfile
-<https://github.com/getsentry/raven-js/blob/master/Gruntfile.js>`_ for a
+<https://github.com/getsentry/raven-js/blob/master/packages/raven-js/Gruntfile.js>`_ for a
 good example of what we're doing.
 
 You can use `Source Map Validator
