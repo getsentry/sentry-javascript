@@ -1,4 +1,4 @@
-import { captureException, withScope, configureScope } from '@sentry/shim';
+import { captureException, configureScope, withScope } from '@sentry/shim';
 import { Integration } from '@sentry/types';
 
 // TODO: Find a way to create extedned interface that will work with our monkey-patch

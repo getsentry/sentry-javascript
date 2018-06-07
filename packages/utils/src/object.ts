@@ -50,13 +50,14 @@ export function clone<T>(object: T): T {
  * @param [track] An array containing original methods that were wrapped.
  * @returns void
  */
-export function fill(
-  object: { [key: string]: string },
+
+export function fill<T>(
+  object: { [key: string]: T },
   name: string,
-  replacement: Function,
+  replacement: (orig: T, ...args: any[]) => T,
   track?: any[],
 ): void {
-  let orig = object[name];
+  const orig = object[name];
   object[name] = replacement(orig);
   if (track) {
     track.push([object, name, orig]);

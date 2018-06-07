@@ -13,14 +13,12 @@ export class OnError implements Integration {
    * @inheritDoc
    */
   public handler(...args: any[]): void {
-    // tslint:disable-next-line:no-unsafe-any
     Raven._handleOnErrorStackInfo.call(Raven, ...args);
   }
   /**
    * @inheritDoc
    */
   public install(): void {
-    // tslint:disable-next-line:no-unsafe-any
     TraceKit.report.subscribe(this.handler.bind(this));
   }
 }

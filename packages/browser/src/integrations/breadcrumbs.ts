@@ -11,7 +11,6 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    // tslint:disable-next-line:no-unsafe-any
     Raven._instrumentBreadcrumbs();
   }
 }

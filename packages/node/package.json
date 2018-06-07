@@ -18,6 +18,7 @@
     "@sentry/core": "0.5.4",
     "@sentry/shim": "0.5.4",
     "@sentry/types": "0.5.4",
+    "@sentry/utils": "0.5.4",
     "raven": "^2.6.0"
   },
   "devDependencies": {

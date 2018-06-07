@@ -11,7 +11,6 @@ export class TryCatch implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    // tslint:disable-next-line:no-unsafe-any
     Raven._instrumentTryCatch();
   }
 }

@@ -1,8 +1,7 @@
-import { Integration } from '@sentry/types';
 import { addBreadcrumb } from '@sentry/shim';
-import { format } from 'util';
+import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils';
-import { Severity } from '@sentry/types';
+import { format } from 'util';
 
 // TODO: Extend Console to allow for accessing [level], as it's not providing
 // indexed access by default
@@ -17,25 +16,39 @@ export class Console implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    const Module = require('module');
+    const MODULE = require('module');
 
-    function loadWrapper(origLoad: Function) {
-      return function(moduleId: string) {
-        const origModule = origLoad.apply(Module, arguments);
+    /**
+     * Wrapper function for internal _load calls within `require`
+     */
+    function loadWrapper(origLoad: () => any): any {
+      return function(moduleId: string): any {
+        const origModule = origLoad.apply(MODULE, arguments);
 
-        if (moduleId !== 'console') return origModule;
+        if (moduleId !== 'console') {
+          return origModule;
+        }
 
-        function consoleWrapper(level: string) {
+        /**
+         * Wrapper function that'll be used for every console level
+         */
+        function consoleWrapper(level: string): any {
           if (!(level in origModule)) {
             return;
           }
 
-          function levelWrapper(originalConsoleLevel: Function) {
-            let sentryLevel = Severity.Log;
+          /**
+           * Internal wrapper function for console calls
+           */
+          function levelWrapper(originalConsoleLevel: () => any): any {
+            let sentryLevel: Severity;
 
             switch (level) {
               case 'debug':
                 sentryLevel = Severity.Debug;
+                break;
+              case 'error':
+                sentryLevel = Severity.Error;
                 break;
               case 'info':
                 sentryLevel = Severity.Info;
@@ -43,21 +56,18 @@ export class Console implements Integration {
               case 'warn':
                 sentryLevel = Severity.Warning;
                 break;
-              case 'error':
-                sentryLevel = Severity.Error;
-                break;
+              default:
+                sentryLevel = Severity.Log;
             }
 
-            return function() {
-              var args = [].slice.call(arguments);
-
+            return function(): any {
               addBreadcrumb({
-                message: format.apply(null, args),
-                level: sentryLevel,
                 category: 'console',
+                level: sentryLevel,
+                message: format.apply(undefined, arguments),
               });
 
-              originalConsoleLevel.apply(origModule, args);
+              originalConsoleLevel.apply(origModule, arguments);
             };
           }
 
@@ -70,7 +80,7 @@ export class Console implements Integration {
       };
     }
 
-    fill(Module, '_load', loadWrapper);
+    fill(MODULE, '_load', loadWrapper);
 
     // special case: since console is built-in and app-level code won't require() it, do that here
     require('console');
