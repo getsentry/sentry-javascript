@@ -21,62 +21,58 @@ export class Console implements Integration {
     const Module = require('module');
     const self = this;
 
-    fill(
-      Module,
-      '_load',
-      function(origLoad: Function) {
-        return function(moduleId: string) {
-          const origModule = origLoad.apply(Module, arguments);
+    function loadWrapper(origLoad: Function) {
+      return function(moduleId: string) {
+        const origModule = origLoad.apply(Module, arguments);
 
-          if (moduleId !== 'console') return origModule;
+        if (moduleId !== 'console') return origModule;
 
-          ['debug', 'info', 'warn', 'error', 'log'].forEach((level: string) => {
-            if (!(level in origModule)) {
-              return;
+        function consoleWrapper(level: string) {
+          if (!(level in origModule)) {
+            return;
+          }
+
+          function levelWrapper(originalConsoleLevel: Function) {
+            let sentryLevel = Severity.Log;
+
+            switch (level) {
+              case 'debug':
+                sentryLevel = Severity.Debug;
+                break;
+              case 'info':
+                sentryLevel = Severity.Info;
+                break;
+              case 'warn':
+                sentryLevel = Severity.Warning;
+                break;
+              case 'error':
+                sentryLevel = Severity.Error;
+                break;
             }
 
-            fill(
-              origModule,
-              level,
-              function(originalConsoleLevel: Function) {
-                let sentryLevel = Severity.Log;
+            return function() {
+              var args = [].slice.call(arguments);
 
-                switch (level) {
-                  case 'debug':
-                    sentryLevel = Severity.Debug;
-                    break;
-                  case 'info':
-                    sentryLevel = Severity.Info;
-                    break;
-                  case 'warn':
-                    sentryLevel = Severity.Warning;
-                    break;
-                  case 'error':
-                    sentryLevel = Severity.Error;
-                    break;
-                }
+              addBreadcrumb({
+                message: format.apply(null, args),
+                level: sentryLevel,
+                category: 'console',
+              });
 
-                return function() {
-                  var args = [].slice.call(arguments);
+              originalConsoleLevel.apply(origModule, args);
+            };
+          }
 
-                  addBreadcrumb({
-                    message: format.apply(null, args),
-                    level: sentryLevel,
-                    category: 'console',
-                  });
+          fill(origModule, level, levelWrapper, self.originals);
+        }
 
-                  originalConsoleLevel.apply(origModule, args);
-                };
-              },
-              self.originals,
-            );
-          });
+        ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper);
 
-          return origModule;
-        };
-      },
-      self.originals,
-    );
+        return origModule;
+      };
+    }
+
+    fill(Module, '_load', loadWrapper, self.originals);
 
     // special case: since console is built-in and app-level code won't require() it, do that here
     require('console');
