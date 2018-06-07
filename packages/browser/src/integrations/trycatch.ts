@@ -14,13 +14,4 @@ export class TryCatch implements Integration {
     // tslint:disable-next-line:no-unsafe-any
     Raven._instrumentTryCatch();
   }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    // tslint:disable-next-line:no-unsafe-any
-    Raven._restoreBuiltIns();
-    // tslint:disable-next-line:no-unsafe-any
-    Raven._restoreConsole();
-  }
 }

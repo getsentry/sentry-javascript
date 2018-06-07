@@ -14,13 +14,4 @@ export class Breadcrumbs implements Integration {
     // tslint:disable-next-line:no-unsafe-any
     Raven._instrumentBreadcrumbs();
   }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    // tslint:disable-next-line:no-unsafe-any
-    Raven._restoreBuiltIns();
-    // tslint:disable-next-line:no-unsafe-any
-    Raven._restoreConsole();
-  }
 }

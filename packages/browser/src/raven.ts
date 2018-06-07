@@ -20,11 +20,8 @@ export interface RavenInternal {
   // TODO: Remove once integrations are ported
   _handleOnErrorStackInfo(): void;
   _patchFunctionToString(): void;
-  _unpatchFunctionToString(): void;
   _instrumentTryCatch(): void;
   _instrumentBreadcrumbs(): void;
-  _restoreBuiltIns(): void;
-  _restoreConsole(): void;
   _isRavenInstalled: boolean;
   _globalOptions: {
     stackTraceLimit: number;

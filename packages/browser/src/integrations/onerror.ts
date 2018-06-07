@@ -23,11 +23,4 @@ export class OnError implements Integration {
     // tslint:disable-next-line:no-unsafe-any
     TraceKit.report.subscribe(this.handler.bind(this));
   }
-  /**
-   * @inheritDoc
-   */
-  public uninstall(): void {
-    // tslint:disable-next-line:no-unsafe-any
-    TraceKit.report.unsubscribe(this.handler.bind(this));
-  }
 }
