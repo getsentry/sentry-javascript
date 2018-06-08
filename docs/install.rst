@@ -8,10 +8,10 @@ So for example:
 
 .. sourcecode:: html
 
-  <script src="jquery.js"></script>
-  <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js" crossorigin="anonymous"></script>
-  <script>Raven.config('___PUBLIC_DSN___').install();</script>
-  <script src="app.js"></script>
+    <script src="jquery.js"></script>
+    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js" crossorigin="anonymous"></script>
+    <script>Raven.config('___PUBLIC_DSN___').install();</script>
+    <script src="app.js"></script>
 
 This allows the ability for Raven's integrations to instrument themselves. If
 included before something like Angular, it'd be impossible to use for
@@ -28,7 +28,7 @@ Our CDN distributes builds with and without :doc:`integrations <integrations/ind
 
 .. sourcecode:: html
 
-  <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js" crossorigin="anonymous"></script>
 
 This version does not include any plugins. See `ravenjs.com
 <http://ravenjs.com/>`_ for more information about plugins and getting
@@ -45,11 +45,11 @@ add it to ``bower.json``).
 
 .. code-block:: sh
 
-  $ bower install raven-js --save
+    $ bower install raven-js --save
 
 .. code-block:: html
 
-  <script src="/bower_components/raven-js/dist/raven.js"></script>
+    <script src="/bower_components/raven-js/dist/raven.js"></script>
 
 Also note that the file is uncompresed but is ready to pass to any decent
 JavaScript compressor like `UglifyJS
@@ -63,11 +63,11 @@ Raven is also available as an npm package, `raven-js
 
 .. code-block:: sh
 
-  $ npm install raven-js --save
+    $ npm install raven-js --save
 
 .. code-block:: html
 
-	<script src="/node_modules/raven-js/dist/raven.js"></script>
+    <script src="/node_modules/raven-js/dist/raven.js"></script>
 
 Note that if you intend to use Raven with Node, `raven-node <https://github.com/getsentry/raven-node>`_ is the client to use.
 
@@ -79,10 +79,10 @@ To use Raven with CommonJS imports:
 
 .. code-block:: javascript
 
-	var Raven = require('raven-js')	;
-	Raven
-	    .config('___PUBLIC_DSN___')
-	    .install();
+    var Raven = require('raven-js')	;
+    Raven
+        .config('___PUBLIC_DSN___')
+        .install();
 
 ES2015 (ES6)
 ~~~~~~~~~~~~
@@ -91,10 +91,10 @@ To use Raven with ES2015 (ES6) imports:
 
 .. code-block:: javascript
 
-	import Raven from 'raven-js';
-	Raven
-	    .config('___PUBLIC_DSN___')
-	    .install();
+    import Raven from 'raven-js';
+    Raven
+        .config('___PUBLIC_DSN___')
+        .install();
 
 Async Loading
 ~~~~~~~~~~~~~
@@ -106,26 +106,26 @@ And place the snippet below as soon as possible in your HTML code. For example:
 
 .. code-block:: html
 
-  <script>
-    window.SENTRY_SDK = {
-      url: 'https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js',
-      dsn: '___PUBLIC_DSN___',
-      options: {
-        release: '1.3.0'
+    <script>
+      window.SENTRY_SDK = {
+        url: 'https://cdn.ravenjs.com/###RAVEN_VERSION###/raven.min.js',
+        dsn: '___PUBLIC_DSN___',
+        options: {
+          release: '1.3.0'
+        }
       }
-    }
 
-    ;(function(a,b,g,e,h){var k=a.SENTRY_SDK,f=function(a){f.data.push(a)};f.data=[];var l=a[e];a[e]=function(c,b,e,d,h){f({e:[].slice.call(arguments)});l&&l.apply(a,arguments)};var m=a[h];a[h]=function(c){f({p:c.reason});m&&m.apply(a,arguments)};var n=b.getElementsByTagName(g)[0];b=b.createElement(g);b.src=k.url;b.crossorigin="anonymous";b.addEventListener("load",function(){try{a[e]=l;a[h]=m;var c=f.data,b=a.Raven;b.config(k.dsn,k.options).install();var g=a[e];if(c.length)for(var d=0;d<c.length;d++)c[d].e?g.apply(b.TraceKit,c[d].e):c[d].p&&b.captureException(c[d].p)}catch(p){console.log(p)}});n.parentNode.insertBefore(b,n)})(window,document,"script","onerror","onunhandledrejection");
-  </script>
+      ;(function(a,b,g,e,h){var k=a.SENTRY_SDK,f=function(a){f.data.push(a)};f.data=[];var l=a[e];a[e]=function(c,b,e,d,h){f({e:[].slice.call(arguments)});l&&l.apply(a,arguments)};var m=a[h];a[h]=function(c){f({p:c.reason});m&&m.apply(a,arguments)};var n=b.getElementsByTagName(g)[0];b=b.createElement(g);b.src=k.url;b.crossorigin="anonymous";b.addEventListener("load",function(){try{a[e]=l;a[h]=m;var c=f.data,b=a.Raven;b.config(k.dsn,k.options).install();var g=a[e];if(c.length)for(var d=0;d<c.length;d++)c[d].e?g.apply(b.TraceKit,c[d].e):c[d].p&&b.captureException(c[d].p)}catch(p){console.log(p)}});n.parentNode.insertBefore(b,n)})(window,document,"script","onerror","onunhandledrejection");
+    </script>
 
 Or you can place those two things in a separate script tags. This will queue all errors (and promises if the environment supports ``unhandledrejection`` handler) that happened before SDK was loaded and send them once it's configured and installed.
 
 Be aware however, that there are some trade-offs to this solution, as errors might provide less information due to them being "retriggered" instead of being caught from the original source.
 
 NOTE: This won't work when opening ``index.html`` or any other html file from the file system, as it doesn't support anonymous cross-origin scripts.
-The same thing can happen for any cross-origin scripts as well. To read more about it, see `What the heck is Script error?<https://blog.sentry.io/2016/05/17/what-is-script-error>`_.
+The same thing can happen for any cross-origin scripts as well. To read more about it, see `What the heck is Script error? <https://blog.sentry.io/2016/05/17/what-is-script-error>`_.
 
-To read un-minified source code for this loader, see `loader.js<https://github.com/getsentry/raven-js/blob/master/packages/raven-js/src/loader.js>`_
+To read un-minified source code for this loader, see `loader.js <https://github.com/getsentry/raven-js/blob/master/packages/raven-js/src/loader.js>`_
 
 Requirements
 ~~~~~~~~~~~~
