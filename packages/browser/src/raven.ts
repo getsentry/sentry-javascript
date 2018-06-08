@@ -17,6 +17,15 @@ export interface RavenInternal {
   wrap(options: object, fn: Function): Function;
   _sendProcessedPayload: SendMethod;
   VERSION: string;
+  // TODO: Remove once integrations are ported
+  _handleOnErrorStackInfo(): void;
+  _patchFunctionToString(): void;
+  _instrumentTryCatch(): void;
+  _instrumentBreadcrumbs(): void;
+  _isRavenInstalled: boolean;
+  _globalOptions: {
+    stackTraceLimit: number;
+  };
 }
 
 /** Casted raven instance with access to internal functions. */

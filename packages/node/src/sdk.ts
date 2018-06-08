@@ -2,6 +2,12 @@ import { initAndBind } from '@sentry/core';
 import { getCurrentClient as shimGetCurrentClient } from '@sentry/shim';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
+import {
+  Console,
+  Http,
+  OnUncaughtException,
+  OnUnhandledRejection,
+} from './integrations';
 
 /**
  * The Sentry Node SDK Client.
@@ -48,7 +54,12 @@ import { NodeClient } from './client';
  * @see NodeOptions for documentation on configuration options.
  */
 export function init(options: NodeOptions): void {
-  initAndBind(NodeClient, options);
+  initAndBind(NodeClient, options, [
+    new OnUncaughtException(),
+    new OnUnhandledRejection(),
+    new Console(),
+    new Http(),
+  ]);
 }
 
 /** Returns the current NodeClient, if any. */
