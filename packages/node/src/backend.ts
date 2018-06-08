@@ -46,7 +46,7 @@ export interface NodeOptions extends Options {
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
   /** Creates a new Node backend instance. */
-  public constructor(private readonly options: NodeOptions) {}
+  public constructor(private readonly options: NodeOptions = {}) {}
 
   /**
    * @inheritDoc
@@ -62,8 +62,16 @@ export class NodeBackend implements Backend {
       );
     }
 
+    Raven.config(dsn, this.options);
+
+    // We need to leave it here for now, as we are skipping `install` call,
+    // due to integrations migration
+    // TODO: Remove it once we fully migrate our code
     const { onFatalError } = this.options;
-    Raven.config(dsn, this.options).install(onFatalError);
+    if (onFatalError) {
+      Raven.onFatalError = onFatalError;
+    }
+    Raven.installed = true;
 
     // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
     // breadcrumbs created internally by Raven and pass them to the Client
