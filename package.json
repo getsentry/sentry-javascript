@@ -8,7 +8,13 @@
     "test": "lerna run --stream --concurrency 1 --sort test"
   },
   "workspaces": [
-    "packages/*"
+    "packages/browser",
+    "packages/core",
+    "packages/node",
+    "packages/shim",
+    "packages/types",
+    "packages/typescript",
+    "packages/utils"
   ],
   "devDependencies": {
     "@types/chai": "^4.1.3",

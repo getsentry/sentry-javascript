@@ -3,6 +3,7 @@
   "rules": {
     "completed-docs": false,
     "no-unused-expression": false,
-    "no-implicit-dependencies": [true, "dev"]
+    "no-implicit-dependencies": [true, "dev"],
+    "no-unsafe-any": false
   }
 }

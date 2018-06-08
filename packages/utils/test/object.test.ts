@@ -1,4 +1,4 @@
-import { clone, deserialize, serialize } from '../src';
+import { clone, deserialize, fill, serialize } from '../src';
 
 const MATRIX = [
   { name: 'boolean', object: true, serialized: 'true' },
@@ -31,4 +31,58 @@ describe('deserialize()', () => {
       expect(deserialize(entry.serialized)).toEqual(entry.object);
     });
   }
+});
+
+describe('fill()', () => {
+  test('wraps a method by calling a replacement function on it', () => {
+    const source = {
+      foo(): number {
+        return 42;
+      },
+    };
+    const name = 'foo';
+    const replacement = jest.fn().mockImplementationOnce(cb => cb);
+
+    fill(source, name, replacement);
+
+    expect(source.foo()).toEqual(42);
+    expect(replacement).toBeCalled();
+  });
+
+  test('can do anything inside replacement function', () => {
+    const source = {
+      foo: (): number => 42,
+    };
+    const name = 'foo';
+    const replacement = jest.fn().mockImplementationOnce(cb => {
+      expect(cb).toBe(source.foo);
+      return () => 1337;
+    });
+
+    fill(source, name, replacement);
+
+    expect(source.foo()).toEqual(1337);
+    expect(replacement).toBeCalled();
+    expect.assertions(3);
+  });
+
+  test('stores reference to unwrapped function', () => {
+    const source = {
+      foo(): number {
+        return 42;
+      },
+    };
+    const name = 'foo';
+    const replacement = jest.fn().mockImplementationOnce(() => () => 1337);
+    const wrapped: Array<[{ [key: string]: any }, string, any]> = [];
+
+    fill(source, name, replacement, wrapped);
+    expect(source.foo()).toEqual(1337);
+    expect(replacement).toBeCalled();
+
+    const original = wrapped[0];
+    expect(original[0]).toEqual(source);
+    expect(original[1]).toEqual('foo');
+    expect(original[2]()).toEqual(42);
+  });
 });
