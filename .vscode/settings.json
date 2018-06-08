@@ -1,6 +1,6 @@
 {
   "editor.formatOnType": true,
-  "editor.formatOnPaste": true,
+  "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
   "editor.rulers": [80],
   "editor.tabSize": 2,
