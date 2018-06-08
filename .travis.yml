@@ -22,10 +22,19 @@ matrix:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script: .travis/raven-js.sh
-    - env: NAME="packages/*/lint"
-      install: true
-      script: .travis/lint.sh
-    - env: NAME="packages/*/test"
-      install: true
-      script: .travis/test.sh
+      script:
+        - |
+            cd packages/raven-js
+            npm install
+            npm run test
+            if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+              npm run test:ci;
+            else
+              exit 0;
+            fi
+    - env: NAME="@sentry -> lint"
+      script: yarn build && yarn lint
+    - env: NAME="@sentry -> test"
+      addons:
+        chrome: stable
+      script: yarn build && yarn test
