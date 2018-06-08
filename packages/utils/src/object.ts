@@ -39,3 +39,31 @@ export function deserialize<T>(str: string): T {
 export function clone<T>(object: T): T {
   return deserialize(serialize(object));
 }
+
+/**
+ * Wrap a given object method with a higher-order function
+ * and keep track of the original within `track` array
+ *
+ * @param source An object that contains a method to be wrapped.
+ * @param name A name of method to be wrapped.
+ * @param replacement A function that should be used to wrap a given method.
+ * @param [track] An array containing original methods that were wrapped.
+ * @returns void
+ */
+
+export function fill(
+  source: { [key: string]: any },
+  name: string,
+  replacement: (...args: any[]) => any,
+  track?: Array<[{ [key: string]: any }, string, any]>,
+): void {
+  const orig = source[name];
+  source[name] = replacement(orig);
+  // tslint:disable:no-unsafe-any
+  source[name].__raven__ = true;
+  // tslint:disable:no-unsafe-any
+  source[name].__orig__ = orig;
+  if (track) {
+    track.push([source, name, orig]);
+  }
+}

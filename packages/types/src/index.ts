@@ -7,6 +7,8 @@ export enum Severity {
   /** TODO */
   Warning = 'warning',
   /** TODO */
+  Log = 'log',
+  /** TODO */
   Info = 'info',
   /** TODO */
   Debug = 'debug',
@@ -115,4 +117,11 @@ export interface SentryEvent {
   tags?: { [key: string]: string };
   extra?: { [key: string]: object };
   user?: User;
+}
+
+/** TODO */
+export interface Integration {
+  name: string;
+  handler?: any;
+  install(): void;
 }
