@@ -49,7 +49,11 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -1147,7 +1151,11 @@ Raven.prototype = {
                     {
                       mechanism: {
                         type: 'instrument',
-                        data: {target: global, function: 'handleEvent', handler: fn.name}
+                        data: {
+                          target: global,
+                          function: 'handleEvent',
+                          handler: (fn && fn.name) || '<anonymous>'
+                        }
                       }
                     },
                     fn.handleEvent
@@ -1198,7 +1206,7 @@ Raven.prototype = {
                       data: {
                         target: global,
                         function: 'addEventListener',
-                        handler: fn.name
+                        handler: (fn && fn.name) || '<anonymous>'
                       }
                     }
                   },
@@ -1243,7 +1251,10 @@ Raven.prototype = {
                 {
                   mechanism: {
                     type: 'instrument',
-                    data: {function: 'requestAnimationFrame', handler: orig.name}
+                    data: {
+                      function: 'requestAnimationFrame',
+                      handler: (orig && orig.name) || '<anonymous>'
+                    }
                   }
                 },
                 cb
@@ -1315,7 +1326,7 @@ Raven.prototype = {
             {
               mechanism: {
                 type: 'instrument',
-                data: {function: prop, handler: orig.name}
+                data: {function: prop, handler: (orig && orig.name) || '<anonymous>'}
               }
             },
             orig
@@ -1390,7 +1401,7 @@ Raven.prototype = {
                         type: 'instrument',
                         data: {
                           function: 'onreadystatechange',
-                          handler: orig.name
+                          handler: (orig && orig.name) || '<anonymous>'
                         }
                       }
                     },
