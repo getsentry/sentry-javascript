@@ -19,6 +19,7 @@
     "@sentry/types": "0.5.4"
   },
   "devDependencies": {
+    "codecov": "^3.0.2",
     "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.12.1",
@@ -30,6 +31,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rimraf dist coverage",
+    "codecov": "codecov",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",

@@ -37,4 +37,4 @@ matrix:
     - env: NAME="@sentry -> test"
       addons:
         chrome: stable
-      script: yarn build && yarn test
+      script: yarn build && yarn test && yarn codecov
