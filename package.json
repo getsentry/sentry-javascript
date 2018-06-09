@@ -5,7 +5,8 @@
     "clean": "lerna run --stream clean",
     "fix": "lerna run --stream --concurrency 1 fix",
     "lint": "lerna run --stream --concurrency 1 lint",
-    "test": "lerna run --stream --concurrency 1 --sort test"
+    "test": "lerna run --stream --concurrency 1 --sort test",
+    "codecov": "lerna run --stream codecov"
   },
   "workspaces": [
     "packages/browser",
