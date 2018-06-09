@@ -22,8 +22,11 @@ matrix:
         chrome: stable
         firefox: latest
         sauce_connect: true
+
       script:
         - |
+            CHANGES=$(git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD master))
+            [ -n "$(grep 'raven-js' <<< "$CHANGES")" ] && travis_terminate 0
             cd packages/raven-js
             npm install
             npm run test
