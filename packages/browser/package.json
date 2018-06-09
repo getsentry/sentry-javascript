@@ -21,7 +21,6 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
-    "codecov": "^3.0.2",
     "karma": "^2.0.2",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^2.2.0",
@@ -48,7 +47,6 @@
   "scripts": {
     "build": "rollup --config",
     "clean": "rimraf dist coverage .rpt2_cache build",
-    "codecov": "codecov",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",
