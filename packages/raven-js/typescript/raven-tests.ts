@@ -22,6 +22,9 @@ var options: Raven.RavenOptions = {
 };
 
 Raven.config('https://public@sentry.io/1', options).install();
+Raven.config(false);
+Raven.config(null);
+Raven.config(undefined);
 
 var throwsError = () => {
   throw new Error('broken');
