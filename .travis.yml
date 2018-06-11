@@ -19,10 +19,10 @@ before_script:
       if [ -n "$(grep 'raven-js' <<< "$CHANGES")" ]; then
       RAVEN_JS_CHANGES=true
       fi
-      if [ -n "$(grep '\[force ci\]' <<< "$TRAVIS_COMMIT_MESSAGE")" ]; then
+      FORCE=$(git log --format=%B --no-merges -n 1)
+      if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
       RAVEN_JS_CHANGES=true
       fi
-      echo "$TRAVIS_COMMIT_MESSAGE";
 matrix:
   include:
     - env: NAME="raven-js"
