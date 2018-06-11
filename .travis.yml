@@ -13,7 +13,12 @@ cache:
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash
   - export PATH="$HOME/.yarn/bin:$PATH"
-
+before_script:
+  - |
+      CHANGES=$(git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD master))
+      if [ -n "$(grep 'raven-js' <<< "$CHANGES")" ]; then
+      RAVEN_JS=true
+      fi
 matrix:
   include:
     - env: NAME="raven-js"
@@ -22,17 +27,13 @@ matrix:
         chrome: stable
         firefox: latest
         sauce_connect: true
-
       script:
         - |
-            CHANGES=$(git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD master))
-            if [ -n "$(grep 'raven-js' <<< "$CHANGES")" ]; then
             cd packages/raven-js
             npm install
             npm run test
-            if [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
+            if [[ "$RAVEN_JS" != "false" ] || [ "$TRAVIS_PULL_REQUEST" = "false" ]] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
               npm run test:ci
-            fi
             fi
     - env: NAME="@sentry -> lint"
       script: yarn build && yarn lint
