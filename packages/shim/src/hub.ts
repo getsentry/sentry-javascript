@@ -1,6 +1,5 @@
 import { getDomainStack } from './domain';
-import { getGlobalStack } from './global';
-import { Carrier, Layer, Scope } from './interfaces';
+import { Layer, Scope } from './interfaces';
 import { BaseScope } from './scope';
 
 /**
@@ -18,7 +17,7 @@ export const API_VERSION = 2;
 export class Hub {
   /** Creates a new shim instance. */
   public constructor(
-    private readonly stack: Layer[] = getGlobalStack(),
+    private readonly stack: Layer[] = [],
     public readonly version: number = API_VERSION,
   ) {
     if (stack.length === 0) {
@@ -37,7 +36,12 @@ export class Hub {
   }
 
   /**
-   * Creates a new 'local' ScopeLayer with the given client.
+   * Create a new scope to store context information.
+   *
+   * The scope will be layered on top of the current one. It is isolated, i.e. all
+   * breadcrumbs and context information added to this scope will be removed once
+   * the scope ends. Be sure to always remove this scope with {@link this.popScope}
+   * when the operation finishes or throws.
    * @param client Optional client, defaults to the current client.
    */
   public pushScope(client?: any): void {
@@ -53,13 +57,30 @@ export class Hub {
     });
   }
 
-  /** Removes the top most ScopeLayer of the current stack. */
+  /**
+   * Removes a previously pushed scope from the stack.
+   *
+   * This restores the state before the scope was pushed. All breadcrumbs and
+   * context information added since the last call to {@link this.pushScope} are
+   * discarded.
+   */
   public popScope(): boolean {
     return this.getStack().pop() !== undefined;
   }
 
   /**
-   * Convenience method for pushScope and popScope.
+   * Creates a new scope with a custom client instance and executes the given
+   * operation within. The scope is automatically removed once the operation
+   * finishes or throws.
+   *
+   * The client can be configured with different options than the enclosing scope,
+   * such as a different DSN or other callbacks.
+   *
+   * This is essentially a convenience function for:
+   *
+   *     pushScope(client);
+   *     callback();
+   *     popScope();
    *
    * @param arg1 Either the client or callback.
    * @param arg2 Either the client or callback.

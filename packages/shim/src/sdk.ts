@@ -1,5 +1,5 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
-import { getGlobalRegistry } from './global';
+import { getGlobalCarrier } from './global';
 import { API_VERSION, Hub } from './hub';
 import { Scope } from './interfaces';
 
@@ -57,7 +57,7 @@ function invokeClientAsync<T>(
  * Otherwise, the currently registered shim will be returned.
  */
 function getOrCreateHub(hub?: Hub): Hub {
-  const registry = getGlobalRegistry();
+  const registry = getGlobalCarrier();
 
   if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
     registry.hub = new Hub();
@@ -67,63 +67,10 @@ function getOrCreateHub(hub?: Hub): Hub {
 }
 
 /**
- * Create a new scope to store context information.
- *
- * The scope will be layered on top of the current one. It is isolated, i.e. all
- * breadcrumbs and context information added to this scope will be removed once
- * the scope ends. Be sure to always remove this scope with {@link popScope}
- * when the operation finishes or throws.
+ * Returns the latest shim instance.
  */
-export function pushScope(client?: any, hub?: Hub): void {
-  getOrCreateHub(hub).pushScope(client);
-}
-
-/**
- * Removes a previously pushed scope from the stack.
- *
- * This restores the state before the scope was pushed. All breadcrumbs and
- * context information added since the last call to {@link pushScope} are
- * discarded.
- */
-export function popScope(hub?: Hub): void {
-  getOrCreateHub(hub).popScope();
-}
-
-/**
- * Creates a new scope and executes the given operation within. The scope is
- * automatically removed once the operation finishes or throws.
- *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- *
- * @param callback The operation to execute.
- */
-export function withScope(callback: () => void): void;
-
-/**
- * Creates a new scope with a custom client instance and executes the given
- * operation within. The scope is automatically removed once the operation
- * finishes or throws.
- *
- * The client can be configured with different options than the enclosing scope,
- * such as a different DSN or other callbacks.
- *
- * This is essentially a convenience function for:
- *
- *     pushScope(client);
- *     callback();
- *     popScope();
- *
- * @param client A client to use within the scope.
- * @param callback The operation to execute.
- */
-export function withScope(client: any, callback: () => void): void;
-
-export function withScope(arg1: any, arg2?: any): void {
-  getOrCreateHub().withScope(arg1, arg2);
+export function getHub(): Hub {
+  return getOrCreateHub();
 }
 
 /** Returns the current client, if any. */
@@ -136,10 +83,10 @@ export function getCurrentClient(): any | undefined {
  * @param client An SDK client (client) instance.
  */
 export function bindClient(client: any): void {
-  const shim = getOrCreateHub();
-  const top = shim.getStackTop();
+  const hub = getOrCreateHub();
+  const top = hub.getStackTop();
   top.client = client;
-  top.scope = shim.createScope(client);
+  top.scope = hub.createScope();
 }
 
 /**
