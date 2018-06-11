@@ -5,7 +5,8 @@
     "clean": "lerna run --stream clean",
     "fix": "lerna run --stream --concurrency 1 fix",
     "lint": "lerna run --stream --concurrency 1 lint",
-    "test": "lerna run --stream --concurrency 1 --sort test"
+    "test": "lerna run --stream --concurrency 1 --sort test",
+    "codecov": "codecov"
   },
   "workspaces": [
     "packages/browser",
@@ -24,6 +25,7 @@
     "@types/raven": "^2.5.1",
     "@types/sinon": "^4.3.1",
     "chai": "^4.1.2",
+    "codecov": "^3.0.2",
     "jest": "^22.4.3",
     "karma-sinon": "^1.0.5",
     "lerna": "^2.11.0",
