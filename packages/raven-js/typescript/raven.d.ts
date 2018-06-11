@@ -145,7 +145,7 @@ declare namespace Raven {
         * @param {object} options Optional set of global options [optional]
         * @return {Raven}
         */
-    config(dsn: string, options?: RavenOptions): RavenStatic;
+    config(dsn: string | false | null | undefined, options?: RavenOptions): RavenStatic;
 
     /*
         * Installs a global window.onerror error handler
