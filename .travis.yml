@@ -22,6 +22,7 @@ before_script:
       if [ -n "$(grep '\[force ci\]' <<< "$TRAVIS_COMMIT_MESSAGE")" ]; then
       RAVEN_JS_CHANGES=true
       fi
+      echo "$TRAVIS_COMMIT_MESSAGE";
 matrix:
   include:
     - env: NAME="raven-js"
