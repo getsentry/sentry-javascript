@@ -49,11 +49,7 @@ function now() {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined'
-      ? global
-      : typeof self !== 'undefined'
-        ? self
-        : {};
+    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 var _document = _window.document;
 var _navigator = _window.navigator;
 
@@ -1116,7 +1112,7 @@ Raven.prototype = {
             {
               mechanism: {
                 type: 'instrument',
-                data: {function: orig.name}
+                data: {function: orig.name || '<anonymous>'}
               }
             },
             originalCallback
@@ -1785,10 +1781,13 @@ Raven.prototype = {
       delete data.mechanism;
     }
 
-    data.exception.mechanism = objectMerge(data.exception.mechanism || {}, {
-      type: 'generic',
-      handled: true
-    });
+    data.exception.mechanism = objectMerge(
+      {
+        type: 'generic',
+        handled: true
+      },
+      data.exception.mechanism || {}
+    );
 
     // Fire away!
     this._send(data);
