@@ -11,9 +11,9 @@ export interface Layer {
 }
 
 /** An object that contains a shim and maintains a scope stack. */
-export interface Registry {
+export interface Carrier {
   stack: Layer[];
-  shim?: any;
+  hub?: any;
 }
 
 /** An object to call setter functions on to enhance the event */

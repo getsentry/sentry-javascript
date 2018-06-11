@@ -6,6 +6,8 @@ import {
   captureMessage,
   configureScope,
   getCurrentClient,
+  hubFromCarrier,
+  Layer,
   popScope,
   pushScope,
   Scope,
@@ -114,7 +116,7 @@ describe('Shim', () => {
       configureScope((scope: Scope) => {
         scope.clear();
       });
-      expect(global.__SENTRY__.stack[1].scope.user).toBeUndefined();
+      expect(global.__SENTRY__.stack[1].scope.user).toEqual({});
     });
   });
 
@@ -142,7 +144,7 @@ describe('Shim', () => {
   test('Calls function on the client', done => {
     const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
     withScope(new TestClient({}), () => {
-      _callOnClient('mySecretPublicMethod', 'test');
+      _callOnClient('mySecretPublicMethod', undefined, 'test');
       expect(s.mock.calls[0][0]).toBe('test');
       s.mockRestore();
       done();
@@ -165,5 +167,21 @@ describe('Shim', () => {
         //
       });
     }).not.toThrow();
+  });
+
+  test.only('foo', () => {
+    const iAmSomeGlobalVarTheUserHasToManage = {
+      state: [],
+    };
+    const hub = hubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
+    pushScope(new TestClient({}), hub);
+    configureScope((scope: Scope) => {
+      scope.setUser({ id: '1234' });
+    }, hub);
+    expect(
+      (iAmSomeGlobalVarTheUserHasToManage.state[1] as any).scope.user,
+    ).toEqual({ id: '1234' });
+    popScope(hub);
+    expect(iAmSomeGlobalVarTheUserHasToManage.state[1] as any).toBeUndefined();
   });
 });

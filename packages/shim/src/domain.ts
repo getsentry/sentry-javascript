@@ -1,9 +1,9 @@
-import { Layer, Registry } from './interfaces';
+import { Carrier, Layer } from './interfaces';
 
 /** A compatibility version for Node's "domain" module. */
 let domain: {
   active?: {
-    __SENTRY__?: Registry;
+    __SENTRY__?: Carrier;
   };
 };
 

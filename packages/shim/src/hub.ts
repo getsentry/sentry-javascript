@@ -1,6 +1,7 @@
 import { getDomainStack } from './domain';
 import { getGlobalStack } from './global';
-import { Layer, Scope } from './interfaces';
+import { Carrier, Layer, Scope } from './interfaces';
+import { BaseScope } from './scope';
 
 /**
  * API compatibility version of this shim.
@@ -14,12 +15,14 @@ export const API_VERSION = 2;
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
-export class Shim {
+export class Hub {
   /** Creates a new shim instance. */
-  public constructor(public readonly version: number = API_VERSION) {
-    const stack = getGlobalStack();
+  public constructor(
+    private readonly stack: Layer[] = getGlobalStack(),
+    public readonly version: number = API_VERSION,
+  ) {
     if (stack.length === 0) {
-      stack.push({ scope: this.createScope(), type: 'process' });
+      this.stack.push({ scope: this.createScope(), type: 'process' });
     }
   }
 
@@ -45,7 +48,7 @@ export class Shim {
       stack.length > 0 ? stack[stack.length - 1].scope : undefined;
     this.getStack().push({
       client: usedClient,
-      scope: this.createScope(usedClient, parentScope),
+      scope: this.createScope(parentScope),
       type: 'local',
     });
   }
@@ -87,7 +90,7 @@ export class Shim {
 
   /** Returns the scope stack for domains or the process. */
   public getStack(): Layer[] {
-    return getDomainStack() || getGlobalStack();
+    return getDomainStack() || this.stack;
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
@@ -97,8 +100,7 @@ export class Shim {
 
   /** Returns the topmost ScopeLayer from the global stack. */
   private getGlobalStackTop(): Layer {
-    const stack = getGlobalStack();
-    return stack[stack.length - 1];
+    return this.stack[this.stack.length - 1];
   }
 
   /** Tries to return the top most ScopeLayer from the domainStack. */
@@ -112,7 +114,7 @@ export class Shim {
       const client = this.getCurrentClient();
       stack.push({
         client,
-        scope: this.createScope(client),
+        scope: this.createScope(),
         type: 'domain',
       });
     }
@@ -123,15 +125,21 @@ export class Shim {
   /**
    * Obtains a new scope instance from the client.
    *
-   * @param client A SDK client that implements `createScope`.
    * @param parentScope Optional parent scope to inherit from.
    * @returns The scope instance or an empty object on error.
    */
-  public createScope(client?: any, parentScope?: Scope): Scope | undefined {
-    try {
-      return client && client.createScope(parentScope);
-    } catch {
-      return undefined;
-    }
+  public createScope(parentScope?: Scope): Scope {
+    const newScope = new BaseScope();
+    newScope.setParentScope(parentScope);
+    return newScope;
+  }
+}
+
+/** TODO */
+export function hubFromCarrier(carrier: any): Hub {
+  if (carrier && carrier.hub) {
+    return carrier.hub;
+  } else {
+    return new Hub(carrier);
   }
 }

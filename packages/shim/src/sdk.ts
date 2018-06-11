@@ -1,7 +1,7 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getGlobalRegistry } from './global';
+import { API_VERSION, Hub } from './hub';
 import { Scope } from './interfaces';
-import { API_VERSION, Shim } from './shim';
 
 /** Default callback used for catching async errors. */
 function logError(e?: any): void {
@@ -16,8 +16,8 @@ function logError(e?: any): void {
  * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
  */
-function invokeClient(method: string, ...args: any[]): void {
-  const top = getOrCreateShim().getStackTop();
+function invokeClient(method: string, hub?: Hub, ...args: any[]): void {
+  const top = getOrCreateHub(hub).getStackTop();
   if (top && top.client && top.client[method]) {
     top.client[method](...args, top.scope);
   }
@@ -34,9 +34,10 @@ function invokeClient(method: string, ...args: any[]): void {
 function invokeClientAsync<T>(
   method: string,
   callback: (error?: any, value?: T) => void,
+  hub?: Hub,
   ...args: any[]
 ): void {
-  const top = getOrCreateShim().getStackTop();
+  const top = getOrCreateHub(hub).getStackTop();
   if (top && top.client && top.client[method]) {
     top.client[method](...args, top.scope)
       .then((value: T) => {
@@ -55,14 +56,14 @@ function invokeClientAsync<T>(
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered shim will be returned.
  */
-function getOrCreateShim(): Shim {
+function getOrCreateHub(hub?: Hub): Hub {
   const registry = getGlobalRegistry();
 
-  if (!registry.shim || registry.shim.isOlderThan(API_VERSION)) {
-    registry.shim = new Shim();
+  if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
+    registry.hub = new Hub();
   }
 
-  return registry.shim;
+  return hub ? hub : registry.hub;
 }
 
 /**
@@ -73,8 +74,8 @@ function getOrCreateShim(): Shim {
  * the scope ends. Be sure to always remove this scope with {@link popScope}
  * when the operation finishes or throws.
  */
-export function pushScope(client?: any): void {
-  getOrCreateShim().pushScope(client);
+export function pushScope(client?: any, hub?: Hub): void {
+  getOrCreateHub(hub).pushScope(client);
 }
 
 /**
@@ -84,8 +85,8 @@ export function pushScope(client?: any): void {
  * context information added since the last call to {@link pushScope} are
  * discarded.
  */
-export function popScope(): void {
-  getOrCreateShim().popScope();
+export function popScope(hub?: Hub): void {
+  getOrCreateHub(hub).popScope();
 }
 
 /**
@@ -122,12 +123,12 @@ export function withScope(callback: () => void): void;
 export function withScope(client: any, callback: () => void): void;
 
 export function withScope(arg1: any, arg2?: any): void {
-  getOrCreateShim().withScope(arg1, arg2);
+  getOrCreateHub().withScope(arg1, arg2);
 }
 
 /** Returns the current client, if any. */
 export function getCurrentClient(): any | undefined {
-  return getOrCreateShim().getCurrentClient();
+  return getOrCreateHub().getCurrentClient();
 }
 
 /**
@@ -135,7 +136,7 @@ export function getCurrentClient(): any | undefined {
  * @param client An SDK client (client) instance.
  */
 export function bindClient(client: any): void {
-  const shim = getOrCreateShim();
+  const shim = getOrCreateHub();
   const top = shim.getStackTop();
   top.client = client;
   top.scope = shim.createScope(client);
@@ -149,9 +150,10 @@ export function bindClient(client: any): void {
  */
 export function captureException(
   exception: any,
+  hub?: Hub,
   callback: (error?: any) => void = logError,
 ): void {
-  invokeClientAsync('captureException', callback, exception);
+  invokeClientAsync('captureException', callback, hub, exception);
 }
 
 /**
@@ -162,9 +164,10 @@ export function captureException(
  */
 export function captureMessage(
   message: string,
+  hub?: Hub,
   callback: (error?: any) => void = logError,
 ): void {
-  invokeClientAsync('captureMessage', callback, message);
+  invokeClientAsync('captureMessage', callback, hub, message);
 }
 
 /**
@@ -175,9 +178,10 @@ export function captureMessage(
  */
 export function captureEvent(
   event: SentryEvent,
+  hub?: Hub,
   callback: (error?: any) => void = logError,
 ): void {
-  invokeClientAsync('captureEvent', callback, event);
+  invokeClientAsync('captureEvent', callback, hub, event);
 }
 
 /**
@@ -188,8 +192,8 @@ export function captureEvent(
  *
  * @param breadcrumb The breadcrumb to record.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  invokeClient('addBreadcrumb', breadcrumb);
+export function addBreadcrumb(breadcrumb: Breadcrumb, hub?: Hub): void {
+  invokeClient('addBreadcrumb', hub, breadcrumb);
 }
 
 /**
@@ -197,8 +201,11 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  *
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(callback: (scope: Scope) => void): void {
-  const top = getOrCreateShim().getStackTop();
+export function configureScope(
+  callback: (scope: Scope) => void,
+  hub?: Hub,
+): void {
+  const top = getOrCreateHub(hub).getStackTop();
   if (top.client && top.scope) {
     // TODO: freeze flag
     callback(top.scope);
@@ -214,6 +221,6 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
  */
-export function _callOnClient(method: string, ...args: any[]): void {
-  invokeClient(method, ...args);
+export function _callOnClient(method: string, hub?: Hub, ...args: any[]): void {
+  invokeClient(method, hub, ...args);
 }
