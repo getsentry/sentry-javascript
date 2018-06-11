@@ -32,7 +32,7 @@ matrix:
             cd packages/raven-js
             npm install
             npm run test
-            if [[ ("$RAVEN_JS_CHANGES" != "false" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
+            if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
               npm run test:ci
             fi
     - env: NAME="@sentry -> lint"
