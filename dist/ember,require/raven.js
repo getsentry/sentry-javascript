@@ -1,4 +1,4 @@
-/*! Raven.js 3.26.1 (d8f8951) | github.com/getsentry/raven-js */
+/*! Raven.js 3.26.2 (b10a875) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -257,7 +257,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.26.1',
+  VERSION: '3.26.2',
 
   debug: false,
 
@@ -1230,7 +1230,7 @@ Raven.prototype = {
             {
               mechanism: {
                 type: 'instrument',
-                data: {function: orig.name}
+                data: {function: orig.name || '<anonymous>'}
               }
             },
             originalCallback
@@ -1265,7 +1265,11 @@ Raven.prototype = {
                     {
                       mechanism: {
                         type: 'instrument',
-                        data: {target: global, function: 'handleEvent', handler: fn.name}
+                        data: {
+                          target: global,
+                          function: 'handleEvent',
+                          handler: (fn && fn.name) || '<anonymous>'
+                        }
                       }
                     },
                     fn.handleEvent
@@ -1316,7 +1320,7 @@ Raven.prototype = {
                       data: {
                         target: global,
                         function: 'addEventListener',
-                        handler: fn.name
+                        handler: (fn && fn.name) || '<anonymous>'
                       }
                     }
                   },
@@ -1361,7 +1365,10 @@ Raven.prototype = {
                 {
                   mechanism: {
                     type: 'instrument',
-                    data: {function: 'requestAnimationFrame', handler: orig.name}
+                    data: {
+                      function: 'requestAnimationFrame',
+                      handler: (orig && orig.name) || '<anonymous>'
+                    }
                   }
                 },
                 cb
@@ -1433,7 +1440,7 @@ Raven.prototype = {
             {
               mechanism: {
                 type: 'instrument',
-                data: {function: prop, handler: orig.name}
+                data: {function: prop, handler: (orig && orig.name) || '<anonymous>'}
               }
             },
             orig
@@ -1508,7 +1515,7 @@ Raven.prototype = {
                         type: 'instrument',
                         data: {
                           function: 'onreadystatechange',
-                          handler: orig.name
+                          handler: (orig && orig.name) || '<anonymous>'
                         }
                       }
                     },
@@ -1892,10 +1899,13 @@ Raven.prototype = {
       delete data.mechanism;
     }
 
-    data.exception.mechanism = objectMerge(data.exception.mechanism || {}, {
-      type: 'generic',
-      handled: true
-    });
+    data.exception.mechanism = objectMerge(
+      {
+        type: 'generic',
+        handled: true
+      },
+      data.exception.mechanism || {}
+    );
 
     // Fire away!
     this._send(data);
@@ -2460,7 +2470,11 @@ var stringify = _dereq_(9);
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 
 function isObject(what) {
   return typeof what === 'object' && what !== null;
@@ -2873,6 +2887,9 @@ function isSameStacktrace(stack1, stack2) {
 
   var frames1 = stack1.frames;
   var frames2 = stack2.frames;
+
+  // Exit early if stacktrace is malformed
+  if (frames1 === undefined || frames2 === undefined) return false;
 
   // Exit early if frame count differs
   if (frames1.length !== frames2.length) return false;

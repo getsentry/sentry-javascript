@@ -1,5 +1,10 @@
 # Changelog
 
+## raven-js - 3.26.2
+
+* FIX: Fallback to <anonymous> handler name in mechanism (#1359)
+* FIX: check for undefined stacks in isSameStacktrace (#1339)
+
 ## raven-js - 3.26.1
 
 * FIX: Bower build

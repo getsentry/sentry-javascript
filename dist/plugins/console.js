@@ -1,4 +1,4 @@
-/*! Raven.js 3.26.1 (d8f8951) | github.com/getsentry/raven-js */
+/*! Raven.js 3.26.2 (b10a875) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -95,7 +95,11 @@ var stringify = _dereq_(4);
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 
 function isObject(what) {
   return typeof what === 'object' && what !== null;
@@ -508,6 +512,9 @@ function isSameStacktrace(stack1, stack2) {
 
   var frames1 = stack1.frames;
   var frames2 = stack2.frames;
+
+  // Exit early if stacktrace is malformed
+  if (frames1 === undefined || frames2 === undefined) return false;
 
   // Exit early if frame count differs
   if (frames1.length !== frames2.length) return false;
