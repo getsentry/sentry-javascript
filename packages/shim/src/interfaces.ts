@@ -1,4 +1,5 @@
 import { User } from '@sentry/types';
+import { Hub } from './hub';
 
 /** The type of a process stack layer. */
 export type LayerType = 'process' | 'domain' | 'local';
@@ -10,10 +11,10 @@ export interface Layer {
   type: LayerType;
 }
 
-/** An object that contains a shim and maintains a scope stack. */
+/** An object that contains a hub and maintains a scope stack. */
 export interface Carrier {
   stack: Layer[];
-  hub?: any;
+  hub?: Hub;
 }
 
 /** An object to call setter functions on to enhance the event */
@@ -26,22 +27,22 @@ export interface Scope {
 
   /**
    * Adds a tag to the current scope, will be added to the event before sending.
-   * @param key
-   * @param value
+   * @param key string
+   * @param value string
    */
   setTag(key: string, value: string): void;
 
   /**
    * Adds a extra context to the current scope, will be added to the event
    * before sending.
-   * @param key
+   * @param key string
    * @param extra object to set
    */
   setExtra(key: string, extra: any): void;
 
   /**
    * Sets the fingerprint on the scope to send with the events.
-   * @param fingerprint
+   * @param fingerprint string[]
    */
   setFingerprint(fingerprint: string[]): void;
 

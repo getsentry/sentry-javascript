@@ -1,4 +1,4 @@
-import { bindClient, Scope } from '../../src';
+import { bindClient } from '../../src';
 
 export class TestClient {
   public static instance?: TestClient;

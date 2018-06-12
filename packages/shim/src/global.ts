@@ -1,4 +1,4 @@
-import { Carrier, Layer } from './interfaces';
+import { Carrier } from './interfaces';
 
 /** Global interface helper for type safety. */
 interface Global {

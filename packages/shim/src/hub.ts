@@ -1,9 +1,11 @@
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getDomainStack } from './domain';
+import { getGlobalCarrier } from './global';
 import { Layer, Scope } from './interfaces';
 import { BaseScope } from './scope';
 
 /**
- * API compatibility version of this shim.
+ * API compatibility version of this hub.
  *
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
@@ -15,7 +17,11 @@ export const API_VERSION = 2;
  * working in case we have a version conflict.
  */
 export class Hub {
-  /** Creates a new shim instance. */
+  /**
+   * Creates a new instance of the hub
+   * @param stack Is a {@link Layer}[] containing the client and scope
+   * @param version number, higher number means higher priority.
+   */
   public constructor(
     private readonly stack: Layer[] = [],
     public readonly version: number = API_VERSION,
@@ -26,7 +32,53 @@ export class Hub {
   }
 
   /**
-   * Checks if this shim's version is older than the given version.
+   * Returns the latest global hum instance.
+   *
+   * If a hub is already registered in the global carrier but this module
+   * contains a more recent version, it replaces the registered version.
+   * Otherwise, the currently registered hub will be returned.
+   */
+  public static getGlobal(): Hub {
+    const registry = getGlobalCarrier();
+
+    if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
+      registry.hub = new Hub();
+    }
+
+    return registry.hub;
+  }
+
+  /**
+   * Internal helper function to call a method on the top client if it exists.
+   *
+   * @param method The method to call on the client/client.
+   * @param args Arguments to pass to the client/fontend.
+   */
+  public _invokeClient(method: string, ...args: any[]): void {
+    const top = this.getStackTop();
+    if (top && top.client && top.client[method]) {
+      top.client[method](...args, top.scope);
+    }
+  }
+
+  /**
+   * Internal helper function to call an async method on the top client if it
+   * exists.
+   *
+   * @param method The method to call on the client/client.
+   * @param args Arguments to pass to the client/fontend.
+   */
+  private invokeClientAsync<T>(method: string, ...args: any[]): void {
+    const top = this.getStackTop();
+    if (top && top.client && top.client[method]) {
+      top.client[method](...args, top.scope).catch((err: any) => {
+        console.error(err);
+      });
+    }
+  }
+
+  /**
+   * Checks if this hub's version is older than the given version.
    *
    * @param version A version number to compare to.
    * @return True if the given version is newer; otherwise false.
@@ -154,13 +206,67 @@ export class Hub {
     newScope.setParentScope(parentScope);
     return newScope;
   }
+
+  /**
+   * Captures an exception event and sends it to Sentry.
+   *
+   * @param exception An exception-like object.
+   */
+  public captureException(exception: any): void {
+    this.invokeClientAsync('captureException', exception);
+  }
+
+  /**
+   * Captures a message event and sends it to Sentry.
+   *
+   * @param message The message to send to Sentry.
+   */
+  public captureMessage(message: string): void {
+    this.invokeClientAsync('captureMessage', message);
+  }
+
+  /**
+   * Captures a manually created event and sends it to Sentry.
+   *
+   * @param event The event to send to Sentry.
+   */
+  public captureEvent(event: SentryEvent): void {
+    this.invokeClientAsync('captureEvent', event);
+  }
+
+  /**
+   * Records a new breadcrumb which will be attached to future events.
+   *
+   * Breadcrumbs will be added to subsequent events to provide more context on
+   * user's actions prior to an error or crash.
+   *
+   * @param breadcrumb The breadcrumb to record.
+   */
+  public addBreadcrumb(breadcrumb: Breadcrumb): void {
+    this._invokeClient('addBreadcrumb', breadcrumb);
+  }
+
+  /**
+   * Callback to set context information onto the scope.
+   *
+   * @param callback Callback function that receives Scope.
+   */
+  public configureScope(callback: (scope: Scope) => void): void {
+    const top = this.getStackTop();
+    if (top.client && top.scope) {
+      // TODO: freeze flag
+      callback(top.scope);
+    }
+  }
 }
 
 /** TODO */
 export function hubFromCarrier(carrier: any): Hub {
-  if (carrier && carrier.hub) {
-    return carrier.hub;
+  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
+    return carrier.__SENTRY__.hub;
   } else {
-    return new Hub(carrier);
+    carrier.__SENTRY__ = {};
+    carrier.__SENTRY__.hub = new Hub(carrier);
+    return carrier.__SENTRY__.hub;
   }
 }
