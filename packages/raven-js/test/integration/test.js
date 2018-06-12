@@ -43,6 +43,14 @@ function isEdge14() {
   return window.navigator.userAgent.indexOf('Edge/14') !== -1;
 }
 
+// Thanks for nothing IE!
+// (╯°□°）╯︵ ┻━┻
+function canReadFunctionName() {
+  function foo() {}
+  if (foo.name === 'foo') return true;
+  return false;
+}
+
 describe('integration', function() {
   this.timeout(30000);
 
@@ -619,10 +627,19 @@ describe('integration', function() {
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
+
+          var fn = ravenData.exception.mechanism.data.function;
+          delete ravenData.exception.mechanism.data;
+
+          if (canReadFunctionName()) {
+            assert.equal(fn, 'setTimeout');
+          } else {
+            assert.equal(fn, '<anonymous>');
+          }
+
           assert.deepEqual(ravenData.exception.mechanism, {
             type: 'instrument',
-            handled: true,
-            data: {function: 'setTimeout'}
+            handled: true
           });
         }
       );
@@ -652,13 +669,25 @@ describe('integration', function() {
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
+
+          var handler = ravenData.exception.mechanism.data.handler;
+          delete ravenData.exception.mechanism.data.handler;
+          var target = ravenData.exception.mechanism.data.target;
+          delete ravenData.exception.mechanism.data.target;
+
+          if (canReadFunctionName()) {
+            assert.equal(handler, 'namedFunction');
+          } else {
+            assert.equal(handler, '<anonymous>');
+          }
+
+          // IE vs. Rest of the world
+          assert.oneOf(target, ['Node', 'EventTarget']);
           assert.deepEqual(ravenData.exception.mechanism, {
             type: 'instrument',
             handled: true,
             data: {
-              function: 'addEventListener',
-              handler: 'namedFunction',
-              target: 'EventTarget'
+              function: 'addEventListener'
             }
           });
         }
@@ -689,13 +718,18 @@ describe('integration', function() {
         },
         function() {
           var ravenData = iframe.contentWindow.ravenData[0];
+
+          var target = ravenData.exception.mechanism.data.target;
+          delete ravenData.exception.mechanism.data.target;
+
+          // IE vs. Rest of the world
+          assert.oneOf(target, ['Node', 'EventTarget']);
           assert.deepEqual(ravenData.exception.mechanism, {
             type: 'instrument',
             handled: true,
             data: {
               function: 'addEventListener',
-              handler: '<anonymous>',
-              target: 'EventTarget'
+              handler: '<anonymous>'
             }
           });
         }
