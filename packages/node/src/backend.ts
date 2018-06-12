@@ -87,7 +87,11 @@ export class NodeBackend implements Backend {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(event);
       } else {
-        captureEvent(event, callback);
+        captureEvent(event);
+        // TODO: Check if this is fine
+        if (callback) {
+          callback(event);
+        }
       }
     };
 

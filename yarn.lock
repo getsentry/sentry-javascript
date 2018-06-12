@@ -5930,10 +5930,6 @@ rollup-plugin-npm@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/rollup-plugin-npm/-/rollup-plugin-npm-2.0.0.tgz#8a28ffdb5160bc8e1e371de39ed71faf009d655c"
 
-rollup-plugin-shim@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-shim/-/rollup-plugin-shim-1.0.0.tgz#b00f5cb44cdae81358c5342fe82fa71a1602b56b"
-
 rollup-plugin-typescript2@^0.13.0:
   version "0.13.0"
   resolved "https://registry.yarnpkg.com/rollup-plugin-typescript2/-/rollup-plugin-typescript2-0.13.0.tgz#5fc838657d05af82e04554832cadf06cdb32f657"

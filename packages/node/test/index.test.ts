@@ -16,11 +16,10 @@ import {
   captureException,
   captureMessage,
   configureScope,
+  Hub,
   init,
   NodeBackend,
   NodeClient,
-  popScope,
-  pushScope,
   Scope,
   SentryEvent,
 } from '../src';
@@ -35,11 +34,11 @@ describe('SentryNode', () => {
   });
 
   beforeEach(() => {
-    pushScope();
+    Hub.getGlobal().pushScope();
   });
 
   afterEach(() => {
-    popScope();
+    Hub.getGlobal().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -47,7 +46,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.stack[1].scope.extra).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.extra).toEqual({
         abc: { def: [1] },
       });
     });
@@ -56,7 +55,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect(global.__SENTRY__.stack[1].scope.tags).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.tags).toEqual({
         abc: 'def',
       });
     });
@@ -65,7 +64,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect(global.__SENTRY__.stack[1].scope.user).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({
         id: 'def',
       });
     });
@@ -85,7 +84,7 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      pushScope(
+      Hub.getGlobal().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).toHaveLength(3);
@@ -124,7 +123,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      pushScope(
+      Hub.getGlobal().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
@@ -146,11 +145,11 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      popScope();
+      Hub.getGlobal().popScope();
     });
 
     test('capture a message', done => {
-      pushScope(
+      Hub.getGlobal().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -161,11 +160,11 @@ describe('SentryNode', () => {
         }),
       );
       captureMessage('test');
-      popScope();
+      Hub.getGlobal().popScope();
     });
 
     test('capture an event', done => {
-      pushScope(
+      Hub.getGlobal().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -176,14 +175,14 @@ describe('SentryNode', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      popScope();
+      Hub.getGlobal().popScope();
     });
 
     test('capture an event in a domain', async () => {
       new Promise<void>(resolve => {
         const d = domain.create();
         d.run(() => {
-          pushScope(
+          Hub.getGlobal().pushScope(
             new NodeClient({
               afterSend: (event: SentryEvent) => {
                 expect(event.message).toBe('test');
@@ -195,7 +194,7 @@ describe('SentryNode', () => {
             }),
           );
           captureEvent({ message: 'test' });
-          popScope();
+          Hub.getGlobal().popScope();
         });
       });
     });

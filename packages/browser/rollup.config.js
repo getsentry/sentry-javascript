@@ -2,7 +2,6 @@ import commonjs from 'rollup-plugin-commonjs';
 import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
-import shim from 'rollup-plugin-shim';
 
 export default [
   {
@@ -48,9 +47,6 @@ export default [
         browser: true,
       }),
       commonjs(),
-      shim({
-        domain: `export var active = false;`,
-      }),
       uglify(),
     ],
   },

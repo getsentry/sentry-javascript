@@ -1,5 +1,4 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
-import { getDomainStack } from './domain';
 import { getGlobalCarrier } from './global';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
@@ -163,36 +162,12 @@ export class Hub {
 
   /** Returns the scope stack for domains or the process. */
   public getStack(): Layer[] {
-    return getDomainStack() || this.stack;
+    return this.stack;
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
   public getStackTop(): Layer {
-    return this.getDomainStackTop() || this.getGlobalStackTop();
-  }
-
-  /** Returns the topmost ScopeLayer from the global stack. */
-  private getGlobalStackTop(): Layer {
     return this.stack[this.stack.length - 1];
-  }
-
-  /** Tries to return the top most ScopeLayer from the domainStack. */
-  private getDomainStackTop(): Layer | undefined {
-    const stack = getDomainStack();
-    if (!stack) {
-      return undefined;
-    }
-
-    if (stack.length === 0) {
-      const client = this.getCurrentClient();
-      stack.push({
-        client,
-        scope: this.createScope(),
-        type: 'domain',
-      });
-    }
-
-    return stack[stack.length - 1];
   }
 
   /**
