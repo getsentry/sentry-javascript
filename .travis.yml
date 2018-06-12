@@ -27,6 +27,7 @@ before_script:
 matrix:
   include:
     - env: NAME="raven-js"
+      sudo: false
       node_js: "8"
       install: true
       addons:
@@ -42,22 +43,8 @@ matrix:
               npm run test:ci
             fi
 
-    - env: NAME="raven-node"
-      node_js:
-        - "4"
-        - "5"
-        - "6"
-        - "7"
-        - "8"
-        - "9"
-        - "10"
-      install: true
-      script:
-        - |
-            yarn
-            yarn test-full
-
     - env: NAME="@sentry -> lint"
+      sudo: false
       node_js: "8"
       script: yarn build && yarn lint
 
@@ -66,3 +53,68 @@ matrix:
       addons:
         chrome: stable
       script: yarn build && yarn test && yarn codecov
+
+    ################ NODE ################
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "4"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "5"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "6"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "7"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "8"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "9"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
+    - env: NAME="raven-node"
+      sudo: false
+      node_js: "10"
+      install: true
+      script:
+        - |
+            cd packages/raven-node
+            npm install
+            npm run test-full
