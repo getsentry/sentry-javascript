@@ -10,9 +10,11 @@ dist: trusty
 cache:
   directories:
   - node_modules
+
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash
   - export PATH="$HOME/.yarn/bin:$PATH"
+
 before_script:
   - |
       CHANGES=$(git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD master))
@@ -23,6 +25,7 @@ before_script:
       if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
       RAVEN_JS_CHANGES=true
       fi
+
 matrix:
   include:
     - env: NAME="raven-js"
@@ -39,8 +42,22 @@ matrix:
             if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
               npm run test:ci
             fi
+
+    - env: NAME="raven-node"
+      install: true
+      node_js:
+        - "4"
+        - "5"
+        - "6"
+        - "7"
+        - "8"
+        - "9"
+        - "10"
+      script: yarn test-full
+
     - env: NAME="@sentry -> lint"
       script: yarn build && yarn lint
+
     - env: NAME="@sentry -> test"
       addons:
         chrome: stable
