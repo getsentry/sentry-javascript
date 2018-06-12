@@ -30,9 +30,13 @@ before_script:
       if [ -n "$(grep 'raven-js' <<< "$CHANGES")" ]; then
       RAVEN_JS_CHANGES=true
       fi
+      if [ -n "$(grep 'raven-node' <<< "$CHANGES")" ]; then
+      RAVEN_NODE_CHANGES=true
+      fi
       FORCE=$(git log --format=%B --no-merges -n 1)
       if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
       RAVEN_JS_CHANGES=true
+      RAVEN_NODE_CHANGES=true
       fi
 
 env: NAME="raven-node"
@@ -40,7 +44,11 @@ script:
   - |
       cd packages/raven-node
       npm install
+      if [[ ("$RAVEN_NODE_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
       npm run test-full
+      else
+      npm run test
+      fi
 
 matrix:
   include:
@@ -61,11 +69,11 @@ matrix:
 
     - env: NAME="@sentry -> lint"
       node_js: "8"
-      script: yarn build && yarn lint
+      script: yarn && yarn build && yarn lint
 
     - env: NAME="@sentry -> test"
       node_js: "8"
       sudo: required
       addons:
         chrome: stable
-      script: yarn build && yarn test && yarn codecov
+      script: yarn && yarn build && yarn test && yarn codecov
