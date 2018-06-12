@@ -13,9 +13,7 @@ export class Scope {
   /**
    * Callback for client to receive scope changes.
    */
-  protected scopeChanged: (scope: Scope) => void = () => {
-    // noop
-  };
+  protected scopeProcessors: Array<(scope: Scope) => void> = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -42,8 +40,8 @@ export class Scope {
   /**
    * Set internal on change listener.
    */
-  public setOnChange(callback: (scope: Scope) => void): void {
-    this.scopeChanged = callback;
+  public addScopeProcessor(callback: (scope: Scope) => void): void {
+    this.scopeProcessors.push(callback);
   }
 
   /**
@@ -53,7 +51,10 @@ export class Scope {
     if (!this.notifying) {
       this.notifying = true;
       setTimeout(() => {
-        this.scopeChanged(this);
+        // this.scopeChanged(this);
+        this.scopeProcessors.forEach(callback => {
+          callback(this);
+        });
         this.notifying = false;
       }, 0);
     }

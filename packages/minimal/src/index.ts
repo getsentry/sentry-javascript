@@ -15,7 +15,7 @@ export function bindClient(client: any): void {
   const top = hub.getStackTop();
   top.client = client;
   top.scope = hub.createScope();
-  top.scope.setOnChange((s: Scope) => {
+  top.scope.addScopeProcessor((s: Scope) => {
     // tslint:disable-next-line:no-unsafe-any
     if (client && client.getBackend) {
       try {
