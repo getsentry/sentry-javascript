@@ -13,7 +13,7 @@ export class Scope {
   /**
    * Callback for client to receive scope changes.
    */
-  protected scopeProcessors: Array<(scope: Scope) => void> = [];
+  protected scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -38,10 +38,10 @@ export class Scope {
   }
 
   /**
-   * Set internal on change listener.
+   * Add internal on change listener.
    */
-  public addScopeProcessor(callback: (scope: Scope) => void): void {
-    this.scopeProcessors.push(callback);
+  public addScopeListener(callback: (scope: Scope) => void): void {
+    this.scopeListeners.push(callback);
   }
 
   /**
@@ -52,7 +52,7 @@ export class Scope {
       this.notifying = true;
       setTimeout(() => {
         // this.scopeChanged(this);
-        this.scopeProcessors.forEach(callback => {
+        this.scopeListeners.forEach(callback => {
           callback(this);
         });
         this.notifying = false;
