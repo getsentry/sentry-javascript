@@ -1,5 +1,0 @@
-store: zeus
-targets:
-  - name: github
-    changelog: History.md
-  - npm
