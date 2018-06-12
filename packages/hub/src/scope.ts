@@ -6,26 +6,26 @@ export class BaseScope implements Scope {
   /**
    * Flag if notifiying is happening.
    */
-  private notifying: boolean;
+  protected notifying: boolean;
 
   /**
    * Callback for client to receive scope changes.
    */
-  private scopeChanged: (scope: Scope) => void = () => {
+  protected scopeChanged: (scope: Scope) => void = () => {
     // noop
   };
 
   /** User */
-  private user: User = {};
+  protected user: User = {};
 
   /** Tags */
-  private tags: { [key: string]: string } = {};
+  protected tags: { [key: string]: string } = {};
 
   /** Extra */
-  private extra: { [key: string]: any } = {};
+  protected extra: { [key: string]: any } = {};
 
   /** Fingerprint */
-  private fingerprint?: string[];
+  protected fingerprint?: string[];
 
   /**
    * Create a new empty internal scope. This will not be exposed to the user.
@@ -44,7 +44,7 @@ export class BaseScope implements Scope {
   /**
    * This will be called on every set call.
    */
-  private notifyListeners(): void {
+  protected notifyListeners(): void {
     if (!this.notifying) {
       this.notifying = true;
       setTimeout(() => {

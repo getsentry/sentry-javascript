@@ -1,5 +1,5 @@
 import { Backend, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent } from '@sentry/shim';
+import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent, SentryException } from '@sentry/types';
 import { Raven, SendMethod } from './raven';
 

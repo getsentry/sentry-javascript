@@ -1,7 +1,7 @@
 import {
   bindClient as shimBindClient,
   getCurrentClient as shimGetCurrentClient,
-} from '@sentry/shim';
+} from '@sentry/minimal';
 import { Integration } from '@sentry/types';
 import { Client, Options } from './interfaces';
 

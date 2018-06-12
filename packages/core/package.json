@@ -15,7 +15,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/shim": "0.5.4",
+    "@sentry/hub": "0.5.4",
+    "@sentry/minimal": "0.5.4",
     "@sentry/types": "0.5.4"
   },
   "devDependencies": {

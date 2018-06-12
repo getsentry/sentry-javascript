@@ -19,19 +19,24 @@
     "@sentry/types": "0.5.4"
   },
   "devDependencies": {
+    "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.12.1",
     "prettier-check": "^2.0.0",
+    "rimraf": "^2.6.2",
     "tslint": "^5.9.1",
     "typescript": "^2.8.3"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist coverage",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
-    "fix:tslint": "tslint --fix -t stylish -p ."
+    "fix:tslint": "tslint --fix -t stylish -p .",
+    "test": "jest",
+    "test:watch": "jest --watch --notify"
   }
 }

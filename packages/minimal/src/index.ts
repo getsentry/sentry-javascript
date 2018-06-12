@@ -1,4 +1,4 @@
-import { Hub, Scope } from '@sentry/hub';
+import { BaseScope, Hub, Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 
 /** Returns the current client, if any. */
@@ -15,6 +15,17 @@ export function bindClient(client: any): void {
   const top = hub.getStackTop();
   top.client = client;
   top.scope = hub.createScope();
+  (top.scope as BaseScope).setOnChange((scope: Scope) => {
+    // tslint:disable-next-line:no-unsafe-any
+    if (client && client.getBackend) {
+      try {
+        // tslint:disable-next-line:no-unsafe-any
+        client.getBackend().storeScope(scope);
+      } catch {
+        // Do nothgin
+      }
+    }
+  });
 }
 
 /**

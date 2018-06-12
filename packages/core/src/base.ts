@@ -191,18 +191,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     return this.options;
   }
 
-  /**
-   * @inheritDoc
-   */
-  public createScope(parentScope?: Scope): Scope {
-    const newScope = new Scope();
-    newScope.setParentScope(parentScope);
-    newScope.setOnChange((scope: Scope) => {
-      this.getBackend().storeScope(scope);
-    });
-    return newScope;
-  }
-
   /** Returns the current used SDK version and name. */
   protected abstract getSdkInfo(): SdkInfo;
 

@@ -17,11 +17,9 @@ export {
   captureException,
   captureEvent,
   configureScope,
-  popScope,
-  pushScope,
-  withScope,
-  Scope,
-} from '@sentry/shim';
+} from '@sentry/minimal';
+
+export { Hub, Scope } from '@sentry/hub';
 
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserClient } from './client';
