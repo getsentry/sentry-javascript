@@ -68,7 +68,7 @@ export class Hub {
    * @param method The method to call on the client/client.
    * @param args Arguments to pass to the client/fontend.
    */
-  private invokeClientAsync<T>(method: string, ...args: any[]): void {
+  private invokeClientAsync(method: string, ...args: any[]): void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
       top.client[method](...args, top.scope).catch((err: any) => {

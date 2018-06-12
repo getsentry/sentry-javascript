@@ -3,7 +3,7 @@
   "version": "0.5.4",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/next/packages/core",
+  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/core",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {

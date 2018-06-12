@@ -1,6 +1,5 @@
+import { Hub, Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent } from '@sentry/types';
-import { Hub } from './hub';
-import { Scope } from './interfaces';
 
 /** Returns the current client, if any. */
 export function getCurrentClient(): any | undefined {

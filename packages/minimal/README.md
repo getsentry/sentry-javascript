@@ -5,24 +5,25 @@
   <br />
 </p>
 
-# Sentry JavaScript SDK Shim
+# Sentry JavaScript SDK Minimal
 
-[![npm version](https://img.shields.io/npm/v/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/shim.svg)](https://www.npmjs.com/package/@sentry/shim)
+[![npm version](https://img.shields.io/npm/v/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
 
-A lightweight Sentry SDK shim that uses a configured client when embedded into
-an application. It allows library authors add support for a Sentry SDK without
-having to bundle the entire SDK or being dependent on a specific platform.
+A lightweight Sentry SDK minimal that uses a configured client when embedded
+into an application. It allows library authors add support for a Sentry SDK
+without having to bundle the entire SDK or being dependent on a specific
+platform.
 
 ## Usage
 
-To use the shim, you do not have to initialize an SDK. This should be handled by
-the user of your library. Instead, directly use the exported functions of
-`@sentry/shim` to add breadcrumbs or capture events:
+To use the minimal, you do not have to initialize an SDK. This should be handled
+by the user of your library. Instead, directly use the exported functions of
+`@sentry/minimal` to add breadcrumbs or capture events:
 
 ```javascript
-import * as Sentry from '@sentry/shim';
+import * as Sentry from '@sentry/minimal';
 
 // Add a breadcrumb for future events
 Sentry.addBreadcrumb({

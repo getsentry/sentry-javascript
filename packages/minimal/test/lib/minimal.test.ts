@@ -1,3 +1,4 @@
+import { Hub, hubFromCarrier, Scope } from '@sentry/hub';
 import {
   _callOnClient,
   addBreadcrumb,
@@ -6,15 +7,12 @@ import {
   captureMessage,
   configureScope,
   getCurrentClient,
-  Hub,
-  hubFromCarrier,
-  Scope,
 } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
 
-describe('Shim', () => {
+describe('Minimal', () => {
   beforeEach(() => {
     global.__SENTRY__ = {
       hub: undefined,
