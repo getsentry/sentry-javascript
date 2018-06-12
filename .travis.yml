@@ -4,14 +4,6 @@ branches:
 
 sudo: required
 language: node_js
-node_js:
-  - "4"
-  - "5"
-  - "6"
-  - "7"
-  - "8"
-  - "9"
-  - "10"
 dist: trusty
 cache:
   directories:
@@ -51,7 +43,19 @@ matrix:
             fi
 
     - env: NAME="raven-node"
-      script: yarn test-full
+      node_js:
+        - "4"
+        - "5"
+        - "6"
+        - "7"
+        - "8"
+        - "9"
+        - "10"
+      install: true
+      script:
+        - |
+            yarn
+            yarn test-full
 
     - env: NAME="@sentry -> lint"
       node_js: "8"
