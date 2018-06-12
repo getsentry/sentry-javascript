@@ -5,7 +5,13 @@ branches:
 sudo: required
 language: node_js
 node_js:
-- '8'
+  - "4"
+  - "5"
+  - "6"
+  - "7"
+  - "8"
+  - "9"
+  - "10"
 dist: trusty
 cache:
   directories:
@@ -29,6 +35,7 @@ before_script:
 matrix:
   include:
     - env: NAME="raven-js"
+      node_js: "8"
       install: true
       addons:
         chrome: stable
@@ -44,21 +51,14 @@ matrix:
             fi
 
     - env: NAME="raven-node"
-      install: true
-      node_js:
-        - "4"
-        - "5"
-        - "6"
-        - "7"
-        - "8"
-        - "9"
-        - "10"
       script: yarn test-full
 
     - env: NAME="@sentry -> lint"
+      node_js: "8"
       script: yarn build && yarn lint
 
     - env: NAME="@sentry -> test"
+      node_js: "8"
       addons:
         chrome: stable
       script: yarn build && yarn test && yarn codecov
