@@ -10,9 +10,9 @@
     "sentry"
   ],
   "version": "2.6.2",
-  "repository": "git://github.com/getsentry/raven-node.git",
+  "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
-  "homepage": "https://github.com/getsentry/raven-node",
+  "homepage": "https://github.com/getsentry/raven-js",
   "author": "Matt Robenolt <matt@ydekproductions.com>",
   "main": "index.js",
   "bin": {
