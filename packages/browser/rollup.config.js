@@ -12,7 +12,7 @@ export default [
       exports: 'named',
       interop: false,
     },
-    external: ['@sentry/core', '@sentry/shim'],
+    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',

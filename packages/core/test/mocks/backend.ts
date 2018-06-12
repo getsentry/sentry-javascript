@@ -1,4 +1,5 @@
-import { Breadcrumb, Scope, SentryEvent } from '@sentry/shim';
+import { Scope } from '@sentry/hub';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
