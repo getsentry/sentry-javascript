@@ -1,0 +1,66 @@
+{
+  "name": "raven",
+  "description": "A standalone (Node.js) client for Sentry",
+  "keywords": [
+    "debugging",
+    "errors",
+    "exceptions",
+    "logging",
+    "raven",
+    "sentry"
+  ],
+  "version": "2.6.2",
+  "repository": "git://github.com/getsentry/raven-node.git",
+  "license": "BSD-2-Clause",
+  "homepage": "https://github.com/getsentry/raven-node",
+  "author": "Matt Robenolt <matt@ydekproductions.com>",
+  "main": "index.js",
+  "bin": {
+    "raven": "./bin/raven"
+  },
+  "scripts": {
+    "lint": "eslint . --quiet",
+    "precommit": "lint-staged",
+    "pretest": "npm install && npm run lint",
+    "test": "NODE_ENV=test istanbul cover _mocha  -- --reporter dot && NODE_ENV=test coffee ./test/run.coffee",
+    "test-mocha": "NODE_ENV=test mocha",
+    "test-full": "npm run test && cd test/instrumentation && ./run.sh"
+  },
+  "engines": {
+    "node": ">= 4.0.0"
+  },
+  "dependencies": {
+    "cookie": "0.3.1",
+    "md5": "^2.2.1",
+    "stack-trace": "0.0.10",
+    "timed-out": "4.0.1",
+    "uuid": "3.0.0"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.10.0",
+    "connect": "*",
+    "eslint": "^4.5.0",
+    "eslint-config-prettier": "^2.3.0",
+    "express": "*",
+    "glob": "~3.1.13",
+    "husky": "^0.14.3",
+    "istanbul": "^0.4.3",
+    "lint-staged": "^4.0.4",
+    "mocha": "~3.1.2",
+    "nock": "~9.0.0",
+    "prettier": "^1.6.1",
+    "should": "11.2.0",
+    "sinon": "^3.3.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "bracketSpacing": false,
+    "printWidth": 90
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ]
+  }
+}
