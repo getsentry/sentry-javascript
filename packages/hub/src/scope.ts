@@ -1,8 +1,10 @@
-import { SentryEvent, User } from '@sentry/types';
-import { Scope } from './interfaces';
+import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 
-/** TODO */
-export class BaseScope implements Scope {
+/**
+ * Holds additional event information. {@link Scope.applyToEvent} will be
+ * called by the client before an event will be sent.
+ */
+export class Scope {
   /**
    * Flag if notifiying is happening.
    */
@@ -14,6 +16,9 @@ export class BaseScope implements Scope {
   protected scopeChanged: (scope: Scope) => void = () => {
     // noop
   };
+
+  /** Array of breadcrumbs. */
+  protected breadcrumbs: Breadcrumb[] = [];
 
   /** User */
   protected user: User = {};
@@ -118,12 +123,31 @@ export class BaseScope implements Scope {
     return this.fingerprint;
   }
 
+  /** Returns breadcrumbs. */
+  public getBreadcrumbs(): Breadcrumb[] {
+    return this.breadcrumbs;
+  }
+
   /** Clears the current scope and resets its properties. */
   public clear(): void {
+    this.breadcrumbs = [];
     this.tags = {};
     this.extra = {};
     this.user = {};
     this.fingerprint = undefined;
+    this.notifyListeners();
+  }
+
+  /**
+   * Sets the breadcrumbs in the scope
+   * @param breadcrumbs
+   * @param maxBreadcrumbs
+   */
+  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
+    this.breadcrumbs =
+      maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+        ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
+        : [...this.breadcrumbs, breadcrumb];
     this.notifyListeners();
   }
 
@@ -133,7 +157,7 @@ export class BaseScope implements Scope {
    * @param event
    * @param maxBreadcrumbs
    */
-  public applyToEvent(event: SentryEvent): void {
+  public applyToEvent(event: SentryEvent, maxBreadcrumbs?: number): void {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -145,6 +169,17 @@ export class BaseScope implements Scope {
     }
     if (this.fingerprint && event.fingerprint === undefined) {
       event.fingerprint = this.fingerprint;
+    }
+    // We only want to set breadcrumbs in the event if there are none
+    const hasNoBreadcrumbs =
+      !event.breadcrumbs ||
+      event.breadcrumbs.length === 0 ||
+      (event.breadcrumbs.values && event.breadcrumbs.values.length === 0);
+    if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
+      event.breadcrumbs =
+        maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
+          ? this.breadcrumbs.slice(-maxBreadcrumbs)
+          : this.breadcrumbs;
     }
   }
 }

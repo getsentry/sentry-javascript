@@ -17,11 +17,9 @@ export {
   captureException,
   captureEvent,
   configureScope,
-  popScope,
-  pushScope,
-  Scope,
-  withScope,
-} from '@sentry/shim';
+} from '@sentry/minimal';
+
+export { Hub, Scope } from '@sentry/hub';
 
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';

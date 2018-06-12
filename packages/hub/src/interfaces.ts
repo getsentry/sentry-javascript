@@ -1,5 +1,5 @@
-import { User } from '@sentry/types';
 import { Hub } from './hub';
+import { Scope } from './scope';
 
 /** The type of a process stack layer. */
 export type LayerType = 'process' | 'domain' | 'local';
@@ -15,37 +15,4 @@ export interface Layer {
 export interface Carrier {
   stack: Layer[];
   hub?: Hub;
-}
-
-/** An object to call setter functions on to enhance the event */
-export interface Scope {
-  /**
-   * Updates user context information for future events.
-   * @param user User context object to merge into current context.
-   */
-  setUser(user: User): void;
-
-  /**
-   * Adds a tag to the current scope, will be added to the event before sending.
-   * @param key string
-   * @param value string
-   */
-  setTag(key: string, value: string): void;
-
-  /**
-   * Adds a extra context to the current scope, will be added to the event
-   * before sending.
-   * @param key string
-   * @param extra object to set
-   */
-  setExtra(key: string, extra: any): void;
-
-  /**
-   * Sets the fingerprint on the scope to send with the events.
-   * @param fingerprint string[]
-   */
-  setFingerprint(fingerprint: string[]): void;
-
-  /** Clears the current scope and resets its properties. */
-  clear(): void;
 }

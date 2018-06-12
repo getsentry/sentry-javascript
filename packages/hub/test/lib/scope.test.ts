@@ -1,4 +1,4 @@
-import { BaseScope as Scope } from '../../src/scope';
+import { Scope } from '../../src';
 
 describe('Scope', () => {
   test('fingerprint', () => {
@@ -25,12 +25,11 @@ describe('Scope', () => {
     expect(scope.getUser()).toEqual({ id: '1' });
   });
 
-  // TODO
-  // test('breadcrumbs', () => {
-  //   const scope = new Scope();
-  //   scope.addBreadcrumb({ message: 'test' }, 100);
-  //   expect(scope.getBreadcrumbs()).toEqual([{ message: 'test' }]);
-  // });
+  test('breadcrumbs', () => {
+    const scope = new Scope();
+    scope.addBreadcrumb({ message: 'test' }, 100);
+    expect(scope.getBreadcrumbs()).toEqual([{ message: 'test' }]);
+  });
 
   test('basic inheritance', () => {
     const parentScope = new Scope();

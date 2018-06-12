@@ -1,4 +1,4 @@
-import { addBreadcrumb, getCurrentClient } from '@sentry/shim';
+import { addBreadcrumb, getCurrentClient } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
 import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';

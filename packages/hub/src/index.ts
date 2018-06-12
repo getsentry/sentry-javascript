@@ -1,3 +1,2 @@
-export { Layer, Scope } from './interfaces';
-export { BaseScope } from './scope';
+export { Scope } from './scope';
 export { hubFromCarrier, Hub } from './hub';

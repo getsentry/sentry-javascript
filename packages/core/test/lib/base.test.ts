@@ -1,6 +1,6 @@
-import { Breadcrumb, SentryEvent } from '@sentry/shim';
+import { Scope } from '@sentry/hub';
+import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { SentryError } from '../../src/error';
-import { Scope } from '../../src/scope';
 import { TestBackend } from '../mocks/backend';
 import { TEST_SDK, TestClient } from '../mocks/client';
 

@@ -1,8 +1,8 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 import { getDomainStack } from './domain';
 import { getGlobalCarrier } from './global';
-import { Layer, Scope } from './interfaces';
-import { BaseScope } from './scope';
+import { Layer } from './interfaces';
+import { Scope } from './scope';
 
 /**
  * API compatibility version of this hub.
@@ -202,7 +202,7 @@ export class Hub {
    * @returns The scope instance or an empty object on error.
    */
   public createScope(parentScope?: Scope): Scope {
-    const newScope = new BaseScope();
+    const newScope = new Scope();
     newScope.setParentScope(parentScope);
     return newScope;
   }

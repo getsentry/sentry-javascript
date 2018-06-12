@@ -1,6 +1,6 @@
+import { Scope } from '@sentry/hub';
 import { Breadcrumb, Integration, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
-import { Scope } from './scope';
 import { SendStatus } from './status';
 
 /** Console logging verbosity for the SDK. */
