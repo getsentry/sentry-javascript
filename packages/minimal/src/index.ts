@@ -73,11 +73,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  const top = Hub.getGlobal().getStackTop();
-  if (top.client && top.scope) {
-    // TODO: freeze flag
-    callback(top.scope);
-  }
+  Hub.getGlobal().configureScope(callback);
 }
 
 /**
