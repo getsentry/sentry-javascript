@@ -1,5 +1,5 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent } from '@sentry/shim';
+import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent } from '@sentry/types';
 import {
   HTTPSTransport,
@@ -87,7 +87,11 @@ export class NodeBackend implements Backend {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(event);
       } else {
-        captureEvent(event, callback);
+        captureEvent(event);
+        // TODO: Check if this is fine
+        if (callback) {
+          callback(event);
+        }
       }
     };
 

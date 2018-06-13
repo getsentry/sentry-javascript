@@ -1,4 +1,4 @@
-import { captureException, configureScope, withScope } from '@sentry/shim';
+import { Hub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 
 /** Global Promise Rejection handler */
@@ -13,8 +13,9 @@ export class OnUnhandledRejection implements Integration {
   public install(): void {
     global.process.on('unhandledRejection', (reason, promise: any = {}) => {
       const context = (promise.domain && promise.domain.sentryContext) || {};
-      withScope(() => {
-        configureScope(scope => {
+      const hub = Hub.getGlobal();
+      hub.withScope(() => {
+        hub.configureScope(scope => {
           // Preserve backwards compatibility with raven-node for now
           if (context.user) {
             scope.setUser(context.user);
@@ -31,7 +32,7 @@ export class OnUnhandledRejection implements Integration {
           }
           scope.setExtra('unhandledPromiseRejection', true);
         });
-        captureException(reason);
+        hub.captureException(reason);
       });
     });
   }

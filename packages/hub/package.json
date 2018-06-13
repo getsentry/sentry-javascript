@@ -1,9 +1,9 @@
 {
-  "name": "@sentry/node",
+  "name": "@sentry/hub",
   "version": "0.5.4",
-  "description": "Offical Sentry SDK for Node.js",
+  "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/node",
+  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/hub",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -15,12 +15,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "0.5.4",
-    "@sentry/hub": "0.5.4",
-    "@sentry/minimal": "0.5.4",
-    "@sentry/types": "0.5.4",
-    "@sentry/utils": "0.5.4",
-    "raven": "^2.6.0"
+    "@sentry/types": "0.5.4"
   },
   "devDependencies": {
     "jest": "^22.4.3",

@@ -1,4 +1,4 @@
-import { SdkInfo } from '@sentry/shim';
+import { SdkInfo } from '@sentry/types';
 import { BaseClient } from '../../src/base';
 import { initAndBind } from '../../src/sdk';
 import { TestBackend, TestOptions } from './backend';

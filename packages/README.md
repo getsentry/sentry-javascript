@@ -30,7 +30,9 @@ For each major JavaScript platform, there is a specific high-level SDK that
 provides all the tools you need in a single package. Please refer to the README
 and instructions of those SDKs for more detailed information:
 
-* [`@sentry/shim`](https://github.com/getsentry/raven-js/tree/master/packages/shim):
+* [`@sentry/hub`](https://github.com/getsentry/raven-js/tree/master/packages/hub):
+  Gobal state managment of SDKs
+* [`@sentry/minimal`](https://github.com/getsentry/raven-js/tree/master/packages/minimal):
   Minimal SDK for library authors to add Sentry support
 * [`@sentry/browser`](https://github.com/getsentry/raven-js/tree/master/packages/browser):
   SDK for Browsers, including integrations for React, Angular, Ember, Vue and

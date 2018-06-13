@@ -1,7 +1,7 @@
+import { Scope } from '@sentry/hub';
 import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
-import { Scope } from './scope';
 import { SendStatus } from './status';
 
 /**
@@ -189,18 +189,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public getOptions(): O {
     return this.options;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public createScope(parentScope?: Scope): Scope {
-    const newScope = new Scope();
-    newScope.setParentScope(parentScope);
-    newScope.setOnChange((scope: Scope) => {
-      this.getBackend().storeScope(scope);
-    });
-    return newScope;
   }
 
   /** Returns the current used SDK version and name. */

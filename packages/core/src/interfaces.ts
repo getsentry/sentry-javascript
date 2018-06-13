@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/shim';
+import { Scope } from '@sentry/hub';
 import { Breadcrumb, Integration, SentryEvent } from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
@@ -199,12 +199,6 @@ export interface Client<O extends Options = Options> {
 
   /** Returns the current options. */
   getOptions(): O;
-
-  /**
-   * Returns a new internal scope used by the shim to handle state.
-   * This also notifies the backend on scope changes {@link Backend.storeScope}
-   */
-  createScope(): Scope;
 }
 
 /**

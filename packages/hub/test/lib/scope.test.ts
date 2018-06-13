@@ -1,4 +1,4 @@
-import { Scope } from '../../src/scope';
+import { Scope } from '../../src';
 
 describe('Scope', () => {
   test('fingerprint', () => {

@@ -12,8 +12,8 @@
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 
 **WARNING:** This SDK is part of an early access preview for the
-[next generation](https://github.com/getsentry/raven-js/tree/next#readme) of
-Sentry JavaScript SDKs. Public interfaces might change and break backwards
+[next generation](https://github.com/getsentry/raven-js/tree/master/packages#readme)
+of Sentry JavaScript SDKs. Public interfaces might change and break backwards
 compatibility from time to time. We absolutely recommend
 [raven-js](https://github.com/getsentry/raven-js) in production!
 

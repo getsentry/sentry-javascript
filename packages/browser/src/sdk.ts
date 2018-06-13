@@ -1,5 +1,5 @@
 import { initAndBind } from '@sentry/core';
-import { getCurrentClient as shimGetCurrentClient } from '@sentry/shim';
+import { getCurrentClient as shimGetCurrentClient } from '@sentry/minimal';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import {

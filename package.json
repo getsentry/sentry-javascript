@@ -11,8 +11,9 @@
   "workspaces": [
     "packages/browser",
     "packages/core",
+    "packages/hub",
+    "packages/minimal",
     "packages/node",
-    "packages/shim",
     "packages/types",
     "packages/typescript",
     "packages/utils"

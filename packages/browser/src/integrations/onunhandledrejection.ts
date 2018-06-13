@@ -1,4 +1,4 @@
-import { captureException } from '@sentry/shim';
+import { captureException } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
 
 /** onunhandledrejection is not standardized, thus not available on Window type */

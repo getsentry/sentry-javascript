@@ -2,10 +2,8 @@ export {
   captureException,
   captureMessage,
   configureScope,
-  popScope,
-  pushScope,
-  Scope,
-} from '@sentry/shim';
+} from '@sentry/minimal';
+export { Hub, Scope } from '@sentry/hub';
 export { BackendClass, BaseClient } from './base';
 export { DSN, DSNComponents, DSNLike, DSNProtocol } from './dsn';
 export { SentryError } from './error';

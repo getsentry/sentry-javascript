@@ -1,4 +1,4 @@
-import { addBreadcrumb } from '@sentry/shim';
+import { addBreadcrumb } from '@sentry/minimal';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils';
 import { format } from 'util';

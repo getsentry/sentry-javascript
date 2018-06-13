@@ -1,34 +1,34 @@
-import { Scope as BaseScope } from '@sentry/shim';
 import { Breadcrumb, SentryEvent, User } from '@sentry/types';
 
-/** An object to call setter functions on to enhance the event */
-export class Scope implements BaseScope {
+/**
+ * Holds additional event information. {@link Scope.applyToEvent} will be
+ * called by the client before an event will be sent.
+ */
+export class Scope {
   /**
    * Flag if notifiying is happening.
    */
-  private notifying: boolean;
+  protected notifying: boolean;
 
   /**
    * Callback for client to receive scope changes.
    */
-  private scopeChanged: (scope: Scope) => void = () => {
-    // noop
-  };
+  protected scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Array of breadcrumbs. */
-  private breadcrumbs: Breadcrumb[] = [];
+  protected breadcrumbs: Breadcrumb[] = [];
 
   /** User */
-  private user: User = {};
+  protected user: User = {};
 
   /** Tags */
-  private tags: { [key: string]: string } = {};
+  protected tags: { [key: string]: string } = {};
 
   /** Extra */
-  private extra: { [key: string]: any } = {};
+  protected extra: { [key: string]: any } = {};
 
   /** Fingerprint */
-  private fingerprint?: string[];
+  protected fingerprint?: string[];
 
   /**
    * Create a new empty internal scope. This will not be exposed to the user.
@@ -38,20 +38,23 @@ export class Scope implements BaseScope {
   }
 
   /**
-   * Set internal on change listener.
+   * Add internal on change listener.
    */
-  public setOnChange(callback: (scope: Scope) => void): void {
-    this.scopeChanged = callback;
+  public addScopeListener(callback: (scope: Scope) => void): void {
+    this.scopeListeners.push(callback);
   }
 
   /**
    * This will be called on every set call.
    */
-  private notifyListeners(): void {
+  protected notifyListeners(): void {
     if (!this.notifying) {
       this.notifying = true;
       setTimeout(() => {
-        this.scopeChanged(this);
+        // this.scopeChanged(this);
+        this.scopeListeners.forEach(callback => {
+          callback(this);
+        });
         this.notifying = false;
       }, 0);
     }
@@ -101,11 +104,6 @@ export class Scope implements BaseScope {
     Object.assign(this, scope);
   }
 
-  /** Returns breadcrumbs. */
-  public getBreadcrumbs(): Breadcrumb[] {
-    return this.breadcrumbs;
-  }
-
   /** Returns tags. */
   public getTags(): { [key: string]: string } {
     return this.tags;
@@ -126,6 +124,21 @@ export class Scope implements BaseScope {
     return this.fingerprint;
   }
 
+  /** Returns breadcrumbs. */
+  public getBreadcrumbs(): Breadcrumb[] {
+    return this.breadcrumbs;
+  }
+
+  /** Clears the current scope and resets its properties. */
+  public clear(): void {
+    this.breadcrumbs = [];
+    this.tags = {};
+    this.extra = {};
+    this.user = {};
+    this.fingerprint = undefined;
+    this.notifyListeners();
+  }
+
   /**
    * Sets the breadcrumbs in the scope
    * @param breadcrumbs
@@ -136,16 +149,6 @@ export class Scope implements BaseScope {
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
         : [...this.breadcrumbs, breadcrumb];
-    this.notifyListeners();
-  }
-
-  /** Clears the current scope and resets its properties. */
-  public clear(): void {
-    this.breadcrumbs = [];
-    this.tags = {};
-    this.extra = {};
-    this.user = {};
-    this.fingerprint = undefined;
     this.notifyListeners();
   }
 
