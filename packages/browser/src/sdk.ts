@@ -1,5 +1,6 @@
 import { initAndBind } from '@sentry/core';
 import { getCurrentClient as shimGetCurrentClient } from '@sentry/minimal';
+import { Integration } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import {
@@ -54,16 +55,21 @@ import {
  * @see BrowserOptions for documentation on configuration options.
  */
 export function init(options: BrowserOptions): void {
-  initAndBind(BrowserClient, options, [
-    new OnError(),
-    new OnUnhandledRejection(),
-    new FunctionToString(),
-    new TryCatch(),
-    new Breadcrumbs(),
-  ]);
+  initAndBind(BrowserClient, options, getDefaultIntegrations());
 }
 
 /** Returns the current BrowserClient, if any. */
 export function getCurrentClient(): BrowserClient {
   return shimGetCurrentClient() as BrowserClient;
+}
+
+/** Return the browser default integrations */
+export function getDefaultIntegrations(): Integration[] {
+  return [
+    new OnError(),
+    new OnUnhandledRejection(),
+    new FunctionToString(),
+    new TryCatch(),
+    new Breadcrumbs(),
+  ];
 }
