@@ -241,7 +241,7 @@ export function hubFromCarrier(carrier: any): Hub {
     return carrier.__SENTRY__.hub;
   } else {
     carrier.__SENTRY__ = {};
-    carrier.__SENTRY__.hub = new Hub(carrier);
+    carrier.__SENTRY__.hub = new Hub();
     return carrier.__SENTRY__.hub;
   }
 }

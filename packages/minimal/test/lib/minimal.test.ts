@@ -176,7 +176,7 @@ describe('Minimal', () => {
 
   test('custom carrier', () => {
     const iAmSomeGlobalVarTheUserHasToManage = {
-      state: [],
+      state: {},
     };
     const hub = hubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
     hub.pushScope(new TestClient({}));
@@ -184,9 +184,12 @@ describe('Minimal', () => {
       scope.setUser({ id: '1234' });
     });
     expect(
-      (iAmSomeGlobalVarTheUserHasToManage.state[1] as any).scope.user,
+      ((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub
+        .stack[1] as any).scope.user,
     ).toEqual({ id: '1234' });
     hub.popScope();
-    expect(iAmSomeGlobalVarTheUserHasToManage.state[1] as any).toBeUndefined();
+    expect(
+      (iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1],
+    ).toBeUndefined();
   });
 });
