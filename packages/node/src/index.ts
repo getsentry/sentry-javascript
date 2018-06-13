@@ -24,4 +24,7 @@ export { Scope } from '@sentry/hub';
 export { Hub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
-export { init, getCurrentClient, getDefaultIntegrations } from './sdk';
+export { init, getCurrentClient } from './sdk';
+
+import * as Integrations from './integrations';
+export { Integrations };

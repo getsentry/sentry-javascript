@@ -1,6 +1,5 @@
 import { initAndBind } from '@sentry/core';
 import { getCurrentClient as shimGetCurrentClient } from '@sentry/minimal';
-import { Integration } from '@sentry/types';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import {
@@ -55,20 +54,15 @@ import {
  * @see NodeOptions for documentation on configuration options.
  */
 export function init(options: NodeOptions): void {
-  initAndBind(NodeClient, options, getDefaultIntegrations());
+  initAndBind(NodeClient, options, [
+    new OnUncaughtException(),
+    new OnUnhandledRejection(),
+    new Console(),
+    new Http(),
+  ]);
 }
 
 /** Returns the current NodeClient, if any. */
 export function getCurrentClient(): NodeClient {
   return shimGetCurrentClient() as NodeClient;
-}
-
-/** Return the browser default integrations */
-export function getDefaultIntegrations(): Integration[] {
-  return [
-    new OnUncaughtException(),
-    new OnUnhandledRejection(),
-    new Console(),
-    new Http(),
-  ];
 }
