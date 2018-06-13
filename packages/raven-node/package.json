@@ -19,9 +19,7 @@
     "raven": "./bin/raven"
   },
   "scripts": {
-    "lint": "eslint . --quiet",
-    "precommit": "lint-staged",
-    "pretest": "npm install && npm run lint",
+    "lint": "eslint .",
     "test": "NODE_ENV=test istanbul cover _mocha  -- --reporter dot && NODE_ENV=test coffee ./test/run.coffee",
     "test-mocha": "NODE_ENV=test mocha",
     "test-full": "npm run test && cd test/instrumentation && ./run.sh"
@@ -43,9 +41,7 @@
     "eslint-config-prettier": "^2.3.0",
     "express": "*",
     "glob": "~3.1.13",
-    "husky": "^0.14.3",
     "istanbul": "^0.4.3",
-    "lint-staged": "^4.0.4",
     "mocha": "~3.1.2",
     "nock": "~9.0.0",
     "prettier": "^1.6.1",
@@ -56,11 +52,5 @@
     "singleQuote": true,
     "bracketSpacing": false,
     "printWidth": 90
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ]
   }
 }

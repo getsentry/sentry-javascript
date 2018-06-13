@@ -73,23 +73,6 @@
     "bracketSpacing": false,
     "printWidth": 90
   },
-  "lint-staged": {
-    "src/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ],
-    "test/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ],
-    "plugins/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ]
-  },
   "typings": "typescript/raven.d.ts",
   "bundlesize": [
     {
