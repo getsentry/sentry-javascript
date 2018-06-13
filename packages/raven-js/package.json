@@ -18,6 +18,7 @@
     "deploy": "npm run test && ./scripts/deploy.js",
     "lint": "eslint .",
     "publish": "grunt publish",
+    "prepush": "npm run lint && npm run test",
     "test": "npm run lint && grunt build.test && npm run test:unit && npm run test:loader && npm run test:integration && npm run test:typescript",
     "test:unit": "karma start karma/karma.unit.config.js",
     "test:integration": "karma start karma/karma.integration.config.js",
@@ -49,6 +50,7 @@
     "grunt-release": "^0.13.0",
     "grunt-s3": "0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
+    "husky": "^0.14.3",
     "inquirer": "^3.3.0",
     "karma": "^1.7.1",
     "karma-chai": "^0.1.0",
@@ -72,23 +74,6 @@
     "singleQuote": true,
     "bracketSpacing": false,
     "printWidth": 90
-  },
-  "lint-staged": {
-    "src/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ],
-    "test/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ],
-    "plugins/**/*.js": [
-      "eslint",
-      "prettier --write",
-      "git add"
-    ]
   },
   "typings": "typescript/raven.d.ts",
   "bundlesize": [
