@@ -22,7 +22,7 @@ export function bindClient(client: any): void {
         // tslint:disable-next-line:no-unsafe-any
         client.getBackend().storeScope(s);
       } catch {
-        // Do nothgin
+        // Do nothing
       }
     }
   });
