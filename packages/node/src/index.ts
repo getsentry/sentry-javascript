@@ -25,3 +25,6 @@ export { Hub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { init, getCurrentClient } from './sdk';
+
+import * as Integrations from './integrations';
+export { Integrations };
