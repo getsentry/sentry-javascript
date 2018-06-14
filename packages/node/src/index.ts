@@ -19,9 +19,9 @@ export {
   configureScope,
 } from '@sentry/minimal';
 
-export { Scope } from '@sentry/hub';
+export { Hub, Scope } from '@sentry/hub';
 
-export { Hub } from './hub';
+export { getGlobalHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { init, getCurrentClient } from './sdk';

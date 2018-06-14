@@ -1,48 +1,34 @@
-import { Hub as BaseHub, Layer } from '@sentry/hub';
+import { Carrier, getGlobalHub as getGlobalHubBase, Hub } from '@sentry/hub';
+import * as domain from 'domain';
 
-/**
- * Node specific implemention of Hub.
- */
-export class Hub extends BaseHub {
+declare module 'domain' {
+  export let active: Domain;
   /**
-   * @inheritDoc
+   * Extension for domain interface
    */
-  public getStackTop(): Layer {
-    return this.getDomainStackTop();
-  }
-
-  /** Tries to return the top most ScopeLayer from the domainStack. */
-  private getDomainStackTop(): Layer {
-    const stack = getDomainStack();
-
-    if (stack.length === 0) {
-      const client = this.getCurrentClient();
-      stack.push({
-        client,
-        scope: this.createScope(),
-        type: 'domain',
-      });
-    }
-
-    return stack[stack.length - 1];
+  export interface Domain {
+    __SENTRY__?: Carrier;
   }
 }
 
-/** Checks for an active domain and returns its stack, if present. */
-function getDomainStack(): Layer[] {
-  const domain = require('domain');
-  // tslint:disable-next-line:no-unsafe-any
-  const active = domain.active;
-  if (!active) {
-    return [];
-  }
-  // tslint:disable-next-line:no-unsafe-any
-  let carrier = active.__SENTRY__;
-  if (!carrier) {
-    // tslint:disable-next-line:no-unsafe-any
-    active.__SENTRY__ = carrier = { hub: {} };
+/**
+ * TODO
+ */
+export function getGlobalHub(): Hub {
+  // const domain = require('domain');
+  const globalHub = getGlobalHubBase();
+  if (!domain.active) {
+    return globalHub;
   }
 
-  // tslint:disable-next-line:no-unsafe-any
-  return carrier.stack;
+  let carrier = domain.active.__SENTRY__;
+  if (!carrier) {
+    domain.active.__SENTRY__ = carrier = {};
+  }
+
+  if (!carrier.hub) {
+    carrier.hub = new Hub(globalHub.getStack().slice());
+  }
+
+  return carrier.hub;
 }
