@@ -57,7 +57,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[1].scope.user).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({
         id: '1234',
       });
       getGlobalHub().popScope();
@@ -69,7 +69,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('id', '1234');
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[1].scope.extra).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.extra).toEqual({
         id: '1234',
       });
       getGlobalHub().popScope();
@@ -80,7 +80,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setTag('id', '1234');
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[0].scope.tags).toEqual({
+      expect(global.__SENTRY__.hub.stack[0].scope.tags).toEqual({
         id: '1234',
       });
     });
@@ -91,7 +91,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[1].scope.fingerprint).toEqual([
+      expect(global.__SENTRY__.hub.stack[1].scope.fingerprint).toEqual([
         'abcd',
       ]);
     });
@@ -100,17 +100,17 @@ describe('Minimal', () => {
   test('Clear Scope', () => {
     const client = new TestClient({});
     getGlobalHub().withScope(client, () => {
-      expect(global.__SENTRY__.getGlobalHub().stack.length).toBe(2);
+      expect(global.__SENTRY__.hub.stack.length).toBe(2);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[1].scope.user).toEqual({
+      expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({
         id: '1234',
       });
       configureScope((scope: Scope) => {
         scope.clear();
       });
-      expect(global.__SENTRY__.getGlobalHub().stack[1].scope.user).toEqual({});
+      expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({});
     });
   });
 
@@ -167,18 +167,18 @@ describe('Minimal', () => {
     const iAmSomeGlobalVarTheUserHasToManage = {
       state: {},
     };
-    const hub = getHubFromCarrier, getGlobalHub(iAmSomeGlobalVarTheUserHasToManage.state);
-    getGlobalHub().pushScope(new TestClient({}));
-    getGlobalHub().configureScope((scope: Scope) => {
+    const hub = getHubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
+    hub.pushScope(new TestClient({}));
+    hub.configureScope((scope: Scope) => {
       scope.setUser({ id: '1234' });
     });
     expect(
       ((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub
         .stack[1] as any).scope.user,
     ).toEqual({ id: '1234' });
-    getGlobalHub().popScope();
+    hub.popScope();
     expect(
-      (iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.getGlobalHub().stack[1],
+      (iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1],
     ).toBeUndefined();
   });
 });

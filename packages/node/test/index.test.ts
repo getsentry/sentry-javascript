@@ -199,5 +199,4 @@ describe('SentryNode', () => {
       });
     });
   });
-
 });
