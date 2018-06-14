@@ -15,7 +15,6 @@ declare module 'domain' {
  * TODO
  */
 export function getGlobalHub(): Hub {
-  // const domain = require('domain');
   const globalHub = getGlobalHubBase();
   if (!domain.active) {
     return globalHub;

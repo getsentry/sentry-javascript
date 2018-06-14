@@ -2,7 +2,7 @@ import { Hub } from './hub';
 import { Scope } from './scope';
 
 /** The type of a process stack layer. */
-export type LayerType = 'process' | 'domain' | 'local';
+export type LayerType = 'process' | 'local';
 
 /** A layer in the process stack. */
 export interface Layer {
