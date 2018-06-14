@@ -1,5 +1,5 @@
-import { Carrier } from './interfaces';
 import { Hub } from './hub';
+import { Carrier } from './interfaces';
 
 /**
  * API compatibility version of this hub.
@@ -42,7 +42,11 @@ export function getGlobalHub(): Hub {
   return registry.hub;
 }
 
-/** TODO */
+/**
+ * This will create a new {@link Hub} and add to the passed object on
+ * __SENTRY__.hub.
+ * @param carrier object
+ */
 export function getHubFromCarrier(carrier: any): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return carrier.__SENTRY__.hub;

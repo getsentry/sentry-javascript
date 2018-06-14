@@ -24,9 +24,8 @@ export class OnUnhandledRejection implements Integration {
    */
   public sendUnhandledPromise(reason: any, promise: any): void {
     const context = (promise.domain && promise.domain.sentryContext) || {};
-    const hub = getGlobalHub();
-    hub.withScope(() => {
-      hub.configureScope(scope => {
+    getGlobalHub().withScope(() => {
+      getGlobalHub().configureScope(scope => {
         // Preserve backwards compatibility with raven-node for now
         if (context.user) {
           scope.setUser(context.user);
@@ -43,7 +42,7 @@ export class OnUnhandledRejection implements Integration {
         }
         scope.setExtra('unhandledPromiseRejection', true);
       });
-      hub.captureException(reason);
+      getGlobalHub().captureException(reason);
     });
   }
 }
