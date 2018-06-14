@@ -13,6 +13,5 @@ export interface Layer {
 
 /** An object that contains a hub and maintains a scope stack. */
 export interface Carrier {
-  stack: Layer[];
   hub?: Hub;
 }
