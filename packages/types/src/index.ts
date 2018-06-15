@@ -110,7 +110,9 @@ export interface SentryEvent {
   request?: Request;
   modules?: { [key: string]: string };
   fingerprint?: string[];
-  exception?: SentryException[];
+  exception?: {
+    values: SentryException[];
+  };
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: { [key: string]: object };

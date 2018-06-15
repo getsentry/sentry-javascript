@@ -1,7 +1,14 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
-import { API_VERSION } from './global';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
+
+/**
+ * API compatibility version of this hub.
+ *
+ * WARNING: This number should only be incresed when the global interface
+ * changes a and new methods are introduced.
+ */
+export const API_VERSION = 2;
 
 /**
  * Internal class used to make sure we always have the latest internal functions

@@ -1,13 +1,5 @@
-import { Hub } from './hub';
+import { API_VERSION, Hub } from './hub';
 import { Carrier } from './interfaces';
-
-/**
- * API compatibility version of this hub.
- *
- * WARNING: This number should only be incresed when the global interface
- * changes a and new methods are introduced.
- */
-export const API_VERSION = 2;
 
 /** Global interface helper for type safety. */
 interface Global {
