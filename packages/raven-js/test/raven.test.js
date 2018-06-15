@@ -807,6 +807,20 @@ describe('globals', function() {
       Raven._processException('TypeError', undefined, 'http://example.com', []);
       assert.isTrue(Raven._send.called);
     });
+
+    // `throw ''` scenario. TraceKit always defaults to '' for message and 'null' for name if not parseable
+    // It's required to preserve minimal (1 frame only) stack on the server and let user to see
+    // at least something, otherwise whole exception interface will be dropped
+    // and nothing will allow user to determine where this error came from
+    it('should override message if neither type or message are present', function() {
+      this.sinon.stub(Raven, '_send');
+
+      Raven._processException(null, '', 'http://example.com', []);
+      assert.equal(
+        Raven._send.lastCall.args[0].exception.values[0].value,
+        'Unrecoverable error caught'
+      );
+    });
   });
 
   if (supportsPromiseRejectionEvent()) {
@@ -3121,6 +3135,19 @@ describe('Raven (public API)', function() {
         // the fingerprint should be the same as the message
         // but wrapped in an array
         assert.deepEqual(fingerprint, ['foo']);
+      });
+
+      it('should get collected if captureMessage was called with an empty string', function() {
+        this.sinon.stub(Raven, 'isSetup').returns(true);
+        this.sinon.stub(Raven, '_send');
+
+        function foo() {
+          Raven.captureMessage('');
+        }
+
+        foo();
+        var data = Raven._send.lastCall.args[0];
+        assertSynthetic(data.stacktrace.frames);
       });
     });
   });
