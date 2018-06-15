@@ -15,7 +15,7 @@ export class Hub {
    */
   public constructor(
     private readonly stack: Layer[] = [],
-    public readonly version: number = API_VERSION,
+    private readonly version: number = API_VERSION,
   ) {
     if (stack.length === 0) {
       this.stack.push({ scope: this.createScope(), type: 'process' });
@@ -72,7 +72,7 @@ export class Hub {
    */
   public pushScope(client?: any): void {
     const usedClient = client || this.getCurrentClient();
-    // We want to clone the last scope and not create a new one
+    // We want to clone the content of prev scope
     const stack = this.getStack();
     const parentScope =
       stack.length > 0 ? stack[stack.length - 1].scope : undefined;

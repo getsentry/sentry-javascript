@@ -1,3 +1,4 @@
+import { SentryEvent } from '@sentry/types';
 import { Scope } from '../../src';
 
 describe('Scope', () => {
@@ -58,5 +59,66 @@ describe('Scope', () => {
     scope.setExtra('a', 2);
     expect(parentScope.getExtra()).toEqual({ a: 1 });
     expect(scope.getExtra()).toEqual({ a: 2 });
+  });
+
+  test('listeners', () => {
+    jest.useFakeTimers();
+    const scope = new Scope();
+    const listener = jest.fn();
+    scope.addScopeListener(listener);
+    scope.setExtra('a', 2);
+    jest.runAllTimers();
+    expect(listener).toHaveBeenCalled();
+    expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
+  });
+
+  test('applyToEvent', () => {
+    const scope = new Scope();
+    scope.setExtra('a', 2);
+    scope.setTag('a', 'b');
+    scope.setUser({ id: '1' });
+    scope.setFingerprint(['abcd']);
+    scope.addBreadcrumb({ message: 'test' }, 100);
+    const event: SentryEvent = {};
+    scope.applyToEvent(event);
+    expect(event.extra).toEqual({ a: 2 });
+    expect(event.tags).toEqual({ a: 'b' });
+    expect(event.user).toEqual({ id: '1' });
+    expect(event.fingerprint).toEqual(['abcd']);
+    expect(event.breadcrumbs).toEqual([{ message: 'test' }]);
+  });
+
+  test('applyToEvent merge', () => {
+    const scope = new Scope();
+    scope.setExtra('a', 2);
+    scope.setTag('a', 'b');
+    scope.setUser({ id: '1' });
+    scope.setFingerprint(['abcd']);
+    scope.addBreadcrumb({ message: 'test' }, 100);
+    const event: SentryEvent = {
+      breadcrumbs: [{ message: 'test2' }],
+      extra: { b: 3 },
+      fingerprint: ['efgh'],
+      tags: { b: 'c' },
+      user: { id: '3' },
+    };
+    scope.applyToEvent(event);
+    expect(event.extra).toEqual({ a: 2, b: 3 });
+    expect(event.tags).toEqual({ a: 'b', b: 'c' });
+    expect(event.user).toEqual({ id: '3' });
+    expect(event.fingerprint).toEqual(['efgh']);
+    expect(event.breadcrumbs).toEqual([{ message: 'test2' }]);
+  });
+
+  test('clear', () => {
+    const scope = new Scope();
+    scope.setExtra('a', 2);
+    scope.setTag('a', 'b');
+    scope.setUser({ id: '1' });
+    scope.setFingerprint(['abcd']);
+    scope.addBreadcrumb({ message: 'test' }, 100);
+    expect(scope.getExtra()).toEqual({ a: 2 });
+    scope.clear();
+    expect(scope.getExtra()).toEqual({});
   });
 });
