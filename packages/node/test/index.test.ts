@@ -16,7 +16,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  Hub,
+  getGlobalHub,
   init,
   NodeBackend,
   NodeClient,
@@ -34,11 +34,11 @@ describe('SentryNode', () => {
   });
 
   beforeEach(() => {
-    Hub.getGlobal().pushScope();
+    getGlobalHub().pushScope();
   });
 
   afterEach(() => {
-    Hub.getGlobal().popScope();
+    getGlobalHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -84,7 +84,7 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).toHaveLength(3);
@@ -123,7 +123,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
@@ -145,11 +145,11 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
 
     test('capture a message', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -160,11 +160,11 @@ describe('SentryNode', () => {
         }),
       );
       captureMessage('test');
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
 
     test('capture an event', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -175,14 +175,14 @@ describe('SentryNode', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
 
     test('capture an event in a domain', async () => {
       new Promise<void>(resolve => {
         const d = domain.create();
         d.run(() => {
-          Hub.getGlobal().pushScope(
+          getGlobalHub().pushScope(
             new NodeClient({
               afterSend: (event: SentryEvent) => {
                 expect(event.message).toBe('test');
@@ -194,7 +194,7 @@ describe('SentryNode', () => {
             }),
           );
           captureEvent({ message: 'test' });
-          Hub.getGlobal().popScope();
+          getGlobalHub().popScope();
         });
       });
     });

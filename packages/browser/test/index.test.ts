@@ -9,7 +9,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  Hub,
+  getGlobalHub,
   init,
   Scope,
   SentryEvent,
@@ -25,11 +25,11 @@ describe('SentryBrowser', () => {
   });
 
   beforeEach(() => {
-    Hub.getGlobal().pushScope();
+    getGlobalHub().pushScope();
   });
 
   afterEach(() => {
-    Hub.getGlobal().popScope();
+    getGlobalHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -75,7 +75,7 @@ describe('SentryBrowser', () => {
     });
 
     it('should record auto breadcrumbs', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).to.have.lengthOf(3);
@@ -97,7 +97,7 @@ describe('SentryBrowser', () => {
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
   });
 
@@ -115,7 +115,7 @@ describe('SentryBrowser', () => {
     });
 
     it('should capture an exception', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
@@ -133,11 +133,11 @@ describe('SentryBrowser', () => {
       } catch (e) {
         captureException(e);
       }
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
 
     it('should capture a message', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
@@ -148,11 +148,11 @@ describe('SentryBrowser', () => {
         }),
       );
       captureMessage('test');
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
 
     it('should capture an event', done => {
-      Hub.getGlobal().pushScope(
+      getGlobalHub().pushScope(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
@@ -163,7 +163,7 @@ describe('SentryBrowser', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      Hub.getGlobal().popScope();
+      getGlobalHub().popScope();
     });
   });
 });

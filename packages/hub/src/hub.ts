@@ -1,15 +1,7 @@
 import { Breadcrumb, SentryEvent } from '@sentry/types';
-import { getGlobalCarrier } from './global';
+import { API_VERSION } from './global';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
-
-/**
- * API compatibility version of this hub.
- *
- * WARNING: This number should only be incresed when the global interface
- * changes a and new methods are introduced.
- */
-export const API_VERSION = 2;
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -23,28 +15,11 @@ export class Hub {
    */
   public constructor(
     private readonly stack: Layer[] = [],
-    public readonly version: number = API_VERSION,
+    private readonly version: number = API_VERSION,
   ) {
     if (stack.length === 0) {
       this.stack.push({ scope: this.createScope(), type: 'process' });
     }
-  }
-
-  /**
-   * Returns the latest global hum instance.
-   *
-   * If a hub is already registered in the global carrier but this module
-   * contains a more recent version, it replaces the registered version.
-   * Otherwise, the currently registered hub will be returned.
-   */
-  public static getGlobal(): Hub {
-    const registry = getGlobalCarrier();
-
-    if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
-      registry.hub = new Hub();
-    }
-
-    return registry.hub;
   }
 
   /**
@@ -97,7 +72,7 @@ export class Hub {
    */
   public pushScope(client?: any): void {
     const usedClient = client || this.getCurrentClient();
-    // We want to clone the last scope and not create a new one
+    // We want to clone the content of prev scope
     const stack = this.getStack();
     const parentScope =
       stack.length > 0 ? stack[stack.length - 1].scope : undefined;
@@ -232,16 +207,5 @@ export class Hub {
       // TODO: freeze flag
       callback(top.scope);
     }
-  }
-}
-
-/** TODO */
-export function hubFromCarrier(carrier: any): Hub {
-  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
-    return carrier.__SENTRY__.hub;
-  } else {
-    carrier.__SENTRY__ = {};
-    carrier.__SENTRY__.hub = new Hub();
-    return carrier.__SENTRY__.hub;
   }
 }

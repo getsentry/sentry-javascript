@@ -141,8 +141,8 @@ export class Scope {
 
   /**
    * Sets the breadcrumbs in the scope
-   * @param breadcrumbs
-   * @param maxBreadcrumbs
+   * @param breadcrumbs Breadcrumb
+   * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
     this.breadcrumbs =
@@ -155,8 +155,9 @@ export class Scope {
   /**
    * Applies the current context and fingerprint to the event.
    * Note that breadcrumbs will be added by the client.
-   * @param event
-   * @param maxBreadcrumbs
+   * Also if the event has already breadcrumbs on it, we do not merge them.
+   * @param event SentryEvent
+   * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
   public applyToEvent(event: SentryEvent, maxBreadcrumbs?: number): void {
     if (this.extra && Object.keys(this.extra).length) {

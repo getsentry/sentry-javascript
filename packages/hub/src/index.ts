@@ -1,3 +1,4 @@
-export { Carrier, Layer } from './interfaces';
+export { Carrier, Layer, LayerType } from './interfaces';
 export { Scope } from './scope';
-export { hubFromCarrier, Hub } from './hub';
+export { Hub } from './hub';
+export { getGlobalHub, getHubFromCarrier } from './global';

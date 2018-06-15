@@ -1,9 +1,9 @@
-import { Hub, Scope } from '@sentry/hub';
+import { getGlobalHub, Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 
 /** Returns the current client, if any. */
 export function getCurrentClient(): any | undefined {
-  return Hub.getGlobal().getCurrentClient();
+  return getGlobalHub().getCurrentClient();
 }
 
 /**
@@ -11,7 +11,7 @@ export function getCurrentClient(): any | undefined {
  * @param client An SDK client (client) instance.
  */
 export function bindClient(client: any): void {
-  const hub = Hub.getGlobal();
+  const hub = getGlobalHub();
   const top = hub.getStackTop();
   top.client = client;
   top.scope = hub.createScope();
@@ -34,7 +34,7 @@ export function bindClient(client: any): void {
  * @param exception An exception-like object.
  */
 export function captureException(exception: any): void {
-  Hub.getGlobal().captureException(exception);
+  getGlobalHub().captureException(exception);
 }
 
 /**
@@ -43,7 +43,7 @@ export function captureException(exception: any): void {
  * @param message The message to send to Sentry.
  */
 export function captureMessage(message: string): void {
-  Hub.getGlobal().captureMessage(message);
+  getGlobalHub().captureMessage(message);
 }
 
 /**
@@ -52,7 +52,7 @@ export function captureMessage(message: string): void {
  * @param event The event to send to Sentry.
  */
 export function captureEvent(event: SentryEvent): void {
-  Hub.getGlobal().captureEvent(event);
+  getGlobalHub().captureEvent(event);
 }
 
 /**
@@ -64,7 +64,7 @@ export function captureEvent(event: SentryEvent): void {
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  Hub.getGlobal().addBreadcrumb(breadcrumb);
+  getGlobalHub().addBreadcrumb(breadcrumb);
 }
 
 /**
@@ -73,7 +73,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  Hub.getGlobal().configureScope(callback);
+  getGlobalHub().configureScope(callback);
 }
 
 /**
@@ -86,5 +86,5 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {
-  Hub.getGlobal()._invokeClient(method, ...args);
+  getGlobalHub()._invokeClient(method, ...args);
 }
