@@ -4,7 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "plugins": [{ "name": "tslint-language-service" }]
   }
 }

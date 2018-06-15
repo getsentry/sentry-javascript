@@ -1,4 +1,4 @@
-import { Hub, getHubFromCarrier, getGlobalHub, Scope } from '@sentry/hub';
+import { getHubFromCarrier, getGlobalHub, Scope } from '@sentry/hub';
 import {
   _callOnClient,
   addBreadcrumb,

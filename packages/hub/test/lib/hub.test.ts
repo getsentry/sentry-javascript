@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { SentryEvent } from '@sentry/types';
 import { Hub, Layer, Scope } from '../../src';
 
 const clientFn = jest.fn();
