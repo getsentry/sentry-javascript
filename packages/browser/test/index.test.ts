@@ -121,10 +121,10 @@ describe('SentryBrowser', () => {
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
-            expect(event.exception![0]).to.not.be.undefined;
-            expect(event.exception![0].type).to.equal('Error');
-            expect(event.exception![0].value).to.equal('test');
-            expect(event.exception![0].stacktrace).to.not.be.empty;
+            expect(event.exception!.values[0]).to.not.be.undefined;
+            expect(event.exception!.values[0].type).to.equal('Error');
+            expect(event.exception!.values[0].value).to.equal('test');
+            expect(event.exception!.values[0].stacktrace).to.not.be.empty;
             done();
           },
           dsn,
