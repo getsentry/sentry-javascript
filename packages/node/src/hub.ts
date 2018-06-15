@@ -12,7 +12,11 @@ declare module 'domain' {
 }
 
 /**
- * TODO
+ * Returns the latest global hum instance.
+ *
+ * If a hub is already registered in the global carrier but this module
+ * contains a more recent version, it replaces the registered version.
+ * Otherwise, the currently registered hub will be returned.
  */
 export function getGlobalHub(): Hub {
   const globalHub = getGlobalHubBase();
@@ -26,7 +30,7 @@ export function getGlobalHub(): Hub {
   }
 
   if (!carrier.hub) {
-    carrier.hub = new Hub(globalHub.getStack().slice());
+    carrier.hub = new Hub([globalHub.getStackTop()]);
   }
 
   return carrier.hub;
