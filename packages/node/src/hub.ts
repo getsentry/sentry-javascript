@@ -30,7 +30,9 @@ export function getGlobalHub(): Hub {
   }
 
   if (!carrier.hub) {
-    carrier.hub = new Hub([globalHub.getStackTop()]);
+    carrier.hub = new Hub(
+      globalHub.getStackTop() ? [globalHub.getStackTop()] : [],
+    );
   }
 
   return carrier.hub;

@@ -12,6 +12,10 @@ class MockHub {
   public getStack(): Layer[] {
     return this.stack;
   }
+
+  public getStackTop(): Layer {
+    return this.stack[this.stack.length - 1];
+  }
 }
 
 const mockHub = MockHub;
