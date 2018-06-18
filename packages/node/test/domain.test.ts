@@ -1,7 +1,7 @@
 import { Layer } from '@sentry/hub';
 import * as domain from 'domain';
 
-const mockGetGlobalHub = jest.fn();
+const mockGetMainHub = jest.fn();
 
 class MockHub {
   public constructor(public stack: Layer[] = []) {
@@ -21,7 +21,7 @@ class MockHub {
 const mockHub = MockHub;
 jest.mock('@sentry/hub', () => ({
   Hub: mockHub,
-  getGlobalHub: mockGetGlobalHub,
+  getMainHub: mockGetMainHub,
 }));
 
 import { getMainHub } from '../src';
@@ -31,7 +31,7 @@ describe('domains', () => {
 
   beforeEach(() => {
     globalHub = new MockHub();
-    mockGetGlobalHub.mockReturnValue(globalHub);
+    mockGetMainHub.mockReturnValue(globalHub);
   });
 
   afterEach(() => {
@@ -48,7 +48,7 @@ describe('domains', () => {
   });
 
   test('domain hub inheritance', () => {
-    globalHub.stack = [{ type: 'process' }];
+    globalHub.stack = [];
     const d = domain.create();
     d.run(() => {
       const hub = getMainHub();
@@ -61,8 +61,8 @@ describe('domains', () => {
     const d = domain.create();
     d.run(() => {
       const hub = getMainHub();
-      hub.getStack().push({ type: 'process' });
-      expect(hub.getStack()).toEqual([{ type: 'process' }]);
+      hub.getStack().push({ client: 'whatever' });
+      expect(hub.getStack()).toEqual([{ client: 'whatever' }]);
       expect(globalHub.getStack()).toEqual([]);
     });
   });
@@ -81,20 +81,20 @@ describe('domains', () => {
     d1.run(() => {
       getMainHub()
         .getStack()
-        .push({ type: 'process' });
+        .push({ client: 'process' });
 
       setTimeout(() => {
-        expect(getMainHub().getStack()).toEqual([{ type: 'process' }]);
+        expect(getMainHub().getStack()).toEqual([{ client: 'process' }]);
       }, 50);
     });
 
     d2.run(() => {
       getMainHub()
         .getStack()
-        .push({ type: 'local' });
+        .push({ client: 'local' });
 
       setTimeout(() => {
-        expect(getMainHub().getStack()).toEqual([{ type: 'local' }]);
+        expect(getMainHub().getStack()).toEqual([{ client: 'local' }]);
         done();
       }, 100);
     });
