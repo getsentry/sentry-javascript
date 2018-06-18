@@ -100,8 +100,10 @@ export class Scope {
    * Inherit values from the parent scope.
    * @param scope
    */
-  public setParentScope(scope?: Scope): void {
-    Object.assign(this, scope);
+  public static clone(scope?: Scope): Scope {
+    const newScope = new Scope();
+    Object.assign(newScope, scope);
+    return newScope;
   }
 
   /** Returns tags. */

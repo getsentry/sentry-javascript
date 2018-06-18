@@ -24,7 +24,7 @@ jest.mock('@sentry/hub', () => ({
   getGlobalHub: mockGetGlobalHub,
 }));
 
-import { getGlobalHub } from '../src';
+import { getMainHub } from '../src';
 
 describe('domains', () => {
   let globalHub: MockHub;
@@ -43,7 +43,7 @@ describe('domains', () => {
 
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
-    const hub = getGlobalHub();
+    const hub = getMainHub();
     expect(hub).toBe(globalHub);
   });
 
@@ -51,7 +51,7 @@ describe('domains', () => {
     globalHub.stack = [{ type: 'process' }];
     const d = domain.create();
     d.run(() => {
-      const hub = getGlobalHub();
+      const hub = getMainHub();
       expect(globalHub).not.toBe(hub);
       expect(globalHub.getStack()).toEqual(hub.getStack());
     });
@@ -60,7 +60,7 @@ describe('domains', () => {
   test('domain hub isolation', () => {
     const d = domain.create();
     d.run(() => {
-      const hub = getGlobalHub();
+      const hub = getMainHub();
       hub.getStack().push({ type: 'process' });
       expect(hub.getStack()).toEqual([{ type: 'process' }]);
       expect(globalHub.getStack()).toEqual([]);
@@ -70,7 +70,7 @@ describe('domains', () => {
   test('domain hub single instance', () => {
     const d = domain.create();
     d.run(() => {
-      expect(getGlobalHub()).toBe(getGlobalHub());
+      expect(getMainHub()).toBe(getMainHub());
     });
   });
 
@@ -79,22 +79,22 @@ describe('domains', () => {
     const d2 = domain.create();
 
     d1.run(() => {
-      getGlobalHub()
+      getMainHub()
         .getStack()
         .push({ type: 'process' });
 
       setTimeout(() => {
-        expect(getGlobalHub().getStack()).toEqual([{ type: 'process' }]);
+        expect(getMainHub().getStack()).toEqual([{ type: 'process' }]);
       }, 50);
     });
 
     d2.run(() => {
-      getGlobalHub()
+      getMainHub()
         .getStack()
         .push({ type: 'local' });
 
       setTimeout(() => {
-        expect(getGlobalHub().getStack()).toEqual([{ type: 'local' }]);
+        expect(getMainHub().getStack()).toEqual([{ type: 'local' }]);
         done();
       }, 100);
     });

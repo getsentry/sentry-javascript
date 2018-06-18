@@ -8,18 +8,21 @@ import { Scope } from './scope';
  * working in case we have a version conflict.
  */
 export class Hub {
+  /** Is a {@link Layer}[] containing the client and scope */
+  private readonly stack: Layer[] = [];
+
   /**
    * Creates a new instance of the hub
-   * @param stack Is a {@link Layer}[] containing the client and scope
+   * @param client bound to the hub.
+   * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
   public constructor(
-    private readonly stack: Layer[] = [],
+    client?: any,
+    scope: Scope = new Scope(),
     private readonly version: number = API_VERSION,
   ) {
-    if (stack.length === 0) {
-      this.stack.push({ scope: this.createScope(), type: 'process' });
-    }
+    this.stack.push({ client, scope });
   }
 
   /**
@@ -28,7 +31,7 @@ export class Hub {
    * @param method The method to call on the client/client.
    * @param args Arguments to pass to the client/fontend.
    */
-  public _invokeClient(method: string, ...args: any[]): void {
+  private invokeClient(method: string, ...args: any[]): void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
       top.client[method](...args, top.scope);
@@ -62,24 +65,41 @@ export class Hub {
   }
 
   /**
+   * This binds the given client to the current scope.
+   * @param client An SDK client (client) instance.
+   */
+  public bindClient(client?: any): void {
+    const top = this.getStackTop();
+    top.client = client;
+    if (top && top.scope && client) {
+      top.scope.addScopeListener((s: Scope) => {
+        if (client.getBackend) {
+          try {
+            client.getBackend().storeScope(s);
+          } catch {
+            // Do nothing
+          }
+        }
+      });
+    }
+  }
+
+  /**
    * Create a new scope to store context information.
    *
    * The scope will be layered on top of the current one. It is isolated, i.e. all
    * breadcrumbs and context information added to this scope will be removed once
    * the scope ends. Be sure to always remove this scope with {@link this.popScope}
    * when the operation finishes or throws.
-   * @param client Optional client, defaults to the current client.
    */
-  public pushScope(client?: any): void {
-    const usedClient = client || this.getCurrentClient();
+  public pushScope(): void {
     // We want to clone the content of prev scope
     const stack = this.getStack();
     const parentScope =
       stack.length > 0 ? stack[stack.length - 1].scope : undefined;
     this.getStack().push({
-      client: usedClient,
-      scope: this.createScope(parentScope),
-      type: 'local',
+      client: this.getClient(),
+      scope: Scope.clone(parentScope),
     });
   }
 
@@ -95,34 +115,20 @@ export class Hub {
   }
 
   /**
-   * Creates a new scope with a custom client instance and executes the given
-   * operation within. The scope is automatically removed once the operation
+   * Creates a new scope with and executes the given operation within.
+   * The scope is automatically removed once the operation
    * finishes or throws.
-   *
-   * The client can be configured with different options than the enclosing scope,
-   * such as a different DSN or other callbacks.
    *
    * This is essentially a convenience function for:
    *
-   *     pushScope(client);
+   *     pushScope();
    *     callback();
    *     popScope();
    *
-   * @param arg1 Either the client or callback.
-   * @param arg2 Either the client or callback.
+   * @param callback that will be enclosed into push/popScope.
    */
-  public withScope(arg1: (() => void) | any, arg2?: (() => void) | any): void {
-    let callback: () => void = arg1;
-    let client: any = arg2;
-    if (!!(arg1 && arg1.constructor && arg1.call && arg1.apply)) {
-      callback = arg1;
-      client = arg2;
-    }
-    if (!!(arg2 && arg2.constructor && arg2.call && arg2.apply)) {
-      callback = arg2;
-      client = arg1;
-    }
-    this.pushScope(client);
+  public withScope(callback: (() => void)): void {
+    this.pushScope();
     try {
       callback();
     } finally {
@@ -131,7 +137,7 @@ export class Hub {
   }
 
   /** Returns the client of the currently active scope. */
-  public getCurrentClient(): any | undefined {
+  public getClient(): any | undefined {
     return this.getStackTop().client;
   }
 
@@ -143,18 +149,6 @@ export class Hub {
   /** Returns the topmost scope layer in the order domain > local > process. */
   public getStackTop(): Layer {
     return this.stack[this.stack.length - 1];
-  }
-
-  /**
-   * Obtains a new scope instance from the client.
-   *
-   * @param parentScope Optional parent scope to inherit from.
-   * @returns The scope instance or an empty object on error.
-   */
-  public createScope(parentScope?: Scope): Scope {
-    const newScope = new Scope();
-    newScope.setParentScope(parentScope);
-    return newScope;
   }
 
   /**
@@ -193,7 +187,7 @@ export class Hub {
    * @param breadcrumb The breadcrumb to record.
    */
   public addBreadcrumb(breadcrumb: Breadcrumb): void {
-    this._invokeClient('addBreadcrumb', breadcrumb);
+    this.invokeClient('addBreadcrumb', breadcrumb);
   }
 
   /**

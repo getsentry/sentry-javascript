@@ -35,16 +35,13 @@ describe('Scope', () => {
   test('basic inheritance', () => {
     const parentScope = new Scope();
     parentScope.setExtra('a', 1);
-
-    const scope = new Scope();
-    scope.setParentScope(parentScope);
+    const scope = Scope.clone(parentScope);
     expect(parentScope.getExtra()).toEqual(scope.getExtra());
   });
 
   test('parent changed inheritance', () => {
     const parentScope = new Scope();
-    const scope = new Scope();
-    scope.setParentScope(parentScope);
+    const scope = Scope.clone(parentScope);
     parentScope.setExtra('a', 2);
     expect(scope.getExtra()).toEqual({});
     expect(parentScope.getExtra()).toEqual({ a: 2 });
@@ -54,8 +51,7 @@ describe('Scope', () => {
     const parentScope = new Scope();
     parentScope.setExtra('a', 1);
 
-    const scope = new Scope();
-    scope.setParentScope(parentScope);
+    const scope = Scope.clone(parentScope);
     scope.setExtra('a', 2);
     expect(parentScope.getExtra()).toEqual({ a: 1 });
     expect(scope.getExtra()).toEqual({ a: 2 });

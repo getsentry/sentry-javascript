@@ -1,8 +1,9 @@
-import { addBreadcrumb, getCurrentClient } from '@sentry/minimal';
+import { addBreadcrumb } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
 import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';
 import { inherits } from 'util';
+import { getMainHub } from '../hub';
 
 let lastResponse: ServerResponse | undefined;
 
@@ -123,7 +124,9 @@ function emitWrapper(
       return origEmit.apply(this, arguments);
     }
 
-    const DSN = getCurrentClient().getDSN();
+    const DSN = getMainHub()
+      .getClient()
+      .getDSN();
 
     const isInterestingEvent = event === 'response' || event === 'error';
     const isNotSentryRequest =

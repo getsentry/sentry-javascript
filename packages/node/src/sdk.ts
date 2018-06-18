@@ -1,5 +1,4 @@
 import { initAndBind } from '@sentry/core';
-import { getCurrentClient as shimGetCurrentClient } from '@sentry/minimal';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import {
@@ -60,9 +59,4 @@ export function init(options: NodeOptions): void {
     new Console(),
     new Http(),
   ]);
-}
-
-/** Returns the current NodeClient, if any. */
-export function getCurrentClient(): NodeClient {
-  return shimGetCurrentClient() as NodeClient;
 }

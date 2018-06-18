@@ -1,5 +1,4 @@
 import { initAndBind } from '@sentry/core';
-import { getCurrentClient as shimGetCurrentClient } from '@sentry/minimal';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import {
@@ -61,9 +60,4 @@ export function init(options: BrowserOptions): void {
     new TryCatch(),
     new Breadcrumbs(),
   ]);
-}
-
-/** Returns the current BrowserClient, if any. */
-export function getCurrentClient(): BrowserClient {
-  return shimGetCurrentClient() as BrowserClient;
 }

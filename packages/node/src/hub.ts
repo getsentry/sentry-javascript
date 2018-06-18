@@ -1,4 +1,4 @@
-import { Carrier, getGlobalHub as getGlobalHubBase, Hub } from '@sentry/hub';
+import { Carrier, getMainHub as getMainHubBase, Hub } from '@sentry/hub';
 import * as domain from 'domain';
 
 declare module 'domain' {
@@ -12,14 +12,14 @@ declare module 'domain' {
 }
 
 /**
- * Returns the latest global hum instance.
+ * Returns the latest global hub instance.
  *
  * If a hub is already registered in the global carrier but this module
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
-export function getGlobalHub(): Hub {
-  const globalHub = getGlobalHubBase();
+export function getMainHub(): Hub {
+  const globalHub = getMainHubBase();
   if (!domain.active) {
     return globalHub;
   }
