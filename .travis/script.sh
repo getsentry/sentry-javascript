@@ -6,10 +6,6 @@ source .travis/before_script.sh
 # Run @sentry/*
 if [ ${NODE_VERSION:1:1} > 5 ]; then
   yarn && yarn build && yarn test && yarn codecov
-else
-  echo "**********************************************************************";
-  echo "SKIPPING @sentry/*";
-  echo "**********************************************************************";
 fi
 
 # Run raven-node
@@ -22,16 +18,10 @@ if [[ ("$RAVEN_NODE_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) ]]; 
     npm run test
   fi
   cd ../..
-else
-  echo "**********************************************************************";
-  echo "SKIPPING raven-node";
-  echo "RAVEN_NODE_CHANGES: $RAVEN_NODE_CHANGES";
-  echo "TRAVIS_PULL_REQUEST: $TRAVIS_PULL_REQUEST";
-  echo "**********************************************************************";
 fi
 
 # Run raven-js
-if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) ]]; then
+if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && ${NODE_VERSION:1:1} = 8 ]]; then
   cd packages/raven-js
   npm install
   npm run test
@@ -39,10 +29,4 @@ if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) ]]; th
     npm run test:ci
   fi
   cd ../..
-else
-  echo "**********************************************************************";
-  echo "SKIPPING raven-js";
-  echo "RAVEN_JS_CHANGES: $RAVEN_NODE_CHANGES";
-  echo "TRAVIS_PULL_REQUEST: $TRAVIS_PULL_REQUEST";
-  echo "**********************************************************************";
 fi
