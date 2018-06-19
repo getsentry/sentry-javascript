@@ -5,7 +5,7 @@ source .travis/before_script.sh
 
 # Run @sentry/*
 if [ ${NODE_VERSION:1:1} -gt 5 ]; then
-  yarn && yarn build && yarn test && yarn codecov
+  yarn && yarn build && yarn test
 fi
 
 # Run raven-node
@@ -30,3 +30,5 @@ if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && ${N
   fi
   cd ../..
 fi
+
+yarn codecov
