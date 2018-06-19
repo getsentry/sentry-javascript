@@ -28,10 +28,11 @@ matrix:
   include:
     - node_js: "8"
       script: .travis/lint.sh
-  exclude:
     - node_js: "8"
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
       script: .travis/script.sh
+  exclude:
+    - node_js: "8"
