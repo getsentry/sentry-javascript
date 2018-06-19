@@ -2,7 +2,9 @@
 set -e
 
 # Run @sentry/*
-yarn && yarn build && yarn test && yarn codecov
+if [[ "$PACKAGES" = "true" ]]; then
+  yarn && yarn build && yarn test && yarn codecov
+fi
 
 # Run raven-node
 if [[ ("$RAVEN_NODE_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) ]]; then

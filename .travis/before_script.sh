@@ -17,3 +17,8 @@ if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
   export RAVEN_JS_CHANGES=true
   export RAVEN_NODE_CHANGES=true
 fi
+
+NODE_VERSION=$(node -v);
+if  [ ${NODE_VERSION:1:1} > 5 ]; then
+  export PACKAGES=true
+fi
