@@ -211,7 +211,7 @@ export class Hub {
    */
   public addEventProcessor(callback: () => (event: SentryEvent) => void): void {
     const top = this.getStackTop();
-    if (top.scope) {
+    if (top.scope && top.client) {
       top.scope.addEventProcessor(callback());
     }
   }

@@ -1,4 +1,4 @@
-import { Carrier, getMainHub as getMainHubBase, Hub } from '@sentry/hub';
+import { Carrier, getDefaultHub as getDefaultHubBase, Hub } from '@sentry/hub';
 import * as domain from 'domain';
 
 declare module 'domain' {
@@ -18,8 +18,8 @@ declare module 'domain' {
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
-export function getMainHub(): Hub {
-  const globalHub = getMainHubBase();
+export function getDefaultHub(): Hub {
+  const globalHub = getDefaultHubBase();
   if (!domain.active) {
     return globalHub;
   }

@@ -16,7 +16,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  getMainHub,
+  getDefaultHub,
   init,
   NodeBackend,
   NodeClient,
@@ -34,11 +34,11 @@ describe('SentryNode', () => {
   });
 
   beforeEach(() => {
-    getMainHub().pushScope();
+    getDefaultHub().pushScope();
   });
 
   afterEach(() => {
-    getMainHub().popScope();
+    getDefaultHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -84,8 +84,8 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      getMainHub().pushScope();
-      getMainHub().bindClient(
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).toHaveLength(3);
@@ -124,8 +124,8 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      getMainHub().pushScope();
-      getMainHub().bindClient(
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
@@ -147,12 +147,12 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      getMainHub().popScope();
+      getDefaultHub().popScope();
     });
 
     test('capture a message', done => {
-      getMainHub().pushScope();
-      getMainHub().bindClient(
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -163,12 +163,12 @@ describe('SentryNode', () => {
         }),
       );
       captureMessage('test');
-      getMainHub().popScope();
+      getDefaultHub().popScope();
     });
 
     test('capture an event', done => {
-      getMainHub().pushScope();
-      getMainHub().bindClient(
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -179,15 +179,15 @@ describe('SentryNode', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      getMainHub().popScope();
+      getDefaultHub().popScope();
     });
 
     test('capture an event in a domain', async () => {
       new Promise<void>(resolve => {
         const d = domain.create();
         d.run(() => {
-          getMainHub().pushScope();
-          getMainHub().bindClient(
+          getDefaultHub().pushScope();
+          getDefaultHub().bindClient(
             new NodeClient({
               afterSend: (event: SentryEvent) => {
                 expect(event.message).toBe('test');
@@ -199,7 +199,7 @@ describe('SentryNode', () => {
             }),
           );
           captureEvent({ message: 'test' });
-          getMainHub().popScope();
+          getDefaultHub().popScope();
         });
       });
     });

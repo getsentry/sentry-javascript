@@ -1,4 +1,4 @@
-import { getHubFromCarrier, getMainHub, Scope } from '@sentry/hub';
+import { getHubFromCarrier, getDefaultHub, Scope } from '@sentry/hub';
 import {
   _callOnClient,
   addBreadcrumb,
@@ -23,8 +23,8 @@ describe('Minimal', () => {
       const client = {
         captureException: jest.fn(async () => Promise.resolve()),
       };
-      getMainHub().withScope(() => {
-        getMainHub().bindClient(client);
+      getDefaultHub().withScope(() => {
+        getDefaultHub().bindClient(client);
         const e = new Error('test exception');
         captureException(e);
         expect(client.captureException.mock.calls[0][0]).toBe(e);
@@ -33,8 +33,8 @@ describe('Minimal', () => {
 
     test('Message', () => {
       const client = { captureMessage: jest.fn(async () => Promise.resolve()) };
-      getMainHub().withScope(() => {
-        getMainHub().bindClient(client);
+      getDefaultHub().withScope(() => {
+        getDefaultHub().bindClient(client);
         const message = 'yo';
         captureMessage(message);
         expect(client.captureMessage.mock.calls[0][0]).toBe(message);
@@ -43,8 +43,8 @@ describe('Minimal', () => {
 
     test('Event', () => {
       const client = { captureEvent: jest.fn(async () => Promise.resolve()) };
-      getMainHub().withScope(() => {
-        getMainHub().bindClient(client);
+      getDefaultHub().withScope(() => {
+        getDefaultHub().bindClient(client);
         const e = { message: 'test' };
         captureEvent(e);
         expect(client.captureEvent.mock.calls[0][0]).toBe(e);
@@ -55,28 +55,28 @@ describe('Minimal', () => {
   describe('configureScope', () => {
     test('User Context', () => {
       const client = new TestClient({});
-      getMainHub().pushScope();
-      getMainHub().bindClient(client);
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(client);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
       expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({
         id: '1234',
       });
-      getMainHub().popScope();
+      getDefaultHub().popScope();
     });
 
     test('Extra Context', () => {
       const client = new TestClient({});
-      getMainHub().pushScope();
-      getMainHub().bindClient(client);
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(client);
       configureScope((scope: Scope) => {
         scope.setExtra('id', '1234');
       });
       expect(global.__SENTRY__.hub.stack[1].scope.extra).toEqual({
         id: '1234',
       });
-      getMainHub().popScope();
+      getDefaultHub().popScope();
     });
 
     test('Tags Context', () => {
@@ -91,8 +91,8 @@ describe('Minimal', () => {
 
     test('Fingerprint', () => {
       const client = new TestClient({});
-      getMainHub().pushScope();
-      getMainHub().bindClient(client);
+      getDefaultHub().pushScope();
+      getDefaultHub().bindClient(client);
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
@@ -104,8 +104,8 @@ describe('Minimal', () => {
 
   test('Clear Scope', () => {
     const client = new TestClient({});
-    getMainHub().withScope(() => {
-      getMainHub().bindClient(client);
+    getDefaultHub().withScope(() => {
+      getDefaultHub().bindClient(client);
       expect(global.__SENTRY__.hub.stack.length).toBe(2);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
@@ -124,28 +124,28 @@ describe('Minimal', () => {
     const client = {
       addBreadcrumb: jest.fn(),
     };
-    getMainHub().pushScope();
-    getMainHub().bindClient(client);
+    getDefaultHub().pushScope();
+    getDefaultHub().bindClient(client);
     addBreadcrumb({ message: 'world' });
     expect(client.addBreadcrumb.mock.calls[0][0]).toEqual({
       message: 'world',
     });
-    getMainHub().popScope();
+    getDefaultHub().popScope();
   });
 
   test('returns undefined before binding a client', () => {
-    expect(getMainHub().getClient()).toBeUndefined();
+    expect(getDefaultHub().getClient()).toBeUndefined();
   });
 
   test('returns the bound client', () => {
     init({});
-    expect(getMainHub().getClient()).toBe(TestClient.instance);
+    expect(getDefaultHub().getClient()).toBe(TestClient.instance);
   });
 
   test('Calls function on the client', done => {
     const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
-    getMainHub().withScope(() => {
-      getMainHub().bindClient(new TestClient({}));
+    getDefaultHub().withScope(() => {
+      getDefaultHub().bindClient(new TestClient({}));
       _callOnClient('mySecretPublicMethod', 'test');
       expect(s.mock.calls[0][0]).toBe('test');
       s.mockRestore();
@@ -156,8 +156,8 @@ describe('Minimal', () => {
   test('does not throw an error when pushing different clients', () => {
     init({});
     expect(() => {
-      getMainHub().withScope(() => {
-        getMainHub().bindClient(new TestClient2());
+      getDefaultHub().withScope(() => {
+        getDefaultHub().bindClient(new TestClient2());
       });
     }).not.toThrow();
   });
@@ -165,8 +165,8 @@ describe('Minimal', () => {
   test('does not throw an error when pushing same clients', () => {
     init({});
     expect(() => {
-      getMainHub().withScope(() => {
-        getMainHub().bindClient(new TestClient({}));
+      getDefaultHub().withScope(() => {
+        getDefaultHub().bindClient(new TestClient({}));
       });
     }).not.toThrow();
   });

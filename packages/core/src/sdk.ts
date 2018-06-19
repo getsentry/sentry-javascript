@@ -1,4 +1,4 @@
-import { getMainHub } from '@sentry/hub';
+import { getDefaultHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { Client, Options } from './interfaces';
 
@@ -20,7 +20,7 @@ export function initAndBind<F extends Client, O extends Options>(
   options: O,
   defaultIntegrations: Integration[] = [],
 ): void {
-  if (getMainHub().getClient()) {
+  if (getDefaultHub().getClient()) {
     return;
   }
 
@@ -41,5 +41,5 @@ export function initAndBind<F extends Client, O extends Options>(
     });
   }
 
-  getMainHub().bindClient(client);
+  getDefaultHub().bindClient(client);
 }

@@ -1,8 +1,8 @@
-import { getHubFromCarrier, getMainHub, Hub } from '../../src';
+import { getDefaultHub, getHubFromCarrier, Hub } from '../../src';
 
 describe('global', () => {
   test('getGlobalHub', () => {
-    expect(getMainHub()).toBeTruthy();
+    expect(getDefaultHub()).toBeTruthy();
     expect((global as any).__SENTRY__.hub).toBeTruthy();
   });
 
@@ -17,6 +17,6 @@ describe('global', () => {
   test('getGlobalHub', () => {
     const newestHub = new Hub(undefined, [], 999999);
     (global as any).__SENTRY__.hub = newestHub;
-    expect(getMainHub()).toBe(newestHub);
+    expect(getDefaultHub()).toBe(newestHub);
   });
 });

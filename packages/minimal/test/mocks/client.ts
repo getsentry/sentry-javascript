@@ -1,4 +1,4 @@
-import { getMainHub } from '@sentry/hub';
+import { getDefaultHub } from '@sentry/hub';
 
 export class TestClient {
   public static instance?: TestClient;
@@ -15,5 +15,5 @@ export class TestClient {
 export class TestClient2 {}
 
 export function init(options: object): void {
-  getMainHub().bindClient(new TestClient(options));
+  getDefaultHub().bindClient(new TestClient(options));
 }

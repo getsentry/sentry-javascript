@@ -26,13 +26,13 @@ export function getMainCarrier(): Carrier {
 }
 
 /**
- * Returns the main hub instance.
+ * Returns the default hub instance.
  *
  * If a hub is already registered in the global carrier but this module
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
-export function getMainHub(): Hub {
+export function getDefaultHub(): Hub {
   const registry = getMainCarrier();
 
   if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {

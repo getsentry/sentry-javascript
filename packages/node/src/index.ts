@@ -21,7 +21,7 @@ export {
 
 export { Hub, Scope } from '@sentry/hub';
 
-export { getMainHub } from './hub';
+export { getDefaultHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { init } from './sdk';

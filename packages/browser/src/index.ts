@@ -19,7 +19,7 @@ export {
   configureScope,
 } from '@sentry/minimal';
 
-export { getMainHub, Hub, Scope } from '@sentry/hub';
+export { getDefaultHub, Hub, Scope } from '@sentry/hub';
 
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserClient } from './client';
