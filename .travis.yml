@@ -31,9 +31,7 @@ script: .travis/script.sh
 
 stages:
   - lint
-  - name: test
-    addons:
-      chrome: stable
+  - test
 
 jobs:
   include:
@@ -42,20 +40,10 @@ jobs:
       script: .travis/lint.sh
 
 matrix:
-  include:
-    - env: NAME="raven-js"
-      node_js: "8"
+  exclude:
+    - node_js: "8"
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script:
-        - |
-            if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) ]]; then
-            cd packages/raven-js
-            npm install
-            npm run test
-            if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
-              npm run test:ci
-            fi
-            fi
+      script: .travis/script.sh
