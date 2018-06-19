@@ -6,10 +6,10 @@ import { Breadcrumb, SentryEvent, User } from '@sentry/types';
  */
 export class Scope {
   /** Flag if notifiying is happening. */
-  protected notifyingListeners: boolean;
+  protected notifyingListeners: boolean = false;
 
   /** Flag if notifiying is happening. */
-  protected notifyingProcessors: boolean;
+  protected notifyingProcessors: boolean = false;
 
   /** Callback for client to receive scope changes. */
   protected scopeListeners: Array<(scope: Scope) => void> = [];
@@ -31,11 +31,6 @@ export class Scope {
 
   /** Fingerprint */
   protected fingerprint?: string[];
-
-  /** Create a new empty internal scope. This will not be exposed to the user. */
-  public constructor() {
-    this.notifyingListeners = false;
-  }
 
   /** Add internal on change listener. */
   public addScopeListener(callback: (scope: Scope) => void): void {
