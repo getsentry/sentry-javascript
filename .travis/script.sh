@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
 
-source ./before_script.sh
+source .travis/before_script.sh
 
 # Run @sentry/*
-if [[ "$PACKAGES" = "true" ]]; then
+if [ ${NODE_VERSION:1:1} > 5 ]; then
   yarn && yarn build && yarn test && yarn codecov
 else
   echo "**********************************************************************";
   echo "SKIPPING @sentry/*";
-  echo "PACKAGES: $PACKAGES";
   echo "**********************************************************************";
 fi
 

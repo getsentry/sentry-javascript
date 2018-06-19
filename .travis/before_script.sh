@@ -19,6 +19,3 @@ if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
 fi
 
 NODE_VERSION=$(node -v);
-if  [ ${NODE_VERSION:1:1} > 5 ]; then
-  PACKAGES=true
-fi
