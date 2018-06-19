@@ -1,5 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
+import { truncate, uuid4 } from '@sentry/utils';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 import { SendStatus } from './status';
@@ -15,6 +16,11 @@ const DEFAULT_BREADCRUMBS = 30;
  * `maxBreadcrumbs` option cannot be higher than this value.
  */
 const MAX_BREADCRUMBS = 100;
+
+/**
+ * By default, truncates URL values to 250 chars
+ */
+const MAX_URL_LENGTH = 250;
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -240,6 +246,23 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
+    if (prepared.message) {
+      prepared.message = truncate(prepared.message, MAX_URL_LENGTH);
+    }
+    if (prepared.exception) {
+      const exception = prepared.exception.values[0];
+      if (exception.value) {
+        exception.value = truncate(exception.value, MAX_URL_LENGTH);
+      }
+    }
+
+    const request = prepared.request;
+    if (request && request.url) {
+      request.url = truncate(request.url, MAX_URL_LENGTH);
+    }
+
+    prepared.event_id = uuid4();
+
     return prepared;
   }
 
@@ -275,6 +298,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       return SendStatus.Skipped;
     }
 
+    // TODO: Add breadcrumb with our own event?
+    // Or should it be handled by the xhr/fetch integration itself?
+    // Or maybe some other integration that'd use `afterSend`?
+
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
     const code = await send(finalEvent);
     const status = SendStatus.fromHttpCode(code);
@@ -283,6 +310,8 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       // TODO: Handle rate limits and maintain a queue. For now, we require SDK
       // implementors to override this method and handle it themselves.
     }
+
+    // TODO: Handle duplicates and backoffs
 
     if (afterSend) {
       afterSend(finalEvent, status);

@@ -127,3 +127,11 @@ export interface Integration {
   handler?: any;
   install(): void;
 }
+
+/** TODO */
+export interface Transport {
+  config: {
+    url: string;
+  };
+  send(event: SentryEvent): Promise<Response | XMLHttpRequest>;
+}
