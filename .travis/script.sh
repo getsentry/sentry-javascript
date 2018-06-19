@@ -3,6 +3,8 @@ set -e
 
 source .travis/before_script.sh
 
+echo "NODE VERSION: ${NODE_VERSION:1:1}";
+
 # Run @sentry/*
 if [ ${NODE_VERSION:1:1} > 5 ]; then
   yarn && yarn build && yarn test && yarn codecov

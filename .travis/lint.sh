@@ -3,6 +3,8 @@ set -e
 
 source .travis/before_script.sh
 
+echo "NODE VERSION: ${NODE_VERSION:1:1}";
+
 # Run @sentry/*
 yarn && yarn build && yarn lint
 
