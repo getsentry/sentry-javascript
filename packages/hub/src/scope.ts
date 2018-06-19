@@ -5,15 +5,17 @@ import { Breadcrumb, SentryEvent, User } from '@sentry/types';
  * called by the client before an event will be sent.
  */
 export class Scope {
-  /**
-   * Flag if notifiying is happening.
-   */
-  protected notifying: boolean;
+  /** Flag if notifiying is happening. */
+  protected notifyingListeners: boolean;
 
-  /**
-   * Callback for client to receive scope changes.
-   */
+  /** Flag if notifiying is happening. */
+  protected notifyingProcessors: boolean;
+
+  /** Callback for client to receive scope changes. */
   protected scopeListeners: Array<(scope: Scope) => void> = [];
+
+  /** Callback list that will be called after {@link applyToEvent}. */
+  protected eventProcessors: Array<(scope: SentryEvent) => void> = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -30,32 +32,47 @@ export class Scope {
   /** Fingerprint */
   protected fingerprint?: string[];
 
-  /**
-   * Create a new empty internal scope. This will not be exposed to the user.
-   */
+  /** Create a new empty internal scope. This will not be exposed to the user. */
   public constructor() {
-    this.notifying = false;
+    this.notifyingListeners = false;
   }
 
-  /**
-   * Add internal on change listener.
-   */
+  /** Add internal on change listener. */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this.scopeListeners.push(callback);
+  }
+
+  /** Add new event processor that will be called after {@link applyToEvent}. */
+  public addEventProcessor(callback: (scope: SentryEvent) => void): void {
+    this.eventProcessors.push(callback);
   }
 
   /**
    * This will be called on every set call.
    */
-  protected notifyListeners(): void {
-    if (!this.notifying) {
-      this.notifying = true;
+  protected notifyScopeListeners(): void {
+    if (!this.notifyingListeners) {
+      this.notifyingListeners = true;
       setTimeout(() => {
-        // this.scopeChanged(this);
         this.scopeListeners.forEach(callback => {
           callback(this);
         });
-        this.notifying = false;
+        this.notifyingListeners = false;
+      }, 0);
+    }
+  }
+
+  /**
+   * This will be called after {@link applyToEvent} is finished.
+   */
+  protected notifyEventProcessors(event: SentryEvent): void {
+    if (!this.notifyingProcessors) {
+      this.notifyingProcessors = true;
+      setTimeout(() => {
+        this.eventProcessors.forEach(callback => {
+          callback(event);
+        });
+        this.notifyingProcessors = false;
       }, 0);
     }
   }
@@ -66,7 +83,7 @@ export class Scope {
    */
   public setUser(user: User): void {
     this.user = user;
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -75,7 +92,7 @@ export class Scope {
    */
   public setTag(key: string, value: string): void {
     this.tags = { ...this.tags, [key]: value };
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -84,7 +101,7 @@ export class Scope {
    */
   public setExtra(key: string, extra: any): void {
     this.extra = { ...this.extra, [key]: extra };
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -93,7 +110,7 @@ export class Scope {
    */
   public setFingerprint(fingerprint: string[]): void {
     this.fingerprint = fingerprint;
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -138,7 +155,7 @@ export class Scope {
     this.extra = {};
     this.user = {};
     this.fingerprint = undefined;
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -151,7 +168,7 @@ export class Scope {
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
         : [...this.breadcrumbs, breadcrumb];
-    this.notifyListeners();
+    this.notifyScopeListeners();
   }
 
   /**
@@ -185,5 +202,7 @@ export class Scope {
           ? this.breadcrumbs.slice(-maxBreadcrumbs)
           : this.breadcrumbs;
     }
+
+    this.notifyEventProcessors(event);
   }
 }

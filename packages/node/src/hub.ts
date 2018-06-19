@@ -30,9 +30,8 @@ export function getMainHub(): Hub {
   }
 
   if (!carrier.hub) {
-    carrier.hub = new Hub(
-      globalHub.getStackTop() ? [globalHub.getStackTop()] : [],
-    );
+    const top = globalHub.getStackTop();
+    carrier.hub = top ? new Hub(top.client, top.scope) : new Hub();
   }
 
   return carrier.hub;

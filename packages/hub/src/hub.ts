@@ -12,7 +12,9 @@ export class Hub {
   private readonly stack: Layer[] = [];
 
   /**
-   * Creates a new instance of the hub
+   * Creates a new instance of the hub, will push one {@link Layer} into the
+   * internal stack on creation.
+   *
    * @param client bound to the hub.
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
@@ -200,6 +202,17 @@ export class Hub {
     if (top.client && top.scope) {
       // TODO: freeze flag
       callback(top.scope);
+    }
+  }
+
+  /**
+   * This will be called to receive the event
+   * @param callback
+   */
+  public addEventProcessor(callback: () => (event: SentryEvent) => void): void {
+    const top = this.getStackTop();
+    if (top.scope) {
+      top.scope.addEventProcessor(callback());
     }
   }
 }

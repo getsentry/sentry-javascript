@@ -33,6 +33,7 @@ describe('Hub', () => {
       },
       scope,
     );
+    // @ts-ignore
     hub.invokeClient('clientFn', true);
     expect(clientFn).toHaveBeenCalled();
     expect(clientFn.mock.calls[0][0]).toBe(true);
@@ -44,6 +45,7 @@ describe('Hub', () => {
       asyncClientFn,
       clientFn,
     });
+    // @ts-ignore
     hub.invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
@@ -124,7 +126,7 @@ describe('Hub', () => {
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test.only('withScope bindClient scope changes', () => {
+  test('withScope bindClient scope changes', () => {
     jest.useFakeTimers();
     const hub = new Hub();
     const storeScope = jest.fn();
@@ -207,6 +209,7 @@ describe('Hub', () => {
   });
 
   test('configureScope', () => {
+    expect.assertions(0);
     const hub = new Hub();
     hub.configureScope(_ => {
       expect(true).toBeFalsy();
@@ -214,11 +217,29 @@ describe('Hub', () => {
   });
 
   test('configureScope', () => {
+    expect.assertions(1);
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' }, localScope);
     hub.configureScope(confScope => {
       expect(confScope.getExtra()).toEqual({ a: 'b' });
     });
+  });
+
+  test('addEventProcessor', done => {
+    jest.useFakeTimers();
+    expect.assertions(1);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const hub = new Hub({ a: 'b' }, localScope);
+    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      done();
+    });
+    localScope.applyToEvent(event);
+    jest.runAllTimers();
   });
 });
