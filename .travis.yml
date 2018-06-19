@@ -2,10 +2,6 @@ branches:
   only:
     - master
 
-before_install:
-  - curl -o- -L https://yarnpkg.com/install.sh | bash
-  - export PATH="$HOME/.yarn/bin:$PATH"
-
 install: true
 sudo: required
 
@@ -22,24 +18,18 @@ language: node_js
 dist: trusty
 
 cache:
+  yarn: true
   directories:
-  - node_modules
+    - node_modules
 
 before_script: .travis/before_script.sh
 
 script: .travis/script.sh
 
-stages:
-  - lint
-  - test
-
-jobs:
-  include:
-    - stage: lint
-      node_js: "8"
-      script: .travis/lint.sh
-
 matrix:
+  include:
+    - node_js: "8"
+      script: .travis/lint.sh
   exclude:
     - node_js: "8"
       addons:
