@@ -1,7 +1,4 @@
-import {
-  bindClient as shimBindClient,
-  getCurrentClient as shimGetCurrentClient,
-} from '@sentry/minimal';
+import { getDefaultHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { Client, Options } from './interfaces';
 
@@ -23,7 +20,7 @@ export function initAndBind<F extends Client, O extends Options>(
   options: O,
   defaultIntegrations: Integration[] = [],
 ): void {
-  if (shimGetCurrentClient()) {
+  if (getDefaultHub().getClient()) {
     return;
   }
 
@@ -44,5 +41,5 @@ export function initAndBind<F extends Client, O extends Options>(
     });
   }
 
-  shimBindClient(client);
+  getDefaultHub().bindClient(client);
 }
