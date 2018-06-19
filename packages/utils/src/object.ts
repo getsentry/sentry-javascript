@@ -67,3 +67,15 @@ export function fill(
     track.push([source, name, orig]);
   }
 }
+
+/**
+ * Encodes given object into url-friendly format
+ *
+ * @param object An object that contains serializable values
+ * @returns string Encoded
+ */
+export function urlEncode(object: { [key: string]: any }): string {
+  return Object.keys(object)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
+    .join('&');
+}

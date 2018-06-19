@@ -18,7 +18,8 @@
     "@sentry/core": "0.5.4",
     "@sentry/hub": "0.5.4",
     "@sentry/minimal": "0.5.4",
-    "@sentry/types": "0.5.4"
+    "@sentry/types": "0.5.4",
+    "@sentry/utils": "0.5.4"
   },
   "devDependencies": {
     "chai": "^4.1.2",

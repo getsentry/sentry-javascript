@@ -1,10 +1,9 @@
-import { Backend, Options, SentryError } from '@sentry/core';
+import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent } from '@sentry/types';
-import { Raven, SendMethod } from './raven';
-
-/** Original raven send function. */
-const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
+import { supportsFetch, urlEncode } from '@sentry/utils';
+import { Raven } from './raven';
+import { FetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -117,12 +116,56 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<number> {
-    return new Promise<number>(resolve => {
-      sendRavenEvent(event, error => {
-        // TODO: Check the response status code
-        resolve(error ? 500 : 200);
-      });
-    });
+    let dsn;
+
+    if (!this.options.dsn) {
+      throw new SentryError('Cannot sendEvent without a valid DSN');
+    } else {
+      dsn = new DSN(this.options.dsn);
+    }
+
+    const auth = {
+      sentry_client: `raven-js/${Raven.VERSION}`,
+      sentry_key: dsn.user,
+      sentry_secret: '',
+      sentry_version: '7',
+    };
+
+    if (dsn.pass) {
+      auth.sentry_secret = dsn.pass;
+    } else {
+      delete auth.sentry_secret;
+    }
+
+    const lastSlash = dsn.path.lastIndexOf('/');
+    const path = dsn.path.substr(1, lastSlash);
+
+    const _globalProject = dsn.path.substr(lastSlash + 1);
+    let globalServer = `//${dsn.host}${dsn.port ? `:${dsn.port}` : ''}`;
+
+    if (dsn.protocol) {
+      globalServer = `${dsn.protocol}':'${globalServer}`;
+    }
+
+    const _globalEndpoint = `${globalServer}/${path}api/${_globalProject}/store/`;
+
+    // Auth is intentionally sent as part of query string (NOT as custom HTTP header)
+    // to avoid preflight CORS requests
+    const url = `${_globalEndpoint}?${urlEncode(auth)}`;
+
+    const transport = this.options.transport
+      ? this.options.transport
+      : supportsFetch()
+        ? new FetchTransport({ url })
+        : new XHRTransport({ url });
+
+    // tslint:disable-next-line
+    debugger;
+
+    return transport
+      .send(event)
+      .then((response: Response | XMLHttpRequest) => response.status)
+      .catch((error: Response | XMLHttpRequest) => error.status);
   }
 
   /**
