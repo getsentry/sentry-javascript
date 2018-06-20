@@ -1,29 +1,8 @@
+import { DSNComponents, DSNLike, DSNProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a DSN. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
-
-/** Supported Sentry transport protocols in a DSN. */
-export type DSNProtocol = 'http' | 'https';
-
-/** Primitive components of a DSN. */
-export interface DSNComponents {
-  /** Protocol used to connect to Sentry. */
-  protocol: DSNProtocol;
-  /** Public authorization key. */
-  user: string;
-  /** Private authorization key (deprecated, optional). */
-  pass?: string;
-  /** Hostname of the Sentry instance. */
-  host: string;
-  /** Port of the Sentry instance. */
-  port?: string;
-  /** Project path */
-  path: string;
-}
-
-/** Anything that can be parsed into a DSN. */
-export type DSNLike = string | DSNComponents;
 
 /** The Sentry DSN, identifying a Sentry instance and project. */
 export class DSN implements DSNComponents {
