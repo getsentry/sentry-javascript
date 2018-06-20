@@ -150,10 +150,18 @@ export interface Integration {
   install(): void;
 }
 
+export interface TransportOptions {
+  dsn: DSNComponents;
+}
+
 /** TODO */
 export interface Transport {
-  config: {
-    url: string;
-  };
+  endpointUrl: string;
+  composeEndpointUrl(dsn: DSNComponents): string;
   send(event: SentryEvent): Promise<Response | XMLHttpRequest>;
+}
+
+/** TODO */
+export interface TransportClass<T extends Transport> {
+  new (options: TransportOptions): T;
 }
