@@ -3,7 +3,7 @@ branches:
     - master
 
 install: true
-sudo: false
+sudo: required
 
 node_js:
   - "4"
@@ -18,65 +18,21 @@ language: node_js
 dist: trusty
 
 cache:
+  yarn: true
   directories:
-  - node_modules
+    - node_modules
 
-before_script:
-  - |
-      CHANGES=$(git --no-pager diff --name-only FETCH_HEAD $(git merge-base FETCH_HEAD master))
-      if [ -n "$(grep 'raven-js' <<< "$CHANGES")" ]; then
-      RAVEN_JS_CHANGES=true
-      fi
-      if [ -n "$(grep 'raven-node' <<< "$CHANGES")" ]; then
-      RAVEN_NODE_CHANGES=true
-      fi
-      FORCE=$(git log --format=%B --no-merges -n 1)
-      if [ -n "$(grep '\[force ci\]' <<< "$FORCE")" ]; then
-      RAVEN_JS_CHANGES=true
-      RAVEN_NODE_CHANGES=true
-      fi
-
-env: NAME="raven-node"
-script:
-  - |
-      cd packages/raven-node
-      npm install
-      if [[ ("$RAVEN_NODE_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
-      npm run test-full
-      else
-      npm run test
-      fi
+script: .travis/script.sh
 
 matrix:
   include:
-    - env: NAME="raven-js"
-      node_js: "8"
+    - node_js: "8"
+      script: .travis/lint.sh
+    - node_js: "8"
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script:
-        - |
-            cd packages/raven-js
-            npm install
-            npm run test
-            if [[ ("$RAVEN_JS_CHANGES" = "true" || "$TRAVIS_PULL_REQUEST" = "false" ) && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then
-              npm run test:ci
-            fi
-
-    - env: NAME="@sentry -> lint"
-      before_install:
-        - curl -o- -L https://yarnpkg.com/install.sh | bash
-        - export PATH="$HOME/.yarn/bin:$PATH"
-      node_js: "8"
-      script: yarn && yarn build && yarn lint
-
-    - env: NAME="@sentry -> test"
-      before_install:
-        - curl -o- -L https://yarnpkg.com/install.sh | bash
-        - export PATH="$HOME/.yarn/bin:$PATH"
-      node_js: "8"
-      sudo: required
-      addons:
-        chrome: stable
-      script: yarn && yarn build && yarn test && yarn codecov
+      script: .travis/script.sh
+  exclude:
+    - node_js: "8"
