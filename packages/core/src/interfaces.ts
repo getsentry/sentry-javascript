@@ -1,5 +1,11 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, Integration, SentryEvent, Transport } from '@sentry/types';
+import {
+  Breadcrumb,
+  Integration,
+  SentryEvent,
+  Transport,
+  TransportClass,
+} from '@sentry/types';
 import { DSN } from './dsn';
 import { SendStatus } from './status';
 
@@ -42,7 +48,7 @@ export interface Options {
   /**
    * Transport object that should be used to send events to Sentry
    */
-  transport?: Transport;
+  transport?: TransportClass<Transport>;
 
   /**
    * The release identifier used when uploading respective source maps. Specify

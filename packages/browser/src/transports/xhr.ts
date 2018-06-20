@@ -1,10 +1,9 @@
-import { SentryEvent, Transport } from '@sentry/types';
+import { SentryEvent } from '@sentry/types';
 import { serialize } from '@sentry/utils';
+import { BaseTransport } from './base';
 
 /** `XHR` based transport */
-export class XHRTransport implements Transport {
-  public constructor(public config: { url: string }) {}
-
+export class XHRTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
@@ -24,7 +23,7 @@ export class XHRTransport implements Transport {
         reject(request);
       };
 
-      request.open('POST', this.config.url);
+      request.open('POST', this.endpointUrl);
       request.send(serialize(event));
     });
   }

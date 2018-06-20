@@ -1,10 +1,9 @@
-import { SentryEvent, Transport } from '@sentry/types';
+import { SentryEvent } from '@sentry/types';
 import { serialize, supportsReferrerPolicy } from '@sentry/utils';
+import { BaseTransport } from './base';
 
 /** `fetch` based transport */
-export class FetchTransport implements Transport {
-  public constructor(public config: { url: string }) {}
-
+export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
@@ -23,6 +22,6 @@ export class FetchTransport implements Transport {
     };
 
     // TODO: Safe _window access
-    return window.fetch(this.config.url, defaultOptions);
+    return window.fetch(this.endpointUrl, defaultOptions);
   }
 }
