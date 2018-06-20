@@ -203,12 +203,12 @@ function runBuild() {
 }
 
 function commitChanges(nextVersion) {
-  execCommand(`git add -A && git commit -am "${nextVersion}"`);
+  execCommand(`git add -A && git commit -am "raven-js@${nextVersion}"`);
   console.log('✔ Changes committed');
 }
 
 function createTag(nextVersion) {
-  execCommand(`git tag -a ${nextVersion} -m "Version ${nextVersion}"`);
+  execCommand(`git tag -a "raven-js@${nextVersion}" -m "raven-js@${nextVersion}"`);
   console.log('✔ Tag created');
 }
 
