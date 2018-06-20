@@ -2,6 +2,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
+import builtins from 'rollup-plugin-node-builtins';
 
 export default [
   {
@@ -12,8 +13,14 @@ export default [
       exports: 'named',
       interop: false,
     },
-    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
+    external: [
+      '@sentry/core',
+      '@sentry/hub',
+      '@sentry/minimal',
+      '@sentry/utils',
+    ],
     plugins: [
+      builtins(),
       typescript({
         tsconfig: 'tsconfig.build.json',
       }),
@@ -37,6 +44,7 @@ export default [
     },
     context: 'window',
     plugins: [
+      builtins(),
       typescript({
         tsconfig: 'tsconfig.build.json',
         tsconfigOverride: { compilerOptions: { declaration: false } },
