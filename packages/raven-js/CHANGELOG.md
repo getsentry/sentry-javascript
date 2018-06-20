@@ -1,11 +1,15 @@
 # Changelog
 
-## raven-js - 3.26.2
+## 3.26.3
+
+* FIX: Attempt to provide some information for `<unlabeled event>` (#1397)
+
+## 3.26.2
 
 * FIX: Fallback to <anonymous> handler name in mechanism (#1359)
 * FIX: check for undefined stacks in isSameStacktrace (#1339)
 
-## raven-js - 3.26.1
+## 3.26.1
 
 * FIX: Bower build
 

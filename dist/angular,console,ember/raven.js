@@ -1,4 +1,4 @@
-/*! Raven.js 3.26.2 (b10a875) | github.com/getsentry/raven-js */
+/*! Raven.js 3.26.3 (3c01b01) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -352,7 +352,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.26.2',
+  VERSION: '3.26.3',
 
   debug: false,
 
@@ -829,7 +829,9 @@ Raven.prototype = {
       return;
     }
 
-    if (this._globalOptions.stacktrace || (options && options.stacktrace)) {
+    // Always attempt to get stacktrace if message is empty.
+    // It's the only way to provide any helpful information to the user.
+    if (this._globalOptions.stacktrace || options.stacktrace || data.message === '') {
       // fingerprint on msg, not stack trace (legacy behavior, could be revisited)
       data.fingerprint = data.fingerprint == null ? msg : data.fingerprint;
 
@@ -1985,6 +1987,11 @@ Raven.prototype = {
       },
       options
     );
+
+    var ex = data.exception.values[0];
+    if (ex.type == null && ex.value === '') {
+      ex.value = 'Unrecoverable error caught';
+    }
 
     // Move mechanism from options to exception interface
     // We do this, as requiring user to pass `{exception:{mechanism:{ ... }}}` would be
