@@ -1,3 +1,25 @@
+/** Supported Sentry transport protocols in a DSN. */
+export type DSNProtocol = 'http' | 'https';
+
+/** Primitive components of a DSN. */
+export interface DSNComponents {
+  /** Protocol used to connect to Sentry. */
+  protocol: DSNProtocol;
+  /** Public authorization key. */
+  user: string;
+  /** Private authorization key (deprecated, optional). */
+  pass?: string;
+  /** Hostname of the Sentry instance. */
+  host: string;
+  /** Port of the Sentry instance. */
+  port?: string;
+  /** Project path */
+  path: string;
+}
+
+/** Anything that can be parsed into a DSN. */
+export type DSNLike = string | DSNComponents;
+
 /** TODO */
 export enum Severity {
   /** TODO */
