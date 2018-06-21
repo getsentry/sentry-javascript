@@ -23,7 +23,7 @@ export class XHRTransport extends BaseTransport {
         reject(request);
       };
 
-      request.open('POST', this.endpointUrl);
+      request.open('POST', this.url);
       request.send(serialize(event));
     });
   }

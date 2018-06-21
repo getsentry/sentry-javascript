@@ -22,6 +22,6 @@ export class FetchTransport extends BaseTransport {
     };
 
     // TODO: Safe _window access
-    return window.fetch(this.endpointUrl, defaultOptions);
+    return window.fetch(this.url, defaultOptions);
   }
 }
