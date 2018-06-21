@@ -1,3 +1,5 @@
+import { getGlobalObject } from './misc';
+
 /**
  * Encodes given object into url-friendly format
  *
@@ -26,8 +28,8 @@ interface MsCryptoWindow extends Window {
  * @returns string Generated UUID4.
  */
 export function uuid4(): string {
-  // TODO: Safe window access
-  const crypto = window.crypto || (window as MsCryptoWindow).msCrypto;
+  const global = getGlobalObject() as MsCryptoWindow;
+  const crypto = global.crypto || global.msCrypto;
 
   if (!(crypto === void 0) && crypto.getRandomValues) {
     // Use window.crypto API if available

@@ -1,3 +1,5 @@
+import { getGlobalObject } from './misc';
+
 /**
  * Tells whether current environment supports ErrorEvent objects
  * {@link supportsErrorEvent}.
@@ -57,8 +59,7 @@ export function supportsDOMException(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsFetch(): boolean {
-  // TODO: Safe window access
-  if (!('fetch' in window)) {
+  if (!('fetch' in getGlobalObject())) {
     return false;
   }
 
