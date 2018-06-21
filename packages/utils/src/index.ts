@@ -11,3 +11,4 @@ export {
   supportsFetch,
   supportsReferrerPolicy,
 } from './supports';
+export { getGlobalObject } from './misc';

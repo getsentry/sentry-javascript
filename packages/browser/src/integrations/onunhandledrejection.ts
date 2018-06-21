@@ -1,13 +1,8 @@
 import { captureException } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
-/** onunhandledrejection is not standardized, thus not available on Window type */
-interface PromisifiedWindow extends Window {
-  onunhandledrejection?(event: PromiseRejectionEvent): void;
-}
-
-/** TODO: Change to safe window access, window||global||self||{} */
-const _window: PromisifiedWindow = window;
+const global: any = getGlobalObject();
 
 /** Global Promise Rejection handler */
 export class OnUnhandledRejection implements Integration {
@@ -25,8 +20,10 @@ export class OnUnhandledRejection implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    _window.addEventListener('unhandledrejection', this.handler.bind(
-      this,
-    ) as EventListener);
+    if (global.addEventListener) {
+      global.addEventListener('unhandledrejection', this.handler.bind(
+        this,
+      ) as EventListener);
+    }
   }
 }

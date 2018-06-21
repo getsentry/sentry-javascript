@@ -1,6 +1,12 @@
 import { SentryEvent } from '@sentry/types';
-import { serialize, supportsReferrerPolicy } from '@sentry/utils';
+import {
+  getGlobalObject,
+  serialize,
+  supportsReferrerPolicy,
+} from '@sentry/utils';
 import { BaseTransport } from './base';
+
+const global: any = getGlobalObject();
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {
@@ -21,7 +27,6 @@ export class FetchTransport extends BaseTransport {
         : '') as ReferrerPolicy,
     };
 
-    // TODO: Safe _window access
-    return window.fetch(this.url, defaultOptions);
+    return global.fetch(this.url, defaultOptions);
   }
 }
