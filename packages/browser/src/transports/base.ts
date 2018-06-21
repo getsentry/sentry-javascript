@@ -1,4 +1,4 @@
-import { SentryError } from '@sentry/core';
+import { DSN, SentryError } from '@sentry/core';
 import {
   DSNComponents,
   SentryEvent,
@@ -12,16 +12,16 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public endpointUrl: string;
+  public url: string;
 
   public constructor(public options: TransportOptions) {
-    this.endpointUrl = this.composeEndpointUrl(options.dsn);
+    this.url = this.composeUrl(new DSN(options.dsn));
   }
 
   /**
    * @inheritDoc
    */
-  public composeEndpointUrl(dsn: DSNComponents): string {
+  public composeUrl(dsn: DSNComponents): string {
     const auth = {
       sentry_key: dsn.user,
       sentry_secret: '',

@@ -150,14 +150,15 @@ export interface Integration {
   install(): void;
 }
 
+/** TODO */
 export interface TransportOptions {
-  dsn: DSNComponents;
+  dsn: DSNLike;
 }
 
 /** TODO */
 export interface Transport {
-  endpointUrl: string;
-  composeEndpointUrl(dsn: DSNComponents): string;
+  url: string;
+  composeUrl(dsn: DSNComponents): string;
   send(event: SentryEvent): Promise<Response | XMLHttpRequest>;
 }
 
