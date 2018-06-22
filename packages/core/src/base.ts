@@ -249,11 +249,13 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     if (prepared.message) {
       prepared.message = truncate(prepared.message, MAX_URL_LENGTH);
     }
-    if (prepared.exception) {
-      const exception = prepared.exception.values[0];
-      if (exception.value) {
-        exception.value = truncate(exception.value, MAX_URL_LENGTH);
-      }
+
+    const exception =
+      prepared.exception &&
+      prepared.exception.values &&
+      prepared.exception.values[0];
+    if (exception && exception.value) {
+      exception.value = truncate(exception.value, MAX_URL_LENGTH);
     }
 
     const request = prepared.request;

@@ -27,6 +27,6 @@ export class FetchTransport extends BaseTransport {
         : '') as ReferrerPolicy,
     };
 
-    return global.fetch(this.url, defaultOptions);
+    return (global as Window).fetch(this.url, defaultOptions);
   }
 }
