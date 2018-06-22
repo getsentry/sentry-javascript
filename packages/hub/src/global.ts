@@ -13,19 +13,19 @@ global.__SENTRY__ = global.__SENTRY__ || {
 };
 
 /** Returns the global shim registry. */
-export function getGlobalCarrier(): Carrier {
+export function getMainCarrier(): Carrier {
   return global.__SENTRY__;
 }
 
 /**
- * Returns the latest global hum instance.
+ * Returns the default hub instance.
  *
  * If a hub is already registered in the global carrier but this module
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
-export function getGlobalHub(): Hub {
-  const registry = getGlobalCarrier();
+export function getDefaultHub(): Hub {
+  const registry = getMainCarrier();
 
   if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
     registry.hub = new Hub();

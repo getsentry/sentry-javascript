@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.3 - 2018-06-20
+
+- fix: Always pass request through parseRequest for raven-node (#1404)
+
 ## 2.6.2 - 2018-05-17
 
 - ref: Emit transaction instead of culprit (#458)

@@ -7,15 +7,6 @@ const clientFn = jest.fn();
 const asyncClientFn = async () => Promise.reject('error');
 const scope = new Scope();
 
-const filledLayer: Layer = {
-  client: {
-    asyncClientFn,
-    clientFn,
-  },
-  scope,
-  type: 'local',
-};
-
 describe('Hub', () => {
   afterEach(() => {
     jest.resetAllMocks();
@@ -27,28 +18,45 @@ describe('Hub', () => {
   });
 
   test('pass in filled layer', () => {
-    const hub = new Hub([filledLayer]);
+    const hub = new Hub({
+      asyncClientFn,
+      clientFn,
+    });
     expect(hub.getStack()).toHaveLength(1);
   });
 
   test('invoke client sync', () => {
-    const hub = new Hub([filledLayer]);
-    hub._invokeClient('clientFn', true);
+    const hub = new Hub(
+      {
+        asyncClientFn,
+        clientFn,
+      },
+      scope,
+    );
+    // @ts-ignore
+    hub.invokeClient('clientFn', true);
     expect(clientFn).toHaveBeenCalled();
     expect(clientFn.mock.calls[0][0]).toBe(true);
     expect(clientFn.mock.calls[0][1]).toBe(scope);
   });
 
   test("don't invoke client sync with wrong func", () => {
-    const hub = new Hub([filledLayer]);
-    hub._invokeClient('funca', true);
+    const hub = new Hub({
+      asyncClientFn,
+      clientFn,
+    });
+    // @ts-ignore
+    hub.invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
 
   test('invoke client async catch error in case', done => {
     // @ts-ignore
     global.console = { error: jest.fn() };
-    const hub = new Hub([filledLayer]);
+    const hub = new Hub({
+      asyncClientFn,
+      clientFn,
+    });
     (hub as any).invokeClientAsync('asyncClientFn', true);
     setTimeout(() => {
       // tslint:disable-next-line
@@ -65,12 +73,7 @@ describe('Hub', () => {
   test('pushScope', () => {
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    const hub = new Hub([
-      {
-        scope: localScope,
-        type: 'local',
-      },
-    ]);
+    const hub = new Hub(undefined, localScope);
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
     expect(hub.getStack()[1].scope).not.toBe(localScope);
@@ -79,27 +82,18 @@ describe('Hub', () => {
 
   test('pushScope inherit client', () => {
     const testClient = { bla: 'a' };
-    const hub = new Hub([
-      {
-        client: testClient,
-        type: 'local',
-      },
-    ]);
+    const hub = new Hub(testClient);
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
     expect(hub.getStack()[1].client).toBe(testClient);
   });
 
-  test('pushScope with client', () => {
+  test('pushScope bindClient', () => {
     const testClient = { bla: 'a' };
-    const hub = new Hub([
-      {
-        client: testClient,
-        type: 'local',
-      },
-    ]);
+    const hub = new Hub(testClient);
     const ndClient = { foo: 'bar' };
-    hub.pushScope(ndClient);
+    hub.pushScope();
+    hub.bindClient(ndClient);
     expect(hub.getStack()).toHaveLength(2);
     expect(hub.getStack()[0].client).toBe(testClient);
     expect(hub.getStack()[1].client).toBe(ndClient);
@@ -121,62 +115,58 @@ describe('Hub', () => {
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test('withScope with client', () => {
+  test('withScope bindClient', () => {
     const hub = new Hub();
     const testClient = { bla: 'a' };
     hub.withScope(() => {
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
-    }, testClient);
-    expect(hub.getStack()).toHaveLength(1);
-
-    hub.withScope(testClient, () => {
+      hub.bindClient(testClient);
       expect(hub.getStack()).toHaveLength(2);
       expect(hub.getStack()[1].client).toBe(testClient);
     });
     expect(hub.getStack()).toHaveLength(1);
   });
 
+  test('withScope bindClient scope changes', () => {
+    jest.useFakeTimers();
+    const hub = new Hub();
+    const storeScope = jest.fn();
+    const testClient = {
+      bla: 'a',
+      getBackend: () => ({ storeScope }),
+    };
+    hub.withScope(() => {
+      hub.bindClient(testClient);
+      hub.configureScope(localScope => {
+        localScope.setExtra('a', 'b');
+      });
+      jest.runAllTimers();
+      expect(hub.getStack()).toHaveLength(2);
+      expect(hub.getStack()[1].client).toBe(testClient);
+      expect(storeScope.mock.calls).toHaveLength(1);
+      expect(storeScope.mock.calls[0][0].extra).toEqual({ a: 'b' });
+    });
+    expect(hub.getStack()).toHaveLength(1);
+  });
+
   test('getCurrentClient', () => {
     const testClient = { bla: 'a' };
-    const hub = new Hub([
-      {
-        client: testClient,
-        type: 'local',
-      },
-    ]);
-    expect(hub.getCurrentClient()).toBe(testClient);
+    const hub = new Hub(testClient);
+    expect(hub.getClient()).toBe(testClient);
   });
 
   test('getStack', () => {
-    const testLayer: Layer[] = [
-      {
-        client: { a: 'b' },
-        type: 'local',
-      },
-    ];
-    const hub = new Hub(testLayer);
-    expect(hub.getStack()).toBe(testLayer);
+    const client = { a: 'b' };
+    const hub = new Hub(client);
+    expect(hub.getStack()[0].client).toBe(client);
   });
 
   test('getStackTop', () => {
     const testClient = { bla: 'a' };
     const hub = new Hub();
     hub.pushScope();
-    hub.pushScope(testClient);
+    hub.pushScope();
+    hub.bindClient(testClient);
     expect(hub.getStackTop().client).toEqual({ bla: 'a' });
-  });
-
-  test('createScope', () => {
-    const hub = new Hub();
-    expect(hub.createScope()).toEqual(new Scope());
-  });
-
-  test('createScope with parentScope', () => {
-    const hub = new Hub();
-    const parentScope = new Scope();
-    parentScope.setExtra('a', 'b');
-    expect(hub.createScope(parentScope).getExtra()).toEqual({ a: 'b' });
   });
 
   test('captureException', () => {
@@ -211,7 +201,7 @@ describe('Hub', () => {
 
   test('addBreadcrumb', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.addBreadcrumb({ message: 'test' });
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('addBreadcrumb');
@@ -219,6 +209,7 @@ describe('Hub', () => {
   });
 
   test('configureScope', () => {
+    expect.assertions(0);
     const hub = new Hub();
     hub.configureScope(_ => {
       expect(true).toBeFalsy();
@@ -226,18 +217,29 @@ describe('Hub', () => {
   });
 
   test('configureScope', () => {
+    expect.assertions(1);
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    const testLayer: Layer[] = [
-      {
-        client: { a: 'b' },
-        scope: localScope,
-        type: 'local',
-      },
-    ];
-    const hub = new Hub(testLayer);
+    const hub = new Hub({ a: 'b' }, localScope);
     hub.configureScope(confScope => {
       expect(confScope.getExtra()).toEqual({ a: 'b' });
     });
+  });
+
+  test('addEventProcessor', done => {
+    jest.useFakeTimers();
+    expect.assertions(1);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const hub = new Hub({ a: 'b' }, localScope);
+    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      done();
+    });
+    localScope.applyToEvent(event);
+    jest.runAllTimers();
   });
 });

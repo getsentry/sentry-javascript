@@ -19,11 +19,11 @@ export {
   configureScope,
 } from '@sentry/minimal';
 
-export { getGlobalHub, Hub, Scope } from '@sentry/hub';
+export { getDefaultHub, Hub, Scope } from '@sentry/hub';
 
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserClient } from './client';
-export { init, getCurrentClient } from './sdk';
+export { init } from './sdk';
 
 import * as Integrations from './integrations';
 export { Integrations };

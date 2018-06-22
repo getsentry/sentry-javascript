@@ -1,7 +1,7 @@
 import { Layer } from '@sentry/hub';
 import * as domain from 'domain';
 
-const mockGetGlobalHub = jest.fn();
+const mockgetDefaultHub = jest.fn();
 
 class MockHub {
   public constructor(public stack: Layer[] = []) {
@@ -21,17 +21,17 @@ class MockHub {
 const mockHub = MockHub;
 jest.mock('@sentry/hub', () => ({
   Hub: mockHub,
-  getGlobalHub: mockGetGlobalHub,
+  getDefaultHub: mockgetDefaultHub,
 }));
 
-import { getGlobalHub } from '../src';
+import { getDefaultHub } from '../src';
 
 describe('domains', () => {
   let globalHub: MockHub;
 
   beforeEach(() => {
     globalHub = new MockHub();
-    mockGetGlobalHub.mockReturnValue(globalHub);
+    mockgetDefaultHub.mockReturnValue(globalHub);
   });
 
   afterEach(() => {
@@ -43,15 +43,15 @@ describe('domains', () => {
 
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
-    const hub = getGlobalHub();
+    const hub = getDefaultHub();
     expect(hub).toBe(globalHub);
   });
 
   test('domain hub inheritance', () => {
-    globalHub.stack = [{ type: 'process' }];
+    globalHub.stack = [];
     const d = domain.create();
     d.run(() => {
-      const hub = getGlobalHub();
+      const hub = getDefaultHub();
       expect(globalHub).not.toBe(hub);
       expect(globalHub.getStack()).toEqual(hub.getStack());
     });
@@ -60,9 +60,9 @@ describe('domains', () => {
   test('domain hub isolation', () => {
     const d = domain.create();
     d.run(() => {
-      const hub = getGlobalHub();
-      hub.getStack().push({ type: 'process' });
-      expect(hub.getStack()).toEqual([{ type: 'process' }]);
+      const hub = getDefaultHub();
+      hub.getStack().push({ client: 'whatever' });
+      expect(hub.getStack()).toEqual([{ client: 'whatever' }]);
       expect(globalHub.getStack()).toEqual([]);
     });
   });
@@ -70,7 +70,7 @@ describe('domains', () => {
   test('domain hub single instance', () => {
     const d = domain.create();
     d.run(() => {
-      expect(getGlobalHub()).toBe(getGlobalHub());
+      expect(getDefaultHub()).toBe(getDefaultHub());
     });
   });
 
@@ -79,22 +79,22 @@ describe('domains', () => {
     const d2 = domain.create();
 
     d1.run(() => {
-      getGlobalHub()
+      getDefaultHub()
         .getStack()
-        .push({ type: 'process' });
+        .push({ client: 'process' });
 
       setTimeout(() => {
-        expect(getGlobalHub().getStack()).toEqual([{ type: 'process' }]);
+        expect(getDefaultHub().getStack()).toEqual([{ client: 'process' }]);
       }, 50);
     });
 
     d2.run(() => {
-      getGlobalHub()
+      getDefaultHub()
         .getStack()
-        .push({ type: 'local' });
+        .push({ client: 'local' });
 
       setTimeout(() => {
-        expect(getGlobalHub().getStack()).toEqual([{ type: 'local' }]);
+        expect(getDefaultHub().getStack()).toEqual([{ client: 'local' }]);
         done();
       }, 100);
     });

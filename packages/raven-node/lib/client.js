@@ -248,22 +248,27 @@ extend(Raven.prototype, {
       so we only parse a `req` property if the `request` property is absent/empty (and hence we won't clobber)
       parseUser returns a partial kwargs object with a `request` property and possibly a `user` property
       */
-    kwargs.request = this._createRequestObject(
+    var request = this._createRequestObject(
       globalContext.request,
       domainContext.request,
       kwargs.request
     );
-    if (Object.keys(kwargs.request).length === 0) {
-      var req = this._createRequestObject(
+    delete kwargs.request;
+
+    if (Object.keys(request).length === 0) {
+      request = this._createRequestObject(
         globalContext.req,
         domainContext.req,
         kwargs.req
       );
-      if (Object.keys(req).length > 0) {
-        var parseUser = Object.keys(kwargs.user).length === 0 ? this.parseUser : false;
-        extend(kwargs, parsers.parseRequest(req, parseUser));
-        delete kwargs.req;
-      }
+      delete kwargs.req;
+    }
+
+    if (Object.keys(request).length > 0) {
+      var parseUser = Object.keys(kwargs.user).length === 0 ? this.parseUser : false;
+      extend(kwargs, parsers.parseRequest(request, parseUser));
+    } else {
+      kwargs.request = {};
     }
 
     kwargs.modules = utils.getModules();

@@ -1,31 +1,16 @@
-import { getGlobalHub, Scope } from '@sentry/hub';
+import { getDefaultHub, Hub, Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 
-/** Returns the current client, if any. */
-export function getCurrentClient(): any | undefined {
-  return getGlobalHub().getCurrentClient();
-}
-
 /**
- * This binds the given client to the current scope.
- * @param client An SDK client (client) instance.
+ * This calls a function on the current hub.
+ * @param method
+ * @param args
  */
-export function bindClient(client: any): void {
-  const hub = getGlobalHub();
-  const top = hub.getStackTop();
-  top.client = client;
-  top.scope = hub.createScope();
-  top.scope.addScopeListener((s: Scope) => {
-    // tslint:disable-next-line:no-unsafe-any
-    if (client && client.getBackend) {
-      try {
-        // tslint:disable-next-line:no-unsafe-any
-        client.getBackend().storeScope(s);
-      } catch {
-        // Do nothing
-      }
-    }
-  });
+function callOnHub(method: string, ...args: any[]): void {
+  const hub = getDefaultHub();
+  if (hub && hub[method as keyof Hub]) {
+    (hub[method as keyof Hub] as any)(...args);
+  }
 }
 
 /**
@@ -34,7 +19,7 @@ export function bindClient(client: any): void {
  * @param exception An exception-like object.
  */
 export function captureException(exception: any): void {
-  getGlobalHub().captureException(exception);
+  callOnHub('captureException', exception);
 }
 
 /**
@@ -43,7 +28,7 @@ export function captureException(exception: any): void {
  * @param message The message to send to Sentry.
  */
 export function captureMessage(message: string): void {
-  getGlobalHub().captureMessage(message);
+  callOnHub('captureMessage', message);
 }
 
 /**
@@ -52,7 +37,7 @@ export function captureMessage(message: string): void {
  * @param event The event to send to Sentry.
  */
 export function captureEvent(event: SentryEvent): void {
-  getGlobalHub().captureEvent(event);
+  callOnHub('captureEvent', event);
 }
 
 /**
@@ -64,7 +49,7 @@ export function captureEvent(event: SentryEvent): void {
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  getGlobalHub().addBreadcrumb(breadcrumb);
+  callOnHub('addBreadcrumb', breadcrumb);
 }
 
 /**
@@ -73,7 +58,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  getGlobalHub().configureScope(callback);
+  callOnHub('configureScope', callback);
 }
 
 /**
@@ -86,5 +71,5 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {
-  getGlobalHub()._invokeClient(method, ...args);
+  callOnHub('invokeClient', method, ...args);
 }
