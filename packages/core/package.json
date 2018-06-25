@@ -17,7 +17,8 @@
   "dependencies": {
     "@sentry/hub": "0.5.4",
     "@sentry/minimal": "0.5.4",
-    "@sentry/types": "0.5.4"
+    "@sentry/types": "0.5.4",
+    "@sentry/utils": "0.5.4"
   },
   "devDependencies": {
     "jest": "^22.4.3",

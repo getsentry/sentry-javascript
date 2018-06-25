@@ -6,6 +6,15 @@ import { TEST_SDK, TestClient } from '../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
+jest.mock('@sentry/utils', () => ({
+  uuid4(): string {
+    return '42';
+  },
+  truncate(str: string): string {
+    return str;
+  },
+}));
+
 describe('BaseClient', () => {
   describe('constructor() / getDSN()', () => {
     test('returns the DSN', () => {
@@ -151,6 +160,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.captureException(new Error('test exception'), scope);
       expect(TestBackend.instance!.event).toEqual({
+        event_id: '42',
         exception: [
           {
             type: 'Error',
@@ -167,6 +177,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.captureMessage('test message', scope);
       expect(TestBackend.instance!.event).toEqual({
+        event_id: '42',
         message: 'test message',
         sdk: TEST_SDK,
       });
@@ -194,6 +205,7 @@ describe('BaseClient', () => {
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
+        event_id: '42',
         message: 'message',
         sdk: TEST_SDK,
       });
@@ -208,6 +220,7 @@ describe('BaseClient', () => {
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'env',
+        event_id: '42',
         message: 'message',
         sdk: TEST_SDK,
       });
@@ -221,6 +234,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
+        event_id: '42',
         message: 'message',
         release: 'v1.0.0',
         sdk: TEST_SDK,
@@ -234,6 +248,7 @@ describe('BaseClient', () => {
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: 'breadcrumb' }],
+        event_id: '42',
         message: 'message',
         sdk: TEST_SDK,
       });
@@ -247,6 +262,7 @@ describe('BaseClient', () => {
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: '2' }],
+        event_id: '42',
         message: 'message',
         sdk: TEST_SDK,
       });
@@ -260,6 +276,7 @@ describe('BaseClient', () => {
       scope.setUser({ id: 'user' });
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
+        event_id: '42',
         extra: { b: 'b' },
         message: 'message',
         sdk: TEST_SDK,
@@ -274,6 +291,7 @@ describe('BaseClient', () => {
       scope.setFingerprint(['abcd']);
       await client.captureEvent({ message: 'message' }, scope);
       expect(TestBackend.instance!.event!).toEqual({
+        event_id: '42',
         fingerprint: ['abcd'],
         message: 'message',
         sdk: TEST_SDK,
@@ -286,6 +304,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, scope);
       expect(TestBackend.instance!.event).toEqual({
+        event_id: '42',
         message: 'hello',
         sdk: TEST_SDK,
       });

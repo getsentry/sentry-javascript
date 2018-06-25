@@ -4,7 +4,9 @@
     "baseUrl": "packages",
     "types": ["node"],
     "paths": {
-      "@sentry/*": ["*/src"]
+      "@sentry/*": ["*/src"],
+      "raven-js": ["raven-js/src/singleton.js"],
+      "raven-node": ["raven-node/lib/client.js"]
     }
   }
 }

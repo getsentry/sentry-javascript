@@ -19,7 +19,7 @@ export {
   configureScope,
 } from '@sentry/minimal';
 
-export { Hub, Scope } from '@sentry/hub';
+export { Hub, Scope, getHubFromCarrier } from '@sentry/hub';
 
 export { getDefaultHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';

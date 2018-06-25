@@ -1,31 +1,9 @@
-import { Backend, Options, SentryError } from '@sentry/core';
+import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
-import { SentryEvent, SentryException } from '@sentry/types';
-import { Raven, SendMethod } from './raven';
-
-/** Original raven send function. */
-const sendRavenEvent = Raven._sendProcessedPayload.bind(Raven) as SendMethod;
-
-/** Normalizes the event so it is consistent with our domain interface. */
-function normalizeRavenEvent(event?: SentryEvent): SentryEvent | undefined {
-  const ex = ((event && event.exception) || {}) as {
-    values?: SentryException[];
-  };
-  if (event && ex && ex.values) {
-    event.exception = ex.values;
-  }
-  return event;
-}
-
-/** Prepares an event so it can be send with raven-js. */
-function prepareEventForRaven(event: SentryEvent): SentryEvent {
-  const ravenEvent = event as any;
-  if (event.exception) {
-    // tslint:disable-next-line:no-unsafe-any
-    ravenEvent.exception = { values: event.exception };
-  }
-  return ravenEvent as SentryEvent;
-}
+import { SentryEvent } from '@sentry/types';
+import { supportsFetch } from '@sentry/utils';
+import { Raven } from './raven';
+import { FetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -95,15 +73,7 @@ export class BrowserBackend implements Backend {
       return false;
     });
 
-    // Hook into Raven's internal event sending mechanism. This allows us to
-    // pass events to the client, before they will be sent back here for
-    // actual submission.
-    Raven._sendProcessedPayload = event => {
-      const normalizedEvent = normalizeRavenEvent(event);
-      if (normalizedEvent) {
-        captureEvent(normalizedEvent);
-      }
-    };
+    Raven._sendProcessedPayload = captureEvent;
 
     return true;
   }
@@ -119,11 +89,7 @@ export class BrowserBackend implements Backend {
         event = evt;
       };
       Raven.captureException(exception);
-      const normalizedEvent = normalizeRavenEvent(event);
-      if (normalizedEvent) {
-        return normalizedEvent;
-      }
-      throw new SentryError('Event was undefined when it should be an event');
+      return event;
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
@@ -140,11 +106,7 @@ export class BrowserBackend implements Backend {
         event = evt;
       };
       Raven.captureMessage(message);
-      const normalizedEvent = normalizeRavenEvent(event);
-      if (normalizedEvent) {
-        return normalizedEvent;
-      }
-      throw new SentryError('Event was undefined when it should be an event');
+      return event;
     } finally {
       Raven._sendProcessedPayload = originalSend;
     }
@@ -154,12 +116,24 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<number> {
-    return new Promise<number>(resolve => {
-      sendRavenEvent(prepareEventForRaven(event), error => {
-        // TODO: Check the response status code
-        resolve(error ? 500 : 200);
-      });
-    });
+    let dsn: DSN;
+
+    if (!this.options.dsn) {
+      throw new SentryError('Cannot sendEvent without a valid DSN');
+    } else {
+      dsn = new DSN(this.options.dsn);
+    }
+
+    const transport = this.options.transport
+      ? new this.options.transport({ dsn })
+      : supportsFetch()
+        ? new FetchTransport({ dsn })
+        : new XHRTransport({ dsn });
+
+    return transport
+      .send(event)
+      .then((response: Response | XMLHttpRequest) => response.status)
+      .catch((error: Response | XMLHttpRequest) => error.status);
   }
 
   /**

@@ -1,3 +1,25 @@
+/** Supported Sentry transport protocols in a DSN. */
+export type DSNProtocol = 'http' | 'https';
+
+/** Primitive components of a DSN. */
+export interface DSNComponents {
+  /** Protocol used to connect to Sentry. */
+  protocol: DSNProtocol;
+  /** Public authorization key. */
+  user: string;
+  /** Private authorization key (deprecated, optional). */
+  pass?: string;
+  /** Hostname of the Sentry instance. */
+  host: string;
+  /** Port of the Sentry instance. */
+  port?: string;
+  /** Project path */
+  path: string;
+}
+
+/** Anything that can be parsed into a DSN. */
+export type DSNLike = string | DSNComponents;
+
 /** TODO */
 export enum Severity {
   /** TODO */
@@ -110,7 +132,9 @@ export interface SentryEvent {
   request?: Request;
   modules?: { [key: string]: string };
   fingerprint?: string[];
-  exception?: SentryException[];
+  exception?: {
+    values: SentryException[];
+  };
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: { [key: string]: object };
@@ -124,4 +148,21 @@ export interface Integration {
   name: string;
   handler?: any;
   install(): void;
+}
+
+/** TODO */
+export interface TransportOptions {
+  dsn: DSNLike;
+}
+
+/** TODO */
+export interface Transport {
+  url: string;
+  composeUrl(dsn: DSNComponents): string;
+  send(event: SentryEvent): Promise<Response | XMLHttpRequest>;
+}
+
+/** TODO */
+export interface TransportClass<T extends Transport> {
+  new (options: TransportOptions): T;
 }

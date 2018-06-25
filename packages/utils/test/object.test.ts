@@ -1,4 +1,4 @@
-import { clone, deserialize, fill, serialize } from '../src';
+import { clone, deserialize, fill, serialize, urlEncode } from '../src';
 
 const MATRIX = [
   { name: 'boolean', object: true, serialized: 'true' },
@@ -84,5 +84,21 @@ describe('fill()', () => {
     expect(original[0]).toEqual(source);
     expect(original[1]).toEqual('foo');
     expect(original[2]()).toEqual(42);
+  });
+});
+
+describe('urlEncode()', () => {
+  test('returns empty string for empty object input', () => {
+    expect(urlEncode({})).toEqual('');
+  });
+
+  test('returns single key/value pair joined with = sign', () => {
+    expect(urlEncode({ foo: 'bar' })).toEqual('foo=bar');
+  });
+
+  test('returns multiple key/value pairs joined together with & sign', () => {
+    expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual(
+      'foo=bar&pickle=rick&morty=4%202',
+    );
   });
 });
