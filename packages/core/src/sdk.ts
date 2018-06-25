@@ -29,7 +29,10 @@ export function initAndBind<F extends Client, O extends Options>(
 
   let integrations = [...defaultIntegrations];
   if (Array.isArray(options.integrations)) {
-    integrations = [...integrations, ...options.integrations];
+    integrations =
+      options.integrations.length === 0
+        ? []
+        : [...integrations, ...options.integrations];
   } else if (typeof options.integrations === 'function') {
     integrations = options.integrations(integrations);
   }
