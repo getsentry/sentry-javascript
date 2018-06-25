@@ -13,8 +13,10 @@ export interface DSNComponents {
   host: string;
   /** Port of the Sentry instance. */
   port?: string;
-  /** Project path */
-  path: string;
+  /** Sub path/ */
+  path?: string;
+  /** Project ID */
+  projectId: string;
 }
 
 /** Anything that can be parsed into a DSN. */

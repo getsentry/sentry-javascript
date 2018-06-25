@@ -7,8 +7,8 @@ describe('DSN', () => {
       const dsn = new DSN({
         host: 'sentry.io',
         pass: 'xyz',
-        path: '123',
         port: '1234',
+        projectId: '123',
         protocol: 'https',
         user: 'abc',
       });
@@ -17,13 +17,14 @@ describe('DSN', () => {
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
-      expect(dsn.path).toBe('123');
+      expect(dsn.projectId).toBe('123');
+      expect(dsn.path).toBe('');
     });
 
     test('applies partial components', () => {
       const dsn = new DSN({
         host: 'sentry.io',
-        path: '123',
+        projectId: '123',
         protocol: 'https',
         user: 'abc',
       });
@@ -32,7 +33,8 @@ describe('DSN', () => {
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
-      expect(dsn.path).toBe('123');
+      expect(dsn.projectId).toBe('123');
+      expect(dsn.path).toBe('');
     });
 
     test('throws for missing components', () => {
@@ -40,7 +42,7 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: '',
-            path: '123',
+            projectId: '123',
             protocol: 'https',
             user: 'abc',
           }),
@@ -49,7 +51,7 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: 'sentry.io',
-            path: '',
+            projectId: '',
             protocol: 'https',
             user: 'abc',
           }),
@@ -58,7 +60,7 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: 'sentry.io',
-            path: '123',
+            projectId: '123',
             protocol: '' as 'http', // Trick the type checker here
             user: 'abc',
           }),
@@ -67,7 +69,7 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: 'sentry.io',
-            path: '123',
+            projectId: '123',
             protocol: 'https',
             user: '',
           }),
@@ -79,7 +81,7 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: 'sentry.io',
-            path: '123',
+            projectId: '123',
             protocol: 'httpx' as 'http', // Trick the type checker here
             user: 'abc',
           }),
@@ -88,8 +90,8 @@ describe('DSN', () => {
         () =>
           new DSN({
             host: 'sentry.io',
-            path: '123',
             port: 'xxx',
+            projectId: '123',
             protocol: 'https',
             user: 'abc',
           }),
@@ -105,17 +107,32 @@ describe('DSN', () => {
       expect(dsn.pass).toBe('xyz');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('1234');
-      expect(dsn.path).toBe('123');
+      expect(dsn.projectId).toBe('123');
+      expect(dsn.path).toBe('');
     });
 
     test('parses a valid partial DSN', () => {
-      const dsn = new DSN('https://abc@sentry.io/123');
+      const dsn = new DSN('https://abc@sentry.io/123/321');
       expect(dsn.protocol).toBe('https');
       expect(dsn.user).toBe('abc');
       expect(dsn.pass).toBe('');
       expect(dsn.host).toBe('sentry.io');
       expect(dsn.port).toBe('');
       expect(dsn.path).toBe('123');
+      expect(dsn.projectId).toBe('321');
+    });
+
+    test('with a long path', () => {
+      const dsn = new DSN(
+        'https://abc@sentry.io/sentry/custom/installation/321',
+      );
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('sentry/custom/installation');
+      expect(dsn.projectId).toBe('321');
     });
 
     test('throws when provided invalid DSN', () => {
@@ -156,6 +173,15 @@ describe('DSN', () => {
     test('renders no port if missing', () => {
       const dsn = new DSN('https://abc@sentry.io/123');
       expect(dsn.toString()).toBe('https://abc@sentry.io/123');
+    });
+
+    test('renders the full path correctly', () => {
+      const dsn = new DSN(
+        'https://abc@sentry.io/sentry/custom/installation/321',
+      );
+      expect(dsn.toString()).toBe(
+        'https://abc@sentry.io/sentry/custom/installation/321',
+      );
     });
   });
 });
