@@ -1,4 +1,4 @@
-import { clone, deserialize, fill, serialize, urlEncode } from '../object';
+import { clone, deserialize, fill, serialize, urlEncode } from '../src/object';
 
 const MATRIX = [
   { name: 'boolean', object: true, serialized: 'true' },

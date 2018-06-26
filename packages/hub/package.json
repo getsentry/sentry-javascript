@@ -37,5 +37,17 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch --notify"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "transform": { "^.+\\.ts$": "ts-jest" },
+    "moduleFileExtensions": ["js", "ts"],
+    "testEnvironment": "node",
+    "testMatch": ["**/*.test.ts"],
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "./tsconfig.json"
+      }
+    }
   }
 }

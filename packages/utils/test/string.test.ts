@@ -1,4 +1,4 @@
-import { truncate } from '../string';
+import { truncate } from '../src/string';
 
 describe('truncate()', () => {
   test('it works as expected', () => {
