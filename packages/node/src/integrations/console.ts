@@ -1,6 +1,6 @@
 import { addBreadcrumb } from '@sentry/minimal';
 import { Integration, Severity } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { fill } from '@sentry/utils/object';
 import { format } from 'util';
 
 /**

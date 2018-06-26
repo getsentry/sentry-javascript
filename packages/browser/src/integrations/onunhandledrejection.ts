@@ -1,6 +1,6 @@
 import { captureException } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject } from '@sentry/utils/misc';
 
 const global: any = getGlobalObject();
 

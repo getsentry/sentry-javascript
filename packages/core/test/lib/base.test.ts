@@ -6,10 +6,13 @@ import { TEST_SDK, TestClient } from '../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
-jest.mock('@sentry/utils', () => ({
+jest.mock('@sentry/utils/misc', () => ({
   uuid4(): string {
     return '42';
   },
+}));
+
+jest.mock('@sentry/utils/string', () => ({
   truncate(str: string): string {
     return str;
   },

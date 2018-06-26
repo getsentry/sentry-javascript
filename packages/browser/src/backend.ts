@@ -1,7 +1,7 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent } from '@sentry/types';
-import { supportsFetch } from '@sentry/utils';
+import { supportsFetch } from '@sentry/utils/supports';
 import { Raven } from './raven';
 import { FetchTransport, XHRTransport } from './transports';
 

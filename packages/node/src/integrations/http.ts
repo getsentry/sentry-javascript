@@ -1,6 +1,6 @@
 import { addBreadcrumb } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { fill } from '@sentry/utils/object';
 import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';
 import { inherits } from 'util';
 import { getDefaultHub } from '../hub';

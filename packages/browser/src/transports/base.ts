@@ -5,7 +5,7 @@ import {
   Transport,
   TransportOptions,
 } from '@sentry/types';
-import { urlEncode } from '@sentry/utils';
+import { urlEncode } from '@sentry/utils/object';
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
