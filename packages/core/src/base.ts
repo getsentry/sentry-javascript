@@ -242,10 +242,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       prepared.release = release;
     }
 
-    if (scope) {
-      scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
-    }
-
     if (prepared.message) {
       prepared.message = truncate(prepared.message, MAX_URL_LENGTH);
     }
@@ -264,6 +260,12 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     }
 
     prepared.event_id = uuid4();
+
+    // This should be the last thing called, since we want that
+    // {@link Hub.addEventProcessor} gets the finished prepared event.
+    if (scope) {
+      scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    }
 
     return prepared;
   }

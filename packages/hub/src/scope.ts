@@ -8,9 +8,6 @@ export class Scope {
   /** Flag if notifiying is happening. */
   protected notifyingListeners: boolean = false;
 
-  /** Flag if notifiying is happening. */
-  protected notifyingProcessors: boolean = false;
-
   /** Callback for client to receive scope changes. */
   protected scopeListeners: Array<(scope: Scope) => void> = [];
 
@@ -61,15 +58,9 @@ export class Scope {
    * This will be called after {@link applyToEvent} is finished.
    */
   protected notifyEventProcessors(event: SentryEvent): void {
-    if (!this.notifyingProcessors) {
-      this.notifyingProcessors = true;
-      setTimeout(() => {
-        this.eventProcessors.forEach(callback => {
-          callback(event);
-        });
-        this.notifyingProcessors = false;
-      }, 0);
-    }
+    this.eventProcessors.forEach(callback => {
+      callback(event);
+    });
   }
 
   /**

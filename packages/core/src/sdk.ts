@@ -27,6 +27,10 @@ export function initAndBind<F extends Client, O extends Options>(
   const client = new clientClass(options);
   client.install();
 
+  // This should happen here if any integration uses {@link Hub.addEventProcessor}
+  // there needs to be a client on the hub already.
+  getDefaultHub().bindClient(client);
+
   let integrations = [...defaultIntegrations];
   if (Array.isArray(options.integrations)) {
     integrations = [...integrations, ...options.integrations];
@@ -40,6 +44,4 @@ export function initAndBind<F extends Client, O extends Options>(
       integration.install();
     });
   }
-
-  getDefaultHub().bindClient(client);
 }
