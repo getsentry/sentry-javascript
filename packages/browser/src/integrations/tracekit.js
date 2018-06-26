@@ -1,4 +1,4 @@
-import { isError, isErrorEvent } from '@sentry/utils/dist/is';
+import { isError, isErrorEvent } from '@sentry/utils/is';
 
 /*
  TraceKit - Cross brower stack traces
