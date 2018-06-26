@@ -36,7 +36,10 @@ export abstract class BaseTransport implements Transport {
 
     const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
     const port = dsn.port ? `:${dsn.port}` : '';
-    const endpoint = `${protocol}//${dsn.host}${port}/api/${dsn.path}/store/`;
+    const path = dsn.path ? `/${dsn.path}` : '';
+    const endpoint = `${protocol}//${dsn.host}${port}${path}/api/${
+      dsn.projectId
+    }/store/`;
 
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header)
     // to avoid preflight CORS requests

@@ -16,8 +16,10 @@ export class DSN implements DSNComponents {
   public host!: string;
   /** Port of the Sentry instance. */
   public port!: string;
-  /** Project path */
+  /** Path */
   public path!: string;
+  /** Project ID */
+  public projectId!: string;
 
   /** Creates a new DSN component */
   public constructor(from: DSNLike) {
@@ -41,10 +43,12 @@ export class DSN implements DSNComponents {
    */
   public toString(withPassword: boolean = false): string {
     // tslint:disable-next-line:no-this-assignment
-    const { host, path, pass, port, protocol, user } = this;
+    const { host, path, pass, port, projectId, protocol, user } = this;
     return (
       `${protocol}://${user}${withPassword && pass ? `:${pass}` : ''}` +
-      `@${host}${port ? `:${port}` : ''}/${path}`
+      `@${host}${port ? `:${port}` : ''}/${
+        path ? `${path}/` : path
+      }${projectId}`
     );
   }
 
@@ -55,8 +59,17 @@ export class DSN implements DSNComponents {
       throw new SentryError('Invalid DSN');
     }
 
-    const [protocol, user, pass = '', host, port = '', path] = match.slice(1);
-    Object.assign(this, { host, pass, path, port, protocol, user });
+    const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(
+      1,
+    );
+    let path = '';
+    let projectId = lastPath;
+    const split = projectId.split('/');
+    if (split.length > 1) {
+      path = split.slice(0, -1).join('/');
+      projectId = split.pop() as string;
+    }
+    Object.assign(this, { host, pass, path, projectId, port, protocol, user });
   }
 
   /** Maps DSN components into this instance. */
@@ -66,12 +79,13 @@ export class DSN implements DSNComponents {
     this.pass = components.pass || '';
     this.host = components.host;
     this.port = components.port || '';
-    this.path = components.path;
+    this.path = components.path || '';
+    this.projectId = components.projectId;
   }
 
   /** Validates this DSN and throws on error. */
   private validate(): void {
-    for (const component of ['protocol', 'user', 'host', 'path']) {
+    for (const component of ['protocol', 'user', 'host', 'projectId']) {
       if (!this[component as keyof DSNComponents]) {
         throw new SentryError(`Invalid DSN: Missing ${component}`);
       }
