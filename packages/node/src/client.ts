@@ -21,7 +21,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected getSdkInfo(): SdkInfo {
+  public getSdkInfo(): SdkInfo {
     return {
       name: 'sentry-node',
       version: Raven.version,

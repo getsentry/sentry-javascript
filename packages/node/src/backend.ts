@@ -1,20 +1,23 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
-import { SentryEvent } from '@sentry/types';
-import {
-  HTTPSTransport,
-  HTTPTransport,
-  Raven,
-  SendMethod,
-  Transport,
-} from './raven';
-
-/** Original Raven send function. */
-const sendRavenEvent = Raven.send.bind(Raven) as SendMethod;
+import { SentryEvent, SentryResponse } from '@sentry/types';
+import { Raven } from './raven';
+import { HTTPSTransport, HTTPTransport } from './transports';
 
 /** Extension to the Function type. */
 interface FunctionExt extends Function {
   __SENTRY_CAPTURE__?: boolean;
+}
+
+/** Prepares an event so it can be send with raven-js. */
+function normalizeEvent(ravenEvent: any): SentryEvent {
+  const event = ravenEvent;
+  // tslint:disable-next-line:no-unsafe-any
+  if (ravenEvent.exception && !ravenEvent.exception.values) {
+    // tslint:disable-next-line:no-unsafe-any
+    event.exception = { values: ravenEvent.exception };
+  }
+  return event as SentryEvent;
 }
 
 /**
@@ -85,9 +88,9 @@ export class NodeBackend implements Backend {
     // actual submission.
     Raven.send = (event, callback) => {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
-        callback(event);
+        callback(normalizeEvent(event));
       } else {
-        captureEvent(event);
+        captureEvent(normalizeEvent(event));
         // TODO: Check if this is fine
         if (callback) {
           callback(event);
@@ -121,13 +124,22 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async sendEvent(event: SentryEvent): Promise<number> {
-    return new Promise<number>(resolve => {
-      sendRavenEvent(event, error => {
-        // TODO: Check the response status code
-        resolve(error ? 500 : 200);
-      });
-    });
+  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+    let dsn: DSN;
+
+    if (!this.options.dsn) {
+      throw new SentryError('Cannot sendEvent without a valid DSN');
+    } else {
+      dsn = new DSN(this.options.dsn);
+    }
+
+    const transport = this.options.transport
+      ? new this.options.transport({ dsn })
+      : dsn.protocol === 'http'
+        ? new HTTPTransport({ dsn })
+        : new HTTPSTransport({ dsn });
+
+    return transport.send(event);
   }
 
   /**
@@ -142,26 +154,5 @@ export class NodeBackend implements Backend {
    */
   public storeScope(): void {
     // Noop
-  }
-
-  /**
-   * Set the transport module used for submitting events.
-   *
-   * This can be set to modules like "http" or "https" or any other object that
-   * provides a `request` method with options.
-   *
-   * @param transport The transport to use for submitting events.
-   */
-  public setTransport(transport: Transport): void {
-    const dsn = this.options.dsn;
-    if (!dsn) {
-      return;
-    }
-    const dsnObject = new DSN(dsn);
-
-    Raven.transport =
-      dsnObject.protocol === 'http'
-        ? new HTTPTransport({ transport })
-        : new HTTPSTransport({ transport });
   }
 }

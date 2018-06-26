@@ -2,12 +2,14 @@ import { DSN, SentryError } from '@sentry/core';
 import {
   SentryEvent,
   SentryResponse,
+  Status,
   Transport,
   TransportOptions as BaseOptions,
 } from '@sentry/types';
 import { serialize } from '@sentry/utils/src/object';
 import * as http from 'http';
 import * as https from 'https';
+import { getDefaultHub, NodeClient } from '../index';
 
 /** TODO */
 export interface HTTPRequest {
@@ -41,13 +43,37 @@ export abstract class BaseTransport implements Transport {
     this.dsn = new DSN(options.dsn);
   }
 
+  /** TODO */
+  private getAuthHeader(): string {
+    const header = ['Sentry sentry_version=7'];
+    header.push(`sentry_timestamp=${new Date().getTime()}`);
+    const client = getDefaultHub().getClient() as NodeClient;
+    if (client) {
+      header.push(
+        `sentry_client=${client.getSdkInfo().name}/${
+          client.getSdkInfo().version
+        }`,
+      );
+    }
+    header.push(`sentry_key=${this.dsn.user}`);
+    if (this.dsn.pass) {
+      header.push(`sentry_secret=${this.dsn.pass}`);
+    }
+    return header.join(', ');
+  }
+
   /**
    * TODO
    */
   protected getRequestOptions(): http.RequestOptions {
+    const headers = {
+      'X-Sentry-Auth': this.getAuthHeader(),
+      ...this.options.headers,
+    };
+
     return {
       agent: this.client,
-      headers: this.options.headers,
+      headers,
       hostname: this.dsn.host,
       method: 'POST',
       path: `${this.dsn.path}/api/${this.dsn.projectId}/store/`,
@@ -68,8 +94,9 @@ export abstract class BaseTransport implements Transport {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve({
+              code: res.statusCode,
               event_id: event.event_id,
-              status: res.statusCode,
+              status: Status.fromHttpCode(res.statusCode),
             });
           } else {
             const reason = res.headers['x-sentry-error'];

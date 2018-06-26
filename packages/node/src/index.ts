@@ -4,9 +4,11 @@ export {
   SdkInfo,
   SentryEvent,
   SentryException,
+  SentryResponse,
   Severity,
   StackFrame,
   Stacktrace,
+  Status,
   Thread,
   User,
 } from '@sentry/types';
@@ -28,3 +30,6 @@ export { init } from './sdk';
 
 import * as Integrations from './integrations';
 export { Integrations };
+
+import * as Transports from './transports';
+export { Transports };

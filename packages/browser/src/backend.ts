@@ -7,7 +7,7 @@ import { FetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see BrowserClient for more information.
+ * @see BrowserClient afor more information.
  */
 export interface BrowserOptions extends Options {
   /**

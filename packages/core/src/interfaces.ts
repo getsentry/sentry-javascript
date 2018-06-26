@@ -2,6 +2,7 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
+  SdkInfo,
   SentryEvent,
   SentryResponse,
   Transport,
@@ -210,6 +211,9 @@ export interface Client<O extends Options = Options> {
 
   /** Returns the current options. */
   getOptions(): O;
+
+  /** Returns the current used SDK version and name. */
+  getSdkInfo(): SdkInfo;
 }
 
 /**

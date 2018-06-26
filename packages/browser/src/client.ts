@@ -22,7 +22,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected getSdkInfo(): SdkInfo {
+  public getSdkInfo(): SdkInfo {
     return {
       name: 'sentry-browser',
       version: Raven.VERSION,

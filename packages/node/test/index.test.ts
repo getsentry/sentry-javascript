@@ -1,15 +1,6 @@
 import * as domain from 'domain';
 import * as RavenNode from 'raven';
 
-// -----------------------------------------------------------------------------
-// It's important that we stub this before we import the backend
-jest
-  .spyOn(RavenNode as any, 'send')
-  .mockImplementation((_: SentryEvent, cb: () => void) => {
-    cb();
-  });
-// -----------------------------------------------------------------------------
-
 import {
   addBreadcrumb,
   captureEvent,
@@ -22,6 +13,7 @@ import {
   NodeClient,
   Scope,
   SentryEvent,
+  SentryResponse,
 } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
@@ -71,12 +63,12 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.Mock<(event: SentryEvent) => Promise<number>>;
+    let s: jest.Mock<(event: SentryEvent) => Promise<SentryResponse>>;
 
     beforeEach(() => {
       s = jest
         .spyOn(NodeBackend.prototype, 'sendEvent')
-        .mockImplementation(async () => Promise.resolve(200));
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
@@ -111,12 +103,12 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.Mock<(event: SentryEvent) => Promise<number>>;
+    let s: jest.Mock<(event: SentryEvent) => Promise<SentryResponse>>;
 
     beforeEach(() => {
       s = jest
         .spyOn(NodeBackend.prototype, 'sendEvent')
-        .mockImplementation(async () => Promise.resolve(200));
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
@@ -130,10 +122,10 @@ describe('SentryNode', () => {
           afterSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
-            expect(event.exception![0]).not.toBeUndefined();
-            expect(event.exception![0].type).toBe('Error');
-            expect(event.exception![0].value).toBe('test');
-            expect(event.exception![0].stacktrace).toBeTruthy();
+            expect(event.exception!.values[0]).not.toBeUndefined();
+            expect(event.exception!.values[0].type).toBe('Error');
+            expect(event.exception!.values[0].value).toBe('test');
+            expect(event.exception!.values[0].stacktrace).toBeTruthy();
             done();
           },
           dsn,

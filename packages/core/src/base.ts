@@ -206,8 +206,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     return this.options;
   }
 
-  /** Returns the current used SDK version and name. */
-  protected abstract getSdkInfo(): SdkInfo;
+  /**
+   * @inheritDoc
+   */
+  public abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current backend. */
   protected getBackend(): B {
