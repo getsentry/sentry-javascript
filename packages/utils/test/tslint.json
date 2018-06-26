@@ -4,6 +4,8 @@
     "completed-docs": false,
     "no-unused-expression": false,
     "no-implicit-dependencies": [true, "dev"],
-    "no-unsafe-any": false
+    "no-unsafe-any": false,
+    // We disable this rule, because order in `serialize()` tests matter
+    "object-literal-sort-keys": false
   }
 }
