@@ -227,8 +227,7 @@ describe('Hub', () => {
   });
 
   test('addEventProcessor', done => {
-    jest.useFakeTimers();
-    expect.assertions(1);
+    expect.assertions(2);
     const event: SentryEvent = {
       extra: { b: 3 },
     };
@@ -237,9 +236,14 @@ describe('Hub', () => {
     const hub = new Hub({ a: 'b' }, localScope);
     hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+    });
+    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+      processedEvent.dist = '1';
+    });
+    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+      expect(processedEvent.dist).toEqual('1');
       done();
     });
     localScope.applyToEvent(event);
-    jest.runAllTimers();
   });
 });
