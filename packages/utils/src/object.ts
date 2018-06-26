@@ -137,7 +137,9 @@ export function fill(
 ): void {
   const orig = source[name];
   source[name] = replacement(orig);
+  // tslint:disable-next-line:no-unsafe-any
   source[name].__raven__ = true;
+  // tslint:disable-next-line:no-unsafe-any
   source[name].__orig__ = orig;
   if (track) {
     track.push([source, name, orig]);
@@ -152,6 +154,9 @@ export function fill(
  */
 export function urlEncode(object: { [key: string]: any }): string {
   return Object.keys(object)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
+    .map(
+      // tslint:disable-next-line:no-unsafe-any
+      key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`,
+    )
     .join('&');
 }
