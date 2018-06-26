@@ -1,12 +1,9 @@
+import { isDOMError, isDOMException, isError, isErrorEvent } from '../src/is';
 import {
-  isDOMError,
-  isDOMException,
-  isError,
-  isErrorEvent,
   supportsDOMError,
   supportsDOMException,
   supportsErrorEvent,
-} from '../src';
+} from '../src/supports';
 
 class SentryError extends Error {
   public name: string;

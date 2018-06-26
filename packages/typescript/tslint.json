@@ -4,6 +4,8 @@
     // This rule has side effects and must be disabled
     "no-unused-variable": false,
 
+    "no-submodule-imports": false,
+
     // We don't want these
     "newline-before-return": false,
     "no-any": false,

@@ -1,5 +1,5 @@
 import { SentryEvent } from '@sentry/types';
-import { serialize } from '@sentry/utils';
+import { serialize } from '@sentry/utils/object';
 import { BaseTransport } from './base';
 
 /** `XHR` based transport */

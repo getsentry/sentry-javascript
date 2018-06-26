@@ -1,6 +1,7 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
-import { truncate, uuid4 } from '@sentry/utils';
+import { uuid4 } from '@sentry/utils/misc';
+import { truncate } from '@sentry/utils/string';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 import { SendStatus } from './status';

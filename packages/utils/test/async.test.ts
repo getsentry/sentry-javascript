@@ -1,4 +1,4 @@
-import { filterAsync, forget } from '../src';
+import { filterAsync, forget } from '../src/async';
 
 describe('forget', () => {
   const console = {

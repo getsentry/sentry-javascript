@@ -1,9 +1,7 @@
 import { SentryEvent } from '@sentry/types';
-import {
-  getGlobalObject,
-  serialize,
-  supportsReferrerPolicy,
-} from '@sentry/utils';
+import { getGlobalObject } from '@sentry/utils/misc';
+import { serialize } from '@sentry/utils/object';
+import { supportsReferrerPolicy } from '@sentry/utils/supports';
 import { BaseTransport } from './base';
 
 const global: any = getGlobalObject();

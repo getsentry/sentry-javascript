@@ -1,2 +1,5 @@
 *
-!/dist/**/*
+!*.js.map
+!*.d.ts
+!*.js
+jest.config.js
