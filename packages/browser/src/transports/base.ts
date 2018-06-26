@@ -2,6 +2,7 @@ import { DSN, SentryError } from '@sentry/core';
 import {
   DSNComponents,
   SentryEvent,
+  SentryResponse,
   Transport,
   TransportOptions,
 } from '@sentry/types';
@@ -49,7 +50,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async send(_: SentryEvent): Promise<Response | XMLHttpRequest> {
+  public async send(_: SentryEvent): Promise<SentryResponse> {
     throw new SentryError('Transport Class has to implement `send` method');
   }
 }

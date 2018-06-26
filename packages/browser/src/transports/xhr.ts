@@ -1,4 +1,4 @@
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
 import { BaseTransport } from './base';
 
@@ -7,8 +7,8 @@ export class XHRTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async send(event: SentryEvent): Promise<XMLHttpRequest> {
-    return new Promise<XMLHttpRequest>((resolve, reject) => {
+  public async send(event: SentryEvent): Promise<SentryResponse> {
+    return new Promise<SentryResponse>((resolve, reject) => {
       const request = new XMLHttpRequest();
 
       request.onreadystatechange = () => {
@@ -17,7 +17,11 @@ export class XHRTransport extends BaseTransport {
         }
 
         if (request.status === 200) {
-          resolve(request);
+          resolve({
+            code: request.status,
+            event_id: event.event_id,
+            status: Status.fromHttpCode(request.status),
+          });
         }
 
         reject(request);

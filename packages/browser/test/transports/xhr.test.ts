@@ -1,7 +1,6 @@
-import { Transport } from '@sentry/types';
 import { expect } from 'chai';
 import { fakeServer, SinonFakeServer } from 'sinon';
-import { XHRTransport } from '../../src/transports/xhr';
+import { Transports } from '../../src';
 
 const testDSN = 'https://123@sentry.io/42';
 const transportUrl =
@@ -15,13 +14,13 @@ const payload = {
 };
 
 let server: SinonFakeServer;
-let transport: Transport;
+let transport: Transports.BaseTransport;
 
 describe('XHRTransport', () => {
   beforeEach(() => {
     server = fakeServer.create();
     server.respondImmediately = true;
-    transport = new XHRTransport({ dsn: testDSN });
+    transport = new Transports.XHRTransport({ dsn: testDSN });
   });
 
   afterEach(() => {
@@ -37,7 +36,7 @@ describe('XHRTransport', () => {
       server.respondWith('POST', transportUrl, [200, {}, '']);
 
       return transport.send(payload).then(res => {
-        expect(res.status).equal(200);
+        expect(res.code).equal(200);
 
         const request = server.requests[0];
         expect(server.requests.length).equal(1);
@@ -46,16 +45,17 @@ describe('XHRTransport', () => {
       });
     });
 
-    it('rejects with non-200 status code', async () => {
+    it('rejects with non-200 status code', done => {
       server.respondWith('POST', transportUrl, [403, {}, '']);
 
-      return transport.send(payload).catch(res => {
+      transport.send(payload).catch(res => {
         expect(res.status).equal(403);
 
         const request = server.requests[0];
         expect(server.requests.length).equal(1);
         expect(request.method).equal('POST');
         expect(JSON.parse(request.requestBody)).deep.equal(payload);
+        done();
       });
     });
   });

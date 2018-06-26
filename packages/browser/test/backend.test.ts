@@ -1,13 +1,15 @@
 import { expect } from 'chai';
-import { SentryEvent } from '../src';
+import { SentryEvent, SentryResponse, Status } from '../src';
 import { BrowserBackend } from '../src/backend';
 import { BaseTransport } from '../src/transports';
 
 class SimpleTransport extends BaseTransport {
-  public async send(event: SentryEvent): Promise<Response> {
-    return new Response(event.event_id, {
-      status: 200,
-    });
+  public async send(event: SentryEvent): Promise<SentryResponse> {
+    return {
+      code: 200,
+      event_id: event.event_id,
+      status: Status.fromHttpCode(200),
+    };
   }
 }
 
@@ -37,7 +39,7 @@ describe('BrowserBackend', () => {
     it('should call send() on provided transport', async () => {
       backend = new BrowserBackend({ dsn, transport: SimpleTransport });
       const status = await backend.sendEvent(testEvent);
-      expect(status).equal(200);
+      expect(status.code).equal(200);
     });
   });
 });

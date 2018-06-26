@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryResponse } from '@sentry/types';
 import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
@@ -25,12 +25,14 @@ export class TestBackend implements Backend {
 
   public async eventFromException(exception: any): Promise<SentryEvent> {
     return {
-      exception: [
-        {
-          type: 'Error',
-          value: 'random error',
-        },
-      ],
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'random error',
+          },
+        ],
+      },
       message: String(exception),
     };
   }
@@ -39,9 +41,9 @@ export class TestBackend implements Backend {
     return { message };
   }
 
-  public async sendEvent(event: SentryEvent): Promise<number> {
+  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     this.event = event;
-    return 200;
+    return { code: 200 };
   }
 
   public storeBreadcrumb(_breadcrumb: Breadcrumb): boolean | Promise<boolean> {

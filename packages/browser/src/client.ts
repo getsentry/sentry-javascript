@@ -32,6 +32,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * Instruments the given function and sends an event to Sentry every time the
    * function throws an exception.
+   * TODO remove this
    *
    * @param fn A function to wrap.
    * @returns The wrapped function.
