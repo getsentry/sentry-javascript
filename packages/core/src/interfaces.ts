@@ -7,6 +7,7 @@ import {
   SentryResponse,
   Transport,
   TransportClass,
+  TransportOptions,
 } from '@sentry/types';
 import { DSN } from './dsn';
 
@@ -50,6 +51,11 @@ export interface Options {
    * Transport object that should be used to send events to Sentry
    */
   transport?: TransportClass<Transport>;
+
+  /**
+   * Options for the default transport that the SDK uses.
+   */
+  transportOptions?: TransportOptions;
 
   /**
    * The release identifier used when uploading respective source maps. Specify

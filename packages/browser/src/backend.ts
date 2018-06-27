@@ -7,7 +7,7 @@ import { FetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see BrowserClient afor more information.
+ * @see BrowserClient for more information.
  */
 export interface BrowserOptions extends Options {
   /**
@@ -124,11 +124,15 @@ export class BrowserBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
+    const transportOptions = this.options.transportOptions
+      ? this.options.transportOptions
+      : { dsn };
+
     const transport = this.options.transport
       ? new this.options.transport({ dsn })
       : supportsFetch()
-        ? new FetchTransport({ dsn })
-        : new XHRTransport({ dsn });
+        ? new FetchTransport(transportOptions)
+        : new XHRTransport(transportOptions);
 
     return transport.send(event);
   }

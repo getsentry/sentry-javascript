@@ -2,9 +2,9 @@ import { SentryEvent, SentryResponse } from '@sentry/types';
 import * as http from 'http';
 import { BaseTransport, TransportOptions } from './base';
 
-/** TODO */
+/** /** Node http module transport */
 export class HTTPTransport extends BaseTransport {
-  /** TODO */
+  /** Create a new instance and set this.agent */
   public constructor(public options: TransportOptions) {
     super(options);
     this.client = new http.Agent(
@@ -13,8 +13,6 @@ export class HTTPTransport extends BaseTransport {
         : { keepAlive: true, maxSockets: 100 },
     );
   }
-
-  // TODO queue handling here
 
   /**
    * @inheritDoc

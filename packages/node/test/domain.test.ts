@@ -1,7 +1,7 @@
 import { Layer } from '@sentry/hub';
 import * as domain from 'domain';
 
-const mockgetDefaultHub = jest.fn();
+const mockGetDefaultHub = jest.fn();
 
 class MockHub {
   public constructor(public stack: Layer[] = []) {
@@ -21,7 +21,7 @@ class MockHub {
 const mockHub = MockHub;
 jest.mock('@sentry/hub', () => ({
   Hub: mockHub,
-  getDefaultHub: mockgetDefaultHub,
+  getDefaultHub: mockGetDefaultHub,
 }));
 
 import { getDefaultHub } from '../src';
@@ -31,7 +31,7 @@ describe('domains', () => {
 
   beforeEach(() => {
     globalHub = new MockHub();
-    mockgetDefaultHub.mockReturnValue(globalHub);
+    mockGetDefaultHub.mockReturnValue(globalHub);
   });
 
   afterEach(() => {

@@ -2,7 +2,7 @@ import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent, SentryResponse } from '@sentry/types';
 import { Raven } from './raven';
-import { HTTPSTransport, HTTPTransport } from './transports';
+import { HTTPSTransport, HTTPTransport, TransportOptions } from './transports';
 
 /** Extension to the Function type. */
 interface FunctionExt extends Function {
@@ -32,18 +32,13 @@ export interface NodeOptions extends Options {
    */
   captureUnhandledRejections?: boolean;
 
-  /**
-   * Enables/disables automatic collection of breadcrumbs. Possible values are:
-   *
-   *  - `false`: all automatic breadcrumb collection disabled (default)
-   *  - `true`: all automatic breadcrumb collection enabled
-   *  - A dictionary of individual breadcrumb types that can be
-   *    enabled/disabled: e.g.: `{ console: true, http: false }`
-   */
-  autoBreadcrumbs?: { [key: string]: boolean } | boolean;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
+
+  /**
+   * @inheritDoc
+   */
+  transportOptions?: TransportOptions;
 }
 
 /** The Sentry Node SDK Backend. */
@@ -91,10 +86,6 @@ export class NodeBackend implements Backend {
         callback(normalizeEvent(event));
       } else {
         captureEvent(normalizeEvent(event));
-        // TODO: Check if this is fine
-        if (callback) {
-          callback(event);
-        }
       }
     };
 
@@ -133,11 +124,15 @@ export class NodeBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
+    const transportOptions = this.options.transportOptions
+      ? this.options.transportOptions
+      : { dsn };
+
     const transport = this.options.transport
       ? new this.options.transport({ dsn })
       : dsn.protocol === 'http'
-        ? new HTTPTransport({ dsn })
-        : new HTTPSTransport({ dsn });
+        ? new HTTPTransport(transportOptions)
+        : new HTTPSTransport(transportOptions);
 
     return transport.send(event);
   }

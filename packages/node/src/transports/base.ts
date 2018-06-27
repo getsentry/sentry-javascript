@@ -11,7 +11,7 @@ import * as http from 'http';
 import * as https from 'https';
 import { getDefaultHub, NodeClient } from '../index';
 
-/** TODO */
+/** Internal used interface for typescript */
 export interface HTTPRequest {
   request(
     options: http.RequestOptions | string | URL,
@@ -19,31 +19,28 @@ export interface HTTPRequest {
   ): http.ClientRequest;
 }
 
-/** TODO */
+/** Transport options */
 export interface TransportOptions extends BaseOptions {
+  /** Options for http.agent default: { keepAlive: true, maxSockets: 100 } */
   agentOptions?: http.AgentOptions;
+  /** Define custom headers */
   headers?: http.IncomingHttpHeaders;
-  port?: number;
 }
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
-  /**
-   * TODO
-   */
+  /** DSN object */
   protected dsn: DSN;
 
-  /**
-   * TODO
-   */
+  /** The Agent used for corresponding transport */
   protected client: http.Agent | https.Agent | undefined;
 
-  /** TODO */
+  /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this.dsn = new DSN(options.dsn);
   }
 
-  /** TODO */
+  /** Returns a Sentry auth header string */
   private getAuthHeader(): string {
     const header = ['Sentry sentry_version=7'];
     header.push(`sentry_timestamp=${new Date().getTime()}`);
@@ -62,9 +59,7 @@ export abstract class BaseTransport implements Transport {
     return header.join(', ');
   }
 
-  /**
-   * TODO
-   */
+  /** Returns a build request option object used by request */
   protected getRequestOptions(): http.RequestOptions {
     const headers = {
       'X-Sentry-Auth': this.getAuthHeader(),
@@ -76,8 +71,10 @@ export abstract class BaseTransport implements Transport {
       headers,
       hostname: this.dsn.host,
       method: 'POST',
-      path: `${this.dsn.path}/api/${this.dsn.projectId}/store/`,
-      port: this.dsn.port || this.options.port,
+      path: `${this.dsn.path ? `/${this.dsn.path}` : ''}/api/${
+        this.dsn.projectId
+      }/store/`,
+      port: this.dsn.port,
     };
   }
 
@@ -99,10 +96,14 @@ export abstract class BaseTransport implements Transport {
               status: Status.fromHttpCode(res.statusCode),
             });
           } else {
-            const reason = res.headers['x-sentry-error'];
-            reject(
-              new SentryError(`HTTP Error (${res.statusCode}): ${reason}`),
-            );
+            if (res.headers && res.headers['x-sentry-error']) {
+              const reason = res.headers['x-sentry-error'];
+              reject(
+                new SentryError(`HTTP Error (${res.statusCode}): ${reason}`),
+              );
+            } else {
+              reject(new SentryError(`HTTP Error (${res.statusCode})`));
+            }
           }
           // force the socket to drain
           res.on('data', () => {
