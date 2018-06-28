@@ -77,15 +77,17 @@ describe('SentryNode', () => {
 
     test('record auto breadcrumbs', done => {
       getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
-        new NodeClient({
-          afterSend: (event: SentryEvent) => {
-            expect(event.breadcrumbs!).toHaveLength(3);
-            done();
-          },
-          dsn,
-        }),
-      );
+      const client = new NodeClient({
+        afterSend: (event: SentryEvent) => {
+          // 4 because there is one internal breadcrumb captured by raven-node
+          // which captures the event
+          expect(event.breadcrumbs!).toHaveLength(4);
+          done();
+        },
+        dsn,
+      });
+      client.install();
+      getDefaultHub().bindClient(client);
 
       addBreadcrumb({ message: 'test1' });
 
