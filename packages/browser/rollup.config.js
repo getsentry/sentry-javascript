@@ -5,8 +5,7 @@ import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
 
 const commitHash = require('child_process')
-  .execSync('git rev-parse --short HEAD')
-  .toString()
+  .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
   .trim();
 
 export default [
