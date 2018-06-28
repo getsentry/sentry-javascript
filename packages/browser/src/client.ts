@@ -25,7 +25,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   public getSdkInfo(): SdkInfo {
     return {
       name: 'sentry-browser',
-      version: '0.5.4',
+      version: '4.0.0-beta.0',
     };
   }
 

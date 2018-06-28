@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hub",
-  "version": "0.5.4",
+  "version": "4.0.0-beta.0",
   "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/hub",
@@ -15,7 +15,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "0.5.4"
+    "@sentry/types": "4.0.0-beta.0"
   },
   "devDependencies": {
     "jest": "^22.4.3",
@@ -40,14 +40,22 @@
   },
   "jest": {
     "collectCoverage": true,
-    "transform": { "^.+\\.ts$": "ts-jest" },
-    "moduleFileExtensions": ["js", "ts"],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
     "testEnvironment": "node",
-    "testMatch": ["**/*.test.ts"],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
     "globals": {
       "ts-jest": {
         "tsConfigFile": "./tsconfig.json"
       }
     }
-  }
+  },
+  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d"
 }
