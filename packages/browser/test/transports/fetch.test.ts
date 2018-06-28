@@ -1,7 +1,6 @@
-import { Transport } from '@sentry/types';
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
-import { FetchTransport } from '../../src/transports/fetch';
+import { Status, Transports } from '../../src';
 
 const testDSN = 'https://123@sentry.io/42';
 const transportUrl =
@@ -15,12 +14,12 @@ const payload = {
 };
 
 let fetch: SinonStub;
-let transport: Transport;
+let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
     fetch = stub(window, 'fetch');
-    transport = new FetchTransport({ dsn: testDSN });
+    transport = new Transports.FetchTransport({ dsn: testDSN });
   });
 
   afterEach(() => {
@@ -33,14 +32,13 @@ describe('FetchTransport', () => {
 
   describe('send()', async () => {
     it('sends a request to Sentry servers', async () => {
-      const response = new Response('', {
-        status: 200,
-      });
+      const response = { status: 200 };
 
       fetch.returns(Promise.resolve(response));
 
       return transport.send(payload).then(res => {
-        expect(res.status).equal(200);
+        expect(res.code).equal(200);
+        expect(res.status).equal(Status.Success);
         expect(fetch.calledOnce).equal(true);
         expect(
           fetch.calledWith(transportUrl, {
@@ -54,9 +52,7 @@ describe('FetchTransport', () => {
     });
 
     it('rejects with non-200 status code', async () => {
-      const response = new Response('', {
-        status: 403,
-      });
+      const response = { status: 403 };
 
       fetch.returns(Promise.reject(response));
 

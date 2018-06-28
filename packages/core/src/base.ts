@@ -1,10 +1,15 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SdkInfo, SentryEvent } from '@sentry/types';
+import {
+  Breadcrumb,
+  SdkInfo,
+  SentryEvent,
+  SentryResponse,
+  Status,
+} from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { DSN } from './dsn';
 import { Backend, Client, Options } from './interfaces';
-import { SendStatus } from './status';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -136,8 +141,11 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, scope?: Scope): Promise<void> {
-    await this.processEvent(
+  public async captureEvent(
+    event: SentryEvent,
+    scope?: Scope,
+  ): Promise<SentryResponse> {
+    return this.processEvent(
       event,
       async finalEvent => this.getBackend().sendEvent(finalEvent),
       scope,
@@ -198,8 +206,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     return this.options;
   }
 
-  /** Returns the current used SDK version and name. */
-  protected abstract getSdkInfo(): SdkInfo;
+  /**
+   * @inheritDoc
+   */
+  public abstract getSdkInfo(): SdkInfo;
 
   /** Returns the current backend. */
   protected getBackend(): B {
@@ -290,17 +300,25 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   protected async processEvent(
     event: SentryEvent,
-    send: (finalEvent: SentryEvent) => Promise<number>,
+    send: (finalEvent: SentryEvent) => Promise<SentryResponse>,
     scope?: Scope,
-  ): Promise<SendStatus> {
+  ): Promise<SentryResponse> {
     if (!this.isEnabled()) {
-      return SendStatus.Skipped;
+      return {
+        code: -1,
+        event_id: event.event_id,
+        status: Status.Skipped,
+      };
     }
 
     const prepared = await this.prepareEvent(event, scope);
     const { shouldSend, beforeSend, afterSend } = this.getOptions();
     if (shouldSend && !shouldSend(prepared)) {
-      return SendStatus.Skipped;
+      return {
+        code: -1,
+        event_id: event.event_id,
+        status: Status.Skipped,
+      };
     }
 
     // TODO: Add breadcrumb with our own event?
@@ -308,10 +326,9 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     // Or maybe some other integration that'd use `afterSend`?
 
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
-    const code = await send(finalEvent);
-    const status = SendStatus.fromHttpCode(code);
+    const response = await send(finalEvent);
 
-    if (status === SendStatus.RateLimit) {
+    if (response.status === Status.RateLimit) {
       // TODO: Handle rate limits and maintain a queue. For now, we require SDK
       // implementors to override this method and handle it themselves.
     }
@@ -319,9 +336,9 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     // TODO: Handle duplicates and backoffs
 
     if (afterSend) {
-      afterSend(finalEvent, status);
+      afterSend(finalEvent, response);
     }
 
-    return status;
+    return response;
   }
 }

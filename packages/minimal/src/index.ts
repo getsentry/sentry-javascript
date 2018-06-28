@@ -3,8 +3,8 @@ import { Breadcrumb, SentryEvent } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
- * @param method
- * @param args
+ * @param method function to call on hub.
+ * @param args to pass to function.
  */
 function callOnHub(method: string, ...args: any[]): void {
   const hub = getDefaultHub();
@@ -54,7 +54,6 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 
 /**
  * Callback to set context information onto the scope.
- *
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {

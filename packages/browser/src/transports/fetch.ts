@@ -1,4 +1,4 @@
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { serialize } from '@sentry/utils/object';
 import { supportsReferrerPolicy } from '@sentry/utils/supports';
@@ -11,7 +11,7 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async send(event: SentryEvent): Promise<Response> {
+  public async send(event: SentryEvent): Promise<SentryResponse> {
     const defaultOptions: RequestInit = {
       body: serialize(event),
       keepalive: true,
@@ -25,6 +25,12 @@ export class FetchTransport extends BaseTransport {
         : '') as ReferrerPolicy,
     };
 
-    return (global as Window).fetch(this.url, defaultOptions);
+    const response = await (global as Window).fetch(this.url, defaultOptions);
+
+    return {
+      code: response.status,
+      event_id: event.event_id,
+      status: Status.fromHttpCode(response.status),
+    };
   }
 }

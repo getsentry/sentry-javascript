@@ -2,12 +2,14 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
+  SdkInfo,
   SentryEvent,
+  SentryResponse,
   Transport,
   TransportClass,
+  TransportOptions,
 } from '@sentry/types';
 import { DSN } from './dsn';
-import { SendStatus } from './status';
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -49,6 +51,11 @@ export interface Options {
    * Transport object that should be used to send events to Sentry
    */
   transport?: TransportClass<Transport>;
+
+  /**
+   * Options for the default transport that the SDK uses.
+   */
+  transportOptions?: TransportOptions;
 
   /**
    * The release identifier used when uploading respective source maps. Specify
@@ -100,7 +107,7 @@ export interface Options {
    * A callback invoked after event submission has completed.
    * @param event The error or message event sent to Sentry.
    */
-  afterSend?(event: SentryEvent, status: SendStatus): void;
+  afterSend?(event: SentryEvent, status: SentryResponse): void;
 
   /**
    * A callback allowing to skip breadcrumbs.
@@ -191,7 +198,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The created event id.
    */
-  captureEvent(event: SentryEvent, scope?: Scope): Promise<void>;
+  captureEvent(event: SentryEvent, scope?: Scope): Promise<SentryResponse>;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -210,6 +217,9 @@ export interface Client<O extends Options = Options> {
 
   /** Returns the current options. */
   getOptions(): O;
+
+  /** Returns the current used SDK version and name. */
+  getSdkInfo(): SdkInfo;
 }
 
 /**
@@ -244,7 +254,7 @@ export interface Backend {
   eventFromMessage(message: string): Promise<SentryEvent>;
 
   /** Submits the event to Sentry */
-  sendEvent(event: SentryEvent): Promise<number>;
+  sendEvent(event: SentryEvent): Promise<SentryResponse>;
 
   /**
    * Receives a breadcrumb and stores it in a platform-dependent way.

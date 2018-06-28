@@ -14,10 +14,7 @@ class MockIntegration implements Integration {
 
 describe('SDK', () => {
   beforeEach(() => {
-    global.__SENTRY__ = {
-      shim: undefined,
-      stack: [],
-    };
+    global.__SENTRY__ = {};
   });
 
   describe('initAndBind', () => {

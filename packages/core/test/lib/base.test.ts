@@ -164,12 +164,14 @@ describe('BaseClient', () => {
       await client.captureException(new Error('test exception'), scope);
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
-        exception: [
-          {
-            type: 'Error',
-            value: 'random error',
-          },
-        ],
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'random error',
+            },
+          ],
+        },
         message: 'Error: test exception',
         sdk: TEST_SDK,
       });

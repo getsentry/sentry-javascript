@@ -156,7 +156,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Console';
+  public name: string = 'Http';
   /**
    * @inheritDoc
    */

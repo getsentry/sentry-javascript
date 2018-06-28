@@ -1,6 +1,6 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryResponse } from '@sentry/types';
 import { supportsFetch } from '@sentry/utils/supports';
 import { Raven } from './raven';
 import { FetchTransport, XHRTransport } from './transports';
@@ -115,7 +115,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async sendEvent(event: SentryEvent): Promise<number> {
+  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     let dsn: DSN;
 
     if (!this.options.dsn) {
@@ -124,16 +124,17 @@ export class BrowserBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
+    const transportOptions = this.options.transportOptions
+      ? this.options.transportOptions
+      : { dsn };
+
     const transport = this.options.transport
       ? new this.options.transport({ dsn })
       : supportsFetch()
-        ? new FetchTransport({ dsn })
-        : new XHRTransport({ dsn });
+        ? new FetchTransport(transportOptions)
+        : new XHRTransport(transportOptions);
 
-    return transport
-      .send(event)
-      .then((response: Response | XMLHttpRequest) => response.status)
-      .catch((error: Response | XMLHttpRequest) => error.status);
+    return transport.send(event);
   }
 
   /**
