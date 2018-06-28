@@ -1,7 +1,6 @@
 import { BaseClient } from '@sentry/core';
 import { SdkInfo } from '@sentry/types';
 import { NodeBackend, NodeOptions } from './backend';
-import { Raven } from './raven';
 
 /**
  * The Sentry Node SDK Client.
@@ -24,7 +23,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   public getSdkInfo(): SdkInfo {
     return {
       name: 'sentry-node',
-      version: Raven.version,
+      version: '0.5.4',
     };
   }
 }

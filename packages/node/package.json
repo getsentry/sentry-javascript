@@ -41,7 +41,8 @@
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
-    "test:watch": "jest --watch --notify"
+    "test:watch": "jest --watch --notify",
+    "version": "node ../../scripts/versionbump.js src/client.ts"
   },
   "jest": {
     "collectCoverage": true,
