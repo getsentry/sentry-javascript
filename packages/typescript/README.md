@@ -25,7 +25,7 @@ npm install --save-dev @sentry/typescript
 
 ## Usage
 
-Add the folling config files to your project's root directory:
+Add the following config files to your project's root directory:
 
 **tslint.json**:
 
