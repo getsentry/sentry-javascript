@@ -83,7 +83,7 @@ export class Scope {
 
   /**
    * Updates extra context information for future events.
-   * @param extra Extra context object to merge into current context.
+   * @param extra context object to merge into current context.
    */
   public setExtra(key: string, extra: any): void {
     this.extra = { ...this.extra, [key]: extra };
@@ -92,7 +92,7 @@ export class Scope {
 
   /**
    * Sets the fingerprint on the scope to send with the events.
-   * @param fingerprint
+   * @param fingerprint string[] to group events in Sentry.
    */
   public setFingerprint(fingerprint: string[]): void {
     this.fingerprint = fingerprint;
@@ -101,7 +101,7 @@ export class Scope {
 
   /**
    * Inherit values from the parent scope.
-   * @param scope
+   * @param scope to clone.
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();
