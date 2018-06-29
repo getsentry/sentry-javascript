@@ -245,7 +245,7 @@ export interface Client<O extends Options = Options> {
  */
 export interface Backend {
   /** Installs the SDK into the environment. */
-  install(): boolean;
+  install?(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
   eventFromException(exception: any): Promise<SentryEvent>;

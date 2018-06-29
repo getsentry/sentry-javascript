@@ -23,11 +23,11 @@
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.2",
     "tslint": "^5.9.1",
-    "typescript": "^2.8.3"
+    "typescript": "^2.9.2"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build": "run-s clean; tsc -p tsconfig.build.json",
+    "build:watch": "run-s clean; tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",

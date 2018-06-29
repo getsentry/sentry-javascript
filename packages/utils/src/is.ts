@@ -50,3 +50,14 @@ export function isDOMError(wat: any): boolean {
 export function isDOMException(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object DOMException]';
 }
+
+/**
+ * Checks whether given value's type is an object literal
+ * {@link isPlainObject}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isPlainObject(wat: any): boolean {
+  return Object.prototype.toString.call(wat) === '[object Object]';
+}

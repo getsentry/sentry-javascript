@@ -12,7 +12,9 @@ export class Scope {
   protected scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected eventProcessors: Array<(scope: SentryEvent) => Promise<void>> = [];
+  protected eventProcessors: Array<
+    (scope: SentryEvent) => Promise<SentryEvent>
+  > = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -36,7 +38,7 @@ export class Scope {
 
   /** Add new event processor that will be called after {@link applyToEvent}. */
   public addEventProcessor(
-    callback: (scope: SentryEvent) => Promise<void>,
+    callback: (scope: SentryEvent) => Promise<SentryEvent>,
   ): void {
     this.eventProcessors.push(callback);
   }
@@ -59,11 +61,13 @@ export class Scope {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected async notifyEventProcessors(event: SentryEvent): Promise<void> {
+  protected async notifyEventProcessors(
+    event: SentryEvent,
+  ): Promise<SentryEvent> {
     return this.eventProcessors.reduce(async (prev, callback) => {
-      await prev;
-      return callback(event);
-    }, Promise.resolve());
+      const prevEvent = await prev;
+      return callback(prevEvent);
+    }, Promise.resolve(event));
   }
 
   /**
@@ -170,7 +174,7 @@ export class Scope {
   public async applyToEvent(
     event: SentryEvent,
     maxBreadcrumbs?: number,
-  ): Promise<void> {
+  ): Promise<SentryEvent> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -195,6 +199,6 @@ export class Scope {
           : this.breadcrumbs;
     }
 
-    await this.notifyEventProcessors(event);
+    return this.notifyEventProcessors(event);
   }
 }

@@ -112,14 +112,15 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    */
   public install(): boolean {
     if (!this.isEnabled()) {
-      return false;
+      return (this.installed = false);
     }
 
-    if (this.installed === undefined) {
-      this.installed = this.getBackend().install();
+    const backend = this.getBackend();
+    if (!this.installed && backend.install) {
+      backend.install();
     }
 
-    return this.installed;
+    return (this.installed = true);
   }
 
   /**
@@ -275,7 +276,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      await scope.applyToEvent(
+      return scope.applyToEvent(
         prepared,
         Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
       );

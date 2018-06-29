@@ -1,9 +1,7 @@
 import { SentryEvent } from '@sentry/types';
-import { Hub, Layer, Scope } from '../../src';
+import { Hub, Scope } from '../../src';
 
 const clientFn = jest.fn();
-// const asyncClientFn = jest.fn(async () => Promise.resolve({}));
-// const asyncClientFn = async () => jest.fn();
 const asyncClientFn = async () => Promise.reject('error');
 const scope = new Scope();
 
@@ -236,13 +234,16 @@ describe('Hub', () => {
     const hub = new Hub({ a: 'b' }, localScope);
     hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
     });
     hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       processedEvent.dist = '1';
+      return processedEvent;
     });
     hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.dist).toEqual('1');
       done();
+      return processedEvent;
     });
     await localScope.applyToEvent(event);
   });
@@ -257,19 +258,21 @@ describe('Hub', () => {
     const hub = new Hub({ a: 'b' }, localScope);
     hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
     });
     hub.addEventProcessor(
       async (processedEvent: SentryEvent) =>
-        new Promise<void>(resolve => {
+        new Promise<SentryEvent>(resolve => {
           setImmediate(() => {
             processedEvent.dist = '1';
-            resolve();
+            resolve(processedEvent);
           });
         }),
     );
     hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.dist).toEqual('1');
       done();
+      return processedEvent;
     });
     await localScope.applyToEvent(event);
   });

@@ -20,7 +20,13 @@
     "@sentry/minimal": "4.0.0-beta.6",
     "@sentry/types": "4.0.0-beta.6",
     "@sentry/utils": "4.0.0-beta.6",
-    "raven": "^2.6.0"
+    "@types/cookie": "0.3.1",
+    "@types/md5": "2.1.32",
+    "@types/stack-trace": "0.0.29",
+    "cookie": "0.3.1",
+    "lsmod": "1.0.0",
+    "md5": "2.2.1",
+    "stack-trace": "0.0.10"
   },
   "devDependencies": {
     "jest": "^22.4.3",
