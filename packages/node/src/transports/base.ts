@@ -4,9 +4,9 @@ import {
   SentryResponse,
   Status,
   Transport,
-  TransportOptions as BaseOptions,
+  TransportOptions,
 } from '@sentry/types';
-import { serialize } from '@sentry/utils/src/object';
+import { serialize } from '@sentry/utils/object';
 import * as http from 'http';
 import * as https from 'https';
 import { getDefaultHub, NodeClient } from '../index';
@@ -17,14 +17,6 @@ export interface HTTPRequest {
     options: http.RequestOptions | string | URL,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
-}
-
-/** Transport options */
-export interface TransportOptions extends BaseOptions {
-  /** Options for http.agent default: { keepAlive: true, maxSockets: 100 } */
-  agentOptions?: http.AgentOptions;
-  /** Define custom headers */
-  headers?: http.IncomingHttpHeaders;
 }
 
 /** Base Transport class implementation */
