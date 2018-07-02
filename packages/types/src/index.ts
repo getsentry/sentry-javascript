@@ -141,7 +141,7 @@ export interface SentryEvent {
   breadcrumbs?: Breadcrumb[];
   contexts?: { [key: string]: object };
   tags?: { [key: string]: string };
-  extra?: { [key: string]: object };
+  extra?: { [key: string]: any };
   user?: User;
 }
 
@@ -162,6 +162,8 @@ export interface SentryResponse {
 /** TODO */
 export interface TransportOptions {
   dsn: DSNLike;
+  /** Define custom headers */
+  headers?: object;
 }
 
 /** TODO */

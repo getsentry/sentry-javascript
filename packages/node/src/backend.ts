@@ -2,7 +2,7 @@ import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent, SentryResponse } from '@sentry/types';
 import { Raven } from './raven';
-import { HTTPSTransport, HTTPTransport, TransportOptions } from './transports';
+import { HTTPSTransport, HTTPTransport } from './transports';
 
 /** Extension to the Function type. */
 interface FunctionExt extends Function {
@@ -34,11 +34,6 @@ export interface NodeOptions extends Options {
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
-
-  /**
-   * @inheritDoc
-   */
-  transportOptions?: TransportOptions;
 }
 
 /** The Sentry Node SDK Backend. */
