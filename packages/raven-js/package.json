@@ -46,6 +46,7 @@
     "grunt-contrib-copy": "^0.8.2",
     "grunt-contrib-uglify": "^0.11.0",
     "grunt-gitinfo": "^0.1.7",
+    "grunt-google-cloud": "^1.0.7",
     "grunt-release": "^0.13.0",
     "grunt-s3": "0.2.0-alpha.3",
     "grunt-sri": "mattrobenolt/grunt-sri#pretty",
