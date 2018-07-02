@@ -2,15 +2,13 @@ import { getGlobalObject } from '@sentry/utils/misc';
 import { API_VERSION, Hub } from './hub';
 import { Carrier } from './interfaces';
 
-const global: any = getGlobalObject();
-
-global.__SENTRY__ = global.__SENTRY__ || {
-  hub: undefined,
-};
-
 /** Returns the global shim registry. */
 export function getMainCarrier(): Carrier {
-  return global.__SENTRY__;
+  const carrier: any = getGlobalObject();
+  carrier.__SENTRY__ = carrier.__SENTRY__ || {
+    hub: undefined,
+  };
+  return carrier.__SENTRY__;
 }
 
 /**
