@@ -1,12 +1,8 @@
+import { getGlobalObject } from '@sentry/utils/misc';
 import { API_VERSION, Hub } from './hub';
 import { Carrier } from './interfaces';
 
-/** Global interface helper for type safety. */
-interface Global {
-  __SENTRY__: Carrier;
-}
-
-declare var global: Global;
+const global: any = getGlobalObject();
 
 global.__SENTRY__ = global.__SENTRY__ || {
   hub: undefined,
