@@ -158,6 +158,12 @@ module.exports = function(grunt) {
   });
 
   var awsConfigPath = path.join(os.homedir(), '.aws', 'raven-js.json');
+  var gcsConfigPath =
+    process.env.GRUNT_GOOGLE_APPLICATION_CREDENTIALS ||
+    path.join(os.homedir(), '.gcs', 'js-sdk.json');
+  var gcsConfig = grunt.file.exists(gcsConfigPath)
+    ? grunt.file.readJSON(gcsConfigPath)
+    : {};
   var gruntConfig = {
     pkg: grunt.file.readJSON('package.json'),
     aws: grunt.file.exists(awsConfigPath) ? grunt.file.readJSON(awsConfigPath) : {},
@@ -228,6 +234,25 @@ module.exports = function(grunt) {
             rel: 'build/'
           }
         ]
+      }
+    },
+    gcs: {
+      options: {
+        credentials: gcsConfig,
+        project: process.env.GRUNT_GOOGLE_PROJECT_ID || gcsConfig.project_id,
+        // Normally there's no info about bucket name in a GCS service account
+        // file, but we can add it for convenience
+        bucket: process.env.GRUNT_GOOGLE_BUCKET_NAME || gcsConfig.bucket_name,
+        gzip: true,
+        headers: {
+          cacheControl: 'public, max-age=300' // FIXME: increase after testing
+        },
+        metadata: {}
+      },
+      dist: {
+        cwd: 'build',
+        src: '**/*',
+        dest: '<%= pkg.release || "unreleased" %>/'
       }
     },
 
@@ -309,6 +334,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-release');
   grunt.loadNpmTasks('grunt-s3');
+  grunt.loadNpmTasks('grunt-google-cloud');
   grunt.loadNpmTasks('grunt-gitinfo');
   grunt.loadNpmTasks('grunt-sri');
 
@@ -329,6 +355,8 @@ module.exports = function(grunt) {
   );
   grunt.registerTask('dist', ['build', 'copy:dist', 'sri:dist', 'copy:distRoot']);
   grunt.registerTask('publish', ['build', 's3']);
+  grunt.registerTask('publish-gcs', ['build', 'gcs']);
   grunt.registerTask('cdn', ['version', 's3']);
+  grunt.registerTask('cdn-gcs', ['version', 'gcs']);
   grunt.registerTask('test:ci', ['config:ci', 'build.test']);
 };
