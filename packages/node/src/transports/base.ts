@@ -54,6 +54,7 @@ export abstract class BaseTransport implements Transport {
   /** Returns a build request option object used by request */
   protected getRequestOptions(): http.RequestOptions {
     const headers = {
+      'Content-Type': 'application/json',
       'X-Sentry-Auth': this.getAuthHeader(),
       ...this.options.headers,
     };
