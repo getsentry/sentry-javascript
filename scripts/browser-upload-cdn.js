@@ -65,6 +65,7 @@ async function uploadFiles() {
 
   const storage = new Storage({
     projectId,
+    credentials: gcsConfig,
   });
 
   const bucket = storage.bucket(bucketName);
