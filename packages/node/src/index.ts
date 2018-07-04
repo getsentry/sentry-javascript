@@ -26,16 +26,9 @@ export { getHubFromCarrier, Hub, Scope } from '@sentry/hub';
 export { getDefaultHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
-export { init } from './sdk';
+export { defaultIntegrations, init } from './sdk';
 
 import * as Integrations from './integrations';
 import * as Transports from './transports';
 
 export { Integrations, Transports };
-
-export const defaultIntegrations = [
-  new Integrations.Console(),
-  new Integrations.Http(),
-  new Integrations.OnUncaughtException(),
-  new Integrations.OnUnhandledRejection(),
-];

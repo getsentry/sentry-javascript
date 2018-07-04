@@ -8,6 +8,13 @@ import {
   OnUnhandledRejection,
 } from './integrations';
 
+export const defaultIntegrations = [
+  new Console(),
+  new Http(),
+  new OnUncaughtException(),
+  new OnUnhandledRejection(),
+];
+
 /**
  * The Sentry Node SDK Client.
  *
@@ -53,10 +60,5 @@ import {
  * @see NodeOptions for documentation on configuration options.
  */
 export function init(options: NodeOptions): void {
-  initAndBind(NodeClient, options, [
-    new OnUncaughtException(),
-    new OnUnhandledRejection(),
-    new Console(),
-    new Http(),
-  ]);
+  initAndBind(NodeClient, options, defaultIntegrations);
 }
