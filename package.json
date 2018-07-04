@@ -19,6 +19,7 @@
     "packages/utils"
   ],
   "devDependencies": {
+    "@google-cloud/storage": "^1.7.0",
     "@types/chai": "^4.1.3",
     "@types/jest": "^22.2.3",
     "@types/mocha": "^5.2.0",
