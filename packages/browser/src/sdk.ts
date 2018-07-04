@@ -9,6 +9,14 @@ import {
   TryCatch,
 } from './integrations';
 
+export const defaultIntegrations = [
+  new Breadcrumbs(),
+  new FunctionToString(),
+  new OnError(),
+  new OnUnhandledRejection(),
+  new TryCatch(),
+];
+
 /**
  * The Sentry Browser SDK Client.
  *
@@ -53,11 +61,5 @@ import {
  * @see BrowserOptions for documentation on configuration options.
  */
 export function init(options: BrowserOptions): void {
-  initAndBind(BrowserClient, options, [
-    new OnError(),
-    new OnUnhandledRejection(),
-    new FunctionToString(),
-    new TryCatch(),
-    new Breadcrumbs(),
-  ]);
+  initAndBind(BrowserClient, options, defaultIntegrations);
 }

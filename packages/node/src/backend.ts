@@ -80,6 +80,16 @@ export class NodeBackend implements Backend {
       if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
         callback(normalizeEvent(event));
       } else {
+        // This "if" needs to be here in order for raven-node to propergate
+        // internal callbacks like in makeErrorHandler -> captureException
+        // correctly. Also the setTimeout is a dirty hack because in case of a
+        // fatal error, raven-node exits the process and our consturct of
+        // hub -> client doesn't have enough time to send the event.
+        if (callback) {
+          setTimeout(() => {
+            callback(event);
+          }, 1000);
+        }
         captureEvent(normalizeEvent(event));
       }
     };
