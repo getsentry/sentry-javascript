@@ -32,3 +32,10 @@ import * as Integrations from './integrations';
 import * as Transports from './transports';
 
 export { Integrations, Transports };
+
+export const defaultIntegrations = [
+  new Integrations.Console(),
+  new Integrations.Http(),
+  new Integrations.OnUncaughtException(),
+  new Integrations.OnUnhandledRejection(),
+];
