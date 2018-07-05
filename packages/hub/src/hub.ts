@@ -216,10 +216,12 @@ export class Hub {
    * This will be called to receive the event
    * @param callback will only be called if there is a bound client
    */
-  public addEventProcessor(callback: () => (event: SentryEvent) => void): void {
+  public addEventProcessor(
+    callback: (event: SentryEvent) => Promise<void>,
+  ): void {
     const top = this.getStackTop();
     if (top.scope && top.client) {
-      top.scope.addEventProcessor(callback());
+      top.scope.addEventProcessor(callback);
     }
   }
 }
