@@ -38,7 +38,7 @@ export class Hub {
    * Internal helper function to call a method on the top client if it exists.
    *
    * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/fontend.
+   * @param args Arguments to pass to the client/frontend.
    */
   private invokeClient(method: string, ...args: any[]): void {
     const top = this.getStackTop();
@@ -52,7 +52,7 @@ export class Hub {
    * exists.
    *
    * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/fontend.
+   * @param args Arguments to pass to the client/frontend.
    */
   private invokeClientAsync(method: string, ...args: any[]): void {
     const top = this.getStackTop();

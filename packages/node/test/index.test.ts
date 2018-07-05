@@ -118,6 +118,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
+      expect.assertions(6);
       getDefaultHub().pushScope();
       getDefaultHub().bindClient(
         new NodeClient({
@@ -145,6 +146,7 @@ describe('SentryNode', () => {
     });
 
     test('capture a message', done => {
+      expect.assertions(2);
       getDefaultHub().pushScope();
       getDefaultHub().bindClient(
         new NodeClient({
@@ -161,6 +163,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an event', done => {
+      expect.assertions(2);
       getDefaultHub().pushScope();
       getDefaultHub().bindClient(
         new NodeClient({
@@ -176,26 +179,23 @@ describe('SentryNode', () => {
       getDefaultHub().popScope();
     });
 
-    test('capture an event in a domain', async () => {
+    test('capture an event in a domain', async () =>
       new Promise<void>(resolve => {
         const d = domain.create();
-        d.run(() => {
-          getDefaultHub().pushScope();
-          getDefaultHub().bindClient(
-            new NodeClient({
-              afterSend: (event: SentryEvent) => {
-                expect(event.message).toBe('test');
-                expect(event.exception).toBeUndefined();
-                resolve();
-                d.exit();
-              },
-              dsn,
-            }),
-          );
-          captureEvent({ message: 'test' });
-          getDefaultHub().popScope();
+        const client = new NodeClient({
+          afterSend: (event: SentryEvent) => {
+            expect(event.message).toBe('test');
+            expect(event.exception).toBeUndefined();
+            resolve();
+            d.exit();
+          },
+          dsn,
         });
-      });
-    });
+        d.run(() => {
+          getDefaultHub().bindClient(client);
+          expect(getDefaultHub().getClient()).toBe(client);
+          getDefaultHub().captureEvent({ message: 'test' });
+        });
+      }));
   });
 });
