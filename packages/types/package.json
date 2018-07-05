@@ -23,6 +23,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",
