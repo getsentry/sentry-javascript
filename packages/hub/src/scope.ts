@@ -12,7 +12,7 @@ export class Scope {
   protected scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected eventProcessors: Array<(scope: SentryEvent) => void> = [];
+  protected eventProcessors: Array<(scope: SentryEvent) => Promise<void>> = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -35,7 +35,9 @@ export class Scope {
   }
 
   /** Add new event processor that will be called after {@link applyToEvent}. */
-  public addEventProcessor(callback: (scope: SentryEvent) => void): void {
+  public addEventProcessor(
+    callback: (scope: SentryEvent) => Promise<void>,
+  ): void {
     this.eventProcessors.push(callback);
   }
 
@@ -57,10 +59,11 @@ export class Scope {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected notifyEventProcessors(event: SentryEvent): void {
-    this.eventProcessors.forEach(callback => {
-      callback(event);
-    });
+  protected async notifyEventProcessors(event: SentryEvent): Promise<void> {
+    return this.eventProcessors.reduce(async (prev, callback) => {
+      await prev;
+      return callback(event);
+    }, Promise.resolve());
   }
 
   /**
@@ -164,7 +167,10 @@ export class Scope {
    * @param event SentryEvent
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
-  public applyToEvent(event: SentryEvent, maxBreadcrumbs?: number): void {
+  public async applyToEvent(
+    event: SentryEvent,
+    maxBreadcrumbs?: number,
+  ): Promise<void> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -189,6 +195,6 @@ export class Scope {
           : this.breadcrumbs;
     }
 
-    this.notifyEventProcessors(event);
+    await this.notifyEventProcessors(event);
   }
 }

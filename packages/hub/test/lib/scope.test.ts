@@ -68,7 +68,7 @@ describe('Scope', () => {
     expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
   });
 
-  test('applyToEvent', () => {
+  test('applyToEvent', async () => {
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
@@ -76,7 +76,7 @@ describe('Scope', () => {
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
     const event: SentryEvent = {};
-    scope.applyToEvent(event);
+    await scope.applyToEvent(event);
     expect(event.extra).toEqual({ a: 2 });
     expect(event.tags).toEqual({ a: 'b' });
     expect(event.user).toEqual({ id: '1' });
@@ -84,7 +84,7 @@ describe('Scope', () => {
     expect(event.breadcrumbs).toEqual([{ message: 'test' }]);
   });
 
-  test('applyToEvent merge', () => {
+  test('applyToEvent merge', async () => {
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
@@ -98,7 +98,7 @@ describe('Scope', () => {
       tags: { b: 'c' },
       user: { id: '3' },
     };
-    scope.applyToEvent(event);
+    await scope.applyToEvent(event);
     expect(event.extra).toEqual({ a: 2, b: 3 });
     expect(event.tags).toEqual({ a: 'b', b: 'c' });
     expect(event.user).toEqual({ id: '3' });

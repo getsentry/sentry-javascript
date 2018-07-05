@@ -275,7 +275,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      await scope.applyToEvent(
+        prepared,
+        Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
+      );
     }
 
     return prepared;
@@ -334,7 +337,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     }
 
     // TODO: Handle duplicates and backoffs
-
     if (afterSend) {
       afterSend(finalEvent, response);
     }

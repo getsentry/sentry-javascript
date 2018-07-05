@@ -226,7 +226,7 @@ describe('Hub', () => {
     });
   });
 
-  test('addEventProcessor', done => {
+  test('addEventProcessor', async done => {
     expect.assertions(2);
     const event: SentryEvent = {
       extra: { b: 3 },
@@ -234,16 +234,43 @@ describe('Hub', () => {
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' }, localScope);
-    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
     });
-    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       processedEvent.dist = '1';
     });
-    hub.addEventProcessor(() => (processedEvent: SentryEvent) => {
+    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
       expect(processedEvent.dist).toEqual('1');
       done();
     });
-    localScope.applyToEvent(event);
+    await localScope.applyToEvent(event);
+  });
+
+  test.only('addEventProcessor async', async done => {
+    expect.assertions(2);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const hub = new Hub({ a: 'b' }, localScope);
+    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+    });
+    hub.addEventProcessor(
+      async (processedEvent: SentryEvent) =>
+        new Promise<void>(resolve => {
+          setImmediate(() => {
+            processedEvent.dist = '1';
+            resolve();
+          });
+        }),
+    );
+    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
+      expect(processedEvent.dist).toEqual('1');
+      done();
+    });
+    await localScope.applyToEvent(event);
   });
 });
