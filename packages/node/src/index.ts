@@ -28,7 +28,8 @@ export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
 
+import * as Handlers from './handlers';
 import * as Integrations from './integrations';
 import * as Transports from './transports';
 
-export { Integrations, Transports };
+export { Integrations, Transports, Handlers };

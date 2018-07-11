@@ -1,5 +1,4 @@
 import * as domain from 'domain';
-import * as RavenNode from 'raven';
 
 import {
   addBreadcrumb,
@@ -79,27 +78,17 @@ describe('SentryNode', () => {
       getDefaultHub().pushScope();
       const client = new NodeClient({
         afterSend: (event: SentryEvent) => {
-          // 4 because there is one internal breadcrumb captured by raven-node
-          // which captures the event
-          expect(event.breadcrumbs!).toHaveLength(4);
+          // TODO: It should be 3, but we don't capture a breadcrumb
+          // for our own captureMessage/captureException calls yet
+          expect(event.breadcrumbs!).toHaveLength(2);
           done();
         },
         dsn,
       });
       client.install();
       getDefaultHub().bindClient(client);
-
       addBreadcrumb({ message: 'test1' });
-
-      // Simulates internal capture breadcrumb from raven
-      RavenNode.captureBreadcrumb({
-        category: 'console',
-        level: 'warning',
-        message: 'testy',
-      });
-
       addBreadcrumb({ message: 'test2' });
-
       captureMessage('event');
     });
   });

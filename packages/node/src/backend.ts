@@ -1,37 +1,21 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent } from '@sentry/minimal';
+import { getDefaultHub } from '@sentry/hub';
 import { SentryEvent, SentryResponse } from '@sentry/types';
-import { Raven } from './raven';
+import { isError, isPlainObject } from '@sentry/utils/is';
+import {
+  limitObjectDepthToSize,
+  serializeKeysToEventMessage,
+} from '@sentry/utils/object';
+import * as md5 from 'md5';
+import * as stacktrace from 'stack-trace';
+import { parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
-
-/** Extension to the Function type. */
-interface FunctionExt extends Function {
-  __SENTRY_CAPTURE__?: boolean;
-}
-
-/** Prepares an event so it can be send with raven-js. */
-function normalizeEvent(ravenEvent: any): SentryEvent {
-  const event = ravenEvent;
-  // tslint:disable-next-line:no-unsafe-any
-  if (ravenEvent.exception && !ravenEvent.exception.values) {
-    // tslint:disable-next-line:no-unsafe-any
-    event.exception = { values: ravenEvent.exception };
-  }
-  return event as SentryEvent;
-}
 
 /**
  * Configuration options for the Sentry Node SDK.
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
-  /**
-   * Whether unhandled Promise rejections should be captured or not. If true,
-   * this will install an error handler and prevent the process from crashing.
-   * Defaults to false.
-   */
-  captureUnhandledRejections?: boolean;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }
@@ -44,77 +28,58 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public install(): boolean {
-    // We are only called by the client if the SDK is enabled and a valid DSN
-    // has been configured. If no DSN is present, this indicates a programming
-    // error.
-    const dsn = this.options.dsn;
-    if (!dsn) {
-      throw new SentryError(
-        'Invariant exception: install() must not be called when disabled',
-      );
-    }
-
-    Raven.config(dsn, this.options);
-
-    // We need to leave it here for now, as we are skipping `install` call,
-    // due to integrations migration
-    // TODO: Remove it once we fully migrate our code
-    const { onFatalError } = this.options;
-    if (onFatalError) {
-      Raven.onFatalError = onFatalError;
-    }
-    Raven.installed = true;
-
-    // Hook into Raven's breadcrumb mechanism. This allows us to intercept both
-    // breadcrumbs created internally by Raven and pass them to the Client
-    // first, before actually capturing them.
-    Raven.captureBreadcrumb = breadcrumb => {
-      addBreadcrumb(breadcrumb);
-    };
-
-    // Hook into Raven's internal event sending mechanism. This allows us to
-    // pass events to the client, before they will be sent back here for
-    // actual submission.
-    Raven.send = (event, callback) => {
-      if (callback && (callback as FunctionExt).__SENTRY_CAPTURE__) {
-        callback(normalizeEvent(event));
-      } else {
-        // This "if" needs to be here in order for raven-node to propergate
-        // internal callbacks like in makeErrorHandler -> captureException
-        // correctly. Also the setTimeout is a dirty hack because in case of a
-        // fatal error, raven-node exits the process and our consturct of
-        // hub -> client doesn't have enough time to send the event.
-        if (callback) {
-          setTimeout(() => {
-            callback(event);
-          }, 1000);
-        }
-        captureEvent(normalizeEvent(event));
-      }
-    };
-
-    return true;
-  }
-
-  /**
-   * @inheritDoc
-   */
   public async eventFromException(exception: any): Promise<SentryEvent> {
-    return new Promise<SentryEvent>(resolve => {
-      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
-      Raven.captureException(exception, resolve);
-    });
+    let stack: stacktrace.StackFrame[] | undefined;
+    let ex: any = exception;
+
+    if (!isError(exception)) {
+      if (isPlainObject(exception)) {
+        // This will allow us to group events based on top-level keys
+        // which is much better than creating new group when any key/value change
+        const keys = Object.keys(exception as {}).sort();
+        const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(
+          keys,
+        )}`;
+
+        // TODO: We also set `event.message` here previously, check if it works without it as well
+        getDefaultHub().configureScope(scope => {
+          scope.setExtra(
+            '__serialized__',
+            limitObjectDepthToSize(exception as {}),
+          );
+          scope.setFingerprint([md5(keys.join(''))]);
+        });
+
+        ex = new Error(message);
+      } else {
+        // This handles when someone does: `throw "something awesome";`
+        // We synthesize an Error here so we can extract a (rough) stack trace.
+        ex = new Error(exception as string);
+      }
+
+      stack = stacktrace.get();
+    }
+
+    const event: SentryEvent = stack
+      ? await parseError(ex as Error, stack)
+      : await parseError(ex as Error);
+
+    return event;
   }
 
   /**
    * @inheritDoc
    */
   public async eventFromMessage(message: string): Promise<SentryEvent> {
-    return new Promise<SentryEvent>(resolve => {
-      (resolve as FunctionExt).__SENTRY_CAPTURE__ = true;
-      Raven.captureMessage(message, resolve);
-    });
+    const stack = stacktrace.get();
+    const frames = await parseStack(stack);
+    const event: SentryEvent = {
+      message,
+      stacktrace: {
+        frames: prepareFramesForEvent(frames),
+      },
+    };
+    return event;
   }
 
   /**

@@ -1,3 +1,5 @@
+import { isPlainObject } from './is';
+
 /**
  * Just an Error object with arbitrary attributes attached to it.
  */
@@ -159,4 +161,136 @@ export function urlEncode(object: { [key: string]: any }): string {
       key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`,
     )
     .join('&');
+}
+
+// Default Node.js REPL depth
+const MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
+// TODO: Or is it 200kb? 🤔 — Kamil
+// 50kB, as 100kB is max payload size, so half sounds reasonable
+const MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
+const MAX_SERIALIZE_KEYS_LENGTH = 40;
+
+/**
+ * TODO
+ */
+function utf8Length(value: string): number {
+  // tslint:disable-next-line:no-bitwise
+  return ~-encodeURI(value).split(/%..|./).length;
+}
+
+/**
+ * TODO
+ */
+function jsonSize(value: any): number {
+  return utf8Length(JSON.stringify(value));
+}
+
+/**
+ * TODO
+ */
+function serializeValue<T>(value: T): T | string {
+  const maxLength = 40;
+
+  if (typeof value === 'string') {
+    return value.length <= maxLength
+      ? value
+      : `${value.substr(0, maxLength - 1)}\u2026`;
+  } else if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'undefined'
+  ) {
+    return value;
+  }
+
+  const type = Object.prototype.toString.call(value);
+
+  // Node.js REPL notation
+  if (type === '[object Object]') {
+    return '[Object]';
+  }
+  if (type === '[object Array]') {
+    return '[Array]';
+  }
+  if (type === '[object Function]') {
+    const name = ((value as any) as (() => void)).name;
+    return name ? `[Function: ${name}]` : '[Function]';
+  }
+
+  return value;
+}
+
+/**
+ * TODO
+ */
+function serializeObject<T>(value: T, depth: number): T | string | {} {
+  return value;
+
+  if (depth === 0) {
+    return serializeValue(value);
+  }
+
+  if (isPlainObject(value)) {
+    const serialized: { [key: string]: any } = {};
+    const val = value as {
+      [key: string]: any;
+    };
+
+    Object.keys(val).forEach((key: string) => {
+      serialized[key] = serializeObject(val[key], depth - 1);
+    });
+
+    return serialized;
+  } else if (Array.isArray(value)) {
+    const val = (value as any) as T[];
+    return val.map(v => serializeObject(v, depth - 1));
+  }
+
+  return serializeValue(value);
+}
+
+/**
+ * TODO
+ */
+export function limitObjectDepthToSize<T>(
+  object: { [key: string]: any },
+  depth: number = MAX_SERIALIZE_EXCEPTION_DEPTH,
+  maxSize: number = MAX_SERIALIZE_EXCEPTION_SIZE,
+): T {
+  const serialized = serializeObject(object, depth);
+
+  if (jsonSize(serialize(serialized)) > maxSize) {
+    return limitObjectDepthToSize(object, depth - 1);
+  }
+
+  return serialized as T;
+}
+
+/**
+ * TODO
+ */
+export function serializeKeysToEventMessage(
+  keys: string[],
+  maxLength: number = MAX_SERIALIZE_KEYS_LENGTH,
+): string {
+  if (!keys.length) {
+    return '[object has no keys]';
+  }
+
+  if (keys[0].length >= maxLength) {
+    return keys[0];
+  }
+
+  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
+    const serialized = keys.slice(0, includedKeys).join(', ');
+    if (serialized.length > maxLength) {
+      continue;
+    }
+    if (includedKeys === keys.length) {
+      return serialized;
+    }
+    return `${serialized}\u2026`;
+  }
+
+  return '';
 }

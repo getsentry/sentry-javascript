@@ -57,7 +57,7 @@ export interface User {
   ip_address?: string;
   email?: string;
   username?: string;
-  extra?: any;
+  extra?: { [key: string]: any };
 }
 
 /** TODO */
@@ -77,10 +77,10 @@ export interface StackFrame {
   colno?: number;
   abs_path?: string;
   context_line?: string;
-  pre_context?: string;
-  post_context?: string;
+  pre_context?: string[];
+  post_context?: string[];
   in_app?: boolean;
-  vars?: { [name: string]: any };
+  vars?: { [key: string]: any };
 }
 
 /** TODO */
@@ -132,6 +132,7 @@ export interface SentryEvent {
   environment?: string;
   sdk?: SdkInfo;
   request?: Request;
+  transaction?: string;
   modules?: { [key: string]: string };
   fingerprint?: string[];
   exception?: {

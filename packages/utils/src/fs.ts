@@ -1,7 +1,28 @@
-import { mkdir, mkdirSync, statSync } from 'fs';
+import { mkdir, mkdirSync, readFile, statSync } from 'fs';
 import { dirname, resolve } from 'path';
 
 const _0777 = parseInt('0777', 8);
+
+/**
+ * Asynchronously creates the given directory.
+ *
+ * @param path A relative or absolute path to the directory.
+ * @param mode The permission mode.
+ * @returns A Promise that resolves when the path has been created.
+ */
+export async function readFileAsync(path: string): Promise<Error | string> {
+  // We cannot use util.promisify here because that was only introduced in Node
+  // 8 and we need to support older Node versions.
+  return new Promise<Error | string>((res, reject) => {
+    readFile(path, 'utf8', (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        res(data);
+      }
+    });
+  });
+}
 
 /**
  * Asynchronously creates the given directory.
