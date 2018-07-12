@@ -145,9 +145,14 @@ export class Hub {
     }
   }
 
-  /** Returns the client of the currently active scope. */
+  /** Returns the client of the top stack. */
   public getClient(): any | undefined {
     return this.getStackTop().client;
+  }
+
+  /** Returns the scope of the top stack. */
+  public getScope(): Scope | undefined {
+    return this.getStackTop().scope;
   }
 
   /** Returns the scope stack for domains or the process. */
