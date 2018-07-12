@@ -112,9 +112,12 @@ export class Scope {
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();
-    Object.assign(newScope, scope);
-    newScope.eventProcessors = [];
-    newScope.scopeListeners = [];
+    Object.assign(newScope, scope, {
+      scopeListeners: [],
+    });
+    if (scope) {
+      newScope.eventProcessors = [...scope.eventProcessors];
+    }
     return newScope;
   }
 
