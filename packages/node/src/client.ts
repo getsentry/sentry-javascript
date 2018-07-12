@@ -23,7 +23,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   public getSdkInfo(): SdkInfo {
     return {
       name: 'sentry-node',
-      version: '4.0.0-beta.6',
+      version: '4.0.0-beta.7',
     };
   }
 }
