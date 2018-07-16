@@ -1,9 +1,18 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent, SentryResponse } from '@sentry/types';
+import { isFunction, isUndefined } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
+import { getDefaultHub } from '../../../node_modules/@sentry/hub';
 import { Raven } from './raven';
 import { FetchTransport, XHRTransport } from './transports';
+
+interface SentryWrappedFunction extends Function {
+  [key: string]: any;
+  __sentry__?: boolean;
+  __sentry_wrapper__?: SentryWrappedFunction;
+  __original__?: SentryWrappedFunction;
+}
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -145,5 +154,89 @@ export class BrowserBackend implements Backend {
    */
   public storeScope(): void {
     // Noop
+  }
+
+  /**
+   * Instruments the given function and sends an event to Sentry every time the
+   * function throws an exception.
+   *
+   * @param fn A function to wrap.
+   * @returns The wrapped function.
+   */
+  public wrap(
+    this: BrowserBackend,
+    fn: SentryWrappedFunction,
+    options?: {
+      deep: boolean;
+      mechanism: object;
+    },
+    before?: SentryWrappedFunction,
+  ): SentryWrappedFunction {
+    try {
+      // We don't wanna wrap it twice
+      if (fn.__sentry__) {
+        return fn;
+      }
+      // If this has already been wrapped in the past, return that wrapped function
+      if (fn.__sentry_wrapper__) {
+        return fn.__sentry_wrapper__;
+      }
+    } catch (e) {
+      // Just accessing custom props in some Selenium environments
+      // can cause a "Permission denied" exception (see raven-js#495).
+      // Bail on wrapping and return the function as-is (defers to window.onerror).
+      return fn;
+    }
+
+    const wrapped: SentryWrappedFunction = (...args: any[]) => {
+      const deep = options && options.deep;
+
+      if (before && isFunction(before)) {
+        before.apply(this, args);
+      }
+
+      // Recursively wrap all of a function's arguments that are
+      // functions themselves.
+      let i = args.length;
+      while (i--) {
+        args[i] = deep ? this.wrap(args[i], options) : args[i];
+      }
+
+      try {
+        // Attempt to invoke user-land function
+        // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
+        //       means Raven caught an error invoking your application code. This is
+        //       expected behavior and NOT indicative of a bug with Raven.js.
+        return fn.apply(this, args);
+      } catch (ex) {
+        // TODO: Get back _ignoreNextOnError() call
+        // this._ignoreNextOnError();
+        getDefaultHub().withScope(async () => {
+          getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+            ...event,
+            ...(options && options.mechanism),
+          }));
+
+          getDefaultHub().captureException(ex);
+        });
+        throw ex;
+      }
+    };
+
+    for (const property in fn) {
+      if (Object.prototype.hasOwnProperty.call(fn, property)) {
+        wrapped[property] = fn[property];
+      }
+    }
+
+    wrapped.prototype = fn.prototype;
+    fn.__sentry_wrapper__ = wrapped;
+
+    // Signal that this function has been wrapped/filled already
+    // for both debugging and to prevent it to being wrapped/filled twice
+    wrapped.__sentry__ = true;
+    wrapped.__original__ = fn;
+
+    return wrapped;
   }
 }

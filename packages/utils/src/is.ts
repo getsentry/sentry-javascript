@@ -52,6 +52,50 @@ export function isDOMException(wat: any): boolean {
 }
 
 /**
+ * Checks whether given value's type is an undefined
+ * {@link isUndefined}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isUndefined(wat: any): boolean {
+  return wat === void 0;
+}
+
+/**
+ * Checks whether given value's type is a function
+ * {@link isFunction}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isFunction(wat: any): boolean {
+  return typeof wat === 'function';
+}
+
+/**
+ * Checks whether given value's type is a string
+ * {@link isString}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isString(wat: any): boolean {
+  return Object.prototype.toString.call(wat) === '[object String]';
+}
+
+/**
+ * Checks whether given value's type is an array
+ * {@link isArray}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isArray(wat: any): boolean {
+  return Object.prototype.toString.call(wat) === '[object Array]';
+}
+
+/**
  * Checks whether given value's type is an object literal
  * {@link isPlainObject}.
  *
