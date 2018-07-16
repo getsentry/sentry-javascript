@@ -239,7 +239,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   protected async prepareEvent(
     event: SentryEvent,
     scope?: Scope,
-  ): Promise<SentryEvent> {
+  ): Promise<SentryEvent | null> {
     const {
       environment,
       maxBreadcrumbs = DEFAULT_BREADCRUMBS,
@@ -317,7 +317,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
 
     const prepared = await this.prepareEvent(event, scope);
     const { shouldSend, beforeSend, afterSend } = this.getOptions();
-    if (shouldSend && !shouldSend(prepared)) {
+    if (prepared === null || (shouldSend && !shouldSend(prepared))) {
       return {
         code: -1,
         event_id: event.event_id,

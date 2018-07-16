@@ -285,7 +285,7 @@ describe('Hub', () => {
     expect(callCounter.mock.calls[1][0]).toBe(2);
     expect(callCounter.mock.calls[2][0]).toBe(3);
     expect(callCounter.mock.calls[3][0]).toBe(4);
-    expect(final.dist).toEqual('1');
+    expect(final!.dist).toEqual('1');
   });
 
   test('pushScope inherit processors', async () => {
@@ -305,7 +305,20 @@ describe('Hub', () => {
     const pushedScope = hub.getStackTop().scope;
     if (pushedScope) {
       const final = await pushedScope.applyToEvent(event);
-      expect(final.dist).toEqual('1');
+      expect(final!.dist).toEqual('1');
     }
+  });
+
+  test('addEventProcessor return null', async () => {
+    expect.assertions(1);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const hub = new Hub({ a: 'b' }, localScope);
+    hub.addEventProcessor(async (_: SentryEvent) => null);
+    const final = await localScope.applyToEvent(event);
+    expect(final).toBeNull();
   });
 });
