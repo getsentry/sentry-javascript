@@ -226,3 +226,10 @@ export namespace Status {
     return Status.Unknown;
   }
 }
+
+export interface SentryWrappedFunction extends Function {
+  [key: string]: any;
+  __sentry__?: boolean;
+  __sentry_wrapper__?: SentryWrappedFunction;
+  __sentry_original__?: SentryWrappedFunction;
+}

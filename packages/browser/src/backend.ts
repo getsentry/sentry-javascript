@@ -1,18 +1,11 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { addBreadcrumb, captureEvent } from '@sentry/minimal';
 import { SentryEvent, SentryResponse } from '@sentry/types';
-import { isFunction, isUndefined } from '@sentry/utils/is';
+import { isFunction } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
 import { getDefaultHub } from '../../../node_modules/@sentry/hub';
 import { Raven } from './raven';
 import { FetchTransport, XHRTransport } from './transports';
-
-interface SentryWrappedFunction extends Function {
-  [key: string]: any;
-  __sentry__?: boolean;
-  __sentry_wrapper__?: SentryWrappedFunction;
-  __original__?: SentryWrappedFunction;
-}
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -235,7 +228,7 @@ export class BrowserBackend implements Backend {
     // Signal that this function has been wrapped/filled already
     // for both debugging and to prevent it to being wrapped/filled twice
     wrapped.__sentry__ = true;
-    wrapped.__original__ = fn;
+    wrapped.__sentry_original__ = fn;
 
     return wrapped;
   }
