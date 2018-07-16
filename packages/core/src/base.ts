@@ -309,8 +309,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   ): Promise<SentryResponse> {
     if (!this.isEnabled()) {
       return {
-        code: -1,
-        event_id: event.event_id,
         status: Status.Skipped,
       };
     }
@@ -319,8 +317,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     const { shouldSend, beforeSend, afterSend } = this.getOptions();
     if (prepared === null || (shouldSend && !shouldSend(prepared))) {
       return {
-        code: -1,
-        event_id: event.event_id,
         status: Status.Skipped,
       };
     }

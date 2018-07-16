@@ -18,8 +18,6 @@ export class XHRTransport extends BaseTransport {
 
         if (request.status === 200) {
           resolve({
-            code: request.status,
-            event_id: event.event_id,
             status: Status.fromHttpCode(request.status),
           });
         }
