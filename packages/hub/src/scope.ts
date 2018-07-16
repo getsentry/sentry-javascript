@@ -13,7 +13,7 @@ export class Scope {
 
   /** Callback list that will be called after {@link applyToEvent}. */
   protected eventProcessors: Array<
-    (scope: SentryEvent) => Promise<SentryEvent>
+    (scope: SentryEvent) => Promise<SentryEvent | null>
   > = [];
 
   /** Array of breadcrumbs. */
@@ -38,7 +38,7 @@ export class Scope {
 
   /** Add new event processor that will be called after {@link applyToEvent}. */
   public addEventProcessor(
-    callback: (scope: SentryEvent) => Promise<SentryEvent>,
+    callback: (scope: SentryEvent) => Promise<SentryEvent | null>,
   ): void {
     this.eventProcessors.push(callback);
   }
@@ -63,11 +63,16 @@ export class Scope {
    */
   protected async notifyEventProcessors(
     event: SentryEvent,
-  ): Promise<SentryEvent> {
-    return this.eventProcessors.reduce(async (prev, callback) => {
-      const prevEvent = await prev;
-      return callback(prevEvent);
-    }, Promise.resolve(event));
+  ): Promise<SentryEvent | null> {
+    let processedEvent: SentryEvent | null = event;
+    for (const processor of this.eventProcessors) {
+      processedEvent = await processor(processedEvent);
+      if (processedEvent === null) {
+        // tslint:disable-next-line:no-null-keyword
+        return null;
+      }
+    }
+    return processedEvent;
   }
 
   /**
@@ -179,7 +184,7 @@ export class Scope {
   public async applyToEvent(
     event: SentryEvent,
     maxBreadcrumbs?: number,
-  ): Promise<SentryEvent> {
+  ): Promise<SentryEvent | null> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }

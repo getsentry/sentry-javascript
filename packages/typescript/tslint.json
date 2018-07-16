@@ -5,7 +5,7 @@
     "no-unused-variable": false,
 
     "no-submodule-imports": false,
-
+    "no-null-keyword": false,
     // We don't want these
     "newline-before-return": false,
     "no-any": false,
