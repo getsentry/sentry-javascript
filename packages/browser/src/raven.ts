@@ -13,8 +13,6 @@ export interface RavenInternal {
   config(dsn: string, options: object): RavenInternal;
   install(): void;
   setBreadcrumbCallback(cb: (b: Breadcrumb) => Breadcrumb | boolean): void;
-  // tslint:disable-next-line:ban-types
-  wrap(options: object, fn: Function): Function;
   _sendProcessedPayload: SendMethod;
   VERSION: string;
   // TODO: Remove once integrations are ported

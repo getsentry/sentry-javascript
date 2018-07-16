@@ -2,7 +2,6 @@ import { BaseClient, DSN, SentryError } from '@sentry/core';
 import { DSNLike, SdkInfo } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
-import { Raven } from './raven';
 
 /**
  * The Sentry Browser SDK Client.
@@ -80,18 +79,5 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     script.async = true;
     script.src = src;
     (document.head || document.body).appendChild(script);
-  }
-
-  /**
-   * Instruments the given function and sends an event to Sentry every time the
-   * function throws an exception.
-   * TODO remove this
-   *
-   * @param fn A function to wrap.
-   * @returns The wrapped function.
-   */
-  // tslint:disable-next-line:ban-types
-  public wrap(fn: Function, options: object): Function {
-    return Raven.wrap(options, fn);
   }
 }
