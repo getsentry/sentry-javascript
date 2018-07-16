@@ -84,8 +84,6 @@ export abstract class BaseTransport implements Transport {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve({
-              code: res.statusCode,
-              event_id: event.event_id,
               status: Status.fromHttpCode(res.statusCode),
             });
           } else {

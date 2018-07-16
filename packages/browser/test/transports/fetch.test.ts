@@ -37,7 +37,6 @@ describe('FetchTransport', () => {
       fetch.returns(Promise.resolve(response));
 
       return transport.send(payload).then(res => {
-        expect(res.code).equal(200);
         expect(res.status).equal(Status.Success);
         expect(fetch.calledOnce).equal(true);
         expect(

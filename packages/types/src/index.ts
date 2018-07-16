@@ -155,9 +155,7 @@ export interface Integration {
 
 /** TODO */
 export interface SentryResponse {
-  code: number;
-  event_id?: string;
-  status?: Status;
+  status: Status;
 }
 
 /** TODO */
