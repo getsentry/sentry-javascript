@@ -69,8 +69,7 @@ async function uploadFiles() {
   });
 
   const bucket = storage.bucket(bucketName);
-  // TODO increase after some testing is done
-  const cacheAge = 300;
+  const cacheAge = 31536000; // 1 year
 
   await Promise.all(
     bundleFiles.map(async filepath => {
