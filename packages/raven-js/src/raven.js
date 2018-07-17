@@ -877,30 +877,35 @@ Raven.prototype = {
     )
       return;
 
-    options = options || {};
+    options = Object.assign({
+      eventId: this.lastEventId(),
+      dsn: this._dsn,
+      user: this._globalContext.user,
+    }, options || {});
 
-    var lastEventId = options.eventId || this.lastEventId();
-    if (!lastEventId) {
+    if (!options.eventId) {
       throw new RavenConfigError('Missing eventId');
     }
 
-    var dsn = options.dsn || this._dsn;
-    if (!dsn) {
+    if (!options.dsn) {
       throw new RavenConfigError('Missing DSN');
     }
 
     var encode = encodeURIComponent;
-    var qs = '';
-    qs += '?eventId=' + encode(lastEventId);
-    qs += '&dsn=' + encode(dsn);
+    var qs = '?';
+    for (var key in options) {
+      if (key !== 'user') {
+        qs += encode(key) + '=' + encode(options[key]) + '&';
+      }
+    }
 
-    var user = options.user || this._globalContext.user;
+    var user = options.user;
     if (user) {
       if (user.name) qs += '&name=' + encode(user.name);
       if (user.email) qs += '&email=' + encode(user.email);
     }
 
-    var globalServer = this._getGlobalServer(this._parseDSN(dsn));
+    var globalServer = this._getGlobalServer(this._parseDSN(options.dsn));
 
     var script = _document.createElement('script');
     script.async = true;
