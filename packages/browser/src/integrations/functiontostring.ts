@@ -18,10 +18,8 @@ export class FunctionToString implements Integration {
       this: SentryWrappedFunction,
       ...args: any[]
     ): string {
-      if (typeof this === 'function' && this.__sentry__) {
-        return originalFunctionToString.apply(this.__sentry_original__, args);
-      }
-      return originalFunctionToString.apply(this, args);
+      const context = this.__sentry__ ? this.__sentry_original__ : this;
+      return originalFunctionToString.apply(context, args);
     };
   }
 }
