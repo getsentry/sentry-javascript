@@ -55,3 +55,27 @@ export function snipLine(line: string, colno: number): string {
 
   return newLine;
 }
+
+/**
+ * Join values in array
+ * @param input array of values to be joined together
+ * @param delimiter string to be placed in-between values
+ * @returns Joined values
+ */
+export function safeJoin(input: any[], delimiter?: string): string {
+  if (!Array.isArray(input)) {
+    return '';
+  }
+
+  const output = [];
+
+  for (const value of input) {
+    try {
+      output.push(String(value));
+    } catch (e) {
+      output.push('[value cannot be serialized]');
+    }
+  }
+
+  return output.join(delimiter);
+}

@@ -64,11 +64,11 @@ export function supportsFetch(): boolean {
   }
 
   try {
-    // tslint:disable:no-unused-expression
+    // tslint:disable-next-line:no-unused-expression
     new Headers();
-    // tslint:disable:no-unused-expression
+    // tslint:disable-next-line:no-unused-expression
     new Request('');
-    // tslint:disable:no-unused-expression
+    // tslint:disable-next-line:no-unused-expression
     new Response();
     return true;
   } catch (e) {
@@ -101,4 +101,26 @@ export function supportsReferrerPolicy(): boolean {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Tells whether current environment supports History API
+ * {@link supportsHistory}.
+ *
+ * @returns Answer to the given question.
+ */
+export function supportsHistory(): boolean {
+  // NOTE: in Chrome App environment, touching history.pushState, *even inside
+  //       a try/catch block*, will cause Chrome to output an error to console.error
+  // borrowed from: https://github.com/angular/angular.js/pull/13945/files
+  const global = getGlobalObject();
+  const chrome = (global as any).chrome;
+  // tslint:disable-next-line:no-unsafe-any
+  const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
+  const hasHistoryApi =
+    'history' in global &&
+    !!global.history.pushState &&
+    !!global.history.replaceState;
+
+  return !isChromePackagedApp && hasHistoryApi;
 }
