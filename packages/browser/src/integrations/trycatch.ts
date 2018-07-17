@@ -1,34 +1,10 @@
-import { getDefaultHub } from '@sentry/hub';
-import { Integration, SentryEvent } from '@sentry/types';
-import { isFunction } from '@sentry/utils/is';
-import { getGlobalObject, htmlTreeAsString } from '@sentry/utils/misc';
+import { Integration, SentryWrappedFunction } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils/misc';
 import { fill } from '@sentry/utils/object';
-
-/** TODO */
-interface SentryWrappedFunction extends Function {
-  [key: string]: any;
-  __sentry__?: boolean;
-  __sentry_wrapper__?: SentryWrappedFunction;
-  __sentry_original__?: SentryWrappedFunction;
-}
+import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
-  /**
-   * TODO
-   */
-  private readonly debounceDuration: number = 1000;
-
-  /**
-   * TODO
-   */
-  private keypressTimeout: number | undefined;
-
-  /**
-   * TODO
-   */
-  private lastCapturedEvent: Event | undefined;
-
   /**
    * TODO
    */
@@ -42,184 +18,10 @@ export class TryCatch implements Integration {
   /**
    * TODO
    */
-  private ignoreNextOnError(): void {
-    // onerror should trigger before setTimeout
-    this.ignoreOnError += 1;
-    setTimeout(() => {
-      this.ignoreOnError -= 1;
-    });
-  }
-
-  /**
-   * Wraps addEventListener to capture UI breadcrumbs
-   * @param eventName the event name (e.g. "click")
-   * @returns wrapped breadcrumb events handler
-   */
-  private breadcrumbEventHandler(
-    this: TryCatch,
-    eventName: string,
-  ): (event: Event) => void {
-    return (event: Event) => {
-      // reset keypress timeout; e.g. triggering a 'click' after
-      // a 'keypress' will reset the keypress debounce so that a new
-      // set of keypresses can be recorded
-      this.keypressTimeout = undefined;
-
-      // It's possible this handler might trigger multiple times for the same
-      // event (e.g. event propagation through node ancestors). Ignore if we've
-      // already captured the event.
-      if (this.lastCapturedEvent === event) {
-        return;
-      }
-
-      this.lastCapturedEvent = event;
-
-      // try/catch both:
-      // - accessing event.target (see getsentry/raven-js#838, #768)
-      // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-      //   can throw an exception in some circumstances.
-      let target;
-      try {
-        target = htmlTreeAsString(event.target as Node);
-      } catch (e) {
-        target = '<unknown>';
-      }
-
-      getDefaultHub().addBreadcrumb({
-        category: `ui.${eventName}`, // e.g. ui.click, ui.input
-        message: target,
-      });
-    };
-  }
-
-  /**
-   * Wraps addEventListener to capture keypress UI events
-   * @returns wrapped keypress events handler
-   */
-  private keypressEventHandler(this: TryCatch): (event: Event) => void {
-    // TODO: if somehow user switches keypress target before
-    //       debounce timeout is triggered, we will only capture
-    //       a single breadcrumb from the FIRST target (acceptable?)
-    return (event: Event) => {
-      let target;
-
-      try {
-        target = event.target;
-      } catch (e) {
-        // just accessing event properties can throw an exception in some rare circumstances
-        // see: https://github.com/getsentry/raven-js/issues/838
-        return;
-      }
-
-      const tagName = target && (target as HTMLElement).tagName;
-
-      // only consider keypress events on actual input elements
-      // this will disregard keypresses targeting body (e.g. tabbing
-      // through elements, hotkeys, etc)
-      if (
-        !tagName ||
-        (tagName !== 'INPUT' &&
-          tagName !== 'TEXTAREA' &&
-          !(target as HTMLElement).isContentEditable)
-      ) {
-        return;
-      }
-
-      // record first keypress in a series, but ignore subsequent
-      // keypresses until debounce clears
-      if (!this.keypressTimeout) {
-        this.breadcrumbEventHandler('input')(event);
-      }
-      clearTimeout(this.keypressTimeout as number);
-
-      this.keypressTimeout = (setTimeout(() => {
-        this.keypressTimeout = undefined;
-      }, this.debounceDuration) as any) as number;
-    };
-  }
-
-  /**
-   * Instruments the given function and sends an event to Sentry every time the
-   * function throws an exception.
-   *
-   * @param fn A function to wrap.
-   * @returns The wrapped function.
-   */
-  private wrap(
-    this: TryCatch,
-    fn: SentryWrappedFunction,
-    options?: {
-      mechanism?: object;
-    },
-    before?: SentryWrappedFunction,
-  ): any {
-    try {
-      // We don't wanna wrap it twice
-      if (fn.__sentry__) {
-        return fn;
-      }
-      // If this has already been wrapped in the past, return that wrapped function
-      if (fn.__sentry_wrapper__) {
-        return fn.__sentry_wrapper__;
-      }
-    } catch (e) {
-      // Just accessing custom props in some Selenium environments
-      // can cause a "Permission denied" exception (see raven-js#495).
-      // Bail on wrapping and return the function as-is (defers to window.onerror).
-      return fn;
-    }
-
-    const wrapped: SentryWrappedFunction = (...args: any[]) => {
-      if (before && isFunction(before)) {
-        before.apply(this, args);
-      }
-
-      try {
-        // Attempt to invoke user-land function
-        // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
-        //       means Raven caught an error invoking your application code. This is
-        //       expected behavior and NOT indicative of a bug with Raven.js.
-        return fn.apply(this, args);
-      } catch (ex) {
-        this.ignoreNextOnError();
-
-        getDefaultHub().withScope(async () => {
-          getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
-            ...event,
-            ...(options && options.mechanism),
-          }));
-
-          getDefaultHub().captureException(ex);
-        });
-
-        throw ex;
-      }
-    };
-
-    for (const property in fn) {
-      if (Object.prototype.hasOwnProperty.call(fn, property)) {
-        wrapped[property] = fn[property];
-      }
-    }
-
-    wrapped.prototype = fn.prototype;
-    fn.__sentry_wrapper__ = wrapped;
-
-    // Signal that this function has been wrapped/filled already
-    // for both debugging and to prevent it to being wrapped/filled twice
-    wrapped.__sentry__ = true;
-    wrapped.__sentry_original__ = fn;
-
-    return wrapped;
-  }
-
-  /**
-   * TODO
-   */
   private wrapTimeFunction(original: () => void): () => number {
     return (...args: any[]): number => {
       const originalCallback = args[0];
-      args[0] = this.wrap(originalCallback, {
+      args[0] = wrap(originalCallback, {
         mechanism: {
           data: { function: original.name || '<anonymous>' },
           type: 'instrument',
@@ -235,7 +37,7 @@ export class TryCatch implements Integration {
   private wrapRAF(original: any): (callback: () => void) => any {
     return (callback: () => void) =>
       original(
-        this.wrap(callback, {
+        wrap(callback, {
           mechanism: {
             data: {
               function: 'requestAnimationFrame',
@@ -279,7 +81,7 @@ export class TryCatch implements Integration {
         secure?: boolean,
       ): any => {
         try {
-          fn.handleEvent = this.wrap(fn.handleEvent.bind(fn), {
+          fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
             mechanism: {
               data: {
                 function: 'handleEvent',
@@ -303,8 +105,8 @@ export class TryCatch implements Integration {
         if (target === 'EventTarget' || target === 'Node') {
           // NOTE: generating multiple handlers per addEventListener invocation, should
           //       revisit and verify we can just use one (almost certainly)
-          clickHandler = this.breadcrumbEventHandler('click');
-          keypressHandler = this.keypressEventHandler();
+          clickHandler = breadcrumbEventHandler('click');
+          keypressHandler = keypressEventHandler();
           before = function(event: Event): any {
             // need to intercept every DOM event in `before` argument, in case that
             // same wrapped method is re-used for different events (e.g. mousemove THEN click)
@@ -332,7 +134,7 @@ export class TryCatch implements Integration {
         return original.call(
           this,
           eventName,
-          this.wrap(
+          wrap(
             (fn as any) as SentryWrappedFunction,
             {
               mechanism: {
