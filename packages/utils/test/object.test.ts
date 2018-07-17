@@ -255,26 +255,6 @@ describe('fill()', () => {
     expect(replacement).toBeCalled();
     expect.assertions(3);
   });
-
-  test('stores reference to unwrapped function', () => {
-    const source = {
-      foo(): number {
-        return 42;
-      },
-    };
-    const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(() => () => 1337);
-    const wrapped: Array<[{ [key: string]: any }, string, any]> = [];
-
-    fill(source, name, replacement, wrapped);
-    expect(source.foo()).toEqual(1337);
-    expect(replacement).toBeCalled();
-
-    const original = wrapped[0];
-    expect(original[0]).toEqual(source);
-    expect(original[1]).toEqual('foo');
-    expect(original[2]()).toEqual(42);
-  });
 });
 
 describe('urlEncode()', () => {
