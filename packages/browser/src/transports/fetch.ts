@@ -4,7 +4,7 @@ import { serialize } from '@sentry/utils/object';
 import { supportsReferrerPolicy } from '@sentry/utils/supports';
 import { BaseTransport } from './base';
 
-const global: any = getGlobalObject();
+const global = getGlobalObject() as Window;
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {
@@ -23,7 +23,7 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
-    const response = await (global as Window).fetch(this.url, defaultOptions);
+    const response = await global.fetch(this.url, defaultOptions);
 
     return {
       status: Status.fromHttpCode(response.status),
