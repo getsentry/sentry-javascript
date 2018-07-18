@@ -1,7 +1,7 @@
 import { Integration } from '@sentry/types';
 import { Raven } from '../raven';
 // @ts-ignore
-import { TraceKit } from './tracekit';
+import { TraceKit } from '../tracekit';
 
 /** Global OnError handler */
 export class OnError implements Integration {
