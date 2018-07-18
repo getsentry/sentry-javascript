@@ -1,8 +1,16 @@
+import { isUndefined, isError, isErrorEvent } from '@sentry/utils/is';
+
 /**
+ * TraceKit - Cross brower stack traces
+ *
+ * This was originally forked from github.com/occ/TraceKit, but has since been
+ * largely modified and is now maintained as part of Sentry JS SDK.
+ *
  * https://github.com/csnover/TraceKit
  * @license MIT
  * @namespace TraceKit
  */
+
 (function(window, undefined) {
   if (!window) {
     return;
@@ -31,14 +39,34 @@
   }
 
   /**
-   * Returns true if the parameter is undefined<br/>
-   * Example: `_isUndefined(val) === true/false`
+   * A safe form of location.href<br/>
    *
-   * @param {*} what Value to check
-   * @return {Boolean} true if undefined and false otherwise
+   * @return {string} location.href
    */
-  function _isUndefined(what) {
-    return typeof what === 'undefined';
+  function getLocationHref() {
+    if (typeof document === 'undefined' || document.location == null) return '';
+    return document.location.href;
+  }
+
+  /**
+   * A safe form of location.origin<br/>
+   *
+   * @return {string} location.origin
+   */
+  function getLocationOrigin() {
+    if (typeof document === 'undefined' || document.location == null) return '';
+
+    // Oh dear IE10...
+    if (!document.location.origin) {
+      return (
+        document.location.protocol +
+        '//' +
+        document.location.hostname +
+        (document.location.port ? ':' + document.location.port : '')
+      );
+    }
+
+    return document.location.origin;
   }
 
   /**
@@ -193,6 +221,10 @@
      */
     function traceKitWindowOnError(message, url, lineNo, columnNo, errorObj) {
       var stack = null;
+      // If 'errorObj' is ErrorEvent, get real Error from inside
+      errorObj = isErrorEvent(errorObj) ? errorObj.error : errorObj;
+      // If 'message' is ErrorEvent, get real message from inside
+      message = isErrorEvent(message) ? message.message : message;
 
       if (lastExceptionStack) {
         TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
@@ -202,7 +234,7 @@
           message,
         );
         processLastException();
-      } else if (errorObj) {
+      } else if (errorObj && isError(errorObj)) {
         stack = TraceKit.computeStackTrace(errorObj);
         notifyHandlers(stack, true, errorObj);
       } else {
@@ -541,7 +573,7 @@
       for (var i = 0; i < maxLines; ++i) {
         line = source[lineNo - i] + line;
 
-        if (!_isUndefined(line)) {
+        if (!isUndefined(line)) {
           if ((m = reGuessFunction.exec(line))) {
             return m[1];
           } else if ((m = reFunctionArgNames.exec(line))) {
@@ -580,7 +612,7 @@
       line -= 1; // convert to 0-based index
 
       for (var i = start; i < end; ++i) {
-        if (!_isUndefined(source[i])) {
+        if (!isUndefined(source[i])) {
           context.push(source[i]);
         }
       }
@@ -674,11 +706,11 @@
      * @memberof TraceKit.computeStackTrace
      */
     function findSourceByFunctionBody(func) {
-      if (_isUndefined(window && window.document)) {
+      if (isUndefined(window && window.document)) {
         return;
       }
 
-      var urls = [window.location.href],
+      var urls = [getLocationHref()],
         scripts = window.document.getElementsByTagName('script'),
         body,
         code = '' + func,
@@ -797,8 +829,8 @@
         return null;
       }
 
-      var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
-        gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
+      var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+        gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
         winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
         // Used to additionally parse URL/line/column from eval frames
         isEval,
@@ -843,7 +875,7 @@
             parts[3] = submatch[1];
             parts[4] = submatch[2];
             parts[5] = null; // no column when eval
-          } else if (i === 0 && !parts[5] && !_isUndefined(ex.columnNumber)) {
+          } else if (i === 0 && !parts[5] && !isUndefined(ex.columnNumber)) {
             // FireFox uses this awesome columnNumber property for its top frame
             // Also note, Firefox's column number is 0-based and everything else expects 1-based,
             // so adding 1
@@ -865,9 +897,49 @@
           element.func = guessFunctionName(element.url, element.line);
         }
 
+        if (element.url && element.url.substr(0, 5) === 'blob:') {
+          // Special case for handling JavaScript loaded into a blob.
+          // We use a synchronous AJAX request here as a blob is already in
+          // memory - it's not making a network request.  This will generate a warning
+          // in the browser console, but there has already been an error so that's not
+          // that much of an issue.
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', element.url, false);
+          xhr.send(null);
+
+          // If we failed to download the source, skip this patch
+          if (xhr.status === 200) {
+            var source = xhr.responseText || '';
+
+            // We trim the source down to the last 300 characters as sourceMappingURL is always at the end of the file.
+            // Why 300? To be in line with: https://github.com/getsentry/sentry/blob/4af29e8f2350e20c28a6933354e4f42437b4ba42/src/sentry/lang/javascript/processor.py#L164-L175
+            source = source.slice(-300);
+
+            // Now we dig out the source map URL
+            var sourceMaps = source.match(/\/\/# sourceMappingURL=(.*)$/);
+
+            // If we don't find a source map comment or we find more than one, continue on to the next element.
+            if (sourceMaps) {
+              var sourceMapAddress = sourceMaps[1];
+
+              // Now we check to see if it's a relative URL.
+              // If it is, convert it to an absolute one.
+              if (sourceMapAddress.charAt(0) === '~') {
+                sourceMapAddress =
+                  getLocationOrigin() + sourceMapAddress.slice(1);
+              }
+
+              // Now we strip the '.map' off of the end of the URL and update the
+              // element so that Sentry can match the map to the blob.
+              element.url = sourceMapAddress.slice(0, -4);
+            }
+          }
+        }
+
         element.context = element.line
           ? gatherContext(element.url, element.line)
           : null;
+
         stack.push(element);
       }
 
@@ -1043,7 +1115,7 @@
             }
           }
         } else if ((parts = lineRE3.exec(lines[line]))) {
-          var url = window.location.href.replace(/#.*$/, '');
+          var url = getLocationHref().replace(/#.*$/, '');
           var re = new RegExp(
             escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]),
           );
@@ -1396,4 +1468,12 @@
   } else {
     window.TraceKit = TraceKit;
   }
-})(typeof window !== 'undefined' ? window : global);
+})(
+  typeof window !== 'undefined'
+    ? window
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {},
+);
