@@ -1,9 +1,15 @@
-import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { addBreadcrumb, captureEvent } from '@sentry/minimal';
-import { SentryEvent, SentryResponse } from '@sentry/types';
-import { supportsFetch } from '@sentry/utils/supports';
+import { Backend, DSN, Options, SentryError } from '../../core/dist';
+import { addBreadcrumb, captureEvent } from '../../minimal/dist';
+import { SentryEvent, SentryResponse, StackFrame } from '../../types/dist';
+import { supportsFetch } from '../../utils/supports';
 import { Raven } from './raven';
+import {
+  StackFrame as TraceKitStackFrame,
+  StackTrace as TraceKitStackTrace,
+} from './tracekit';
 import { FetchTransport, XHRTransport } from './transports';
+
+const STACKTRACE_LIMIT = 50;
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -145,5 +151,67 @@ export class BrowserBackend implements Backend {
    */
   public storeScope(): void {
     // Noop
+  }
+
+  private prepareFrames(
+    stackInfo: TraceKitStackTrace,
+    options: {
+      trimHeadFrames: number;
+    } = {
+      trimHeadFrames: 0,
+    },
+  ): StackFrame[] {
+    if (stackInfo.stack && stackInfo.stack.length) {
+      const frames = stackInfo.stack.map((frame: TraceKitStackFrame) =>
+        this.normalizeFrame(frame, stackInfo.url),
+      );
+
+      // e.g. frames captured via captureMessage throw
+      for (let j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
+        frames[j].in_app = false;
+      }
+
+      return frames.slice(0, STACKTRACE_LIMIT);
+    } else {
+      return [];
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  private normalizeFrame(
+    frame: TraceKitStackFrame,
+    stackInfoUrl: string,
+  ): StackFrame {
+    // normalize the frames data
+    const normalized = {
+      colno: frame.column,
+      filename: frame.url,
+      function: frame.func || '?',
+      in_app: true,
+      lineno: frame.line,
+    };
+
+    // Case when we don't have any information about the error
+    // E.g. throwing a string or raw object, instead of an `Error` in Firefox
+    // Generating synthetic error doesn't add any value here
+    //
+    // We should probably somehow let a user know that they should fix their code
+    if (!frame.url) {
+      normalized.filename = stackInfoUrl; // fallback to whole stacks url from onerror handler
+    }
+
+    // TODO: This has to be fixed
+    // determine if an exception came from outside of our app
+    // first we check the global includePaths list.
+    // Now we check for fun, if the function name is Raven or TraceKit
+    // finally, we do a last ditch effort and check for raven.min.js
+    normalized.in_app = !(
+      /(Sentry|TraceKit)\./.test(normalized.function) ||
+      /raven\.(min\.)?js$/.test(normalized.filename)
+    );
+
+    return normalized;
   }
 }
