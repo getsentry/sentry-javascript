@@ -1,11 +1,5 @@
 import { Scope } from '@sentry/hub';
-import {
-  Breadcrumb,
-  SdkInfo,
-  SentryEvent,
-  SentryResponse,
-  Status,
-} from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { DSN } from './dsn';
@@ -40,9 +34,6 @@ export interface BackendClass<B extends Backend, O extends Options> {
  * specific to the client subclass. To access these options later, use
  * {@link Client.getOptions}. Also, the Backend instance is available via
  * {@link Client.getBackend}.
- *
- * Subclasses must implement one abstract method: {@link getSdkInfo}. It must
- * return the unique name and the version of the SDK.
  *
  * If a DSN is specified in the options, it will be parsed and stored. Use
  * {@link Client.getDSN} to retrieve the DSN at any moment. In case the DSN is
@@ -207,11 +198,6 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     return this.options;
   }
 
-  /**
-   * @inheritDoc
-   */
-  public abstract getSdkInfo(): SdkInfo;
-
   /** Returns the current backend. */
   protected getBackend(): B {
     return this.backend;
@@ -225,8 +211,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * Adds common information to events.
    *
-   * The information includes release and environment from `options`, SDK
-   * information returned by {@link BaseClient.getSdkInfo}, as well as
+   * The information includes release and environment from `options`,
    * breadcrumbs and context (extra, tags and user) from the scope.
    *
    * Information that is already present in the event is never overwritten. For
@@ -246,7 +231,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       release,
     } = this.getOptions();
 
-    const prepared = { sdk: this.getSdkInfo(), ...event };
+    const prepared = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
       prepared.environment = environment;
     }

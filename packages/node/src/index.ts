@@ -27,6 +27,7 @@ export { getDefaultHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
+export { SDK_NAME, SDK_VERSION } from './version';
 
 import * as Handlers from './handlers';
 import * as Integrations from './integrations';
