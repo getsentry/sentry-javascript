@@ -62,9 +62,16 @@ export interface User {
 
 /** TODO */
 export interface SdkInfo {
-  version?: string;
-  name?: string;
+  name: string;
+  version: string;
   integrations?: string[];
+  packages?: Package[];
+}
+
+/** TODO */
+export interface Package {
+  name: string;
+  version: string;
 }
 
 /** TODO */

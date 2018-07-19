@@ -2,6 +2,8 @@ import { BaseClient } from '@sentry/core';
 import { SdkInfo } from '@sentry/types';
 import { NodeBackend, NodeOptions } from './backend';
 
+export const SDK_VERSION = '4.0.0-beta.9';
+
 /**
  * The Sentry Node SDK Client.
  *
@@ -22,8 +24,8 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   public getSdkInfo(): SdkInfo {
     return {
-      name: 'sentry-node',
-      version: '4.0.0-beta.9',
+      name: 'sentry.javascript.node',
+      version: SDK_VERSION,
     };
   }
 }
