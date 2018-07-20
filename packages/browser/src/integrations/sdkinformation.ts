@@ -13,21 +13,19 @@ export class SDKInformation implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    getDefaultHub().addEventProcessor(async (event: SentryEvent) => {
-      return {
-        ...event,
-        sdk: {
-          name: SDK_NAME,
-          packages: [
-            ...((event.sdk && event.sdk.packages) || []),
-            {
-              name: 'npm:@sentry/browser',
-              version: SDK_VERSION,
-            },
-          ],
-          version: SDK_VERSION,
-        },
-      };
-    });
+    getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+      ...event,
+      sdk: {
+        name: SDK_NAME,
+        packages: [
+          ...((event.sdk && event.sdk.packages) || []),
+          {
+            name: 'npm:@sentry/browser',
+            version: SDK_VERSION,
+          },
+        ],
+        version: SDK_VERSION,
+      },
+    }));
   }
 }

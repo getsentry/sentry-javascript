@@ -62,9 +62,7 @@ export class Store<T> {
   public get(): T {
     if (this.data === undefined) {
       try {
-        this.data = existsSync(this.path)
-          ? (JSON.parse(readFileSync(this.path, 'utf8')) as T)
-          : this.initial;
+        this.data = existsSync(this.path) ? (JSON.parse(readFileSync(this.path, 'utf8')) as T) : this.initial;
       } catch (e) {
         this.data = this.initial;
       }

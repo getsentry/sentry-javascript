@@ -11,10 +11,7 @@ export class OnUnhandledRejection implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    global.process.on(
-      'unhandledRejection',
-      this.sendUnhandledPromise.bind(this),
-    );
+    global.process.on('unhandledRejection', this.sendUnhandledPromise.bind(this));
   }
 
   /**

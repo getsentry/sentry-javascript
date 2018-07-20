@@ -13,9 +13,7 @@ jest.mock('https', () => ({
     expect(options.path).toEqual('/mysubpath/api/50622/store/');
     expect(options.hostname).toEqual('sentry.io');
     if (mockCheckHeaders) {
-      expect(options.headers).toEqual(
-        expect.objectContaining(mockCheckHeaders),
-      );
+      expect(options.headers).toEqual(expect.objectContaining(mockCheckHeaders));
     }
     return {
       end: () => {
@@ -33,8 +31,7 @@ jest.mock('https', () => ({
 import { DSN, SentryError } from '@sentry/core';
 import { captureMessage, init, NodeClient, SentryEvent } from '../../src';
 
-const dsn =
-  'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
+const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 
 describe('HTTPSTransport', () => {
   beforeEach(() => {
@@ -58,9 +55,7 @@ describe('HTTPSTransport', () => {
     mockReturnCode = 400;
     const client = new NodeClient({ dsn });
     client.install();
-    return expect(client.captureMessage('test')).rejects.toEqual(
-      new SentryError(`HTTP Error (${mockReturnCode})`),
-    );
+    return expect(client.captureMessage('test')).rejects.toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
   });
 
   test('send x-sentry-error header', async () => {

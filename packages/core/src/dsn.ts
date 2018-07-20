@@ -46,9 +46,7 @@ export class DSN implements DSNComponents {
     const { host, path, pass, port, projectId, protocol, user } = this;
     return (
       `${protocol}://${user}${withPassword && pass ? `:${pass}` : ''}` +
-      `@${host}${port ? `:${port}` : ''}/${
-        path ? `${path}/` : path
-      }${projectId}`
+      `@${host}${port ? `:${port}` : ''}/${path ? `${path}/` : path}${projectId}`
     );
   }
 
@@ -59,9 +57,7 @@ export class DSN implements DSNComponents {
       throw new SentryError('Invalid DSN');
     }
 
-    const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(
-      1,
-    );
+    const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(1);
     let path = '';
     let projectId = lastPath;
     const split = projectId.split('/');
@@ -92,9 +88,7 @@ export class DSN implements DSNComponents {
     }
 
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(
-        `Invalid DSN: Unsupported protocol "${this.protocol}"`,
-      );
+      throw new SentryError(`Invalid DSN: Unsupported protocol "${this.protocol}"`);
     }
 
     if (this.port && isNaN(parseInt(this.port, 10))) {

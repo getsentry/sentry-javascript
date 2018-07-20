@@ -24,9 +24,7 @@ function getModules(): { [key: string]: string } {
 /**
  * TODO
  */
-function extractRequestData(req: {
-  [key: string]: any;
-}): { [key: string]: string } {
+function extractRequestData(req: { [key: string]: any }): { [key: string]: string } {
   // headers:
   //   node, express: req.headers
   //   koa: req.header
@@ -46,9 +44,7 @@ function extractRequestData(req: {
   //   node: <n/a>
   //   express, koa: req.protocol
   const protocol =
-    req.protocol === 'https' ||
-    req.secure ||
-    ((req.socket || {}) as { encrypted?: boolean }).encrypted
+    req.protocol === 'https' || req.secure || ((req.socket || {}) as { encrypted?: boolean }).encrypted
       ? 'https'
       : 'http';
   // url (including path and query string):
@@ -72,11 +68,7 @@ function extractRequestData(req: {
       data = '<unavailable>';
     }
   }
-  if (
-    data &&
-    typeof data !== 'string' &&
-    {}.toString.call(data) !== '[object String]'
-  ) {
+  if (data && typeof data !== 'string' && {}.toString.call(data) !== '[object String]') {
     // Make sure the request body is a string
     data = serialize(data);
   }
@@ -99,9 +91,7 @@ function extractRequestData(req: {
 /**
  * TODO
  */
-function extractUserData(req: {
-  [key: string]: any;
-}): { [key: string]: string } {
+function extractUserData(req: { [key: string]: any }): { [key: string]: string } {
   const user: { [key: string]: string } = {};
 
   ['id', 'username', 'email'].forEach(key => {
@@ -166,23 +156,13 @@ function parseRequest(
 /**
  * TODO
  */
-export function requestHandler(): (
-  req: Request,
-  res: Response,
-  next: () => void,
-) => void {
-  return function sentryRequestMiddleware(
-    req: Request,
-    _res: Response,
-    next: () => void,
-  ): void {
+export function requestHandler(): (req: Request, res: Response, next: () => void) => void {
+  return function sentryRequestMiddleware(req: Request, _res: Response, next: () => void): void {
     // TODO: Do we even need domain when we use middleware like approach? — Kamil
     const local = domain.create();
     const hub = getHubFromCarrier(req);
     hub.bindClient(getDefaultHub().getClient());
-    hub.addEventProcessor(async (event: SentryEvent) =>
-      parseRequest(event, req),
-    );
+    hub.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req));
     local.on('error', next);
     local.run(next);
   };
@@ -204,11 +184,7 @@ interface MiddlewareError extends Error {
  * TODO
  */
 function getStatusCodeFromResponse(error: MiddlewareError): number {
-  const statusCode =
-    error.status ||
-    error.statusCode ||
-    error.status_code ||
-    (error.output && error.output.statusCode);
+  const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
 
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
@@ -250,10 +226,7 @@ export function defaultOnFatalError(error: Error): void {
  * TODO
  */
 export function makeErrorHandler(
-  onFatalError: (
-    firstError: Error,
-    secondError?: Error,
-  ) => void = defaultOnFatalError,
+  onFatalError: (firstError: Error, secondError?: Error) => void = defaultOnFatalError,
 ): (error: Error) => void {
   const timeout = 2000;
   let caughtFirstError: boolean = false;
@@ -285,9 +258,7 @@ export function makeErrorHandler(
     } else if (calledFatalError) {
       // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
       // TODO: Use consoleAlert or some other way to log our debug messages
-      console.warn(
-        'uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown',
-      );
+      console.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
       defaultOnFatalError(error);
     } else if (!caughtSecondError) {
       // two cases for how we can hit this branch:

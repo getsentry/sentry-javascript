@@ -20,9 +20,7 @@ export class FetchTransport extends BaseTransport {
       // https://caniuse.com/#feat=referrer-policy
       // It doesn't. And it throw exception instead of ignoring this parameter...
       // REF: https://github.com/getsentry/raven-js/issues/1233
-      referrerPolicy: (supportsReferrerPolicy()
-        ? 'origin'
-        : '') as ReferrerPolicy,
+      referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
     const response = await (global as Window).fetch(this.url, defaultOptions);

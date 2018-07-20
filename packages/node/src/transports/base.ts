@@ -1,11 +1,5 @@
 import { DSN, SentryError } from '@sentry/core';
-import {
-  SentryEvent,
-  SentryResponse,
-  Status,
-  Transport,
-  TransportOptions,
-} from '@sentry/types';
+import { SentryEvent, SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
 import * as http from 'http';
 import * as https from 'https';
@@ -59,47 +53,37 @@ export abstract class BaseTransport implements Transport {
       headers,
       hostname: this.dsn.host,
       method: 'POST',
-      path: `${this.dsn.path ? `/${this.dsn.path}` : ''}/api/${
-        this.dsn.projectId
-      }/store/`,
+      path: `${this.dsn.path ? `/${this.dsn.path}` : ''}/api/${this.dsn.projectId}/store/`,
       port: this.dsn.port,
     };
   }
 
   /** TODO */
-  protected async sendWithModule(
-    httpModule: HTTPRequest,
-    event: SentryEvent,
-  ): Promise<SentryResponse> {
+  protected async sendWithModule(httpModule: HTTPRequest, event: SentryEvent): Promise<SentryResponse> {
     const requestOptions = this.getRequestOptions();
     return new Promise<SentryResponse>((resolve, reject) => {
-      const req = httpModule.request(
-        requestOptions,
-        (res: http.IncomingMessage) => {
-          res.setEncoding('utf8');
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({
-              status: Status.fromHttpCode(res.statusCode),
-            });
+      const req = httpModule.request(requestOptions, (res: http.IncomingMessage) => {
+        res.setEncoding('utf8');
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({
+            status: Status.fromHttpCode(res.statusCode),
+          });
+        } else {
+          if (res.headers && res.headers['x-sentry-error']) {
+            const reason = res.headers['x-sentry-error'];
+            reject(new SentryError(`HTTP Error (${res.statusCode}): ${reason}`));
           } else {
-            if (res.headers && res.headers['x-sentry-error']) {
-              const reason = res.headers['x-sentry-error'];
-              reject(
-                new SentryError(`HTTP Error (${res.statusCode}): ${reason}`),
-              );
-            } else {
-              reject(new SentryError(`HTTP Error (${res.statusCode})`));
-            }
+            reject(new SentryError(`HTTP Error (${res.statusCode})`));
           }
-          // force the socket to drain
-          res.on('data', () => {
-            // Drain
-          });
-          res.on('end', () => {
-            // Drain
-          });
-        },
-      );
+        }
+        // force the socket to drain
+        res.on('data', () => {
+          // Drain
+        });
+        res.on('end', () => {
+          // Drain
+        });
+      });
       req.on('error', reject);
       req.end(serialize(event));
     });

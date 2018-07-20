@@ -21,9 +21,7 @@ export class OnUnhandledRejection implements Integration {
    */
   public install(): void {
     if (global.addEventListener) {
-      global.addEventListener('unhandledrejection', this.handler.bind(
-        this,
-      ) as EventListener);
+      global.addEventListener('unhandledrejection', this.handler.bind(this) as EventListener);
     }
   }
 }

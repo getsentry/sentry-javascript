@@ -25,9 +25,7 @@ describe('BaseTransport', () => {
 
   it('provides composeEndpointUrl() implementation', () => {
     const transport = new SimpleTransport({ dsn: testDSN });
-    expect(transport.url).equal(
-      'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
-    );
+    expect(transport.url).equal('https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7');
   });
 
   it('allows overriding composeEndpointUrl() implementation', () => {

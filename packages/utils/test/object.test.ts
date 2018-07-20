@@ -42,9 +42,7 @@ describe('serialize()', () => {
       // @ts-ignore
       obj.identity = { self: obj };
       const json = serialize(obj);
-      expect(json).toEqual(
-        jsonify({ name: 'Alice', identity: { self: '[Circular ~]' } }),
-      );
+      expect(json).toEqual(jsonify({ name: 'Alice', identity: { self: '[Circular ~]' } }));
     });
 
     it('must stringify circular objects deeper', () => {
@@ -121,10 +119,7 @@ describe('serialize()', () => {
       obj.push({ name: 'Bob', self: obj });
 
       expect(serialize(obj)).toEqual(
-        jsonify([
-          { name: 'Alice', self: '[Circular ~]' },
-          { name: 'Bob', self: '[Circular ~]' },
-        ]),
+        jsonify([{ name: 'Alice', self: '[Circular ~]' }, { name: 'Bob', self: '[Circular ~]' }]),
       );
     });
 
@@ -292,8 +287,6 @@ describe('urlEncode()', () => {
   });
 
   test('returns multiple key/value pairs joined together with & sign', () => {
-    expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual(
-      'foo=bar&pickle=rick&morty=4%202',
-    );
+    expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual('foo=bar&pickle=rick&morty=4%202');
   });
 });

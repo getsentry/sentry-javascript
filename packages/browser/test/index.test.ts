@@ -65,9 +65,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(
-        Promise.resolve(200),
-      );
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
     });
 
     afterEach(() => {
@@ -106,9 +104,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(
-        Promise.resolve(200),
-      );
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
     });
 
     afterEach(() => {

@@ -18,10 +18,7 @@ interface ExtendedError extends Error {
  */
 function getFunction(frame: stacktrace.StackFrame): string {
   try {
-    return (
-      frame.getFunctionName() ||
-      `${frame.getTypeName()}.${frame.getMethodName() || '<anonymous>'}`
-    );
+    return frame.getFunctionName() || `${frame.getTypeName()}.${frame.getMethodName() || '<anonymous>'}`;
   } catch (e) {
     // This seems to happen sometimes when using 'use strict',
     // stemming from `getTypeName`.
@@ -34,14 +31,10 @@ function getFunction(frame: stacktrace.StackFrame): string {
  * TODO
  */
 function getTransaction(frame: StackFrame): string {
-  return frame.module || frame.function
-    ? `${frame.module || '?'} at ${frame.function || '?'}`
-    : '<unknown>';
+  return frame.module || frame.function ? `${frame.module || '?'} at ${frame.function || '?'}` : '<unknown>';
 }
 
-const mainModule: string = `${(require.main &&
-  require.main.filename &&
-  dirname(require.main.filename)) ||
+const mainModule: string = `${(require.main && require.main.filename && dirname(require.main.filename)) ||
   global.process.cwd()}/`;
 
 /**
@@ -106,16 +99,9 @@ async function readSourceFiles(
 /**
  * TODO
  */
-export async function extractStackFromError(
-  error: Error,
-): Promise<stacktrace.StackFrame[]> {
+export async function extractStackFromError(error: Error): Promise<stacktrace.StackFrame[]> {
   const stack = stacktrace.parse(error);
-  if (
-    !stack ||
-    !Array.isArray(stack) ||
-    !stack.length ||
-    !stack[0].getFileName
-  ) {
+  if (!stack || !Array.isArray(stack) || !stack.length || !stack[0].getFileName) {
     // the stack is not the useful thing we were expecting :/
     return [];
   }
@@ -125,9 +111,7 @@ export async function extractStackFromError(
 /**
  * TODO
  */
-export async function parseStack(
-  stack: stacktrace.StackFrame[],
-): Promise<StackFrame[]> {
+export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackFrame[]> {
   const filesToRead: string[] = [];
   const frames: StackFrame[] = stack.map(frame => {
     const parsedFrame: StackFrame = {
@@ -148,9 +132,7 @@ export async function parseStack(
     // note that isNative appears to return true even for node core libraries
     // see https://github.com/getsentry/raven-node/issues/176
     parsedFrame.in_app =
-      !isInternal &&
-      parsedFrame.filename !== undefined &&
-      !parsedFrame.filename.includes('node_modules/');
+      !isInternal && parsedFrame.filename !== undefined && !parsedFrame.filename.includes('node_modules/');
 
     // Extract a module name based on the filename
     if (parsedFrame.filename) {
@@ -172,16 +154,10 @@ export async function parseStack(
         const lines = sourceFiles[frame.filename].split('\n');
 
         frame.pre_context = lines
-          .slice(
-            Math.max(0, (frame.lineno || 0) - (LINES_OF_CONTEXT + 1)),
-            (frame.lineno || 0) - 1,
-          )
+          .slice(Math.max(0, (frame.lineno || 0) - (LINES_OF_CONTEXT + 1)), (frame.lineno || 0) - 1)
           .map((line: string) => snipLine(line, 0));
 
-        frame.context_line = snipLine(
-          lines[(frame.lineno || 0) - 1],
-          frame.colno || 0,
-        );
+        frame.context_line = snipLine(lines[(frame.lineno || 0) - 1], frame.colno || 0);
 
         frame.post_context = lines
           .slice(frame.lineno || 0, (frame.lineno || 0) + LINES_OF_CONTEXT)
@@ -198,10 +174,7 @@ export async function parseStack(
 /**
  * TODO
  */
-export async function parseError(
-  error: ExtendedError,
-  ownStack?: stacktrace.StackFrame[],
-): Promise<SentryEvent> {
+export async function parseError(error: ExtendedError, ownStack?: stacktrace.StackFrame[]): Promise<SentryEvent> {
   const name = error.name || error.constructor.name;
   const stack = ownStack || (await extractStackFromError(error));
   const frames = await parseStack(stack);
@@ -219,9 +192,7 @@ export async function parseError(
     },
     message: `${name}: ${error.message || '<no message>'}`,
   };
-  const errorKeys = Object.keys(error).filter(
-    key => !(key in ['name', 'message', 'stack', 'domain']),
-  );
+  const errorKeys = Object.keys(error).filter(key => !(key in ['name', 'message', 'stack', 'domain']));
 
   if (errorKeys.length) {
     const extraErrorInfo: { [key: string]: any } = {};
@@ -255,9 +226,7 @@ export function prepareFramesForEvent(frames: StackFrame[]): StackFrame[] {
   // Remove frames that don't have filename, colno and lineno.
   // Things like `new Promise` called by generated code
   // eg. async/await from regenerator
-  filteredFrames = filteredFrames.filter(
-    frame => !(!frame.filename && !frame.colno && !frame.lineno),
-  );
+  filteredFrames = filteredFrames.filter(frame => !(!frame.filename && !frame.colno && !frame.lineno));
 
   // TODO: REMOVE ME, TESTING ONLY
   for (const frame of filteredFrames) {
@@ -266,9 +235,7 @@ export function prepareFramesForEvent(frames: StackFrame[]): StackFrame[] {
     }
   }
 
-  const firstInAppFrameIndex = filteredFrames.findIndex(
-    frame => frame.in_app === true,
-  );
+  const firstInAppFrameIndex = filteredFrames.findIndex(frame => frame.in_app === true);
 
   // Remove every frame that happened after our first in_app call
   // which basically means all the internal async stuff

@@ -1,11 +1,5 @@
 import { DSN, SentryError } from '@sentry/core';
-import {
-  DSNComponents,
-  SentryEvent,
-  SentryResponse,
-  Transport,
-  TransportOptions,
-} from '@sentry/types';
+import { DSNComponents, SentryEvent, SentryResponse, Transport, TransportOptions } from '@sentry/types';
 import { urlEncode } from '@sentry/utils/object';
 
 /** Base Transport class implementation */
@@ -38,9 +32,7 @@ export abstract class BaseTransport implements Transport {
     const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
     const port = dsn.port ? `:${dsn.port}` : '';
     const path = dsn.path ? `/${dsn.path}` : '';
-    const endpoint = `${protocol}//${dsn.host}${port}${path}/api/${
-      dsn.projectId
-    }/store/`;
+    const endpoint = `${protocol}//${dsn.host}${port}${path}/api/${dsn.projectId}/store/`;
 
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header)
     // to avoid preflight CORS requests

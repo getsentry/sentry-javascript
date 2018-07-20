@@ -2,10 +2,7 @@ import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { getDefaultHub } from '@sentry/hub';
 import { SentryEvent, SentryResponse } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
-import {
-  limitObjectDepthToSize,
-  serializeKeysToEventMessage,
-} from '@sentry/utils/object';
+import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5 from 'md5';
 import * as stacktrace from 'stack-trace';
 import { parseError, parseStack, prepareFramesForEvent } from './parsers';
@@ -37,16 +34,11 @@ export class NodeBackend implements Backend {
         // This will allow us to group events based on top-level keys
         // which is much better than creating new group when any key/value change
         const keys = Object.keys(exception as {}).sort();
-        const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(
-          keys,
-        )}`;
+        const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(keys)}`;
 
         // TODO: We also set `event.message` here previously, check if it works without it as well
         getDefaultHub().configureScope(scope => {
-          scope.setExtra(
-            '__serialized__',
-            limitObjectDepthToSize(exception as {}),
-          );
+          scope.setExtra('__serialized__', limitObjectDepthToSize(exception as {}));
           scope.setFingerprint([md5(keys.join(''))]);
         });
 
@@ -60,9 +52,7 @@ export class NodeBackend implements Backend {
       stack = stacktrace.get();
     }
 
-    const event: SentryEvent = stack
-      ? await parseError(ex as Error, stack)
-      : await parseError(ex as Error);
+    const event: SentryEvent = stack ? await parseError(ex as Error, stack) : await parseError(ex as Error);
 
     return event;
   }
@@ -94,9 +84,7 @@ export class NodeBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
-    const transportOptions = this.options.transportOptions
-      ? this.options.transportOptions
-      : { dsn };
+    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
 
     const transport = this.options.transport
       ? new this.options.transport({ dsn })

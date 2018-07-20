@@ -52,14 +52,7 @@ export function uuid4(): string {
     };
 
     return (
-      pad(arr[0]) +
-      pad(arr[1]) +
-      pad(arr[2]) +
-      pad(arr[3]) +
-      pad(arr[4]) +
-      pad(arr[5]) +
-      pad(arr[6]) +
-      pad(arr[7])
+      pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) + pad(arr[5]) + pad(arr[6]) + pad(arr[7])
     );
   } else {
     // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523

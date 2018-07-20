@@ -96,9 +96,7 @@ describe('Minimal', () => {
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.fingerprint).toEqual([
-        'abcd',
-      ]);
+      expect(global.__SENTRY__.hub.stack[1].scope.fingerprint).toEqual(['abcd']);
     });
   });
 
@@ -181,13 +179,10 @@ describe('Minimal', () => {
     hub.configureScope((scope: Scope) => {
       scope.setUser({ id: '1234' });
     });
-    expect(
-      ((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub
-        .stack[1] as any).scope.user,
-    ).toEqual({ id: '1234' });
+    expect(((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1] as any).scope.user).toEqual({
+      id: '1234',
+    });
     hub.popScope();
-    expect(
-      (iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1],
-    ).toBeUndefined();
+    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1]).toBeUndefined();
   });
 });

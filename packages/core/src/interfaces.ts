@@ -42,9 +42,7 @@ export interface Options {
    * Accepts either a list of integrations or a function that receives
    * default integrations and returns a new, updated list.
    */
-  integrations?:
-    | Integration[]
-    | ((integrations: Integration[]) => Integration[]);
+  integrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
 
   /**
    * Transport object that should be used to send events to Sentry

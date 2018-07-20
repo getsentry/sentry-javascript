@@ -52,9 +52,7 @@ export class BrowserBackend implements Backend {
     // error.
     const dsn = this.options.dsn;
     if (!dsn) {
-      throw new SentryError(
-        'Invariant exception: install() must not be called when disabled',
-      );
+      throw new SentryError('Invariant exception: install() must not be called when disabled');
     }
 
     Raven.config(dsn, this.options);
@@ -124,9 +122,7 @@ export class BrowserBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
-    const transportOptions = this.options.transportOptions
-      ? this.options.transportOptions
-      : { dsn };
+    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
 
     const transport = this.options.transport
       ? new this.options.transport({ dsn })

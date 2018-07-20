@@ -123,9 +123,7 @@ describe('DSN', () => {
     });
 
     test('with a long path', () => {
-      const dsn = new DSN(
-        'https://abc@sentry.io/sentry/custom/installation/321',
-      );
+      const dsn = new DSN('https://abc@sentry.io/sentry/custom/installation/321');
       expect(dsn.protocol).toBe('https');
       expect(dsn.user).toBe('abc');
       expect(dsn.pass).toBe('');
@@ -148,9 +146,7 @@ describe('DSN', () => {
 
     test('throws for invalid fields', () => {
       expect(() => new DSN('httpx://abc@sentry.io/123')).toThrow(SentryError);
-      expect(() => new DSN('httpx://abc@sentry.io:xxx/123')).toThrow(
-        SentryError,
-      );
+      expect(() => new DSN('httpx://abc@sentry.io:xxx/123')).toThrow(SentryError);
     });
   });
 
@@ -176,12 +172,8 @@ describe('DSN', () => {
     });
 
     test('renders the full path correctly', () => {
-      const dsn = new DSN(
-        'https://abc@sentry.io/sentry/custom/installation/321',
-      );
-      expect(dsn.toString()).toBe(
-        'https://abc@sentry.io/sentry/custom/installation/321',
-      );
+      const dsn = new DSN('https://abc@sentry.io/sentry/custom/installation/321');
+      expect(dsn.toString()).toBe('https://abc@sentry.io/sentry/custom/installation/321');
     });
   });
 });

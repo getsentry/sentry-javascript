@@ -26,11 +26,7 @@ export class Hub {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(
-    client?: any,
-    scope: Scope = new Scope(),
-    private readonly version: number = API_VERSION,
-  ) {
+  public constructor(client?: any, scope: Scope = new Scope(), private readonly version: number = API_VERSION) {
     this.stack.push({ client, scope });
   }
 
@@ -104,8 +100,7 @@ export class Hub {
   public pushScope(): void {
     // We want to clone the content of prev scope
     const stack = this.getStack();
-    const parentScope =
-      stack.length > 0 ? stack[stack.length - 1].scope : undefined;
+    const parentScope = stack.length > 0 ? stack[stack.length - 1].scope : undefined;
     this.getStack().push({
       client: this.getClient(),
       scope: Scope.clone(parentScope),
@@ -221,9 +216,7 @@ export class Hub {
    * This will be called to receive the event
    * @param callback will only be called if there is a bound client
    */
-  public addEventProcessor(
-    callback: (event: SentryEvent) => Promise<SentryEvent | null>,
-  ): void {
+  public addEventProcessor(callback: (event: SentryEvent) => Promise<SentryEvent | null>): void {
     const top = this.getStackTop();
     if (top.scope && top.client) {
       top.scope.addEventProcessor(callback);

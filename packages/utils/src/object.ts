@@ -72,9 +72,7 @@ function serializer(): (key: string, value: any) => any {
       stack.push(currentValue);
     }
 
-    return currentValue instanceof Error
-      ? objectifyError(currentValue)
-      : currentValue;
+    return currentValue instanceof Error ? objectifyError(currentValue) : currentValue;
   };
 }
 
@@ -192,14 +190,8 @@ function serializeValue<T>(value: T): T | string {
   const maxLength = 40;
 
   if (typeof value === 'string') {
-    return value.length <= maxLength
-      ? value
-      : `${value.substr(0, maxLength - 1)}\u2026`;
-  } else if (
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'undefined'
-  ) {
+    return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
+  } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'undefined') {
     return value;
   }
 
@@ -269,10 +261,7 @@ export function limitObjectDepthToSize<T>(
 /**
  * TODO
  */
-export function serializeKeysToEventMessage(
-  keys: string[],
-  maxLength: number = MAX_SERIALIZE_KEYS_LENGTH,
-): string {
+export function serializeKeysToEventMessage(keys: string[], maxLength: number = MAX_SERIALIZE_KEYS_LENGTH): string {
   if (!keys.length) {
     return '[object has no keys]';
   }

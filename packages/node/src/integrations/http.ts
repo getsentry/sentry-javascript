@@ -31,10 +31,7 @@ function createBreadcrumbUrl(options: string | ClientRequestArgs): string {
     const protocol = options.protocol || '';
     const hostname = options.hostname || options.host || '';
     // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-    const port =
-      !options.port || options.port === 80 || options.port === 443
-        ? ''
-        : `:${options.port}`;
+    const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
     const path = options.path || '/';
     return `${protocol}//${hostname}${port}${path}`;
   }
@@ -85,10 +82,7 @@ function loadWrapper(nativeModule: any): any {
       // just get that reference updated to use our new ClientRequest
       fill(originalModule, 'request', function(): any {
         return function(options: ClientRequestArgs, callback: () => void): any {
-          return new originalModule.ClientRequest(
-            options,
-            callback,
-          ) as ClientRequest;
+          return new originalModule.ClientRequest(options, callback) as ClientRequest;
         };
       });
 
@@ -108,14 +102,8 @@ function loadWrapper(nativeModule: any): any {
 /**
  * Wrapper function for request's `emit` calls
  */
-function emitWrapper(
-  origEmit: EventListener,
-): (event: string, response: ServerResponse) => EventListener {
-  return function(
-    this: SentryRequest,
-    event: string,
-    response: ServerResponse,
-  ): any {
+function emitWrapper(origEmit: EventListener): (event: string, response: ServerResponse) => EventListener {
+  return function(this: SentryRequest, event: string, response: ServerResponse): any {
     // I'm not sure why but Node.js (at least in v8.X)
     // is emitting all events twice :|
     if (lastResponse === undefined || lastResponse !== response) {
@@ -129,10 +117,7 @@ function emitWrapper(
       .getDSN();
 
     const isInterestingEvent = event === 'response' || event === 'error';
-    const isNotSentryRequest =
-      DSN &&
-      this.__ravenBreadcrumbUrl &&
-      !this.__ravenBreadcrumbUrl.includes(DSN.host);
+    const isNotSentryRequest = DSN && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(DSN.host);
 
     if (isInterestingEvent && isNotSentryRequest) {
       addBreadcrumb({

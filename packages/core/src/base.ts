@@ -59,8 +59,7 @@ export interface BackendClass<B extends Backend, O extends Options> {
  *   // ...
  * }
  */
-export abstract class BaseClient<B extends Backend, O extends Options>
-  implements Client<O> {
+export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
   /**
    * The backend used to physically interact in the enviornment. Usually, this
    * will correspond to the client. When composing SDKs, however, the Backend
@@ -133,24 +132,14 @@ export abstract class BaseClient<B extends Backend, O extends Options>
   /**
    * @inheritDoc
    */
-  public async captureEvent(
-    event: SentryEvent,
-    scope?: Scope,
-  ): Promise<SentryResponse> {
-    return this.processEvent(
-      event,
-      async finalEvent => this.getBackend().sendEvent(finalEvent),
-      scope,
-    );
+  public async captureEvent(event: SentryEvent, scope?: Scope): Promise<SentryResponse> {
+    return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async addBreadcrumb(
-    breadcrumb: Breadcrumb,
-    scope?: Scope,
-  ): Promise<void> {
+  public async addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): Promise<void> {
     const {
       shouldAddBreadcrumb,
       beforeBreadcrumb,
@@ -168,15 +157,10 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       return;
     }
 
-    const finalBreadcrumb = beforeBreadcrumb
-      ? beforeBreadcrumb(mergedBreadcrumb)
-      : mergedBreadcrumb;
+    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb) : mergedBreadcrumb;
 
     if ((await this.getBackend().storeBreadcrumb(finalBreadcrumb)) && scope) {
-      scope.addBreadcrumb(
-        finalBreadcrumb,
-        Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
-      );
+      scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
     if (afterBreadcrumb) {
@@ -221,15 +205,8 @@ export abstract class BaseClient<B extends Backend, O extends Options>
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected async prepareEvent(
-    event: SentryEvent,
-    scope?: Scope,
-  ): Promise<SentryEvent | null> {
-    const {
-      environment,
-      maxBreadcrumbs = DEFAULT_BREADCRUMBS,
-      release,
-    } = this.getOptions();
+  protected async prepareEvent(event: SentryEvent, scope?: Scope): Promise<SentryEvent | null> {
+    const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release } = this.getOptions();
 
     const prepared = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
@@ -243,10 +220,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
       prepared.message = truncate(prepared.message, MAX_URL_LENGTH);
     }
 
-    const exception =
-      prepared.exception &&
-      prepared.exception.values &&
-      prepared.exception.values[0];
+    const exception = prepared.exception && prepared.exception.values && prepared.exception.values[0];
     if (exception && exception.value) {
       exception.value = truncate(exception.value, MAX_URL_LENGTH);
     }
@@ -261,10 +235,7 @@ export abstract class BaseClient<B extends Backend, O extends Options>
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      return scope.applyToEvent(
-        prepared,
-        Math.min(maxBreadcrumbs, MAX_BREADCRUMBS),
-      );
+      return scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
     return prepared;

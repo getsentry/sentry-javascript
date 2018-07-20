@@ -18,9 +18,7 @@ function loadWrapper(nativeModule: any): any {
         return originalModule;
       }
 
-      ['debug', 'info', 'warn', 'error', 'log'].forEach(
-        consoleWrapper(originalModule),
-      );
+      ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper(originalModule));
 
       return originalModule;
     };
