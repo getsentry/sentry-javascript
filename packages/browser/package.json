@@ -50,6 +50,7 @@
   },
   "scripts": {
     "build": "rollup --config",
+    "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
