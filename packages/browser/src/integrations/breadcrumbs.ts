@@ -71,9 +71,7 @@ export class Breadcrumbs implements Integration {
       // tslint:disable-next-line
       const originalConsoleLevel = originalConsole[level];
 
-      (global.console as ExtensibleConsole)[level] = function(
-        ...args: any[]
-      ): void {
+      (global.console as ExtensibleConsole)[level] = function(...args: any[]): void {
         const breadcrumbData = {
           category: 'console',
           data: {
@@ -88,10 +86,7 @@ export class Breadcrumbs implements Integration {
 
         if (level === 'assert') {
           if (args[0] === false) {
-            breadcrumbData.message = `Assertion failed: ${safeJoin(
-              args.slice(1),
-              ' ',
-            ) || 'console.assert'}`;
+            breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
             breadcrumbData.data.extra.arguments = args.slice(1);
           }
         }
@@ -100,11 +95,7 @@ export class Breadcrumbs implements Integration {
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
-          Function.prototype.apply.call(
-            originalConsoleLevel,
-            originalConsole,
-            args,
-          );
+          Function.prototype.apply.call(originalConsoleLevel, originalConsole, args);
         }
       };
     });
@@ -118,11 +109,7 @@ export class Breadcrumbs implements Integration {
     }
     // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
     // to the document. Do this before we instrument addEventListener.
-    global.document.addEventListener(
-      'click',
-      breadcrumbEventHandler('click'),
-      false,
-    );
+    global.document.addEventListener('click', breadcrumbEventHandler('click'), false);
     global.document.addEventListener('keypress', keypressEventHandler(), false);
   }
   /**
@@ -201,10 +188,7 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
-    const captureUrlChange = (
-      from: string | undefined,
-      to: string | undefined,
-    ): void => {
+    const captureUrlChange = (from: string | undefined, to: string | undefined): void => {
       const parsedLoc = parseUrl(global.location.href);
       const parsedTo = parseUrl(to as string);
       const parsedFrom = parseUrl(from as string);
@@ -216,17 +200,11 @@ export class Breadcrumbs implements Integration {
 
       // Use only the path component of the URL if the URL matches the current
       // document (almost all the time when using pushState)
-      if (
-        parsedLoc.protocol === parsedTo.protocol &&
-        parsedLoc.host === parsedTo.host
-      ) {
+      if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
         // tslint:disable-next-line:no-parameter-reassignment
         to = parsedTo.relative;
       }
-      if (
-        parsedLoc.protocol === parsedFrom.protocol &&
-        parsedLoc.host === parsedFrom.host
-      ) {
+      if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
         // tslint:disable-next-line:no-parameter-reassignment
         from = parsedFrom.relative;
       }
@@ -253,9 +231,7 @@ export class Breadcrumbs implements Integration {
     /**
      * TODO
      */
-    function historyReplacementFunction(
-      originalHistoryFunction: () => void,
-    ): () => void {
+    function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
       // note history.pushState.length is 0; intentionally not declaring
       // params to preserve 0 arity
       return function(...args: any[]): void {
@@ -351,13 +327,8 @@ export class Breadcrumbs implements Integration {
             wrapProp(prop, xhr);
           });
 
-          if (
-            'onreadystatechange' in xhr &&
-            isFunction(xhr.onreadystatechange)
-          ) {
-            fill(xhr, 'onreadystatechange', function(
-              original: () => void,
-            ): void {
+          if ('onreadystatechange' in xhr && isFunction(xhr.onreadystatechange)) {
+            fill(xhr, 'onreadystatechange', function(original: () => void): void {
               return wrap(
                 original,
                 {

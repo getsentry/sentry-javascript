@@ -91,11 +91,7 @@ export function htmlTreeAsString(elem: Node): string {
     // - nextStr is the 'html' element
     // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
     //   (ignore this limit if we are on the first iteration)
-    if (
-      nextStr === 'html' ||
-      (height > 1 &&
-        len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)
-    ) {
+    if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
       break;
     }
 
@@ -163,9 +159,7 @@ export function parseUrl(
   protocol?: string;
   relative?: string;
 } {
-  const match = url.match(
-    /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/,
-  );
+  const match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
 
   if (!match) {
     return {};

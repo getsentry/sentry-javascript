@@ -56,11 +56,7 @@ export class TryCatch implements Integration {
     const global = getGlobalObject() as { [key: string]: any };
     const proto = global[target] && global[target].prototype;
 
-    if (
-      !proto ||
-      !proto.hasOwnProperty ||
-      !proto.hasOwnProperty('addEventListener')
-    ) {
+    if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
 
@@ -69,12 +65,7 @@ export class TryCatch implements Integration {
       'addEventListener',
       (
         original: () => void,
-      ): ((
-        eventName: string,
-        fn: EventListenerObject,
-        capture?: boolean,
-        secure?: boolean,
-      ) => any) => (
+      ): ((eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => any) => (
         eventName: string,
         fn: EventListenerObject,
         capture?: boolean,
@@ -85,8 +76,7 @@ export class TryCatch implements Integration {
             mechanism: {
               data: {
                 function: 'handleEvent',
-                handler:
-                  ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
+                handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
                 target,
               },
               type: 'instrument',
@@ -140,9 +130,7 @@ export class TryCatch implements Integration {
               mechanism: {
                 data: {
                   function: 'addEventListener',
-                  handler:
-                    ((fn as any) as SentryWrappedFunction).name ||
-                    '<anonymous>',
+                  handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
                   target,
                 },
                 type: 'instrument',
@@ -158,13 +146,7 @@ export class TryCatch implements Integration {
 
     fill(proto, 'removeEventListener', function(
       original: () => void,
-    ): (
-      this: any,
-      eventName: string,
-      fn: EventListenerObject,
-      capture?: boolean,
-      secure?: boolean,
-    ) => () => void {
+    ): (this: any, eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => () => void {
       return function(
         this: any,
         eventName: string,

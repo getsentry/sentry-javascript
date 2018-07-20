@@ -94,7 +94,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
           encodedOptions.push(`email=${encodeURIComponent(user.email)}`);
         }
       } else {
-        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`);
+        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key] as string)}`);
       }
     }
 

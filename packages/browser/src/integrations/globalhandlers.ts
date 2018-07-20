@@ -34,9 +34,9 @@ export class GlobalHandlers implements Integration {
       installGlobalUnhandledRejectionHandler();
     }
 
-    subscribe((stack: TraceKitStackTrace) =>
-      captureEvent(this.eventFromGlobalHandler(stack)),
-    );
+    subscribe((stack: TraceKitStackTrace) => {
+      captureEvent(this.eventFromGlobalHandler(stack));
+    });
   }
 
   /** TODO */

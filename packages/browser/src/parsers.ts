@@ -1,24 +1,16 @@
 import { SentryEvent, StackFrame } from '@sentry/types';
-import {
-  limitObjectDepthToSize,
-  serializeKeysToEventMessage,
-} from '@sentry/utils/object';
+import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5proxy from 'md5';
-import {
-  StackFrame as TraceKitStackFrame,
-  StackTrace as TraceKitStackTrace,
-} from './tracekit';
+import { StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 // Workaround for Rollup issue with overloading namespaces
 // https://github.com/rollup/rollup/issues/1267#issuecomment-296395734
-const md5 = (md5proxy as any).default || md5proxy;
+const md5 = ((md5proxy as any).default || md5proxy) as (input: string) => string;
 
 const STACKTRACE_LIMIT = 50;
 
 /** TODO */
-export function getEventOptionsFromPlainObject(
-  exception: Error,
-): {
+export function getEventOptionsFromPlainObject(exception: {}): {
   extra: {
     __serialized__: object;
   };
@@ -31,22 +23,16 @@ export function getEventOptionsFromPlainObject(
       __serialized__: limitObjectDepthToSize(exception),
     },
     fingerprint: [md5(exceptionKeys.join(''))],
-    message: `Non-Error exception captured with keys: ${serializeKeysToEventMessage(
-      exceptionKeys,
-    )}`,
+    message: `Non-Error exception captured with keys: ${serializeKeysToEventMessage(exceptionKeys)}`,
   };
 }
 
-export function eventFromStacktrace(
-  stacktrace: TraceKitStackTrace,
-): SentryEvent {
+/** TODO */
+export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
   const frames = prepareFramesForEvent(stacktrace.stack);
   // const prefixedMessage =
   //   (stack.name ? stack.name + ': ' : '') + (stack.message || '');
-  const transaction =
-    stacktrace.url ||
-    (stacktrace.stack && stacktrace.stack[0].url) ||
-    '<unknown>';
+  const transaction = stacktrace.url || (stacktrace.stack && stacktrace.stack[0].url) || '<unknown>';
 
   const ex = {
     stacktrace: { frames },
@@ -54,6 +40,7 @@ export function eventFromStacktrace(
     value: stacktrace.message,
   };
 
+  // tslint:disable-next-line:strict-type-predicates
   if (ex.type === undefined && ex.value === '') {
     ex.value = 'Unrecoverable error caught';
   }
@@ -67,9 +54,7 @@ export function eventFromStacktrace(
 }
 
 /** TODO */
-export function prepareFramesForEvent(
-  stack: TraceKitStackFrame[],
-): StackFrame[] {
+export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[] {
   if (!stack) {
     return [];
   }

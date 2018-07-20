@@ -117,10 +117,7 @@ export function supportsHistory(): boolean {
   const chrome = (global as any).chrome;
   // tslint:disable-next-line:no-unsafe-any
   const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
-  const hasHistoryApi =
-    'history' in global &&
-    !!global.history.pushState &&
-    !!global.history.replaceState;
+  const hasHistoryApi = 'history' in global && !!global.history.pushState && !!global.history.replaceState;
 
   return !isChromePackagedApp && hasHistoryApi;
 }

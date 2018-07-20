@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import * as RavenJS from 'raven-js';
 import { stub } from 'sinon';
 import {
   addBreadcrumb,
@@ -77,7 +76,7 @@ describe('SentryBrowser', () => {
       getDefaultHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.breadcrumbs!).to.have.lengthOf(3);
+            expect(event.breadcrumbs!).to.have.lengthOf(2);
             done();
           },
           dsn,
@@ -85,14 +84,6 @@ describe('SentryBrowser', () => {
       );
 
       addBreadcrumb({ message: 'test1' });
-
-      // Simulates internal capture breadcrumb from raven
-      RavenJS.captureBreadcrumb({
-        category: 'console',
-        level: 'warning',
-        message: 'testy',
-      });
-
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');

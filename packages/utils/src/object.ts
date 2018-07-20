@@ -127,11 +127,7 @@ export function clone<T>(object: T): T {
  * @returns void
  */
 
-export function fill(
-  source: { [key: string]: any },
-  name: string,
-  replacement: (...args: any[]) => any,
-): void {
+export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
   }

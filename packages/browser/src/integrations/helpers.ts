@@ -102,9 +102,7 @@ export function wrap(
  * @param eventName the event name (e.g. "click")
  * @returns wrapped breadcrumb events handler
  */
-export function breadcrumbEventHandler(
-  eventName: string,
-): (event: Event) => void {
+export function breadcrumbEventHandler(eventName: string): (event: Event) => void {
   return (event: Event) => {
     // reset keypress timeout; e.g. triggering a 'click' after
     // a 'keypress' will reset the keypress debounce so that a new
@@ -162,12 +160,7 @@ export function keypressEventHandler(): (event: Event) => void {
     // only consider keypress events on actual input elements
     // this will disregard keypresses targeting body (e.g. tabbing
     // through elements, hotkeys, etc)
-    if (
-      !tagName ||
-      (tagName !== 'INPUT' &&
-        tagName !== 'TEXTAREA' &&
-        !(target as HTMLElement).isContentEditable)
-    ) {
+    if (!tagName || (tagName !== 'INPUT' && tagName !== 'TEXTAREA' && !(target as HTMLElement).isContentEditable)) {
       return;
     }
 
