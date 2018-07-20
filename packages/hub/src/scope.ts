@@ -66,10 +66,14 @@ export class Scope {
   ): Promise<SentryEvent | null> {
     let processedEvent: SentryEvent | null = event;
     for (const processor of this.eventProcessors) {
-      processedEvent = await processor(processedEvent);
-      if (processedEvent === null) {
-        // tslint:disable-next-line:no-null-keyword
-        return null;
+      try {
+        processedEvent = await processor({ ...processedEvent });
+        if (processedEvent === null) {
+          // tslint:disable-next-line:no-null-keyword
+          return null;
+        }
+      } catch (e) {
+        continue;
       }
     }
     return processedEvent;
