@@ -1,18 +1,8 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryResponse } from '@sentry/types';
-import {
-  isDOMError,
-  isDOMException,
-  isError,
-  isErrorEvent,
-  isPlainObject,
-} from '@sentry/utils/is';
+import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
-import {
-  eventFromStacktrace,
-  getEventOptionsFromPlainObject,
-  prepareFramesForEvent,
-} from './parsers';
+import { eventFromStacktrace, getEventOptionsFromPlainObject, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { FetchTransport, XHRTransport } from './transports';
 
@@ -75,28 +65,28 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromException(exception: any): Promise<SentryEvent> {
-    if (isErrorEvent(exception) && exception.error) {
+    if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
-      exception = exception.error; // tslint:disable-line:no-parameter-reassignment
-    } else if (isDOMError(exception) || isDOMException(exception)) {
+      const ex = exception as ErrorEvent;
+      exception = ex.error; // tslint:disable-line:no-parameter-reassignment
+    } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
       // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
       // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
-      const name =
-        exception.name || (isDOMError(exception) ? 'DOMError' : 'DOMException');
-      const message = exception.message
-        ? `${name}: ${exception.message}`
-        : name;
+      const ex = exception as DOMException;
+      const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
+      const message = ex.message ? `${name}: ${ex.message}` : name;
 
       return this.eventFromMessage(message);
-    } else if (isError(exception)) {
+    } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
-    } else if (isPlainObject(exception)) {
+    } else if (isPlainObject(exception as {})) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
-      const options = getEventOptionsFromPlainObject(exception);
+      const ex = exception as {};
+      const options = getEventOptionsFromPlainObject(ex);
       exception = new Error(options.message); // tslint:disable-line:no-parameter-reassignment
     } else {
       // If none of previous checks were valid, then it means that
@@ -105,12 +95,13 @@ export class BrowserBackend implements Backend {
       // it's not a valid ErrorEvent (one with an error property)
       // it's not an Error
       // So bail out and capture it as a simple message:
-      return this.eventFromMessage(exception);
+      const ex = exception as string;
+      return this.eventFromMessage(ex);
     }
 
     // TODO: Create `shouldDropEvent` method to gather all user-options
 
-    const event = eventFromStacktrace(computeStackTrace(exception));
+    const event = eventFromStacktrace(computeStackTrace(exception as Error));
 
     return {
       ...event,
@@ -140,7 +131,7 @@ export class BrowserBackend implements Backend {
     try {
       throw new Error(message);
     } catch (exception) {
-      syntheticException = exception;
+      syntheticException = exception as Error;
       // null exception name so `Error` isn't prefixed to msg
       (syntheticException as any).name = null; // tslint:disable-line:no-null-keyword
     }
