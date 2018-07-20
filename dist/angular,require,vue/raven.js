@@ -1,4 +1,4 @@
-/*! Raven.js 3.26.3 (3c01b01) | github.com/getsentry/raven-js */
+/*! Raven.js 3.26.4 (7d7202b) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -351,7 +351,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.26.3',
+  VERSION: '3.26.4',
 
   debug: false,
 
@@ -1089,34 +1089,40 @@ Raven.prototype = {
     )
       return;
 
-    options = options || {};
+    options = Object.assign(
+      {
+        eventId: this.lastEventId(),
+        dsn: this._dsn,
+        user: this._globalContext.user || {}
+      },
+      options
+    );
 
-    var lastEventId = options.eventId || this.lastEventId();
-    if (!lastEventId) {
+    if (!options.eventId) {
       throw new RavenConfigError('Missing eventId');
     }
 
-    var dsn = options.dsn || this._dsn;
-    if (!dsn) {
+    if (!options.dsn) {
       throw new RavenConfigError('Missing DSN');
     }
 
     var encode = encodeURIComponent;
-    var qs = '';
-    qs += '?eventId=' + encode(lastEventId);
-    qs += '&dsn=' + encode(dsn);
+    var encodedOptions = [];
 
-    var user = options.user || this._globalContext.user;
-    if (user) {
-      if (user.name) qs += '&name=' + encode(user.name);
-      if (user.email) qs += '&email=' + encode(user.email);
+    for (var key in options) {
+      if (key === 'user') {
+        var user = options.user;
+        if (user.name) encodedOptions.push('name=' + encode(user.name));
+        if (user.email) encodedOptions.push('email=' + encode(user.email));
+      } else {
+        encodedOptions.push(encode(key) + '=' + encode(options[key]));
+      }
     }
-
-    var globalServer = this._getGlobalServer(this._parseDSN(dsn));
+    var globalServer = this._getGlobalServer(this._parseDSN(options.dsn));
 
     var script = _document.createElement('script');
     script.async = true;
-    script.src = globalServer + '/api/embed/error-page/' + qs;
+    script.src = globalServer + '/api/embed/error-page/?' + encodedOptions.join('&');
     (_document.head || _document.body).appendChild(script);
   },
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.26.4
+
+* FEAT: Add options to customize `showReportDialog` language
+
 ## 3.26.3
 
 * FIX: Attempt to provide some information for `<unlabeled event>` (#1397)
