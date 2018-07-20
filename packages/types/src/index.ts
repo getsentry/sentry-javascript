@@ -173,7 +173,8 @@ export interface SentryEvent {
   modules?: { [key: string]: string };
   fingerprint?: string[];
   exception?: {
-    values: SentryException[];
+    values?: SentryException[];
+    mechanism?: Mechanism;
   };
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
@@ -181,6 +182,15 @@ export interface SentryEvent {
   tags?: { [key: string]: string };
   extra?: { [key: string]: any };
   user?: User;
+}
+
+/** TODO */
+export interface Mechanism {
+  type: string;
+  handled: boolean;
+  data?: {
+    [key: string]: string;
+  };
 }
 
 /** TODO */
