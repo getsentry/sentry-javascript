@@ -1,15 +1,14 @@
 import { initAndBind } from '@sentry/core';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
-import { Breadcrumbs, FunctionToString, OnError, OnUnhandledRejection, SDKInformation, TryCatch } from './integrations';
+import { Breadcrumbs, FunctionToString, GlobalHandlers, SDKInformation, TryCatch } from './integrations';
 
 export const defaultIntegrations = [
-  new Breadcrumbs(),
   new FunctionToString(),
-  new OnError(),
-  new OnUnhandledRejection(),
-  new SDKInformation(),
   new TryCatch(),
+  new Breadcrumbs(),
+  new SDKInformation(),
+  new GlobalHandlers(),
 ];
 
 /**
