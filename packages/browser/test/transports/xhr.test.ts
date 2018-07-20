@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { fakeServer, SinonFakeServer } from 'sinon';
-import { Transports } from '../../src';
+import { Status, Transports } from '../../src';
 
 const testDSN = 'https://123@sentry.io/42';
 const transportUrl =
@@ -36,8 +36,7 @@ describe('XHRTransport', () => {
       server.respondWith('POST', transportUrl, [200, {}, '']);
 
       return transport.send(payload).then(res => {
-        expect(res.code).equal(200);
-
+        expect(res.status).equal(Status.Success);
         const request = server.requests[0];
         expect(server.requests.length).equal(1);
         expect(request.method).equal('POST');

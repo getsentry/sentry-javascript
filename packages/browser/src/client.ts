@@ -1,5 +1,4 @@
 import { BaseClient } from '@sentry/core';
-import { SdkInfo } from '@sentry/types';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { Raven } from './raven';
 
@@ -17,16 +16,6 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    */
   public constructor(options: BrowserOptions) {
     super(BrowserBackend, options);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getSdkInfo(): SdkInfo {
-    return {
-      name: 'sentry-browser',
-      version: '4.0.0-beta.9',
-    };
   }
 
   /**

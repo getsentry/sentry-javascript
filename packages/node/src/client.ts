@@ -1,5 +1,4 @@
 import { BaseClient } from '@sentry/core';
-import { SdkInfo } from '@sentry/types';
 import { NodeBackend, NodeOptions } from './backend';
 
 /**
@@ -15,15 +14,5 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   public constructor(options: NodeOptions) {
     super(NodeBackend, options);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getSdkInfo(): SdkInfo {
-    return {
-      name: 'sentry-node',
-      version: '4.0.0-beta.9',
-    };
   }
 }

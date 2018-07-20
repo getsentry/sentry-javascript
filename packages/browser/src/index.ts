@@ -26,6 +26,7 @@ export { getHubFromCarrier, getDefaultHub, Hub, Scope } from '@sentry/hub';
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserClient } from './client';
 export { defaultIntegrations, init } from './sdk';
+export { SDK_NAME, SDK_VERSION } from './version';
 
 import * as Integrations from './integrations';
 import * as Transports from './transports';

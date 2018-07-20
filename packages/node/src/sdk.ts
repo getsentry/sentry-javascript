@@ -6,6 +6,7 @@ import {
   Http,
   OnUncaughtException,
   OnUnhandledRejection,
+  SDKInformation,
 } from './integrations';
 
 export const defaultIntegrations = [
@@ -13,6 +14,7 @@ export const defaultIntegrations = [
   new Http(),
   new OnUncaughtException(),
   new OnUnhandledRejection(),
+  new SDKInformation(),
 ];
 
 /**

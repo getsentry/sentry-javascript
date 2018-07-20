@@ -9,7 +9,7 @@ import {
 import { serialize } from '@sentry/utils/object';
 import * as http from 'http';
 import * as https from 'https';
-import { getDefaultHub, NodeClient } from '../index';
+import { SDK_NAME, SDK_VERSION } from '../version';
 
 /** Internal used interface for typescript */
 export interface HTTPRequest {
@@ -36,14 +36,9 @@ export abstract class BaseTransport implements Transport {
   private getAuthHeader(): string {
     const header = ['Sentry sentry_version=7'];
     header.push(`sentry_timestamp=${new Date().getTime()}`);
-    const client = getDefaultHub().getClient() as NodeClient;
-    if (client) {
-      header.push(
-        `sentry_client=${client.getSdkInfo().name}/${
-          client.getSdkInfo().version
-        }`,
-      );
-    }
+
+    header.push(`sentry_client=${SDK_NAME}/${SDK_VERSION}`);
+
     header.push(`sentry_key=${this.dsn.user}`);
     if (this.dsn.pass) {
       header.push(`sentry_secret=${this.dsn.pass}`);
@@ -84,8 +79,6 @@ export abstract class BaseTransport implements Transport {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve({
-              code: res.statusCode,
-              event_id: event.event_id,
               status: Status.fromHttpCode(res.statusCode),
             });
           } else {

@@ -28,8 +28,6 @@ export class FetchTransport extends BaseTransport {
     const response = await (global as Window).fetch(this.url, defaultOptions);
 
     return {
-      code: response.status,
-      event_id: event.event_id,
       status: Status.fromHttpCode(response.status),
     };
   }
