@@ -3706,6 +3706,45 @@ describe('Raven (public API)', function() {
           'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&name=Average%20Normalperson%202&email=an2%40example.com'
         );
       });
+
+      it('should specify detailed query string for dialog customization', function() {
+        this.sinon.stub(Raven, '_makeRequest');
+
+        Raven.showReportDialog({
+          eventId: 'abc123',
+          dsn: SENTRY_DSN,
+          title: 'title',
+          subtitle: 'subtitle',
+          subtitle2: 'subtitle2',
+          labelName: 'labelName',
+          labelEmail: 'labelEmail',
+          labelComments: 'labelComments',
+          labelClose: 'labelClose',
+          labelSubmit: 'labelSubmit',
+          errorGeneric: 'errorGeneric',
+          errorFormEntry: 'errorFormEntry',
+          successMessage: 'successMessage',
+        });
+
+        var script = this.appendChildStub.getCall(0).args[0];
+        assert.equal(
+          script.src,
+          'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&title=title&subtitle=subtitle&subtitle2=subtitle2&labelName=labelName&labelEmail=labelEmail&labelComments=labelComments&labelClose=labelClose&labelSubmit=labelSubmit&errorGeneric=errorGeneric&errorFormEntry=errorFormEntry&successMessage=successMessage'
+        );
+
+        this.appendChildStub.reset();
+
+        Raven.config(SENTRY_DSN)
+          .captureException(new Error('foo')) // generates lastEventId
+          .showReportDialog();
+
+        this.appendChildStub.getCall(0).args[0];
+        assert.equal(
+          script.src,
+          'http://example.com/api/embed/error-page/?eventId=abc123&dsn=http%3A%2F%2Fabc%40example.com%3A80%2F2&title=title&subtitle=subtitle&subtitle2=subtitle2&labelName=labelName&labelEmail=labelEmail&labelComments=labelComments&labelClose=labelClose&labelSubmit=labelSubmit&errorGeneric=errorGeneric&errorFormEntry=errorFormEntry&successMessage=successMessage'
+        );
+      });
+
     });
   });
 

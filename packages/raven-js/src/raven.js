@@ -877,11 +877,14 @@ Raven.prototype = {
     )
       return;
 
-    options = Object.assign({
-      eventId: this.lastEventId(),
-      dsn: this._dsn,
-      user: this._globalContext.user,
-    }, options || {});
+    options = Object.assign(
+      {
+        eventId: this.lastEventId(),
+        dsn: this._dsn,
+        user: this._globalContext.user || {}
+      },
+      options
+    );
 
     if (!options.eventId) {
       throw new RavenConfigError('Missing eventId');
@@ -892,24 +895,22 @@ Raven.prototype = {
     }
 
     var encode = encodeURIComponent;
-    var qs = '?';
+    var encodedOptions = [];
+
     for (var key in options) {
-      if (key !== 'user') {
-        qs += encode(key) + '=' + encode(options[key]) + '&';
+      if (key === 'user') {
+        var user = options.user;
+        if (user.name) encodedOptions.push('name=' + encode(user.name));
+        if (user.email) encodedOptions.push('email=' + encode(user.email));
+      } else {
+        encodedOptions.push(encode(key) + '=' + encode(options[key]));
       }
     }
-
-    var user = options.user;
-    if (user) {
-      if (user.name) qs += '&name=' + encode(user.name);
-      if (user.email) qs += '&email=' + encode(user.email);
-    }
-
     var globalServer = this._getGlobalServer(this._parseDSN(options.dsn));
 
     var script = _document.createElement('script');
     script.async = true;
-    script.src = globalServer + '/api/embed/error-page/' + qs;
+    script.src = globalServer + '/api/embed/error-page/?' + encodedOptions.join('&');
     (_document.head || _document.body).appendChild(script);
   },
 
