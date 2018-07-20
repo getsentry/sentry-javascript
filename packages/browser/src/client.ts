@@ -33,12 +33,25 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * TODO
    */
   public showReportDialog(options: {
+    [key: string]: any;
     eventId?: string;
     dsn?: DSNLike;
     user?: {
-      name?: string;
       email?: string;
+      name?: string;
     };
+    lang?: string;
+    title?: string;
+    subtitle?: string;
+    subtitle2?: string;
+    labelName?: string;
+    labelEmail?: string;
+    labelComments?: string;
+    labelClose?: string;
+    labelSubmit?: string;
+    errorGeneric?: string;
+    errorFormEntry?: string;
+    successMessage?: string;
   }): void {
     // doesn't work without a document (React Native)
     const document = (getGlobalObject() as Window).document;
@@ -46,34 +59,49 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       return;
     }
 
-    if (!options) {
-      throw new SentryError('Missing `options` object in showReportDialog call');
-    }
+    // TODO: Fix default DSN, eventId and user
+    // tslint:disable-next-line:no-parameter-reassignment
+    options = {
+      dsn: 'FIXME',
+      eventId: 'FIXME',
+      user: {
+        email: 'FIXME',
+        name: 'FIXME',
+      },
+      ...options,
+    };
+
     if (!options.eventId) {
       throw new SentryError('Missing `eventId` option in showReportDialog call');
     }
+
     if (!options.dsn) {
       throw new SentryError('Missing `DSN` option in showReportDialog call');
     }
 
-    // TODO: Get default eventId from `this.lastEventId()` when ported
-    // TODO: Get default DSN from `this.getDsn()` or something when ported
-    const dsnInstance = new DSN(options.dsn);
-    let qs = `?eventId=${encodeURIComponent(options.eventId)}&dsn=${encodeURIComponent(dsnInstance.toString())}`;
+    const encodedOptions = [];
+    for (const key in options) {
+      if (key === 'user') {
+        const user = options.user;
+        if (!user) {
+          continue;
+        }
 
-    const user = options.user;
-    if (user) {
-      if (user.name) {
-        qs += `&name=${encodeURIComponent(user.name)}`;
-      }
-      if (user.email) {
-        qs += `&email=${encodeURIComponent(user.email)}`;
+        if (user.name) {
+          encodedOptions.push(`name=${encodeURIComponent(user.name)}`);
+        }
+        if (user.email) {
+          encodedOptions.push(`email=${encodeURIComponent(user.email)}`);
+        }
+      } else {
+        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(options[key])}`);
       }
     }
 
-    const protocol = dsnInstance.protocol ? `${dsnInstance.protocol}:` : '';
-    const port = dsnInstance.port ? `:${dsnInstance.port}` : '';
-    const src = `${protocol}//${dsnInstance.host}${port}/api/embed/error-page/${qs}`;
+    const parsedDSN = new DSN(options.dsn);
+    const protocol = parsedDSN.protocol ? `${parsedDSN.protocol}:` : '';
+    const port = parsedDSN.port ? `:${parsedDSN.port}` : '';
+    const src = `${protocol}//${parsedDSN.host}${port}/api/embed/error-page/?${encodedOptions.join('&')}`;
 
     const script = document.createElement('script');
     script.async = true;
