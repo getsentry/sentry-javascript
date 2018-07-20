@@ -2,7 +2,7 @@
   "editor.formatOnType": true,
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
-  "editor.rulers": [80],
+  "editor.rulers": [120],
   "editor.tabSize": 2,
   "files.autoSave": "onWindowChange",
   "files.trimTrailingWhitespace": true,

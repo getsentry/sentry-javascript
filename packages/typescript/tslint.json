@@ -33,18 +33,7 @@
     "member-ordering": [true, "statics-first"],
     "no-console": [true, "log"],
     "only-arrow-functions": [true, "allow-named-functions"],
-    "typedef": [
-      true,
-      "call-signature",
-      "parameter",
-      "property-declaration",
-      "member-variable-declaration"
-    ],
-    "variable-name": [
-      true,
-      "check-format",
-      "allow-leading-underscore",
-      "ban-keywords"
-    ]
+    "typedef": [true, "call-signature", "parameter", "property-declaration", "member-variable-declaration"],
+    "variable-name": [true, "check-format", "allow-leading-underscore", "ban-keywords"]
   }
 }
