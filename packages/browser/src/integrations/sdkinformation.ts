@@ -2,12 +2,12 @@ import { getDefaultHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { SDK_NAME, SDK_VERSION } from '../version';
 
-/** Adds SDK package info to an event. */
-export class SDKPackage implements Integration {
+/** Adds SDK info to an event. */
+export class SDKInformation implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'SDKPackage';
+  public name: string = 'SDKInformation';
 
   /**
    * @inheritDoc
@@ -19,7 +19,7 @@ export class SDKPackage implements Integration {
         packages: [
           ...((event.sdk && event.sdk.packages) || []),
           {
-            name: 'npm:@sentry/node',
+            name: 'npm:@sentry/browser',
             version: SDK_VERSION,
           },
         ],

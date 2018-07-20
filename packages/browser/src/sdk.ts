@@ -6,7 +6,7 @@ import {
   FunctionToString,
   OnError,
   OnUnhandledRejection,
-  SDKPackage,
+  SDKInformation,
   TryCatch,
 } from './integrations';
 
@@ -15,7 +15,7 @@ export const defaultIntegrations = [
   new FunctionToString(),
   new OnError(),
   new OnUnhandledRejection(),
-  new SDKPackage(),
+  new SDKInformation(),
   new TryCatch(),
 ];
 
