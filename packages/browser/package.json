@@ -19,7 +19,9 @@
     "@sentry/hub": "4.0.0-beta.12",
     "@sentry/minimal": "4.0.0-beta.12",
     "@sentry/types": "4.0.0-beta.12",
-    "@sentry/utils": "4.0.0-beta.12"
+    "@sentry/utils": "4.0.0-beta.12",
+    "@types/md5": "2.1.32",
+    "md5": "2.2.1"
   },
   "devDependencies": {
     "chai": "^4.1.2",

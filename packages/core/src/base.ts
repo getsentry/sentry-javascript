@@ -133,6 +133,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async captureEvent(event: SentryEvent, scope?: Scope): Promise<SentryResponse> {
+    // TODO: Notify developers that it's impossible to call `captureX` methods
+    // without calling `init` in the first place
     return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), scope);
   }
 

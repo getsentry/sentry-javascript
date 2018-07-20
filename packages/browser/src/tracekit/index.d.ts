@@ -239,3 +239,9 @@ export declare var report: Report;
 export declare var remoteFetching: boolean;
 export declare var collectWindowErrors: boolean;
 export declare var linesOfContext: boolean;
+
+export declare var subscribe: (
+  handler: (stack: StackTrace, isWindowError: boolean, error: Error) => void,
+) => void;
+export declare var installGlobalHandler: () => void;
+export declare var installGlobalUnhandledRejectionHandler: () => void;

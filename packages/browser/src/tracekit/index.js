@@ -162,8 +162,8 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    */
   function subscribe(handler) {
-    installGlobalHandler();
-    installGlobalUnhandledRejectionHandler();
+    // installGlobalHandler();
+    // installGlobalUnhandledRejectionHandler();
     handlers.push(handler);
   }
 
@@ -394,6 +394,9 @@ TraceKit.report = (function reportModuleWrapper() {
 
   report.subscribe = subscribe;
   report.unsubscribe = unsubscribe;
+  report.installGlobalHandler = installGlobalHandler;
+  report.installGlobalUnhandledRejectionHandler = installGlobalUnhandledRejectionHandler;
+
   return report;
 })();
 
@@ -1457,6 +1460,15 @@ if (!TraceKit.linesOfContext || TraceKit.linesOfContext < 1) {
   TraceKit.linesOfContext = 11;
 }
 
+const subscribe = TraceKit.report.subscribe;
+const installGlobalHandler = TraceKit.report.installGlobalHandler;
+const installGlobalUnhandledRejectionHandler =
+  TraceKit.report.installGlobalUnhandledRejectionHandler;
 const computeStackTrace = TraceKit.computeStackTrace;
 
-export { computeStackTrace };
+export {
+  subscribe,
+  installGlobalHandler,
+  installGlobalUnhandledRejectionHandler,
+  computeStackTrace,
+};
