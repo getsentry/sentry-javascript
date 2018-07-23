@@ -18,25 +18,18 @@ export interface BrowserOptions extends Options {
   ignoreErrors?: Array<string | RegExp>;
 
   /**
-   * A pattern for error URLs which should not be sent to Sentry. To whitelist
-   * certain errors instead, use {@link Options.whitelistUrls}. By default, all
-   * errors will be sent.
+   * A pattern for error URLs which should not be sent to Sentry.
+   * To whitelist certain errors instead, use {@link Options.whitelistUrls}.
+   * By default, all errors will be sent.
    */
-  ignoreUrls?: Array<string | RegExp>;
+  blacklistUrls?: Array<string | RegExp>;
 
   /**
-   * A pattern for error URLs which should exclusively be sent to Sentry. This
-   * is the opposite of {@link Options.ignoreUrls}. By default, all errors will
-   * be sent.
+   * A pattern for error URLs which should exclusively be sent to Sentry.
+   * This is the opposite of {@link Options.blacklistUrls}.
+   * By default, all errors will be sent.
    */
   whitelistUrls?: Array<string | RegExp>;
-
-  /**
-   * Defines a list source code file paths. Only errors including these paths in
-   * their stack traces will be sent to Sentry. By default, all errors will be
-   * sent.
-   */
-  includePaths?: Array<string | RegExp>;
 }
 
 /** The Sentry Browser SDK Backend. */
@@ -99,8 +92,6 @@ export class BrowserBackend implements Backend {
       return this.eventFromMessage(ex);
     }
 
-    // TODO: Create `shouldDropEvent` method to gather all user-options
-
     const event = eventFromStacktrace(computeStackTrace(exception as Error));
 
     return {
@@ -146,28 +137,6 @@ export class BrowserBackend implements Backend {
         frames,
       },
     };
-
-    // TODO: Revisit ignoreUrl behavior
-
-    // Since we know this is a synthetic trace, the top frame (this function call)
-    // MUST be from Raven.js, so mark it for trimming
-    // We add to the trim counter so that callers can choose to trim extra frames, such
-    // as utility functions.
-
-    // stack[0] is `throw new Error(msg)` call itself, we are interested in the frame that was just before that, stack[1]
-    // let initialCall = Array.isArray(stack.stack) && stack.stack[1];
-
-    // if stack[1] is `eventFromException`, it means that someone passed a string to it and we redirected that call
-    // to be handled by `eventFromMessage`, thus `initialCall` is the 3rd one, not 2nd
-    // initialCall => captureException(string) => captureMessage(string)
-    // TODO: Verify if this is actually a correct name
-    // if (initialCall && initialCall.func === 'eventFromException') {
-    //   initialCall = stack.stack[2];
-    // }
-
-    // const fileurl = (initialCall && initialCall.url) || '';
-
-    // TODO: Create `shouldDropEvent` method to gather all user-options
   }
 
   /**
