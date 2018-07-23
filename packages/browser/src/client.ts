@@ -1,5 +1,5 @@
 import { BaseClient, DSN, SentryError } from '@sentry/core';
-import { DSNLike, SdkInfo } from '@sentry/types';
+import { DSNLike } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 
@@ -17,16 +17,6 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    */
   public constructor(options: BrowserOptions) {
     super(BrowserBackend, options);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getSdkInfo(): SdkInfo {
-    return {
-      name: 'sentry-browser',
-      version: '4.0.0-beta.6',
-    };
   }
 
   /**

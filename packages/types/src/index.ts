@@ -196,7 +196,7 @@ export interface Mechanism {
 /** TODO */
 export interface Integration {
   name: string;
-  install(): void;
+  install(options?: object): void;
 }
 
 /** TODO */

@@ -1,3 +1,4 @@
+export { logger } from './logger';
 export { captureException, captureMessage, configureScope } from '@sentry/minimal';
 export { Hub, Scope } from '@sentry/hub';
 export { BackendClass, BaseClient } from './base';

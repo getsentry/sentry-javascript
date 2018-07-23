@@ -1,6 +1,7 @@
 import { getDefaultHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { Client, Options } from './interfaces';
+import { logger } from './logger';
 
 /** A class object that can instanciate Client objects. */
 export interface ClientClass<F extends Client, O extends Options> {
@@ -24,6 +25,9 @@ export function initAndBind<F extends Client, O extends Options>(
     return;
   }
 
+  // TODO: Options.debug? Options.enableLogger?
+  logger.enable();
+
   const client = new clientClass(options);
   client.install();
 
@@ -41,7 +45,8 @@ export function initAndBind<F extends Client, O extends Options>(
   // Just in case someone will return non-array from a `itegrations` callback
   if (Array.isArray(integrations)) {
     integrations.forEach(integration => {
-      integration.install();
+      integration.install(options);
+      logger.log(`Integration installed: ${integration.name}`);
     });
   }
 }
