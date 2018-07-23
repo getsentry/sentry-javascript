@@ -30,8 +30,6 @@ export function getEventOptionsFromPlainObject(exception: {}): {
 /** TODO */
 export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
   const frames = prepareFramesForEvent(stacktrace.stack);
-  // const prefixedMessage =
-  //   (stack.name ? stack.name + ': ' : '') + (stack.message || '');
   const transaction = stacktrace.url || (stacktrace.stack && stacktrace.stack[0].url) || '<unknown>';
 
   const ex = {

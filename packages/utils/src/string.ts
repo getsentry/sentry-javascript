@@ -1,3 +1,5 @@
+import { isString } from './is';
+
 /**
  * Encodes given object into url-friendly format
  *
@@ -78,4 +80,29 @@ export function safeJoin(input: any[], delimiter?: string): string {
   }
 
   return output.join(delimiter);
+}
+
+/**
+ * Combine an array of regular expressions and strings into one large regexp
+ */
+export function joinRegExp(patterns: Array<RegExp | string>): RegExp {
+  const joinedPattern = Array.isArray(patterns)
+    ? patterns
+        .map(pattern => {
+          if (isString(pattern)) {
+            // If it's a string, we need to escape it
+            // Taken from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+            return (pattern as string).replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
+          } else if (pattern && (pattern as RegExp).source) {
+            // If it's a regexp already, we want to extract the source
+            return (pattern as RegExp).source;
+          }
+          // Intentionally skip other cases
+          return undefined;
+        })
+        .filter(x => !!x)
+        .join('|')
+    : '';
+
+  return new RegExp(joinedPattern, 'i');
 }
