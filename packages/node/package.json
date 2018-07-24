@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "4.0.0-beta.9",
+  "version": "4.0.0-beta.10",
   "description": "Offical Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/node",
@@ -15,11 +15,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.0.0-beta.9",
-    "@sentry/hub": "4.0.0-beta.9",
-    "@sentry/minimal": "4.0.0-beta.9",
-    "@sentry/types": "4.0.0-beta.9",
-    "@sentry/utils": "4.0.0-beta.9",
+    "@sentry/core": "4.0.0-beta.10",
+    "@sentry/hub": "4.0.0-beta.10",
+    "@sentry/minimal": "4.0.0-beta.10",
+    "@sentry/types": "4.0.0-beta.10",
+    "@sentry/utils": "4.0.0-beta.10",
     "@types/cookie": "0.3.1",
     "@types/md5": "2.1.32",
     "@types/stack-trace": "0.0.29",
@@ -49,7 +49,7 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch --notify",
-    "version": "node ../../scripts/versionbump.js src/client.ts"
+    "version": "node ../../scripts/versionbump.js src/version.ts"
   },
   "jest": {
     "collectCoverage": true,

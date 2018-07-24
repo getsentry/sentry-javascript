@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "4.0.0-beta.9",
+  "version": "4.0.0-beta.10",
   "description": "Offical Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/browser",
@@ -15,11 +15,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.0.0-beta.9",
-    "@sentry/hub": "4.0.0-beta.9",
-    "@sentry/minimal": "4.0.0-beta.9",
-    "@sentry/types": "4.0.0-beta.9",
-    "@sentry/utils": "4.0.0-beta.9"
+    "@sentry/core": "4.0.0-beta.10",
+    "@sentry/hub": "4.0.0-beta.10",
+    "@sentry/minimal": "4.0.0-beta.10",
+    "@sentry/types": "4.0.0-beta.10",
+    "@sentry/utils": "4.0.0-beta.10"
   },
   "devDependencies": {
     "chai": "^4.1.2",
@@ -59,7 +59,7 @@
     "test": "karma start karma.config.js",
     "test:watch": "karma start karma.config.js --auto-watch --no-single-run",
     "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'",
-    "version": "node ../../scripts/versionbump.js src/client.ts"
+    "version": "node ../../scripts/versionbump.js src/version.ts"
   },
   "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d"
 }
