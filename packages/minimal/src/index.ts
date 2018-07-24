@@ -19,7 +19,14 @@ function callOnHub(method: string, ...args: any[]): void {
  * @param exception An exception-like object.
  */
 export function captureException(exception: any): void {
-  callOnHub('captureException', exception);
+  let syntheticException: Error;
+  try {
+    // TODO: Get message from captureException call in case we pass it a non-Error type?
+    throw new Error('Sentry syntheticException');
+  } catch (exception) {
+    syntheticException = exception as Error;
+  }
+  callOnHub('captureException', exception, syntheticException);
 }
 
 /**
@@ -28,7 +35,13 @@ export function captureException(exception: any): void {
  * @param message The message to send to Sentry.
  */
 export function captureMessage(message: string): void {
-  callOnHub('captureMessage', message);
+  let syntheticException: Error;
+  try {
+    throw new Error(message);
+  } catch (exception) {
+    syntheticException = exception as Error;
+  }
+  callOnHub('captureMessage', message, syntheticException);
 }
 
 /**

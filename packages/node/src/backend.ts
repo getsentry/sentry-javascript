@@ -25,7 +25,7 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any): Promise<SentryEvent> {
+  public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
     let stack: stacktrace.StackFrame[] | undefined;
     let ex: any = exception;
 
@@ -42,11 +42,12 @@ export class NodeBackend implements Backend {
           scope.setFingerprint([md5(keys.join(''))]);
         });
 
+        // TODO: Use syntheticException here as well
         ex = new Error(message);
       } else {
         // This handles when someone does: `throw "something awesome";`
-        // We synthesize an Error here so we can extract a (rough) stack trace.
-        ex = new Error(exception as string);
+        // We use synthesized Error here so we can extract a (rough) stack trace.
+        ex = syntheticException || new Error(exception as string);
       }
 
       stack = stacktrace.get();
@@ -60,10 +61,14 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string): Promise<SentryEvent> {
+  public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
+    // TODO: Use syntheticException to get a stack
     const stack = stacktrace.get();
     const frames = await parseStack(stack);
     const event: SentryEvent = {
+      extra: {
+        TODOmakeLinterHappyAKARemoveIt: syntheticException,
+      },
       message,
       stacktrace: {
         frames: prepareFramesForEvent(frames),

@@ -57,53 +57,19 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
     return [];
   }
 
-  const topFrameUrl = stack[0].url;
-
-  return (
-    stack
-      // TODO: REMOVE ME, TESTING ONLY
-      // Remove frames that don't have filename, colno and lineno.
-      // Things like `new Promise` called by generated code
-      // eg. async/await from regenerator
-      .filter(frame => {
-        if (frame.url.includes('packages/browser/build/bundle.min.js')) {
-          return false;
-        }
-        if (frame.url === '<anonymous>' && !frame.column && !frame.line) {
-          return false;
-        }
-        return true;
-      })
-      .map(
-        (frame: TraceKitStackFrame): StackFrame => ({
-          // normalize the frames data
-          // Case when we don't have any information about the error
-          // E.g. throwing a string or raw object, instead of an `Error` in Firefox
-          // Generating synthetic error doesn't add any value here
-          //
-          // We should probably somehow let a user know that they should fix their code
-
-          // e.g. frames captured via captureMessage throw
-          // for (let j = 0; j < options.trimHeadFrames && j < frames.length; j++) {
-          // frames[j].in_app = false;
-          // }
-
-          // TODO: This has to be fixed
-          // determine if an exception came from outside of our app
-          // first we check the global includePaths list.
-          // Now we check for fun, if the function name is Raven or TraceKit
-          // finally, we do a last ditch effort and check for raven.min.js
-          // normalized.in_app = !(
-          //   /(Sentry|TraceKit)\./.test(normalized.function) ||
-          //   /raven\.(min\.)?js$/.test(normalized.filename)
-          // );
-          colno: frame.column,
-          filename: frame.url || topFrameUrl,
-          function: frame.func || '?',
-          in_app: true,
-          lineno: frame.line,
-        }),
-      )
-      .slice(0, STACKTRACE_LIMIT)
-  );
+  return stack
+    .filter(
+      // TODO: This could be smarter
+      frame => !frame.func.includes('captureMessage') && !frame.func.includes('captureException'),
+    )
+    .map(
+      (frame: TraceKitStackFrame): StackFrame => ({
+        colno: frame.column,
+        filename: frame.url || stack[0].url,
+        function: frame.func || '?',
+        in_app: true,
+        lineno: frame.line,
+      }),
+    )
+    .slice(0, STACKTRACE_LIMIT);
 }
