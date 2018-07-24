@@ -175,18 +175,20 @@ export interface Client<O extends Options = Options> {
    *
    * @param exception An exception-like object.
    * @param scope An optional scope containing event metadata.
+   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
    * @returns The created event id.
    */
-  captureException(exception: any, scope?: Scope): Promise<void>;
+  captureException(exception: any, syntheticException: Error | null, scope?: Scope): Promise<void>;
 
   /**
    * Captures a message event and sends it to Sentry.
    *
    * @param message The message to send to Sentry.
    * @param scope An optional scope containing event metadata.
+   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
    * @returns The created event id.
    */
-  captureMessage(message: string, scope?: Scope): Promise<void>;
+  captureMessage(message: string, syntheticException: Error | null, scope?: Scope): Promise<void>;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -242,10 +244,10 @@ export interface Backend {
   install?(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any): Promise<SentryEvent>;
+  eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string): Promise<SentryEvent>;
+  eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent>;
 
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): Promise<SentryResponse>;

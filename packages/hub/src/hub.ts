@@ -164,18 +164,20 @@ export class Hub {
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
+   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
    */
-  public captureException(exception: any): void {
-    this.invokeClientAsync('captureException', exception);
+  public captureException(exception: any, syntheticException: Error | null = null): void {
+    this.invokeClientAsync('captureException', exception, syntheticException);
   }
 
   /**
    * Captures a message event and sends it to Sentry.
    *
    * @param message The message to send to Sentry.
+   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
    */
-  public captureMessage(message: string): void {
-    this.invokeClientAsync('captureMessage', message);
+  public captureMessage(message: string, syntheticException: Error | null = null): void {
+    this.invokeClientAsync('captureMessage', message, syntheticException);
   }
 
   /**

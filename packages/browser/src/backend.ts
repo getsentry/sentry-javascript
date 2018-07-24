@@ -57,7 +57,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any): Promise<SentryEvent> {
+  public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       const ex = exception as ErrorEvent;
@@ -71,7 +71,7 @@ export class BrowserBackend implements Backend {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      return this.eventFromMessage(message);
+      return this.eventFromMessage(message, syntheticException);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
     } else if (isPlainObject(exception as {})) {
@@ -89,12 +89,12 @@ export class BrowserBackend implements Backend {
       // it's not an Error
       // So bail out and capture it as a simple message:
       const ex = exception as string;
-      return this.eventFromMessage(ex);
+      return this.eventFromMessage(ex, syntheticException);
     }
 
-    const event = eventFromStacktrace(computeStackTrace(exception as Error));
+    let event: SentryEvent = eventFromStacktrace(computeStackTrace(exception as Error));
 
-    return {
+    event = {
       ...event,
       exception: {
         ...event.exception,
@@ -104,39 +104,32 @@ export class BrowserBackend implements Backend {
         },
       },
     };
+
+    console.log(event);
+
+    return event;
   }
 
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string): Promise<SentryEvent> {
-    message = String(message); // tslint:disable-line:no-parameter-reassignment
-
-    // Generate a "synthetic" stack trace from this point.
-    // NOTE: If you are a Sentry user, and you are seeing this stack frame, it is NOT indicative
-    //       of a bug with Raven.js. Sentry generates synthetic traces either by configuration,
-    //       or if it catches a thrown object without a "stack" property.
-    // Neither DOMError or DOMException provide stacktrace and we most likely wont get it this way as well
-    // but it's barely any overhead so we may at least try
-    let syntheticException: Error;
-    try {
-      throw new Error(message);
-    } catch (exception) {
-      syntheticException = exception as Error;
-      // null exception name so `Error` isn't prefixed to msg
-      (syntheticException as any).name = null; // tslint:disable-line:no-null-keyword
-    }
-
-    const stacktrace = computeStackTrace(syntheticException);
-    const frames = prepareFramesForEvent(stacktrace.stack);
-
-    return {
+  public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
+    const event: SentryEvent = {
       fingerprint: [message],
       message,
-      stacktrace: {
-        frames,
-      },
     };
+
+    if (syntheticException) {
+      const stacktrace = computeStackTrace(syntheticException);
+      const frames = prepareFramesForEvent(stacktrace.stack);
+      event.stacktrace = {
+        frames,
+      };
+    }
+
+    console.log(event);
+
+    return event;
   }
 
   /**

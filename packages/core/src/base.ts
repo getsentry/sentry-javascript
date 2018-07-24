@@ -116,16 +116,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, scope?: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromException(exception);
+  public async captureException(exception: any, syntheticException: Error | null, scope?: Scope): Promise<void> {
+    const event = await this.getBackend().eventFromException(exception, syntheticException);
     await this.captureEvent(event, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string, scope?: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromMessage(message);
+  public async captureMessage(message: string, syntheticException: Error | null, scope?: Scope): Promise<void> {
+    const event = await this.getBackend().eventFromMessage(message, syntheticException);
     await this.captureEvent(event, scope);
   }
 
