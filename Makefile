@@ -18,4 +18,6 @@ publish:
 	cd packages/utils; npm publish
 
 publish-cdn:
-  node scripts/browser-upload-cdn.js
+	node scripts/browser-upload-cdn.js
+
+release: bump prepare-release publish publish-cdn
