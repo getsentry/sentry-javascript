@@ -18,10 +18,10 @@ export class GlobalHandlers implements Integration {
   public constructor(
     private options: {
       onerror: boolean;
-      onunhandledpromiserejection: boolean;
+      onunhandledrejection: boolean;
     } = {
       onerror: true,
-      onunhandledpromiserejection: true,
+      onunhandledrejection: true,
     },
   ) {}
   /**
@@ -51,8 +51,8 @@ export class GlobalHandlers implements Integration {
       installGlobalHandler();
     }
 
-    if (this.options.onunhandledpromiserejection) {
-      logger.log('Global Handler attached: onunhandledpromiserejection');
+    if (this.options.onunhandledrejection) {
+      logger.log('Global Handler attached: onunhandledrejection');
       installGlobalUnhandledRejectionHandler();
     }
   }
@@ -60,15 +60,13 @@ export class GlobalHandlers implements Integration {
   /** TODO */
   private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): SentryEvent {
     const event = eventFromStacktrace(stacktrace);
-    console.log(event);
-    // TODO: Make a distinction between 'onunhandledrejection' and 'onerror'
     return {
       ...event,
       exception: {
         ...event.exception,
         mechanism: {
           handled: false,
-          type: 'onerror',
+          type: stacktrace.mode === 'onerror' ? 'onerror' : 'onunhandledrejection',
         },
       },
     };

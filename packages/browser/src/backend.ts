@@ -105,8 +105,6 @@ export class BrowserBackend implements Backend {
       },
     };
 
-    console.log(event);
-
     return event;
   }
 
@@ -126,8 +124,6 @@ export class BrowserBackend implements Backend {
         frames,
       };
     }
-
-    console.log(event);
 
     return event;
   }

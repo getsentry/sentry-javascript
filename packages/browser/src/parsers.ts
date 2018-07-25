@@ -57,15 +57,18 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
     return [];
   }
 
-  return stack
-    .filter(
-      // TODO: This could be smarter
-      frame => !frame.func.includes('captureMessage') && !frame.func.includes('captureException'),
-    )
+  let localStack = stack;
+
+  // TODO: This could be smarter
+  if (localStack[0].func.includes('captureMessage') || localStack[0].func.includes('captureException')) {
+    localStack = localStack.slice(1);
+  }
+
+  return localStack
     .map(
       (frame: TraceKitStackFrame): StackFrame => ({
         colno: frame.column,
-        filename: frame.url || stack[0].url,
+        filename: frame.url || localStack[0].url,
         function: frame.func || '?',
         in_app: true,
         lineno: frame.line,
