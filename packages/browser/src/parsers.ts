@@ -58,9 +58,10 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   }
 
   let localStack = stack;
+  const firstFrameFunction = localStack[0].func || '';
 
   // TODO: This could be smarter
-  if (localStack[0].func.includes('captureMessage') || localStack[0].func.includes('captureException')) {
+  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
     localStack = localStack.slice(1);
   }
 

@@ -101,8 +101,7 @@ async function readSourceFiles(
  */
 export async function extractStackFromError(error: Error): Promise<stacktrace.StackFrame[]> {
   const stack = stacktrace.parse(error);
-  if (!stack || !Array.isArray(stack) || !stack.length || !stack[0].getFileName) {
-    // the stack is not the useful thing we were expecting :/
+  if (!stack) {
     return [];
   }
   return stack;
@@ -174,9 +173,9 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
 /**
  * TODO
  */
-export async function parseError(error: ExtendedError, ownStack?: stacktrace.StackFrame[]): Promise<SentryEvent> {
+export async function parseError(error: ExtendedError): Promise<SentryEvent> {
   const name = error.name || error.constructor.name;
-  const stack = ownStack || (await extractStackFromError(error));
+  const stack = await extractStackFromError(error);
   const frames = await parseStack(stack);
   const event: SentryEvent = {
     exception: {
@@ -220,29 +219,20 @@ export async function parseError(error: ExtendedError, ownStack?: stacktrace.Sta
 /**
  * TODO
  */
-export function prepareFramesForEvent(frames: StackFrame[]): StackFrame[] {
-  let filteredFrames: StackFrame[] = frames;
-
-  // Remove frames that don't have filename, colno and lineno.
-  // Things like `new Promise` called by generated code
-  // eg. async/await from regenerator
-  filteredFrames = filteredFrames.filter(frame => !(!frame.filename && !frame.colno && !frame.lineno));
-
-  // TODO: REMOVE ME, TESTING ONLY
-  for (const frame of filteredFrames) {
-    if (frame.filename && frame.filename.includes('/dist/')) {
-      frame.in_app = false;
-    }
+export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
+  if (!stack) {
+    return [];
   }
 
-  const firstInAppFrameIndex = filteredFrames.findIndex(frame => frame.in_app === true);
+  let localStack = stack;
+  const firstFrameFunction = localStack[0].function || '';
 
-  // Remove every frame that happened after our first in_app call
-  // which basically means all the internal async stuff
-  if (firstInAppFrameIndex !== -1) {
-    filteredFrames = filteredFrames.slice(firstInAppFrameIndex);
+  // TODO: This could be smarter
+  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
+    localStack = localStack.slice(1);
   }
 
+  return localStack;
   // Sentry expects the stack trace to be oldest -> newest, v8 provides newest -> oldest
-  return filteredFrames.reverse();
+  // return filteredFrames.reverse();
 }
