@@ -4,8 +4,7 @@ import { SentryEvent, SentryResponse } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5 from 'md5';
-import * as stacktrace from 'stack-trace';
-import { parseError, parseStack, prepareFramesForEvent } from './parsers';
+import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
 
 /**
@@ -26,8 +25,7 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
-    let stack: stacktrace.StackFrame[] | undefined;
-    let ex: any = exception;
+    let ex: Error = exception;
 
     if (!isError(exception)) {
       if (isPlainObject(exception)) {
@@ -42,18 +40,16 @@ export class NodeBackend implements Backend {
           scope.setFingerprint([md5(keys.join(''))]);
         });
 
-        // TODO: Use syntheticException here as well
-        ex = new Error(message);
+        ex = syntheticException || new Error(message);
+        ex.message = message;
       } else {
         // This handles when someone does: `throw "something awesome";`
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = syntheticException || new Error(exception as string);
       }
-
-      stack = stacktrace.get();
     }
 
-    const event: SentryEvent = stack ? await parseError(ex as Error, stack) : await parseError(ex as Error);
+    const event: SentryEvent = await parseError(ex);
 
     return event;
   }
@@ -62,13 +58,9 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
-    // TODO: Use syntheticException to get a stack
-    const stack = stacktrace.get();
+    const stack = syntheticException ? await extractStackFromError(syntheticException) : [];
     const frames = await parseStack(stack);
     const event: SentryEvent = {
-      extra: {
-        TODOmakeLinterHappyAKARemoveIt: syntheticException,
-      },
       message,
       stacktrace: {
         frames: prepareFramesForEvent(frames),
