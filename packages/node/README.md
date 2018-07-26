@@ -5,23 +5,16 @@
   <br />
 </p>
 
-# Official Sentry SDK for NodeJS (Preview)
+# Official Sentry SDK for NodeJS (BETA)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 
-**WARNING:** This SDK is part of an early access preview for the
-[next generation](https://github.com/getsentry/raven-js/tree/master/packages#readme)
-of Sentry JavaScript SDKs. Public interfaces might change and break backwards
-compatibility from time to time. We absolutely recommend
-[raven](https://github.com/getsentry/raven-node) in production!
-
 ## Usage
 
-To use this SDK, call `init(options)` as early as possible in the main entry
-module. This will initialize the SDK and hook into the environment. Note that
-you can turn off almost all side effects using the respective options.
+To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
+hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
 const Sentry = require('@sentry/node');
@@ -32,9 +25,8 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of
-`@sentry/node`. Note that these functions will not perform any action before you
-have called `init()`:
+To set context information or send manual events, use the exported functions of `@sentry/node`. Note that these
+functions will not perform any action before you have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras
@@ -60,21 +52,4 @@ Sentry.captureEvent({
     // ...
   ],
 });
-```
-
-## Advanced Usage
-
-If you don't want to use a global static instance of Sentry, you can create one
-yourself:
-
-```javascript
-const { NodeClient } = require('@sentry/node');
-
-const client = new NodeClient({
-  dsn: '__DSN__',
-  // ...
-});
-
-client.install();
-// ...
 ```

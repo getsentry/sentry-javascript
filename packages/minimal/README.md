@@ -11,16 +11,15 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
 
-A lightweight Sentry SDK minimal that uses a configured client when embedded
-into an application. It allows library authors add support for a Sentry SDK
-without having to bundle the entire SDK or being dependent on a specific
-platform.
+A minimal Sentry SDK that uses a configured client when embedded into an application. It allows library authors add
+support for a Sentry SDK without having to bundle the entire SDK or being dependent on a specific platform. If the user
+is using Sentry in their application and your library uses `@sentry/minimal`, the user receives all
+breadcrumbs/messages/events you added to your librarys codebase.
 
 ## Usage
 
-To use the minimal, you do not have to initialize an SDK. This should be handled
-by the user of your library. Instead, directly use the exported functions of
-`@sentry/minimal` to add breadcrumbs or capture events:
+To use the minimal, you do not have to initialize an SDK. This should be handled by the user of your library. Instead,
+directly use the exported functions of `@sentry/minimal` to add breadcrumbs or capture events:
 
 ```javascript
 import * as Sentry from '@sentry/minimal';
@@ -42,9 +41,8 @@ Sentry.captureEvent({
 });
 ```
 
-Note that while strictly possible, it is discouraged to interfere with the event
-context. If for some reason your library needs to inject context information,
-beware that this might override the user's context values:
+Note that while strictly possible, it is discouraged to interfere with the event context. If for some reason your
+library needs to inject context information, beware that this might override the user's context values:
 
 ```javascript
 // Set user information, as well as tags and further extras

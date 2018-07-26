@@ -11,5 +11,4 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
 
-Common utilities used by the Sentry JavaScript SDKs. **Warning, only submodule
-imports are allowed here.**
+Common utilities used by the Sentry JavaScript SDKs. **Warning, only submodule imports are allowed here.**
