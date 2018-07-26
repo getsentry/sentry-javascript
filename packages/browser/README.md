@@ -5,23 +5,16 @@
   <br />
 </p>
 
-# Official Sentry SDK for Browsers (Preview)
+# Official Sentry SDK for Browsers (BETA)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 
-**WARNING:** This SDK is part of an early access preview for the
-[next generation](https://github.com/getsentry/raven-js/tree/master/packages#readme)
-of Sentry JavaScript SDKs. Public interfaces might change and break backwards
-compatibility from time to time. We absolutely recommend
-[raven-js](https://github.com/getsentry/raven-js) in production!
-
 ## Usage
 
-To use this SDK, call `init(options)` as early as possible after loading the
-page. This will initialize the SDK and hook into the environment. Note that you
-can turn off almost all side effects using the respective options.
+To use this SDK, call `init(options)` as early as possible after loading the page. This will initialize the SDK and hook
+into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
 import { init } from '@sentry/browser';
@@ -32,9 +25,8 @@ init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of
-`@sentry/browser`. Note that these functions will not perform any action before
-you have called `init()`:
+To set context information or send manual events, use the exported functions of `@sentry/browser`. Note that these
+functions will not perform any action before you have called `init()`:
 
 ```javascript
 import * as Sentry from '@sentry/browser';
@@ -62,21 +54,4 @@ Sentry.captureEvent({
     // ...
   ],
 });
-```
-
-## Advanced Usage
-
-If you don't want to use a global static instance of Sentry, you can create one
-yourself:
-
-```javascript
-import { BrowserClient } from '@sentry/browser';
-
-const client = new BrowserClient({
-  dsn: '__DSN__',
-  // ...
-});
-
-client.install();
-// ...
 ```
