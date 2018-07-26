@@ -18,7 +18,6 @@ backwards compatibility from time to time.
 - [Supported Platforms](#supported-platforms)
 - [Installation and Usage](#installation-and-usage)
 - [Other Packages](#other-packages)
-- [SDK Development](#sdk-development)
 - [Join the Discussion](#join-the-discussion)
 
 ## Supported Platforms
