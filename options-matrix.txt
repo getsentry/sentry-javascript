@@ -1,0 +1,22 @@
+| Concept           | Description                                                                 | Required | SDK     | Implemented |
+--------------------------------------------------------------------------------------------------------------------------------------
+| dsn               | Sets the DSN. Empty string implies no client config                         | yes      | all     | YES         |
+| release           | Sets the release name for all events                                        | yes      | all     | YES         |
+| environment       | Sets the environment name for all events                                    | yes      | all     | YES         |
+| repos             | Configures the repository spec for events                                   | yes      | all     | YES         |
+| dist              | Sets the distribution for all events                                        | yes      | all     | YES         |
+| server_name       | Sets an optional server name (device name)                                  | no       | node    | YES         |
+| attach_stacktrace | Attaches stacktraces to pure capture message / log integrations             | no       | all     | NO          |
+| ignore_errors     | A list of filters for errors not to send                                    | yes      | all     | KINDA       |
+| max_breadcrumbs   | Maximum number of breadcrumbs to record (0 = disable)                       | yes      | all     | YES         |
+| sample_rate       | A global sample rate to apply to all events (0 - 1)                         | yes      | all     | YES         |
+| enabled           | A flag to force disable a client                                            | yes      | browser | YES         |
+| http_proxy        | Sets the http proxy to use                                                  | yes      | node    | NO          |
+| https_proxy       | Sets the https proxy to use                                                 | yes      | node    | NO          |
+| whitelist_urls    | A list of URLs that are permitted to send events (glob)                     | no       | browser | KINDA       |
+| blacklist_urls    | A list of URLs that are rejected from sending events (glob)                 | no       | browser | KINDA       |
+| debug             | Enable debug functionality in the SDK itself                                | no       | all     | YES         |
+| transport         | Make it possible to hook the sending of events (http request level)         | no       | all     | YES         |
+| integrations      | A list of integrations to enable when passed to init() with default options | no       | all     | YES         |
+| send_default_pii  | Enable or disable automatic sending of user data (opt in, default is false) | yes      | all     | NO          |
+--------------------------------------------------------------------------------------------------------------------------------------
