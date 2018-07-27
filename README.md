@@ -38,7 +38,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`raven-js`](https://github.com/getsentry/raven-js/tree/master/packages/raven-js): Our known Javascript SDK, we still
   support and release bug fixes for the SDK but all new features will be implemented in `@sentry/browser` which is the
   successor.
-- [`raven`](https://github.com/getsentry/raven-js/tree/master/packages/raven-js): Our known Node SDK, same as for
+- [`raven`](https://github.com/getsentry/raven-js/tree/master/packages/raven-node): Our known Node SDK, same as for
   `raven-js` we still support and release bug fixes for the SDK but all new features will be implemented in
   `@sentry/node` which is the successor.
 
