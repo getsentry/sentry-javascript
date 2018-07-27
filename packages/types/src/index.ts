@@ -22,21 +22,21 @@ export interface DSNComponents {
 /** Anything that can be parsed into a DSN. */
 export type DSNLike = string | DSNComponents;
 
-/** TODO */
+/** JSDoc */
 export enum Severity {
-  /** TODO */
+  /** JSDoc */
   Fatal = 'fatal',
-  /** TODO */
+  /** JSDoc */
   Error = 'error',
-  /** TODO */
+  /** JSDoc */
   Warning = 'warning',
-  /** TODO */
+  /** JSDoc */
   Log = 'log',
-  /** TODO */
+  /** JSDoc */
   Info = 'info',
-  /** TODO */
+  /** JSDoc */
   Debug = 'debug',
-  /** TODO */
+  /** JSDoc */
   Critical = 'critical',
 }
 
@@ -70,7 +70,7 @@ export namespace Severity {
   }
 }
 
-/** TODO */
+/** JSDoc */
 export interface Breadcrumb {
   type?: string;
   level?: Severity;
@@ -81,7 +81,7 @@ export interface Breadcrumb {
   timestamp?: number;
 }
 
-/** TODO */
+/** JSDoc */
 export interface User {
   id?: string;
   ip_address?: string;
@@ -90,7 +90,7 @@ export interface User {
   extra?: { [key: string]: any };
 }
 
-/** TODO */
+/** JSDoc */
 export interface SdkInfo {
   name: string;
   version: string;
@@ -98,13 +98,13 @@ export interface SdkInfo {
   packages?: Package[];
 }
 
-/** TODO */
+/** JSDoc */
 export interface Package {
   name: string;
   version: string;
 }
 
-/** TODO */
+/** JSDoc */
 export interface StackFrame {
   filename?: string;
   function?: string;
@@ -120,13 +120,13 @@ export interface StackFrame {
   vars?: { [key: string]: any };
 }
 
-/** TODO */
+/** JSDoc */
 export interface Stacktrace {
   frames?: StackFrame[];
   frames_omitted?: [number, number];
 }
 
-/** TODO */
+/** JSDoc */
 export interface Thread {
   id?: number;
   name?: string;
@@ -135,7 +135,7 @@ export interface Thread {
   current?: boolean;
 }
 
-/** TODO */
+/** JSDoc */
 export interface SentryException {
   type?: string;
   value?: string;
@@ -144,7 +144,7 @@ export interface SentryException {
   stacktrace?: Stacktrace;
 }
 
-/** TODO */
+/** JSDoc */
 export interface Request {
   url?: string;
   method?: string;
@@ -155,7 +155,7 @@ export interface Request {
   headers?: { [key: string]: string };
 }
 
-/** TODO */
+/** JSDoc */
 export interface SentryEvent {
   event_id?: string;
   message?: string;
@@ -184,7 +184,7 @@ export interface SentryEvent {
   user?: User;
 }
 
-/** TODO */
+/** JSDoc */
 export interface Mechanism {
   type: string;
   handled: boolean;
@@ -193,30 +193,30 @@ export interface Mechanism {
   };
 }
 
-/** TODO */
+/** JSDoc */
 export interface Integration {
   name: string;
   install(options?: object): void;
 }
 
-/** TODO */
+/** JSDoc */
 export interface SentryResponse {
   status: Status;
 }
 
-/** TODO */
+/** JSDoc */
 export interface TransportOptions {
   dsn: DSNLike;
   /** Define custom headers */
   headers?: object;
 }
 
-/** TODO */
+/** JSDoc */
 export interface Transport {
   send(event: SentryEvent): Promise<SentryResponse>;
 }
 
-/** TODO */
+/** JSDoc */
 export interface TransportClass<T extends Transport> {
   new (options: TransportOptions): T;
 }
@@ -266,9 +266,7 @@ export namespace Status {
   }
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export interface SentryWrappedFunction extends Function {
   [key: string]: any;
   __sentry__?: boolean;

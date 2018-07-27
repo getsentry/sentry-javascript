@@ -11,9 +11,7 @@ let ignoreOnError: number = -1;
 // TODO: Just temporary build fix for unused variable
 ignoreOnError = ignoreOnError + 1;
 
-/**
- * TODO
- */
+/** JSDoc */
 export function ignoreNextOnError(): void {
   // onerror should trigger before setTimeout
   ignoreOnError += 1;

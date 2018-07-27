@@ -19,9 +19,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     super(BrowserBackend, options);
   }
 
-  /**
-   * TODO
-   */
+  /** JSDoc */
   public showReportDialog(options: {
     [key: string]: any;
     eventId?: string;

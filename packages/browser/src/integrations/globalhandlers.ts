@@ -57,7 +57,7 @@ export class GlobalHandlers implements Integration {
     }
   }
 
-  /** TODO */
+  /** JSDoc */
   private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): SentryEvent {
     const event = eventFromStacktrace(stacktrace);
     return {

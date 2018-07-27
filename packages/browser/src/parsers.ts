@@ -9,7 +9,7 @@ const md5 = ((md5proxy as any).default || md5proxy) as (input: string) => string
 
 const STACKTRACE_LIMIT = 50;
 
-/** TODO */
+/** JSDoc */
 export function getEventOptionsFromPlainObject(exception: {}): {
   extra: {
     __serialized__: object;
@@ -27,7 +27,7 @@ export function getEventOptionsFromPlainObject(exception: {}): {
   };
 }
 
-/** TODO */
+/** JSDoc */
 export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
   const frames = prepareFramesForEvent(stacktrace.stack);
   const transaction = stacktrace.url || (stacktrace.stack && stacktrace.stack[0].url) || '<unknown>';
@@ -51,7 +51,7 @@ export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent
   };
 }
 
-/** TODO */
+/** JSDoc */
 export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[] {
   if (!stack) {
     return [];

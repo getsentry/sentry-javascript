@@ -12,11 +12,11 @@ const MATCH_EVERYTHING = new RegExp('');
 
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {
-  /** TODO */
+  /** JSDoc */
   private ignoreErrors: RegExp = joinRegExp(DEFAULT_IGNORE_ERRORS);
-  /** TODO */
+  /** JSDoc */
   private blacklistUrls: RegExp = MATCH_NOTHING;
-  /** TODO */
+  /** JSDoc */
   private whitelistUrls: RegExp = MATCH_EVERYTHING;
 
   /**
@@ -37,7 +37,7 @@ export class InboundFilters implements Integration {
     });
   }
 
-  /** TODO */
+  /** JSDoc */
   private configureOptions(options: BrowserOptions): void {
     if (options.ignoreErrors) {
       // TODO: Afair people wanted an option to disable defaults. Should we do it?
@@ -51,7 +51,7 @@ export class InboundFilters implements Integration {
     }
   }
 
-  /** TODO */
+  /** JSDoc */
   private shouldDropEvent(event: SentryEvent): boolean {
     if (this.isIgnoredError(event)) {
       logger.warn(`Event dropped due to being ignored.\n  Event: ${event.event_id}`);
@@ -68,22 +68,22 @@ export class InboundFilters implements Integration {
     return false;
   }
 
-  /** TODO */
+  /** JSDoc */
   private isIgnoredError(event: SentryEvent): boolean {
     return this.getPossibleEventMessages(event).some(message => this.ignoreErrors.test(message));
   }
 
-  /** TODO */
+  /** JSDoc */
   private isWhitelistedUrl(event: SentryEvent): boolean {
     return this.whitelistUrls.test(this.getEventFilterUrl(event));
   }
 
-  /** TODO */
+  /** JSDoc */
   private isBlacklistedUrl(event: SentryEvent): boolean {
     return this.blacklistUrls.test(this.getEventFilterUrl(event));
   }
 
-  /** TODO */
+  /** JSDoc */
   private getPossibleEventMessages(event: SentryEvent): string[] {
     const evt = event as any;
 
@@ -102,7 +102,7 @@ export class InboundFilters implements Integration {
     }
   }
 
-  /** TODO */
+  /** JSDoc */
   private getEventFilterUrl(event: SentryEvent): string {
     const evt = event as any;
 
