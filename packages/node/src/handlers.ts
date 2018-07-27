@@ -10,9 +10,7 @@ import { getDefaultHub } from './hub';
 
 let moduleCache: { [key: string]: string };
 
-/**
- * TODO
- */
+/** JSDoc */
 function getModules(): { [key: string]: string } {
   if (!moduleCache) {
     // tslint:disable-next-line:no-unsafe-any
@@ -21,9 +19,7 @@ function getModules(): { [key: string]: string } {
   return moduleCache;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function extractRequestData(req: { [key: string]: any }): { [key: string]: string } {
   // headers:
   //   node, express: req.headers
@@ -88,9 +84,7 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
   return request;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function extractUserData(req: { [key: string]: any }): { [key: string]: string } {
   const user: { [key: string]: string } = {};
 
@@ -117,9 +111,7 @@ function extractUserData(req: { [key: string]: any }): { [key: string]: string }
   return user;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function parseRequest(
   event: SentryEvent,
   req: {
@@ -153,9 +145,7 @@ function parseRequest(
   return preparedEvent;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function requestHandler(): (req: Request, res: Response, next: () => void) => void {
   return function sentryRequestMiddleware(req: Request, _res: Response, next: () => void): void {
     // TODO: Do we even need domain when we use middleware like approach? — Kamil
@@ -168,9 +158,7 @@ export function requestHandler(): (req: Request, res: Response, next: () => void
   };
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 interface MiddlewareError extends Error {
   status?: number | string;
   statusCode?: number | string;
@@ -180,18 +168,14 @@ interface MiddlewareError extends Error {
   };
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function getStatusCodeFromResponse(error: MiddlewareError): number {
   const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
 
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function errorHandler(): (
   error: MiddlewareError,
   req: Request,
@@ -214,17 +198,13 @@ export function errorHandler(): (
   };
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function defaultOnFatalError(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
   global.process.exit(1);
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function makeErrorHandler(
   onFatalError: (firstError: Error, secondError?: Error) => void = defaultOnFatalError,
 ): (error: Error) => void {

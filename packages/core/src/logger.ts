@@ -3,41 +3,41 @@ import { getGlobalObject } from '@sentry/utils/misc';
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject() as Window;
 
-/** TODO */
+/** JSDoc */
 class Logger {
-  /** TODO */
+  /** JSDoc */
   private readonly console: Console;
-  /** TODO */
+  /** JSDoc */
   private disabled: boolean;
 
-  /** TODO */
+  /** JSDoc */
   public constructor() {
     this.console = global.console;
     this.disabled = true;
   }
-  /** TODO */
+  /** JSDoc */
   public disable(): void {
     this.disabled = true;
   }
-  /** TODO */
+  /** JSDoc */
   public enable(): void {
     this.disabled = false;
   }
-  /** TODO */
+  /** JSDoc */
   public log(message: any): void {
     if (this.disabled) {
       return;
     }
     this.console.log(`Sentry Logger [Log]: ${message}`); // tslint:disable-line:no-console
   }
-  /** TODO */
+  /** JSDoc */
   public warn(message: any): void {
     if (this.disabled) {
       return;
     }
     this.console.warn(`Sentry Logger [Warn]: ${message}`); // tslint:disable-line:no-console
   }
-  /** TODO */
+  /** JSDoc */
   public error(message: any): void {
     if (this.disabled) {
       return;

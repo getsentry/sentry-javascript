@@ -161,24 +161,18 @@ const MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
 const MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
 const MAX_SERIALIZE_KEYS_LENGTH = 40;
 
-/**
- * TODO
- */
+/** JSDoc */
 function utf8Length(value: string): number {
   // tslint:disable-next-line:no-bitwise
   return ~-encodeURI(value).split(/%..|./).length;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function jsonSize(value: any): number {
   return utf8Length(JSON.stringify(value));
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function serializeValue<T>(value: T): T | string {
   const maxLength = 40;
 
@@ -205,9 +199,7 @@ function serializeValue<T>(value: T): T | string {
   return value;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function serializeObject<T>(value: T, depth: number): T | string | {} {
   return value;
 
@@ -234,9 +226,7 @@ function serializeObject<T>(value: T, depth: number): T | string | {} {
   return serializeValue(value);
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function limitObjectDepthToSize<T>(
   object: { [key: string]: any },
   depth: number = MAX_SERIALIZE_EXCEPTION_DEPTH,
@@ -251,9 +241,7 @@ export function limitObjectDepthToSize<T>(
   return serialized as T;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function serializeKeysToEventMessage(keys: string[], maxLength: number = MAX_SERIALIZE_KEYS_LENGTH): string {
   if (!keys.length) {
     return '[object has no keys]';

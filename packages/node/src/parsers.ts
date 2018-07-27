@@ -13,9 +13,7 @@ interface ExtendedError extends Error {
   [key: string]: any;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function getFunction(frame: stacktrace.StackFrame): string {
   try {
     return frame.getFunctionName() || `${frame.getTypeName()}.${frame.getMethodName() || '<anonymous>'}`;
@@ -27,9 +25,7 @@ function getFunction(frame: stacktrace.StackFrame): string {
   }
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 function getTransaction(frame: StackFrame): string {
   return frame.module || frame.function ? `${frame.module || '?'} at ${frame.function || '?'}` : '<unknown>';
 }
@@ -37,9 +33,7 @@ function getTransaction(frame: StackFrame): string {
 const mainModule: string = `${(require.main && require.main.filename && dirname(require.main.filename)) ||
   global.process.cwd()}/`;
 
-/**
- * TODO
- */
+/** JSDoc */
 function getModule(filename: string, base?: string): string {
   if (!base) {
     base = mainModule; // tslint:disable-line:no-parameter-reassignment
@@ -67,9 +61,7 @@ function getModule(filename: string, base?: string): string {
   return file;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 async function readSourceFiles(
   filenames: string[],
 ): Promise<{
@@ -96,9 +88,7 @@ async function readSourceFiles(
   return sourceFiles;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export async function extractStackFromError(error: Error): Promise<stacktrace.StackFrame[]> {
   const stack = stacktrace.parse(error);
   if (!stack) {
@@ -107,9 +97,7 @@ export async function extractStackFromError(error: Error): Promise<stacktrace.St
   return stack;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackFrame[]> {
   const filesToRead: string[] = [];
   const frames: StackFrame[] = stack.map(frame => {
@@ -170,9 +158,7 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
   });
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export async function parseError(error: ExtendedError): Promise<SentryEvent> {
   const name = error.name || error.constructor.name;
   const stack = await extractStackFromError(error);
@@ -216,9 +202,7 @@ export async function parseError(error: ExtendedError): Promise<SentryEvent> {
   return event;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
   if (!stack) {
     return [];

@@ -58,7 +58,7 @@ export abstract class BaseTransport implements Transport {
     };
   }
 
-  /** TODO */
+  /** JSDoc */
   protected async sendWithModule(httpModule: HTTPRequest, event: SentryEvent): Promise<SentryResponse> {
     const requestOptions = this.getRequestOptions();
     return new Promise<SentryResponse>((resolve, reject) => {

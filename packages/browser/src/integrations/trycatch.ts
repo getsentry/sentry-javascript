@@ -5,9 +5,7 @@ import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
-  /**
-   * TODO
-   */
+  /** JSDoc */
   private ignoreOnError: number = 0;
 
   /**
@@ -15,9 +13,7 @@ export class TryCatch implements Integration {
    */
   public name: string = 'TryCatch';
 
-  /**
-   * TODO
-   */
+  /** JSDoc */
   private wrapTimeFunction(original: () => void): () => number {
     return (...args: any[]): number => {
       const originalCallback = args[0];
@@ -31,9 +27,7 @@ export class TryCatch implements Integration {
     };
   }
 
-  /**
-   * TODO
-   */
+  /** JSDoc */
   private wrapRAF(original: any): (callback: () => void) => any {
     return (callback: () => void) =>
       original(
@@ -49,9 +43,7 @@ export class TryCatch implements Integration {
       );
   }
 
-  /**
-   * TODO
-   */
+  /** JSDoc */
   private wrapEventTarget(target: string): void {
     const global = getGlobalObject() as { [key: string]: any };
     const proto = global[target] && global[target].prototype;

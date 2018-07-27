@@ -10,16 +10,12 @@ import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 const global = getGlobalObject() as Window;
 let lastHref: string | undefined;
 
-/**
- * TODO
- */
+/** JSDoc */
 interface ExtensibleConsole extends Console {
   [key: string]: any;
 }
 
-/**
- * TODO
- */
+/** JSDoc */
 export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   [key: string]: any;
   __sentry_xhr__?: {
@@ -35,6 +31,7 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public name: string = 'Breadcrumbs';
+
   /**
    * @inheritDoc
    */
@@ -53,9 +50,8 @@ export class Breadcrumbs implements Integration {
       xhr: true,
     },
   ) {}
-  /**
-   * TODO
-   */
+
+  /** JSDoc */
   private instrumentConsole(): void {
     if (!('console' in global)) {
       return;
@@ -100,9 +96,8 @@ export class Breadcrumbs implements Integration {
       };
     });
   }
-  /**
-   * TODO
-   */
+
+  /** JSDoc */
   private instrumentDOM(): void {
     if (!('document' in global)) {
       return;
@@ -112,9 +107,8 @@ export class Breadcrumbs implements Integration {
     global.document.addEventListener('click', breadcrumbEventHandler('click'), false);
     global.document.addEventListener('keypress', keypressEventHandler(), false);
   }
-  /**
-   * TODO
-   */
+
+  /** JSDoc */
   private instrumentFetch(): void {
     if (!supportsFetch()) {
       return;
@@ -180,9 +174,8 @@ export class Breadcrumbs implements Integration {
       };
     });
   }
-  /**
-   * TODO
-   */
+
+  /** JSDoc */
   private instrumentHistory(): void {
     if (!supportsHistory()) {
       return;
@@ -228,9 +221,7 @@ export class Breadcrumbs implements Integration {
       }
     };
 
-    /**
-     * TODO
-     */
+    /** JSDoc */
     function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
       // note history.pushState.length is 0; intentionally not declaring
       // params to preserve 0 arity
@@ -248,17 +239,13 @@ export class Breadcrumbs implements Integration {
     fill(global.history, 'pushState', historyReplacementFunction);
     fill(global.history, 'replaceState', historyReplacementFunction);
   }
-  /**
-   * TODO
-   */
+  /** JSDoc */
   private instrumentXHR(): void {
     if (!('XMLHttpRequest' in global)) {
       return;
     }
 
-    /**
-     * TODO
-     */
+    /** JSDoc */
     function wrapProp(prop: string, xhr: XMLHttpRequest): void {
       // TODO: Fix XHR types
       if (prop in xhr && isFunction((xhr as { [key: string]: any })[prop])) {
@@ -303,9 +290,7 @@ export class Breadcrumbs implements Integration {
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
           const xhr = this; // tslint:disable-line:no-this-assignment
 
-          /**
-           * TODO
-           */
+          /** JSDoc */
           function onreadystatechangeHandler(): void {
             if (xhr.__sentry_xhr__ && xhr.readyState === 4) {
               try {
