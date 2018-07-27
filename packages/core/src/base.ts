@@ -206,7 +206,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected async prepareEvent(event: SentryEvent, scope?: Scope): Promise<SentryEvent | null> {
-    const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release } = this.getOptions();
+    const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, repos, dist } = this.getOptions();
 
     const prepared = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
@@ -214,6 +214,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
     if (prepared.release === undefined && release !== undefined) {
       prepared.release = release;
+    }
+
+    if (prepared.repos === undefined && repos !== undefined) {
+      prepared.repos = repos;
+    }
+
+    if (prepared.dist === undefined && dist !== undefined) {
+      prepared.dist = dist;
     }
 
     if (prepared.message) {

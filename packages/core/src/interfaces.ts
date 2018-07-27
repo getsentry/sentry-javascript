@@ -69,6 +69,12 @@ export interface Options {
   /** The current environment of your application (e.g. "production"). */
   environment?: string;
 
+  /** Configures the repository spec for events */
+  repos?: string;
+
+  /** Sets the distribution for all events */
+  dist?: string;
+
   /** The maximum number of breadcrumbs sent with events. Defaults to 100. */
   maxBreadcrumbs?: number;
 
