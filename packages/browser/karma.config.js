@@ -9,13 +9,17 @@ module.exports = function(config) {
     reporters: ['mocha', 'karma-typescript'],
 
     basePath: process.cwd(),
-    files: ['test/**/*.ts', 'src/**/*.ts'],
+    files: ['test/**/*.ts', 'src/**/*.+(js|ts)'],
     preprocessors: {
-      '**/*.ts': ['karma-typescript'],
+      '**/*.+(js|ts)': ['karma-typescript'],
     },
 
     karmaTypescriptConfig: {
       tsconfig: 'tsconfig.json',
+      compilerOptions: {
+        declaration: false,
+        allowJs: true,
+      },
       bundlerOptions: {
         sourceMap: true,
         transforms: [require('karma-typescript-es6-transform')()],

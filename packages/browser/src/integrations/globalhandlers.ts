@@ -16,7 +16,7 @@ export class GlobalHandlers implements Integration {
    */
   public name: string = 'GlobalHandlers';
   public constructor(
-    private options: {
+    private readonly options: {
       onerror: boolean;
       onunhandledrejection: boolean;
     } = {

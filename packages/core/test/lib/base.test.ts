@@ -10,6 +10,9 @@ jest.mock('@sentry/utils/misc', () => ({
   uuid4(): string {
     return '42';
   },
+  getGlobalObject(): object {
+    return {};
+  },
 }));
 
 jest.mock('@sentry/utils/string', () => ({

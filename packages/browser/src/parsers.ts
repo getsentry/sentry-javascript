@@ -53,7 +53,7 @@ export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent
 
 /** JSDoc */
 export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[] {
-  if (!stack) {
+  if (!stack || !stack.length) {
     return [];
   }
 

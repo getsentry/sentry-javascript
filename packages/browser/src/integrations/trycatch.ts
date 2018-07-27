@@ -15,7 +15,7 @@ export class TryCatch implements Integration {
 
   /** JSDoc */
   private wrapTimeFunction(original: () => void): () => number {
-    return (...args: any[]): number => {
+    return function(this: any, ...args: any[]): number {
       const originalCallback = args[0];
       args[0] = wrap(originalCallback, {
         mechanism: {
@@ -29,8 +29,8 @@ export class TryCatch implements Integration {
 
   /** JSDoc */
   private wrapRAF(original: any): (callback: () => void) => any {
-    return (callback: () => void) =>
-      original(
+    return function(this: any, callback: () => void): () => void {
+      return original(
         wrap(callback, {
           mechanism: {
             data: {
@@ -41,6 +41,7 @@ export class TryCatch implements Integration {
           },
         }),
       );
+    };
   }
 
   /** JSDoc */
@@ -52,17 +53,15 @@ export class TryCatch implements Integration {
       return;
     }
 
-    fill(
-      proto,
-      'addEventListener',
-      (
-        original: () => void,
-      ): ((eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => any) => (
+    fill(proto, 'addEventListener', function(
+      original: () => void,
+    ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
+      return function(
+        this: any,
         eventName: string,
         fn: EventListenerObject,
-        capture?: boolean,
-        secure?: boolean,
-      ): any => {
+        options?: boolean | AddEventListenerOptions,
+      ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
         try {
           fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
             mechanism: {
@@ -130,21 +129,19 @@ export class TryCatch implements Integration {
             },
             before,
           ),
-          capture,
-          secure,
+          options,
         );
-      },
-    );
+      };
+    });
 
     fill(proto, 'removeEventListener', function(
       original: () => void,
-    ): (this: any, eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => () => void {
+    ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
       return function(
         this: any,
         eventName: string,
         fn: EventListenerObject,
-        capture?: boolean,
-        secure?: boolean,
+        options?: boolean | EventListenerOptions,
       ): () => void {
         let callback = (fn as any) as SentryWrappedFunction;
         try {
@@ -152,7 +149,7 @@ export class TryCatch implements Integration {
         } catch (e) {
           // ignore, accessing __sentry_wrapper__ will throw in some Selenium environments
         }
-        return original.call(this, eventName, callback, capture, secure);
+        return original.call(this, eventName, callback, options);
       };
     });
   }

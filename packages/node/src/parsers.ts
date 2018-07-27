@@ -204,7 +204,7 @@ export async function parseError(error: ExtendedError): Promise<SentryEvent> {
 
 /** JSDoc */
 export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
-  if (!stack) {
+  if (!stack || !stack.length) {
     return [];
   }
 

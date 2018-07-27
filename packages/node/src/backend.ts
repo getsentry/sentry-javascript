@@ -25,7 +25,7 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
-    let ex: Error = exception;
+    let ex: any = exception;
 
     if (!isError(exception)) {
       if (isPlainObject(exception)) {
@@ -40,7 +40,7 @@ export class NodeBackend implements Backend {
         });
 
         ex = syntheticException || new Error(message);
-        ex.message = message;
+        (ex as Error).message = message;
       } else {
         // This handles when someone does: `throw "something awesome";`
         // We use synthesized Error here so we can extract a (rough) stack trace.
@@ -48,7 +48,7 @@ export class NodeBackend implements Backend {
       }
     }
 
-    const event: SentryEvent = await parseError(ex);
+    const event: SentryEvent = await parseError(ex as Error);
 
     return event;
   }
