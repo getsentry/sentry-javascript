@@ -170,7 +170,7 @@ export interface SentryEvent {
   level?: Severity;
   platform?: string;
   logger?: string;
-  server?: string;
+  server_name?: string;
   release?: string;
   repos?: Repo[];
   dist?: string;
