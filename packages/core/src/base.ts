@@ -277,8 +277,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
+    const { shouldSend, beforeSend, afterSend, sampleRate } = this.getOptions();
+
+    if (typeof sampleRate === 'number' && sampleRate > Math.random()) {
+      return {
+        status: Status.Skipped,
+      };
+    }
+
     const prepared = await this.prepareEvent(event, scope);
-    const { shouldSend, beforeSend, afterSend } = this.getOptions();
     if (prepared === null || (shouldSend && !shouldSend(prepared))) {
       return {
         status: Status.Skipped,
