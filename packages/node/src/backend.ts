@@ -14,12 +14,26 @@ import { HTTPSTransport, HTTPTransport } from './transports';
 export interface NodeOptions extends Options {
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
+
+  /** Sets an optional server name (device name) */
+  serverName?: string;
 }
 
 /** The Sentry Node SDK Backend. */
 export class NodeBackend implements Backend {
   /** Creates a new Node backend instance. */
   public constructor(private readonly options: NodeOptions = {}) {}
+
+  /**
+   * Apply Node specific options to event
+   * For now, it's only `server_name`
+   */
+  private applyClientOptions(event: SentryEvent): SentryEvent {
+    if (this.options.serverName) {
+      event.server_name = this.options.serverName;
+    }
+    return event;
+  }
 
   /**
    * @inheritDoc
@@ -50,7 +64,7 @@ export class NodeBackend implements Backend {
 
     const event: SentryEvent = await parseError(ex as Error);
 
-    return event;
+    return this.applyClientOptions(event);
   }
 
   /**
@@ -65,7 +79,8 @@ export class NodeBackend implements Backend {
         frames: prepareFramesForEvent(frames),
       },
     };
-    return event;
+
+    return this.applyClientOptions(event);
   }
 
   /**
