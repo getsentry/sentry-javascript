@@ -7,12 +7,12 @@ import {
   GlobalHandlers,
   InboundFilters,
   SDKInformation,
-  // TryCatch,
+  TryCatch,
 } from './integrations';
 
 export const defaultIntegrations = [
   new FunctionToString(),
-  // new TryCatch(),
+  new TryCatch(),
   new Breadcrumbs(),
   new SDKInformation(),
   new GlobalHandlers(),

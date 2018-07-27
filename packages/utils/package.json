@@ -43,14 +43,9 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "ts"],
     "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.ts"
-    ],
+    "testMatch": ["**/*.test.ts"],
     "globals": {
       "ts-jest": {
         "tsConfigFile": "./tsconfig.json"

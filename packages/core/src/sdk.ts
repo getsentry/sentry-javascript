@@ -25,8 +25,9 @@ export function initAndBind<F extends Client, O extends Options>(
     return;
   }
 
-  // TODO: Options.debug? Options.enableLogger?
-  logger.enable();
+  if (options.debug) {
+    logger.enable();
+  }
 
   const client = new clientClass(options);
   client.install();
