@@ -34,7 +34,6 @@ export class NodeBackend implements Backend {
         const keys = Object.keys(exception as {}).sort();
         const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(keys)}`;
 
-        // TODO: We also set `event.message` here previously, check if it works without it as well
         getDefaultHub().configureScope(scope => {
           scope.setExtra('__serialized__', limitObjectDepthToSize(exception as {}));
           scope.setFingerprint([md5(keys.join(''))]);

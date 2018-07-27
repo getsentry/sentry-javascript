@@ -25,6 +25,11 @@ export enum LogLevel {
 /** Base configuration options for every SDK. */
 export interface Options {
   /**
+   * Enable debug functionality in the SDK itself
+   */
+  debug?: boolean;
+
+  /**
    * Specifies whether this SDK should activate and send events to Sentry.
    * Disabling the SDK reduces all overhead from instrumentation, collecting
    * breadcrumbs and capturing events. Defaults to true.

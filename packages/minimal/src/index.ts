@@ -21,7 +21,6 @@ function callOnHub(method: string, ...args: any[]): void {
 export function captureException(exception: any): void {
   let syntheticException: Error;
   try {
-    // TODO: Get message from captureException call in case we pass it a non-Error type?
     throw new Error('Sentry syntheticException');
   } catch (exception) {
     syntheticException = exception as Error;
