@@ -81,6 +81,9 @@ export interface Options {
   /** Console logging verbosity for the SDK Client. */
   logLevel?: LogLevel;
 
+  /** A global sample rate to apply to all events (0 - 1). */
+  sampleRate?: number;
+
   /**
    * A callback invoked during event submission, allowing to cancel the process.
    * If unspecified, all events will be sent to Sentry.
