@@ -71,14 +71,18 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
-    const stack = syntheticException ? await extractStackFromError(syntheticException) : [];
-    const frames = await parseStack(stack);
     const event: SentryEvent = {
+      fingerprint: [message],
       message,
-      stacktrace: {
-        frames: prepareFramesForEvent(frames),
-      },
     };
+
+    if (this.options.attachStacktrace && syntheticException) {
+      const stack = syntheticException ? await extractStackFromError(syntheticException) : [];
+      const frames = await parseStack(stack);
+      event.stacktrace = {
+        frames: prepareFramesForEvent(frames),
+      };
+    }
 
     return this.applyClientOptions(event);
   }

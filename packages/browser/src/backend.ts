@@ -117,7 +117,7 @@ export class BrowserBackend implements Backend {
       message,
     };
 
-    if (syntheticException) {
+    if (this.options.attachStacktrace && syntheticException) {
       const stacktrace = computeStackTrace(syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
       event.stacktrace = {
