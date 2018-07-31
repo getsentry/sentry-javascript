@@ -2,6 +2,7 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
+  Repo,
   SentryEvent,
   SentryResponse,
   Transport,
@@ -70,7 +71,7 @@ export interface Options {
   environment?: string;
 
   /** Configures the repository spec for events */
-  repos?: string;
+  repos?: Repo[];
 
   /** Sets the distribution for all events */
   dist?: string;
