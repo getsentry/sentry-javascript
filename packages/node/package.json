@@ -20,15 +20,15 @@
     "@sentry/minimal": "4.0.0-beta.11",
     "@sentry/types": "4.0.0-beta.11",
     "@sentry/utils": "4.0.0-beta.11",
-    "@types/cookie": "0.3.1",
-    "@types/md5": "2.1.32",
-    "@types/stack-trace": "0.0.29",
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
     "md5": "2.2.1",
     "stack-trace": "0.0.10"
   },
   "devDependencies": {
+    "@types/cookie": "0.3.1",
+    "@types/md5": "2.1.32",
+    "@types/stack-trace": "0.0.29",
     "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.12.1",
