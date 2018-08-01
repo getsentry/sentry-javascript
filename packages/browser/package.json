@@ -20,10 +20,10 @@
     "@sentry/minimal": "4.0.0-beta.12",
     "@sentry/types": "4.0.0-beta.12",
     "@sentry/utils": "4.0.0-beta.12",
-    "@types/md5": "2.1.32",
     "md5": "2.2.1"
   },
   "devDependencies": {
+    "@types/md5": "2.1.32",
     "chai": "^4.1.2",
     "karma": "^2.0.2",
     "karma-chai": "^0.1.0",
