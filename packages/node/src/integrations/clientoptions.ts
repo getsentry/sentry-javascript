@@ -13,11 +13,17 @@ export class ClientOptions implements Integration {
    * @inheritDoc
    */
   public install(options: NodeOptions = {}): void {
-    if (options.serverName) {
-      getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+    getDefaultHub().addEventProcessor(async (event: SentryEvent) => {
+      const preparedEvent: SentryEvent = {
         ...event,
-        server_name: options.serverName,
-      }));
-    }
+        platform: 'node',
+      };
+
+      if (options.serverName) {
+        event.server_name = options.serverName;
+      }
+
+      return preparedEvent;
+    });
   }
 }

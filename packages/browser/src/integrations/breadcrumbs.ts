@@ -131,12 +131,6 @@ export class Breadcrumbs implements Integration {
           url = String(fetchInput);
         }
 
-        // TODO: Filter our own requests
-        // if Sentry key appears in URL, don't capture, as it's our own request
-        // if (url.indexOf(self._globalKey) !== -1) {
-        //   return originalFetch.apply(this, args);
-        // }
-
         if (args[1] && args[1].method) {
           method = args[1].method;
         }
@@ -269,10 +263,6 @@ export class Breadcrumbs implements Integration {
       'open',
       originalOpen =>
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-          // TODO: Filter our own requests
-          // preserve arity
-          // if Sentry key appears in URL, don't capture
-          // && url.indexOf(self._globalKey) === -1)
           if (isString(args[1])) {
             this.__sentry_xhr__ = {
               method: args[0],

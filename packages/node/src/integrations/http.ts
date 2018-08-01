@@ -60,7 +60,7 @@ function loadWrapper(nativeModule: any): any {
       ): any {
         // Note: this won't capture a breadcrumb if a response never comes
         // It would be useful to know if that was the case, though, so
-        // todo: revisit to see if we can capture sth indicating response never came
+        // TODO: revisit to see if we can capture sth indicating response never came
         // possibility: capture one breadcrumb for "req sent" and one for "res recvd"
         // seems excessive but solves the problem and *is* strictly more information
         // could be useful for weird response sequencing bug scenarios

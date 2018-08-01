@@ -8,7 +8,7 @@ let keypressTimeout: number | undefined;
 let lastCapturedEvent: Event | undefined;
 let ignoreOnError: number = -1;
 
-// TODO: Just temporary build fix for unused variable
+// TODO: Fix `ignoreNextOnError`. Just temporary build fix for unused variable
 ignoreOnError = ignoreOnError + 1;
 
 /** JSDoc */
@@ -62,7 +62,6 @@ export function wrap(
       //       expected behavior and NOT indicative of a bug with Raven.js.
       return fn.apply(undefined, args);
     } catch (ex) {
-      // TODO: Fix `ignoreNextOnError`
       ignoreNextOnError();
 
       getDefaultHub().withScope(async () => {

@@ -1,3 +1,4 @@
+import { logger } from '@sentry/core';
 import { getHubFromCarrier } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
@@ -125,9 +126,6 @@ function parseRequest(
       node: global.process.version,
     },
     modules: getModules(),
-    // TODO: `platform` shouldn't be relying on `parseRequest` usage
-    // or we could just change the name and make it generic middleware
-    platform: 'node',
     request: {
       ...event.request,
       ...extractRequestData(req),
@@ -148,7 +146,6 @@ function parseRequest(
 /** JSDoc */
 export function requestHandler(): (req: Request, res: Response, next: () => void) => void {
   return function sentryRequestMiddleware(req: Request, _res: Response, next: () => void): void {
-    // TODO: Do we even need domain when we use middleware like approach? — Kamil
     const local = domain.create();
     const hub = getHubFromCarrier(req);
     hub.bindClient(getDefaultHub().getClient());
@@ -237,8 +234,7 @@ export function makeErrorHandler(
       });
     } else if (calledFatalError) {
       // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-      // TODO: Use consoleAlert or some other way to log our debug messages
-      console.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
+      logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
       defaultOnFatalError(error);
     } else if (!caughtSecondError) {
       // two cases for how we can hit this branch:
