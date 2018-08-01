@@ -47,23 +47,13 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       return;
     }
 
-    // TODO: Fix default DSN, eventId and user
-    // tslint:disable-next-line:no-parameter-reassignment
-    options = {
-      dsn: 'FIXME',
-      eventId: 'FIXME',
-      user: {
-        email: 'FIXME',
-        name: 'FIXME',
-      },
-      ...options,
-    };
+    const dsn = options.dsn || this.getDSN();
 
     if (!options.eventId) {
       throw new SentryError('Missing `eventId` option in showReportDialog call');
     }
 
-    if (!options.dsn) {
+    if (!dsn) {
       throw new SentryError('Missing `DSN` option in showReportDialog call');
     }
 
@@ -86,10 +76,11 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       }
     }
 
-    const parsedDSN = new DSN(options.dsn);
+    const parsedDSN = new DSN(dsn);
     const protocol = parsedDSN.protocol ? `${parsedDSN.protocol}:` : '';
     const port = parsedDSN.port ? `:${parsedDSN.port}` : '';
-    const src = `${protocol}//${parsedDSN.host}${port}/api/embed/error-page/?${encodedOptions.join('&')}`;
+    const path = parsedDSN.path ? `/${parsedDSN.path}` : '';
+    const src = `${protocol}//${parsedDSN.host}${port}${path}/api/embed/error-page/?${encodedOptions.join('&')}`;
 
     const script = document.createElement('script');
     script.async = true;
