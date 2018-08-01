@@ -1,13 +1,21 @@
 import { initAndBind } from '@sentry/core';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
-import { Console, Http, OnUncaughtException, OnUnhandledRejection, SDKInformation } from './integrations';
+import {
+  ClientOptions,
+  Console,
+  Http,
+  OnUncaughtException,
+  OnUnhandledRejection,
+  SDKInformation,
+} from './integrations';
 
 export const defaultIntegrations = [
   new Console(),
   new Http(),
   new OnUncaughtException(),
   new OnUnhandledRejection(),
+  new ClientOptions(),
   new SDKInformation(),
 ];
 
