@@ -208,7 +208,7 @@ export class Hub {
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const top = this.getStackTop();
-    if (top.client && top.scope) {
+    if (top.scope && top.client) {
       // TODO: freeze flag
       callback(top.scope);
     }
