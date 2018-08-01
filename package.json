@@ -34,14 +34,14 @@
     "lerna": "3.0.0-beta.20",
     "mocha": "^5.1.1",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.12.1",
+    "prettier": "^1.14.0",
     "prettier-check": "^2.0.0",
     "replace-in-file": "^3.4.0",
     "rimraf": "^2.6.2",
     "sinon": "^5.0.3",
     "ts-jest": "^22.4.4",
-    "tslint": "^5.9.1",
+    "tslint": "^5.11.0",
     "tslint-language-service": "^0.9.9",
-    "typescript": "^2.9.2"
+    "typescript": "^3.0.1"
   }
 }

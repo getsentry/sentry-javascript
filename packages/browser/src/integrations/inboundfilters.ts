@@ -84,6 +84,7 @@ export class InboundFilters implements Integration {
     return this.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
   }
 
+  /** JSDoc */
   private isMatchingPattern(value: string, pattern: RegExp | string): boolean {
     if (isRegExp(pattern)) {
       return (pattern as RegExp).test(value);
