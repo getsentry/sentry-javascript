@@ -162,6 +162,9 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    */
   function subscribe(handler) {
+    // NOTE: We call both handlers manually in browser/integrations/globalhandler.ts
+    // So user can choose which one he wants to attach
+
     // installGlobalHandler();
     // installGlobalUnhandledRejectionHandler();
     handlers.push(handler);
@@ -234,12 +237,7 @@ TraceKit.report = (function reportModuleWrapper() {
     message = isErrorEvent(message) ? message.message : message;
 
     if (lastExceptionStack) {
-      TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(
-        lastExceptionStack,
-        url,
-        lineNo,
-        message,
-      );
+      TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
       processLastException();
     } else if (errorObj && isError(errorObj)) {
       stack = TraceKit.computeStackTrace(errorObj);
@@ -261,14 +259,8 @@ TraceKit.report = (function reportModuleWrapper() {
         }
       }
 
-      location.func = TraceKit.computeStackTrace.guessFunctionName(
-        location.url,
-        location.line,
-      );
-      location.context = TraceKit.computeStackTrace.gatherContext(
-        location.url,
-        location.line,
-      );
+      location.func = TraceKit.computeStackTrace.guessFunctionName(location.url, location.line);
+      location.context = TraceKit.computeStackTrace.gatherContext(location.url, location.line);
       stack = {
         name: name,
         message: msg,
@@ -748,15 +740,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         args = parts[2].split(',').join('\\s*,\\s*');
 
       body = escapeRegExp(parts[3]).replace(/;$/, ';?'); // semicolon is inserted if the function ends with a comment.replace(/\s+/g, '\\s+');
-      re = new RegExp(
-        'function' +
-          name +
-          '\\s*\\(\\s*' +
-          args +
-          '\\s*\\)\\s*{\\s*' +
-          body +
-          '\\s*}',
-      );
+      re = new RegExp('function' + name + '\\s*\\(\\s*' + args + '\\s*\\)\\s*{\\s*' + body + '\\s*}');
     }
 
     // look for a normal function definition
@@ -770,10 +754,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       body = escapeCodeAsRegExpForMatchingInsideHTML(parts[2]);
 
       // look for a function defined in HTML as an onXXX handler
-      re = new RegExp(
-        'on' + event + '=[\\\'"]\\s*' + body + '\\s*[\\\'"]',
-        'i',
-      );
+      re = new RegExp('on' + event + '=[\\\'"]\\s*' + body + '\\s*[\\\'"]', 'i');
 
       if ((result = findSourceInUrls(re, urls[0]))) {
         return result;
@@ -935,8 +916,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             // Now we check to see if it's a relative URL.
             // If it is, convert it to an absolute one.
             if (sourceMapAddress.charAt(0) === '~') {
-              sourceMapAddress =
-                getLocationOrigin() + sourceMapAddress.slice(1);
+              sourceMapAddress = getLocationOrigin() + sourceMapAddress.slice(1);
             }
 
             // Now we strip the '.map' off of the end of the URL and update the
@@ -946,9 +926,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
       }
 
-      element.context = element.line
-        ? gatherContext(element.url, element.line)
-        : null;
+      element.context = element.line ? gatherContext(element.url, element.line) : null;
 
       stack.push(element);
     }
@@ -958,11 +936,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     }
 
     if (stack[0] && stack[0].line && !stack[0].column && reference) {
-      stack[0].column = findSourceInLine(
-        reference[1],
-        stack[0].url,
-        stack[0].line,
-      );
+      stack[0].column = findSourceInLine(reference[1], stack[0].url, stack[0].line);
     }
 
     return {
@@ -1080,10 +1054,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       lineRE2 = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
       lineRE3 = /^\s*Line (\d+) of function script\s*$/i,
       stack = [],
-      scripts =
-        window &&
-        window.document &&
-        window.document.getElementsByTagName('script'),
+      scripts = window && window.document && window.document.getElementsByTagName('script'),
       inlineScriptBlocks = [],
       parts;
 
@@ -1119,16 +1090,13 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
             source = source.join('\n');
             var pos = source.indexOf(script.innerText);
             if (pos >= 0) {
-              item.line =
-                relativeLine + source.substring(0, pos).split('\n').length;
+              item.line = relativeLine + source.substring(0, pos).split('\n').length;
             }
           }
         }
       } else if ((parts = lineRE3.exec(lines[line]))) {
         var url = getLocationHref().replace(/#.*$/, '');
-        var re = new RegExp(
-          escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]),
-        );
+        var re = new RegExp(escapeCodeAsRegExpForMatchingInsideHTML(lines[line + 1]));
         var src = findSourceInUrls(re, [url]);
         item = {
           url: url,
@@ -1145,10 +1113,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         }
         var context = gatherContext(item.url, item.line);
         var midline = context ? context[Math.floor(context.length / 2)] : null;
-        if (
-          context &&
-          midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')
-        ) {
+        if (context && midline.replace(/^\s*/, '') === lines[line + 1].replace(/^\s*/, '')) {
           item.context = context;
         } else {
           // if (context) alert("Context mismatch. Correct midline:\n" + lines[i+1] + "\n\nMidline:\n" + midline + "\n\nContext:\n" + context.join("\n") + "\n\nURL:\n" + item.url);
@@ -1183,12 +1148,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * augmented.
    * @memberof TraceKit.computeStackTrace
    */
-  function augmentStackTraceWithInitialElement(
-    stackInfo,
-    url,
-    lineNo,
-    message,
-  ) {
+  function augmentStackTraceWithInitialElement(stackInfo, url, lineNo, message) {
     var initial = {
       url: url,
       line: lineNo,
@@ -1207,21 +1167,14 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 
       var reference = / '([^']+)' /.exec(message);
       if (reference) {
-        initial.column = findSourceInLine(
-          reference[1],
-          initial.url,
-          initial.line,
-        );
+        initial.column = findSourceInLine(reference[1], initial.url, initial.line);
       }
 
       if (stackInfo.stack.length > 0) {
         if (stackInfo.stack[0].url === initial.url) {
           if (stackInfo.stack[0].line === initial.line) {
             return false; // already in stack trace
-          } else if (
-            !stackInfo.stack[0].line &&
-            stackInfo.stack[0].func === initial.func
-          ) {
+          } else if (!stackInfo.stack[0].line && stackInfo.stack[0].func === initial.func) {
             stackInfo.stack[0].line = initial.line;
             stackInfo.stack[0].context = initial.context;
             return false;
@@ -1258,11 +1211,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       item,
       source;
 
-    for (
-      var curr = computeStackTraceByWalkingCallerChain.caller;
-      curr && !recursion;
-      curr = curr.caller
-    ) {
+    for (var curr = computeStackTraceByWalkingCallerChain.caller; curr && !recursion; curr = curr.caller) {
       if (curr === computeStackTrace || curr === TraceKit.report) {
         continue;
       }
@@ -1462,13 +1411,7 @@ if (!TraceKit.linesOfContext || TraceKit.linesOfContext < 1) {
 
 const subscribe = TraceKit.report.subscribe;
 const installGlobalHandler = TraceKit.report.installGlobalHandler;
-const installGlobalUnhandledRejectionHandler =
-  TraceKit.report.installGlobalUnhandledRejectionHandler;
+const installGlobalUnhandledRejectionHandler = TraceKit.report.installGlobalUnhandledRejectionHandler;
 const computeStackTrace = TraceKit.computeStackTrace;
 
-export {
-  subscribe,
-  installGlobalHandler,
-  installGlobalUnhandledRejectionHandler,
-  computeStackTrace,
-};
+export { subscribe, installGlobalHandler, installGlobalUnhandledRejectionHandler, computeStackTrace };
