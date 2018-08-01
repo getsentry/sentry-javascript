@@ -1,23 +1,21 @@
 import { logger } from '@sentry/core';
 import { getDefaultHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
-import { joinRegExp } from '@sentry/utils/string';
+import { isRegExp } from '@sentry/utils/is';
 import { BrowserOptions } from '../backend';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
-const MATCH_NOTHING = new RegExp(/.^/);
-const MATCH_EVERYTHING = new RegExp('');
 
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {
   /** JSDoc */
-  private ignoreErrors: RegExp = joinRegExp(DEFAULT_IGNORE_ERRORS);
+  private ignoreErrors?: Array<string | RegExp>;
   /** JSDoc */
-  private blacklistUrls: RegExp = MATCH_NOTHING;
+  private blacklistUrls?: Array<string | RegExp>;
   /** JSDoc */
-  private whitelistUrls: RegExp = MATCH_EVERYTHING;
+  private whitelistUrls?: Array<string | RegExp>;
 
   /**
    * @inheritDoc
@@ -56,29 +54,56 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   public isIgnoredError(event: SentryEvent): boolean {
-    return this.getPossibleEventMessages(event).some(message => this.ignoreErrors.test(message));
-  }
+    if (!this.ignoreErrors) {
+      return false;
+    }
 
-  /** JSDoc */
-  public isWhitelistedUrl(event: SentryEvent): boolean {
-    return this.whitelistUrls.test(this.getEventFilterUrl(event));
+    return this.getPossibleEventMessages(event).some(message =>
+      // Not sure why TypeScript complains here...
+      (this.ignoreErrors as Array<RegExp | string>).some(pattern => this.isMatchingPattern(message, pattern)),
+    );
   }
 
   /** JSDoc */
   public isBlacklistedUrl(event: SentryEvent): boolean {
-    return this.blacklistUrls.test(this.getEventFilterUrl(event));
+    // TODO: Use Glob instead?
+    if (!this.blacklistUrls) {
+      return false;
+    }
+    const url = this.getEventFilterUrl(event);
+    return this.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+  }
+
+  /** JSDoc */
+  public isWhitelistedUrl(event: SentryEvent): boolean {
+    // TODO: Use Glob instead?
+    if (!this.whitelistUrls) {
+      return true;
+    }
+    const url = this.getEventFilterUrl(event);
+    return this.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+  }
+
+  private isMatchingPattern(value: string, pattern: RegExp | string): boolean {
+    if (isRegExp(pattern)) {
+      return (pattern as RegExp).test(value);
+    } else if (typeof pattern === 'string') {
+      return value.includes(pattern);
+    } else {
+      return false;
+    }
   }
 
   /** JSDoc */
   private configureOptions(options: BrowserOptions): void {
-    if (options.ignoreErrors && options.ignoreErrors.length) {
-      this.ignoreErrors = joinRegExp([...DEFAULT_IGNORE_ERRORS, ...options.ignoreErrors]);
+    if (options.ignoreErrors) {
+      this.ignoreErrors = [...DEFAULT_IGNORE_ERRORS, ...options.ignoreErrors];
     }
-    if (options.blacklistUrls && options.blacklistUrls.length) {
-      this.blacklistUrls = joinRegExp([...options.blacklistUrls]);
+    if (options.blacklistUrls) {
+      this.blacklistUrls = [...options.blacklistUrls];
     }
-    if (options.whitelistUrls && options.whitelistUrls.length) {
-      this.whitelistUrls = joinRegExp([...options.whitelistUrls]);
+    if (options.whitelistUrls) {
+      this.whitelistUrls = [...options.whitelistUrls];
     }
   }
 
@@ -105,16 +130,16 @@ export class InboundFilters implements Integration {
   private getEventFilterUrl(event: SentryEvent): string {
     const evt = event as any;
 
-    if (evt.stacktrace) {
-      return evt.stacktrace.frames[0].filename;
-    } else if (evt.exception) {
-      try {
+    try {
+      if (evt.stacktrace) {
+        return evt.stacktrace.frames[0].filename;
+      } else if (evt.exception) {
         return evt.exception.values[0].stacktrace.frames[0].filename;
-      } catch (oO) {
-        logger.error(`Cannot extract url for event ${event.event_id}`);
+      } else {
         return '';
       }
-    } else {
+    } catch (oO) {
+      logger.error(`Cannot extract url for event ${event.event_id}`);
       return '';
     }
   }
