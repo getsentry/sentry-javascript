@@ -25,17 +25,6 @@ export class NodeBackend implements Backend {
   public constructor(private readonly options: NodeOptions = {}) {}
 
   /**
-   * Apply Node specific options to event
-   * For now, it's only `server_name`
-   */
-  private applyClientOptions(event: SentryEvent): SentryEvent {
-    if (this.options.serverName) {
-      event.server_name = this.options.serverName;
-    }
-    return event;
-  }
-
-  /**
    * @inheritDoc
    */
   public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
@@ -64,7 +53,7 @@ export class NodeBackend implements Backend {
 
     const event: SentryEvent = await parseError(ex as Error);
 
-    return this.applyClientOptions(event);
+    return event;
   }
 
   /**
@@ -84,7 +73,7 @@ export class NodeBackend implements Backend {
       };
     }
 
-    return this.applyClientOptions(event);
+    return event;
   }
 
   /**
