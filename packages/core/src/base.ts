@@ -292,10 +292,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    // TODO: Add breadcrumb with our own event?
-    // Or should it be handled by the xhr/fetch integration itself?
-    // Or maybe some other integration that'd use `afterSend`?
-
     const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
     const response = await send(finalEvent);
 

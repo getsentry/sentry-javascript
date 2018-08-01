@@ -50,7 +50,7 @@ describe('InboundFilters', () => {
     });
   });
 
-  describe('ignoreErrors', async () => {
+  describe('ignoreErrors', () => {
     const messageEvent = {
       message: 'captureMessage',
     };
