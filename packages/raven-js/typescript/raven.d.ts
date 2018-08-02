@@ -49,7 +49,7 @@ declare namespace Raven {
     fingerprint?: string[];
 
     /** An array of strings representing keys that should be scrubbed from the payload sent to Sentry */
-    sanitizeKeys?: string[];
+    sanitizeKeys?: (RegExp | string)[];
 
     /** A function which allows mutation of the data payload right before being sent to Sentry */
     dataCallback?: (data: any) => any;
