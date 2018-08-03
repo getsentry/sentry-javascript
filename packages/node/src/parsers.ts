@@ -51,12 +51,12 @@ function getModule(filename: string, base?: string): string {
   // To be a part of main module, it has to share the same base
   n = `${filename}/`.lastIndexOf(base, 0);
   if (n === 0) {
-    let module = filename.substr(base.length).replace(/\//g, '.');
-    if (module) {
-      module += ':';
+    let moduleName = filename.substr(base.length).replace(/\//g, '.');
+    if (moduleName) {
+      moduleName += ':';
     }
-    module += file;
-    return module;
+    moduleName += file;
+    return moduleName;
   }
   return file;
 }
@@ -133,8 +133,23 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
     return parsedFrame;
   });
 
-  const sourceFiles = await readSourceFiles(filesToRead);
+  try {
+    return addPrePostContext(filesToRead, frames);
+  } catch (_) {
+    // This happens in electron for example where we are not able to read files from asar.
+    // So it's fine, we recover be just returning all frames without pre/post context.
+    return frames;
+  }
+}
 
+/**
+ * This function tries to read the source files + adding pre and post context (source code)
+ * to a frame.
+ * @param filesToRead string[] of filepaths
+ * @param frames StackFrame[] containg all frames
+ */
+async function addPrePostContext(filesToRead: string[], frames: StackFrame[]): Promise<StackFrame[]> {
+  const sourceFiles = await readSourceFiles(filesToRead);
   return frames.map(frame => {
     if (frame.filename && sourceFiles[frame.filename]) {
       try {
