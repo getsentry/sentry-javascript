@@ -60,10 +60,11 @@
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "karma start karma/karma.unit.config.js",
+    "test": "run-s test:unit test:integration",
+    "test:unit": "karma start karma/karma.unit.config.js",
     "test:watch": "karma start karma/karma.unit.config.js --auto-watch --no-single-run",
     "test:integration": "karma start karma/karma.integration.config.js",
-    "test:integration-sauce": "karma start karma/karma.integration-sauce.config.js",
+    "test:integration:watch": "karma start karma/karma.integration.config.js --auto-watch --no-single-run",
     "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },

@@ -14,6 +14,7 @@ module.exports = config => {
       { pattern: 'test/integration/example.json', included: false },
       { pattern: 'test/integration/frame.html', included: false },
       { pattern: 'build/bundle.js', included: false },
+      { pattern: 'build/bundle.js.map', included: false },
       'test/integration/test.js',
     ],
     frameworks: ['mocha', 'chai', 'sinon'],
