@@ -1,6 +1,7 @@
 export { logger } from './logger';
 export { captureException, captureMessage, configureScope } from '@sentry/minimal';
 export { Hub, Scope } from '@sentry/hub';
+export { API } from './api';
 export { BackendClass, BaseClient } from './base';
 export { DSN } from './dsn';
 export { SentryError } from './error';
