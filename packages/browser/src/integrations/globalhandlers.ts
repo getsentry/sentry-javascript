@@ -8,6 +8,7 @@ import {
   StackTrace as TraceKitStackTrace,
   subscribe,
 } from '../tracekit';
+import { shouldIgnoreOnError } from './helpers';
 
 /** Global handlers */
 export class GlobalHandlers implements Integration {
@@ -43,6 +44,9 @@ export class GlobalHandlers implements Integration {
       //   9: "    foo();"
       //   10: "  }"
       // ]
+      if (shouldIgnoreOnError()) {
+        return;
+      }
       captureEvent(this.eventFromGlobalHandler(stack));
     });
 

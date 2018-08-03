@@ -1,16 +1,17 @@
 import { getCurrentHub } from '@sentry/hub';
-import { SentryEvent, SentryWrappedFunction } from '@sentry/types';
+import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
 let lastCapturedEvent: Event | undefined;
-let ignoreOnError: number = -1;
+let ignoreOnError: number = 0;
 
-// TODO: Fix `ignoreNextOnError`. Just temporary build fix for unused variable
-ignoreOnError = ignoreOnError + 1;
-
+/** JSDoc */
+export function shouldIgnoreOnError(): boolean {
+  return ignoreOnError > 0;
+}
 /** JSDoc */
 export function ignoreNextOnError(): void {
   // onerror should trigger before setTimeout
