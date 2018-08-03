@@ -1,4 +1,4 @@
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
@@ -64,13 +64,13 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      getDefaultHub().withScope(async () => {
-        getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+      getCurrentHub().withScope(async () => {
+        getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
           ...event,
           ...(options && options.mechanism),
         }));
 
-        getDefaultHub().captureException(ex);
+        getCurrentHub().captureException(ex);
       });
 
       throw ex;
@@ -126,7 +126,7 @@ export function breadcrumbEventHandler(eventName: string): (event: Event) => voi
       target = '<unknown>';
     }
 
-    getDefaultHub().addBreadcrumb({
+    getCurrentHub().addBreadcrumb({
       category: `ui.${eventName}`, // e.g. ui.click, ui.input
       message: target,
     });

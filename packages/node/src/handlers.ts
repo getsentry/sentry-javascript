@@ -7,7 +7,7 @@ import * as domain from 'domain';
 import * as lsmod from 'lsmod';
 import { hostname } from 'os';
 import { parse as parseUrl } from 'url';
-import { getDefaultHub } from './hub';
+import { getCurrentHub } from './hub';
 
 let moduleCache: { [key: string]: string };
 
@@ -148,7 +148,7 @@ export function requestHandler(): (req: Request, res: Response, next: () => void
   return function sentryRequestMiddleware(req: Request, _res: Response, next: () => void): void {
     const local = domain.create();
     const hub = getHubFromCarrier(req);
-    hub.bindClient(getDefaultHub().getClient());
+    hub.bindClient(getCurrentHub().getClient());
     hub.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req));
     local.on('error', next);
     local.run(next);
@@ -219,13 +219,13 @@ export function makeErrorHandler(
       firstError = error;
       caughtFirstError = true;
 
-      getDefaultHub().withScope(async () => {
-        getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+      getCurrentHub().withScope(async () => {
+        getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
           ...event,
           level: Severity.Fatal,
         }));
 
-        getDefaultHub().captureException(error);
+        getCurrentHub().captureException(error);
 
         if (!calledFatalError) {
           calledFatalError = true;
