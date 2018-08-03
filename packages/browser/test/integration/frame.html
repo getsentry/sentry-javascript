@@ -87,9 +87,6 @@
   </script>
   <script src="../../build/bundle.js"></script>
   <script>
-    // stub _makeRequest so we don't actually transmit any data
-    Raven._makeRequest = function () { };
-
     // store references to original, unwrapped built-ins in order to:
     // - get a clean, unwrapped setTimeout (so stack traces don't include
     //   frames from mocha)
@@ -108,12 +105,34 @@
       consoleLog: console.log
     };
 
-    window.ravenData = [];
-    Raven.config('https://public@example.com/1', {
-      dataCallback: function (data) {
-        ravenData.push(data);
+    // expose events so we can access them in our tests
+    window.sentryData = [];
+
+    // stub transport so we don't actually transmit any data
+    function DummyTransport() { }
+    DummyTransport.prototype.send = function (event) {
+      // console.log(JSON.stringify(event, null, 2));
+      sentryData.push(event);
+      return true;
+    }
+
+    Sentry.init({
+      dsn: 'https://public@example.com/1',
+      transport: DummyTransport,
+      shouldAddBreadcrumb: function (breadcrumb) {
+        // Filter internal Karma requests
+        if (
+          breadcrumb.type === 'http' &&
+          (
+            breadcrumb.data.url.indexOf('test.js') !== -1 ||
+            breadcrumb.data.url.indexOf('frame.html') !== -1
+          )
+        ) {
+          return false;
+        }
+        return true;
       }
-    }).install();
+    })
 
     function bar() {
       baz();

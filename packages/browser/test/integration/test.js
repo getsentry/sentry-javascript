@@ -9,9 +9,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
     }
   };
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-  iframe.contentWindow.eval(
-    'window.originalBuiltIns.setTimeout.call(window, ' + execute.toString() + ');'
-  );
+  iframe.contentWindow.eval('window.originalBuiltIns.setTimeout.call(window, ' + execute.toString() + ');');
 }
 
 function createIframe(done) {
@@ -27,7 +25,7 @@ function createIframe(done) {
 
 var anchor = document.createElement('a');
 function parseUrl(url) {
-  var out = {pathname: '', origin: '', protocol: ''};
+  var out = { pathname: '', origin: '', protocol: '' };
   if (!url) anchor.href = url;
   for (var key in out) {
     out[key] = anchor[key];
@@ -63,42 +61,41 @@ describe('integration', function() {
   });
 
   describe('API', function() {
-    it('should capture Raven.captureMessage', function(done) {
+    it('should capture Sentry.captureMessage', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
         iframe,
         done,
         function() {
-          Raven.captureMessage('Hello');
-          done();
+          setTimeout(done);
+          Sentry.captureMessage('Hello');
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.equal(ravenData.message, 'Hello');
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.equal(sentryData.message, 'Hello');
+        },
       );
     });
 
-    it('should capture Raven.captureException', function(done) {
+    it('should capture Sentry.captureException', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
           setTimeout(done);
-
           try {
             foo();
           } catch (e) {
-            Raven.captureException(e);
+            Sentry.captureException(e);
           }
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 2);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 4);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
       );
     });
 
@@ -109,49 +106,23 @@ describe('integration', function() {
         done,
         function() {
           setTimeout(done);
-
-          Raven.captureException({foo: 'bar'});
+          Sentry.captureException({ foo: 'bar' });
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 1);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 3);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.stacktrace.frames.length, 1);
+          assert.isAtMost(sentryData.stacktrace.frames.length, 3);
+        },
       );
     });
 
-    it('should capture an Error object passed to Raven.captureException w/ maxMessageLength set (#647)', function(done) {
+    xit('should reject duplicate, back-to-back errors from captureError', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
-          setTimeout(done);
-
-          Raven._globalOptions.maxMessageLength = 100;
-          Raven.captureException(new Error('lol'), {
-            level: 'warning',
-            extra: {
-              foo: 'bar'
-            }
-          });
-        },
-        function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.equal(ravenData.exception.values[0].type, 'Error');
-          assert.equal(ravenData.exception.values[0].value, 'lol');
-          assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1);
-        }
-      );
-    });
-
-    it('should reject duplicate, back-to-back errors from captureError', function(done) {
-      var iframe = this.iframe;
-      iframeExecute(
-        iframe,
-        done,
-        function() {
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           var count = 5;
           setTimeout(function invoke() {
@@ -166,9 +137,9 @@ describe('integration', function() {
             //   Error: bar
             //   Error: foo
             if (count === 2) {
-              Raven.captureException(new Error('bar'));
+              Sentry.captureException(new Error('bar'));
             } else {
-              Raven.captureException(new Error('foo'));
+              Sentry.captureException(new Error('foo'));
             }
 
             if (count-- === 0) return void done();
@@ -176,27 +147,27 @@ describe('integration', function() {
           });
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
           // use breadcrumbs to evaluate which errors were sent
-          // NOTE: can't use ravenData because duplicate error suppression occurs
+          // NOTE: can't use sentryData because duplicate error suppression occurs
           //       AFTER dataCallback/shouldSendCallback (dataCallback will record
           //       duplicates but they ultimately won't be sent)
           assert.equal(breadcrumbs.length, 3);
           assert.equal(breadcrumbs[0].message, 'Error: foo');
           assert.equal(breadcrumbs[1].message, 'Error: bar');
           assert.equal(breadcrumbs[2].message, 'Error: foo');
-        }
+        },
       );
     });
 
-    it('should not reject back-to-back errors with different stack traces', function(done) {
+    xit('should not reject back-to-back errors with different stack traces', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
           setTimeout(done);
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // same error message, but different stacks means that these are considered
           // different errors
@@ -206,7 +177,7 @@ describe('integration', function() {
           try {
             bar(); // declared in frame.html
           } catch (e) {
-            Raven.captureException(e);
+            Sentry.captureException(e);
           }
 
           // stack (different # frames):
@@ -215,7 +186,7 @@ describe('integration', function() {
           try {
             foo(); // declared in frame.html
           } catch (e) {
-            Raven.captureException(e);
+            Sentry.captureException(e);
           }
 
           // stack (same # frames, different frames):
@@ -224,21 +195,21 @@ describe('integration', function() {
           try {
             foo2(); // declared in frame.html
           } catch (e) {
-            Raven.captureException(e);
+            Sentry.captureException(e);
           }
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
           assert.equal(breadcrumbs.length, 3);
           // NOTE: regex because exact error message differs per-browser
           assert.match(breadcrumbs[0].message, /^ReferenceError.*baz/);
           assert.match(breadcrumbs[1].message, /^ReferenceError.*baz/);
           assert.match(breadcrumbs[2].message, /^ReferenceError.*baz/);
-        }
+        },
       );
     });
 
-    it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
+    xit('should reject duplicate, back-to-back messages from captureMessage', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -246,29 +217,23 @@ describe('integration', function() {
         function() {
           setTimeout(done);
 
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
-          Raven.captureMessage('this is fine');
-          Raven.captureMessage('this is fine'); // suppressed
-          Raven.captureMessage('this is fine', {stacktrace: true});
-          Raven.captureMessage("i'm okay with the events that are unfolding currently");
-          Raven.captureMessage("that's okay, things are going to be okay");
+          Sentry.captureMessage('this is fine');
+          Sentry.captureMessage('this is fine'); // suppressed
+          Sentry.captureMessage('this is fine', { stacktrace: true });
+          Sentry.captureMessage("i'm okay with the events that are unfolding currently");
+          Sentry.captureMessage("that's okay, things are going to be okay");
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Raven._breadcrumbs;
+          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
 
           assert.equal(breadcrumbs.length, 4);
           assert.equal(breadcrumbs[0].message, 'this is fine');
           assert.equal(breadcrumbs[1].message, 'this is fine'); // with stacktrace
-          assert.equal(
-            breadcrumbs[2].message,
-            "i'm okay with the events that are unfolding currently"
-          );
-          assert.equal(
-            breadcrumbs[3].message,
-            "that's okay, things are going to be okay"
-          );
-        }
+          assert.equal(breadcrumbs[2].message, "i'm okay with the events that are unfolding currently");
+          assert.equal(breadcrumbs[3].message, "that's okay, things are going to be okay");
+        },
       );
     });
   });
@@ -285,15 +250,15 @@ describe('integration', function() {
           eval('foo{};');
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
           // ¯\_(ツ)_/¯
           if (isBelowIE11() || isEdge14()) {
-            assert.equal(ravenData.exception.values[0].type, undefined);
+            assert.equal(sentryData.exception.values[0].type, undefined);
           } else {
-            assert.match(ravenData.exception.values[0].type, /SyntaxError/);
+            assert.match(sentryData.exception.values[0].type, /SyntaxError/);
           }
-          assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // just one frame
-        }
+          assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // just one frame
+        },
       );
     });
 
@@ -315,21 +280,18 @@ describe('integration', function() {
           document.head.appendChild(script);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.match(ravenData.exception.values[0].value, /stringError$/);
-          assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.match(sentryData.exception.values[0].value, /stringError$/);
+          assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
 
           // some browsers extract proper url, line, and column for thrown strings
           // but not all - falls back to frame url
+          assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
           assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0].filename,
-            /\/test\/integration\//
+            sentryData.exception.values[0].stacktrace.frames[0]['function'],
+            /throwStringError|\?|global code/i,
           );
-          assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code/i
-          );
-        }
+        },
       );
     });
 
@@ -351,27 +313,21 @@ describe('integration', function() {
           document.head.appendChild(script);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.equal(ravenData.exception.values[0].type, undefined);
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.equal(sentryData.exception.values[0].type, undefined);
 
           // #<Object> is covering default Android 4.4 and 5.1 browser
-          assert.match(
-            ravenData.exception.values[0].value,
-            /^(\[object Object\]|#<Object>)$/
-          );
-          assert.equal(ravenData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
+          assert.match(sentryData.exception.values[0].value, /^(\[object Object\]|#<Object>)$/);
+          assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
 
           // some browsers extract proper url, line, and column for thrown objects
           // but not all - falls back to frame url
+          assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
           assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0].filename,
-            /\/test\/integration\//
+            sentryData.exception.values[0].stacktrace.frames[0]['function'],
+            /throwStringError|\?|global code/i,
           );
-          assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code/i
-          );
-        }
+        },
       );
     });
 
@@ -393,30 +349,30 @@ describe('integration', function() {
           document.head.appendChild(script);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
           // ¯\_(ツ)_/¯
           if (isBelowIE11() || isEdge14()) {
-            assert.equal(ravenData.exception.values[0].type, undefined);
+            assert.equal(sentryData.exception.values[0].type, undefined);
           } else {
-            assert.match(ravenData.exception.values[0].type, /^Error/);
+            assert.match(sentryData.exception.values[0].type, /^Error/);
           }
-          assert.match(ravenData.exception.values[0].value, /realError$/);
+          assert.match(sentryData.exception.values[0].value, /realError$/);
           // 1 or 2 depending on platform
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 1);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 2);
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 1);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 2);
           assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0].filename,
-            /\/test\/integration\/throw-error\.js/
+            sentryData.exception.values[0].stacktrace.frames[0].filename,
+            /\/test\/integration\/throw-error\.js/,
           );
           assert.match(
-            ravenData.exception.values[0].stacktrace.frames[0]['function'],
-            /\?|global code|throwRealError/i
+            sentryData.exception.values[0].stacktrace.frames[0]['function'],
+            /\?|global code|throwRealError/i,
           );
-        }
+        },
       );
     });
 
-    it('should NOT catch an exception already caught via Raven.wrap', function(done) {
+    it('should NOT catch an exception already caught via Sentry.wrap', function(done) {
       var iframe = this.iframe;
 
       iframeExecute(
@@ -424,20 +380,20 @@ describe('integration', function() {
         done,
         function() {
           setTimeout(done);
-          Raven.wrap(function() {
+          Sentry.wrap(function() {
             foo();
           })();
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData;
-          assert.equal(ravenData.length, 1); // one caught error
-        }
+          var sentryData = iframe.contentWindow.sentryData;
+          assert.equal(sentryData.length, 1); // one caught error
+        },
       );
     });
 
-    it('should catch an exception already caught [but rethrown] via Raven.captureException', function(done) {
-      // unlike Raven.wrap which ALWAYS re-throws, we don't know if the user will
-      // re-throw an exception passed to Raven.captureException, and so we cannot
+    it('should catch an exception already caught [but rethrown] via Sentry.captureException', function(done) {
+      // unlike Sentry.wrap which ALWAYS re-throws, we don't know if the user will
+      // re-throw an exception passed to Sentry.captureException, and so we cannot
       // automatically suppress the next error caught through window.onerror
       var iframe = this.iframe;
       iframeExecute(
@@ -448,14 +404,14 @@ describe('integration', function() {
           try {
             foo();
           } catch (e) {
-            Raven.captureException(e);
+            Sentry.captureException(e);
             throw e; // intentionally re-throw
           }
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData;
-          assert.equal(ravenData.length, 2);
-        }
+          var sentryData = iframe.contentWindow.sentryData;
+          assert.equal(sentryData.length, 2);
+        },
       );
     });
   });
@@ -477,17 +433,17 @@ describe('integration', function() {
             function() {
               foo();
             },
-            false
+            false,
           );
 
           var click = new MouseEvent('click');
           div.dispatchEvent(click);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 3);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 5);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
+        },
       );
     });
 
@@ -512,9 +468,9 @@ describe('integration', function() {
           div.dispatchEvent(click);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.equal(ravenData, null); // should never trigger error
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.equal(sentryData, null); // should never trigger error
+        },
       );
     });
 
@@ -531,10 +487,10 @@ describe('integration', function() {
           }, 10);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 3);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 4);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
       );
     });
 
@@ -552,10 +508,10 @@ describe('integration', function() {
           }, 10);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 3);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 4);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
       );
     });
 
@@ -574,10 +530,10 @@ describe('integration', function() {
           });
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 3);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 4);
-        }
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
       );
     });
 
@@ -605,11 +561,11 @@ describe('integration', function() {
           xhr.send();
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
           // # of frames alter significantly between chrome/firefox & safari
-          assert.isAtLeast(ravenData.exception.values[0].stacktrace.frames.length, 3);
-          assert.isAtMost(ravenData.exception.values[0].stacktrace.frames.length, 4);
-        }
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
       );
     });
 
@@ -623,13 +579,13 @@ describe('integration', function() {
           setTimeout(function() {
             setTimeout(done);
             foo();
-          }, 10);
+          });
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
 
-          var fn = ravenData.exception.mechanism.data.function;
-          delete ravenData.exception.mechanism.data;
+          var fn = sentryData.exception.mechanism.data.function;
+          delete sentryData.exception.mechanism.data;
 
           if (canReadFunctionName()) {
             assert.equal(fn, 'setTimeout');
@@ -637,11 +593,11 @@ describe('integration', function() {
             assert.equal(fn, '<anonymous>');
           }
 
-          assert.deepEqual(ravenData.exception.mechanism, {
+          assert.deepEqual(sentryData.exception.mechanism, {
             type: 'instrument',
-            handled: true
+            handled: true,
           });
-        }
+        },
       );
     });
 
@@ -661,19 +617,19 @@ describe('integration', function() {
             function namedFunction() {
               foo();
             },
-            false
+            false,
           );
 
           var click = new MouseEvent('click');
           div.dispatchEvent(click);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
 
-          var handler = ravenData.exception.mechanism.data.handler;
-          delete ravenData.exception.mechanism.data.handler;
-          var target = ravenData.exception.mechanism.data.target;
-          delete ravenData.exception.mechanism.data.target;
+          var handler = sentryData.exception.mechanism.data.handler;
+          delete sentryData.exception.mechanism.data.handler;
+          var target = sentryData.exception.mechanism.data.target;
+          delete sentryData.exception.mechanism.data.target;
 
           if (canReadFunctionName()) {
             assert.equal(handler, 'namedFunction');
@@ -683,14 +639,14 @@ describe('integration', function() {
 
           // IE vs. Rest of the world
           assert.oneOf(target, ['Node', 'EventTarget']);
-          assert.deepEqual(ravenData.exception.mechanism, {
+          assert.deepEqual(sentryData.exception.mechanism, {
             type: 'instrument',
             handled: true,
             data: {
-              function: 'addEventListener'
-            }
+              function: 'addEventListener',
+            },
           });
-        }
+        },
       );
     });
 
@@ -710,29 +666,29 @@ describe('integration', function() {
             function() {
               foo();
             },
-            false
+            false,
           );
 
           var click = new MouseEvent('click');
           div.dispatchEvent(click);
         },
         function() {
-          var ravenData = iframe.contentWindow.ravenData[0];
+          var sentryData = iframe.contentWindow.sentryData[0];
 
-          var target = ravenData.exception.mechanism.data.target;
-          delete ravenData.exception.mechanism.data.target;
+          var target = sentryData.exception.mechanism.data.target;
+          delete sentryData.exception.mechanism.data.target;
 
           // IE vs. Rest of the world
           assert.oneOf(target, ['Node', 'EventTarget']);
-          assert.deepEqual(ravenData.exception.mechanism, {
+          assert.deepEqual(sentryData.exception.mechanism, {
             type: 'instrument',
             handled: true,
             data: {
               function: 'addEventListener',
-              handler: '<anonymous>'
-            }
+              handler: '<anonymous>',
+            },
           });
-        }
+        },
       );
     });
   });
@@ -746,7 +702,7 @@ describe('integration', function() {
         done,
         function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           var xhr = new XMLHttpRequest();
 
@@ -762,13 +718,13 @@ describe('integration', function() {
           xhr.send();
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
           assert.equal(breadcrumbs[0].type, 'http');
           assert.equal(breadcrumbs[0].data.method, 'GET');
-        }
+        },
       );
     });
 
@@ -785,7 +741,7 @@ describe('integration', function() {
           setTimeout(done, 1000);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           var xhr = new XMLHttpRequest();
 
@@ -794,15 +750,15 @@ describe('integration', function() {
           xhr.send();
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].type, 'http');
           assert.equal(breadcrumbs[0].category, 'xhr');
           assert.equal(breadcrumbs[0].data.method, 'GET');
-        }
+        },
       );
     });
 
@@ -817,14 +773,14 @@ describe('integration', function() {
 
           // can't actually transmit an XHR (breadcrumb isnt recorded until
           // onreadystatechange fires), so enough to just verify that
-          // __raven_xhr wasn't set on xhr object
+          // __sentry_xhr wasn't set on xhr object
 
-          window.ravenData = xhr.hasOwnProperty('__raven_xhr');
+          window.sentryData = xhr.hasOwnProperty('__sentry_xhr__');
           setTimeout(done);
         },
         function() {
-          assert.isFalse(iframe.contentWindow.ravenData);
-        }
+          assert.isFalse(iframe.contentWindow.sentryData);
+        },
       );
     });
 
@@ -836,7 +792,7 @@ describe('integration', function() {
         done,
         function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           fetch('example.json').then(
             function() {
@@ -844,13 +800,13 @@ describe('integration', function() {
             },
             function() {
               setTimeout(done);
-            }
+            },
           );
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs,
-            breadcrumbUrl = 'example.json';
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          var breadcrumbUrl = 'example.json';
 
           if ('fetch' in window) {
             assert.equal(breadcrumbs.length, 1);
@@ -873,7 +829,7 @@ describe('integration', function() {
             assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
           }
-        }
+        },
       );
     });
 
@@ -885,7 +841,7 @@ describe('integration', function() {
         done,
         function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           fetch(new Request('example.json')).then(
             function() {
@@ -893,13 +849,13 @@ describe('integration', function() {
             },
             function() {
               setTimeout(done);
-            }
+            },
           );
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs,
-            breadcrumbUrl = 'example.json';
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          var breadcrumbUrl = 'example.json';
 
           if ('fetch' in window) {
             assert.equal(breadcrumbs.length, 1);
@@ -923,7 +879,7 @@ describe('integration', function() {
             assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
           }
-        }
+        },
       );
     });
 
@@ -935,7 +891,7 @@ describe('integration', function() {
         done,
         function() {
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           fetch(123).then(
             function() {
@@ -943,13 +899,13 @@ describe('integration', function() {
             },
             function() {
               setTimeout(done);
-            }
+            },
           );
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs,
-            breadcrumbUrl = '123';
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          var breadcrumbUrl = '123';
 
           if ('fetch' in window) {
             assert.equal(breadcrumbs.length, 1);
@@ -973,7 +929,7 @@ describe('integration', function() {
             assert.equal(breadcrumbs[1].data.method, 'GET');
             assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
           }
-        }
+        },
       );
     });
 
@@ -987,7 +943,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // add an event listener to the input. we want to make sure that
           // our breadcrumbs still work even if the page has an event listener
@@ -1003,17 +959,14 @@ describe('integration', function() {
           input.dispatchEvent(click);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].category, 'ui.click');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
-        }
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+        },
       );
     });
 
@@ -1027,7 +980,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // click <input/>
           var click = new MouseEvent('click');
@@ -1035,17 +988,14 @@ describe('integration', function() {
           input.dispatchEvent(click);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].category, 'ui.click');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
-        }
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+        },
       );
     });
 
@@ -1059,7 +1009,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           var clickHandler = function(evt) {
             //evt.stopPropagation();
@@ -1078,19 +1028,19 @@ describe('integration', function() {
           input.dispatchEvent(click);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].category, 'ui.click');
           assert.equal(breadcrumbs[0].message, 'body > div.c > div.b > div.a');
-        }
+        },
       );
     });
 
     it('should bail out if accessing the `type` and `target` properties of an event throw an exception', function(done) {
-      // see: https://github.com/getsentry/raven-js/issues/768
+      // see: https://github.com/getsentry/sentry-javascript/issues/768
       var iframe = this.iframe;
 
       iframeExecute(
@@ -1100,27 +1050,27 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // click <input/>
           var click = new MouseEvent('click');
           function kaboom() {
             throw new Error('lol');
           }
-          Object.defineProperty(click, 'type', {get: kaboom});
-          Object.defineProperty(click, 'target', {get: kaboom});
+          Object.defineProperty(click, 'type', { get: kaboom });
+          Object.defineProperty(click, 'target', { get: kaboom });
 
           var input = document.querySelector('.a'); // leaf node
           input.dispatchEvent(click);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
           assert.equal(breadcrumbs[0].category, 'ui.click');
           assert.equal(breadcrumbs[0].message, '<unknown>');
-        }
+        },
       );
     });
 
@@ -1134,7 +1084,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // keypress <input/> twice
           var keypress1 = new KeyboardEvent('keypress');
@@ -1145,17 +1095,14 @@ describe('integration', function() {
           input.dispatchEvent(keypress2);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].category, 'ui.input');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
-        }
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+        },
       );
     });
 
@@ -1169,7 +1116,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // keypress <input/>
           var keypress = new KeyboardEvent('keypress');
@@ -1180,18 +1127,13 @@ describe('integration', function() {
           foo(); // throw exception
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
-          // 2 breadcrumbs: `ui_event`, then `error`
-          assert.equal(breadcrumbs.length, 2);
-
+          assert.equal(breadcrumbs.length, 1);
           assert.equal(breadcrumbs[0].category, 'ui.input');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
-        }
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+        },
       );
     });
 
@@ -1205,7 +1147,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // 1st keypress <input/>
           var keypress1 = new KeyboardEvent('keypress');
@@ -1220,30 +1162,21 @@ describe('integration', function() {
           input.dispatchEvent(keypress2);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           // 2x `ui_event`
           assert.equal(breadcrumbs.length, 3);
 
           assert.equal(breadcrumbs[0].category, 'ui.input');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
 
           assert.equal(breadcrumbs[1].category, 'ui.click');
-          assert.equal(
-            breadcrumbs[1].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
+          assert.equal(breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"]');
 
           assert.equal(breadcrumbs[2].category, 'ui.input');
-          assert.equal(
-            breadcrumbs[2].message,
-            'body > form#foo-form > input[name="foo"]'
-          );
-        }
+          assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"]');
+        },
       );
     });
 
@@ -1257,7 +1190,7 @@ describe('integration', function() {
           setTimeout(done);
 
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           // keypress <input/> twice
           var keypress1 = new KeyboardEvent('keypress');
@@ -1268,17 +1201,14 @@ describe('integration', function() {
           div.dispatchEvent(keypress2);
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 1);
 
           assert.equal(breadcrumbs[0].category, 'ui.input');
-          assert.equal(
-            breadcrumbs[0].message,
-            'body > form#foo-form > div.contenteditable'
-          );
-        }
+          assert.equal(breadcrumbs[0].message, 'body > form#foo-form > div.contenteditable');
+        },
       );
     });
 
@@ -1289,8 +1219,10 @@ describe('integration', function() {
         iframe,
         done,
         function() {
+          setTimeout(done);
+
           // some browsers trigger onpopstate for load / reset breadcrumb state
-          Raven._breadcrumbs = [];
+          // Sentry._breadcrumbs = [];
 
           history.pushState({}, '', '/foo');
           history.pushState({}, '', '/bar?a=1#fragment');
@@ -1301,14 +1233,10 @@ describe('integration', function() {
           // (e.g. document running mocha) ... instead just "emulate" a back button
           // press by calling replaceState
           history.replaceState({}, '', '/bar?a=1#fragment');
-
-          done();
         },
         function() {
-          var Raven = iframe.contentWindow.Raven,
-            breadcrumbs = Raven._breadcrumbs,
-            from,
-            to;
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
           assert.equal(breadcrumbs.length, 4);
           assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
@@ -1316,36 +1244,18 @@ describe('integration', function() {
           assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
           assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
 
-          assert.ok(
-            /\/test\/integration\/frame\.html$/.test(Raven._breadcrumbs[0].data.from),
-            "'from' url is incorrect"
-          );
+          assert.ok(/\/test\/integration\/frame\.html$/.test(breadcrumbs[0].data.from), "'from' url is incorrect");
           assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), "'to' url is incorrect");
 
           assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), "'from' url is incorrect");
-          assert.ok(
-            /\/bar\?a=1#fragment$/.test(breadcrumbs[1].data.to),
-            "'to' url is incorrect"
-          );
+          assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[1].data.to), "'to' url is incorrect");
 
-          assert.ok(
-            /\/bar\?a=1#fragment$/.test(breadcrumbs[2].data.from),
-            "'from' url is incorrect"
-          );
-          assert.ok(
-            /\[object Object\]$/.test(breadcrumbs[2].data.to),
-            "'to' url is incorrect"
-          );
+          assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[2].data.from), "'from' url is incorrect");
+          assert.ok(/\[object Object\]$/.test(breadcrumbs[2].data.to), "'to' url is incorrect");
 
-          assert.ok(
-            /\[object Object\]$/.test(breadcrumbs[3].data.from),
-            "'from' url is incorrect"
-          );
-          assert.ok(
-            /\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to),
-            "'to' url is incorrect"
-          );
-        }
+          assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), "'from' url is incorrect");
+          assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
+        },
       );
     });
 
@@ -1359,104 +1269,15 @@ describe('integration', function() {
           done();
         },
         function() {
-          assert.include(
-            Function.prototype.toString.call(window.setTimeout),
-            '[native code]'
-          );
-          assert.include(
-            Function.prototype.toString.call(window.setInterval),
-            '[native code]'
-          );
-          assert.include(
-            Function.prototype.toString.call(window.addEventListener),
-            '[native code]'
-          );
-          assert.include(
-            Function.prototype.toString.call(window.removeEventListener),
-            '[native code]'
-          );
-          assert.include(
-            Function.prototype.toString.call(window.requestAnimationFrame),
-            '[native code]'
-          );
+          assert.include(Function.prototype.toString.call(window.setTimeout), '[native code]');
+          assert.include(Function.prototype.toString.call(window.setInterval), '[native code]');
+          assert.include(Function.prototype.toString.call(window.addEventListener), '[native code]');
+          assert.include(Function.prototype.toString.call(window.removeEventListener), '[native code]');
+          assert.include(Function.prototype.toString.call(window.requestAnimationFrame), '[native code]');
           if ('fetch' in window) {
-            assert.include(
-              Function.prototype.toString.call(window.fetch),
-              '[native code]'
-            );
+            assert.include(Function.prototype.toString.call(window.fetch), '[native code]');
           }
-        }
-      );
-    });
-  });
-
-  describe('uninstall', function() {
-    it('should restore original built-ins', function(done) {
-      var iframe = this.iframe;
-
-      iframeExecute(
-        iframe,
-        done,
-        function() {
-          setTimeout(done);
-          Raven.uninstall();
-
-          window.isRestored = {
-            setTimeout: originalBuiltIns.setTimeout === setTimeout,
-            setInterval: originalBuiltIns.setInterval === setInterval,
-            requestAnimationFrame:
-              originalBuiltIns.requestAnimationFrame === requestAnimationFrame,
-            xhrProtoOpen: originalBuiltIns.xhrProtoOpen === XMLHttpRequest.prototype.open,
-            headAddEventListener:
-              originalBuiltIns.headAddEventListener === document.body.addEventListener,
-            headRemoveEventListener:
-              originalBuiltIns.headRemoveEventListener ===
-              document.body.removeEventListener,
-            consoleDebug: originalBuiltIns.consoleDebug === console.debug,
-            consoleInfo: originalBuiltIns.consoleInfo === console.info,
-            consoleWarn: originalBuiltIns.consoleWarn === console.warn,
-            consoleError: originalBuiltIns.consoleError === console.error,
-            consoleLog: originalBuiltIns.consoleLog === console.log
-          };
         },
-        function() {
-          var isRestored = iframe.contentWindow.isRestored;
-          assert.isTrue(isRestored.setTimeout);
-          assert.isTrue(isRestored.setInterval);
-          assert.isTrue(isRestored.requestAnimationFrame);
-          assert.isTrue(isRestored.xhrProtoOpen);
-          assert.isTrue(isRestored.headAddEventListener);
-          assert.isTrue(isRestored.headRemoveEventListener);
-          assert.isTrue(isRestored.consoleDebug);
-          assert.isTrue(isRestored.consoleInfo);
-          assert.isTrue(isRestored.consoleWarn);
-          assert.isTrue(isRestored.consoleError);
-          assert.isTrue(isRestored.consoleLog);
-        }
-      );
-    });
-
-    it('should not restore XMLHttpRequest instance methods', function(done) {
-      var iframe = this.iframe;
-
-      iframeExecute(
-        iframe,
-        done,
-        function() {
-          setTimeout(done);
-
-          var xhr = new XMLHttpRequest();
-          var origOnReadyStateChange = (xhr.onreadystatechange = function() {});
-          xhr.open('GET', '/foo/');
-          xhr.abort();
-
-          Raven.uninstall();
-
-          window.isOnReadyStateChangeRestored = xhr.onready === origOnReadyStateChange;
-        },
-        function() {
-          assert.isFalse(iframe.contentWindow.isOnReadyStateChangeRestored);
-        }
       );
     });
   });
