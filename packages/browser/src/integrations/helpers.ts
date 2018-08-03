@@ -30,9 +30,9 @@ export function ignoreNextOnError(): void {
  */
 export function wrap(
   fn: SentryWrappedFunction,
-  options?: {
-    mechanism?: object;
-  },
+  options: {
+    mechanism?: Mechanism;
+  } = {},
   before?: SentryWrappedFunction,
 ): any {
   try {
@@ -66,10 +66,16 @@ export function wrap(
       ignoreNextOnError();
 
       getCurrentHub().withScope(async () => {
-        getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
-          ...event,
-          ...(options && options.mechanism),
-        }));
+        getCurrentHub().addEventProcessor(async (event: SentryEvent) => {
+          const processedEvent = { ...event };
+
+          if (options.mechanism) {
+            processedEvent.exception = processedEvent.exception || {};
+            processedEvent.exception.mechanism = options.mechanism;
+          }
+
+          return processedEvent;
+        });
 
         getCurrentHub().captureException(ex);
       });
