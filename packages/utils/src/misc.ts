@@ -159,6 +159,10 @@ export function parseUrl(
   protocol?: string;
   relative?: string;
 } {
+  if (!url) {
+    return {};
+  }
+
   const match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
 
   if (!match) {
