@@ -1,3 +1,4 @@
+import { DSN } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
@@ -5,6 +6,7 @@ import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { fill } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
 import { supportsFetch, supportsHistory } from '@sentry/utils/supports';
+import { BrowserOptions } from '../backend';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 const global = getGlobalObject() as Window;
@@ -36,7 +38,7 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public constructor(
-    private readonly options: {
+    private readonly config: {
       console?: boolean;
       dom?: boolean;
       fetch?: boolean;
@@ -109,7 +111,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentFetch(): void {
+  private instrumentFetch(options: { filterUrl?: string }): void {
     if (!supportsFetch()) {
       return;
     }
@@ -129,6 +131,11 @@ export class Breadcrumbs implements Integration {
           }
         } else {
           url = String(fetchInput);
+        }
+
+        // if Sentry key appears in URL, don't capture, as it's our own request
+        if (options.filterUrl && url.includes(options.filterUrl)) {
+          return originalFetch.apply(global, args);
         }
 
         if (args[1] && args[1].method) {
@@ -178,7 +185,12 @@ export class Breadcrumbs implements Integration {
     const captureUrlChange = (from: string | undefined, to: string | undefined): void => {
       const parsedLoc = parseUrl(global.location.href);
       const parsedTo = parseUrl(to as string);
-      const parsedFrom = parseUrl(from as string);
+      let parsedFrom = parseUrl(from as string);
+
+      // Initial pushState doesn't provide `from` information
+      if (!parsedFrom.path) {
+        parsedFrom = parsedLoc;
+      }
 
       // because onpopstate only tells you the "new" (to) value of location.href, and
       // not the previous (from) value, we need to track the value of the current URL
@@ -211,7 +223,7 @@ export class Breadcrumbs implements Integration {
       const currentHref = global.location.href;
       captureUrlChange(lastHref, currentHref);
       if (oldOnPopState) {
-        return oldOnPopState.apply(global, args);
+        return oldOnPopState.apply(this, args);
       }
     };
 
@@ -219,14 +231,14 @@ export class Breadcrumbs implements Integration {
     function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
       // note history.pushState.length is 0; intentionally not declaring
       // params to preserve 0 arity
-      return function(...args: any[]): void {
+      return function(this: History, ...args: any[]): void {
         const url = args.length > 2 ? args[2] : undefined;
         // url argument is optional
         if (url) {
           // coerce to string (this is what pushState does)
           captureUrlChange(lastHref, String(url));
         }
-        return originalHistoryFunction.apply(global, ...args);
+        return originalHistoryFunction.apply(this, args);
       };
     }
 
@@ -234,7 +246,7 @@ export class Breadcrumbs implements Integration {
     fill(global.history, 'replaceState', historyReplacementFunction);
   }
   /** JSDoc */
-  private instrumentXHR(): void {
+  private instrumentXHR(options: { filterUrl?: string }): void {
     if (!('XMLHttpRequest' in global)) {
       return;
     }
@@ -250,6 +262,7 @@ export class Breadcrumbs implements Integration {
                 function: prop,
                 handler: (original && original.name) || '<anonymous>',
               },
+              handled: true,
               type: 'instrument',
             },
           }),
@@ -263,7 +276,9 @@ export class Breadcrumbs implements Integration {
       'open',
       originalOpen =>
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-          if (isString(args[1])) {
+          const url = args[1];
+          // if Sentry key appears in URL, don't capture, as it's our own request
+          if (isString(url) && (options.filterUrl && !url.includes(options.filterUrl))) {
             this.__sentry_xhr__ = {
               method: args[0],
               url: args[1],
@@ -312,6 +327,7 @@ export class Breadcrumbs implements Integration {
                       function: 'onreadystatechange',
                       handler: (original && original.name) || '<anonymous>',
                     },
+                    handled: true,
                     type: 'instrument',
                   },
                 },
@@ -323,7 +339,7 @@ export class Breadcrumbs implements Integration {
             // are free to set our own and capture the breadcrumb
             xhr.onreadystatechange = onreadystatechangeHandler;
           }
-          return originalSend.apply(XMLHttpRequest, args);
+          return originalSend.apply(this, args);
         },
     );
   }
@@ -337,20 +353,23 @@ export class Breadcrumbs implements Integration {
    *
    * Can be disabled or individually configured via the `autoBreadcrumbs` config option
    */
-  public install(): void {
-    if (this.options.console) {
+  public install(options: BrowserOptions = {}): void {
+    // TODO: Use API provider instead of raw `new DSN`
+    const filterUrl = options.dsn && new DSN(options.dsn).user;
+
+    if (this.config.console) {
       this.instrumentConsole();
     }
-    if (this.options.dom) {
+    if (this.config.dom) {
       this.instrumentDOM();
     }
-    if (this.options.xhr) {
-      this.instrumentXHR();
+    if (this.config.xhr) {
+      this.instrumentXHR({ filterUrl });
     }
-    if (this.options.fetch) {
-      this.instrumentFetch();
+    if (this.config.fetch) {
+      this.instrumentFetch({ filterUrl });
     }
-    if (this.options.history) {
+    if (this.config.history) {
       this.instrumentHistory();
     }
   }
