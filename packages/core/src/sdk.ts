@@ -1,4 +1,4 @@
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { Client, Options } from './interfaces';
 import { logger } from './logger';
@@ -21,7 +21,7 @@ export function initAndBind<F extends Client, O extends Options>(
   options: O,
   defaultIntegrations: Integration[] = [],
 ): void {
-  if (getDefaultHub().getClient()) {
+  if (getCurrentHub().getClient()) {
     return;
   }
 
@@ -34,7 +34,7 @@ export function initAndBind<F extends Client, O extends Options>(
 
   // This should happen here if any integration uses {@link Hub.addEventProcessor}
   // there needs to be a client on the hub already.
-  getDefaultHub().bindClient(client);
+  getCurrentHub().bindClient(client);
 
   let integrations = [...defaultIntegrations];
   if (Array.isArray(options.integrations)) {

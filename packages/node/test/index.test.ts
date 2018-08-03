@@ -6,7 +6,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  getDefaultHub,
+  getCurrentHub,
   init,
   NodeBackend,
   NodeClient,
@@ -25,11 +25,11 @@ describe('SentryNode', () => {
   });
 
   beforeEach(() => {
-    getDefaultHub().pushScope();
+    getCurrentHub().pushScope();
   });
 
   afterEach(() => {
-    getDefaultHub().popScope();
+    getCurrentHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -73,7 +73,7 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      getDefaultHub().pushScope();
+      getCurrentHub().pushScope();
       const client = new NodeClient({
         afterSend: (event: SentryEvent) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
@@ -84,7 +84,7 @@ describe('SentryNode', () => {
         dsn,
       });
       client.install();
-      getDefaultHub().bindClient(client);
+      getCurrentHub().bindClient(client);
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
       captureMessage('event');
@@ -104,8 +104,8 @@ describe('SentryNode', () => {
 
     test('capture an exception', done => {
       expect.assertions(6);
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
@@ -127,13 +127,13 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
 
     test('capture a message', done => {
       expect.assertions(2);
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -144,13 +144,13 @@ describe('SentryNode', () => {
         }),
       );
       captureMessage('test');
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
 
     test('capture an event', done => {
       expect.assertions(2);
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new NodeClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
@@ -161,7 +161,7 @@ describe('SentryNode', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
 
     test('capture an event in a domain', async () =>
@@ -177,9 +177,9 @@ describe('SentryNode', () => {
           dsn,
         });
         d.run(() => {
-          getDefaultHub().bindClient(client);
-          expect(getDefaultHub().getClient()).toBe(client);
-          getDefaultHub().captureEvent({ message: 'test' });
+          getCurrentHub().bindClient(client);
+          expect(getCurrentHub().getClient()).toBe(client);
+          getCurrentHub().captureEvent({ message: 'test' });
         });
       }));
   });

@@ -1,4 +1,4 @@
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { NodeOptions } from '../backend';
 
@@ -13,7 +13,7 @@ export class ClientOptions implements Integration {
    * @inheritDoc
    */
   public install(options: NodeOptions = {}): void {
-    getDefaultHub().addEventProcessor(async (event: SentryEvent) => {
+    getCurrentHub().addEventProcessor(async (event: SentryEvent) => {
       const preparedEvent: SentryEvent = {
         ...event,
         platform: 'node',

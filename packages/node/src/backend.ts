@@ -1,5 +1,5 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryResponse } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
@@ -37,7 +37,7 @@ export class NodeBackend implements Backend {
         const keys = Object.keys(exception as {}).sort();
         const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(keys)}`;
 
-        getDefaultHub().configureScope(scope => {
+        getCurrentHub().configureScope(scope => {
           scope.setExtra('__serialized__', limitObjectDepthToSize(exception as {}));
           scope.setFingerprint([md5(keys.join(''))]);
         });

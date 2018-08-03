@@ -1,4 +1,4 @@
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
@@ -87,7 +87,7 @@ export class Breadcrumbs implements Integration {
           }
         }
 
-        getDefaultHub().addBreadcrumb(breadcrumbData);
+        getCurrentHub().addBreadcrumb(breadcrumbData);
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
@@ -148,7 +148,7 @@ export class Breadcrumbs implements Integration {
           .apply(global, args)
           .then((response: Response) => {
             fetchData.status_code = response.status;
-            getDefaultHub().addBreadcrumb({
+            getCurrentHub().addBreadcrumb({
               category: 'fetch',
               data: fetchData,
               type: 'http',
@@ -156,7 +156,7 @@ export class Breadcrumbs implements Integration {
             return response;
           })
           .catch((error: Error) => {
-            getDefaultHub().addBreadcrumb({
+            getCurrentHub().addBreadcrumb({
               category: 'fetch',
               data: fetchData,
               level: Severity.Error,
@@ -196,7 +196,7 @@ export class Breadcrumbs implements Integration {
         from = parsedFrom.relative;
       }
 
-      getDefaultHub().addBreadcrumb({
+      getCurrentHub().addBreadcrumb({
         category: 'navigation',
         data: {
           from,
@@ -290,7 +290,7 @@ export class Breadcrumbs implements Integration {
               } catch (e) {
                 /* do nothing */
               }
-              getDefaultHub().addBreadcrumb({
+              getCurrentHub().addBreadcrumb({
                 category: 'xhr',
                 data: xhr.__sentry_xhr__,
                 type: 'http',

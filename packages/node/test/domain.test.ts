@@ -1,7 +1,7 @@
 import { Layer } from '@sentry/hub';
 import * as domain from 'domain';
 
-const mockGetDefaultHub = jest.fn();
+const mockgetCurrentHub = jest.fn();
 
 class MockHub {
   public constructor(public stack: Layer[] = []) {
@@ -21,17 +21,17 @@ class MockHub {
 const mockHub = MockHub;
 jest.mock('@sentry/hub', () => ({
   Hub: mockHub,
-  getDefaultHub: mockGetDefaultHub,
+  getCurrentHub: mockgetCurrentHub,
 }));
 
-import { getDefaultHub } from '../src';
+import { getCurrentHub } from '../src';
 
 describe('domains', () => {
   let globalHub: MockHub;
 
   beforeEach(() => {
     globalHub = new MockHub();
-    mockGetDefaultHub.mockReturnValue(globalHub);
+    mockgetCurrentHub.mockReturnValue(globalHub);
   });
 
   afterEach(() => {
@@ -43,7 +43,7 @@ describe('domains', () => {
 
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
-    const hub = getDefaultHub();
+    const hub = getCurrentHub();
     expect(hub).toBe(globalHub);
   });
 
@@ -51,7 +51,7 @@ describe('domains', () => {
     globalHub.stack = [];
     const d = domain.create();
     d.run(() => {
-      const hub = getDefaultHub();
+      const hub = getCurrentHub();
       expect(globalHub).not.toBe(hub);
       expect(globalHub.getStack()).toEqual(hub.getStack());
     });
@@ -60,7 +60,7 @@ describe('domains', () => {
   test('domain hub isolation', () => {
     const d = domain.create();
     d.run(() => {
-      const hub = getDefaultHub();
+      const hub = getCurrentHub();
       hub.getStack().push({ client: 'whatever' });
       expect(hub.getStack()).toEqual([{ client: 'whatever' }]);
       expect(globalHub.getStack()).toEqual([]);
@@ -70,7 +70,7 @@ describe('domains', () => {
   test('domain hub single instance', () => {
     const d = domain.create();
     d.run(() => {
-      expect(getDefaultHub()).toBe(getDefaultHub());
+      expect(getCurrentHub()).toBe(getCurrentHub());
     });
   });
 
@@ -79,22 +79,22 @@ describe('domains', () => {
     const d2 = domain.create();
 
     d1.run(() => {
-      getDefaultHub()
+      getCurrentHub()
         .getStack()
         .push({ client: 'process' });
 
       setTimeout(() => {
-        expect(getDefaultHub().getStack()).toEqual([{ client: 'process' }]);
+        expect(getCurrentHub().getStack()).toEqual([{ client: 'process' }]);
       }, 50);
     });
 
     d2.run(() => {
-      getDefaultHub()
+      getCurrentHub()
         .getStack()
         .push({ client: 'local' });
 
       setTimeout(() => {
-        expect(getDefaultHub().getStack()).toEqual([{ client: 'local' }]);
+        expect(getCurrentHub().getStack()).toEqual([{ client: 'local' }]);
         done();
       }, 100);
     });

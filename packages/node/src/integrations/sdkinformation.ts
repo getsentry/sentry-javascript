@@ -1,4 +1,4 @@
-import { getDefaultHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { SDK_NAME, SDK_VERSION } from '../version';
 
@@ -13,7 +13,7 @@ export class SDKInformation implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    getDefaultHub().addEventProcessor(async (event: SentryEvent) => ({
+    getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
       ...event,
       sdk: {
         name: SDK_NAME,

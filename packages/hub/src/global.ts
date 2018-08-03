@@ -18,7 +18,7 @@ export function getMainCarrier(): Carrier {
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
-export function getDefaultHub(): Hub {
+export function getCurrentHub(): Hub {
   const registry = getMainCarrier();
 
   if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {

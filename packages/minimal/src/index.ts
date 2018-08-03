@@ -1,4 +1,4 @@
-import { getDefaultHub, Hub, Scope } from '@sentry/hub';
+import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent } from '@sentry/types';
 
 /**
@@ -7,7 +7,7 @@ import { Breadcrumb, SentryEvent } from '@sentry/types';
  * @param args to pass to function.
  */
 function callOnHub(method: string, ...args: any[]): void {
-  const hub = getDefaultHub();
+  const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
     (hub[method as keyof Hub] as any)(...args);
   }

@@ -3,7 +3,7 @@ import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';
 import { inherits } from 'util';
-import { getDefaultHub } from '../hub';
+import { getCurrentHub } from '../hub';
 
 let lastResponse: ServerResponse | undefined;
 
@@ -112,7 +112,7 @@ function emitWrapper(origEmit: EventListener): (event: string, response: ServerR
       return origEmit.apply(this, arguments);
     }
 
-    const DSN = getDefaultHub()
+    const DSN = getCurrentHub()
       .getClient()
       .getDSN();
 

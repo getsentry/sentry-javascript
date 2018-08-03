@@ -17,7 +17,7 @@ export { addBreadcrumb, captureMessage, captureException, captureEvent, configur
 
 export { getHubFromCarrier, Hub, Scope } from '@sentry/hub';
 
-export { getDefaultHub } from './hub';
+export { getCurrentHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init } from './sdk';

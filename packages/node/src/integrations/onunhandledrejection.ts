@@ -1,5 +1,5 @@
 import { Integration } from '@sentry/types';
-import { getDefaultHub } from '../hub';
+import { getCurrentHub } from '../hub';
 
 /** Global Promise Rejection handler */
 export class OnUnhandledRejection implements Integration {
@@ -21,8 +21,8 @@ export class OnUnhandledRejection implements Integration {
    */
   public sendUnhandledPromise(reason: any, promise: any): void {
     const context = (promise.domain && promise.domain.sentryContext) || {};
-    getDefaultHub().withScope(() => {
-      getDefaultHub().configureScope(scope => {
+    getCurrentHub().withScope(() => {
+      getCurrentHub().configureScope(scope => {
         // Preserve backwards compatibility with raven-node for now
         if (context.user) {
           scope.setUser(context.user);
@@ -39,7 +39,7 @@ export class OnUnhandledRejection implements Integration {
         }
         scope.setExtra('unhandledPromiseRejection', true);
       });
-      getDefaultHub().captureException(reason);
+      getCurrentHub().captureException(reason);
     });
   }
 }

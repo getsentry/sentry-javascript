@@ -8,7 +8,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  getDefaultHub,
+  getCurrentHub,
   init,
   Scope,
   SentryEvent,
@@ -24,11 +24,11 @@ describe('SentryBrowser', () => {
   });
 
   beforeEach(() => {
-    getDefaultHub().pushScope();
+    getCurrentHub().pushScope();
   });
 
   afterEach(() => {
-    getDefaultHub().popScope();
+    getCurrentHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -72,8 +72,8 @@ describe('SentryBrowser', () => {
     });
 
     it('should record auto breadcrumbs', done => {
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).to.have.lengthOf(2);
@@ -87,7 +87,7 @@ describe('SentryBrowser', () => {
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
   });
 
@@ -103,8 +103,8 @@ describe('SentryBrowser', () => {
     });
 
     it('should capture an exception', done => {
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
@@ -122,12 +122,12 @@ describe('SentryBrowser', () => {
       } catch (e) {
         captureException(e);
       }
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
 
     it('should capture a message', done => {
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
@@ -138,12 +138,12 @@ describe('SentryBrowser', () => {
         }),
       );
       captureMessage('test');
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
 
     it('should capture an event', done => {
-      getDefaultHub().pushScope();
-      getDefaultHub().bindClient(
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
@@ -154,7 +154,7 @@ describe('SentryBrowser', () => {
         }),
       );
       captureEvent({ message: 'test' });
-      getDefaultHub().popScope();
+      getCurrentHub().popScope();
     });
   });
 });
