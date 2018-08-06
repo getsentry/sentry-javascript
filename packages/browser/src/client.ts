@@ -1,4 +1,4 @@
-import { API, BaseClient, DSN, SentryError } from '@sentry/core';
+import { API, BaseClient, SentryError } from '@sentry/core';
 import { DSNLike } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';

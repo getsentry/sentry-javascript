@@ -43,7 +43,7 @@ describe('API', () => {
     expect(
       new API(dsnPublic).getReportDialogEndpoint({
         eventId: 'abc',
-        user: false,
+        user: undefined,
       }),
     ).toEqual('https://sentry.io:1234/subpath/api/embed/error-page/?eventId=abc');
   });

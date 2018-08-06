@@ -7,7 +7,7 @@ const SENTRY_API_VERSION = '7';
 /** Helper class to provide urls to different Sentry endpoints. */
 export class API {
   /** The internally used DSN object. */
-  private dsnObject: DSN;
+  private readonly dsnObject: DSN;
   /** Create a new instance of API */
   public constructor(public dsn: DSNLike) {
     this.dsnObject = new DSN(dsn);
@@ -23,6 +23,7 @@ export class API {
     return `${this.getBaseUrl()}${this.getStoreEndpointPath()}`;
   }
 
+  /** Returns the store endpoint with auth added in url encoded. */
   public getStoreEndpointWithUrlEncodedAuth(): string {
     const dsn = this.dsnObject;
     const auth = {
@@ -62,23 +63,26 @@ export class API {
   }
 
   /** Returns the url to the report dialog endpoint. */
-  public getReportDialogEndpoint(dialogOptions: { [key: string]: any } = {}): string {
+  public getReportDialogEndpoint(
+    dialogOptions: {
+      [key: string]: any;
+      user?: { name?: string; email?: string };
+    } = {},
+  ): string {
     const dsn = this.dsnObject;
     const endpoint = `${this.getBaseUrl()}${dsn.path ? `/${dsn.path}` : ''}/api/embed/error-page/`;
 
     const encodedOptions = [];
     for (const key in dialogOptions) {
       if (key === 'user') {
-        const user = dialogOptions.user;
-        if (!user) {
+        if (!dialogOptions.user) {
           continue;
         }
-
-        if (user.name) {
-          encodedOptions.push(`name=${encodeURIComponent(user.name)}`);
+        if (dialogOptions.user.name) {
+          encodedOptions.push(`name=${encodeURIComponent(dialogOptions.user.name)}`);
         }
-        if (user.email) {
-          encodedOptions.push(`email=${encodeURIComponent(user.email)}`);
+        if (dialogOptions.user.email) {
+          encodedOptions.push(`email=${encodeURIComponent(dialogOptions.user.email)}`);
         }
       } else {
         encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
