@@ -9,7 +9,7 @@ export abstract class BaseTransport implements Transport {
   public url: string;
 
   public constructor(public options: TransportOptions) {
-    this.url = new API(this.options.dsn).getStoreEndpoint();
+    this.url = new API(this.options.dsn).getStoreEndpointWithUrlEncodedAuth();
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Backend, DSN, Options, SentryError } from '@sentry/core';
+import { Backend, logger, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
@@ -133,6 +133,7 @@ export class BrowserBackend implements Backend {
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     if (!this.options.dsn) {
+      logger.warn(`Event has been skipped because no DSN is configured.`);
       // We do nothing in case there is no DSN
       return { status: Status.Skipped };
     }

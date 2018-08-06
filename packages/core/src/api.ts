@@ -19,28 +19,19 @@ export class API {
   }
 
   /** Returns a string with auth headers in the url to the store endpoint. */
-  public getStoreEndpoint(urlEncodedHeader: boolean = false): string {
+  public getStoreEndpoint(): string {
+    return `${this.getBaseUrl()}${this.getStoreEndpointPath()}`;
+  }
+
+  public getStoreEndpointWithUrlEncodedAuth(): string {
     const dsn = this.dsnObject;
     const auth = {
       sentry_key: dsn.user,
-      sentry_secret: '',
       sentry_version: SENTRY_API_VERSION,
     };
-
-    if (dsn.pass) {
-      auth.sentry_secret = dsn.pass;
-    } else {
-      delete auth.sentry_secret;
-    }
-
-    const endpoint = `${this.getBaseUrl()}${this.getStoreEndpointPath()}`;
-
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header)
     // to avoid preflight CORS requests
-    if (urlEncodedHeader) {
-      return `${endpoint}?${urlEncode(auth)}`;
-    }
-    return endpoint;
+    return `${this.getStoreEndpoint()}?${urlEncode(auth)}`;
   }
 
   /** Returns the base path of the url including the port. */
@@ -64,9 +55,6 @@ export class API {
     header.push(`sentry_timestamp=${new Date().getTime()}`);
     header.push(`sentry_client=${clientName}/${clientVersion}`);
     header.push(`sentry_key=${dsn.user}`);
-    if (dsn.pass) {
-      header.push(`sentry_secret=${dsn.pass}`);
-    }
     return {
       'Content-Type': 'application/json',
       'X-Sentry-Auth': header.join(', '),
@@ -74,32 +62,32 @@ export class API {
   }
 
   /** Returns the url to the report dialog endpoint. */
-  public getReportDialogEndpoint(dialogOptions: { [key: string]: any }): string {
+  public getReportDialogEndpoint(dialogOptions: { [key: string]: any } = {}): string {
     const dsn = this.dsnObject;
     const endpoint = `${this.getBaseUrl()}${dsn.path ? `/${dsn.path}` : ''}/api/embed/error-page/`;
-    if (dialogOptions) {
-      const encodedOptions = [];
-      for (const key in dialogOptions) {
-        if (key === 'user') {
-          const user = dialogOptions.user;
-          if (!user) {
-            continue;
-          }
 
-          if (user.name) {
-            encodedOptions.push(`name=${encodeURIComponent(user.name)}`);
-          }
-          if (user.email) {
-            encodedOptions.push(`email=${encodeURIComponent(user.email)}`);
-          }
-        } else {
-          encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
+    const encodedOptions = [];
+    for (const key in dialogOptions) {
+      if (key === 'user') {
+        const user = dialogOptions.user;
+        if (!user) {
+          continue;
         }
-      }
-      if (encodedOptions.length) {
-        return `${endpoint}?${encodedOptions.join('&')}`;
+
+        if (user.name) {
+          encodedOptions.push(`name=${encodeURIComponent(user.name)}`);
+        }
+        if (user.email) {
+          encodedOptions.push(`email=${encodeURIComponent(user.email)}`);
+        }
+      } else {
+        encodedOptions.push(`${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`);
       }
     }
+    if (encodedOptions.length) {
+      return `${endpoint}?${encodedOptions.join('&')}`;
+    }
+
     return endpoint;
   }
 }
