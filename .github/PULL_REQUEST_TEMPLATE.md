@@ -1,6 +1,5 @@
+Before submitting a pull request, please take a look at our
+[Contributing](https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md) guidelines and verify:
 
-Before submitting a pull request, please verify the following:
-
-* [ ] If you've added code that should be tested, please add tests.
-* [ ] If you've modified the API (e.g. added a new config or public method), update the [docs](https://github.com/getsentry/raven-js/tree/master/docs) and TypeScript [declaration file](/getsentry/raven-js/blob/master/typescript/raven.d.ts).
-* [ ] Ensure your code lints and the test suite passes (npm test).
+- [ ] If you've added code that should be tested, please add tests.
+- [ ] Ensure your code lints and the test suite passes (`yarn lint`) & (`yarn test`).
