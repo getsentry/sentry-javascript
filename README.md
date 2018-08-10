@@ -15,6 +15,7 @@ backwards compatibility from time to time.
 
 ## Contents
 
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/master/README.md)
 - [Supported Platforms](#supported-platforms)
 - [Installation and Usage](#installation-and-usage)
 - [Other Packages](#other-packages)
