@@ -55,6 +55,6 @@ You can run all test at once by calling `yarn lint` in the project root or in in
 ## Contributing Back Code
 
 Please, send over suggestions and bug fixes in the form of pull requests on
-[`TypeScript`](https://github.com/getsentry/sentry-javascript). Any nontrivial fixes/features should include tests. Do
-not bump version numbers yourself. For new features and improvements consider contributing to our new SDKs instead,
+[`GitHub`](https://github.com/getsentry/sentry-javascript). Any nontrivial fixes/features should include tests. Do not
+bump version numbers yourself. For new features and improvements consider contributing to our new SDKs instead,
 `raven-js` and `raven-node` will still be supported but are in maintenance mode and will only receive bug fixes.
