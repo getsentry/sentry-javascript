@@ -1921,6 +1921,9 @@ Raven.prototype = {
     } else if (current.exception || last.exception) {
       // Exception interface (i.e. from captureException/onerror)
       return isSameException(current.exception, last.exception);
+    } else if (current.fingerprint || last.fingerprint) {
+      return Boolean(current.fingerprint && last.fingerprint) &&
+        JSON.stringify(current.fingerprint) === JSON.stringify(last.fingerprint)
     }
 
     return true;
