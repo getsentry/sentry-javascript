@@ -16,7 +16,7 @@
 
 ## 2.6.0 - 2018-04-24
 
-- fix: Use shallow-copy instead of deep-copy when working with context to prevent too large memory usage and slowing down request resonses [See #452]
+- fix: Use shallow-copy instead of deep-copy when working with context to prevent too large memory usage and slowing down request responses [See #452]
 
 ## 2.5.0 - 2018-04-09
 
@@ -30,7 +30,7 @@
 
 ## 2.4.2 - 2018-02-27
 
-- fix: Dont throw exception when called captureException without config (#431)
+- fix: Don't throw exception when called captureException without config (#431)
 - fix: Preserve context in for rejected promises (#428)
 - ref: Log promise rejection reason alongside eventid (#434)
 - ref: Use named function for middlewares (#429)
@@ -197,7 +197,7 @@
 ## 0.7.3 - 03/05/2015
  * When calling `captureError` without an Error, generate a fake `Error` object to pull stacktrace from. [See #87]
  * Prevent `patchGlobal` from causing recursion [See #84]
- * Fixed issues arond capturing tags.
+ * Fixed issues around capturing tags.
  * Removed deprecated `site` parameter.
  * Allow explicitly declaring the `culprit` [See #107]
  * Publicly export out the various parsers [See #111]
@@ -248,7 +248,7 @@
 
 ## 0.5.2 - 9/10/2013
   * Fix compatibilities with CoffeeScript [Fixes #47] [Fixes #50]
-  * Doesnt chose on circular references
+  * Doesn't choke on circular references
 
 ## 0.5.1 - 5/1/2013
   * Add support for third party transports, thanks @crankycoder
@@ -312,7 +312,7 @@
  * Toggle actual sending based on `NODE_ENV` variable. Check README for information.
  * Fixes for more types of stack traces.
  * Added `client.captureQuery()`
- * Support for `SENTRY_DSN`, `SENTRY_NAME`, and `SENTRY_SITE` enviornment variables
+ * Support for `SENTRY_DSN`, `SENTRY_NAME`, and `SENTRY_SITE` environment variables
  * More test coverage
 
 ## 0.1.0 - 3/17/2012
