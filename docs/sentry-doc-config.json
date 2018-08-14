@@ -4,7 +4,7 @@
     "javascript": {
       "name": "JavaScript",
       "type": "language",
-      "doc_link": "install/",
+      "doc_link": "",
       "wizard": [
         "index#installation",
         "index#configuring-the-client",
