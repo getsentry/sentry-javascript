@@ -127,6 +127,14 @@ The same thing can happen for any cross-origin scripts as well. To read more abo
 
 To read un-minified source code for this loader, see `loader.js <https://github.com/getsentry/raven-js/blob/master/packages/raven-js/src/loader.js>`_
 
+Content-Security Policy
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If you have CSP set up on your site, you will need to add the `script-src` of wherever you're loading the SDK from, and the origin of your DSN. For example:
+
+* `script-src: https://cdn.ravenjs.com`
+* `connect-src: https://sentry.io`
+
 Requirements
 ~~~~~~~~~~~~
 
