@@ -3861,6 +3861,14 @@ describe('Raven (private methods)', function() {
         data.fingerprint = ['{{ default }}', 'grouping-identifier'];
 
         assert.isFalse(Raven._isRepeatData(data));
+
+        Raven._lastData.fingerprint = ['{{ default }}', 'other-grouping-identifier'];
+
+        assert.isFalse(Raven._isRepeatData(data));
+
+        delete data.fingerprint;
+
+        assert.isFalse(Raven._isRepeatData(data));
       });
 
       it('should return false for different captureMessage payloads w/ synthetic traces', function() {
