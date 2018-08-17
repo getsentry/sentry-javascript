@@ -79,7 +79,7 @@ To use Raven with CommonJS imports:
 
 .. code-block:: javascript
 
-    var Raven = require('raven-js')	;
+    var Raven = require('raven-js');
     Raven
         .config('___PUBLIC_DSN___')
         .install();
