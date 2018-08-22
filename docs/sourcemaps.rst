@@ -39,7 +39,7 @@ that maps the minified code back to the original source:
 ::
 
     uglifyjs app.js \
-      -o app.min.js.map \
+      -o app.min.js \
       --source-map url=app.min.js.map,includeSources
 
 
