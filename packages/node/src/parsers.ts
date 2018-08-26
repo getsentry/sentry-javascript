@@ -78,7 +78,13 @@ async function readSourceFiles(
 
   await Promise.all(
     filenames.map(async filename => {
-      const content = await readFileAsync(filename);
+      let content;
+      try {
+        content = await readFileAsync(filename);
+      } catch (_) {
+        // unsure what to add here as the file is unreadable
+        content = null;
+      }
       if (typeof content === 'string') {
         sourceFiles[filename] = content;
       }
