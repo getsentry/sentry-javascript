@@ -2,8 +2,6 @@
 node_modules/
 
 # build and test
-docs/_build
-docs/doctrees
 build/
 packages/*/dist/
 coverage/
