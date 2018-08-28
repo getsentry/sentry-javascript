@@ -1,4 +1,4 @@
-import { DSN, SentryError } from '@sentry/core';
+import { API, SentryError } from '@sentry/core';
 import { SentryEvent, SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
 import * as http from 'http';
@@ -15,46 +15,31 @@ export interface HTTPRequest {
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
-  /** DSN object */
-  protected dsn: DSN;
+  /** API object */
+  protected api: API;
 
   /** The Agent used for corresponding transport */
   protected client: http.Agent | https.Agent | undefined;
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this.dsn = new DSN(options.dsn);
-  }
-
-  /** Returns a Sentry auth header string */
-  private getAuthHeader(): string {
-    const header = ['Sentry sentry_version=7'];
-    header.push(`sentry_timestamp=${new Date().getTime()}`);
-
-    header.push(`sentry_client=${SDK_NAME}/${SDK_VERSION}`);
-
-    header.push(`sentry_key=${this.dsn.user}`);
-    if (this.dsn.pass) {
-      header.push(`sentry_secret=${this.dsn.pass}`);
-    }
-    return header.join(', ');
+    this.api = new API(options.dsn);
   }
 
   /** Returns a build request option object used by request */
   protected getRequestOptions(): http.RequestOptions {
     const headers = {
-      'Content-Type': 'application/json',
-      'X-Sentry-Auth': this.getAuthHeader(),
+      ...this.api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
 
     return {
       agent: this.client,
       headers,
-      hostname: this.dsn.host,
+      hostname: this.api.getDSN().host,
       method: 'POST',
-      path: `${this.dsn.path ? `/${this.dsn.path}` : ''}/api/${this.dsn.projectId}/store/`,
-      port: this.dsn.port,
+      path: this.api.getStoreEndpointPath(),
+      port: this.api.getDSN().port,
     };
   }
 

@@ -1,16 +1,9 @@
-import { DSNComponents } from '@sentry/types';
 import { expect } from 'chai';
 import { BaseTransport } from '../../src/transports/base';
 
 const testDSN = 'https://123@sentry.io/42';
 
 class SimpleTransport extends BaseTransport {}
-// tslint:disable-next-line:max-classes-per-file
-class ComplexTransport extends BaseTransport {
-  public composeUrl(dsn: DSNComponents): string {
-    return `https://${dsn.host}/${dsn.user}`;
-  }
-}
 
 describe('BaseTransport', () => {
   it('doesnt provide send() implementation', async () => {
@@ -23,13 +16,8 @@ describe('BaseTransport', () => {
     }
   });
 
-  it('provides composeEndpointUrl() implementation', () => {
+  it('has correct endpoint url', () => {
     const transport = new SimpleTransport({ dsn: testDSN });
     expect(transport.url).equal('https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7');
-  });
-
-  it('allows overriding composeEndpointUrl() implementation', () => {
-    const transport = new ComplexTransport({ dsn: testDSN });
-    expect(transport.url).equal('https://sentry.io/123');
   });
 });

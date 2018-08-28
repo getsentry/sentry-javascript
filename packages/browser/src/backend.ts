@@ -1,5 +1,5 @@
-import { Backend, DSN, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse } from '@sentry/types';
+import { Backend, logger, Options, SentryError } from '@sentry/core';
+import { SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
 import { eventFromStacktrace, getEventOptionsFromPlainObject, prepareFramesForEvent } from './parsers';
@@ -132,18 +132,16 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    let dsn: DSN;
-
     if (!this.options.dsn) {
-      throw new SentryError('Cannot sendEvent without a valid DSN');
-    } else {
-      dsn = new DSN(this.options.dsn);
+      logger.warn(`Event has been skipped because no DSN is configured.`);
+      // We do nothing in case there is no DSN
+      return { status: Status.Skipped };
     }
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
 
     const transport = this.options.transport
-      ? new this.options.transport({ dsn })
+      ? new this.options.transport({ dsn: this.options.dsn })
       : supportsFetch()
         ? new FetchTransport(transportOptions)
         : new XHRTransport(transportOptions);
