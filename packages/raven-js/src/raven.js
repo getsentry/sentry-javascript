@@ -877,7 +877,7 @@ Raven.prototype = {
     )
       return;
 
-    options = Object.assign(
+    options = objectMerge(
       {
         eventId: this.lastEventId(),
         dsn: this._dsn,
