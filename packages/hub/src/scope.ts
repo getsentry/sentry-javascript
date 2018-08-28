@@ -192,11 +192,8 @@ export class Scope {
     if (this.fingerprint && event.fingerprint === undefined) {
       event.fingerprint = this.fingerprint;
     }
-    // We only want to set breadcrumbs in the event if there are none
-    const hasNoBreadcrumbs =
-      !event.breadcrumbs ||
-      event.breadcrumbs.length === 0 ||
-      (event.breadcrumbs.values && event.breadcrumbs.values.length === 0);
+
+    const hasNoBreadcrumbs = !event.breadcrumbs || event.breadcrumbs.length === 0;
     if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
       event.breadcrumbs =
         maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
