@@ -3,6 +3,7 @@ import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import {
   Breadcrumbs,
+  Dedupe,
   FunctionToString,
   GlobalHandlers,
   InboundFilters,
@@ -11,6 +12,7 @@ import {
 } from './integrations';
 
 export const defaultIntegrations = [
+  new Dedupe(),
   new FunctionToString(),
   new TryCatch(),
   new Breadcrumbs(),

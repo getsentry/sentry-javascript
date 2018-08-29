@@ -116,14 +116,12 @@ describe('integration', function() {
       );
     });
 
-    xit('should reject duplicate, back-to-back errors from captureError', function(done) {
+    it('should reject duplicate, back-to-back errors from captureError', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
-          // Sentry._breadcrumbs = [];
-
           var count = 5;
           setTimeout(function invoke() {
             // use setTimeout to capture new error objects that have
@@ -142,33 +140,27 @@ describe('integration', function() {
               Sentry.captureException(new Error('foo'));
             }
 
-            if (count-- === 0) return void done();
+            if (--count === 0) return setTimeout(done);
             else setTimeout(invoke);
           });
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
-          // use breadcrumbs to evaluate which errors were sent
-          // NOTE: can't use sentryData because duplicate error suppression occurs
-          //       AFTER dataCallback/shouldSendCallback (dataCallback will record
-          //       duplicates but they ultimately won't be sent)
-          assert.equal(breadcrumbs.length, 3);
-          assert.equal(breadcrumbs[0].message, 'Error: foo');
-          assert.equal(breadcrumbs[1].message, 'Error: bar');
-          assert.equal(breadcrumbs[2].message, 'Error: foo');
+          var sentryData = iframe.contentWindow.sentryData;
+          assert.equal(sentryData.length, 3);
+          assert.equal(sentryData[0].exception.values[0].value, 'foo');
+          assert.equal(sentryData[1].exception.values[0].value, 'bar');
+          assert.equal(sentryData[2].exception.values[0].value, 'foo');
         },
       );
     });
 
-    xit('should not reject back-to-back errors with different stack traces', function(done) {
+    it('should not reject back-to-back errors with different stack traces', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
           setTimeout(done);
-          // Sentry._breadcrumbs = [];
-
           // same error message, but different stacks means that these are considered
           // different errors
 
@@ -199,40 +191,48 @@ describe('integration', function() {
           }
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
-          assert.equal(breadcrumbs.length, 3);
+          var sentryData = iframe.contentWindow.sentryData;
           // NOTE: regex because exact error message differs per-browser
-          assert.match(breadcrumbs[0].message, /^ReferenceError.*baz/);
-          assert.match(breadcrumbs[1].message, /^ReferenceError.*baz/);
-          assert.match(breadcrumbs[2].message, /^ReferenceError.*baz/);
+          assert.equal(sentryData.length, 3);
+          assert.match(sentryData[0].exception.values[0].value, /^baz/);
+          assert.equal(sentryData[0].exception.values[0].type, 'ReferenceError');
+          assert.match(sentryData[1].exception.values[0].value, /^baz/);
+          assert.equal(sentryData[1].exception.values[0].type, 'ReferenceError');
+          assert.match(sentryData[2].exception.values[0].value, /^baz/);
+          assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
         },
       );
     });
 
-    xit('should reject duplicate, back-to-back messages from captureMessage', function(done) {
+    it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
-          setTimeout(done);
+          var count = 2;
+          setTimeout(function invoke() {
+            // use setTimeout to capture new error objects that have
+            // identical stack traces (can't call sequentially or callsite
+            // line number will change)
+            Sentry.captureMessage('this is fine ' + Date.now()); // this will be called twice with different messages, but same stacktrace
+            if (count === 1) Sentry.captureMessage('this is fine'); // suppressed
+            if (count === 1) Sentry.captureMessage('this is fine'); // suppressed
+            if (count === 1) Sentry.captureMessage("i'm okay with the events that are unfolding currently");
+            if (count === 1) Sentry.captureMessage("that's okay, things are going to be okay");
 
-          // Sentry._breadcrumbs = [];
-
-          Sentry.captureMessage('this is fine');
-          Sentry.captureMessage('this is fine'); // suppressed
-          Sentry.captureMessage('this is fine', { stacktrace: true });
-          Sentry.captureMessage("i'm okay with the events that are unfolding currently");
-          Sentry.captureMessage("that's okay, things are going to be okay");
+            if (--count === 0) return setTimeout(done);
+            else setTimeout(invoke);
+          });
         },
         function() {
-          var breadcrumbs = iframe.contentWindow.Sentry._breadcrumbs;
-
-          assert.equal(breadcrumbs.length, 4);
-          assert.equal(breadcrumbs[0].message, 'this is fine');
-          assert.equal(breadcrumbs[1].message, 'this is fine'); // with stacktrace
-          assert.equal(breadcrumbs[2].message, "i'm okay with the events that are unfolding currently");
-          assert.equal(breadcrumbs[3].message, "that's okay, things are going to be okay");
+          var sentryData = iframe.contentWindow.sentryData;
+          // NOTE: regex because exact error message differs per-browser
+          assert.equal(sentryData.length, 4);
+          assert.match(sentryData[0].message, /this is fine \d+/);
+          assert.equal(sentryData[1].message, 'this is fine');
+          assert.equal(sentryData[2].message, "i'm okay with the events that are unfolding currently");
+          assert.equal(sentryData[3].message, "that's okay, things are going to be okay");
         },
       );
     });
@@ -391,10 +391,7 @@ describe('integration', function() {
       );
     });
 
-    it('should catch an exception already caught [but rethrown] via Sentry.captureException', function(done) {
-      // unlike Sentry.wrap which ALWAYS re-throws, we don't know if the user will
-      // re-throw an exception passed to Sentry.captureException, and so we cannot
-      // automatically suppress the next error caught through window.onerror
+    it('should NOT catch an exception already caught [but rethrown] via Sentry.captureException', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
@@ -410,7 +407,7 @@ describe('integration', function() {
         },
         function() {
           var sentryData = iframe.contentWindow.sentryData;
-          assert.equal(sentryData.length, 2);
+          assert.equal(sentryData.length, 1);
         },
       );
     });
