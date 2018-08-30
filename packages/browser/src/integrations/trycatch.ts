@@ -20,6 +20,7 @@ export class TryCatch implements Integration {
       args[0] = wrap(originalCallback, {
         mechanism: {
           data: { function: original.name || '<anonymous>' },
+          handled: true,
           type: 'instrument',
         },
       });
@@ -37,6 +38,7 @@ export class TryCatch implements Integration {
               function: 'requestAnimationFrame',
               handler: (original && original.name) || '<anonymous>',
             },
+            handled: true,
             type: 'instrument',
           },
         }),
@@ -70,6 +72,7 @@ export class TryCatch implements Integration {
                 handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
                 target,
               },
+              handled: true,
               type: 'instrument',
             },
           });
@@ -124,6 +127,7 @@ export class TryCatch implements Integration {
                   handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
                   target,
                 },
+                handled: true,
                 type: 'instrument',
               },
             },

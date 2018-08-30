@@ -1,7 +1,7 @@
 import { SentryEvent, StackFrame } from '@sentry/types';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5proxy from 'md5';
-import { StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
+import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 // Workaround for Rollup issue with overloading namespaces
 // https://github.com/rollup/rollup/issues/1267#issuecomment-296395734
@@ -10,21 +10,25 @@ const md5 = ((md5proxy as any).default || md5proxy) as (input: string) => string
 const STACKTRACE_LIMIT = 50;
 
 /** JSDoc */
-export function getEventOptionsFromPlainObject(exception: {}): {
-  extra: {
-    __serialized__: object;
-  };
-  fingerprint: [string];
-  message: string;
-} {
+export function eventFromPlainObject(exception: {}, syntheticException: Error | null): SentryEvent {
   const exceptionKeys = Object.keys(exception).sort();
-  return {
+  const event: SentryEvent = {
     extra: {
       __serialized__: limitObjectDepthToSize(exception),
     },
     fingerprint: [md5(exceptionKeys.join(''))],
     message: `Non-Error exception captured with keys: ${serializeKeysToEventMessage(exceptionKeys)}`,
   };
+
+  if (syntheticException) {
+    const stacktrace = computeStackTrace(syntheticException);
+    const frames = prepareFramesForEvent(stacktrace.stack);
+    event.stacktrace = {
+      frames,
+    };
+  }
+
+  return event;
 }
 
 /** JSDoc */

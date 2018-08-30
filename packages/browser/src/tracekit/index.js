@@ -230,6 +230,7 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    */
   function traceKitWindowOnError(message, url, lineNo, columnNo, errorObj) {
+    debugger;
     var stack = null;
     // If 'errorObj' is ErrorEvent, get real Error from inside
     errorObj = isErrorEvent(errorObj) ? errorObj.error : errorObj;
@@ -265,7 +266,15 @@ TraceKit.report = (function reportModuleWrapper() {
         name: name,
         message: msg,
         mode: 'onerror',
-        stack: [location],
+        stack: [
+          {
+            ...location,
+            // Firefox sometimes doesn't return url correctly and this is an old behavior
+            // that I prefer to port here as well.
+            // It can be altered only here, as previously it's using `location.url` for other things — Kamil
+            url: location.url || getLocationHref(),
+          },
+        ],
       };
 
       notifyHandlers(stack, true, null);
@@ -841,8 +850,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         if (isEval && (submatch = chromeEval.exec(parts[2]))) {
           // throw out eval line/column and use top-most line/column number
           parts[2] = submatch[1]; // url
-          parts[3] = submatch[2]; // line
-          parts[4] = submatch[3]; // column
+          // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
+          // parts[3] = submatch[2]; // line
+          // parts[4] = submatch[3]; // column
         }
         element = {
           url: !isNative ? parts[2] : null,
@@ -864,8 +874,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         if (isEval && (submatch = geckoEval.exec(parts[3]))) {
           // throw out eval line/column and use top-most line number
           parts[3] = submatch[1];
-          parts[4] = submatch[2];
-          parts[5] = null; // no column when eval
+          // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
+          // parts[4] = submatch[2];
+          // parts[5] = null; // no column when eval
         } else if (i === 0 && !parts[5] && !isUndefined(ex.columnNumber)) {
           // FireFox uses this awesome columnNumber property for its top frame
           // Also note, Firefox's column number is 0-based and everything else expects 1-based,

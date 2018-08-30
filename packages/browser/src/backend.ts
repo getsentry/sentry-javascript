@@ -2,7 +2,7 @@ import { Backend, logger, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
-import { eventFromStacktrace, getEventOptionsFromPlainObject, prepareFramesForEvent } from './parsers';
+import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { FetchTransport, XHRTransport } from './transports';
 
@@ -58,10 +58,13 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
+    let event;
+
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       const ex = exception as ErrorEvent;
       exception = ex.error; // tslint:disable-line:no-parameter-reassignment
+      event = eventFromStacktrace(computeStackTrace(exception as Error));
     } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
@@ -71,16 +74,16 @@ export class BrowserBackend implements Backend {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      return this.eventFromMessage(message, syntheticException);
+      event = await this.eventFromMessage(message, syntheticException);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
+      event = eventFromStacktrace(computeStackTrace(exception as Error));
     } else if (isPlainObject(exception as {})) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
       const ex = exception as {};
-      const options = getEventOptionsFromPlainObject(ex);
-      exception = new Error(options.message); // tslint:disable-line:no-parameter-reassignment
+      event = eventFromPlainObject(ex, syntheticException);
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a DOMError/DOMException
@@ -89,10 +92,8 @@ export class BrowserBackend implements Backend {
       // it's not an Error
       // So bail out and capture it as a simple message:
       const ex = exception as string;
-      return this.eventFromMessage(ex, syntheticException);
+      event = await this.eventFromMessage(ex, syntheticException);
     }
-
-    let event: SentryEvent = eventFromStacktrace(computeStackTrace(exception as Error));
 
     event = {
       ...event,

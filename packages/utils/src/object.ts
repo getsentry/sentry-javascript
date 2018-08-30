@@ -202,8 +202,6 @@ function serializeValue<T>(value: T): T | string {
 
 /** JSDoc */
 function serializeObject<T>(value: T, depth: number): T | string | {} {
-  return value;
-
   if (depth === 0) {
     return serializeValue(value);
   }
