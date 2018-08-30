@@ -227,67 +227,6 @@ describe('Hub', () => {
     });
   });
 
-  test('addEventProcessor', async done => {
-    expect.assertions(2);
-    const event: SentryEvent = {
-      extra: { b: 3 },
-    };
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' }, localScope);
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
-      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
-      return processedEvent;
-    });
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
-      processedEvent.dist = '1';
-      return processedEvent;
-    });
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
-      expect(processedEvent.dist).toEqual('1');
-      done();
-      return processedEvent;
-    });
-    await localScope.applyToEvent(event);
-  });
-
-  test('addEventProcessor async', async () => {
-    expect.assertions(6);
-    const event: SentryEvent = {
-      extra: { b: 3 },
-    };
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' }, localScope);
-    const callCounter = jest.fn();
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
-      callCounter(1);
-      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
-      return processedEvent;
-    });
-    hub.addEventProcessor(
-      async (processedEvent: SentryEvent) =>
-        new Promise<SentryEvent>(resolve => {
-          callCounter(2);
-          setTimeout(() => {
-            callCounter(3);
-            processedEvent.dist = '1';
-            resolve(processedEvent);
-          }, 1);
-        }),
-    );
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
-      callCounter(4);
-      return processedEvent;
-    });
-    const final = await localScope.applyToEvent(event);
-    expect(callCounter.mock.calls[0][0]).toBe(1);
-    expect(callCounter.mock.calls[1][0]).toBe(2);
-    expect(callCounter.mock.calls[2][0]).toBe(3);
-    expect(callCounter.mock.calls[3][0]).toBe(4);
-    expect(final.dist).toEqual('1');
-  });
-
   test('pushScope inherit processors', async () => {
     const event: SentryEvent = {
       extra: { b: 3 },
@@ -296,7 +235,7 @@ describe('Hub', () => {
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' }, localScope);
     const callCounter = jest.fn();
-    hub.addEventProcessor(async (processedEvent: SentryEvent) => {
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
       callCounter(1);
       processedEvent.dist = '1';
       return processedEvent;
@@ -305,20 +244,7 @@ describe('Hub', () => {
     const pushedScope = hub.getStackTop().scope;
     if (pushedScope) {
       const final = await pushedScope.applyToEvent(event);
-      expect(final.dist).toEqual('1');
+      expect(final!.dist).toEqual('1');
     }
-  });
-
-  test('addEventProcessor return null', async () => {
-    expect.assertions(1);
-    const event: SentryEvent = {
-      extra: { b: 3 },
-    };
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' }, localScope);
-    hub.addEventProcessor(async (_: SentryEvent) => null);
-    const final = await localScope.applyToEvent(event);
-    expect(final).toBeNull();
   });
 });

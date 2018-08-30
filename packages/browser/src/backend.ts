@@ -1,5 +1,5 @@
 import { Backend, logger, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
@@ -57,7 +57,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
     let event;
 
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -74,16 +74,16 @@ export class BrowserBackend implements Backend {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      event = await this.eventFromMessage(message, syntheticException);
+      event = await this.eventFromMessage(message, undefined, hint);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-    } else if (isPlainObject(exception as {})) {
+    } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
       const ex = exception as {};
-      event = eventFromPlainObject(ex, syntheticException);
+      event = eventFromPlainObject(ex, hint.syntheticException);
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a DOMError/DOMException
@@ -92,7 +92,7 @@ export class BrowserBackend implements Backend {
       // it's not an Error
       // So bail out and capture it as a simple message:
       const ex = exception as string;
-      event = await this.eventFromMessage(ex, syntheticException);
+      event = await this.eventFromMessage(ex, undefined, hint);
     }
 
     event = {
@@ -112,14 +112,15 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
     const event: SentryEvent = {
       fingerprint: [message],
+      level,
       message,
     };
 
-    if (this.options.attachStacktrace && syntheticException) {
-      const stacktrace = computeStackTrace(syntheticException);
+    if (this.options.attachStacktrace && hint && hint.syntheticException) {
+      const stacktrace = computeStackTrace(hint.syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
       event.stacktrace = {
         frames,

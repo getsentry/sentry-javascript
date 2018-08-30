@@ -1,6 +1,6 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
-import { SentryEvent, SentryResponse } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5 from 'md5';
@@ -27,7 +27,7 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
     let ex: any = exception;
 
     if (!isError(exception)) {
@@ -42,12 +42,12 @@ export class NodeBackend implements Backend {
           scope.setFingerprint([md5(keys.join(''))]);
         });
 
-        ex = syntheticException || new Error(message);
+        ex = (hint && hint.syntheticException) || new Error(message);
         (ex as Error).message = message;
       } else {
         // This handles when someone does: `throw "something awesome";`
         // We use synthesized Error here so we can extract a (rough) stack trace.
-        ex = syntheticException || new Error(exception as string);
+        ex = (hint && hint.syntheticException) || new Error(exception as string);
       }
     }
 
@@ -59,14 +59,15 @@ export class NodeBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
     const event: SentryEvent = {
       fingerprint: [message],
+      level,
       message,
     };
 
-    if (this.options.attachStacktrace && syntheticException) {
-      const stack = syntheticException ? await extractStackFromError(syntheticException) : [];
+    if (this.options.attachStacktrace && hint && hint.syntheticException) {
+      const stack = hint.syntheticException ? await extractStackFromError(hint.syntheticException) : [];
       const frames = await parseStack(stack);
       event.stacktrace = {
         frames: prepareFramesForEvent(frames),

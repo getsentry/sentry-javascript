@@ -1,7 +1,12 @@
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryEventHint } from '@sentry/types';
 import { Scope } from '../../src';
 
 describe('Scope', () => {
+  afterEach(() => {
+    jest.resetAllMocks();
+    jest.useRealTimers();
+  });
+
   test('fingerprint', () => {
     const scope = new Scope();
     scope.setFingerprint(['abcd']);
@@ -116,5 +121,92 @@ describe('Scope', () => {
     expect(scope.getExtra()).toEqual({ a: 2 });
     scope.clear();
     expect(scope.getExtra()).toEqual({});
+  });
+
+  test('addEventProcessor', async done => {
+    expect.assertions(2);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
+    });
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+      processedEvent.dist = '1';
+      return processedEvent;
+    });
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+      expect(processedEvent.dist).toEqual('1');
+      done();
+      return processedEvent;
+    });
+    await localScope.applyToEvent(event);
+  });
+
+  test('addEventProcessor async', async () => {
+    expect.assertions(6);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const callCounter = jest.fn();
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+      callCounter(1);
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
+    });
+    localScope.addEventProcessor(
+      async (processedEvent: SentryEvent) =>
+        new Promise<SentryEvent>(resolve => {
+          callCounter(2);
+          setTimeout(() => {
+            callCounter(3);
+            processedEvent.dist = '1';
+            resolve(processedEvent);
+          }, 1);
+        }),
+    );
+    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+      callCounter(4);
+      return processedEvent;
+    });
+    const final = await localScope.applyToEvent(event);
+    expect(callCounter.mock.calls[0][0]).toBe(1);
+    expect(callCounter.mock.calls[1][0]).toBe(2);
+    expect(callCounter.mock.calls[2][0]).toBe(3);
+    expect(callCounter.mock.calls[3][0]).toBe(4);
+    expect(final!.dist).toEqual('1');
+  });
+
+  test('addEventProcessor return null', async () => {
+    expect.assertions(1);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    localScope.addEventProcessor(async (_: SentryEvent) => null);
+    const final = await localScope.applyToEvent(event);
+    expect(final).toBeNull();
+  });
+
+  test('addEventProcessor pass along hint', async () => {
+    expect.assertions(3);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    localScope.addEventProcessor(async (internalEvent: SentryEvent, hint?: SentryEventHint) => {
+      expect(hint).toBeTruthy();
+      expect(hint!.syntheticException).toBeTruthy();
+      return internalEvent;
+    });
+    const final = await localScope.applyToEvent(event, { syntheticException: new Error('what') });
+    expect(final).toEqual(event);
   });
 });

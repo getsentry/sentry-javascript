@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { getHubFromCarrier } from '@sentry/hub';
+import { getHubFromCarrier, Scope } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
 import { parse as parseCookie } from 'cookie';
@@ -149,7 +149,9 @@ export function requestHandler(): (req: Request, res: Response, next: () => void
     const local = domain.create();
     const hub = getHubFromCarrier(req);
     hub.bindClient(getCurrentHub().getClient());
-    hub.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req));
+    hub.configureScope((scope: Scope) => {
+      scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req));
+    });
     local.on('error', next);
     local.run(next);
   };
@@ -220,10 +222,12 @@ export function makeErrorHandler(
       caughtFirstError = true;
 
       getCurrentHub().withScope(async () => {
-        getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
-          ...event,
-          level: Severity.Fatal,
-        }));
+        getCurrentHub().configureScope((scope: Scope) => {
+          scope.addEventProcessor(async (event: SentryEvent) => ({
+            ...event,
+            level: Severity.Fatal,
+          }));
+        });
 
         getCurrentHub().captureException(error);
 

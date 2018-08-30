@@ -281,3 +281,10 @@ export interface SentryWrappedFunction extends Function {
   __sentry_wrapper__?: SentryWrappedFunction;
   __sentry_original__?: SentryWrappedFunction;
 }
+
+/** JSDoc */
+export interface SentryEventHint {
+  syntheticException?: Error | null;
+  originalException?: Error | null;
+  data?: any;
+}

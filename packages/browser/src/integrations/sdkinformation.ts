@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { SDK_NAME, SDK_VERSION } from '../version';
 
@@ -13,19 +13,21 @@ export class SDKInformation implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    getCurrentHub().addEventProcessor(async (event: SentryEvent) => ({
-      ...event,
-      sdk: {
-        name: SDK_NAME,
-        packages: [
-          ...((event.sdk && event.sdk.packages) || []),
-          {
-            name: 'npm:@sentry/browser',
-            version: SDK_VERSION,
-          },
-        ],
-        version: SDK_VERSION,
-      },
-    }));
+    getCurrentHub().configureScope((scope: Scope) => {
+      scope.addEventProcessor(async (event: SentryEvent) => ({
+        ...event,
+        sdk: {
+          name: SDK_NAME,
+          packages: [
+            ...((event.sdk && event.sdk.packages) || []),
+            {
+              name: 'npm:@sentry/browser',
+              version: SDK_VERSION,
+            },
+          ],
+          version: SDK_VERSION,
+        },
+      }));
+    });
   }
 }

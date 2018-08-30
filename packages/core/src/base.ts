@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { DSN } from './dsn';
@@ -116,36 +116,31 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, syntheticException: Error | null, scope?: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromException(exception, syntheticException);
-    await this.captureEvent(event, scope);
+  public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<void> {
+    const event = await this.getBackend().eventFromException(exception, hint);
+    await this.captureEvent(event, hint, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string, syntheticException: Error | null, scope?: Scope): Promise<void> {
-    const event = await this.getBackend().eventFromMessage(message, syntheticException);
-    await this.captureEvent(event, scope);
+  public async captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): Promise<void> {
+    const event = await this.getBackend().eventFromMessage(message, level, hint);
+    await this.captureEvent(event, hint, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, scope?: Scope): Promise<SentryResponse> {
-    return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), scope);
+  public async captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
+    return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope);
   }
 
   /**
    * @inheritDoc
    */
   public async addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): Promise<void> {
-    const {
-      shouldAddBreadcrumb,
-      beforeBreadcrumb,
-      afterBreadcrumb,
-      maxBreadcrumbs = DEFAULT_BREADCRUMBS,
-    } = this.getOptions();
+    const { maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
 
     if (maxBreadcrumbs <= 0) {
       return;
@@ -153,18 +148,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    if (shouldAddBreadcrumb && !shouldAddBreadcrumb(mergedBreadcrumb)) {
-      return;
-    }
 
-    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb) : mergedBreadcrumb;
-
-    if ((await this.getBackend().storeBreadcrumb(finalBreadcrumb)) && scope) {
-      scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
-    }
-
-    if (afterBreadcrumb) {
-      afterBreadcrumb(finalBreadcrumb);
+    if ((await this.getBackend().storeBreadcrumb(mergedBreadcrumb)) && scope) {
+      scope.addBreadcrumb(mergedBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
   }
 
@@ -202,10 +188,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * nested objects, such as the context, keys are merged.
    *
    * @param event The original event.
+   * @param hint May contain additional informartion about the original exception.
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope): Promise<SentryEvent | null> {
+  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
     const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, repos, dist } = this.getOptions();
 
     const prepared = { ...event };
@@ -243,7 +230,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      return scope.applyToEvent(prepared, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
     return prepared;
@@ -264,11 +251,13 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param event The event to send to Sentry.
    * @param send A function to actually send the event.
    * @param scope A scope containing event metadata.
+   * @param hint May contain additional informartion about the original exception.
    * @returns A Promise that resolves with the event status.
    */
   protected async processEvent(
     event: SentryEvent,
     send: (finalEvent: SentryEvent) => Promise<SentryResponse>,
+    hint?: SentryEventHint,
     scope?: Scope,
   ): Promise<SentryResponse> {
     if (!this.isEnabled()) {
@@ -277,7 +266,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const { shouldSend, beforeSend, afterSend, sampleRate } = this.getOptions();
+    const { beforeSend, sampleRate } = this.getOptions();
 
     if (typeof sampleRate === 'number' && sampleRate > Math.random()) {
       return {
@@ -285,24 +274,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const prepared = await this.prepareEvent(event, scope);
-    if (prepared === null || (shouldSend && !shouldSend(prepared))) {
+    const prepared = await this.prepareEvent(event, scope, hint);
+    if (prepared === null) {
       return {
         status: Status.Skipped,
       };
     }
 
-    const finalEvent = beforeSend ? beforeSend(prepared) : prepared;
+    const finalEvent = beforeSend ? beforeSend(prepared, hint) : prepared;
+    if (finalEvent === null) {
+      return {
+        status: Status.Skipped,
+      };
+    }
     const response = await send(finalEvent);
 
     if (response.status === Status.RateLimit) {
       // TODO: Handle rate limits and maintain a queue. For now, we require SDK
       // implementors to override this method and handle it themselves.
-    }
-
-    // TODO: Handle duplicates and backoffs
-    if (afterSend) {
-      afterSend(finalEvent, response);
     }
 
     return response;

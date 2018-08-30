@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent, Severity } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -25,22 +25,23 @@ export function captureException(exception: any): void {
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureException', exception, syntheticException);
+  callOnHub('captureException', exception, { syntheticException });
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
  * @param message The message to send to Sentry.
+ * @param level Define the level of the message.
  */
-export function captureMessage(message: string): void {
+export function captureMessage(message: string, level?: Severity): void {
   let syntheticException: Error;
   try {
     throw new Error(message);
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureMessage', message, syntheticException);
+  callOnHub('captureMessage', message, level, { syntheticException });
 }
 
 /**

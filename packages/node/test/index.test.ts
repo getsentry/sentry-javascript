@@ -75,11 +75,12 @@ describe('SentryNode', () => {
     test('record auto breadcrumbs', done => {
       getCurrentHub().pushScope();
       const client = new NodeClient({
-        afterSend: (event: SentryEvent) => {
+        beforeSend: (event: SentryEvent) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
           // for our own captureMessage/captureException calls yet
           expect(event.breadcrumbs!).toHaveLength(2);
           done();
+          return event;
         },
         dsn,
       });
@@ -107,7 +108,7 @@ describe('SentryNode', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
             expect(event.exception!.values[0]).not.toBeUndefined();
@@ -115,6 +116,7 @@ describe('SentryNode', () => {
             expect(event.exception!.values[0].value).toBe('test');
             expect(event.exception!.values[0].stacktrace).toBeTruthy();
             done();
+            return event;
           },
           dsn,
         }),
@@ -135,10 +137,11 @@ describe('SentryNode', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
             done();
+            return event;
           },
           dsn,
         }),
@@ -152,10 +155,11 @@ describe('SentryNode', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
             done();
+            return event;
           },
           dsn,
         }),
@@ -168,11 +172,12 @@ describe('SentryNode', () => {
       new Promise<void>(resolve => {
         const d = domain.create();
         const client = new NodeClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
             resolve();
             d.exit();
+            return event;
           },
           dsn,
         });
