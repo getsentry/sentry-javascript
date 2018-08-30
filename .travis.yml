@@ -20,18 +20,28 @@ matrix:
       script: .travis/lint.sh
     - name: "@sentry/packages - build and test [node v6]"
       node_js: "6"
+      addons:
+        chrome: stable
       script: .travis/test.sh
     - name: "@sentry/packages - build and test [node v7]"
       node_js: "7"
+      addons:
+        chrome: stable
       script: .travis/test.sh
     - name: "@sentry/packages - build and test [node v8]"
       node_js: "8"
+      addons:
+        chrome: stable
       script: .travis/test.sh
     - name: "@sentry/packages - build and test [node v9]"
       node_js: "9"
+      addons:
+        chrome: stable
       script: .travis/test.sh
     - name: "@sentry/packages - build and test [node v10]"
       node_js: "10"
+      addons:
+        chrome: stable
       script: .travis/test.sh
     - name: "@sentry/browser - integration tests"
       node_js: "8"
