@@ -65,7 +65,7 @@ export class NodeBackend implements Backend {
       message,
     };
 
-    if (syntheticException) {
+    if (this.options.attachStacktrace && syntheticException) {
       const stack = syntheticException ? await extractStackFromError(syntheticException) : [];
       const frames = await parseStack(stack);
       event.stacktrace = {

@@ -118,6 +118,7 @@
 
     Sentry.init({
       dsn: 'https://public@example.com/1',
+      attachStacktrace: true,
       transport: DummyTransport,
       shouldAddBreadcrumb: function (breadcrumb) {
         // Filter internal Karma requests
