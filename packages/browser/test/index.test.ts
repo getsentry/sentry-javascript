@@ -146,14 +146,14 @@ describe('SentryBrowser', () => {
       getCurrentHub().bindClient(
         new BrowserClient({
           afterSend: (event: SentryEvent) => {
-            expect(event.message).to.equal('test');
+            expect(event.message).to.equal('event');
             expect(event.exception).to.be.undefined;
             done();
           },
           dsn,
         }),
       );
-      captureEvent({ message: 'test' });
+      captureEvent({ message: 'event' });
       getCurrentHub().popScope();
     });
   });
