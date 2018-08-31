@@ -226,7 +226,7 @@ declare namespace Raven {
         * @return {Raven}
         */
     setUserContext(user?: {
-      [key: string]: string | number | boolean | null | void;
+      [key: string]: any;
     }): RavenStatic;
 
     /*
