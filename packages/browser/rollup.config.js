@@ -58,12 +58,12 @@ export default [
   },
   Object.assign({}, bundleConfig, {
     output: Object.assign({}, bundleConfig.output, {
-      file: 'build/bundle.min.js',
+      file: 'build/bundle.js',
     }),
   }),
   Object.assign({}, bundleConfig, {
     output: Object.assign({}, bundleConfig.output, {
-      file: 'build/bundle.js',
+      file: 'build/bundle.min.js',
     }),
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
