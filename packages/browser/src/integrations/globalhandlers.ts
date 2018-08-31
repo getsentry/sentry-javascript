@@ -47,7 +47,7 @@ export class GlobalHandlers implements Integration {
       if (shouldIgnoreOnError()) {
         return;
       }
-      getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: stack });
+      getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
     });
 
     if (this.options.onerror) {
