@@ -213,6 +213,8 @@ export class Hub {
   }
 
   /**
+   * This is the getter for lastEventId.
+   *
    * @returns The last event id of a captured event.
    */
   public lastEventId(): string | undefined {
