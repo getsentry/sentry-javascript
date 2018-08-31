@@ -1,5 +1,5 @@
 import { Backend, logger, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
@@ -36,6 +36,9 @@ export interface BrowserOptions extends Options {
 export class BrowserBackend implements Backend {
   /** Creates a new browser backend instance. */
   public constructor(private readonly options: BrowserOptions = {}) {}
+
+  /** Cached transport used internally. */
+  private transport?: Transport;
 
   /**
    * @inheritDoc
@@ -142,15 +145,18 @@ export class BrowserBackend implements Backend {
       return { status: Status.Skipped };
     }
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
+    if (!this.transport) {
+      const transportOptions = this.options.transportOptions
+        ? this.options.transportOptions
+        : { dsn: this.options.dsn };
+      this.transport = this.options.transport
+        ? new this.options.transport({ dsn: this.options.dsn })
+        : supportsFetch()
+          ? new FetchTransport(transportOptions)
+          : new XHRTransport(transportOptions);
+    }
 
-    const transport = this.options.transport
-      ? new this.options.transport({ dsn: this.options.dsn })
-      : supportsFetch()
-        ? new FetchTransport(transportOptions)
-        : new XHRTransport(transportOptions);
-
-    return transport.send(event);
+    return this.transport.send(event);
   }
 
   /**

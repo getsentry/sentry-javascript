@@ -1,6 +1,6 @@
 import { Backend, DSN, Options, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5 from 'md5';
@@ -23,6 +23,9 @@ export interface NodeOptions extends Options {
 export class NodeBackend implements Backend {
   /** Creates a new Node backend instance. */
   public constructor(private readonly options: NodeOptions = {}) {}
+
+  /** Cached transport used internally. */
+  private transport?: Transport;
 
   /**
    * @inheritDoc
@@ -93,15 +96,16 @@ export class NodeBackend implements Backend {
       dsn = new DSN(this.options.dsn);
     }
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+    if (!this.transport) {
+      const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+      this.transport = this.options.transport
+        ? new this.options.transport({ dsn })
+        : dsn.protocol === 'http'
+          ? new HTTPTransport(transportOptions)
+          : new HTTPSTransport(transportOptions);
+    }
 
-    const transport = this.options.transport
-      ? new this.options.transport({ dsn })
-      : dsn.protocol === 'http'
-        ? new HTTPTransport(transportOptions)
-        : new HTTPSTransport(transportOptions);
-
-    return transport.send(event);
+    return this.transport.send(event);
   }
 
   /**
