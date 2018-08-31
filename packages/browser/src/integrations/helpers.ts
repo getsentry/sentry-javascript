@@ -79,7 +79,7 @@ export function wrap(
           });
         });
 
-        getCurrentHub().captureException(ex);
+        getCurrentHub().captureException(ex, { originalException: ex });
       });
 
       throw ex;

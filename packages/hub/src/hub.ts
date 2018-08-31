@@ -201,10 +201,12 @@ export class Hub {
    * Captures a manually created event and sends it to Sentry.
    *
    * @param event The event to send to Sentry.
+   * @param hint May contain additional informartion about the original exception.
    */
-  public captureEvent(event: SentryEvent): string {
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
     this.invokeClientAsync('captureEvent', event, {
+      ...hint,
       event_id: eventId,
     });
     return eventId;

@@ -192,7 +192,7 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    getHubFromCarrier(req).captureException(error);
+    getHubFromCarrier(req).captureException(error, { originalException: error });
     next(error);
   };
 }
@@ -229,7 +229,7 @@ export function makeErrorHandler(
           }));
         });
 
-        getCurrentHub().captureException(error);
+        getCurrentHub().captureException(error, { originalException: error });
 
         if (!calledFatalError) {
           calledFatalError = true;

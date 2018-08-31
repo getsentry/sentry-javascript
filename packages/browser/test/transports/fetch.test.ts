@@ -41,7 +41,6 @@ describe('FetchTransport', () => {
         expect(
           fetch.calledWith(transportUrl, {
             body: JSON.stringify(payload),
-            keepalive: true,
             method: 'POST',
             referrerPolicy: 'origin',
           }),
@@ -60,7 +59,6 @@ describe('FetchTransport', () => {
         expect(
           fetch.calledWith(transportUrl, {
             body: JSON.stringify(payload),
-            keepalive: true,
             method: 'POST',
             referrerPolicy: 'origin',
           }),
