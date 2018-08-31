@@ -139,9 +139,9 @@ export interface Client<O extends Options = Options> {
    * @param exception An exception-like object.
    * @param hint May contain additional informartion about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns The created event id.
+   * @returns SentryResponse status and event
    */
-  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<void>;
+  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -150,9 +150,9 @@ export interface Client<O extends Options = Options> {
    * @param level Define the level of the message.
    * @param hint May contain additional informartion about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns The created event id.
+   * @returns SentryResponse status and event
    */
-  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): Promise<void>;
+  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -160,7 +160,7 @@ export interface Client<O extends Options = Options> {
    * @param event The event to send to Sentry.
    * @param hint May contain additional informartion about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns The created event id.
+   * @returns SentryResponse status and event
    */
   captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
 

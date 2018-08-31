@@ -1979,6 +1979,10 @@ colors@^1.1.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.3.0.tgz#5f20c9fef6945cb1134260aab33bfbdc8295e04e"
 
+colors@~0.6.0:
+  version "0.6.2"
+  resolved "https://registry.yarnpkg.com/colors/-/colors-0.6.2.tgz#2423fe6678ac0c5dae8852e5d0e5be08c997abcc"
+
 columnify@^1.5.4:
   version "1.5.4"
   resolved "https://registry.yarnpkg.com/columnify/-/columnify-1.5.4.tgz#4737ddf1c7b69a8a7c340570782e947eec8e78bb"
@@ -4603,6 +4607,16 @@ karma-coverage@^1.1.1:
     lodash "^4.17.0"
     minimatch "^3.0.0"
     source-map "^0.5.1"
+
+karma-failed-reporter@0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/karma-failed-reporter/-/karma-failed-reporter-0.0.3.tgz#4532ec9652c9fe297d0b72d08d9cade9725ef733"
+  dependencies:
+    colors "~0.6.0"
+
+karma-firefox-launcher@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/karma-firefox-launcher/-/karma-firefox-launcher-1.1.0.tgz#2c47030452f04531eb7d13d4fc7669630bb93339"
 
 karma-mocha-reporter@^2.2.5:
   version "2.2.5"

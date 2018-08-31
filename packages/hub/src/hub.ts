@@ -1,4 +1,5 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import { uuid4 } from '@sentry/utils/misc';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -8,7 +9,7 @@ import { Scope } from './scope';
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
  */
-export const API_VERSION = 2;
+export const API_VERSION = 3;
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -165,9 +166,15 @@ export class Hub {
    *
    * @param exception An exception-like object.
    * @param hint May contain additional informartion about the original exception.
+   * @returns The generated eventId.
    */
-  public captureException(exception: any, hint?: SentryEventHint): void {
-    this.invokeClientAsync('captureException', exception, hint);
+  public captureException(exception: any, hint?: SentryEventHint): string {
+    const eventId = uuid4();
+    this.invokeClientAsync('captureException', exception, {
+      ...hint,
+      event_id: eventId,
+    });
+    return eventId;
   }
 
   /**
@@ -176,9 +183,15 @@ export class Hub {
    * @param message The message to send to Sentry.
    * @param level Define the level of the message.
    * @param hint May contain additional informartion about the original exception.
+   * @returns The generated eventId.
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): void {
-    this.invokeClientAsync('captureMessage', message, level, hint);
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
+    const eventId = uuid4();
+    this.invokeClientAsync('captureMessage', message, level, {
+      ...hint,
+      event_id: eventId,
+    });
+    return eventId;
   }
 
   /**
@@ -186,8 +199,12 @@ export class Hub {
    *
    * @param event The event to send to Sentry.
    */
-  public captureEvent(event: SentryEvent): void {
-    this.invokeClientAsync('captureEvent', event);
+  public captureEvent(event: SentryEvent): string {
+    const eventId = uuid4();
+    this.invokeClientAsync('captureEvent', event, {
+      event_id: eventId,
+    });
+    return eventId;
   }
 
   /**

@@ -53,7 +53,10 @@ export class NodeBackend implements Backend {
 
     const event: SentryEvent = await parseError(ex as Error);
 
-    return event;
+    return {
+      ...event,
+      event_id: hint && hint.event_id,
+    };
   }
 
   /**
@@ -61,6 +64,7 @@ export class NodeBackend implements Backend {
    */
   public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
     const event: SentryEvent = {
+      event_id: hint && hint.event_id,
       fingerprint: [message],
       level,
       message,

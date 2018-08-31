@@ -116,17 +116,22 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<void> {
+  public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
     const event = await this.getBackend().eventFromException(exception, hint);
-    await this.captureEvent(event, hint, scope);
+    return this.captureEvent(event, hint, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): Promise<void> {
+  public async captureMessage(
+    message: string,
+    level?: Severity,
+    hint?: SentryEventHint,
+    scope?: Scope,
+  ): Promise<SentryResponse> {
     const event = await this.getBackend().eventFromMessage(message, level, hint);
-    await this.captureEvent(event, hint, scope);
+    return this.captureEvent(event, hint, scope);
   }
 
   /**
@@ -225,7 +230,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       request.url = truncate(request.url, MAX_URL_LENGTH);
     }
 
-    prepared.event_id = uuid4();
+    if (prepared.event_id === undefined) {
+      prepared.event_id = uuid4();
+    }
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
@@ -287,7 +294,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         status: Status.Skipped,
       };
     }
+
     const response = await send(finalEvent);
+    response.event = finalEvent;
 
     if (response.status === Status.RateLimit) {
       // TODO: Handle rate limits and maintain a queue. For now, we require SDK

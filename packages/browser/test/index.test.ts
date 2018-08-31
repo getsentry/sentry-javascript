@@ -12,6 +12,7 @@ import {
   init,
   Scope,
   SentryEvent,
+  Status,
 } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
@@ -64,7 +65,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
     });
 
     afterEach(() => {
@@ -96,7 +97,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
     });
 
     afterEach(() => {

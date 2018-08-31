@@ -247,4 +247,28 @@ describe('Hub', () => {
       expect(final!.dist).toEqual('1');
     }
   });
+
+  test('captureException should set event_id in hint', () => {
+    const hub = new Hub();
+    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    hub.captureException('a');
+    expect(spy.mock.calls[0][2]!.event_id).toBeTruthy();
+  });
+
+  test('captureMessage should set event_id in hint', () => {
+    const hub = new Hub();
+    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    hub.captureMessage('a');
+    expect(spy.mock.calls[0][3]!.event_id).toBeTruthy();
+  });
+
+  test('captureEvent should set event_id in hint', () => {
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const hub = new Hub();
+    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    hub.captureEvent(event);
+    expect(spy.mock.calls[0][2]!.event_id).toBeTruthy();
+  });
 });

@@ -97,6 +97,7 @@ export class BrowserBackend implements Backend {
 
     event = {
       ...event,
+      event_id: hint && hint.event_id,
       exception: {
         ...event.exception,
         mechanism: {
@@ -114,6 +115,7 @@ export class BrowserBackend implements Backend {
    */
   public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
     const event: SentryEvent = {
+      event_id: hint && hint.event_id,
       fingerprint: [message],
       level,
       message,

@@ -6,26 +6,28 @@ import { Breadcrumb, SentryEvent, Severity } from '@sentry/types';
  * @param method function to call on hub.
  * @param args to pass to function.
  */
-function callOnHub(method: string, ...args: any[]): void {
+function callOnHub<T>(method: string, ...args: any[]): T {
   const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
-    (hub[method as keyof Hub] as any)(...args);
+    return (hub[method as keyof Hub] as any)(...args);
   }
+  throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
 }
 
 /**
  * Captures an exception event and sends it to Sentry.
  *
  * @param exception An exception-like object.
+ * @returns The generated eventId.
  */
-export function captureException(exception: any): void {
+export function captureException(exception: any): string {
   let syntheticException: Error;
   try {
     throw new Error('Sentry syntheticException');
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureException', exception, { syntheticException });
+  return callOnHub('captureException', exception, { syntheticException });
 }
 
 /**
@@ -33,24 +35,26 @@ export function captureException(exception: any): void {
  *
  * @param message The message to send to Sentry.
  * @param level Define the level of the message.
+ * @returns The generated eventId.
  */
-export function captureMessage(message: string, level?: Severity): void {
+export function captureMessage(message: string, level?: Severity): string {
   let syntheticException: Error;
   try {
     throw new Error(message);
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureMessage', message, level, { syntheticException });
+  return callOnHub('captureMessage', message, level, { syntheticException });
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
  * @param event The event to send to Sentry.
+ * @returns The generated eventId.
  */
-export function captureEvent(event: SentryEvent): void {
-  callOnHub('captureEvent', event);
+export function captureEvent(event: SentryEvent): string {
+  return callOnHub('captureEvent', event);
 }
 
 /**
