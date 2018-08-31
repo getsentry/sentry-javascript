@@ -103,6 +103,19 @@ export interface Options {
    * @returns A new event that will be sent | null.
    */
   beforeSend?(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null;
+
+  /**
+   * A callback invoked when adding a breadcrumb, allowing to optionally modify
+   * it before adding it to future events.
+   *
+   * Note that you must return a valid breadcrumb from this callback. If you do
+   * not wish to modify the breadcrumb, simply return it at the end.
+   * Returning null will case the breadcrumb to be dropped.
+   *
+   * @param breadcrumb The breadcrumb as created by the SDK.
+   * @returns The breadcrumb that will be added | null.
+   */
+  beforeBreadcrumb?(breadcrumb: Breadcrumb): Breadcrumb | null;
 }
 
 /**

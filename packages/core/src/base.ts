@@ -145,7 +145,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): Promise<void> {
-    const { maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
+    const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
 
     if (maxBreadcrumbs <= 0) {
       return;
@@ -153,9 +153,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
+    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb) : mergedBreadcrumb;
 
-    if ((await this.getBackend().storeBreadcrumb(mergedBreadcrumb)) && scope) {
-      scope.addBreadcrumb(mergedBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    if (finalBreadcrumb === null) {
+      return;
+    }
+
+    if ((await this.getBackend().storeBreadcrumb(finalBreadcrumb)) && scope) {
+      scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
   }
 

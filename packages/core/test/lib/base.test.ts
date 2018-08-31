@@ -114,6 +114,30 @@ describe('BaseClient', () => {
       ]);
       expect(scope.getBreadcrumbs()).toHaveLength(2);
     });
+
+    test('calls beforeBreadcrumb and adds the breadcrumb without any changes', async () => {
+      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, scope);
+      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
+    });
+
+    test('calls beforeBreadcrumb and uses the new one', async () => {
+      const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, scope);
+      expect(scope.getBreadcrumbs()[0].message).toBe('changed');
+    });
+
+    test('calls shouldAddBreadcrumb and discards the breadcrumb', async () => {
+      const beforeBreadcrumb = jest.fn(() => null);
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, scope);
+      expect(scope.getBreadcrumbs().length).toBe(0);
+    });
   });
 
   describe('captures', () => {
