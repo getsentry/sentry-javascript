@@ -113,14 +113,16 @@
     DummyTransport.prototype.send = function (event) {
       // console.log(JSON.stringify(event, null, 2));
       sentryData.push(event);
-      return true;
+      return {
+        status: 'success'
+      }
     }
 
     Sentry.init({
       dsn: 'https://public@example.com/1',
       attachStacktrace: true,
       transport: DummyTransport,
-      shouldAddBreadcrumb: function (breadcrumb) {
+      beforeBreadcrumb: function (breadcrumb) {
         // Filter internal Karma requests
         if (
           breadcrumb.type === 'http' &&
@@ -129,9 +131,9 @@
             breadcrumb.data.url.indexOf('frame.html') !== -1
           )
         ) {
-          return false;
+          return null;
         }
-        return true;
+        return breadcrumb;
       }
     })
 
