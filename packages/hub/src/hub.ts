@@ -19,6 +19,9 @@ export class Hub {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly stack: Layer[] = [];
 
+  /** Contains the last event id of a captured event.  */
+  private _lastEventId?: string;
+
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
    * internal stack on creation.
@@ -169,7 +172,7 @@ export class Hub {
    * @returns The generated eventId.
    */
   public captureException(exception: any, hint?: SentryEventHint): string {
-    const eventId = uuid4();
+    const eventId = (this._lastEventId = uuid4());
     this.invokeClientAsync('captureException', exception, {
       ...hint,
       event_id: eventId,
@@ -186,7 +189,7 @@ export class Hub {
    * @returns The generated eventId.
    */
   public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
-    const eventId = uuid4();
+    const eventId = (this._lastEventId = uuid4());
     this.invokeClientAsync('captureMessage', message, level, {
       ...hint,
       event_id: eventId,
@@ -200,11 +203,18 @@ export class Hub {
    * @param event The event to send to Sentry.
    */
   public captureEvent(event: SentryEvent): string {
-    const eventId = uuid4();
+    const eventId = (this._lastEventId = uuid4());
     this.invokeClientAsync('captureEvent', event, {
       event_id: eventId,
     });
     return eventId;
+  }
+
+  /**
+   * @returns The last event id of a captured event.
+   */
+  public lastEventId(): string | undefined {
+    return this._lastEventId;
   }
 
   /**

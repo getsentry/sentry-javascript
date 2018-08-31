@@ -271,4 +271,13 @@ describe('Hub', () => {
     hub.captureEvent(event);
     expect(spy.mock.calls[0][2]!.event_id).toBeTruthy();
   });
+
+  test('lastEventId should be the same as last created', () => {
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const hub = new Hub();
+    const eventId = hub.captureEvent(event);
+    expect(eventId).toBe(hub.lastEventId());
+  });
 });
