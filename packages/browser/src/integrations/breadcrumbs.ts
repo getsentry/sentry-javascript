@@ -1,11 +1,11 @@
-import { API } from '@sentry/core';
+import { API, logger } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { fill } from '@sentry/utils/object';
+import { deserialize, fill } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
-import { supportsFetch, supportsHistory } from '@sentry/utils/supports';
+import { supportsBeacon, supportsFetch, supportsHistory } from '@sentry/utils/supports';
 import { BrowserOptions } from '../backend';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
@@ -27,6 +27,24 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   };
 }
 
+/** JSDoc */
+function addSentryBreadcrumb(serializedData: string): void {
+  // There's always something that can go wrong with deserialization...
+  try {
+    const data: { [key: string]: any } = deserialize(serializedData);
+    const exception = data.exception && data.exception.values && data.exception.values[0];
+
+    getCurrentHub().addBreadcrumb({
+      category: 'sentry',
+      event_id: data.event_id,
+      level: data.level || Severity.fromString('error'),
+      message: exception ? `${exception.type ? `${exception.type}: ` : ''}${exception.value}` : data.message,
+    });
+  } catch (_oO) {
+    logger.error('Error while adding sentry type breadcrumb');
+  }
+}
+
 /** Default Breadcrumbs instrumentations */
 export class Breadcrumbs implements Integration {
   /**
@@ -39,19 +57,65 @@ export class Breadcrumbs implements Integration {
    */
   public constructor(
     private readonly config: {
+      beacon?: boolean;
       console?: boolean;
       dom?: boolean;
       fetch?: boolean;
       history?: boolean;
+      sentry?: boolean;
       xhr?: boolean;
     } = {
+      beacon: true,
       console: true,
       dom: true,
       fetch: true,
       history: true,
+      sentry: true,
       xhr: true,
     },
   ) {}
+
+  /** JSDoc */
+  private instrumentBeacon(options: { filterUrl?: string }): void {
+    if (!supportsBeacon()) {
+      return;
+    }
+
+    /** JSDoc */
+    function beaconReplacementFunction(originalBeaconFunction: () => void): () => void {
+      return function(this: History, ...args: any[]): void {
+        const url = args[0];
+        const data = args[1];
+        // If the browser successfully queues the request for delivery, the method returns "true" and returns "false" otherwise.
+        // https://developer.mozilla.org/en-US/docs/Web/API/Beacon_API/Using_the_Beacon_API
+        const result = originalBeaconFunction.apply(this, args);
+
+        // if Sentry key appears in URL, don't capture it as a request
+        // but rather as our own 'sentry' type breadcrumb
+        if (options.filterUrl && url.includes(options.filterUrl)) {
+          addSentryBreadcrumb(data);
+          return result;
+        }
+
+        // What is wrong with you TypeScript...
+        const crumb = ({
+          category: 'beacon',
+          data,
+          type: 'http',
+        } as any) as { [key: string]: any };
+
+        if (!result) {
+          crumb.level = Severity.Error;
+        }
+
+        getCurrentHub().addBreadcrumb(crumb);
+
+        return result;
+      };
+    }
+
+    fill(global.navigator, 'sendBeacon', beaconReplacementFunction);
+  }
 
   /** JSDoc */
   private instrumentConsole(): void {
@@ -133,13 +197,17 @@ export class Breadcrumbs implements Integration {
           url = String(fetchInput);
         }
 
-        // if Sentry key appears in URL, don't capture, as it's our own request
-        if (options.filterUrl && url.includes(options.filterUrl)) {
-          return originalFetch.apply(global, args);
-        }
-
         if (args[1] && args[1].method) {
           method = args[1].method;
+        }
+
+        // if Sentry key appears in URL, don't capture it as a request
+        // but rather as our own 'sentry' type breadcrumb
+        if (options.filterUrl && url.includes(options.filterUrl)) {
+          if (method === 'POST' && args[1] && args[1].body) {
+            addSentryBreadcrumb(args[1].body);
+          }
+          return originalFetch.apply(global, args);
         }
 
         const fetchData: {
@@ -245,6 +313,7 @@ export class Breadcrumbs implements Integration {
     fill(global.history, 'pushState', historyReplacementFunction);
     fill(global.history, 'replaceState', historyReplacementFunction);
   }
+
   /** JSDoc */
   private instrumentXHR(options: { filterUrl?: string }): void {
     if (!('XMLHttpRequest' in global)) {
@@ -277,12 +346,14 @@ export class Breadcrumbs implements Integration {
       originalOpen =>
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
           const url = args[1];
-          // if Sentry key appears in URL, don't capture, as it's our own request
-          if (isString(url) && (options.filterUrl && !url.includes(options.filterUrl))) {
-            this.__sentry_xhr__ = {
-              method: args[0],
-              url: args[1],
-            };
+          this.__sentry_xhr__ = {
+            method: args[0],
+            url: args[1],
+          };
+          // if Sentry key appears in URL, don't capture it as a request
+          // but rather as our own 'sentry' type breadcrumb
+          if (isString(url) && (options.filterUrl && url.includes(options.filterUrl))) {
+            this.__sentry_own_request__ = true;
           }
           return originalOpen.apply(this, args);
         },
@@ -295,13 +366,22 @@ export class Breadcrumbs implements Integration {
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
           const xhr = this; // tslint:disable-line:no-this-assignment
 
+          if (xhr.__sentry_own_request__) {
+            addSentryBreadcrumb(args[0]);
+          }
+
           /** JSDoc */
           function onreadystatechangeHandler(): void {
-            if (xhr.__sentry_xhr__ && xhr.readyState === 4) {
+            if (xhr.readyState === 4) {
+              if (xhr.__sentry_own_request__) {
+                return;
+              }
               try {
                 // touching statusCode in some platforms throws
                 // an exception
-                xhr.__sentry_xhr__.status_code = xhr.status;
+                if (xhr.__sentry_xhr__) {
+                  xhr.__sentry_xhr__.status_code = xhr.status;
+                }
               } catch (e) {
                 /* do nothing */
               }
@@ -367,6 +447,9 @@ export class Breadcrumbs implements Integration {
     }
     if (this.config.fetch) {
       this.instrumentFetch({ filterUrl });
+    }
+    if (this.config.beacon) {
+      this.instrumentBeacon({ filterUrl });
     }
     if (this.config.history) {
       this.instrumentHistory();

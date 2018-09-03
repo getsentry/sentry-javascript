@@ -30,7 +30,7 @@ export const defaultIntegrations = [
  * const { init } = require('@sentry/node');
  *
  * init({
- *   dsn: '__Dsn__',
+ *   dsn: '__DSN__',
  *   // ...
  * });
  *
