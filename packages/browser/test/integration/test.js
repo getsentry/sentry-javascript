@@ -766,7 +766,7 @@ describe('integration', function() {
         done,
         function() {
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', 'https://public@example.com/1/store');
+          xhr.open('GET', 'https://example.com/api/1/store/');
           xhr.send('{"message":"someMessage","level":"warning"}');
           setTimeout(done);
         },
