@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import { Breadcrumb, SentryBreadcrumbHint, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
@@ -168,7 +168,7 @@ export class Hub {
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
   public captureException(exception: any, hint?: SentryEventHint): string {
@@ -185,7 +185,7 @@ export class Hub {
    *
    * @param message The message to send to Sentry.
    * @param level Define the level of the message.
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
   public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
@@ -201,7 +201,7 @@ export class Hub {
    * Captures a manually created event and sends it to Sentry.
    *
    * @param event The event to send to Sentry.
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    */
   public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -228,9 +228,10 @@ export class Hub {
    * user's actions prior to an error or crash.
    *
    * @param breadcrumb The breadcrumb to record.
+   * @param hint May contain additional information about the original breadcrumb.
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb): void {
-    this.invokeClient('addBreadcrumb', breadcrumb);
+  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
+    this.invokeClient('addBreadcrumb', breadcrumb, { ...hint });
   }
 
   /**

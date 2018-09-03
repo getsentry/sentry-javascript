@@ -1,4 +1,4 @@
-import { addBreadcrumb } from '@sentry/minimal';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import { format } from 'util';
@@ -55,11 +55,17 @@ function consoleWrapper(originalModule: any): any {
       }
 
       return function(): any {
-        addBreadcrumb({
-          category: 'console',
-          level: sentryLevel,
-          message: format.apply(undefined, arguments),
-        });
+        getCurrentHub().addBreadcrumb(
+          {
+            category: 'console',
+            level: sentryLevel,
+            message: format.apply(undefined, arguments),
+          },
+          {
+            input: [...arguments],
+            level,
+          },
+        );
 
         originalConsoleLevel.apply(originalModule, arguments);
       };

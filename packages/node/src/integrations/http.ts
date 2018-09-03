@@ -1,4 +1,3 @@
-import { addBreadcrumb } from '@sentry/minimal';
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';
@@ -120,16 +119,22 @@ function emitWrapper(origEmit: EventListener): (event: string, response: ServerR
     const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(dsn.host);
 
     if (isInterestingEvent && isNotSentryRequest) {
-      addBreadcrumb({
-        category: 'http',
-        data: {
-          method: this.method,
-          status_code: response.statusCode,
-
-          url: this.__ravenBreadcrumbUrl,
+      getCurrentHub().addBreadcrumb(
+        {
+          category: 'http',
+          data: {
+            method: this.method,
+            status_code: response.statusCode,
+            url: this.__ravenBreadcrumbUrl,
+          },
+          type: 'http',
         },
-        type: 'http',
-      });
+        {
+          event,
+          request: this,
+          response,
+        },
+      );
     }
 
     return origEmit.apply(this, arguments);

@@ -290,3 +290,8 @@ export interface SentryEventHint {
   originalException?: Error | null;
   data?: any;
 }
+
+/** JSDoc */
+export interface SentryBreadcrumbHint {
+  [key: string]: any;
+}
