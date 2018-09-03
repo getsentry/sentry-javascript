@@ -123,6 +123,12 @@
       attachStacktrace: true,
       transport: DummyTransport,
       beforeBreadcrumb: function (breadcrumb) {
+        // Filter console logs as we use them for debugging *a lot* and they are not *that* important
+        if (breadcrumb.category === 'console') { return null }
+
+        // overlyComplicatedDebuggingMechanism 'aka' console.log driven debugging
+        // console.log(JSON.stringify(breadcrumb, null, 2));
+
         // Filter internal Karma requests
         if (
           breadcrumb.type === 'http' &&
