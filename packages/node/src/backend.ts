@@ -105,7 +105,7 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
-    return this.transport.send(event);
+    return this.transport.captureEvent(event);
   }
 
   /**

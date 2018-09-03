@@ -29,11 +29,11 @@ describe('BeaconTransport', () => {
     expect(transport.url).equal(transportUrl);
   });
 
-  describe('send()', async () => {
+  describe('captureEvent()', async () => {
     it('sends a request to Sentry servers', async () => {
       sendBeacon.returns(true);
 
-      return transport.send(payload).then(res => {
+      return transport.captureEvent(payload).then(res => {
         expect(res.status).equal(Status.Success);
         expect(sendBeacon.calledOnce).equal(true);
         expect(sendBeacon.calledWith(transportUrl, JSON.stringify(payload))).equal(true);
@@ -43,7 +43,7 @@ describe('BeaconTransport', () => {
     it('rejects with failed status', async () => {
       sendBeacon.returns(false);
 
-      return transport.send(payload).catch(res => {
+      return transport.captureEvent(payload).catch(res => {
         expect(res.status).equal(Status.Failed);
         expect(sendBeacon.calledOnce).equal(true);
         expect(sendBeacon.calledWith(transportUrl, JSON.stringify(payload))).equal(true);

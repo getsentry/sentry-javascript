@@ -161,7 +161,7 @@ export class BrowserBackend implements Backend {
       }
     }
 
-    return this.transport.send(event);
+    return this.transport.captureEvent(event);
   }
 
   /**

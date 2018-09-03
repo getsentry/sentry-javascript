@@ -222,7 +222,7 @@ export interface TransportOptions {
 
 /** JSDoc */
 export interface Transport {
-  send(event: SentryEvent): Promise<SentryResponse>;
+  captureEvent(event: SentryEvent): Promise<SentryResponse>;
 }
 
 /** JSDoc */

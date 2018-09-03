@@ -13,7 +13,7 @@ export class HTTPSTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async send(event: SentryEvent): Promise<SentryResponse> {
+  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
     return this.sendWithModule(https, event);
   }
 }
