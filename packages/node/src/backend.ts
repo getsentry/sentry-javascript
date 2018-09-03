@@ -1,4 +1,4 @@
-import { Backend, Dsn, Options, SentryError } from '@sentry/core';
+import { Backend, Dsn, Options, Queue, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -26,6 +26,9 @@ export class NodeBackend implements Backend {
 
   /** Cached transport used internally. */
   private transport?: Transport;
+
+  /** A simple queue holding all requests. */
+  private queue: Queue<SentryResponse> = new Queue();
 
   /**
    * @inheritDoc
@@ -105,7 +108,7 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
-    return this.transport.captureEvent(event);
+    return this.queue.add(this.transport.captureEvent(event));
   }
 
   /**
@@ -120,5 +123,12 @@ export class NodeBackend implements Backend {
    */
   public storeScope(): void {
     // Noop
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(timeout?: number): Promise<boolean> {
+    return this.queue.drain(timeout);
   }
 }

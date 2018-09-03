@@ -43,14 +43,15 @@ describe('Queue', () => {
   });
 
   test('drain()', async () => {
-    expect.assertions(2);
+    expect.assertions(3);
     const q = new Queue<void>();
     for (let i = 0; i < 5; i++) {
       const p = new Promise<void>(resolve => setTimeout(resolve, 1));
       q.add(p);
     }
     expect(q.length()).toBe(5);
-    q.drain().then(() => {
+    q.drain().then(result => {
+      expect(result).toBeTruthy();
       expect(q.length()).toBe(0);
     });
     jest.runAllTimers();
@@ -64,8 +65,8 @@ describe('Queue', () => {
       q.add(p);
     }
     expect(q.length()).toBe(5);
-    q.drain(50).catch(e => {
-      expect(e).toBeTruthy();
+    q.drain(50).then(result => {
+      expect(result).toBeFalsy();
     });
     jest.runAllTimers();
   });

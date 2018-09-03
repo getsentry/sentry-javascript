@@ -13,11 +13,25 @@ import {
   Scope,
   SentryEvent,
   SentryResponse,
+  Status,
 } from '../src';
+import { BaseTransport } from '../src/transports';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 declare var global: any;
+
+class SetTimeoutTransport extends BaseTransport {
+  public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
+    return new Promise<SentryResponse>(resolve => {
+      setTimeout(() => {
+        resolve({
+          status: Status.fromHttpCode(200),
+        });
+      }, 1);
+    });
+  }
+}
 
 describe('SentryNode', () => {
   beforeAll(() => {
@@ -29,6 +43,47 @@ describe('SentryNode', () => {
   });
 
   afterEach(() => {
+    getCurrentHub().popScope();
+  });
+
+  test('close() with to short timeout', done => {
+    expect.assertions(1);
+    jest.useFakeTimers();
+    getCurrentHub().pushScope();
+    const client = new NodeClient({
+      dsn,
+      transport: SetTimeoutTransport,
+    });
+    getCurrentHub().bindClient(client);
+    captureMessage('test');
+    captureMessage('test');
+    captureMessage('test');
+    client.close(50).then(result => {
+      expect(result).toBeFalsy();
+      done();
+    });
+    jest.runAllTimers();
+    getCurrentHub().popScope();
+  });
+
+  test('close() with timeout', done => {
+    expect.assertions(1);
+    jest.useFakeTimers();
+    getCurrentHub().pushScope();
+    const client = new NodeClient({
+      dsn,
+      transport: SetTimeoutTransport,
+    });
+    getCurrentHub().bindClient(client);
+    captureMessage('test');
+    captureMessage('test');
+    captureMessage('test');
+    jest.runAllTimers();
+    client.close(50).then(result => {
+      expect(result).toBeFalsy();
+      done();
+    });
+    jest.runAllTimers();
     getCurrentHub().popScope();
   });
 
@@ -111,10 +166,10 @@ describe('SentryNode', () => {
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values[0]).not.toBeUndefined();
-            expect(event.exception!.values[0].type).toBe('Error');
-            expect(event.exception!.values[0].value).toBe('test');
-            expect(event.exception!.values[0].stacktrace).toBeTruthy();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].type).toBe('Error');
+            expect(event.exception!.values![0].value).toBe('test');
+            expect(event.exception!.values![0].stacktrace).toBeTruthy();
             done();
             return event;
           },

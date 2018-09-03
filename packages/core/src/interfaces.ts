@@ -194,6 +194,15 @@ export interface Client<O extends Options = Options> {
 
   /** Returns the current options. */
   getOptions(): O;
+
+  /**
+   * A promise that resolves whenever the queue is empty.
+   * If you provide a timeout and the queue takes longer to drain the promise returns false.
+   * Calls {@link Backend.close}.
+   *
+   * @param timeout Maximum time in ms the client should wait.
+   */
+  close(timeout?: number): Promise<boolean>;
 }
 
 /**
@@ -254,4 +263,12 @@ export interface Backend {
    * @param scope The scope to store.
    */
   storeScope(scope: Scope): void;
+
+  /**
+   * A promise that resolves whenever the queue is empty.
+   * If you provide a timeout and the queue takes longer to drain the promise returns false.
+   *
+   * @param timeout Maximum time in ms the client should wait.
+   */
+  close(timeout?: number): Promise<boolean>;
 }

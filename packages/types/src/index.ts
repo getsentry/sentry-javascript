@@ -211,6 +211,7 @@ export interface Integration {
 export interface SentryResponse {
   status: Status;
   event?: SentryEvent;
+  reason?: string;
 }
 
 /** JSDoc */

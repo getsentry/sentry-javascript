@@ -3,7 +3,7 @@ export class Queue<T> {
 
   public add(task: Promise<T>): Promise<T> {
     this.queue.add(task);
-    task.then(() => this.queue.delete(task));
+    task.then(() => this.queue.delete(task)).catch(() => this.queue.delete(task));
     return task;
   }
 
@@ -11,17 +11,21 @@ export class Queue<T> {
     return this.queue.size;
   }
 
-  public drain(timeout?: number): Promise<void> {
-    return new Promise((resolve, reject) => {
+  public drain(timeout?: number): Promise<boolean> {
+    return new Promise(resolve => {
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {
-          reject('Drain timeout reached');
+          resolve(false);
         }
       }, timeout);
-      Promise.all(this.queue.values()).then(() => {
-        clearTimeout(capturedSetTimeout);
-        resolve();
-      });
+      Promise.all(this.queue.values())
+        .then(() => {
+          clearTimeout(capturedSetTimeout);
+          resolve(true);
+        })
+        .catch(() => {
+          resolve(true);
+        });
     });
   }
 }
