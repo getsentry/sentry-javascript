@@ -140,7 +140,7 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
   });
 
   try {
-    return addPrePostContext(filesToRead, frames);
+    return await addPrePostContext(filesToRead, frames);
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
