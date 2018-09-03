@@ -135,10 +135,16 @@ export function breadcrumbEventHandler(eventName: string): (event: Event) => voi
       target = '<unknown>';
     }
 
-    getCurrentHub().addBreadcrumb({
-      category: `ui.${eventName}`, // e.g. ui.click, ui.input
-      message: target,
-    });
+    getCurrentHub().addBreadcrumb(
+      {
+        category: `ui.${eventName}`, // e.g. ui.click, ui.input
+        message: target,
+      },
+      {
+        event,
+        name: eventName,
+      },
+    );
   };
 }
 

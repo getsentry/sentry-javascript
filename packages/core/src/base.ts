@@ -1,5 +1,13 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
+import {
+  Breadcrumb,
+  SentryBreadcrumbHint,
+  SentryEvent,
+  SentryEventHint,
+  SentryResponse,
+  Severity,
+  Status,
+} from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { Dsn } from './dsn';
@@ -144,7 +152,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): Promise<void> {
+  public async addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint, scope?: Scope): Promise<void> {
     const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
 
     if (maxBreadcrumbs <= 0) {
@@ -153,7 +161,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb) : mergedBreadcrumb;
+    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb, hint) : mergedBreadcrumb;
 
     if (finalBreadcrumb === null) {
       return;

@@ -31,15 +31,20 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
   try {
-    const data: { [key: string]: any } = deserialize(serializedData);
-    const exception = data.exception && data.exception.values && data.exception.values[0];
+    const event: { [key: string]: any } = deserialize(serializedData);
+    const exception = event.exception && event.exception.values && event.exception.values[0];
 
-    getCurrentHub().addBreadcrumb({
-      category: 'sentry',
-      event_id: data.event_id,
-      level: data.level || Severity.fromString('error'),
-      message: exception ? `${exception.type ? `${exception.type}: ` : ''}${exception.value}` : data.message,
-    });
+    getCurrentHub().addBreadcrumb(
+      {
+        category: 'sentry',
+        event_id: event.event_id,
+        level: event.level || Severity.fromString('error'),
+        message: exception ? `${exception.type ? `${exception.type}: ` : ''}${exception.value}` : event.message,
+      },
+      {
+        event,
+      },
+    );
   } catch (_oO) {
     logger.error('Error while adding sentry type breadcrumb');
   }
@@ -98,17 +103,20 @@ export class Breadcrumbs implements Integration {
         }
 
         // What is wrong with you TypeScript...
-        const crumb = ({
+        const breadcrumbData = ({
           category: 'beacon',
           data,
           type: 'http',
         } as any) as { [key: string]: any };
 
         if (!result) {
-          crumb.level = Severity.Error;
+          breadcrumbData.level = Severity.Error;
         }
 
-        getCurrentHub().addBreadcrumb(crumb);
+        getCurrentHub().addBreadcrumb(breadcrumbData, {
+          input: args,
+          result,
+        });
 
         return result;
       };
@@ -153,7 +161,10 @@ export class Breadcrumbs implements Integration {
           }
         }
 
-        getCurrentHub().addBreadcrumb(breadcrumbData);
+        getCurrentHub().addBreadcrumb(breadcrumbData, {
+          input: args,
+          level,
+        });
 
         // this fails for some browsers. :(
         if (originalConsoleLevel) {
@@ -223,20 +234,32 @@ export class Breadcrumbs implements Integration {
           .apply(global, args)
           .then((response: Response) => {
             fetchData.status_code = response.status;
-            getCurrentHub().addBreadcrumb({
-              category: 'fetch',
-              data: fetchData,
-              type: 'http',
-            });
+            getCurrentHub().addBreadcrumb(
+              {
+                category: 'fetch',
+                data: fetchData,
+                type: 'http',
+              },
+              {
+                input: args,
+                response,
+              },
+            );
             return response;
           })
           .catch((error: Error) => {
-            getCurrentHub().addBreadcrumb({
-              category: 'fetch',
-              data: fetchData,
-              level: Severity.Error,
-              type: 'http',
-            });
+            getCurrentHub().addBreadcrumb(
+              {
+                category: 'fetch',
+                data: fetchData,
+                level: Severity.Error,
+                type: 'http',
+              },
+              {
+                error,
+                input: args,
+              },
+            );
 
             throw error;
           });
@@ -385,11 +408,16 @@ export class Breadcrumbs implements Integration {
               } catch (e) {
                 /* do nothing */
               }
-              getCurrentHub().addBreadcrumb({
-                category: 'xhr',
-                data: xhr.__sentry_xhr__,
-                type: 'http',
-              });
+              getCurrentHub().addBreadcrumb(
+                {
+                  category: 'xhr',
+                  data: xhr.__sentry_xhr__,
+                  type: 'http',
+                },
+                {
+                  xhr,
+                },
+              );
             }
           }
 

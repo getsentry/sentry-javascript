@@ -84,7 +84,7 @@ describe('BaseClient', () => {
       const client = new TestClient({});
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, scope);
+      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs()[1].message).toBe('world');
     });
 
@@ -92,7 +92,7 @@ describe('BaseClient', () => {
       const client = new TestClient({});
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, scope);
+      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs()[1].timestamp).toBeGreaterThan(1);
     });
 
@@ -100,7 +100,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ maxBreadcrumbs: 1 });
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, scope);
+      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs().length).toBe(1);
       expect(scope.getBreadcrumbs()[0].message).toBe('world');
     });
@@ -109,8 +109,8 @@ describe('BaseClient', () => {
       const client = new TestClient({});
       const scope = new Scope();
       await Promise.all([
-        client.addBreadcrumb({ message: 'hello' }, scope),
-        client.addBreadcrumb({ message: 'world' }, scope),
+        client.addBreadcrumb({ message: 'hello' }, undefined, scope),
+        client.addBreadcrumb({ message: 'world' }, undefined, scope),
       ]);
       expect(scope.getBreadcrumbs()).toHaveLength(2);
     });
@@ -119,7 +119,7 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, scope);
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs()[0].message).toBe('hello');
     });
 
@@ -127,16 +127,25 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, scope);
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs()[0].message).toBe('changed');
     });
 
-    test('calls shouldAddBreadcrumb and discards the breadcrumb', async () => {
+    test('calls beforeBreadcrumb and discards the breadcrumb when returned null', async () => {
       const beforeBreadcrumb = jest.fn(() => null);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, scope);
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs().length).toBe(0);
+    });
+
+    test('calls beforeBreadcrumb gets an access to a hint as a second argument', async () => {
+      const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' }, scope);
+      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
+      expect(scope.getBreadcrumbs()[0].data).toBe('someRandomThing');
     });
   });
 
