@@ -759,24 +759,24 @@ describe('integration', function() {
       );
     });
 
-    it('should NOT denote XMLHttpRequests to the Sentry store endpoint as requiring breadcrumb capture', function(done) {
+    it('should transform XMLHttpRequests to the Sentry store endpoint as sentry type breadcrumb', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
           var xhr = new XMLHttpRequest();
-          xhr.open('GET', 'http://example.com/api/1/store/?sentry_key=public');
-
-          // can't actually transmit an XHR (breadcrumb isnt recorded until
-          // onreadystatechange fires), so enough to just verify that
-          // __sentry_xhr wasn't set on xhr object
-
-          window.sentryData = xhr.hasOwnProperty('__sentry_xhr__');
+          xhr.open('GET', 'https://public@example.com/1/store');
+          xhr.send('{"message":"someMessage","level":"warning"}');
           setTimeout(done);
         },
         function() {
-          assert.isFalse(iframe.contentWindow.sentryData);
+          var Sentry = iframe.contentWindow.Sentry;
+          var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          assert.equal(breadcrumbs.length, 1);
+          assert.equal(breadcrumbs[0].category, 'sentry');
+          assert.equal(breadcrumbs[0].level, 'warning');
+          assert.equal(breadcrumbs[0].message, 'someMessage');
         },
       );
     });
