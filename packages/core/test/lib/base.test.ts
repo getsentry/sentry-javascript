@@ -22,18 +22,18 @@ jest.mock('@sentry/utils/string', () => ({
 }));
 
 describe('BaseClient', () => {
-  describe('constructor() / getDSN()', () => {
-    test('returns the DSN', () => {
+  describe('constructor() / getDsn()', () => {
+    test('returns the Dsn', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
-      expect(client.getDSN()!.toString()).toBe(PUBLIC_DSN);
+      expect(client.getDsn()!.toString()).toBe(PUBLIC_DSN);
     });
 
-    test('allows missing DSN', () => {
+    test('allows missing Dsn', () => {
       const client = new TestClient({});
-      expect(client.getDSN()).toBeUndefined();
+      expect(client.getDsn()).toBeUndefined();
     });
 
-    test('throws with invalid DSN', () => {
+    test('throws with invalid Dsn', () => {
       expect(() => new TestClient({ dsn: 'abc' })).toThrow(SentryError);
     });
   });
@@ -64,7 +64,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.installed).toBe(0);
     });
 
-    test('does not install() without DSN', async () => {
+    test('does not install() without Dsn', async () => {
       const client = new TestClient({});
       client.install();
       expect(TestBackend.instance!.installed).toBe(0);
@@ -178,7 +178,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
-    test('skips without a DSN', async () => {
+    test('skips without a Dsn', async () => {
       const client = new TestClient({});
       const scope = new Scope();
       await client.captureEvent({}, undefined, scope);

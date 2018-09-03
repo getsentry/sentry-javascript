@@ -1,4 +1,4 @@
-import { Backend, DSN, Options, SentryError } from '@sentry/core';
+import { Backend, Dsn, Options, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -88,12 +88,12 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    let dsn: DSN;
+    let dsn: Dsn;
 
     if (!this.options.dsn) {
-      throw new SentryError('Cannot sendEvent without a valid DSN');
+      throw new SentryError('Cannot sendEvent without a valid Dsn');
     } else {
-      dsn = new DSN(this.options.dsn);
+      dsn = new Dsn(this.options.dsn);
     }
 
     if (!this.transport) {

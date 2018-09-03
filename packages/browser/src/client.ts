@@ -1,5 +1,5 @@
 import { API, BaseClient, SentryError } from '@sentry/core';
-import { DSNLike } from '@sentry/types';
+import { DsnLike } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 
@@ -23,7 +23,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   public showReportDialog(options: {
     [key: string]: any;
     eventId?: string;
-    dsn?: DSNLike;
+    dsn?: DsnLike;
     user?: {
       email?: string;
       name?: string;
@@ -47,14 +47,14 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       return;
     }
 
-    const dsn = options.dsn || this.getDSN();
+    const dsn = options.dsn || this.getDsn();
 
     if (!options.eventId) {
       throw new SentryError('Missing `eventId` option in showReportDialog call');
     }
 
     if (!dsn) {
-      throw new SentryError('Missing `DSN` option in showReportDialog call');
+      throw new SentryError('Missing `Dsn` option in showReportDialog call');
     }
 
     const script = document.createElement('script');

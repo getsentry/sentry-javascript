@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
 import { Status, Transports } from '../../src';
 
-const testDSN = 'https://123@sentry.io/42';
+const testDsn = 'https://123@sentry.io/42';
 const transportUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
 const payload = {
   event_id: '1337',
@@ -18,7 +18,7 @@ let transport: Transports.BaseTransport;
 describe('BeaconTransport', () => {
   beforeEach(() => {
     sendBeacon = stub(window.navigator, 'sendBeacon');
-    transport = new Transports.BeaconTransport({ dsn: testDSN });
+    transport = new Transports.BeaconTransport({ dsn: testDsn });
   });
 
   afterEach(() => {

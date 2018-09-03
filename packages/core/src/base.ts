@@ -2,7 +2,7 @@ import { Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
-import { DSN } from './dsn';
+import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 
 /**
@@ -35,10 +35,10 @@ export interface BackendClass<B extends Backend, O extends Options> {
  * {@link Client.getOptions}. Also, the Backend instance is available via
  * {@link Client.getBackend}.
  *
- * If a DSN is specified in the options, it will be parsed and stored. Use
- * {@link Client.getDSN} to retrieve the DSN at any moment. In case the DSN is
+ * If a Dsn is specified in the options, it will be parsed and stored. Use
+ * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
  * invalid, the constructor will throw a {@link SentryException}. Note that
- * without a valid DSN, the SDK will not send any events to Sentry.
+ * without a valid Dsn, the SDK will not send any events to Sentry.
  *
  * Before sending an event via the backend, it is passed through
  * {@link BaseClient.prepareEvent} to add SDK information and scope data
@@ -71,10 +71,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   private readonly options: O;
 
   /**
-   * The client DSN, if specified in options. Without this DSN, the SDK will be
+   * The client Dsn, if specified in options. Without this Dsn, the SDK will be
    * disabled.
    */
-  private readonly dsn?: DSN;
+  private readonly dsn?: Dsn;
 
   /**
    * Stores whether installation has been performed and was successful. Before
@@ -93,7 +93,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     this.options = options;
 
     if (options.dsn) {
-      this.dsn = new DSN(options.dsn);
+      this.dsn = new Dsn(options.dsn);
     }
   }
 
@@ -167,7 +167,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public getDSN(): DSN | undefined {
+  public getDsn(): Dsn | undefined {
     return this.dsn;
   }
 
@@ -183,7 +183,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     return this.backend;
   }
 
-  /** Determines whether this SDK is enabled and a valid DSN is present. */
+  /** Determines whether this SDK is enabled and a valid Dsn is present. */
   protected isEnabled(): boolean {
     return this.getOptions().enabled !== false && this.dsn !== undefined;
   }

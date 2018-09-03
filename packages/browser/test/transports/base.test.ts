@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import { BaseTransport } from '../../src/transports/base';
 
-const testDSN = 'https://123@sentry.io/42';
+const testDsn = 'https://123@sentry.io/42';
 
 class SimpleTransport extends BaseTransport {}
 
 describe('BaseTransport', () => {
   it('doesnt provide send() implementation', async () => {
-    const transport = new SimpleTransport({ dsn: testDSN });
+    const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
       await transport.send({});
@@ -17,7 +17,7 @@ describe('BaseTransport', () => {
   });
 
   it('has correct endpoint url', () => {
-    const transport = new SimpleTransport({ dsn: testDSN });
+    const transport = new SimpleTransport({ dsn: testDsn });
     expect(transport.url).equal('https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7');
   });
 });

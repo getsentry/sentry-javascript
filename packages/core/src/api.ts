@@ -1,20 +1,20 @@
-import { DSNLike } from '@sentry/types';
+import { DsnLike } from '@sentry/types';
 import { urlEncode } from '@sentry/utils/object';
-import { DSN } from './dsn';
+import { Dsn } from './dsn';
 
 const SENTRY_API_VERSION = '7';
 
 /** Helper class to provide urls to different Sentry endpoints. */
 export class API {
-  /** The internally used DSN object. */
-  private readonly dsnObject: DSN;
+  /** The internally used Dsn object. */
+  private readonly dsnObject: Dsn;
   /** Create a new instance of API */
-  public constructor(public dsn: DSNLike) {
-    this.dsnObject = new DSN(dsn);
+  public constructor(public dsn: DsnLike) {
+    this.dsnObject = new Dsn(dsn);
   }
 
-  /** Returns the DSN object. */
-  public getDSN(): DSN {
+  /** Returns the Dsn object. */
+  public getDsn(): Dsn {
     return this.dsnObject;
   }
 

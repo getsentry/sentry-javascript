@@ -1,5 +1,5 @@
 import { API } from '../../src/api';
-import { DSN } from '../../src/dsn';
+import { Dsn } from '../../src/dsn';
 
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 
@@ -47,7 +47,7 @@ describe('API', () => {
       }),
     ).toEqual('https://sentry.io:1234/subpath/api/embed/error-page/?eventId=abc');
   });
-  test('getDSN', () => {
-    expect(new API(dsnPublic).getDSN()).toEqual(new DSN(dsnPublic));
+  test('getDsn', () => {
+    expect(new API(dsnPublic).getDsn()).toEqual(new Dsn(dsnPublic));
   });
 });

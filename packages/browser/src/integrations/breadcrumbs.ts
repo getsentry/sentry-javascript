@@ -1,4 +1,4 @@
-import { DSN } from '@sentry/core';
+import { API } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
@@ -354,8 +354,7 @@ export class Breadcrumbs implements Integration {
    * Can be disabled or individually configured via the `autoBreadcrumbs` config option
    */
   public install(options: BrowserOptions = {}): void {
-    // TODO: Use API provider instead of raw `new DSN`
-    const filterUrl = options.dsn && new DSN(options.dsn).user;
+    const filterUrl = options.dsn && new API(options.dsn).getStoreEndpoint();
 
     if (this.config.console) {
       this.instrumentConsole();

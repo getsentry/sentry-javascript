@@ -1,10 +1,10 @@
-/** Supported Sentry transport protocols in a DSN. */
-export type DSNProtocol = 'http' | 'https';
+/** Supported Sentry transport protocols in a Dsn. */
+export type DsnProtocol = 'http' | 'https';
 
-/** Primitive components of a DSN. */
-export interface DSNComponents {
+/** Primitive components of a Dsn. */
+export interface DsnComponents {
   /** Protocol used to connect to Sentry. */
-  protocol: DSNProtocol;
+  protocol: DsnProtocol;
   /** Public authorization key. */
   user: string;
   /** Private authorization key (deprecated, optional). */
@@ -19,8 +19,8 @@ export interface DSNComponents {
   projectId: string;
 }
 
-/** Anything that can be parsed into a DSN. */
-export type DSNLike = string | DSNComponents;
+/** Anything that can be parsed into a Dsn. */
+export type DsnLike = string | DsnComponents;
 
 /** JSDoc */
 export enum Severity {
@@ -215,7 +215,7 @@ export interface SentryResponse {
 
 /** JSDoc */
 export interface TransportOptions {
-  dsn: DSNLike;
+  dsn: DsnLike;
   /** Define custom headers */
   headers?: object;
 }
