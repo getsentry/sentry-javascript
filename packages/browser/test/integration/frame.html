@@ -110,7 +110,7 @@
 
     // stub transport so we don't actually transmit any data
     function DummyTransport() { }
-    DummyTransport.prototype.send = function (event) {
+    DummyTransport.prototype.captureEvent = function (event) {
       // console.log(JSON.stringify(event, null, 2));
       sentryData.push(event);
       return {
