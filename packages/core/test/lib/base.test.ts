@@ -4,7 +4,7 @@ import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 
-const PUBLIC_DSN = 'https://username@domain/path';
+const PUBLIC_Dsn = 'https://username@domain/path';
 
 jest.mock('@sentry/utils/misc', () => ({
   uuid4(): string {
@@ -22,31 +22,31 @@ jest.mock('@sentry/utils/string', () => ({
 }));
 
 describe('BaseClient', () => {
-  describe('constructor() / getDSN()', () => {
-    test('returns the DSN', () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
-      expect(client.getDSN()!.toString()).toBe(PUBLIC_DSN);
+  describe('constructor() / getDsn()', () => {
+    test('returns the Dsn', () => {
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
+      expect(client.getDsn()!.toString()).toBe(PUBLIC_Dsn);
     });
 
-    test('allows missing DSN', () => {
+    test('allows missing Dsn', () => {
       const client = new TestClient({});
-      expect(client.getDSN()).toBeUndefined();
+      expect(client.getDsn()).toBeUndefined();
     });
 
-    test('throws with invalid DSN', () => {
+    test('throws with invalid Dsn', () => {
       expect(() => new TestClient({ dsn: 'abc' })).toThrow(SentryError);
     });
   });
 
   describe('install()', () => {
     test('calls install() on Backend', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       client.install();
       expect(TestBackend.instance!.installed).toBe(1);
     });
 
     test('calls install() only once', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       client.install();
       client.install();
       expect(TestBackend.instance!.installed).toBe(1);
@@ -59,12 +59,12 @@ describe('BaseClient', () => {
     });
 
     test('does not install() when disabled', async () => {
-      const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
+      const client = new TestClient({ enabled: false, dsn: PUBLIC_Dsn });
       client.install();
       expect(TestBackend.instance!.installed).toBe(0);
     });
 
-    test('does not install() without DSN', async () => {
+    test('does not install() without Dsn', async () => {
       const client = new TestClient({});
       client.install();
       expect(TestBackend.instance!.installed).toBe(0);
@@ -73,7 +73,7 @@ describe('BaseClient', () => {
 
   describe('getOptions()', () => {
     test('returns the options', () => {
-      const options = { dsn: PUBLIC_DSN, test: true };
+      const options = { dsn: PUBLIC_Dsn, test: true };
       const client = new TestClient(options);
       expect(client.getOptions()).toEqual(options);
     });
@@ -142,7 +142,7 @@ describe('BaseClient', () => {
 
   describe('captures', () => {
     test('captures and sends exceptions', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       await client.captureException(new Error('test exception'), undefined, scope);
       expect(TestBackend.instance!.event).toEqual({
@@ -160,7 +160,7 @@ describe('BaseClient', () => {
     });
 
     test('captures and sends messages', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       await client.captureMessage('test message', undefined, undefined, scope);
       expect(TestBackend.instance!.event).toEqual({
@@ -172,13 +172,13 @@ describe('BaseClient', () => {
 
   describe('captureEvent() / prepareEvent()', () => {
     test('skips when disabled', async () => {
-      const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
+      const client = new TestClient({ enabled: false, dsn: PUBLIC_Dsn });
       const scope = new Scope();
       await client.captureEvent({}, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
-    test('skips without a DSN', async () => {
+    test('skips without a Dsn', async () => {
       const client = new TestClient({});
       const scope = new Scope();
       await client.captureEvent({}, undefined, scope);
@@ -186,7 +186,7 @@ describe('BaseClient', () => {
     });
 
     test('sends an event', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       await client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('message');
@@ -198,7 +198,7 @@ describe('BaseClient', () => {
 
     test('adds the configured environment', async () => {
       const client = new TestClient({
-        dsn: PUBLIC_DSN,
+        dsn: PUBLIC_Dsn,
         environment: 'env',
       });
       const scope = new Scope();
@@ -212,7 +212,7 @@ describe('BaseClient', () => {
 
     test('adds the configured release', async () => {
       const client = new TestClient({
-        dsn: PUBLIC_DSN,
+        dsn: PUBLIC_Dsn,
         release: 'v1.0.0',
       });
       const scope = new Scope();
@@ -225,7 +225,7 @@ describe('BaseClient', () => {
     });
 
     test('adds breadcrumbs', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
       await client.captureEvent({ message: 'message' }, undefined, scope);
@@ -237,7 +237,7 @@ describe('BaseClient', () => {
     });
 
     test('limits previously saved breadcrumbs', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
+      const client = new TestClient({ dsn: PUBLIC_Dsn, maxBreadcrumbs: 1 });
       const scope = new Scope();
       scope.addBreadcrumb({ message: '1' }, 100);
       scope.addBreadcrumb({ message: '2' }, 200);
@@ -250,7 +250,7 @@ describe('BaseClient', () => {
     });
 
     test('adds context data', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       scope.setExtra('b', 'b');
       scope.setTag('a', 'a');
@@ -266,7 +266,7 @@ describe('BaseClient', () => {
     });
 
     test('adds fingerprint', async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       const scope = new Scope();
       scope.setFingerprint(['abcd']);
       await client.captureEvent({ message: 'message' }, undefined, scope);
@@ -279,7 +279,7 @@ describe('BaseClient', () => {
 
     test('calls beforeSend and discards the event', async () => {
       const beforeSend = jest.fn(() => null);
-      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient({ dsn: PUBLIC_Dsn, beforeSend });
       const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, undefined, scope);
       expect(TestBackend.instance!.event).toBeUndefined();
@@ -287,14 +287,14 @@ describe('BaseClient', () => {
 
     test('calls beforeSend and uses the new one', async () => {
       const beforeSend = jest.fn(() => ({ message: 'changed' }));
-      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient({ dsn: PUBLIC_Dsn, beforeSend });
       const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, undefined, scope);
       expect(TestBackend.instance!.event!.message).toBe('changed');
     });
 
     it("doesn't do anything with rate limits yet", async () => {
-      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const client = new TestClient({ dsn: PUBLIC_Dsn });
       TestBackend.instance!.sendEvent = async () => ({ status: Status.RateLimit });
       const scope = new Scope();
       await client.captureEvent({}, undefined, scope);

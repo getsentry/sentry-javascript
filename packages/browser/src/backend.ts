@@ -44,8 +44,8 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public install(): boolean {
-    // We are only called by the client if the SDK is enabled and a valid DSN
-    // has been configured. If no DSN is present, this indicates a programming
+    // We are only called by the client if the SDK is enabled and a valid Dsn
+    // has been configured. If no Dsn is present, this indicates a programming
     // error.
     const dsn = this.options.dsn;
     if (!dsn) {
@@ -140,8 +140,8 @@ export class BrowserBackend implements Backend {
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     if (!this.options.dsn) {
-      logger.warn(`Event has been skipped because no DSN is configured.`);
-      // We do nothing in case there is no DSN
+      logger.warn(`Event has been skipped because no Dsn is configured.`);
+      // We do nothing in case there is no Dsn
       return { status: Status.Skipped };
     }
 

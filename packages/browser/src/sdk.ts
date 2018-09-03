@@ -32,7 +32,7 @@ export const defaultIntegrations = [
  * import { init } from '@sentry/browser';
  *
  * init({
- *   dsn: '__DSN__',
+ *   dsn: '__Dsn__',
  *   // ...
  * });
  *

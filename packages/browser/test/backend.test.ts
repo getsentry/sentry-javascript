@@ -24,13 +24,13 @@ let backend: BrowserBackend;
 
 describe('BrowserBackend', () => {
   describe('sendEvent()', () => {
-    it('should throw when no DSN is provided', async () => {
+    it('should throw when no Dsn is provided', async () => {
       backend = new BrowserBackend({ dsn });
 
       try {
         await backend.sendEvent(testEvent);
       } catch (e) {
-        expect(e.message).equal('Cannot sendEvent without a valid DSN');
+        expect(e.message).equal('Cannot sendEvent without a valid Dsn');
       }
     });
 

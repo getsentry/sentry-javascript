@@ -11,7 +11,7 @@ import {
   TransportClass,
   TransportOptions,
 } from '@sentry/types';
-import { DSN } from './dsn';
+import { Dsn } from './dsn';
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -40,7 +40,7 @@ export interface Options {
   enabled?: boolean;
 
   /**
-   * The DSN used to connect to Sentry and identify the project. If omitted, the
+   * The Dsn used to connect to Sentry and identify the project. If omitted, the
    * SDK will not send any data to Sentry.
    */
   dsn?: string;
@@ -189,8 +189,8 @@ export interface Client<O extends Options = Options> {
    */
   addBreadcrumb(breadcrumb: Breadcrumb, scope?: Scope): void;
 
-  /** Returns the current DSN. */
-  getDSN(): DSN | undefined;
+  /** Returns the current Dsn. */
+  getDsn(): Dsn | undefined;
 
   /** Returns the current options. */
   getOptions(): O;

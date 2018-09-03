@@ -112,12 +112,12 @@ function emitWrapper(origEmit: EventListener): (event: string, response: ServerR
       return origEmit.apply(this, arguments);
     }
 
-    const DSN = getCurrentHub()
+    const Dsn = getCurrentHub()
       .getClient()
-      .getDSN();
+      .getDsn();
 
     const isInterestingEvent = event === 'response' || event === 'error';
-    const isNotSentryRequest = DSN && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(DSN.host);
+    const isNotSentryRequest = Dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(Dsn.host);
 
     if (isInterestingEvent && isNotSentryRequest) {
       addBreadcrumb({

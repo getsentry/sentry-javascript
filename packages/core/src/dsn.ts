@@ -1,13 +1,13 @@
-import { DSNComponents, DSNLike, DSNProtocol } from '@sentry/types';
+import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
-/** Regular expression used to parse a DSN. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+/** Regular expression used to parse a Dsn. */
+const Dsn_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
-/** The Sentry DSN, identifying a Sentry instance and project. */
-export class DSN implements DSNComponents {
+/** The Sentry Dsn, identifying a Sentry instance and project. */
+export class Dsn implements DsnComponents {
   /** Protocol used to connect to Sentry. */
-  public protocol!: DSNProtocol;
+  public protocol!: DsnProtocol;
   /** Public authorization key. */
   public user!: string;
   /** Private authorization key (deprecated, optional). */
@@ -21,8 +21,8 @@ export class DSN implements DSNComponents {
   /** Project ID */
   public projectId!: string;
 
-  /** Creates a new DSN component */
-  public constructor(from: DSNLike) {
+  /** Creates a new Dsn component */
+  public constructor(from: DsnLike) {
     if (typeof from === 'string') {
       this.fromString(from);
     } else {
@@ -33,7 +33,7 @@ export class DSN implements DSNComponents {
   }
 
   /**
-   * Renders the string representation of this DSN.
+   * Renders the string representation of this Dsn.
    *
    * By default, this will render the public representation without the password
    * component. To get the deprecated private representation, set `withPassword`
@@ -50,11 +50,11 @@ export class DSN implements DSNComponents {
     );
   }
 
-  /** Parses a string into this DSN. */
+  /** Parses a string into this Dsn. */
   private fromString(str: string): void {
-    const match = DSN_REGEX.exec(str);
+    const match = Dsn_REGEX.exec(str);
     if (!match) {
-      throw new SentryError('Invalid DSN');
+      throw new SentryError('Invalid Dsn');
     }
 
     const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -68,8 +68,8 @@ export class DSN implements DSNComponents {
     Object.assign(this, { host, pass, path, projectId, port, protocol, user });
   }
 
-  /** Maps DSN components into this instance. */
-  private fromComponents(components: DSNComponents): void {
+  /** Maps Dsn components into this instance. */
+  private fromComponents(components: DsnComponents): void {
     this.protocol = components.protocol;
     this.user = components.user;
     this.pass = components.pass || '';
@@ -79,20 +79,20 @@ export class DSN implements DSNComponents {
     this.projectId = components.projectId;
   }
 
-  /** Validates this DSN and throws on error. */
+  /** Validates this Dsn and throws on error. */
   private validate(): void {
     for (const component of ['protocol', 'user', 'host', 'projectId']) {
-      if (!this[component as keyof DSNComponents]) {
-        throw new SentryError(`Invalid DSN: Missing ${component}`);
+      if (!this[component as keyof DsnComponents]) {
+        throw new SentryError(`Invalid Dsn: Missing ${component}`);
       }
     }
 
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(`Invalid DSN: Unsupported protocol "${this.protocol}"`);
+      throw new SentryError(`Invalid Dsn: Unsupported protocol "${this.protocol}"`);
     }
 
     if (this.port && isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(`Invalid DSN: Invalid port number "${this.port}"`);
+      throw new SentryError(`Invalid Dsn: Invalid port number "${this.port}"`);
     }
   }
 }

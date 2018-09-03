@@ -28,7 +28,7 @@ jest.mock('http', () => ({
   },
 }));
 
-import { DSN, SentryError } from '@sentry/core';
+import { Dsn, SentryError } from '@sentry/core';
 import { getCurrentHub, init, NodeClient } from '../../src';
 
 const dsn = 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
@@ -73,7 +73,7 @@ describe('HTTPTransport', () => {
     const client = new NodeClient({
       dsn,
       transportOptions: {
-        dsn: new DSN(dsn),
+        dsn: new Dsn(dsn),
         headers: {
           a: 'b',
         },
