@@ -318,4 +318,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     return response;
   }
+
+  /**
+   * @inheritDoc
+   */
+  public async close(timeout?: number): Promise<boolean> {
+    return this.backend.close(timeout);
+  }
 }

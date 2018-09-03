@@ -11,7 +11,7 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async send(event: SentryEvent): Promise<SentryResponse> {
+  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
     const defaultOptions: RequestInit = {
       body: serialize(event),
       method: 'POST',

@@ -110,12 +110,12 @@
 
     // stub transport so we don't actually transmit any data
     function DummyTransport() { }
-    DummyTransport.prototype.send = function (event) {
+    DummyTransport.prototype.captureEvent = function (event) {
       // console.log(JSON.stringify(event, null, 2));
       sentryData.push(event);
-      return {
+      return Promise.resolve({
         status: 'success'
-      }
+      })
     }
 
     Sentry.init({
@@ -123,6 +123,12 @@
       attachStacktrace: true,
       transport: DummyTransport,
       beforeBreadcrumb: function (breadcrumb) {
+        // Filter console logs as we use them for debugging *a lot* and they are not *that* important
+        if (breadcrumb.category === 'console') { return null }
+
+        // overlyComplicatedDebuggingMechanism 'aka' console.log driven debugging
+        // console.log(JSON.stringify(breadcrumb, null, 2));
+
         // Filter internal Karma requests
         if (
           breadcrumb.type === 'http' &&

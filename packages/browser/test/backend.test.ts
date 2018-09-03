@@ -4,7 +4,7 @@ import { BrowserBackend } from '../src/backend';
 import { BaseTransport } from '../src/transports';
 
 class SimpleTransport extends BaseTransport {
-  public async send(_: SentryEvent): Promise<SentryResponse> {
+  public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
     return {
       status: Status.fromHttpCode(200),
     };
@@ -34,7 +34,7 @@ describe('BrowserBackend', () => {
       }
     });
 
-    it('should call send() on provided transport', async () => {
+    it('should call captureEvent() on provided transport', async () => {
       backend = new BrowserBackend({ dsn, transport: SimpleTransport });
       const status = await backend.sendEvent(testEvent);
       expect(status.status).equal(Status.Success);

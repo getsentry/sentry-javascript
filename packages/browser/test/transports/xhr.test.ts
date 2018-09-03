@@ -30,11 +30,11 @@ describe('XHRTransport', () => {
     expect(transport.url).equal(transportUrl);
   });
 
-  describe('send()', async () => {
+  describe('captureEvent()', async () => {
     it('sends a request to Sentry servers', async () => {
       server.respondWith('POST', transportUrl, [200, {}, '']);
 
-      return transport.send(payload).then(res => {
+      return transport.captureEvent(payload).then(res => {
         expect(res.status).equal(Status.Success);
         const request = server.requests[0];
         expect(server.requests.length).equal(1);
@@ -46,7 +46,7 @@ describe('XHRTransport', () => {
     it('rejects with non-200 status code', done => {
       server.respondWith('POST', transportUrl, [403, {}, '']);
 
-      transport.send(payload).catch(res => {
+      transport.captureEvent(payload).catch(res => {
         expect(res.status).equal(403);
 
         const request = server.requests[0];

@@ -29,13 +29,13 @@ describe('FetchTransport', () => {
     expect(transport.url).equal(transportUrl);
   });
 
-  describe('send()', async () => {
+  describe('captureEvent()', async () => {
     it('sends a request to Sentry servers', async () => {
       const response = { status: 200 };
 
       fetch.returns(Promise.resolve(response));
 
-      return transport.send(payload).then(res => {
+      return transport.captureEvent(payload).then(res => {
         expect(res.status).equal(Status.Success);
         expect(fetch.calledOnce).equal(true);
         expect(
@@ -53,7 +53,7 @@ describe('FetchTransport', () => {
 
       fetch.returns(Promise.reject(response));
 
-      return transport.send(payload).catch(res => {
+      return transport.captureEvent(payload).catch(res => {
         expect(res.status).equal(403);
         expect(fetch.calledOnce).equal(true);
         expect(

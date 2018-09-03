@@ -1,4 +1,4 @@
-import { Backend, logger, Options, SentryError } from '@sentry/core';
+import { Backend, logger, Options, SentryError, TransportBuffer } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
@@ -39,6 +39,9 @@ export class BrowserBackend implements Backend {
 
   /** Cached transport used internally. */
   private transport?: Transport;
+
+  /** A simple buffer holding all requests. */
+  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
 
   /**
    * @inheritDoc
@@ -141,8 +144,8 @@ export class BrowserBackend implements Backend {
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     if (!this.options.dsn) {
       logger.warn(`Event has been skipped because no Dsn is configured.`);
-      // We do nothing in case there is no Dsn
-      return { status: Status.Skipped };
+      // We do nothing in case there is no DSN
+      return { status: Status.Skipped, reason: `Event has been skipped because no Dsn is configured.` };
     }
 
     if (!this.transport) {
@@ -161,7 +164,7 @@ export class BrowserBackend implements Backend {
       }
     }
 
-    return this.transport.send(event);
+    return this.buffer.add(this.transport.captureEvent(event));
   }
 
   /**
@@ -176,5 +179,12 @@ export class BrowserBackend implements Backend {
    */
   public storeScope(): void {
     // Noop
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async close(timeout?: number): Promise<boolean> {
+    return this.buffer.drain(timeout);
   }
 }

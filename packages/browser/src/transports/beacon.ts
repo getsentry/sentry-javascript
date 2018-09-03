@@ -10,7 +10,7 @@ export class BeaconTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async send(event: SentryEvent): Promise<SentryResponse> {
+  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
     const data = serialize(event);
 
     const result = global.navigator.sendBeacon(this.url, data);
