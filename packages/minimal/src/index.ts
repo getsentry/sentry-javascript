@@ -9,6 +9,7 @@ import { Breadcrumb, SentryEvent, Severity } from '@sentry/types';
 function callOnHub<T>(method: string, ...args: any[]): T {
   const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
+    // tslint:disable-next-line:no-unsafe-any
     return (hub[method as keyof Hub] as any)(...args);
   }
   throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
@@ -66,7 +67,7 @@ export function captureEvent(event: SentryEvent): string {
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  callOnHub('addBreadcrumb', breadcrumb);
+  callOnHub<void>('addBreadcrumb', breadcrumb);
 }
 
 /**
@@ -74,7 +75,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub('configureScope', callback);
+  callOnHub<void>('configureScope', callback);
 }
 
 /**
@@ -87,5 +88,5 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {
-  callOnHub('invokeClient', method, ...args);
+  callOnHub<void>('invokeClient', method, ...args);
 }
