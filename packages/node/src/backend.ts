@@ -1,4 +1,4 @@
-import { Backend, Dsn, Options, Queue, SentryError } from '@sentry/core';
+import { Backend, Dsn, Options, SentryError, TransportBuffer } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -27,8 +27,8 @@ export class NodeBackend implements Backend {
   /** Cached transport used internally. */
   private transport?: Transport;
 
-  /** A simple queue holding all requests. */
-  private readonly queue: Queue<SentryResponse> = new Queue();
+  /** A simple buffer holding all requests. */
+  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
 
   /**
    * @inheritDoc
@@ -108,7 +108,7 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
-    return this.queue.add(this.transport.captureEvent(event));
+    return this.buffer.add(this.transport.captureEvent(event));
   }
 
   /**
@@ -129,6 +129,6 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.queue.drain(timeout);
+    return this.buffer.drain(timeout);
   }
 }

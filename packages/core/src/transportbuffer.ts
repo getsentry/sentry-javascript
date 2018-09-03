@@ -1,7 +1,7 @@
 /** A simple queue that holds promises. */
-export class Queue<T> {
+export class TransportBuffer<T> {
   /** Internal set of queued Promises */
-  private readonly queue: Set<Promise<T>> = new Set();
+  private readonly buffer: Set<Promise<T>> = new Set();
 
   /**
    * Add a promise to the queue.
@@ -10,8 +10,8 @@ export class Queue<T> {
    * @returns The original promise.
    */
   public async add(task: Promise<T>): Promise<T> {
-    this.queue.add(task);
-    task.then(() => this.queue.delete(task)).catch(() => this.queue.delete(task));
+    this.buffer.add(task);
+    task.then(() => this.buffer.delete(task)).catch(() => this.buffer.delete(task));
     return task;
   }
 
@@ -19,7 +19,7 @@ export class Queue<T> {
    * This function returns the number of unresolved promises in the queue.
    */
   public length(): number {
-    return this.queue.size;
+    return this.buffer.size;
   }
 
   /**
@@ -35,7 +35,7 @@ export class Queue<T> {
           resolve(false);
         }
       }, timeout);
-      Promise.all(this.queue.values())
+      Promise.all(this.buffer.values())
         .then(() => {
           clearTimeout(capturedSetTimeout);
           resolve(true);

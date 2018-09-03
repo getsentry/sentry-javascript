@@ -113,9 +113,9 @@
     DummyTransport.prototype.captureEvent = function (event) {
       // console.log(JSON.stringify(event, null, 2));
       sentryData.push(event);
-      return {
+      return Promise.resolve({
         status: 'success'
-      }
+      })
     }
 
     Sentry.init({

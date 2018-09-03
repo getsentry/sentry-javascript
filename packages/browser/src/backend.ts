@@ -1,4 +1,4 @@
-import { Backend, logger, Options, Queue, SentryError } from '@sentry/core';
+import { Backend, logger, Options, SentryError, TransportBuffer } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
@@ -40,8 +40,8 @@ export class BrowserBackend implements Backend {
   /** Cached transport used internally. */
   private transport?: Transport;
 
-  /** A simple queue holding all requests. */
-  private readonly queue: Queue<SentryResponse> = new Queue();
+  /** A simple buffer holding all requests. */
+  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
 
   /**
    * @inheritDoc
@@ -164,7 +164,7 @@ export class BrowserBackend implements Backend {
       }
     }
 
-    return this.queue.add(this.transport.captureEvent(event));
+    return this.buffer.add(this.transport.captureEvent(event));
   }
 
   /**
@@ -185,6 +185,6 @@ export class BrowserBackend implements Backend {
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.queue.drain(timeout);
+    return this.buffer.drain(timeout);
   }
 }
