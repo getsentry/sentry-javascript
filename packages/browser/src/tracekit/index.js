@@ -230,7 +230,6 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    */
   function traceKitWindowOnError(message, url, lineNo, columnNo, errorObj) {
-    debugger;
     var stack = null;
     // If 'errorObj' is ErrorEvent, get real Error from inside
     errorObj = isErrorEvent(errorObj) ? errorObj.error : errorObj;

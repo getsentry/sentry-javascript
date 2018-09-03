@@ -39,7 +39,7 @@ export class OnUnhandledRejection implements Integration {
         }
         scope.setExtra('unhandledPromiseRejection', true);
       });
-      getCurrentHub().captureException(reason);
+      getCurrentHub().captureException(reason, { originalException: promise });
     });
   }
 }

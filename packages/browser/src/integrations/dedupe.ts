@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent, SentryException, StackFrame } from '@sentry/types';
 
 /** Deduplication filter */
@@ -18,17 +18,19 @@ export class Dedupe implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    getCurrentHub().addEventProcessor(async (event: SentryEvent) => {
-      // Juuust in case something goes wrong
-      try {
-        if (this.shouldDropEvent(event)) {
-          return null;
+    getCurrentHub().configureScope((scope: Scope) => {
+      scope.addEventProcessor(async (event: SentryEvent) => {
+        // Juuust in case something goes wrong
+        try {
+          if (this.shouldDropEvent(event)) {
+            return null;
+          }
+        } catch (_oO) {
+          return (this.previousEvent = event);
         }
-      } catch (_oO) {
-        return (this.previousEvent = event);
-      }
 
-      return (this.previousEvent = event);
+        return (this.previousEvent = event);
+      });
     });
   }
 

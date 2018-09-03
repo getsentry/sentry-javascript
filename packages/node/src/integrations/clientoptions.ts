@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { NodeOptions } from '../backend';
 
@@ -13,17 +13,19 @@ export class ClientOptions implements Integration {
    * @inheritDoc
    */
   public install(options: NodeOptions = {}): void {
-    getCurrentHub().addEventProcessor(async (event: SentryEvent) => {
-      const preparedEvent: SentryEvent = {
-        ...event,
-        platform: 'node',
-      };
+    getCurrentHub().configureScope((scope: Scope) => {
+      scope.addEventProcessor(async (event: SentryEvent) => {
+        const preparedEvent: SentryEvent = {
+          ...event,
+          platform: 'node',
+        };
 
-      if (options.serverName) {
-        event.server_name = options.serverName;
-      }
+        if (options.serverName) {
+          event.server_name = options.serverName;
+        }
 
-      return preparedEvent;
+        return preparedEvent;
+      });
     });
   }
 }

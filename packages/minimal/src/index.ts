@@ -1,55 +1,61 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent, Severity } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.
  * @param args to pass to function.
  */
-function callOnHub(method: string, ...args: any[]): void {
+function callOnHub<T>(method: string, ...args: any[]): T {
   const hub = getCurrentHub();
   if (hub && hub[method as keyof Hub]) {
-    (hub[method as keyof Hub] as any)(...args);
+    // tslint:disable-next-line:no-unsafe-any
+    return (hub[method as keyof Hub] as any)(...args);
   }
+  throw new Error(`No hub defined or ${method} was not found on the hub, please open a bug report.`);
 }
 
 /**
  * Captures an exception event and sends it to Sentry.
  *
  * @param exception An exception-like object.
+ * @returns The generated eventId.
  */
-export function captureException(exception: any): void {
+export function captureException(exception: any): string {
   let syntheticException: Error;
   try {
     throw new Error('Sentry syntheticException');
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureException', exception, syntheticException);
+  return callOnHub('captureException', exception, { syntheticException });
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
  * @param message The message to send to Sentry.
+ * @param level Define the level of the message.
+ * @returns The generated eventId.
  */
-export function captureMessage(message: string): void {
+export function captureMessage(message: string, level?: Severity): string {
   let syntheticException: Error;
   try {
     throw new Error(message);
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  callOnHub('captureMessage', message, syntheticException);
+  return callOnHub('captureMessage', message, level, { syntheticException });
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
  * @param event The event to send to Sentry.
+ * @returns The generated eventId.
  */
-export function captureEvent(event: SentryEvent): void {
-  callOnHub('captureEvent', event);
+export function captureEvent(event: SentryEvent): string {
+  return callOnHub('captureEvent', event);
 }
 
 /**
@@ -61,7 +67,7 @@ export function captureEvent(event: SentryEvent): void {
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb): void {
-  callOnHub('addBreadcrumb', breadcrumb);
+  callOnHub<void>('addBreadcrumb', breadcrumb);
 }
 
 /**
@@ -69,7 +75,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
  * @param callback Callback function that receives Scope.
  */
 export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub('configureScope', callback);
+  callOnHub<void>('configureScope', callback);
 }
 
 /**
@@ -82,5 +88,5 @@ export function configureScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {
-  callOnHub('invokeClient', method, ...args);
+  callOnHub<void>('invokeClient', method, ...args);
 }

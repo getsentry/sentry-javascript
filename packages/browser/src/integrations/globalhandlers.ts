@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { captureEvent } from '@sentry/minimal';
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { eventFromStacktrace } from '../parsers';
 import {
@@ -29,7 +29,7 @@ export class GlobalHandlers implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    subscribe((stack: TraceKitStackTrace) => {
+    subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
       // TODO: use stack.context to get a valuable information from TraceKit, eg.
       // [
       //   0: "  })"
@@ -47,7 +47,7 @@ export class GlobalHandlers implements Integration {
       if (shouldIgnoreOnError()) {
         return;
       }
-      captureEvent(this.eventFromGlobalHandler(stack));
+      getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
     });
 
     if (this.options.onerror) {

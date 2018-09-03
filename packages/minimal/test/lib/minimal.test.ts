@@ -1,4 +1,4 @@
-import { getHubFromCarrier, getCurrentHub, Scope } from '@sentry/hub';
+import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import {
   _callOnClient,
   addBreadcrumb,
@@ -19,6 +19,18 @@ describe('Minimal', () => {
   });
 
   describe('Capture', () => {
+    test('Return an event_id', () => {
+      const client = {
+        captureException: jest.fn(async () => Promise.resolve()),
+      };
+      getCurrentHub().withScope(() => {
+        getCurrentHub().bindClient(client);
+        const e = new Error('test exception');
+        const eventId = captureException(e);
+        expect(eventId).toBeTruthy();
+      });
+    });
+
     test('Exception', () => {
       const client = {
         captureException: jest.fn(async () => Promise.resolve()),

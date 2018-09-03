@@ -1,10 +1,10 @@
 import { Backend, logger, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
-import { supportsFetch } from '@sentry/utils/supports';
+import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
-import { FetchTransport, XHRTransport } from './transports';
+import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -37,6 +37,9 @@ export class BrowserBackend implements Backend {
   /** Creates a new browser backend instance. */
   public constructor(private readonly options: BrowserOptions = {}) {}
 
+  /** Cached transport used internally. */
+  private transport?: Transport;
+
   /**
    * @inheritDoc
    */
@@ -57,7 +60,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
     let event;
 
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -74,16 +77,16 @@ export class BrowserBackend implements Backend {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      event = await this.eventFromMessage(message, syntheticException);
+      event = await this.eventFromMessage(message, undefined, hint);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-    } else if (isPlainObject(exception as {})) {
+    } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
       const ex = exception as {};
-      event = eventFromPlainObject(ex, syntheticException);
+      event = eventFromPlainObject(ex, hint.syntheticException);
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a DOMError/DOMException
@@ -92,11 +95,12 @@ export class BrowserBackend implements Backend {
       // it's not an Error
       // So bail out and capture it as a simple message:
       const ex = exception as string;
-      event = await this.eventFromMessage(ex, syntheticException);
+      event = await this.eventFromMessage(ex, undefined, hint);
     }
 
     event = {
       ...event,
+      event_id: hint && hint.event_id,
       exception: {
         ...event.exception,
         mechanism: {
@@ -112,14 +116,16 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string, syntheticException: Error | null): Promise<SentryEvent> {
+  public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
     const event: SentryEvent = {
+      event_id: hint && hint.event_id,
       fingerprint: [message],
+      level,
       message,
     };
 
-    if (this.options.attachStacktrace && syntheticException) {
-      const stacktrace = computeStackTrace(syntheticException);
+    if (this.options.attachStacktrace && hint && hint.syntheticException) {
+      const stacktrace = computeStackTrace(hint.syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
       event.stacktrace = {
         frames,
@@ -139,15 +145,23 @@ export class BrowserBackend implements Backend {
       return { status: Status.Skipped };
     }
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
+    if (!this.transport) {
+      const transportOptions = this.options.transportOptions
+        ? this.options.transportOptions
+        : { dsn: this.options.dsn };
 
-    const transport = this.options.transport
-      ? new this.options.transport({ dsn: this.options.dsn })
-      : supportsFetch()
-        ? new FetchTransport(transportOptions)
-        : new XHRTransport(transportOptions);
+      if (this.options.transport) {
+        this.transport = new this.options.transport({ dsn: this.options.dsn });
+      } else if (supportsBeacon()) {
+        this.transport = new BeaconTransport(transportOptions);
+      } else if (supportsFetch()) {
+        this.transport = new FetchTransport(transportOptions);
+      } else {
+        this.transport = new XHRTransport(transportOptions);
+      }
+    }
 
-    return transport.send(event);
+    return this.transport.send(event);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent, User } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryEventHint, User } from '@sentry/types';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -12,7 +12,7 @@ export class Scope {
   protected scopeListeners: Array<(scope: Scope) => void> = [];
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected eventProcessors: Array<(scope: SentryEvent) => Promise<SentryEvent | null>> = [];
+  protected eventProcessors: Array<(scope: SentryEvent, hint?: SentryEventHint) => Promise<SentryEvent | null>> = [];
 
   /** Array of breadcrumbs. */
   protected breadcrumbs: Breadcrumb[] = [];
@@ -35,7 +35,9 @@ export class Scope {
   }
 
   /** Add new event processor that will be called after {@link applyToEvent}. */
-  public addEventProcessor(callback: (scope: SentryEvent) => Promise<SentryEvent | null>): void {
+  public addEventProcessor(
+    callback: (scope: SentryEvent, hint?: SentryEventHint) => Promise<SentryEvent | null>,
+  ): void {
     this.eventProcessors.push(callback);
   }
 
@@ -57,13 +59,12 @@ export class Scope {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected async notifyEventProcessors(event: SentryEvent): Promise<SentryEvent | null> {
+  protected async notifyEventProcessors(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
     let processedEvent: SentryEvent | null = event;
     for (const processor of this.eventProcessors) {
       try {
-        processedEvent = await processor({ ...processedEvent });
+        processedEvent = await processor({ ...processedEvent }, hint);
         if (processedEvent === null) {
-          // tslint:disable-next-line:no-null-keyword
           return null;
         }
       } catch (e) {
@@ -177,9 +178,14 @@ export class Scope {
    * Note that breadcrumbs will be added by the client.
    * Also if the event has already breadcrumbs on it, we do not merge them.
    * @param event SentryEvent
+   * @param hint May contain additional informartion about the original exception.
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
-  public async applyToEvent(event: SentryEvent, maxBreadcrumbs?: number): Promise<SentryEvent | null> {
+  public async applyToEvent(
+    event: SentryEvent,
+    hint?: SentryEventHint,
+    maxBreadcrumbs?: number,
+  ): Promise<SentryEvent | null> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -201,6 +207,6 @@ export class Scope {
           : this.breadcrumbs;
     }
 
-    return this.notifyEventProcessors(event);
+    return this.notifyEventProcessors(event, hint);
   }
 }

@@ -1126,7 +1126,6 @@ describe('integration', function() {
         function() {
           var Sentry = iframe.contentWindow.Sentry;
           var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
-
           assert.equal(breadcrumbs.length, 1);
           assert.equal(breadcrumbs[0].category, 'ui.input');
           assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
@@ -1162,7 +1161,6 @@ describe('integration', function() {
           var Sentry = iframe.contentWindow.Sentry;
           var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
-          // 2x `ui_event`
           assert.equal(breadcrumbs.length, 3);
 
           assert.equal(breadcrumbs[0].category, 'ui.input');

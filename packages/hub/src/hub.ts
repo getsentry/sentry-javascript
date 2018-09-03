@@ -1,4 +1,5 @@
-import { Breadcrumb, SentryEvent } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import { uuid4 } from '@sentry/utils/misc';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -8,7 +9,7 @@ import { Scope } from './scope';
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
  */
-export const API_VERSION = 2;
+export const API_VERSION = 3;
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -17,6 +18,9 @@ export const API_VERSION = 2;
 export class Hub {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly stack: Layer[] = [];
+
+  /** Contains the last event id of a captured event.  */
+  private _lastEventId?: string;
 
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
@@ -164,29 +168,57 @@ export class Hub {
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
-   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
+   * @param hint May contain additional informartion about the original exception.
+   * @returns The generated eventId.
    */
-  public captureException(exception: any, syntheticException: Error | null = null): void {
-    this.invokeClientAsync('captureException', exception, syntheticException);
+  public captureException(exception: any, hint?: SentryEventHint): string {
+    const eventId = (this._lastEventId = uuid4());
+    this.invokeClientAsync('captureException', exception, {
+      ...hint,
+      event_id: eventId,
+    });
+    return eventId;
   }
 
   /**
    * Captures a message event and sends it to Sentry.
    *
    * @param message The message to send to Sentry.
-   * @param syntheticException Manually thrown exception at the very top, to get _any_ valuable stack trace
+   * @param level Define the level of the message.
+   * @param hint May contain additional informartion about the original exception.
+   * @returns The generated eventId.
    */
-  public captureMessage(message: string, syntheticException: Error | null = null): void {
-    this.invokeClientAsync('captureMessage', message, syntheticException);
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
+    const eventId = (this._lastEventId = uuid4());
+    this.invokeClientAsync('captureMessage', message, level, {
+      ...hint,
+      event_id: eventId,
+    });
+    return eventId;
   }
 
   /**
    * Captures a manually created event and sends it to Sentry.
    *
    * @param event The event to send to Sentry.
+   * @param hint May contain additional informartion about the original exception.
    */
-  public captureEvent(event: SentryEvent): void {
-    this.invokeClientAsync('captureEvent', event);
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
+    const eventId = (this._lastEventId = uuid4());
+    this.invokeClientAsync('captureEvent', event, {
+      ...hint,
+      event_id: eventId,
+    });
+    return eventId;
+  }
+
+  /**
+   * This is the getter for lastEventId.
+   *
+   * @returns The last event id of a captured event.
+   */
+  public lastEventId(): string | undefined {
+    return this._lastEventId;
   }
 
   /**
@@ -211,17 +243,6 @@ export class Hub {
     if (top.scope && top.client) {
       // TODO: freeze flag
       callback(top.scope);
-    }
-  }
-
-  /**
-   * This will be called to receive the event
-   * @param callback will only be called if there is a bound client
-   */
-  public addEventProcessor(callback: (event: SentryEvent) => Promise<SentryEvent | null>): void {
-    const top = this.getStackTop();
-    if (top.scope && top.client) {
-      top.scope.addEventProcessor(callback);
     }
   }
 }

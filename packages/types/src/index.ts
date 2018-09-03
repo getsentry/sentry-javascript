@@ -210,6 +210,7 @@ export interface Integration {
 /** JSDoc */
 export interface SentryResponse {
   status: Status;
+  event?: SentryEvent;
 }
 
 /** JSDoc */
@@ -280,4 +281,12 @@ export interface SentryWrappedFunction extends Function {
   __sentry__?: boolean;
   __sentry_wrapper__?: SentryWrappedFunction;
   __sentry_original__?: SentryWrappedFunction;
+}
+
+/** JSDoc */
+export interface SentryEventHint {
+  event_id?: string;
+  syntheticException?: Error | null;
+  originalException?: Error | null;
+  data?: any;
 }

@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryResponse } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { Backend, Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
@@ -43,7 +43,7 @@ export class TestBackend implements Backend {
 
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     this.event = event;
-    return { code: 200 };
+    return { status: Status.Success };
   }
 
   public storeBreadcrumb(_breadcrumb: Breadcrumb): boolean | Promise<boolean> {

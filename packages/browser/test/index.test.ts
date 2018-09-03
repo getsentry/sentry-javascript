@@ -12,6 +12,7 @@ import {
   init,
   Scope,
   SentryEvent,
+  Status,
 } from '../src';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
@@ -64,7 +65,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
     });
 
     afterEach(() => {
@@ -75,9 +76,10 @@ describe('SentryBrowser', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.breadcrumbs!).to.have.lengthOf(2);
             done();
+            return event;
           },
           dsn,
         }),
@@ -95,7 +97,7 @@ describe('SentryBrowser', () => {
     let s: sinon.SinonStub;
 
     beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve(200));
+      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
     });
 
     afterEach(() => {
@@ -106,13 +108,14 @@ describe('SentryBrowser', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.exception).to.not.be.undefined;
             expect(event.exception!.values![0]).to.not.be.undefined;
             expect(event.exception!.values![0].type).to.equal('Error');
             expect(event.exception!.values![0].value).to.equal('test');
             expect(event.exception!.values![0].stacktrace).to.not.be.empty;
             done();
+            return event;
           },
           dsn,
         }),
@@ -129,10 +132,11 @@ describe('SentryBrowser', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
             done();
+            return event;
           },
           dsn,
         }),
@@ -145,10 +149,11 @@ describe('SentryBrowser', () => {
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
-          afterSend: (event: SentryEvent) => {
+          beforeSend: (event: SentryEvent) => {
             expect(event.message).to.equal('event');
             expect(event.exception).to.be.undefined;
             done();
+            return event;
           },
           dsn,
         }),

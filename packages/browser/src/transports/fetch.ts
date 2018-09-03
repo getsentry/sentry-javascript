@@ -14,7 +14,6 @@ export class FetchTransport extends BaseTransport {
   public async send(event: SentryEvent): Promise<SentryResponse> {
     const defaultOptions: RequestInit = {
       body: serialize(event),
-      keepalive: true,
       method: 'POST',
       // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
       // https://caniuse.com/#feat=referrer-policy

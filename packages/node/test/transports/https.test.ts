@@ -29,7 +29,7 @@ jest.mock('https', () => ({
 }));
 
 import { DSN, SentryError } from '@sentry/core';
-import { captureMessage, init, NodeClient, SentryEvent } from '../../src';
+import { getCurrentHub, init, NodeClient } from '../../src';
 
 const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 
@@ -39,16 +39,14 @@ describe('HTTPSTransport', () => {
     mockReturnCode = 200;
   });
 
-  test('send 200', done => {
+  test('send 200', async () => {
     init({
-      afterSend: (event: SentryEvent) => {
-        expect(mockSetEncoding).toHaveBeenCalled();
-        expect(event.message).toBe('test');
-        done();
-      },
       dsn,
     });
-    captureMessage('test');
+    await getCurrentHub()
+      .getClient()
+      .captureMessage('test');
+    expect(mockSetEncoding).toHaveBeenCalled();
   });
 
   test('send 400', async () => {
