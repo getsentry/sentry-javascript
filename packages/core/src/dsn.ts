@@ -2,7 +2,7 @@ import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
-const Dsn_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
 /** The Sentry Dsn, identifying a Sentry instance and project. */
 export class Dsn implements DsnComponents {
@@ -52,7 +52,7 @@ export class Dsn implements DsnComponents {
 
   /** Parses a string into this Dsn. */
   private fromString(str: string): void {
-    const match = Dsn_REGEX.exec(str);
+    const match = DSN_REGEX.exec(str);
     if (!match) {
       throw new SentryError('Invalid Dsn');
     }
