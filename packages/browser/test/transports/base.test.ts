@@ -7,7 +7,7 @@ class SimpleTransport extends BaseTransport {}
 
 describe('BaseTransport', () => {
   it('doesnt provide captureEvent() implementation', async () => {
-    const transport = new SimpleTransport({ dsn: testDSN });
+    const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
       await transport.captureEvent({});
