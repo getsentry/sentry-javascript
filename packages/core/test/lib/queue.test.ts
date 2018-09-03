@@ -1,5 +1,7 @@
 import { Queue } from '../../src/queue';
 
+// tslint:disable:no-floating-promises
+
 describe('Queue', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -67,6 +69,17 @@ describe('Queue', () => {
     expect(q.length()).toBe(5);
     q.drain(50).then(result => {
       expect(result).toBeFalsy();
+    });
+    jest.runAllTimers();
+  });
+
+  test('drain() on empty queue', async () => {
+    expect.assertions(3);
+    const q = new Queue<void>();
+    expect(q.length()).toBe(0);
+    q.drain().then(result => {
+      expect(result).toBeTruthy();
+      expect(q.length()).toBe(0);
     });
     jest.runAllTimers();
   });

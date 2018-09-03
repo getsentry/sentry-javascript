@@ -314,7 +314,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): Promise<boolean> {
+  public async close(timeout?: number): Promise<boolean> {
     return this.backend.close(timeout);
   }
 }

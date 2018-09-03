@@ -58,10 +58,15 @@ describe('SentryNode', () => {
     captureMessage('test');
     captureMessage('test');
     captureMessage('test');
-    client.close(50).then(result => {
-      expect(result).toBeFalsy();
-      done();
-    });
+    client
+      .close(50)
+      .then(result => {
+        expect(result).toBeFalsy();
+        done();
+      })
+      .catch(() => {
+        // test
+      });
     jest.runAllTimers();
     getCurrentHub().popScope();
   });
@@ -79,10 +84,15 @@ describe('SentryNode', () => {
     captureMessage('test');
     captureMessage('test');
     jest.runAllTimers();
-    client.close(50).then(result => {
-      expect(result).toBeFalsy();
-      done();
-    });
+    client
+      .close(50)
+      .then(result => {
+        expect(result).toBeFalsy();
+        done();
+      })
+      .catch(() => {
+        // test
+      });
     jest.runAllTimers();
     getCurrentHub().popScope();
   });

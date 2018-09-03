@@ -41,7 +41,7 @@ export class BrowserBackend implements Backend {
   private transport?: Transport;
 
   /** A simple queue holding all requests. */
-  private queue: Queue<SentryResponse> = new Queue();
+  private readonly queue: Queue<SentryResponse> = new Queue();
 
   /**
    * @inheritDoc
@@ -184,7 +184,7 @@ export class BrowserBackend implements Backend {
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): Promise<boolean> {
+  public async close(timeout?: number): Promise<boolean> {
     return this.queue.drain(timeout);
   }
 }
