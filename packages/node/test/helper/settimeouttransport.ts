@@ -8,7 +8,7 @@ export class SetTimeoutTransport extends BaseTransport {
         resolve({
           status: Status.fromHttpCode(200),
         });
-      }, (process as any).SENTRY_REQUEST_TIMEOUT || 1);
+      }, 1);
     });
   }
 }

@@ -1,6 +1,7 @@
 import { logger } from '@sentry/core';
 import { getHubFromCarrier, Scope } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
+import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
 import { parse as parseCookie } from 'cookie';
 import * as domain from 'domain';
@@ -9,6 +10,8 @@ import { hostname } from 'os';
 import { parse as parseUrl } from 'url';
 import { NodeClient } from './client';
 import { getCurrentHub } from './hub';
+
+const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
 let moduleCache: { [key: string]: string };
 
@@ -203,18 +206,16 @@ export function defaultOnFatalError(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
   const options = (getCurrentHub().getClient() as NodeClient).getOptions();
   const timeout =
-    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) || 2000;
-  (getCurrentHub().getClient() as NodeClient)
-    .close(timeout)
-    .then((result: boolean) => {
+    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
+    DEFAULT_SHUTDOWN_TIMEOUT;
+  forget(
+    (getCurrentHub().getClient() as NodeClient).close(timeout).then((result: boolean) => {
       if (!result) {
         logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
       }
       global.process.exit(1);
-    })
-    .catch(() => {
-      // Noop, this promise always resolves
-    });
+    }),
+  );
 }
 
 /** JSDoc */
