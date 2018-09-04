@@ -15,15 +15,4 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   public constructor(options: NodeOptions) {
     super(NodeBackend, options);
   }
-
-  /**
-   * A promise that resolves whenever the request buffer is empty.
-   * If you provide a timeout and the buffer takes longer to drain the promise returns false.
-   * The promise only rejects if {@link Backend.close} is not implemented.
-   *
-   * @param timeout Maximum time in ms the client should wait.
-   */
-  public async close(timeout?: number): Promise<boolean> {
-    return this.getBackend().close ? this.getBackend().close(timeout) : Promise.resolve(false);
-  }
 }

@@ -1,6 +1,7 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent, SentryResponse, Status } from '@sentry/types';
 import { Backend, Options } from '../../src/interfaces';
+import { RequestBuffer } from '../../src/requestbuffer';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -12,6 +13,7 @@ export class TestBackend implements Backend {
 
   public installed: number;
   public event?: SentryEvent;
+  public buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
 
   public constructor(private readonly options: TestOptions) {
     TestBackend.instance = this;
@@ -52,5 +54,9 @@ export class TestBackend implements Backend {
 
   public storeScope(_: Scope): void {
     // noop
+  }
+
+  public getBuffer(): RequestBuffer<SentryResponse> {
+    return this.buffer;
   }
 }

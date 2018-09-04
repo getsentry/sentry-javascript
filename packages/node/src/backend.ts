@@ -1,4 +1,4 @@
-import { Backend, Dsn, logger, Options, RequestBuffer, SentryError } from '@sentry/core';
+import { Backend, Dsn, Options, RequestBuffer, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -111,8 +111,7 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
-    logger.log('adding request');
-    return this.buffer.add(this.transport.captureEvent(event));
+    return this.transport.captureEvent(event);
   }
 
   /**
@@ -129,14 +128,7 @@ export class NodeBackend implements Backend {
     // Noop
   }
 
-  /**
-   * @inheritDoc
-   */
-  public async close(timeout?: number): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
-      setImmediate(async () => {
-        resolve(await this.buffer.drain(timeout));
-      });
-    });
+  public getBuffer(): RequestBuffer<SentryResponse> {
+    return this.buffer;
   }
 }
