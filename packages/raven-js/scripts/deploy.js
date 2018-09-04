@@ -62,8 +62,8 @@ process.on('unhandledRejection', reason => console.log(reason));
 
   if (shouldUpdateFiles) {
     updatePackageConfig(nextVersion);
-    updateBowerConfig(nextVersion);
-    updateDocsConfig(nextVersion);
+    // updateBowerConfig(nextVersion);
+    // updateDocsConfig(nextVersion);
     updateSource(nextVersion);
     updateTest(nextVersion);
   }
