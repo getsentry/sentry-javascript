@@ -1,21 +1,20 @@
-import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryResponse, Status } from '@sentry/types';
-import { Backend, Options } from '../../src/interfaces';
-import { RequestBuffer } from '../../src/requestbuffer';
+import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { BaseBackend } from '../../src/basebackend';
+import { Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
   mockInstallFailure?: boolean;
 }
 
-export class TestBackend implements Backend {
+export class TestBackend extends BaseBackend<TestOptions> {
   public static instance?: TestBackend;
 
   public installed: number;
   public event?: SentryEvent;
-  public buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
 
-  public constructor(private readonly options: TestOptions) {
+  public constructor(protected readonly options: TestOptions) {
+    super(options);
     TestBackend.instance = this;
     this.installed = 0;
   }
@@ -46,17 +45,5 @@ export class TestBackend implements Backend {
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     this.event = event;
     return { status: Status.Success };
-  }
-
-  public storeBreadcrumb(_breadcrumb: Breadcrumb): boolean | Promise<boolean> {
-    return true;
-  }
-
-  public storeScope(_: Scope): void {
-    // noop
-  }
-
-  public getBuffer(): RequestBuffer<SentryResponse> {
-    return this.buffer;
   }
 }

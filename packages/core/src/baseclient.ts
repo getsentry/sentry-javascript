@@ -10,6 +10,7 @@ import {
 } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
+import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 
@@ -29,11 +30,6 @@ const MAX_BREADCRUMBS = 100;
  * By default, truncates URL values to 250 chars
  */
 const MAX_URL_LENGTH = 250;
-
-/** A class object that can instanciate Backend objects. */
-export interface BackendClass<B extends Backend, O extends Options> {
-  new (options: O): B;
-}
 
 /**
  * Base implementation for all JavaScript SDK clients.

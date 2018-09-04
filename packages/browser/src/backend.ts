@@ -1,5 +1,5 @@
-import { Backend, logger, Options, RequestBuffer, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
+import { BaseBackend, logger, Options, SentryError } from '@sentry/core';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
@@ -33,16 +33,7 @@ export interface BrowserOptions extends Options {
 }
 
 /** The Sentry Browser SDK Backend. */
-export class BrowserBackend implements Backend {
-  /** Creates a new browser backend instance. */
-  public constructor(private readonly options: BrowserOptions = {}) {}
-
-  /** Cached transport used internally. */
-  private transport?: Transport;
-
-  /** A simple buffer holding all requests. */
-  private readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
-
+export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
@@ -165,23 +156,5 @@ export class BrowserBackend implements Backend {
     }
 
     return this.transport.captureEvent(event);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeBreadcrumb(): boolean {
-    return true;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeScope(): void {
-    // Noop
-  }
-
-  public getBuffer(): RequestBuffer<SentryResponse> {
-    return this.buffer;
   }
 }
