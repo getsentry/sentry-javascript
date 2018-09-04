@@ -6,6 +6,8 @@ const MATRIX = [
   { name: 'string', object: 'test', serialized: '"test"' },
   { name: 'array', object: [1, 'test'], serialized: '[1,"test"]' },
   { name: 'object', object: { a: 'test' }, serialized: '{"a":"test"}' },
+  { name: 'nan', object: { a: NaN }, serialized: '{"a":"[NaN]"}' },
+  { name: 'undefined', object: { a: undefined }, serialized: '{"a":"[undefined]"}' },
 ];
 
 describe('clone()', () => {

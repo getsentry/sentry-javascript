@@ -1,4 +1,4 @@
-import { isPlainObject } from './is';
+import { isPlainObject, isUndefined } from './is';
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
@@ -38,6 +38,9 @@ function objectifyError(error: ExtendedError): object {
   return err;
 }
 
+const NAN_VALUE = '[NaN]';
+const UNDEFINED_VALUE = '[undefined]';
+
 /**
  * Serializer function used as 2nd argument to JSON.serialize in `serialize()` util function.
  */
@@ -53,6 +56,13 @@ function serializer(): (key: string, value: any) => any {
 
   return function(this: any, key: string, value: any): any {
     let currentValue: any = value;
+
+    // NaN and undefined are not JSON.parseable, but we want to preserve this information
+    if (Number.isNaN(value as any)) {
+      currentValue = NAN_VALUE;
+    } else if (isUndefined(value)) {
+      currentValue = UNDEFINED_VALUE;
+    }
 
     if (stack.length > 0) {
       const thisPos = stack.indexOf(this);
@@ -74,6 +84,20 @@ function serializer(): (key: string, value: any) => any {
 
     return currentValue instanceof Error ? objectifyError(currentValue) : currentValue;
   };
+}
+
+/**
+ * Reviver function used as 2nd argument to JSON.parse in `deserialize()` util function.
+ */
+function reviver(_key: string, value: any): any {
+  // NaN and undefined are not JSON.parseable, but we want to preserve this information
+  if (value === NAN_VALUE) {
+    return NaN;
+  }
+  if (value === UNDEFINED_VALUE) {
+    return undefined;
+  }
+  return value;
 }
 
 /**
@@ -100,7 +124,7 @@ export function serialize<T>(object: T): string {
  * @returns The deserialized object.
  */
 export function deserialize<T>(str: string): T {
-  return JSON.parse(str) as T;
+  return JSON.parse(str, reviver) as T;
 }
 
 /**
@@ -181,6 +205,11 @@ function serializeValue<T>(value: T): T | string {
     return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
   } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'undefined') {
     return value;
+  } else if (Number.isNaN(value as any)) {
+    // NaN and undefined are not JSON.parseable, but we want to preserve this information
+    return '[NaN]';
+  } else if (isUndefined(value)) {
+    return '[undefined]';
   }
 
   const type = Object.prototype.toString.call(value);
