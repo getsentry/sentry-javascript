@@ -13,6 +13,7 @@ import {
   TransportOptions,
 } from '@sentry/types';
 import { Dsn } from './dsn';
+import { RequestBuffer } from './requestbuffer';
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -198,9 +199,8 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * A promise that resolves whenever the transport buffer is empty.
+   * A promise that resolves whenever the request buffer is empty.
    * If you provide a timeout and the buffer takes longer to drain the promise returns false.
-   * Calls {@link Backend.close}.
    *
    * @param timeout Maximum time in ms the client should wait.
    */
@@ -267,10 +267,8 @@ export interface Backend {
   storeScope(scope: Scope): void;
 
   /**
-   * A promise that resolves whenever the transport buffer is empty.
-   * If you provide a timeout and the buffer takes longer to drain the promise returns false.
-   *
-   * @param timeout Maximum time in ms the client should wait.
+   * Returns the internal instance of the request buffer.
+   * Only used internally.
    */
-  close(timeout?: number): Promise<boolean>;
+  getBuffer(): RequestBuffer<SentryResponse>;
 }

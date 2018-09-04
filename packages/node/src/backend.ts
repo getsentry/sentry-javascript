@@ -1,6 +1,6 @@
-import { Backend, Dsn, Options, SentryError, TransportBuffer } from '@sentry/core';
+import { BaseBackend, Dsn, Options, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5 from 'md5';
@@ -17,19 +17,13 @@ export interface NodeOptions extends Options {
 
   /** Sets an optional server name (device name) */
   serverName?: string;
+
+  /** Maximum time to wait to drain the request queue, before the process is allowed to exit. */
+  shutdownTimeout?: number;
 }
 
 /** The Sentry Node SDK Backend. */
-export class NodeBackend implements Backend {
-  /** Creates a new Node backend instance. */
-  public constructor(private readonly options: NodeOptions = {}) {}
-
-  /** Cached transport used internally. */
-  private transport?: Transport;
-
-  /** A simple buffer holding all requests. */
-  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
-
+export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
@@ -94,7 +88,7 @@ export class NodeBackend implements Backend {
     let dsn: Dsn;
 
     if (!this.options.dsn) {
-      throw new SentryError('Cannot sendEvent without a valid Dsn');
+      throw new SentryError('Cannot sendEvent without a valid DSN');
     } else {
       dsn = new Dsn(this.options.dsn);
     }
@@ -108,27 +102,6 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
-    return this.buffer.add(this.transport.captureEvent(event));
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeBreadcrumb(): boolean {
-    return true;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeScope(): void {
-    // Noop
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async close(timeout?: number): Promise<boolean> {
-    return this.buffer.drain(timeout);
+    return this.transport.captureEvent(event);
   }
 }

@@ -10,6 +10,7 @@ import {
 } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
+import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 
@@ -29,11 +30,6 @@ const MAX_BREADCRUMBS = 100;
  * By default, truncates URL values to 250 chars
  */
 const MAX_URL_LENGTH = 250;
-
-/** A class object that can instanciate Backend objects. */
-export interface BackendClass<B extends Backend, O extends Options> {
-  new (options: O): B;
-}
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -122,11 +118,26 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
+   * Internal helper function to buffer promises.
+   *
+   * @param promise Any promise, but in this case Promise<SentryResponse>.
+   */
+  protected async buffer(promise: Promise<SentryResponse>): Promise<SentryResponse> {
+    return this.getBackend()
+      .getBuffer()
+      .add(promise);
+  }
+
+  /**
    * @inheritDoc
    */
   public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    const event = await this.getBackend().eventFromException(exception, hint);
-    return this.captureEvent(event, hint, scope);
+    return this.buffer(
+      (async () => {
+        const event = await this.getBackend().eventFromException(exception, hint);
+        return this.captureEvent(event, hint, scope);
+      })(),
+    );
   }
 
   /**
@@ -138,15 +149,25 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     hint?: SentryEventHint,
     scope?: Scope,
   ): Promise<SentryResponse> {
-    const event = await this.getBackend().eventFromMessage(message, level, hint);
-    return this.captureEvent(event, hint, scope);
+    return this.buffer(
+      (async () => {
+        const event = await this.getBackend().eventFromMessage(message, level, hint);
+        return this.captureEvent(event, hint, scope);
+      })(),
+    );
   }
 
   /**
    * @inheritDoc
    */
   public async captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope);
+    // Adding this here is technically not correct since if you call captureMessage/captureException it's already
+    // buffered. But since we not really need the count and we only need to know if the buffer is full or not,
+    // This is fine...
+    return this.buffer(
+      (async () =>
+        this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope))(),
+    );
   }
 
   /**
@@ -323,6 +344,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.backend.close(timeout);
+    return this.getBackend()
+      .getBuffer()
+      .drain(timeout);
   }
 }

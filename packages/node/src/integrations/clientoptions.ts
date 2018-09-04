@@ -1,6 +1,7 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { Scope } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { NodeOptions } from '../backend';
+import { getCurrentHub } from '../hub';
 
 /** Apply Node specific options to event. For now, it's only `server_name`. */
 export class ClientOptions implements Integration {

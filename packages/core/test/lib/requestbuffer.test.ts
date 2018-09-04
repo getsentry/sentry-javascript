@@ -1,14 +1,14 @@
-import { TransportBuffer } from '../../src/transportbuffer';
+import { RequestBuffer } from '../../src/requestbuffer';
 
 // tslint:disable:no-floating-promises
 
-describe('TransportBuffer', () => {
+describe('RequestBuffer', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
 
   test('add()', () => {
-    const q = new TransportBuffer<void>();
+    const q = new RequestBuffer<void>();
     const p = new Promise<void>(resolve => setTimeout(resolve, 1));
     q.add(p);
     expect(q.length()).toBe(1);
@@ -16,7 +16,7 @@ describe('TransportBuffer', () => {
 
   test('resolved promises should not show up in buffer length', async () => {
     expect.assertions(2);
-    const q = new TransportBuffer<void>();
+    const q = new RequestBuffer<void>();
     const p = new Promise<void>(resolve => setTimeout(resolve, 1));
     q.add(p).then(() => {
       expect(q.length()).toBe(0);
@@ -27,7 +27,7 @@ describe('TransportBuffer', () => {
 
   test('receive promise result outside and from buffer', async () => {
     expect.assertions(4);
-    const q = new TransportBuffer<string>();
+    const q = new RequestBuffer<string>();
     const p = new Promise<string>(resolve =>
       setTimeout(() => {
         resolve('test');
@@ -46,7 +46,7 @@ describe('TransportBuffer', () => {
 
   test('drain()', async () => {
     expect.assertions(3);
-    const q = new TransportBuffer<void>();
+    const q = new RequestBuffer<void>();
     for (let i = 0; i < 5; i++) {
       const p = new Promise<void>(resolve => setTimeout(resolve, 1));
       q.add(p);
@@ -61,7 +61,7 @@ describe('TransportBuffer', () => {
 
   test('drain() with timeout', async () => {
     expect.assertions(2);
-    const q = new TransportBuffer<void>();
+    const q = new RequestBuffer<void>();
     for (let i = 0; i < 5; i++) {
       const p = new Promise<void>(resolve => setTimeout(resolve, 100));
       q.add(p);
@@ -75,7 +75,7 @@ describe('TransportBuffer', () => {
 
   test('drain() on empty buffer', async () => {
     expect.assertions(3);
-    const q = new TransportBuffer<void>();
+    const q = new RequestBuffer<void>();
     expect(q.length()).toBe(0);
     q.drain().then(result => {
       expect(result).toBeTruthy();

@@ -13,25 +13,12 @@ import {
   Scope,
   SentryEvent,
   SentryResponse,
-  Status,
 } from '../src';
-import { BaseTransport } from '../src/transports';
+import { SetTimeoutTransport } from './helper/settimeouttransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 declare var global: any;
-
-class SetTimeoutTransport extends BaseTransport {
-  public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
-    return new Promise<SentryResponse>(resolve => {
-      setTimeout(() => {
-        resolve({
-          status: Status.fromHttpCode(200),
-        });
-      }, 1);
-    });
-  }
-}
 
 describe('SentryNode', () => {
   beforeAll(() => {
