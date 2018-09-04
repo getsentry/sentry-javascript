@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.4 - 2018-09-03
+
+- fix: Updated uuid module (#1481)
+
 ## 2.6.3 - 2018-06-20
 
 - fix: Always pass request through parseRequest for raven-node (#1404)
