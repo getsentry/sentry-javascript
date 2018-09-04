@@ -1,7 +1,7 @@
-import { getCurrentHub } from '@sentry/hub';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import { format } from 'util';
+import { getCurrentHub } from '../hub';
 
 /**
  * Wrapper function for internal _load calls within `require`

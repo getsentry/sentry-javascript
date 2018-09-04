@@ -7,6 +7,7 @@ import * as domain from 'domain';
 import * as lsmod from 'lsmod';
 import { hostname } from 'os';
 import { parse as parseUrl } from 'url';
+import { NodeClient } from './client';
 import { getCurrentHub } from './hub';
 
 let moduleCache: { [key: string]: string };
@@ -200,7 +201,18 @@ export function errorHandler(): (
 /** JSDoc */
 export function defaultOnFatalError(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
-  global.process.exit(1);
+  const options = (getCurrentHub().getClient() as NodeClient).getOptions();
+  const timeout =
+    (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) || 2000;
+  getCurrentHub()
+    .getClient()
+    .close(timeout)
+    .then((result: boolean) => {
+      if (!result) {
+        logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
+      }
+      global.process.exit(1);
+    });
 }
 
 /** JSDoc */

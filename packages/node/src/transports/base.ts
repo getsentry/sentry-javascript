@@ -78,6 +78,6 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `send` method');
+    throw new SentryError('Transport Class has to implement `captureEvent` method');
   }
 }

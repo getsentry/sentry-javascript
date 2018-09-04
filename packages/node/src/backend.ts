@@ -1,4 +1,4 @@
-import { Backend, Dsn, Options, RequestBuffer, SentryError } from '@sentry/core';
+import { Backend, Dsn, logger, Options, RequestBuffer, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -17,6 +17,9 @@ export interface NodeOptions extends Options {
 
   /** Sets an optional server name (device name) */
   serverName?: string;
+
+  /** Maximum time to wait to drain the request queue, before the process is allowed to exit. */
+  shutdownTimeout?: number;
 }
 
 /** The Sentry Node SDK Backend. */
@@ -108,6 +111,7 @@ export class NodeBackend implements Backend {
           : new HTTPSTransport(transportOptions);
     }
 
+    logger.log('adding request');
     return this.buffer.add(this.transport.captureEvent(event));
   }
 
@@ -129,6 +133,10 @@ export class NodeBackend implements Backend {
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.buffer.drain(timeout);
+    return new Promise<boolean>(resolve => {
+      setImmediate(async () => {
+        resolve(await this.buffer.drain(timeout));
+      });
+    });
   }
 }
