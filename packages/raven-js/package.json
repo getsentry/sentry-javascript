@@ -1,8 +1,15 @@
 {
   "name": "raven-js",
   "description": "JavaScript client for Sentry",
-  "keywords": ["debugging", "errors", "exceptions", "logging", "raven", "sentry"],
-  "version": "3.26.4",
+  "keywords": [
+    "debugging",
+    "errors",
+    "exceptions",
+    "logging",
+    "raven",
+    "sentry"
+  ],
+  "version": "3.27.0",
   "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
   "homepage": "https://github.com/getsentry/raven-js",
@@ -11,19 +18,16 @@
     "deploy": "npm run test && ./scripts/deploy.js",
     "lint": "eslint .",
     "publish": "grunt publish",
-    "test":
-      "grunt build.test && npm run test:unit && npm run test:loader && npm run test:integration && npm run test:typescript",
+    "test": "grunt build.test && npm run test:unit && npm run test:loader && npm run test:integration && npm run test:typescript",
     "test:unit": "karma start karma/karma.unit.config.js",
     "test:integration": "karma start karma/karma.integration.config.js",
     "test:integration-sauce": "karma start karma/karma.integration-sauce.config.js",
     "test:loader": "karma start karma/karma.loader.config.js",
     "test:loader-sauce": "karma start karma/karma.loader-sauce.config.js",
     "test:typescript": "tsc -p tsconfig.json",
-    "test:ci":
-      "grunt test:ci && npm run test:loader-sauce && npm run test:integration-sauce",
+    "test:ci": "grunt test:ci && npm run test:loader-sauce && npm run test:integration-sauce",
     "test:size": "grunt dist && bundlesize && git checkout -- dist/",
-    "loader":
-      "cat src/loader.js | sed '/build_marker/{N;d;}' | npx google-closure-compiler-js | perl -e \"print ';'; print <STDIN>;\""
+    "loader": "cat src/loader.js | sed '/build_marker/{N;d;}' | npx google-closure-compiler-js | perl -e \"print ';'; print <STDIN>;\""
   },
   "devDependencies": {
     "bluebird": "^3.4.1",

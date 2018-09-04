@@ -11,6 +11,116 @@
  */
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+/**
+ * Angular.js plugin
+ *
+ * Provides an $exceptionHandler for Angular.js
+ */
+var wrappedCallback = _dereq_(7).wrappedCallback;
+
+// See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
+var angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
+var moduleName = 'ngRaven';
+
+function angularPlugin(Raven, angular) {
+  angular = angular || window.angular;
+
+  if (!angular) return;
+
+  function RavenProvider() {
+    this.$get = [
+      '$window',
+      function($window) {
+        return Raven;
+      }
+    ];
+  }
+
+  function ExceptionHandlerProvider($provide) {
+    $provide.decorator('$exceptionHandler', ['Raven', '$delegate', exceptionHandler]);
+  }
+
+  function exceptionHandler(R, $delegate) {
+    return function(ex, cause) {
+      R.captureException(ex, {
+        extra: {cause: cause}
+      });
+      $delegate(ex, cause);
+    };
+  }
+
+  angular
+    .module(moduleName, [])
+    .provider('Raven', RavenProvider)
+    .config(['$provide', ExceptionHandlerProvider]);
+
+  Raven.setDataCallback(
+    wrappedCallback(function(data) {
+      return angularPlugin._normalizeData(data);
+    })
+  );
+}
+
+angularPlugin._normalizeData = function(data) {
+  // We only care about mutating an exception
+  var exception = data.exception;
+  if (exception) {
+    exception = exception.values[0];
+    var matches = angularPattern.exec(exception.value);
+
+    if (matches) {
+      // This type now becomes something like: $rootScope:inprog
+      exception.type = matches[1];
+      exception.value = matches[2];
+
+      data.message = exception.type + ': ' + exception.value;
+      // auto set a new tag specifically for the angular error url
+      data.extra.angularDocs = matches[3].substr(0, 250);
+    }
+  }
+
+  return data;
+};
+
+angularPlugin.moduleName = moduleName;
+
+module.exports = angularPlugin;
+
+_dereq_(6).addPlugin(module.exports);
+},{"6":6,"7":7}],2:[function(_dereq_,module,exports){
+/**
+ * Ember.js plugin
+ *
+ * Patches event handler callbacks and ajax callbacks.
+ */
+function emberPlugin(Raven, Ember) {
+  Ember = Ember || window.Ember;
+
+  // quit if Ember isn't on the page
+  if (!Ember) return;
+
+  var _oldOnError = Ember.onerror;
+  Ember.onerror = function EmberOnError(error) {
+    Raven.captureException(error);
+    if (typeof _oldOnError === 'function') {
+      _oldOnError.call(this, error);
+    }
+  };
+  Ember.RSVP.on('error', function(reason) {
+    if (reason instanceof Error) {
+      Raven.captureException(reason, {
+        extra: {context: 'Unhandled Promise error detected'}
+      });
+    } else {
+      Raven.captureMessage('Unhandled Promise error detected', {extra: {reason: reason}});
+    }
+  });
+}
+
+module.exports = emberPlugin;
+
+_dereq_(6).addPlugin(module.exports);
+},{"6":6}],3:[function(_dereq_,module,exports){
 function RavenConfigError(message) {
   this.name = 'RavenConfigError';
   this.message = message;
@@ -20,8 +130,8 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
-},{}],2:[function(_dereq_,module,exports){
-var utils = _dereq_(5);
+},{}],4:[function(_dereq_,module,exports){
+var utils = _dereq_(7);
 
 var wrapMethod = function(console, level, callback) {
   var originalConsoleLevel = console[level];
@@ -64,16 +174,16 @@ module.exports = {
   wrapMethod: wrapMethod
 };
 
-},{"5":5}],3:[function(_dereq_,module,exports){
+},{"7":7}],5:[function(_dereq_,module,exports){
 (function (global){
 /*global XDomainRequest:false */
 
-var TraceKit = _dereq_(6);
-var stringify = _dereq_(7);
-var md5 = _dereq_(8);
-var RavenConfigError = _dereq_(1);
+var TraceKit = _dereq_(8);
+var stringify = _dereq_(9);
+var md5 = _dereq_(10);
+var RavenConfigError = _dereq_(3);
 
-var utils = _dereq_(5);
+var utils = _dereq_(7);
 var isErrorEvent = utils.isErrorEvent;
 var isDOMError = utils.isDOMError;
 var isDOMException = utils.isDOMException;
@@ -104,7 +214,7 @@ var serializeKeysForMessage = utils.serializeKeysForMessage;
 var serializeException = utils.serializeException;
 var sanitize = utils.sanitize;
 
-var wrapConsoleMethod = _dereq_(2).wrapMethod;
+var wrapConsoleMethod = _dereq_(4).wrapMethod;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
   dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -2354,7 +2464,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 module.exports = Raven;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"1":1,"2":2,"5":5,"6":6,"7":7,"8":8}],4:[function(_dereq_,module,exports){
+},{"10":10,"3":3,"4":4,"7":7,"8":8,"9":9}],6:[function(_dereq_,module,exports){
 (function (global){
 /**
  * Enforces a single instance of the Raven client, and the
@@ -2362,7 +2472,7 @@ module.exports = Raven;
  * Raven library, you SHOULD load this file (vs raven.js).
  **/
 
-var RavenConstructor = _dereq_(3);
+var RavenConstructor = _dereq_(5);
 
 // This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
 var _window =
@@ -2425,9 +2535,9 @@ module.exports = Raven;
 module.exports.Client = RavenConstructor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"3":3}],5:[function(_dereq_,module,exports){
+},{"5":5}],7:[function(_dereq_,module,exports){
 (function (global){
-var stringify = _dereq_(7);
+var stringify = _dereq_(9);
 
 var _window =
   typeof window !== 'undefined'
@@ -3081,9 +3191,9 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"7":7}],6:[function(_dereq_,module,exports){
+},{"9":9}],8:[function(_dereq_,module,exports){
 (function (global){
-var utils = _dereq_(5);
+var utils = _dereq_(7);
 
 /*
  TraceKit - Cross brower stack traces
@@ -3767,7 +3877,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 module.exports = TraceKit;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"5":5}],7:[function(_dereq_,module,exports){
+},{"7":7}],9:[function(_dereq_,module,exports){
 /*
  json-stringify-safe
  Like JSON.stringify, but doesn't throw on circular references.
@@ -3843,7 +3953,7 @@ function serializer(replacer, cycleReplacer) {
   };
 }
 
-},{}],8:[function(_dereq_,module,exports){
+},{}],10:[function(_dereq_,module,exports){
 /*
  * JavaScript MD5
  * https://github.com/blueimp/JavaScript-MD5
@@ -4111,5 +4221,5 @@ function md5(string, key, raw) {
 
 module.exports = md5;
 
-},{}]},{},[4])(4)
+},{}]},{},[6,1,2])(6)
 });

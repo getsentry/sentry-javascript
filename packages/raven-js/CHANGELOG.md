@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.27.0
+
+* CHANGE: Remove `keepalive: true` as a default fetch option (reference: https://github.com/getsentry/sentry-docs/pull/310)
+* FIX: Use `objectMerge` util instead of `Object.assign` for IE10/11
+* FIX: Updated `setUserContext` type definition
+* FIX: Updated `sanitizeKeys` type definition
+* FIX: Update license template to use correct license url
+
 ## 3.26.4
 
 * FEAT: Add options to customize `showReportDialog` language

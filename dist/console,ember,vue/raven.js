@@ -11,6 +11,124 @@
  */
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Raven = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+/**
+ * console plugin
+ *
+ * Monkey patches console.* calls into Sentry messages with
+ * their appropriate log levels. (Experimental)
+ *
+ * Options:
+ *
+ *   `levels`: An array of levels (methods on `console`) to report to Sentry.
+ *     Defaults to debug, info, warn, and error.
+ */
+var wrapConsoleMethod = _dereq_(5).wrapMethod;
+
+function consolePlugin(Raven, console, pluginOptions) {
+  console = console || window.console || {};
+  pluginOptions = pluginOptions || {};
+
+  var logLevels = pluginOptions.levels || ['debug', 'info', 'warn', 'error'];
+  if ('assert' in console) logLevels.push('assert');
+
+  var callback = function(msg, data) {
+    Raven.captureMessage(msg, data);
+  };
+
+  var level = logLevels.pop();
+  while (level) {
+    wrapConsoleMethod(console, level, callback);
+    level = logLevels.pop();
+  }
+}
+
+module.exports = consolePlugin;
+
+_dereq_(7).addPlugin(module.exports);
+},{"5":5,"7":7}],2:[function(_dereq_,module,exports){
+/**
+ * Ember.js plugin
+ *
+ * Patches event handler callbacks and ajax callbacks.
+ */
+function emberPlugin(Raven, Ember) {
+  Ember = Ember || window.Ember;
+
+  // quit if Ember isn't on the page
+  if (!Ember) return;
+
+  var _oldOnError = Ember.onerror;
+  Ember.onerror = function EmberOnError(error) {
+    Raven.captureException(error);
+    if (typeof _oldOnError === 'function') {
+      _oldOnError.call(this, error);
+    }
+  };
+  Ember.RSVP.on('error', function(reason) {
+    if (reason instanceof Error) {
+      Raven.captureException(reason, {
+        extra: {context: 'Unhandled Promise error detected'}
+      });
+    } else {
+      Raven.captureMessage('Unhandled Promise error detected', {extra: {reason: reason}});
+    }
+  });
+}
+
+module.exports = emberPlugin;
+
+_dereq_(7).addPlugin(module.exports);
+},{"7":7}],3:[function(_dereq_,module,exports){
+/**
+ * Vue.js 2.0 plugin
+ *
+ */
+
+function formatComponentName(vm) {
+  if (vm.$root === vm) {
+    return 'root instance';
+  }
+  var name = vm._isVue ? vm.$options.name || vm.$options._componentTag : vm.name;
+  return (
+    (name ? 'component <' + name + '>' : 'anonymous component') +
+    (vm._isVue && vm.$options.__file ? ' at ' + vm.$options.__file : '')
+  );
+}
+
+function vuePlugin(Raven, Vue) {
+  Vue = Vue || window.Vue;
+
+  // quit if Vue isn't on the page
+  if (!Vue || !Vue.config) return;
+
+  var _oldOnError = Vue.config.errorHandler;
+  Vue.config.errorHandler = function VueErrorHandler(error, vm, info) {
+    var metaData = {};
+
+    // vm and lifecycleHook are not always available
+    if (Object.prototype.toString.call(vm) === '[object Object]') {
+      metaData.componentName = formatComponentName(vm);
+      metaData.propsData = vm.$options.propsData;
+    }
+
+    if (typeof info !== 'undefined') {
+      metaData.lifecycleHook = info;
+    }
+
+    Raven.captureException(error, {
+      extra: metaData
+    });
+
+    if (typeof _oldOnError === 'function') {
+      _oldOnError.call(this, error, vm, info);
+    }
+  };
+}
+
+module.exports = vuePlugin;
+
+_dereq_(7).addPlugin(module.exports);
+},{"7":7}],4:[function(_dereq_,module,exports){
 function RavenConfigError(message) {
   this.name = 'RavenConfigError';
   this.message = message;
@@ -20,8 +138,8 @@ RavenConfigError.prototype.constructor = RavenConfigError;
 
 module.exports = RavenConfigError;
 
-},{}],2:[function(_dereq_,module,exports){
-var utils = _dereq_(5);
+},{}],5:[function(_dereq_,module,exports){
+var utils = _dereq_(8);
 
 var wrapMethod = function(console, level, callback) {
   var originalConsoleLevel = console[level];
@@ -64,16 +182,16 @@ module.exports = {
   wrapMethod: wrapMethod
 };
 
-},{"5":5}],3:[function(_dereq_,module,exports){
+},{"8":8}],6:[function(_dereq_,module,exports){
 (function (global){
 /*global XDomainRequest:false */
 
-var TraceKit = _dereq_(6);
-var stringify = _dereq_(7);
-var md5 = _dereq_(8);
-var RavenConfigError = _dereq_(1);
+var TraceKit = _dereq_(9);
+var stringify = _dereq_(10);
+var md5 = _dereq_(11);
+var RavenConfigError = _dereq_(4);
 
-var utils = _dereq_(5);
+var utils = _dereq_(8);
 var isErrorEvent = utils.isErrorEvent;
 var isDOMError = utils.isDOMError;
 var isDOMException = utils.isDOMException;
@@ -104,7 +222,7 @@ var serializeKeysForMessage = utils.serializeKeysForMessage;
 var serializeException = utils.serializeException;
 var sanitize = utils.sanitize;
 
-var wrapConsoleMethod = _dereq_(2).wrapMethod;
+var wrapConsoleMethod = _dereq_(5).wrapMethod;
 
 var dsnKeys = 'source protocol user pass host port path'.split(' '),
   dsnPattern = /^(?:(\w+):)?\/\/(?:(\w+)(:\w+)?@)?([\w\.-]+)(?::(\d+))?(\/.*)/;
@@ -2354,7 +2472,7 @@ Raven.prototype.setReleaseContext = Raven.prototype.setRelease;
 module.exports = Raven;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"1":1,"2":2,"5":5,"6":6,"7":7,"8":8}],4:[function(_dereq_,module,exports){
+},{"10":10,"11":11,"4":4,"5":5,"8":8,"9":9}],7:[function(_dereq_,module,exports){
 (function (global){
 /**
  * Enforces a single instance of the Raven client, and the
@@ -2362,7 +2480,7 @@ module.exports = Raven;
  * Raven library, you SHOULD load this file (vs raven.js).
  **/
 
-var RavenConstructor = _dereq_(3);
+var RavenConstructor = _dereq_(6);
 
 // This is to be defensive in environments where window does not exist (see https://github.com/getsentry/raven-js/pull/785)
 var _window =
@@ -2425,9 +2543,9 @@ module.exports = Raven;
 module.exports.Client = RavenConstructor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"3":3}],5:[function(_dereq_,module,exports){
+},{"6":6}],8:[function(_dereq_,module,exports){
 (function (global){
-var stringify = _dereq_(7);
+var stringify = _dereq_(10);
 
 var _window =
   typeof window !== 'undefined'
@@ -3081,9 +3199,9 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"7":7}],6:[function(_dereq_,module,exports){
+},{"10":10}],9:[function(_dereq_,module,exports){
 (function (global){
-var utils = _dereq_(5);
+var utils = _dereq_(8);
 
 /*
  TraceKit - Cross brower stack traces
@@ -3767,7 +3885,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
 module.exports = TraceKit;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"5":5}],7:[function(_dereq_,module,exports){
+},{"8":8}],10:[function(_dereq_,module,exports){
 /*
  json-stringify-safe
  Like JSON.stringify, but doesn't throw on circular references.
@@ -3843,7 +3961,7 @@ function serializer(replacer, cycleReplacer) {
   };
 }
 
-},{}],8:[function(_dereq_,module,exports){
+},{}],11:[function(_dereq_,module,exports){
 /*
  * JavaScript MD5
  * https://github.com/blueimp/JavaScript-MD5
@@ -4111,5 +4229,5 @@ function md5(string, key, raw) {
 
 module.exports = md5;
 
-},{}]},{},[4])(4)
+},{}]},{},[7,1,2,3])(7)
 });
