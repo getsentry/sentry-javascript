@@ -126,7 +126,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    *
    * @param promise Any promise, but in this case Promise<SentryResponse>.
    */
-  protected buffer(promise: Promise<SentryResponse>): Promise<SentryResponse> {
+  protected async buffer(promise: Promise<SentryResponse>): Promise<SentryResponse> {
     return this.getBackend()
       .getBuffer()
       .add(promise);
