@@ -58,7 +58,8 @@ function serializer(): (key: string, value: any) => any {
     let currentValue: any = value;
 
     // NaN and undefined are not JSON.parseable, but we want to preserve this information
-    if (Number.isNaN(value as any)) {
+    // tslint:disable-next-line:no-unsafe-any
+    if (Number.isNaN(value)) {
       currentValue = NAN_VALUE;
     } else if (isUndefined(value)) {
       currentValue = UNDEFINED_VALUE;
