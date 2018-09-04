@@ -1,4 +1,4 @@
-import { Backend, Dsn, Options, SentryError, TransportBuffer } from '@sentry/core';
+import { Backend, Dsn, Options, RequestBuffer, SentryError } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
@@ -28,7 +28,7 @@ export class NodeBackend implements Backend {
   private transport?: Transport;
 
   /** A simple buffer holding all requests. */
-  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
+  private readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
 
   /**
    * @inheritDoc

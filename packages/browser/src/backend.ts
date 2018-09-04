@@ -1,4 +1,4 @@
-import { Backend, logger, Options, SentryError, TransportBuffer } from '@sentry/core';
+import { Backend, logger, Options, RequestBuffer, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
@@ -41,7 +41,7 @@ export class BrowserBackend implements Backend {
   private transport?: Transport;
 
   /** A simple buffer holding all requests. */
-  private readonly buffer: TransportBuffer<SentryResponse> = new TransportBuffer();
+  private readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
 
   /**
    * @inheritDoc

@@ -5,6 +5,6 @@ export { API } from './api';
 export { BackendClass, BaseClient } from './base';
 export { Dsn } from './dsn';
 export { SentryError } from './error';
-export { TransportBuffer } from './transportbuffer';
+export { RequestBuffer } from './requestbuffer';
 export { Backend, Client, LogLevel, Options } from './interfaces';
 export { initAndBind, ClientClass } from './sdk';

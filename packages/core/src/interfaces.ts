@@ -198,7 +198,7 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * A promise that resolves whenever the transport buffer is empty.
+   * A promise that resolves whenever the request buffer is empty.
    * If you provide a timeout and the buffer takes longer to drain the promise returns false.
    * Calls {@link Backend.close}.
    *
@@ -267,7 +267,7 @@ export interface Backend {
   storeScope(scope: Scope): void;
 
   /**
-   * A promise that resolves whenever the transport buffer is empty.
+   * A promise that resolves whenever the request buffer is empty.
    * If you provide a timeout and the buffer takes longer to drain the promise returns false.
    *
    * @param timeout Maximum time in ms the client should wait.

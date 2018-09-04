@@ -1,5 +1,5 @@
 /** A simple queue that holds promises. */
-export class TransportBuffer<T> {
+export class RequestBuffer<T> {
   /** Internal set of queued Promises */
   private readonly buffer: Set<Promise<T>> = new Set();
 
