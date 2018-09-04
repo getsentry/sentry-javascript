@@ -1870,7 +1870,6 @@ describe('globals', function() {
           assert.deepEqual(window.fetch.lastCall.args, [
             'http://localhost/?a=1&b=2',
             {
-              keepalive: true,
               referrerPolicy: supportsReferrerPolicy() ? 'origin' : '',
               method: 'POST',
               body: '{"foo":"bar"}'

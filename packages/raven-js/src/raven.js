@@ -98,7 +98,6 @@ function Raven() {
   };
   this._fetchDefaults = {
     method: 'POST',
-    keepalive: true,
     // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
     // https://caniuse.com/#feat=referrer-policy
     // It doesn't. And it throw exception instead of ignoring this parameter...
