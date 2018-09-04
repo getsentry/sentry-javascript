@@ -65,6 +65,14 @@ Raven.setUserContext({
   email: 'matt@example.com',
   id: '123'
 });
+Raven.setUserContext({
+  email: 'matt@example.com',
+  id: '123',
+  projects: [
+    {id: 0, name: 'my project'},
+    {id: 1, name: 'my other project'},
+  ]
+});
 
 Raven.setExtraContext({foo: 'bar'});
 Raven.setExtraContext();
