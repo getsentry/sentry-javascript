@@ -204,14 +204,16 @@ export function defaultOnFatalError(error: Error): void {
   const options = (getCurrentHub().getClient() as NodeClient).getOptions();
   const timeout =
     (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) || 2000;
-  getCurrentHub()
-    .getClient()
+  (getCurrentHub().getClient() as NodeClient)
     .close(timeout)
     .then((result: boolean) => {
       if (!result) {
         logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
       }
       global.process.exit(1);
+    })
+    .catch(() => {
+      // Noop, this promise always resolves
     });
 }
 

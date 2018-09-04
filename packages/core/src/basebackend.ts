@@ -9,6 +9,9 @@ export interface BackendClass<B extends Backend, O extends Options> {
   new (options: O): B;
 }
 
+/**
+ * This is the base implemention of a Backend.
+ */
 export abstract class BaseBackend<O extends Options> implements Backend {
   /** Options passed to the SDK. */
   protected readonly options: O;
