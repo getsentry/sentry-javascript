@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# Official Sentry SDK for Browsers (BETA)
+# Official Sentry SDK for Browsers
 
 [![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)

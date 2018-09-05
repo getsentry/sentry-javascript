@@ -14,7 +14,7 @@
 A minimal Sentry SDK that uses a configured client when embedded into an application. It allows library authors add
 support for a Sentry SDK without having to bundle the entire SDK or being dependent on a specific platform. If the user
 is using Sentry in their application and your library uses `@sentry/minimal`, the user receives all
-breadcrumbs/messages/events you added to your librarys codebase.
+breadcrumbs/messages/events you added to your libraries codebase.
 
 ## Usage
 

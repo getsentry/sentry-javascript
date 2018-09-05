@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# Official Sentry SDK for NodeJS (BETA)
+# Official Sentry SDK for NodeJS
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
