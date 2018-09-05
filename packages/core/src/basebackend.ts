@@ -1,4 +1,5 @@
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
+import { Scope } from '@sentry/hub';
+import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
 import { logger } from './logger';
@@ -54,14 +55,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public storeBreadcrumb(): boolean {
+  public storeBreadcrumb(_: Breadcrumb): boolean {
     return true;
   }
 
   /**
    * @inheritDoc
    */
-  public storeScope(): void {
+  public storeScope(_: Scope): void {
     // Noop
   }
 

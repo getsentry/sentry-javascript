@@ -1,4 +1,25 @@
-import { isUndefined, isError, isErrorEvent } from '@sentry/utils/is';
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.computeStackTrace = exports.installGlobalUnhandledRejectionHandler = exports.installGlobalHandler = exports.subscribe = undefined;
+
+var _extends =
+  Object.assign ||
+  function(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+    return target;
+  };
+
+var _is = require('@sentry/utils/is');
 
 /**
  * TraceKit - Cross brower stack traces
@@ -232,14 +253,14 @@ TraceKit.report = (function reportModuleWrapper() {
   function traceKitWindowOnError(message, url, lineNo, columnNo, errorObj) {
     var stack = null;
     // If 'errorObj' is ErrorEvent, get real Error from inside
-    errorObj = isErrorEvent(errorObj) ? errorObj.error : errorObj;
+    errorObj = (0, _is.isErrorEvent)(errorObj) ? errorObj.error : errorObj;
     // If 'message' is ErrorEvent, get real message from inside
-    message = isErrorEvent(message) ? message.message : message;
+    message = (0, _is.isErrorEvent)(message) ? message.message : message;
 
     if (lastExceptionStack) {
       TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
       processLastException();
-    } else if (errorObj && isError(errorObj)) {
+    } else if (errorObj && (0, _is.isError)(errorObj)) {
       stack = TraceKit.computeStackTrace(errorObj);
       notifyHandlers(stack, true, errorObj);
     } else {
@@ -266,13 +287,12 @@ TraceKit.report = (function reportModuleWrapper() {
         message: msg,
         mode: 'onerror',
         stack: [
-          {
-            ...location,
+          _extends({}, location, {
             // Firefox sometimes doesn't return url correctly and this is an old behavior
             // that I prefer to port here as well.
             // It can be altered only here, as previously it's using `location.url` for other things — Kamil
             url: location.url || getLocationHref(),
-          },
+          }),
         ],
       };
 
@@ -502,7 +522,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       return '';
     }
     try {
-      var getXHR = function() {
+      var getXHR = function getXHR() {
         try {
           return new window.XMLHttpRequest();
         } catch (e) {
@@ -583,7 +603,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     for (var i = 0; i < maxLines; ++i) {
       line = source[lineNo - i] + line;
 
-      if (!isUndefined(line)) {
+      if (!(0, _is.isUndefined)(line)) {
         if ((m = reGuessFunction.exec(line))) {
           return m[1];
         } else if ((m = reFunctionArgNames.exec(line))) {
@@ -622,7 +642,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     line -= 1; // convert to 0-based index
 
     for (var i = start; i < end; ++i) {
-      if (!isUndefined(source[i])) {
+      if (!(0, _is.isUndefined)(source[i])) {
         context.push(source[i]);
       }
     }
@@ -716,7 +736,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * @memberof TraceKit.computeStackTrace
    */
   function findSourceByFunctionBody(func) {
-    if (isUndefined(window && window.document)) {
+    if ((0, _is.isUndefined)(window && window.document)) {
       return;
     }
 
@@ -876,7 +896,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
           // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
           // parts[4] = submatch[2];
           // parts[5] = null; // no column when eval
-        } else if (i === 0 && !parts[5] && !isUndefined(ex.columnNumber)) {
+        } else if (i === 0 && !parts[5] && !(0, _is.isUndefined)(ex.columnNumber)) {
           // FireFox uses this awesome columnNumber property for its top frame
           // Also note, Firefox's column number is 0-based and everything else expects 1-based,
           // so adding 1
@@ -977,7 +997,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       opera11Regex = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i,
       lines = stacktrace.split('\n'),
       stack = [],
-      parts;
+      parts = void 0;
 
     for (var line = 0; line < lines.length; line += 2) {
       var element = null;
@@ -1066,7 +1086,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       stack = [],
       scripts = window && window.document && window.document.getElementsByTagName('script'),
       inlineScriptBlocks = [],
-      parts;
+      parts = void 0;
 
     for (var s in scripts) {
       if (_has(scripts, s) && !scripts[s].src) {
@@ -1217,9 +1237,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       stack = [],
       funcs = {},
       recursion = false,
-      parts,
-      item,
-      source;
+      parts = void 0,
+      item = void 0,
+      source = void 0;
 
     for (var curr = computeStackTraceByWalkingCallerChain.caller; curr && !recursion; curr = curr.caller) {
       if (curr === computeStackTrace || curr === TraceKit.report) {
@@ -1407,7 +1427,7 @@ TraceKit.extendToAsynchronousCallbacks = function() {
   _helper('setInterval');
 };
 
-//Default options:
+// Default options:
 if (!TraceKit.remoteFetching) {
   TraceKit.remoteFetching = true;
 }
@@ -1419,9 +1439,12 @@ if (!TraceKit.linesOfContext || TraceKit.linesOfContext < 1) {
   TraceKit.linesOfContext = 11;
 }
 
-const subscribe = TraceKit.report.subscribe;
-const installGlobalHandler = TraceKit.report.installGlobalHandler;
-const installGlobalUnhandledRejectionHandler = TraceKit.report.installGlobalUnhandledRejectionHandler;
-const computeStackTrace = TraceKit.computeStackTrace;
+var subscribe = TraceKit.report.subscribe;
+var installGlobalHandler = TraceKit.report.installGlobalHandler;
+var installGlobalUnhandledRejectionHandler = TraceKit.report.installGlobalUnhandledRejectionHandler;
+var computeStackTrace = TraceKit.computeStackTrace;
 
-export { subscribe, installGlobalHandler, installGlobalUnhandledRejectionHandler, computeStackTrace };
+exports.subscribe = subscribe;
+exports.installGlobalHandler = installGlobalHandler;
+exports.installGlobalUnhandledRejectionHandler = installGlobalUnhandledRejectionHandler;
+exports.computeStackTrace = computeStackTrace;

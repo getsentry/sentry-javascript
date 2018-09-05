@@ -68,6 +68,7 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
     localStack = localStack.slice(1);
   }
 
+  // The frame where the crash happened, should be the last entry in the array
   return localStack
     .map(
       (frame: TraceKitStackFrame): StackFrame => ({
@@ -78,5 +79,6 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
         lineno: frame.line,
       }),
     )
-    .slice(0, STACKTRACE_LIMIT);
+    .slice(0, STACKTRACE_LIMIT)
+    .reverse();
 }
