@@ -1,4 +1,4 @@
-import { SentryEvent, StackFrame } from '@sentry/types';
+import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { readFileAsync } from '@sentry/utils/fs';
 import { snipLine } from '@sentry/utils/string';
 import { basename, dirname } from 'path';
@@ -180,21 +180,27 @@ async function addPrePostContext(filesToRead: string[], frames: StackFrame[]): P
 }
 
 /** JSDoc */
-export async function parseError(error: ExtendedError): Promise<SentryEvent> {
+export async function getExceptionFromError(error: Error): Promise<SentryException> {
   const name = error.name || error.constructor.name;
   const stack = await extractStackFromError(error);
   const frames = await parseStack(stack);
+
+  return {
+    stacktrace: {
+      frames: prepareFramesForEvent(frames),
+    },
+    type: name,
+    value: error.message,
+  };
+}
+
+/** JSDoc */
+export async function parseError(error: ExtendedError): Promise<SentryEvent> {
+  const name = error.name || error.constructor.name;
+  const exception = await getExceptionFromError(error);
   const event: SentryEvent = {
     exception: {
-      values: [
-        {
-          stacktrace: {
-            frames: prepareFramesForEvent(frames),
-          },
-          type: name,
-          value: error.message,
-        },
-      ],
+      values: [exception],
     },
     message: `${name}: ${error.message || '<no message>'}`,
   };
@@ -211,6 +217,7 @@ export async function parseError(error: ExtendedError): Promise<SentryEvent> {
   }
 
   // use for loop so we don't have to reverse whole frames array
+  const frames = (exception.stacktrace && exception.stacktrace.frames) || [];
   for (let i = frames.length - 1; i >= 0; i--) {
     const frame = frames[i];
 

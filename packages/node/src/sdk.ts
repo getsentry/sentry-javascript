@@ -5,6 +5,7 @@ import {
   ClientOptions,
   Console,
   Http,
+  LinkedErrors,
   OnUncaughtException,
   OnUnhandledRejection,
   SDKInformation,
@@ -16,6 +17,7 @@ export const defaultIntegrations = [
   new OnUncaughtException(),
   new OnUnhandledRejection(),
   new ClientOptions(),
+  new LinkedErrors(),
   new SDKInformation(),
 ];
 
