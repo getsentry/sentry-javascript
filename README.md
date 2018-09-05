@@ -5,13 +5,11 @@
   <br />
 </p>
 
-[![Travis](https://img.shields.io/travis/getsentry/sentry-javascript.svg?maxAge=2592000)](https://travis-ci.org/getsentry/sentry-javascript)
+[![Build Status](https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master)](https://travis-ci.com/getsentry/sentry-javascript)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 
-# Official Sentry SDKs for JavaScript (BETA)
+# Official Sentry SDKs for JavaScript
 
 This is the next line of Sentry JavaScript SDKs, comprised in the `@sentry/` namespace. It will provide a more
 convenient interface and improved consistency between various JavaScript environments.
