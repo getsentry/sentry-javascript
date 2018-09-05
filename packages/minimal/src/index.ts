@@ -28,7 +28,10 @@ export function captureException(exception: any): string {
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  return callOnHub('captureException', exception, { syntheticException });
+  return callOnHub('captureException', exception, {
+    originalException: exception,
+    syntheticException,
+  });
 }
 
 /**
@@ -45,7 +48,10 @@ export function captureMessage(message: string, level?: Severity): string {
   } catch (exception) {
     syntheticException = exception as Error;
   }
-  return callOnHub('captureMessage', message, level, { syntheticException });
+  return callOnHub('captureMessage', message, level, {
+    originalException: message,
+    syntheticException,
+  });
 }
 
 /**
