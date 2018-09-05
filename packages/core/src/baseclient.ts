@@ -182,7 +182,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb, hint) : mergedBreadcrumb;
+    const finalBreadcrumb = beforeBreadcrumb ? await beforeBreadcrumb(mergedBreadcrumb, hint) : mergedBreadcrumb;
 
     if (finalBreadcrumb === null) {
       return;
@@ -322,7 +322,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const finalEvent = beforeSend ? beforeSend(prepared, hint) : prepared;
+    const finalEvent = beforeSend ? await beforeSend(prepared, hint) : prepared;
     if (finalEvent === null) {
       return {
         status: Status.Skipped,
