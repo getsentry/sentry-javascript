@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Status } from '@sentry/types';
+import { Breadcrumb, Status } from '@sentry/types';
 import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -137,6 +137,45 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs().length).toBe(0);
+    });
+
+    test('calls async beforeBreadcrumb and adds the breadcrumb without any changes', async () => {
+      const beforeBreadcrumb = jest.fn(
+        async breadcrumb =>
+          new Promise<Breadcrumb>(resolve => {
+            resolve(breadcrumb);
+          }),
+      );
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
+    });
+
+    test('calls async beforeBreadcrumb and discards the breadcrumb when returned null', async () => {
+      const beforeBreadcrumb = jest.fn(
+        async () =>
+          new Promise<null>(resolve => {
+            resolve(null);
+          }),
+      );
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      expect(scope.getBreadcrumbs().length).toBe(0);
+    });
+
+    test('calls async beforeBreadcrumb and uses the new one', async () => {
+      const beforeBreadcrumb = jest.fn(
+        async () =>
+          new Promise<Breadcrumb>(resolve => {
+            resolve({ message: 'changed' });
+          }),
+      );
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      expect(scope.getBreadcrumbs()[0].message).toBe('changed');
     });
 
     test('calls beforeBreadcrumb gets an access to a hint as a second argument', async () => {
@@ -286,12 +325,12 @@ describe('BaseClient', () => {
       });
     });
 
-    test('calls beforeSend and discards the event', async () => {
-      const beforeSend = jest.fn(() => null);
+    test('calls beforeSend and uses original event without any changes', async () => {
+      const beforeSend = jest.fn(event => event);
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       const scope = new Scope();
       await client.captureEvent({ message: 'hello' }, undefined, scope);
-      expect(TestBackend.instance!.event).toBeUndefined();
+      expect(TestBackend.instance!.event!.message).toBe('hello');
     });
 
     test('calls beforeSend and uses the new one', async () => {
@@ -302,7 +341,63 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!.message).toBe('changed');
     });
 
-    it("doesn't do anything with rate limits yet", async () => {
+    test('calls beforeSend and discards the event', async () => {
+      const beforeSend = jest.fn(() => null);
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const scope = new Scope();
+      await client.captureEvent({ message: 'hello' }, undefined, scope);
+      expect(TestBackend.instance!.event).toBeUndefined();
+    });
+
+    test('calls async beforeSend and uses original event without any changes', async () => {
+      const beforeSend = jest.fn(
+        async event =>
+          new Promise<SentryEvent>(resolve => {
+            resolve(event);
+          }),
+      );
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const scope = new Scope();
+      await client.captureEvent({ message: 'hello' }, undefined, scope);
+      expect(TestBackend.instance!.event!.message).toBe('hello');
+    });
+
+    test('calls async beforeSend and uses the new one', async () => {
+      const beforeSend = jest.fn(
+        async () =>
+          new Promise<SentryEvent>(resolve => {
+            resolve({ message: 'changed' });
+          }),
+      );
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const scope = new Scope();
+      await client.captureEvent({ message: 'hello' }, undefined, scope);
+      expect(TestBackend.instance!.event!.message).toBe('changed');
+    });
+
+    test('calls async beforeSend and discards the event', async () => {
+      const beforeSend = jest.fn(
+        async () =>
+          new Promise<null>(resolve => {
+            resolve(null);
+          }),
+      );
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const scope = new Scope();
+      await client.captureEvent({ message: 'hello' }, undefined, scope);
+      expect(TestBackend.instance!.event).toBeUndefined();
+    });
+
+    test('calls beforeSend gets an access to a hint as a second argument', async () => {
+      const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
+      const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
+      const scope = new Scope();
+      await client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' }, scope);
+      expect(TestBackend.instance!.event!.message).toBe('hello');
+      expect(TestBackend.instance!.event!.data).toBe('someRandomThing');
+    });
+
+    test("doesn't do anything with rate limits yet", async () => {
       const client = new TestClient({ dsn: PUBLIC_DSN });
       TestBackend.instance!.sendEvent = async () => ({ status: Status.RateLimit });
       const scope = new Scope();

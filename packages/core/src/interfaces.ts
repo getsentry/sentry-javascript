@@ -104,7 +104,7 @@ export interface Options {
    * @param hint May contain additional information about the original exception.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null;
+  beforeSend?(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null | Promise<SentryEvent | null>;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
@@ -117,7 +117,10 @@ export interface Options {
    * @param breadcrumb The breadcrumb as created by the SDK.
    * @returns The breadcrumb that will be added | null.
    */
-  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): Breadcrumb | null;
+  beforeBreadcrumb?(
+    breadcrumb: Breadcrumb,
+    hint?: SentryBreadcrumbHint,
+  ): Breadcrumb | null | Promise<Breadcrumb | null>;
 }
 
 /**
