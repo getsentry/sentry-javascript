@@ -5,3 +5,6 @@ export { TryCatch } from './trycatch';
 export { Breadcrumbs } from './breadcrumbs';
 export { SDKInformation } from './sdkinformation';
 export { InboundFilters } from './inboundfilters';
+
+export { Ember } from './pluggable/ember';
+export { Vue } from './pluggable/vue';
