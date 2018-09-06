@@ -1,6 +1,7 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
-import { getCurrentHub } from '../hub';
-import { getExceptionFromError } from '../parsers';
+import { exceptionFromStacktrace } from '../parsers';
+import { computeStackTrace } from '../tracekit';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -49,11 +50,11 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public async handler(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  public handler(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return event;
     }
-    const linkedErrors = await this.walkErrorTree(hint.originalException, this.key);
+    const linkedErrors = this.walkErrorTree(hint.originalException, this.key);
     event.exception.values = [...event.exception.values, ...linkedErrors];
     return event;
   }
@@ -61,15 +62,12 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public async walkErrorTree(
-    error: ExtendedError,
-    key: string,
-    stack: SentryException[] = [],
-  ): Promise<SentryException[]> {
+  public walkErrorTree(error: ExtendedError, key: string, stack: SentryException[] = []): SentryException[] {
     if (!(error[key] instanceof Error) || stack.length >= this.limit) {
       return stack;
     }
-    const exception = await getExceptionFromError(error[key]);
+    const stacktrace = computeStackTrace(error[key]);
+    const exception = exceptionFromStacktrace(stacktrace);
     return this.walkErrorTree(error[key], key, [...stack, exception]);
   }
 }
