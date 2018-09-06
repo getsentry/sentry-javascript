@@ -239,5 +239,34 @@ describe('SentryNode', () => {
           getCurrentHub().captureEvent({ message: 'test' });
         });
       }));
+
+    test('stacktrace order', done => {
+      expect.assertions(1);
+      getCurrentHub().pushScope();
+      getCurrentHub().bindClient(
+        new NodeClient({
+          beforeSend: (event: SentryEvent) => {
+            expect(
+              event.exception!.values![0].stacktrace!.frames![
+                event.exception!.values![0].stacktrace!.frames!.length - 1
+              ].function,
+            ).toEqual('testy');
+            done();
+            return event;
+          },
+          dsn,
+        }),
+      );
+      try {
+        // @ts-ignore
+        function testy(): void {
+          throw new Error('test');
+        }
+        testy();
+      } catch (e) {
+        captureException(e);
+      }
+      getCurrentHub().popScope();
+    });
   });
 });
