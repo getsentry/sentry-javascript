@@ -116,6 +116,33 @@ describe('integration', function() {
       );
     });
 
+    it('should have correct stacktrace order', function(done) {
+      var iframe = this.iframe;
+      iframeExecute(
+        iframe,
+        done,
+        function() {
+          setTimeout(done);
+          try {
+            foo();
+          } catch (e) {
+            Sentry.captureException(e);
+          }
+        },
+        function() {
+          var sentryData = iframe.contentWindow.sentryData[0];
+          assert.equal(
+            sentryData.exception.values[0].stacktrace.frames[
+              sentryData.exception.values[0].stacktrace.frames.length - 1
+            ].function,
+            'bar',
+          );
+          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
+          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+        },
+      );
+    });
+
     it('should reject duplicate, back-to-back errors from captureError', function(done) {
       var iframe = this.iframe;
       iframeExecute(

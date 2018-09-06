@@ -236,7 +236,6 @@ export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
     localStack = localStack.slice(1);
   }
 
-  return localStack;
-  // Sentry expects the stack trace to be oldest -> newest, v8 provides newest -> oldest
-  // return filteredFrames.reverse();
+  // The frame where the crash happened, should be the last entry in the array
+  return localStack.reverse();
 }
