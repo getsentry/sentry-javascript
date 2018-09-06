@@ -7,6 +7,7 @@ import {
   FunctionToString,
   GlobalHandlers,
   InboundFilters,
+  LinkedErrors,
   SDKInformation,
   TryCatch,
 } from './integrations';
@@ -16,8 +17,9 @@ export const defaultIntegrations = [
   new FunctionToString(),
   new TryCatch(),
   new Breadcrumbs(),
-  new SDKInformation(),
   new GlobalHandlers(),
+  new LinkedErrors(),
+  new SDKInformation(),
   new InboundFilters(),
 ];
 

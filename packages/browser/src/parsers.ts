@@ -1,4 +1,4 @@
-import { SentryEvent, StackFrame } from '@sentry/types';
+import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import * as md5proxy from 'md5';
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
@@ -8,6 +8,24 @@ import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as Trac
 const md5 = ((md5proxy as any).default || md5proxy) as (input: string) => string;
 
 const STACKTRACE_LIMIT = 50;
+
+/** JSDoc */
+export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryException {
+  const frames = prepareFramesForEvent(stacktrace.stack);
+
+  const exception = {
+    stacktrace: { frames },
+    type: stacktrace.name,
+    value: stacktrace.message,
+  };
+
+  // tslint:disable-next-line:strict-type-predicates
+  if (exception.type === undefined && exception.value === '') {
+    exception.value = 'Unrecoverable error caught';
+  }
+
+  return exception;
+}
 
 /** JSDoc */
 export function eventFromPlainObject(exception: {}, syntheticException: Error | null): SentryEvent {
@@ -33,23 +51,12 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
 
 /** JSDoc */
 export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
-  const frames = prepareFramesForEvent(stacktrace.stack);
+  const exception = exceptionFromStacktrace(stacktrace);
   const transaction = stacktrace.url || (stacktrace.stack && stacktrace.stack[0].url) || '<unknown>';
-
-  const ex = {
-    stacktrace: { frames },
-    type: stacktrace.name,
-    value: stacktrace.message,
-  };
-
-  // tslint:disable-next-line:strict-type-predicates
-  if (ex.type === undefined && ex.value === '') {
-    ex.value = 'Unrecoverable error caught';
-  }
 
   return {
     exception: {
-      values: [ex],
+      values: [exception],
     },
     transaction,
   };
