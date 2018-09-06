@@ -29,7 +29,7 @@ const bundleConfig = {
     commonjs(),
     license({
       sourcemap: true,
-      banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/raven-js */`,
+      banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
     }),
   ],
 };
