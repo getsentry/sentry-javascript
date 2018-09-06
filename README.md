@@ -49,7 +49,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 
 ## Installation and Usage
 
-To install an SDK, simply add the high-level package, for example:
+To install a SDK, simply add the high-level package, for example:
 
 ```sh
 npm install --save @sentry/browser
