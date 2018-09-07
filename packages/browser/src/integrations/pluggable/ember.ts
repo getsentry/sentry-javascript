@@ -37,7 +37,9 @@ export class Ember implements Integration {
 
     this.Ember.onerror = (error: Error): void => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().configureScope((scope: Scope) => this.addIntegrationToSdkInfo(scope));
+        getCurrentHub().configureScope((scope: Scope) => {
+          this.addIntegrationToSdkInfo(scope);
+        });
         getCurrentHub().captureException(error, { originalException: error });
       });
 
