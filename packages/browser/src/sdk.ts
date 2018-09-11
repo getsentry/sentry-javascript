@@ -77,27 +77,29 @@ export function init(options: BrowserOptions): void {
  *
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
-export function showReportDialog(options: {
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-}): void {
+export function showReportDialog(
+  options: {
+    [key: string]: any;
+    eventId?: string;
+    dsn?: DsnLike;
+    user?: {
+      email?: string;
+      name?: string;
+    };
+    lang?: string;
+    title?: string;
+    subtitle?: string;
+    subtitle2?: string;
+    labelName?: string;
+    labelEmail?: string;
+    labelComments?: string;
+    labelClose?: string;
+    labelSubmit?: string;
+    errorGeneric?: string;
+    errorFormEntry?: string;
+    successMessage?: string;
+  } = {},
+): void {
   if (!options.eventId) {
     options.eventId = getCurrentHub().lastEventId();
   }
