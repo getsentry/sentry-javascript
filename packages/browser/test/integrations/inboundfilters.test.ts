@@ -118,6 +118,22 @@ describe('InboundFilters', () => {
       expect(inboundFilters.isIgnoredError(exceptionEvent)).equal(true);
     });
 
+    it('uses default filters', () => {
+      inboundFilters.install();
+      expect(
+        inboundFilters.isIgnoredError({
+          exception: {
+            values: [
+              {
+                type: '[undefined]',
+                value: 'Script error.',
+              },
+            ],
+          },
+        }),
+      ).equal(true);
+    });
+
     describe('on exception', () => {
       it('uses exceptions data when message is unavailable', () => {
         inboundFilters.install({
