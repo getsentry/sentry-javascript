@@ -5,7 +5,7 @@ import { isFunction, isString } from '@sentry/utils/is';
 import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
-import { supportsBeacon, supportsFetch, supportsHistory } from '@sentry/utils/supports';
+import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
 import { BrowserOptions } from '../backend';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
@@ -187,7 +187,7 @@ export class Breadcrumbs implements Integration {
 
   /** JSDoc */
   private instrumentFetch(options: { filterUrl?: string }): void {
-    if (!supportsFetch()) {
+    if (!supportsNativeFetch()) {
       return;
     }
 

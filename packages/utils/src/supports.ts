@@ -77,6 +77,22 @@ export function supportsFetch(): boolean {
 }
 
 /**
+ * Tells whether current environment supports Fetch API natively
+ * {@link supportsNativeFetch}.
+ *
+ * @returns Answer to the given question.
+ */
+export function supportsNativeFetch(): boolean {
+  if (!supportsFetch()) {
+    return false;
+  }
+  const global = getGlobalObject();
+  const fetch = (global as any).fetch;
+  // tslint:disable-next-line:no-unsafe-any
+  return fetch.toString().indexOf('native') !== -1;
+}
+
+/**
  * Tells whether current environment supports sendBeacon API
  * {@link supportsBeacon}.
  *
