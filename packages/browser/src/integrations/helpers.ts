@@ -86,11 +86,15 @@ export function wrap(
     }
   };
 
-  for (const property in fn) {
-    if (Object.prototype.hasOwnProperty.call(fn, property)) {
-      wrapped[property] = fn[property];
+  // Accessing some objects may throw
+  // ref: https://github.com/getsentry/sentry-javascript/issues/1168
+  try {
+    for (const property in fn) {
+      if (Object.prototype.hasOwnProperty.call(fn, property)) {
+        wrapped[property] = fn[property];
+      }
     }
-  }
+  } catch (_oO) {} // tslint:disable-line:no-empty
 
   wrapped.prototype = fn.prototype;
   fn.__sentry_wrapper__ = wrapped;
