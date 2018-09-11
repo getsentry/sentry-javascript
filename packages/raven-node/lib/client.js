@@ -359,8 +359,6 @@ extend(Raven.prototype, {
     if (this.stacktrace) {
       var ex = new Error(message);
 
-      console.log(ex);
-
       utils.parseStack(
         ex,
         function(frames) {
