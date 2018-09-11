@@ -61,6 +61,13 @@ export class Dedupe implements Integration {
       return true;
     }
 
+    if (this.isSameFingerprint(event)) {
+      logger.warn(
+        `Event dropped due to being a duplicate of previous event (same fingerprint).\n  Event: ${event.event_id}`,
+      );
+      return true;
+    }
+
     return false;
   }
 
@@ -143,5 +150,15 @@ export class Dedupe implements Integration {
     }
 
     return this.isSameStacktrace(event);
+  }
+
+  /** JSDoc */
+  private isSameFingerprint(event: SentryEvent): boolean {
+    if (!this.previousEvent) {
+      return false;
+    }
+
+    return Boolean(event.fingerprint && this.previousEvent.fingerprint) &&
+      JSON.stringify(event.fingerprint) === JSON.stringify(this.previousEvent.fingerprint)
   }
 }
