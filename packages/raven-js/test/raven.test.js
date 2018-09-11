@@ -3871,6 +3871,15 @@ describe('Raven (private methods)', function() {
         assert.isFalse(Raven._isRepeatData(data));
       });
 
+      it('should return false for different messages and identical fingerprints', function () {
+        Raven._lastData.message = 'the thing broke';
+        Raven._lastData.fingerprint = ['{{ default }}', 'grouping-identifier'];
+        var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
+        data.message = 'the other thing broke';
+
+        assert.isFalse(Raven._isRepeatData(data));
+      });
+
       it('should return false for different captureMessage payloads w/ synthetic traces', function() {
         Raven._lastData.stacktrace = {
           frames: [
