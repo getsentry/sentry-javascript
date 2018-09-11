@@ -21,14 +21,16 @@ describe('API', () => {
   });
   test('getReportDialogEndpoint', () => {
     expect(new API(dsnPublic).getReportDialogEndpoint({})).toEqual(
-      'https://sentry.io:1234/subpath/api/embed/error-page/',
+      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
     );
     expect(
       new API(dsnPublic).getReportDialogEndpoint({
         eventId: 'abc',
         testy: '2',
       }),
-    ).toEqual('https://sentry.io:1234/subpath/api/embed/error-page/?eventId=abc&testy=2');
+    ).toEqual(
+      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&testy=2',
+    );
 
     expect(
       new API(dsnPublic).getReportDialogEndpoint({
@@ -38,14 +40,18 @@ describe('API', () => {
           name: 'yo',
         },
       }),
-    ).toEqual('https://sentry.io:1234/subpath/api/embed/error-page/?eventId=abc&name=yo&email=email');
+    ).toEqual(
+      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc&name=yo&email=email',
+    );
 
     expect(
       new API(dsnPublic).getReportDialogEndpoint({
         eventId: 'abc',
         user: undefined,
       }),
-    ).toEqual('https://sentry.io:1234/subpath/api/embed/error-page/?eventId=abc');
+    ).toEqual(
+      'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123&eventId=abc',
+    );
   });
   test('getDsn', () => {
     expect(new API(dsnPublic).getDsn()).toEqual(new Dsn(dsnPublic));
