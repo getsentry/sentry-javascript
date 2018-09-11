@@ -11,7 +11,7 @@ const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script e
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {
   /** JSDoc */
-  private ignoreErrors?: Array<string | RegExp>;
+  private ignoreErrors?: Array<string | RegExp> = DEFAULT_IGNORE_ERRORS;
   /** JSDoc */
   private blacklistUrls?: Array<string | RegExp>;
   /** JSDoc */
