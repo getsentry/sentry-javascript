@@ -19,51 +19,45 @@ export class Dedupe implements Integration {
    */
   public install(): void {
     getCurrentHub().configureScope((scope: Scope) => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
+      scope.addEventProcessor(async (currentEvent: SentryEvent) => {
         // Juuust in case something goes wrong
         try {
-          if (this.shouldDropEvent(event)) {
+          if (this.shouldDropEvent(currentEvent, this.previousEvent)) {
             return null;
           }
         } catch (_oO) {
-          return (this.previousEvent = event);
+          return (this.previousEvent = currentEvent);
         }
 
-        return (this.previousEvent = event);
+        return (this.previousEvent = currentEvent);
       });
     });
   }
 
   /** JSDoc */
-  public shouldDropEvent(event: SentryEvent): boolean {
-    if (!this.previousEvent) {
+  public shouldDropEvent(currentEvent: SentryEvent, previousEvent?: SentryEvent): boolean {
+    if (!previousEvent) {
       return false;
     }
 
-    if (this.isSameMessage(event)) {
+    if (this.isSameMessage(currentEvent, previousEvent)) {
+      if (!this.isSameFingerprint(currentEvent, previousEvent)) {
+        return false;
+      }
+
+      if (!this.isSameStacktrace(currentEvent, previousEvent)) {
+        return false;
+      }
+
       logger.warn(
-        `Event dropped due to being a duplicate of previous event (same message).\n  Event: ${event.event_id}`,
+        `Event dropped due to being a duplicate of previous event (same message).\n  Event: ${currentEvent.event_id}`,
       );
       return true;
     }
 
-    if (this.isSameException(event)) {
+    if (this.isSameException(currentEvent, previousEvent)) {
       logger.warn(
-        `Event dropped due to being a duplicate of previous event (same exception).\n  Event: ${event.event_id}`,
-      );
-      return true;
-    }
-
-    if (this.isSameStacktrace(event)) {
-      logger.warn(
-        `Event dropped due to being a duplicate of previous event (same stacktrace).\n  Event: ${event.event_id}`,
-      );
-      return true;
-    }
-
-    if (this.isSameFingerprint(event)) {
-      logger.warn(
-        `Event dropped due to being a duplicate of previous event (same fingerprint).\n  Event: ${event.event_id}`,
+        `Event dropped due to being a duplicate of previous event (same exception).\n  Event: ${currentEvent.event_id}`,
       );
       return true;
     }
@@ -72,11 +66,22 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameMessage(event: SentryEvent): boolean {
-    if (!this.previousEvent) {
+  private isSameMessage(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+    const currentMessage = currentEvent.message;
+    const previousMessage = previousEvent.message;
+
+    // If no event has a message, they were both exceptions, so bail out
+    if (!currentMessage && !previousMessage) {
       return false;
     }
-    return !!(event.message && this.previousEvent.message && event.message === this.previousEvent.message);
+
+    // If only one event has a stacktrace, but not the other one, they are not the same
+    if ((currentMessage && !previousMessage) || (!currentMessage && previousMessage)) {
+      return false;
+    }
+
+    // Otherwise, compare the two
+    return currentMessage === previousMessage;
   }
 
   /** JSDoc */
@@ -98,18 +103,29 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameStacktrace(event: SentryEvent): boolean {
-    if (!this.previousEvent) {
+  private isSameStacktrace(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+    let currentFrames = this.getFramesFromEvent(currentEvent);
+    let previousFrames = this.getFramesFromEvent(previousEvent);
+
+    // If no event has a fingerprint, they are assumed to be the same
+    if (!currentFrames && !previousFrames) {
+      return true;
+    }
+
+    // If only one event has a stacktrace, but not the other one, they are not the same
+    if ((currentFrames && !previousFrames) || (!currentFrames && previousFrames)) {
       return false;
     }
 
-    const previousFrames = this.getFramesFromEvent(this.previousEvent);
-    const currentFrames = this.getFramesFromEvent(event);
+    currentFrames = currentFrames as StackFrame[];
+    previousFrames = previousFrames as StackFrame[];
 
-    if (!previousFrames || !currentFrames || previousFrames.length !== currentFrames.length) {
+    // If number of frames differ, they are not the same
+    if (previousFrames.length !== currentFrames.length) {
       return false;
     }
 
+    // Otherwise, compare the two
     for (let i = 0; i < previousFrames.length; i++) {
       const frameA = previousFrames[i];
       const frameB = currentFrames[i];
@@ -133,13 +149,9 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameException(event: SentryEvent): boolean {
-    if (!this.previousEvent) {
-      return false;
-    }
-
-    const previousException = this.getExceptionFromEvent(this.previousEvent);
-    const currentException = this.getExceptionFromEvent(event);
+  private isSameException(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+    const previousException = this.getExceptionFromEvent(previousEvent);
+    const currentException = this.getExceptionFromEvent(currentEvent);
 
     if (!previousException || !currentException) {
       return false;
@@ -149,16 +161,32 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    return this.isSameStacktrace(event);
+    return this.isSameStacktrace(currentEvent, previousEvent);
   }
 
   /** JSDoc */
-  private isSameFingerprint(event: SentryEvent): boolean {
-    if (!this.previousEvent) {
+  private isSameFingerprint(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+    let currentFingerprint = currentEvent.fingerprint;
+    let previousFingerprint = previousEvent.fingerprint;
+
+    // If no event has a fingerprint, they are assumed to be the same
+    if (!currentFingerprint && !previousFingerprint) {
+      return true;
+    }
+
+    // If only one event has a fingerprint, but not the other one, they are not the same
+    if ((currentFingerprint && !previousFingerprint) || (!currentFingerprint && previousFingerprint)) {
       return false;
     }
 
-    return Boolean(event.fingerprint && this.previousEvent.fingerprint) &&
-      JSON.stringify(event.fingerprint) === JSON.stringify(this.previousEvent.fingerprint)
+    currentFingerprint = currentFingerprint as string[];
+    previousFingerprint = previousFingerprint as string[];
+
+    // Otherwise, compare the two
+    try {
+      return !!(currentFingerprint.join('') === previousFingerprint.join(''));
+    } catch (_oO) {
+      return false;
+    }
   }
 }
