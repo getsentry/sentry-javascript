@@ -110,7 +110,11 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent> {
+  public async eventFromMessage(
+    message: string,
+    level: Severity = Severity.Info,
+    hint?: SentryEventHint,
+  ): Promise<SentryEvent> {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
       fingerprint: [message],
