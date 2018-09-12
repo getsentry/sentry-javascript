@@ -1,4 +1,6 @@
 import { initAndBind } from '@sentry/core';
+import { getCurrentHub } from '@sentry/hub';
+import { DsnLike } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import {
@@ -68,4 +70,47 @@ export const defaultIntegrations = [
  */
 export function init(options: BrowserOptions): void {
   initAndBind(BrowserClient, options, defaultIntegrations);
+}
+
+/**
+ * Present the user with a report dialog.
+ *
+ * @param options Everything is optional, we try to fetch all info need from the global scope.
+ */
+export function showReportDialog(
+  options: {
+    [key: string]: any;
+    eventId?: string;
+    dsn?: DsnLike;
+    user?: {
+      email?: string;
+      name?: string;
+    };
+    lang?: string;
+    title?: string;
+    subtitle?: string;
+    subtitle2?: string;
+    labelName?: string;
+    labelEmail?: string;
+    labelComments?: string;
+    labelClose?: string;
+    labelSubmit?: string;
+    errorGeneric?: string;
+    errorFormEntry?: string;
+    successMessage?: string;
+  } = {},
+): void {
+  if (!options.eventId) {
+    options.eventId = getCurrentHub().lastEventId();
+  }
+  (getCurrentHub().getClient() as BrowserClient).showReportDialog(options);
+}
+
+/**
+ * This is the getter for lastEventId.
+ *
+ * @returns The last event id of a captured event.
+ */
+export function lastEventId(): string | undefined {
+  return getCurrentHub().lastEventId();
 }

@@ -73,6 +73,7 @@ export class API {
     const endpoint = `${this.getBaseUrl()}${dsn.path ? `/${dsn.path}` : ''}/api/embed/error-page/`;
 
     const encodedOptions = [];
+    encodedOptions.push(`dsn=${dsn.toString()}`);
     for (const key in dialogOptions) {
       if (key === 'user') {
         if (!dialogOptions.user) {
