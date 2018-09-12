@@ -8,6 +8,7 @@ import {
   GlobalHandlers,
   InboundFilters,
   LinkedErrors,
+  ReportingObserver,
   SDKInformation,
   TryCatch,
 } from './integrations';
@@ -19,6 +20,7 @@ export const defaultIntegrations = [
   new Breadcrumbs(),
   new GlobalHandlers(),
   new LinkedErrors(),
+  new ReportingObserver(),
   new SDKInformation(),
   new InboundFilters(),
 ];
