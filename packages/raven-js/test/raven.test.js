@@ -3859,15 +3859,10 @@ describe('Raven (private methods)', function() {
       it('should return false for different fingerprints', function() {
         var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
         data.fingerprint = ['{{ default }}', 'grouping-identifier'];
-
         assert.isFalse(Raven._isRepeatData(data));
-
         Raven._lastData.fingerprint = ['{{ default }}', 'other-grouping-identifier'];
-
         assert.isFalse(Raven._isRepeatData(data));
-
         delete data.fingerprint;
-
         assert.isFalse(Raven._isRepeatData(data));
       });
 
@@ -3876,7 +3871,6 @@ describe('Raven (private methods)', function() {
         Raven._lastData.fingerprint = ['{{ default }}', 'grouping-identifier'];
         var data = JSON.parse(JSON.stringify(Raven._lastData)); // copy
         data.message = 'the other thing broke';
-
         assert.isFalse(Raven._isRepeatData(data));
       });
 
