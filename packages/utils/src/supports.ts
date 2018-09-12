@@ -104,6 +104,16 @@ export function supportsBeacon(): boolean {
 }
 
 /**
+ * Tells whether current environment supports ReportingObserver API
+ * {@link supportsReportingObserver}.
+ *
+ * @returns Answer to the given question.
+ */
+export function supportsReportingObserver(): boolean {
+  return 'ReportingObserver' in getGlobalObject();
+}
+
+/**
  * Tells whether current environment supports Referrer Policy API
  * {@link supportsReferrerPolicy}.
  *
