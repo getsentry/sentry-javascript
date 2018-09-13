@@ -5,6 +5,7 @@ import {
   SentryEvent,
   SentryEventHint,
   SentryResponse,
+  SentryWrappedFunction,
   Severity,
   Status,
 } from '@sentry/types';
@@ -23,7 +24,7 @@ interface ExtensibleConsole extends Console {
 async function beforeBreadcrumbConsoleLoopGuard(
   callback: () => Breadcrumb | Promise<Breadcrumb | null> | null,
 ): Promise<Breadcrumb | null> {
-  const global = getGlobalObject();
+  const global = getGlobalObject() as Window;
   const levels = ['debug', 'info', 'warn', 'error', 'log'];
 
   if (!('console' in global)) {
@@ -34,8 +35,8 @@ async function beforeBreadcrumbConsoleLoopGuard(
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (level in global.console && originalConsole[level].__sentry__) {
-      originalConsole[level] = originalConsole[level].__sentry_original__;
+    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
+      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_original__;
     }
   });
 
@@ -44,8 +45,8 @@ async function beforeBreadcrumbConsoleLoopGuard(
 
   // Revert restoration to wrapped state
   levels.forEach(level => {
-    if (level in global.console && originalConsole[level].__sentry__) {
-      originalConsole[level] = originalConsole[level].__sentry_wrapped__;
+    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
+      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_wrapped__;
     }
   });
 

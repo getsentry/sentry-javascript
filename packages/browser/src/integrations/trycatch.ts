@@ -149,9 +149,9 @@ export class TryCatch implements Integration {
       ): () => void {
         let callback = (fn as any) as SentryWrappedFunction;
         try {
-          callback = callback && (callback.__sentry_wrapper__ || callback);
+          callback = callback && (callback.__sentry_wrapped__ || callback);
         } catch (e) {
-          // ignore, accessing __sentry_wrapper__ will throw in some Selenium environments
+          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
         return original.call(this, eventName, callback, options);
       };

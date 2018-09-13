@@ -1,3 +1,4 @@
+import { SentryWrappedFunction } from '@sentry/types';
 import { isPlainObject, isUndefined } from './is';
 
 /**
@@ -156,14 +157,12 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   if (!(name in source)) {
     return;
   }
-  const original = source[name];
-  source[name] = replacement(original);
-  // tslint:disable-next-line:no-unsafe-any
-  source[name].__sentry__ = true;
-  // tslint:disable-next-line:no-unsafe-any
-  source[name].__sentry_original__ = original;
-  // tslint:disable-next-line:no-unsafe-any
-  source[name].__sentry_wrapped__ = source[name];
+  const original = source[name] as () => any;
+  const wrapped = replacement(original) as SentryWrappedFunction;
+  wrapped.__sentry__ = true;
+  wrapped.__sentry_original__ = original;
+  wrapped.__sentry_wrapped__ = wrapped;
+  source[name] = wrapped;
 }
 
 /**

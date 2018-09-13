@@ -41,8 +41,8 @@ export function wrap(
       return fn;
     }
     // If this has already been wrapped in the past, return that wrapped function
-    if (fn.__sentry_wrapper__) {
-      return fn.__sentry_wrapper__;
+    if (fn.__sentry_wrapped__) {
+      return fn.__sentry_wrapped__;
     }
   } catch (e) {
     // Just accessing custom props in some Selenium environments
@@ -97,7 +97,7 @@ export function wrap(
   } catch (_oO) {} // tslint:disable-line:no-empty
 
   wrapped.prototype = fn.prototype;
-  fn.__sentry_wrapper__ = wrapped;
+  fn.__sentry_wrapped__ = wrapped;
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
