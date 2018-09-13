@@ -10,6 +10,7 @@ import {
   Status,
 } from '@sentry/types';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { forget } from '@sentry/utils/async';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -363,41 +364,45 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    try {
-      const isInternalException = hint && hint.data && hint.data.__sentry__ === true;
-      let finalEvent: SentryEvent | null = prepared;
+    let finalEvent: SentryEvent | null = prepared;
 
+    try {
+      const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
         finalEvent = await beforeSend(prepared, hint);
       }
-
-      if (finalEvent === null) {
-        return {
-          status: Status.Skipped,
-        };
-      }
-
-      const response = await send(finalEvent);
-      response.event = finalEvent;
-
-      if (response.status === Status.RateLimit) {
-        // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-        // implementors to override this method and handle it themselves.
-      }
-
-      return response;
     } catch (exception) {
-      this.captureException(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-      });
+      forget(
+        this.captureException(exception, {
+          data: {
+            __sentry__: true,
+          },
+          originalException: exception as Error,
+        }),
+      );
 
       return {
+        reason: 'Event processing in beforeSend method threw an exception',
         status: Status.Invalid,
       };
     }
+
+    if (finalEvent === null) {
+      return {
+        reason: 'Event dropped due to being discarded by beforeSend method',
+        status: Status.Skipped,
+      };
+    }
+
+    const response = await send(finalEvent);
+    response.event = finalEvent;
+
+    if (response.status === Status.RateLimit) {
+      // TODO: Handle rate limits and maintain a queue. For now, we require SDK
+      // implementors to override this method and handle it themselves.
+    }
+
+    return response;
   }
 
   /**
