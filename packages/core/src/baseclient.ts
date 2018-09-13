@@ -363,22 +363,41 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const finalEvent = beforeSend ? await beforeSend(prepared, hint) : prepared;
-    if (finalEvent === null) {
+    try {
+      const isInternalException = hint && hint.data && hint.data.__sentry__ === true;
+      let finalEvent: SentryEvent | null = prepared;
+
+      if (!isInternalException && beforeSend) {
+        finalEvent = await beforeSend(prepared, hint);
+      }
+
+      if (finalEvent === null) {
+        return {
+          status: Status.Skipped,
+        };
+      }
+
+      const response = await send(finalEvent);
+      response.event = finalEvent;
+
+      if (response.status === Status.RateLimit) {
+        // TODO: Handle rate limits and maintain a queue. For now, we require SDK
+        // implementors to override this method and handle it themselves.
+      }
+
+      return response;
+    } catch (exception) {
+      this.captureException(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception,
+      });
+
       return {
-        status: Status.Skipped,
+        status: Status.Invalid,
       };
     }
-
-    const response = await send(finalEvent);
-    response.event = finalEvent;
-
-    if (response.status === Status.RateLimit) {
-      // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-      // implementors to override this method and handle it themselves.
-    }
-
-    return response;
   }
 
   /**
