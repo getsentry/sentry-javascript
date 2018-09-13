@@ -280,7 +280,7 @@ export namespace Status {
 export interface SentryWrappedFunction extends Function {
   [key: string]: any;
   __sentry__?: boolean;
-  __sentry_wrapper__?: SentryWrappedFunction;
+  __sentry_wrapped__?: SentryWrappedFunction;
   __sentry_original__?: SentryWrappedFunction;
 }
 
