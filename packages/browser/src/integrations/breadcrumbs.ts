@@ -13,61 +13,12 @@ const global = getGlobalObject() as Window;
 let lastHref: string | undefined;
 
 /** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
-
-/** JSDoc */
 export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   [key: string]: any;
   __sentry_xhr__?: {
     method?: string;
     url?: string;
     status_code?: number;
-  };
-}
-
-/**
- * Wrapper function that'll be used for every console level
- */
-function consoleWrapper(originalConsole: ExtensibleConsole): any {
-  return function(level: string): any {
-    if (!(level in global.console)) {
-      return;
-    }
-
-    fill(originalConsole, level, function(originalConsoleLevel: () => any): any {
-      return function(...args: any[]): any {
-        const breadcrumbData = {
-          category: 'console',
-          data: {
-            extra: {
-              arguments: args.slice(1),
-            },
-            logger: 'console',
-          },
-          level: Severity.fromString(level),
-          message: safeJoin(args, ' '),
-        };
-
-        if (level === 'assert') {
-          if (args[0] === false) {
-            breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-            breadcrumbData.data.extra.arguments = args.slice(1);
-          }
-        }
-
-        getCurrentHub().addBreadcrumb(breadcrumbData, {
-          input: args,
-          level,
-        });
-
-        // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          originalConsoleLevel.apply(originalConsole, args);
-        }
-      };
-    });
   };
 }
 
@@ -174,8 +125,44 @@ export class Breadcrumbs implements Integration {
     if (!('console' in global)) {
       return;
     }
-    const originalConsole = global.console as ExtensibleConsole;
-    ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper(originalConsole));
+    ['debug', 'info', 'warn', 'error', 'log'].forEach(function(level: string): void {
+      if (!(level in global.console)) {
+        return;
+      }
+
+      fill(global.console, level, function(originalConsoleLevel: () => any): any {
+        return function(...args: any[]): any {
+          const breadcrumbData = {
+            category: 'console',
+            data: {
+              extra: {
+                arguments: args.slice(1),
+              },
+              logger: 'console',
+            },
+            level: Severity.fromString(level),
+            message: safeJoin(args, ' '),
+          };
+
+          if (level === 'assert') {
+            if (args[0] === false) {
+              breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
+              breadcrumbData.data.extra.arguments = args.slice(1);
+            }
+          }
+
+          getCurrentHub().addBreadcrumb(breadcrumbData, {
+            input: args,
+            level,
+          });
+
+          // this fails for some browsers. :(
+          if (originalConsoleLevel) {
+            originalConsoleLevel.apply(global.console, args);
+          }
+        };
+      });
+    });
   }
 
   /** JSDoc */
