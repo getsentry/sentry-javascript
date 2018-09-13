@@ -38,7 +38,12 @@ export function initAndBind<F extends Client, O extends Options>(
 
   let integrations = [...defaultIntegrations];
   if (Array.isArray(options.integrations)) {
-    integrations = [...integrations, ...options.integrations];
+    const providedIntegrationsNames = options.integrations.map(i => i.name);
+    integrations = [
+      // Leave only unique integrations, that were not overridden with provided integrations with the same name
+      ...integrations.filter(integration => providedIntegrationsNames.indexOf(integration.name) === -1),
+      ...options.integrations,
+    ];
   } else if (typeof options.integrations === 'function') {
     integrations = options.integrations(integrations);
   }
