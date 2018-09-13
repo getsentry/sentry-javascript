@@ -27,6 +27,50 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   };
 }
 
+/**
+ * Wrapper function that'll be used for every console level
+ */
+function consoleWrapper(originalConsole: ExtensibleConsole): any {
+  return function(level: string): any {
+    if (!(level in global.console)) {
+      return;
+    }
+
+    fill(originalConsole, level, function(originalConsoleLevel: () => any): any {
+      return function(...args: any[]): any {
+        const breadcrumbData = {
+          category: 'console',
+          data: {
+            extra: {
+              arguments: args.slice(1),
+            },
+            logger: 'console',
+          },
+          level: Severity.fromString(level),
+          message: safeJoin(args, ' '),
+        };
+
+        if (level === 'assert') {
+          if (args[0] === false) {
+            breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
+            breadcrumbData.data.extra.arguments = args.slice(1);
+          }
+        }
+
+        getCurrentHub().addBreadcrumb(breadcrumbData, {
+          input: args,
+          level,
+        });
+
+        // this fails for some browsers. :(
+        if (originalConsoleLevel) {
+          originalConsoleLevel.apply(originalConsole, args);
+        }
+      };
+    });
+  };
+}
+
 /** JSDoc */
 function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
@@ -130,48 +174,8 @@ export class Breadcrumbs implements Integration {
     if (!('console' in global)) {
       return;
     }
-
     const originalConsole = global.console as ExtensibleConsole;
-
-    ['debug', 'info', 'warn', 'error', 'log'].forEach(level => {
-      if (!(level in console)) {
-        return;
-      }
-
-      // tslint:disable-next-line
-      const originalConsoleLevel = originalConsole[level];
-
-      (global.console as ExtensibleConsole)[level] = function(...args: any[]): void {
-        const breadcrumbData = {
-          category: 'console',
-          data: {
-            extra: {
-              arguments: args.slice(1),
-            },
-            logger: 'console',
-          },
-          level: Severity.fromString(level),
-          message: safeJoin(args, ' '),
-        };
-
-        if (level === 'assert') {
-          if (args[0] === false) {
-            breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-            breadcrumbData.data.extra.arguments = args.slice(1);
-          }
-        }
-
-        getCurrentHub().addBreadcrumb(breadcrumbData, {
-          input: args,
-          level,
-        });
-
-        // this fails for some browsers. :(
-        if (originalConsoleLevel) {
-          Function.prototype.apply.call(originalConsoleLevel, originalConsole, args);
-        }
-      };
-    });
+    ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper(originalConsole));
   }
 
   /** JSDoc */
