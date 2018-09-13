@@ -162,6 +162,8 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   source[name].__sentry__ = true;
   // tslint:disable-next-line:no-unsafe-any
   source[name].__sentry_original__ = original;
+  // tslint:disable-next-line:no-unsafe-any
+  source[name].__sentry_wrapped__ = source[name];
 }
 
 /**

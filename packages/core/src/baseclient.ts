@@ -8,11 +8,49 @@ import {
   Severity,
   Status,
 } from '@sentry/types';
-import { uuid4 } from '@sentry/utils/misc';
+import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
+
+/** JSDoc */
+interface ExtensibleConsole extends Console {
+  [key: string]: any;
+}
+
+/** JSDoc */
+async function beforeBreadcrumbConsoleLoopGuard(
+  callback: () => Breadcrumb | Promise<Breadcrumb | null> | null,
+): Promise<Breadcrumb | null> {
+  const global = getGlobalObject();
+  const levels = ['debug', 'info', 'warn', 'error', 'log'];
+
+  if (!('console' in global)) {
+    return callback();
+  }
+
+  const originalConsole = global.console as ExtensibleConsole;
+
+  // Restore all wrapped console methods
+  levels.forEach(level => {
+    if (level in global.console && originalConsole[level].__sentry__) {
+      originalConsole[level] = originalConsole[level].__sentry_original__;
+    }
+  });
+
+  // Perform callback manipulations
+  const result = await callback();
+
+  // Revert restoration to wrapped state
+  levels.forEach(level => {
+    if (level in global.console && originalConsole[level].__sentry__) {
+      originalConsole[level] = originalConsole[level].__sentry_wrapped__;
+    }
+  });
+
+  return result;
+}
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -182,7 +220,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb ? await beforeBreadcrumb(mergedBreadcrumb, hint) : mergedBreadcrumb;
+    const finalBreadcrumb = beforeBreadcrumb
+      ? await beforeBreadcrumbConsoleLoopGuard(() => beforeBreadcrumb(mergedBreadcrumb, hint))
+      : mergedBreadcrumb;
 
     if (finalBreadcrumb === null) {
       return;
