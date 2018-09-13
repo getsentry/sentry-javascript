@@ -8,6 +8,7 @@ import {
   Severity,
   Status,
 } from '@sentry/types';
+import { forget } from '@sentry/utils/async';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
@@ -322,9 +323,32 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const finalEvent = beforeSend ? await beforeSend(prepared, hint) : prepared;
+    let finalEvent: SentryEvent | null = prepared;
+
+    try {
+      const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+      if (!isInternalException && beforeSend) {
+        finalEvent = await beforeSend(prepared, hint);
+      }
+    } catch (exception) {
+      forget(
+        this.captureException(exception, {
+          data: {
+            __sentry__: true,
+          },
+          originalException: exception as Error,
+        }),
+      );
+
+      return {
+        reason: 'Event processing in beforeSend method threw an exception',
+        status: Status.Invalid,
+      };
+    }
+
     if (finalEvent === null) {
       return {
+        reason: 'Event dropped due to being discarded by beforeSend method',
         status: Status.Skipped,
       };
     }
