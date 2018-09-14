@@ -40,22 +40,14 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    if (this.isSameMessage(currentEvent, previousEvent)) {
-      if (!this.isSameFingerprint(currentEvent, previousEvent)) {
-        return false;
-      }
-
-      if (!this.isSameStacktrace(currentEvent, previousEvent)) {
-        return false;
-      }
-
+    if (this.isSameMessageEvent(currentEvent, previousEvent)) {
       logger.warn(
         `Event dropped due to being a duplicate of previous event (same message).\n  Event: ${currentEvent.event_id}`,
       );
       return true;
     }
 
-    if (this.isSameException(currentEvent, previousEvent)) {
+    if (this.isSameExceptionEvent(currentEvent, previousEvent)) {
       logger.warn(
         `Event dropped due to being a duplicate of previous event (same exception).\n  Event: ${currentEvent.event_id}`,
       );
@@ -66,7 +58,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameMessage(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameMessageEvent(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
     const currentMessage = currentEvent.message;
     const previousMessage = previousEvent.message;
 
@@ -80,8 +72,19 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    // Otherwise, compare the two
-    return currentMessage === previousMessage;
+    if (currentMessage !== previousMessage) {
+      return false;
+    }
+
+    if (!this.isSameFingerprint(currentEvent, previousEvent)) {
+      return false;
+    }
+
+    if (!this.isSameStacktrace(currentEvent, previousEvent)) {
+      return false;
+    }
+
+    return true;
   }
 
   /** JSDoc */
@@ -149,7 +152,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameException(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameExceptionEvent(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
     const previousException = this.getExceptionFromEvent(previousEvent);
     const currentException = this.getExceptionFromEvent(currentEvent);
 
@@ -161,7 +164,15 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    return this.isSameStacktrace(currentEvent, previousEvent);
+    if (!this.isSameFingerprint(currentEvent, previousEvent)) {
+      return false;
+    }
+
+    if (!this.isSameStacktrace(currentEvent, previousEvent)) {
+      return false;
+    }
+
+    return true;
   }
 
   /** JSDoc */
