@@ -5,24 +5,12 @@ import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
 import { parse as parseCookie } from 'cookie';
 import * as domain from 'domain';
-import * as lsmod from 'lsmod';
 import { hostname } from 'os';
 import { parse as parseUrl } from 'url';
 import { NodeClient } from './client';
 import { getCurrentHub } from './hub';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
-
-let moduleCache: { [key: string]: string };
-
-/** JSDoc */
-function getModules(): { [key: string]: string } {
-  if (!moduleCache) {
-    // tslint:disable-next-line:no-unsafe-any
-    moduleCache = lsmod();
-  }
-  return moduleCache;
-}
 
 /** JSDoc */
 function extractRequestData(req: { [key: string]: any }): { [key: string]: string } {
@@ -129,7 +117,6 @@ function parseRequest(
       ...event.extra,
       node: global.process.version,
     },
-    modules: getModules(),
     request: {
       ...event.request,
       ...extractRequestData(req),
