@@ -5,3 +5,4 @@ export { OnUnhandledRejection } from './onunhandledrejection';
 export { ClientOptions } from './clientoptions';
 export { SDKInformation } from './sdkinformation';
 export { LinkedErrors } from './linkederrors';
+export { Modules } from './modules';
