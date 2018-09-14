@@ -9,8 +9,8 @@ import {
   Severity,
   Status,
 } from '@sentry/types';
-import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { forget } from '@sentry/utils/async';
+import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
