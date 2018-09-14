@@ -237,29 +237,30 @@ describe('integration', function() {
         iframe,
         done,
         function() {
-          var count = 2;
-          setTimeout(function invoke() {
-            // use setTimeout to capture new error objects that have
-            // identical stack traces (can't call sequentially or callsite
-            // line number will change)
-            Sentry.captureMessage('this is fine ' + Date.now()); // this will be called twice with different messages, but same stacktrace
-            if (count === 1) Sentry.captureMessage('this is fine'); // suppressed
-            if (count === 1) Sentry.captureMessage('this is fine'); // suppressed
-            if (count === 1) Sentry.captureMessage("i'm okay with the events that are unfolding currently");
-            if (count === 1) Sentry.captureMessage("that's okay, things are going to be okay");
+          setTimeout(done);
 
-            if (--count === 0) return setTimeout(done);
-            else setTimeout(invoke);
-          });
+          for (var i = 0; i < 2; i++) {
+            // Different messages, same stacktrace, don't dedupe
+            Sentry.captureMessage('different message, same stacktrace ' + Date.now());
+          }
+
+          for (var i = 0; i < 2; i++) {
+            // Same messages and same stacktrace, dedupe
+            Sentry.captureMessage('same message, same stacktrace');
+          }
+
+          // Same messages, different stacktrace (different line number), don't dedupe
+          Sentry.captureMessage('same message, different stacktrace');
+          Sentry.captureMessage('same message, different stacktrace');
         },
         function() {
           var sentryData = iframe.contentWindow.sentryData;
-          // NOTE: regex because exact error message differs per-browser
-          assert.equal(sentryData.length, 4);
-          assert.match(sentryData[0].message, /this is fine \d+/);
-          assert.equal(sentryData[1].message, 'this is fine');
-          assert.equal(sentryData[2].message, "i'm okay with the events that are unfolding currently");
-          assert.equal(sentryData[3].message, "that's okay, things are going to be okay");
+          assert.equal(sentryData.length, 5);
+          assert.match(sentryData[0].message, /different message, same stacktrace \d+/);
+          assert.match(sentryData[1].message, /different message, same stacktrace \d+/);
+          assert.equal(sentryData[2].message, 'same message, same stacktrace');
+          assert.equal(sentryData[3].message, 'same message, different stacktrace');
+          assert.equal(sentryData[4].message, 'same message, different stacktrace');
         },
       );
     });
