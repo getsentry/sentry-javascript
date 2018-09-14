@@ -36,7 +36,7 @@ export function initAndBind<F extends Client, O extends Options>(
   // there needs to be a client on the hub already.
   getCurrentHub().bindClient(client);
 
-  let integrations = [...defaultIntegrations];
+  let integrations = options.defaultIntegrations === false ? [] : [...defaultIntegrations];
   if (Array.isArray(options.integrations)) {
     const providedIntegrationsNames = options.integrations.map(i => i.name);
     integrations = [

@@ -48,6 +48,11 @@ export interface Options {
   dsn?: string;
 
   /**
+   * If this is set to false, default integrations will not be added.
+   */
+  defaultIntegrations?: boolean;
+
+  /**
    * List of integrations that should be installed after SDK was initialized.
    * Accepts either a list of integrations or a function that receives
    * default integrations and returns a new, updated list.

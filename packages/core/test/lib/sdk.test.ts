@@ -31,6 +31,16 @@ describe('SDK', () => {
       expect(DEFAULT_INTEGRATIONS[1].handler.mock.calls.length).toBe(1);
     });
 
+    test('not installs default integrations', () => {
+      const DEFAULT_INTEGRATIONS: Integration[] = [
+        new MockIntegration('MockIntegration 1'),
+        new MockIntegration('MockIntegration 2'),
+      ];
+      initAndBind(TestClient, { defaultIntegrations: false }, DEFAULT_INTEGRATIONS);
+      expect(DEFAULT_INTEGRATIONS[0].handler.mock.calls.length).toBe(0);
+      expect(DEFAULT_INTEGRATIONS[1].handler.mock.calls.length).toBe(0);
+    });
+
     test('installs integrations provided through options', () => {
       const integrations: Integration[] = [
         new MockIntegration('MockIntegration 1'),
