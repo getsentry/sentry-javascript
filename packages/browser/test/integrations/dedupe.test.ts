@@ -51,6 +51,7 @@ const exceptionEvent = {
       },
     ],
   },
+  fingerprint: ['MrSnuffles'],
 };
 
 describe('Dedupe', () => {
@@ -101,6 +102,11 @@ describe('Dedupe', () => {
   });
 
   describe('shouldDropEvent(exceptionEvent)', () => {
+    it('should not drop if there was no previous event', () => {
+      const event = clone(exceptionEvent);
+      expect(dedupe.shouldDropEvent(event)).equal(false);
+    });
+
     it('should drop when events type, value and stacktrace are the same', () => {
       const event = clone(exceptionEvent);
       expect(dedupe.shouldDropEvent(event, event)).equal(true);
@@ -125,6 +131,31 @@ describe('Dedupe', () => {
       const eventB = clone(exceptionEvent);
       eventB.exception.values[0].stacktrace.frames[0].colno = 1337;
       expect(dedupe.shouldDropEvent(eventA, eventB)).equal(false);
+    });
+
+    it('should drop if there are two events with same exception and no fingerprints', () => {
+      const eventA = clone(exceptionEvent);
+      delete eventA.fingerprint;
+      const eventB = clone(exceptionEvent);
+      delete eventB.fingerprint;
+      expect(dedupe.shouldDropEvent(eventA, eventB)).equal(true);
+    });
+
+    it('should drop if there are two events with same exception and same fingerprints', () => {
+      const eventA = clone(exceptionEvent);
+      const eventB = clone(exceptionEvent);
+      expect(dedupe.shouldDropEvent(eventA, eventB)).equal(true);
+    });
+
+    it('should not drop if there are two events with same exception but different fingerprints', () => {
+      const eventA = clone(exceptionEvent);
+      const eventB = clone(exceptionEvent);
+      eventA.fingerprint = ['Birdperson'];
+      const eventC = clone(exceptionEvent);
+      delete eventC.fingerprint;
+      expect(dedupe.shouldDropEvent(eventA, eventB)).equal(false);
+      expect(dedupe.shouldDropEvent(eventA, eventC)).equal(false);
+      expect(dedupe.shouldDropEvent(eventB, eventC)).equal(false);
     });
   });
 });
