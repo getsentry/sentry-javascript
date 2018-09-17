@@ -1,6 +1,6 @@
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
-import { ClientRequest, ClientRequestArgs, ServerResponse } from 'http';
+import { ClientRequest, ClientRequestArgs, IncomingMessage, ServerResponse } from 'http';
 import { inherits } from 'util';
 import { getCurrentHub } from '../hub';
 
@@ -10,7 +10,7 @@ let lastResponse: ServerResponse | undefined;
  * Request interface which can carry around unified url
  * independently of used framework
  */
-interface SentryRequest extends Request {
+interface SentryRequest extends IncomingMessage {
   __ravenBreadcrumbUrl?: string;
 }
 

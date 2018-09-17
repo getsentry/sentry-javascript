@@ -5,6 +5,7 @@ import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
 import { parse as parseCookie } from 'cookie';
 import * as domain from 'domain';
+import * as http from 'http';
 import { hostname } from 'os';
 import { parse as parseUrl } from 'url';
 import { NodeClient } from './client';
@@ -135,8 +136,8 @@ function parseRequest(
 }
 
 /** JSDoc */
-export function requestHandler(): (req: Request, res: Response, next: () => void) => void {
-  return function sentryRequestMiddleware(req: Request, _res: Response, next: () => void): void {
+export function requestHandler(): (req: http.ClientRequest, res: http.ServerResponse, next: () => void) => void {
+  return function sentryRequestMiddleware(req: http.ClientRequest, _res: http.ServerResponse, next: () => void): void {
     const local = domain.create();
     const hub = getHubFromCarrier(req);
     hub.bindClient(getCurrentHub().getClient());
@@ -168,14 +169,14 @@ function getStatusCodeFromResponse(error: MiddlewareError): number {
 /** JSDoc */
 export function errorHandler(): (
   error: MiddlewareError,
-  req: Request,
-  res: Response,
+  req: http.ClientRequest,
+  res: http.ServerResponse,
   next: (error: MiddlewareError) => void,
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    req: Request,
-    _res: Response,
+    req: http.ClientRequest,
+    _res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
     const status = getStatusCodeFromResponse(error);
