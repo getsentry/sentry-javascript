@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { getCurrentHub, withScope } from '@sentry/core';
 import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
@@ -65,18 +65,16 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      getCurrentHub().withScope(async () => {
-        getCurrentHub().configureScope((scope: Scope) => {
-          scope.addEventProcessor(async (event: SentryEvent) => {
-            const processedEvent = { ...event };
+      withScope(async scope => {
+        scope.addEventProcessor(async (event: SentryEvent) => {
+          const processedEvent = { ...event };
 
-            if (options.mechanism) {
-              processedEvent.exception = processedEvent.exception || {};
-              processedEvent.exception.mechanism = options.mechanism;
-            }
+          if (options.mechanism) {
+            processedEvent.exception = processedEvent.exception || {};
+            processedEvent.exception.mechanism = options.mechanism;
+          }
 
-            return processedEvent;
-          });
+          return processedEvent;
         });
 
         getCurrentHub().captureException(ex, { originalException: ex });

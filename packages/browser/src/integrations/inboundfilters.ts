@@ -1,5 +1,4 @@
-import { logger } from '@sentry/core';
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { configureScope, logger } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { BrowserOptions } from '../backend';
@@ -27,7 +26,7 @@ export class InboundFilters implements Integration {
   public install(options: BrowserOptions = {}): void {
     this.configureOptions(options);
 
-    getCurrentHub().configureScope((scope: Scope) => {
+    configureScope(scope => {
       scope.addEventProcessor(async (event: SentryEvent) => {
         if (this.shouldDropEvent(event)) {
           return null;

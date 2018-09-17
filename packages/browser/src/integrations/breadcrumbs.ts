@@ -1,5 +1,4 @@
-import { API, logger } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { API, getCurrentHub, logger } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getGlobalObject, parseUrl } from '@sentry/utils/misc';

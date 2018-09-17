@@ -1,6 +1,15 @@
 export { logger } from './logger';
-export { captureException, captureMessage, configureScope } from '@sentry/minimal';
-export { Hub, Scope } from '@sentry/hub';
+export {
+  addBreadcrumb,
+  captureException,
+  captureEvent,
+  captureMessage,
+  configureScope,
+  popScope,
+  pushScope,
+  withScope,
+} from '@sentry/minimal';
+export { getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';
 export { API } from './api';
 export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';

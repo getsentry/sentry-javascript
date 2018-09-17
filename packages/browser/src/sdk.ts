@@ -1,5 +1,4 @@
-import { initAndBind } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, initAndBind } from '@sentry/core';
 import { DsnLike } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
