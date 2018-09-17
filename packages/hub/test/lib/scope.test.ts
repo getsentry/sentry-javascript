@@ -1,4 +1,4 @@
-import { SentryEvent, SentryEventHint } from '@sentry/types';
+import { SentryEvent, SentryEventHint, Severity } from '@sentry/types';
 import { Scope } from '../../src';
 
 describe('Scope', () => {
@@ -35,6 +35,19 @@ describe('Scope', () => {
     const scope = new Scope();
     scope.addBreadcrumb({ message: 'test' }, 100);
     expect(scope.getBreadcrumbs()).toEqual([{ message: 'test' }]);
+  });
+
+  test('level', () => {
+    const scope = new Scope();
+    scope.setLevel(Severity.Critical);
+    expect(scope.getLevel()).toEqual(Severity.Critical);
+  });
+
+  test('chaining', () => {
+    const scope = new Scope();
+    scope.setLevel(Severity.Critical).setUser({ id: '1' });
+    expect(scope.getLevel()).toEqual(Severity.Critical);
+    expect(scope.getUser()).toEqual({ id: '1' });
   });
 
   test('basic inheritance', () => {

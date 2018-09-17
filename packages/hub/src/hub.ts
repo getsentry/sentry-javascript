@@ -100,15 +100,19 @@ export class Hub {
    * breadcrumbs and context information added to this scope will be removed once
    * the scope ends. Be sure to always remove this scope with {@link this.popScope}
    * when the operation finishes or throws.
+   *
+   * @returns Scope, the new cloned scope
    */
-  public pushScope(): void {
+  public pushScope(): Scope {
     // We want to clone the content of prev scope
     const stack = this.getStack();
     const parentScope = stack.length > 0 ? stack[stack.length - 1].scope : undefined;
+    const scope = Scope.clone(parentScope);
     this.getStack().push({
       client: this.getClient(),
-      scope: Scope.clone(parentScope),
+      scope,
     });
+    return scope;
   }
 
   /**
@@ -135,10 +139,10 @@ export class Hub {
    *
    * @param callback that will be enclosed into push/popScope.
    */
-  public withScope(callback: (() => void)): void {
-    this.pushScope();
+  public withScope(callback: ((scope: Scope) => void)): void {
+    const scope = this.pushScope();
     try {
-      callback();
+      callback(scope);
     } finally {
       this.popScope();
     }
