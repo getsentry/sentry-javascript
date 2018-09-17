@@ -19,8 +19,6 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  popScope,
-  pushScope,
   withScope,
   getHubFromCarrier,
   getCurrentHub,

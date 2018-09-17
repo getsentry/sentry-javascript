@@ -5,8 +5,6 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  popScope,
-  pushScope,
   withScope,
 } from '@sentry/minimal';
 export { getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';

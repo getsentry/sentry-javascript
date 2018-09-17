@@ -1,4 +1,4 @@
-import { captureMessage, getCurrentHub, popScope, pushScope, Scope, withScope } from '@sentry/core';
+import { captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -49,7 +49,7 @@ export class Ember implements Integration {
     this.Ember.RSVP.on(
       'error',
       (reason: any): void => {
-        const scope = pushScope();
+        const scope = getCurrentHub().pushScope();
         if (reason instanceof Error) {
           scope.setExtra('context', 'Unhandled Promise error detected');
           this.addIntegrationToSdkInfo(scope);
@@ -59,7 +59,7 @@ export class Ember implements Integration {
           this.addIntegrationToSdkInfo(scope);
           captureMessage('Unhandled Promise error detected');
         }
-        popScope();
+        getCurrentHub().popScope();
       },
     );
   }

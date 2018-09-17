@@ -19,12 +19,11 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  popScope,
-  pushScope,
+  getHubFromCarrier,
+  Hub,
+  Scope,
   withScope,
 } from '@sentry/core';
-
-export { getHubFromCarrier, Hub, Scope } from '@sentry/hub';
 
 export { getCurrentHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';
