@@ -59,85 +59,30 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<p align="center">
-					<a href="https://sentry.io" target="_blank" align="center">
-						<img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
-					</a>
-					<br />
-				</p>
-				<p><a href="https://travis-ci.com/getsentry/sentry-javascript"><img src="https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master" alt="Build Status"></a>
-					<a href="https://codecov.io/gh/getsentry/sentry-javascript"><img src="https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg" alt="codecov"></a>
-				<a href="https://www.npmjs.com/package/@sentry/core"><img src="https://img.shields.io/npm/v/@sentry/core.svg" alt="npm version"></a></p>
-				<h1 id="official-sentry-sdks-for-javascript">Official Sentry SDKs for JavaScript</h1>
-				<p>This is the next line of Sentry JavaScript SDKs, comprised in the <code>@sentry/</code> namespace. It will provide a more
-				convenient interface and improved consistency between various JavaScript environments.</p>
-				<p><strong>WARNING:</strong> All of these SDKs are still undergoing active development, so the public interface might change and break
-				backwards compatibility from time to time.</p>
-				<h2 id="contents">Contents</h2>
-				<ul>
-					<li><a href="https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md">Contributing</a></li>
-					<li><a href="#supported-platforms">Supported Platforms</a></li>
-					<li><a href="#installation-and-usage">Installation and Usage</a></li>
-					<li><a href="#other-packages">Other Packages</a></li>
-					<li><a href="#join-the-discussion">Join the Discussion</a></li>
-				</ul>
-				<h2 id="supported-platforms">Supported Platforms</h2>
-				<p>For each major JavaScript platform, there is a specific high-level SDK that provides all the tools you need in a single
-				package. Please refer to the README and instructions of those SDKs for more detailed information:</p>
-				<ul>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/hub"><code>@sentry/hub</code></a>: Global state management of SDKs</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/minimal"><code>@sentry/minimal</code></a>: Minimal SDK for library
-					authors to add Sentry support</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/browser"><code>@sentry/browser</code></a>: SDK for Browsers, including
-					integrations for React, Angular, Ember, Vue and Backbone</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/node"><code>@sentry/node</code></a>: SDK for Node, including
-					integrations for Express, Koa, Loopback, Sails and Connect</li>
-					<li><a href="https://github.com/getsentry/sentry-electron"><code>@sentry/electron</code></a>: SDK for Electron with support for native crashes</li>
-					<li><a href="https://github.com/getsentry/sentry-cordova"><code>sentry-cordova</code></a>: SDK for Cordova Apps and Ionic with support for
-					native crashes</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/raven-js"><code>raven-js</code></a>: Our old stable Javascript SDK, we
-						still support and release bug fixes for the SDK but all new features will be implemented in <code>@sentry/browser</code> which is
-					the successor.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/raven-node"><code>raven</code></a>: Our old stable Node SDK, same as for
-						<code>raven-js</code> we still support and release bug fixes for the SDK but all new features will be implemented in
-					<code>@sentry/node</code> which is the successor.</li>
-				</ul>
-				<h2 id="installation-and-usage">Installation and Usage</h2>
-				<p>To install a SDK, simply add the high-level package, for example:</p>
-				<pre><code class="language-sh">npm install --save @sentry/browser
-yarn add @sentry/browser</code></pre>
-				<p>Setup and usage of these SDKs always follows the same principle.</p>
-				<pre><code class="language-javascript"><span class="hljs-keyword">import</span> { init, captureMessage } <span class="hljs-keyword">from</span> <span class="hljs-string">'@sentry/browser'</span>;
-
-init({
-  <span class="hljs-attr">dsn</span>: <span class="hljs-string">'__DSN__'</span>,
-  <span class="hljs-comment">// ...</span>
-});
-
-captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
-				<h2 id="other-packages">Other Packages</h2>
-				<p>Besides the high-level SDKs, this repository contains shared packages, helpers and configuration used for SDK
-					development. If you&#39;re thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
-				below:</p>
-				<ul>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/core"><code>@sentry/core</code></a>: The base for all JavaScript SDKs
-					with interfaces, type definitions and base classes.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/utils"><code>@sentry/utils</code></a>: A set of helpers and utility
-					functions useful for various SDKs.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/typescript"><code>@sentry/typescript</code></a>: Shared Typescript
-					compiler and linter options.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/types"><code>@sentry/types</code></a>: Types used in all packages.</li>
-				</ul>
-				<h2 id="join-the-discussion">Join the Discussion</h2>
-				<p>Join the discussion in our <a href="https://github.com/getsentry/raven-js/issues/1281">tracking issue</a> and let us know what you
-				think of the updated interface and new possibilities.</p>
-			</div>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>External modules</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-external-module"><a href="modules/browser.html" class="tsd-kind-icon">browser</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/core.html" class="tsd-kind-icon">core</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/hub.html" class="tsd-kind-icon">hub</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/minimal.html" class="tsd-kind-icon">minimal</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/node.html" class="tsd-kind-icon">node</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/types.html" class="tsd-kind-icon">types</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/utils.html" class="tsd-kind-icon">utils</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation primary">
 				<ul>
-					<li class="globals  ">
+					<li class="globals current ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
 					<li class=" tsd-kind-external-module">

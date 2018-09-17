@@ -3,17 +3,17 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Sentry JavaScript SDKs</title>
+	<title>Carrier | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="assets/css/main.css">
+	<link rel="stylesheet" href="../assets/css/main.css">
 </head>
 <body>
 <header>
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="index.html" class="title">Sentry JavaScript SDKs</a>
+					<a href="../index.html" class="title">Sentry JavaScript SDKs</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -49,122 +49,128 @@
 		<div class="container">
 			<ul class="tsd-breadcrumb">
 				<li>
-					<a href="globals.html">Globals</a>
+					<a href="../globals.html">Globals</a>
+				</li>
+				<li>
+					<a href="../modules/hub.html">hub</a>
+				</li>
+				<li>
+					<a href="hub.carrier.html">Carrier</a>
 				</li>
 			</ul>
-			<h1> Sentry JavaScript SDKs</h1>
+			<h1>Interface Carrier</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<p align="center">
-					<a href="https://sentry.io" target="_blank" align="center">
-						<img src="https://sentry-brand.storage.googleapis.com/sentry-logo-black.png" width="280">
-					</a>
-					<br />
-				</p>
-				<p><a href="https://travis-ci.com/getsentry/sentry-javascript"><img src="https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master" alt="Build Status"></a>
-					<a href="https://codecov.io/gh/getsentry/sentry-javascript"><img src="https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg" alt="codecov"></a>
-				<a href="https://www.npmjs.com/package/@sentry/core"><img src="https://img.shields.io/npm/v/@sentry/core.svg" alt="npm version"></a></p>
-				<h1 id="official-sentry-sdks-for-javascript">Official Sentry SDKs for JavaScript</h1>
-				<p>This is the next line of Sentry JavaScript SDKs, comprised in the <code>@sentry/</code> namespace. It will provide a more
-				convenient interface and improved consistency between various JavaScript environments.</p>
-				<p><strong>WARNING:</strong> All of these SDKs are still undergoing active development, so the public interface might change and break
-				backwards compatibility from time to time.</p>
-				<h2 id="contents">Contents</h2>
-				<ul>
-					<li><a href="https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md">Contributing</a></li>
-					<li><a href="#supported-platforms">Supported Platforms</a></li>
-					<li><a href="#installation-and-usage">Installation and Usage</a></li>
-					<li><a href="#other-packages">Other Packages</a></li>
-					<li><a href="#join-the-discussion">Join the Discussion</a></li>
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>An object that contains a hub and maintains a scope stack.</p>
+					</div>
+				</div>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">Carrier</span>
+					</li>
 				</ul>
-				<h2 id="supported-platforms">Supported Platforms</h2>
-				<p>For each major JavaScript platform, there is a specific high-level SDK that provides all the tools you need in a single
-				package. Please refer to the README and instructions of those SDKs for more detailed information:</p>
-				<ul>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/hub"><code>@sentry/hub</code></a>: Global state management of SDKs</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/minimal"><code>@sentry/minimal</code></a>: Minimal SDK for library
-					authors to add Sentry support</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/browser"><code>@sentry/browser</code></a>: SDK for Browsers, including
-					integrations for React, Angular, Ember, Vue and Backbone</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/node"><code>@sentry/node</code></a>: SDK for Node, including
-					integrations for Express, Koa, Loopback, Sails and Connect</li>
-					<li><a href="https://github.com/getsentry/sentry-electron"><code>@sentry/electron</code></a>: SDK for Electron with support for native crashes</li>
-					<li><a href="https://github.com/getsentry/sentry-cordova"><code>sentry-cordova</code></a>: SDK for Cordova Apps and Ionic with support for
-					native crashes</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/raven-js"><code>raven-js</code></a>: Our old stable Javascript SDK, we
-						still support and release bug fixes for the SDK but all new features will be implemented in <code>@sentry/browser</code> which is
-					the successor.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/raven-node"><code>raven</code></a>: Our old stable Node SDK, same as for
-						<code>raven-js</code> we still support and release bug fixes for the SDK but all new features will be implemented in
-					<code>@sentry/node</code> which is the successor.</li>
-				</ul>
-				<h2 id="installation-and-usage">Installation and Usage</h2>
-				<p>To install a SDK, simply add the high-level package, for example:</p>
-				<pre><code class="language-sh">npm install --save @sentry/browser
-yarn add @sentry/browser</code></pre>
-				<p>Setup and usage of these SDKs always follows the same principle.</p>
-				<pre><code class="language-javascript"><span class="hljs-keyword">import</span> { init, captureMessage } <span class="hljs-keyword">from</span> <span class="hljs-string">'@sentry/browser'</span>;
-
-init({
-  <span class="hljs-attr">dsn</span>: <span class="hljs-string">'__DSN__'</span>,
-  <span class="hljs-comment">// ...</span>
-});
-
-captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
-				<h2 id="other-packages">Other Packages</h2>
-				<p>Besides the high-level SDKs, this repository contains shared packages, helpers and configuration used for SDK
-					development. If you&#39;re thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
-				below:</p>
-				<ul>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/core"><code>@sentry/core</code></a>: The base for all JavaScript SDKs
-					with interfaces, type definitions and base classes.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/utils"><code>@sentry/utils</code></a>: A set of helpers and utility
-					functions useful for various SDKs.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/typescript"><code>@sentry/typescript</code></a>: Shared Typescript
-					compiler and linter options.</li>
-					<li><a href="https://github.com/getsentry/raven-js/tree/master/packages/types"><code>@sentry/types</code></a>: Types used in all packages.</li>
-				</ul>
-				<h2 id="join-the-discussion">Join the Discussion</h2>
-				<p>Join the discussion in our <a href="https://github.com/getsentry/raven-js/issues/1281">tracking issue</a> and let us know what you
-				think of the updated interface and new possibilities.</p>
-			</div>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Properties</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="hub.carrier.html#hub" class="tsd-kind-icon">hub</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="hub" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> hub</h3>
+					<div class="tsd-signature tsd-kind-icon">hub<span class="tsd-signature-symbol">:</span> <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/hub/src/interfaces.ts#L12">hub/src/interfaces.ts:12</a></li>
+						</ul>
+					</aside>
+				</section>
+			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation primary">
 				<ul>
 					<li class="globals  ">
-						<a href="globals.html"><em>Globals</em></a>
+						<a href="../globals.html"><em>Globals</em></a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/browser.html">browser</a>
+						<a href="../modules/browser.html">browser</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/core.html">core</a>
+						<a href="../modules/core.html">core</a>
+					</li>
+					<li class="current tsd-kind-external-module">
+						<a href="../modules/hub.html">hub</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/hub.html">hub</a>
+						<a href="../modules/minimal.html">minimal</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/minimal.html">minimal</a>
+						<a href="../modules/node.html">node</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/node.html">node</a>
+						<a href="../modules/types.html">types</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/types.html">types</a>
-					</li>
-					<li class=" tsd-kind-external-module">
-						<a href="modules/utils.html">utils</a>
+						<a href="../modules/utils.html">utils</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/hub.hub-1.html" class="tsd-kind-icon">Hub</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/hub.scope.html" class="tsd-kind-icon">Scope</a>
+					</li>
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="hub.carrier.html" class="tsd-kind-icon">Carrier</a>
+						<ul>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="hub.carrier.html#hub" class="tsd-kind-icon">hub</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="hub.layer.html" class="tsd-kind-icon">Layer</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/hub.html#api_version" class="tsd-kind-icon">API_<wbr>VERSION</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/hub.html#getcurrenthub" class="tsd-kind-icon">get<wbr>Current<wbr>Hub</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/hub.html#gethubfromcarrier" class="tsd-kind-icon">get<wbr>Hub<wbr>From<wbr>Carrier</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/hub.html#getmaincarrier" class="tsd-kind-icon">get<wbr>Main<wbr>Carrier</a>
+					</li>
 				</ul>
 			</nav>
 		</div>
@@ -233,7 +239,7 @@ captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
 	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
-<script src="assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
+<script src="../assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>

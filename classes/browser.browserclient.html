@@ -1,0 +1,929 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>BrowserClient | Sentry JavaScript SDKs</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="../index.html" class="title">Sentry JavaScript SDKs</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../globals.html">Globals</a>
+				</li>
+				<li>
+					<a href="../modules/browser.html">browser</a>
+				</li>
+				<li>
+					<a href="browser.browserclient.html">BrowserClient</a>
+				</li>
+			</ul>
+			<h1>Class BrowserClient</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>The Sentry Browser SDK Client.</p>
+					</div>
+					<dl class="tsd-comment-tags">
+						<dt>see</dt>
+						<dd><p>BrowserOptions for documentation on configuration options.</p>
+						</dd>
+						<dt>see</dt>
+						<dd><p>SentryClient for usage documentation.</p>
+						</dd>
+					</dl>
+				</div>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<a href="core.baseclient.html" class="tsd-signature-type">BaseClient</a><span class="tsd-signature-symbol">&lt;</span><a href="browser.browserbackend.html" class="tsd-signature-type">BrowserBackend</a><span class="tsd-signature-symbol">, </span><a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a><span class="tsd-signature-symbol">&gt;</span>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">BrowserClient</span>
+							</li>
+						</ul>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../interfaces/core.client.html" class="tsd-signature-type">Client</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="browser.browserclient.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#addbreadcrumb" class="tsd-kind-icon">add<wbr>Breadcrumb</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="browser.browserclient.html#buffer" class="tsd-kind-icon">buffer</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#captureexception" class="tsd-kind-icon">capture<wbr>Exception</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#capturemessage" class="tsd-kind-icon">capture<wbr>Message</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#close" class="tsd-kind-icon">close</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="browser.browserclient.html#getbackend" class="tsd-kind-icon">get<wbr>Backend</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#getoptions" class="tsd-kind-icon">get<wbr>Options</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="browser.browserclient.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="browser.browserclient.html#isenabled" class="tsd-kind-icon">is<wbr>Enabled</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="browser.browserclient.html#prepareevent" class="tsd-kind-icon">prepare<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="browser.browserclient.html#processevent" class="tsd-kind-icon">process<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.browserclient.html#showreportdialog" class="tsd-kind-icon">show<wbr>Report<wbr>Dialog</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Browser<wbr>Client<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.browserclient.html" class="tsd-signature-type">BrowserClient</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#constructor">constructor</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/browser/src/client.ts#L12">browser/src/client.ts:12</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Creates a new Browser SDK instance.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<div class="lead">
+											<p>Configuration options for this SDK.</p>
+										</div>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="browser.browserclient.html" class="tsd-signature-type">BrowserClient</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="addbreadcrumb" class="tsd-anchor"></a>
+					<h3>add<wbr>Breadcrumb</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>breadcrumb<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#addbreadcrumb">addBreadcrumb</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#addbreadcrumb">addBreadcrumb</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L216">core/src/baseclient.ts:216</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Records a new breadcrumb which will be attached to future events.</p>
+								</div>
+								<p>Breadcrumbs will be added to subsequent events to provide more context on
+									user&#39;s actions prior to an error or crash. To configure the maximum number
+								of breadcrumbs, use <a href="../interfaces/core.options.html#maxbreadcrumbs">Options.maxBreadcrumbs</a>.</p>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>breadcrumb: <a href="../interfaces/types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="buffer" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> buffer</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">buffer<span class="tsd-signature-symbol">(</span>promise<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#buffer">buffer</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L165">core/src/baseclient.ts:165</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Internal helper function to buffer promises.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>promise: <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Any promise, but in this case Promise<SentryResponse>.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="captureevent" class="tsd-anchor"></a>
+					<h3>capture<wbr>Event</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">capture<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#captureevent">captureEvent</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#captureevent">captureEvent</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L203">core/src/baseclient.ts:203</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Captures a manually created event and sends it to Sentry.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>SentryResponse status and event</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="captureexception" class="tsd-anchor"></a>
+					<h3>capture<wbr>Exception</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">capture<wbr>Exception<span class="tsd-signature-symbol">(</span>exception<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#captureexception">captureException</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#captureexception">captureException</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L174">core/src/baseclient.ts:174</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Captures an exception event and sends it to Sentry.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>exception: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>SentryResponse status and event</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="capturemessage" class="tsd-anchor"></a>
+					<h3>capture<wbr>Message</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">capture<wbr>Message<span class="tsd-signature-symbol">(</span>message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, level<span class="tsd-signature-symbol">?: </span><a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#capturemessage">captureMessage</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#capturemessage">captureMessage</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L186">core/src/baseclient.ts:186</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Captures a message event and sends it to Sentry.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>message: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> level: <a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>SentryResponse status and event</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="close" class="tsd-anchor"></a>
+					<h3>close</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span>timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#close">close</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#close">close</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L411">core/src/baseclient.ts:411</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A promise that resolves whenever the request buffer is empty.
+									If you provide a timeout and the buffer takes longer to drain the promise returns false.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="getbackend" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> get<wbr>Backend</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Backend<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.browserbackend.html" class="tsd-signature-type">BrowserBackend</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getbackend">getBackend</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L253">core/src/baseclient.ts:253</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Returns the current backend.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="browser.browserbackend.html" class="tsd-signature-type">BrowserBackend</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="getdsn" class="tsd-anchor"></a>
+					<h3>get<wbr>Dsn</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Dsn<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="core.dsn.html" class="tsd-signature-type">Dsn</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#getdsn">getDsn</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getdsn">getDsn</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L241">core/src/baseclient.ts:241</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Returns the current Dsn.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="core.dsn.html" class="tsd-signature-type">Dsn</a>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">undefined</span>
+							</h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="getoptions" class="tsd-anchor"></a>
+					<h3>get<wbr>Options</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Options<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#getoptions">getOptions</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getoptions">getOptions</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L248">core/src/baseclient.ts:248</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Returns the current options.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/browser.browseroptions.html" class="tsd-signature-type">BrowserOptions</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="install" class="tsd-anchor"></a>
+					<h3>install</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#install">install</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#install">install</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L147">core/src/baseclient.ts:147</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Installs the SDK if it hasn&#39;t been installed already.</p>
+								</div>
+								<p>Since this performs modifications in the environment, such as instrumenting
+									library functionality or adding signal handlers, this method will only
+								execute once and cache its result.</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<p>If the installation was the successful or not.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="isenabled" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> is<wbr>Enabled</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Enabled<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#isenabled">isEnabled</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L258">core/src/baseclient.ts:258</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Determines whether this SDK is enabled and a valid Dsn is present.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="prepareevent" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> prepare<wbr>Event</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">prepare<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#prepareevent">prepareEvent</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L276">core/src/baseclient.ts:276</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Adds common information to events.</p>
+								</div>
+								<p>The information includes release and environment from <code>options</code>,
+								breadcrumbs and context (extra, tags and user) from the scope.</p>
+								<p>Information that is already present in the event is never overwritten. For
+								nested objects, such as the context, keys are merged.</p>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The original event.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>A scope containing event metadata.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>May contain additional informartion about the original exception.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>A new event with more information.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="processevent" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> process<wbr>Event</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">process<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, send<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#processevent">processEvent</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/core/src/baseclient.ts#L340">core/src/baseclient.ts:340</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Processes an event (either error or message) and sends it to Sentry.</p>
+								</div>
+								<p>This also adds breadcrumbs and context information to the event. However,
+									platform specific meta data (such as the User&#39;s IP address) must be added
+								by the SDK implementor.</p>
+								<p>The returned event status offers clues to whether the event was sent to
+									Sentry and accepted there. If the {@link Options.shouldSend} hook returns
+									<code>false</code>, the status will be {@link SendStatus.Skipped}. If the rate limit
+								was exceeded, the status will be {@link SendStatus.RateLimit}.</p>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The event to send to Sentry.</p>
+									</div>
+								</li>
+								<li>
+									<h5>send: <span class="tsd-signature-type">function</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>A function to actually send the event.</p>
+									</div>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>finalEvent<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>finalEvent: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>May contain additional informartion about the original exception.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>A scope containing event metadata.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>A Promise that resolves with the event status.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="showreportdialog" class="tsd-anchor"></a>
+					<h3>show<wbr>Report<wbr>Dialog</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">show<wbr>Report<wbr>Dialog<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/browser/src/client.ts#L23">browser/src/client.ts:23</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <span class="tsd-signature-type">object</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-index-signature">
+											<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
+										</li>
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="../globals.html"><em>Globals</em></a>
+					</li>
+					<li class="current tsd-kind-external-module">
+						<a href="../modules/browser.html">browser</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/core.html">core</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/hub.html">hub</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/minimal.html">minimal</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/node.html">node</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/types.html">types</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="../modules/utils.html">utils</a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.basetransport.html" class="tsd-kind-icon">Base<wbr>Transport</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.beacontransport.html" class="tsd-kind-icon">Beacon<wbr>Transport</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.breadcrumbs.html" class="tsd-kind-icon">Breadcrumbs</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.browserbackend.html" class="tsd-kind-icon">Browser<wbr>Backend</a>
+					</li>
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.browserclient.html" class="tsd-kind-icon">Browser<wbr>Client</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+								<a href="browser.browserclient.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#addbreadcrumb" class="tsd-kind-icon">add<wbr>Breadcrumb</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="browser.browserclient.html#buffer" class="tsd-kind-icon">buffer</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#captureexception" class="tsd-kind-icon">capture<wbr>Exception</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#capturemessage" class="tsd-kind-icon">capture<wbr>Message</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#close" class="tsd-kind-icon">close</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="browser.browserclient.html#getbackend" class="tsd-kind-icon">get<wbr>Backend</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#getoptions" class="tsd-kind-icon">get<wbr>Options</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="browser.browserclient.html#install" class="tsd-kind-icon">install</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="browser.browserclient.html#isenabled" class="tsd-kind-icon">is<wbr>Enabled</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="browser.browserclient.html#prepareevent" class="tsd-kind-icon">prepare<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="browser.browserclient.html#processevent" class="tsd-kind-icon">process<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="browser.browserclient.html#showreportdialog" class="tsd-kind-icon">show<wbr>Report<wbr>Dialog</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.dedupe.html" class="tsd-kind-icon">Dedupe</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.ember.html" class="tsd-kind-icon">Ember</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.fetchtransport.html" class="tsd-kind-icon">Fetch<wbr>Transport</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.globalhandlers.html" class="tsd-kind-icon">Global<wbr>Handlers</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.linkederrors.html" class="tsd-kind-icon">Linked<wbr>Errors</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.reportingobserver.html" class="tsd-kind-icon">Reporting<wbr>Observer</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.trycatch.html" class="tsd-kind-icon">Try<wbr>Catch</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.vue.html" class="tsd-kind-icon">Vue</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="browser.xhrtransport.html" class="tsd-kind-icon">XHRTransport</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/browser.browseroptions.html" class="tsd-kind-icon">Browser<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/browser.sentrywrappedxmlhttprequest.html" class="tsd-kind-icon">Sentry<wbr>WrappedXMLHttp<wbr>Request</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#sdk_name" class="tsd-kind-icon">SDK_<wbr>NAME</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#sdk_version" class="tsd-kind-icon">SDK_<wbr>VERSION</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#defaultintegrations" class="tsd-kind-icon">default<wbr>Integrations</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#breadcrumbeventhandler" class="tsd-kind-icon">breadcrumb<wbr>Event<wbr>Handler</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#eventfromplainobject" class="tsd-kind-icon">event<wbr>From<wbr>Plain<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#eventfromstacktrace" class="tsd-kind-icon">event<wbr>From<wbr>Stacktrace</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#exceptionfromstacktrace" class="tsd-kind-icon">exception<wbr>From<wbr>Stacktrace</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#ignorenextonerror" class="tsd-kind-icon">ignore<wbr>Next<wbr>OnError</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#init" class="tsd-kind-icon">init</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#keypresseventhandler" class="tsd-kind-icon">keypress<wbr>Event<wbr>Handler</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#lasteventid" class="tsd-kind-icon">last<wbr>Event<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#prepareframesforevent" class="tsd-kind-icon">prepare<wbr>Frames<wbr>For<wbr>Event</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#shouldignoreonerror" class="tsd-kind-icon">should<wbr>Ignore<wbr>OnError</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#showreportdialog" class="tsd-kind-icon">show<wbr>Report<wbr>Dialog</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#wrap" class="tsd-kind-icon">wrap</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
+				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
+				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
+				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
+				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
+				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
+</body>
+</html>
