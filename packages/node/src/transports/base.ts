@@ -3,12 +3,13 @@ import { SentryEvent, SentryResponse, Status, Transport, TransportOptions } from
 import { serialize } from '@sentry/utils/object';
 import * as http from 'http';
 import * as https from 'https';
+import * as url from 'url';
 import { SDK_NAME, SDK_VERSION } from '../version';
 
 /** Internal used interface for typescript */
 export interface HTTPRequest {
   request(
-    options: http.RequestOptions | string | URL,
+    options: http.RequestOptions | https.RequestOptions | string | url.URL,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
 }
@@ -27,7 +28,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected getRequestOptions(): http.RequestOptions {
+  protected getRequestOptions(): http.RequestOptions | https.RequestOptions {
     const headers = {
       ...this.api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
