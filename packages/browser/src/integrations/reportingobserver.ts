@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { captureMessage, withScope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { supportsReportingObserver } from '@sentry/utils/supports';
@@ -93,10 +93,8 @@ export class ReportingObserver implements Integration {
    */
   public handler(reports: Report[]): void {
     for (const report of reports) {
-      getCurrentHub().withScope(() => {
-        getCurrentHub().configureScope((scope: Scope) => {
-          scope.setExtra('url', report.url);
-        });
+      withScope(scope => {
+        scope.setExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
         let details = 'No details available';
@@ -112,9 +110,7 @@ export class ReportingObserver implements Integration {
             plainBody[prop] = report.body[prop];
           }
 
-          getCurrentHub().configureScope((scope: Scope) => {
-            scope.setExtra('body', plainBody);
-          });
+          scope.setExtra('body', plainBody);
 
           if (report.type === ReportTypes.Crash) {
             const body = report.body as CrashReportBody;
@@ -125,7 +121,7 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        getCurrentHub().captureMessage(`${label}: ${details}`);
+        captureMessage(`${label}: ${details}`);
       });
     }
   }

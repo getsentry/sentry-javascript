@@ -149,6 +149,26 @@ describe('Hub', () => {
     expect(hub.getStack()).toHaveLength(1);
   });
 
+  test('withScope bindClient scope changes without configureScope', () => {
+    jest.useFakeTimers();
+    const hub = new Hub();
+    const storeScope = jest.fn();
+    const testClient = {
+      bla: 'a',
+      getBackend: () => ({ storeScope }),
+    };
+    hub.withScope(localScope => {
+      hub.bindClient(testClient);
+      localScope.setExtra('a', 'b');
+      jest.runAllTimers();
+      expect(hub.getStack()).toHaveLength(2);
+      expect(hub.getStack()[1].client).toBe(testClient);
+      expect(storeScope.mock.calls).toHaveLength(1);
+      expect(storeScope.mock.calls[0][0].extra).toEqual({ a: 'b' });
+    });
+    expect(hub.getStack()).toHaveLength(1);
+  });
+
   test('getCurrentClient', () => {
     const testClient = { bla: 'a' };
     const hub = new Hub(testClient);

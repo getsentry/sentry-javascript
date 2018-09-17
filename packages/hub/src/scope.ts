@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryEvent, SentryEventHint, User } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -29,6 +29,9 @@ export class Scope {
   /** Fingerprint */
   protected fingerprint?: string[];
 
+  /** Severity */
+  protected level?: Severity;
+
   /** Add internal on change listener. */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this.scopeListeners.push(callback);
@@ -37,8 +40,9 @@ export class Scope {
   /** Add new event processor that will be called after {@link applyToEvent}. */
   public addEventProcessor(
     callback: (scope: SentryEvent, hint?: SentryEventHint) => Promise<SentryEvent | null>,
-  ): void {
+  ): Scope {
     this.eventProcessors.push(callback);
+    return this;
   }
 
   /**
@@ -78,36 +82,50 @@ export class Scope {
    * Updates user context information for future events.
    * @param user User context object to merge into current context.
    */
-  public setUser(user: User): void {
+  public setUser(user: User): Scope {
     this.user = user;
     this.notifyScopeListeners();
+    return this;
   }
 
   /**
    * Updates tags context information for future events.
    * @param tags Tags context object to merge into current context.
    */
-  public setTag(key: string, value: string): void {
+  public setTag(key: string, value: string): Scope {
     this.tags = { ...this.tags, [key]: value };
     this.notifyScopeListeners();
+    return this;
   }
 
   /**
    * Updates extra context information for future events.
    * @param extra context object to merge into current context.
    */
-  public setExtra(key: string, extra: any): void {
+  public setExtra(key: string, extra: any): Scope {
     this.extra = { ...this.extra, [key]: extra };
     this.notifyScopeListeners();
+    return this;
   }
 
   /**
    * Sets the fingerprint on the scope to send with the events.
    * @param fingerprint string[] to group events in Sentry.
    */
-  public setFingerprint(fingerprint: string[]): void {
+  public setFingerprint(fingerprint: string[]): Scope {
     this.fingerprint = fingerprint;
     this.notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * Sets the level on the scope for future events.
+   * @param level string {@link Severity}
+   */
+  public setLevel(level: Severity): Scope {
+    this.level = level;
+    this.notifyScopeListeners();
+    return this;
   }
 
   /**
@@ -150,12 +168,18 @@ export class Scope {
     return this.breadcrumbs;
   }
 
+  /** Returns level. */
+  public getLevel(): Severity | undefined {
+    return this.level;
+  }
+
   /** Clears the current scope and resets its properties. */
   public clear(): void {
     this.breadcrumbs = [];
     this.tags = {};
     this.extra = {};
     this.user = {};
+    this.level = undefined;
     this.fingerprint = undefined;
     this.notifyScopeListeners();
   }

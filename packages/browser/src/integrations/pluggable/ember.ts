@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -36,10 +36,8 @@ export class Ember implements Integration {
     const oldOnError = this.Ember.onerror;
 
     this.Ember.onerror = (error: Error): void => {
-      getCurrentHub().withScope(() => {
-        getCurrentHub().configureScope((scope: Scope) => {
-          this.addIntegrationToSdkInfo(scope);
-        });
+      withScope(scope => {
+        this.addIntegrationToSdkInfo(scope);
         getCurrentHub().captureException(error, { originalException: error });
       });
 
@@ -51,24 +49,16 @@ export class Ember implements Integration {
     this.Ember.RSVP.on(
       'error',
       (reason: any): void => {
-        getCurrentHub().pushScope();
-
+        const scope = getCurrentHub().pushScope();
         if (reason instanceof Error) {
-          getCurrentHub().configureScope((scope: Scope) => {
-            scope.setExtra('context', 'Unhandled Promise error detected');
-            this.addIntegrationToSdkInfo(scope);
-          });
-
+          scope.setExtra('context', 'Unhandled Promise error detected');
+          this.addIntegrationToSdkInfo(scope);
           getCurrentHub().captureException(reason, { originalException: reason });
         } else {
-          getCurrentHub().configureScope((scope: Scope) => {
-            scope.setExtra('reason', reason);
-            this.addIntegrationToSdkInfo(scope);
-          });
-
-          getCurrentHub().captureMessage('Unhandled Promise error detected');
+          scope.setExtra('reason', reason);
+          this.addIntegrationToSdkInfo(scope);
+          captureMessage('Unhandled Promise error detected');
         }
-
         getCurrentHub().popScope();
       },
     );

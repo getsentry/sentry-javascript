@@ -15,60 +15,45 @@ cache:
 
 matrix:
   include:
-    - name: "@sentry/packages - lint"
-      node_js: "8"
+    - name: '@sentry/packages - lint'
+      node_js: '8'
       script: .travis/lint.sh
-    - name: "@sentry/packages - build and test [node v6]"
-      node_js: "6"
+    - name: '@sentry/packages - build and test [node v6]'
+      node_js: '6'
       script: .travis/test.sh
-    - name: "@sentry/packages - build and test [node v7]"
-      node_js: "7"
+    - name: '@sentry/packages - build and test [node v8]'
+      node_js: '8'
       script: .travis/test.sh
-    - name: "@sentry/packages - build and test [node v8]"
-      node_js: "8"
+    - name: '@sentry/packages - build and test [node v10]'
+      node_js: '10'
       script: .travis/test.sh
-    - name: "@sentry/packages - build and test [node v9]"
-      node_js: "9"
-      script: .travis/test.sh
-    - name: "@sentry/packages - build and test [node v10]"
-      node_js: "10"
-      script: .travis/test.sh
-    - name: "@sentry/browser - integration tests"
-      node_js: "8"
+    - name: '@sentry/browser - integration tests'
+      node_js: '8'
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
       script: .travis/integration.sh
-    - name: "raven-js - unit and integration tests"
-      node_js: "8"
+    - name: 'raven-js - unit and integration tests'
+      node_js: '8'
       addons:
         chrome: stable
         firefox: latest
       script: .travis/raven-js.sh
-    - name: "raven-js - saucelabs tests"
-      node_js: "8"
+    - name: 'raven-js - saucelabs tests'
+      node_js: '8'
       addons:
         sauce_connect: true
       script: .travis/raven-js-saucelabs.sh
-    - name: "raven-node [node v4]"
-      node_js: "4"
+    - name: 'raven-node [node v4]'
+      node_js: '4'
       script: .travis/raven-node.sh
-    - name: "raven-node [node v5]"
-      node_js: "5"
+    - name: 'raven-node [node v6]'
+      node_js: '6'
       script: .travis/raven-node.sh
-    - name: "raven-node [node v6]"
-      node_js: "6"
+    - name: 'raven-node [node v8]'
+      node_js: '8'
       script: .travis/raven-node.sh
-    - name: "raven-node [node v7]"
-      node_js: "7"
-      script: .travis/raven-node.sh
-    - name: "raven-node [node v8]"
-      node_js: "8"
-      script: .travis/raven-node.sh
-    - name: "raven-node [node v9]"
-      node_js: "9"
-      script: .travis/raven-node.sh
-    - name: "raven-node [node v10]"
-      node_js: "10"
+    - name: 'raven-node [node v10]'
+      node_js: '10'
       script: .travis/raven-node.sh

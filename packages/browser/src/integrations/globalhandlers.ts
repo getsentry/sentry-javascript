@@ -1,5 +1,4 @@
-import { logger } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, logger } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { eventFromStacktrace } from '../parsers';
 import {

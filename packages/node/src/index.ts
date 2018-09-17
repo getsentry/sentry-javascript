@@ -13,9 +13,17 @@ export {
   User,
 } from '@sentry/types';
 
-export { addBreadcrumb, captureMessage, captureException, captureEvent, configureScope } from '@sentry/minimal';
-
-export { getHubFromCarrier, Hub, Scope } from '@sentry/hub';
+export {
+  addBreadcrumb,
+  captureException,
+  captureEvent,
+  captureMessage,
+  configureScope,
+  getHubFromCarrier,
+  Hub,
+  Scope,
+  withScope,
+} from '@sentry/core';
 
 export { getCurrentHub } from './hub';
 export { NodeBackend, NodeOptions } from './backend';

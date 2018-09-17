@@ -1,4 +1,5 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
+import { Severity } from '@sentry/types';
 import {
   _callOnClient,
   addBreadcrumb,
@@ -6,6 +7,7 @@ import {
   captureException,
   captureMessage,
   configureScope,
+  withScope,
 } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
@@ -110,6 +112,14 @@ describe('Minimal', () => {
       });
       expect(global.__SENTRY__.hub.stack[1].scope.fingerprint).toEqual(['abcd']);
     });
+
+    test('Level', () => {
+      const client = new TestClient({});
+      const scope = getCurrentHub().pushScope();
+      getCurrentHub().bindClient(client);
+      scope.setLevel(Severity.Warning);
+      expect(global.__SENTRY__.hub.stack[1].scope.level).toEqual(Severity.Warning);
+    });
   });
 
   test('Clear Scope', () => {
@@ -196,5 +206,27 @@ describe('Minimal', () => {
     });
     hub.popScope();
     expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1]).toBeUndefined();
+  });
+
+  test('withScope', () => {
+    withScope(scope => {
+      scope.setLevel(Severity.Warning);
+      scope.setFingerprint(['1']);
+      withScope(scope2 => {
+        scope2.setLevel(Severity.Info);
+        scope2.setFingerprint(['2']);
+        withScope(scope3 => {
+          scope3.clear();
+          expect(global.__SENTRY__.hub.stack[1].scope.level).toEqual(Severity.Warning);
+          expect(global.__SENTRY__.hub.stack[1].scope.fingerprint).toEqual(['1']);
+          expect(global.__SENTRY__.hub.stack[2].scope.level).toEqual(Severity.Info);
+          expect(global.__SENTRY__.hub.stack[2].scope.fingerprint).toEqual(['2']);
+          expect(global.__SENTRY__.hub.stack[3].scope.level).toBeUndefined();
+        });
+        expect(global.__SENTRY__.hub.stack).toHaveLength(3);
+      });
+      expect(global.__SENTRY__.hub.stack).toHaveLength(2);
+    });
+    expect(global.__SENTRY__.hub.stack).toHaveLength(1);
   });
 });
