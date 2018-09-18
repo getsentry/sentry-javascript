@@ -14,6 +14,9 @@
 
 ## Links
 
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+
 ## Usage
 
 To use this SDK, call `init(options)` as early as possible after loading the page. This will initialize the SDK and hook
