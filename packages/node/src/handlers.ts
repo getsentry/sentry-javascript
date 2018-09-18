@@ -3,11 +3,11 @@ import { getHubFromCarrier, Scope } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
-import { parse as parseCookie } from 'cookie';
+import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
-import { hostname } from 'os';
-import { parse as parseUrl } from 'url';
+import * as os from 'os';
+import * as url from 'url';
 import { NodeClient } from './client';
 import { getCurrentHub } from './hub';
 
@@ -46,10 +46,10 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
   // query string:
   //   node: req.url (raw)
   //   express, koa: req.query
-  const query = req.query || parseUrl(originalUrl || '', true).query;
+  const query = req.query || url.parse(originalUrl || '', true).query;
   // cookies:
   //   node, express, koa: req.headers.cookie
-  const cookies = parseCookie(headers.cookie || '');
+  const cookies = cookie.parse(headers.cookie || '');
   // body data:
   //   node, express, koa: req.body
   let data = req.body;
@@ -122,7 +122,7 @@ function parseRequest(
       ...event.request,
       ...extractRequestData(req),
     },
-    server_name: global.process.env.SENTRY_NAME || hostname(),
+    server_name: global.process.env.SENTRY_NAME || os.hostname(),
   };
 
   if (req.user) {

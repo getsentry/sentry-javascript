@@ -1,6 +1,6 @@
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
-import { format } from 'util';
+import * as util from 'util';
 import { getCurrentHub } from '../hub';
 
 /**
@@ -59,7 +59,7 @@ function consoleWrapper(originalModule: any): any {
           {
             category: 'console',
             level: sentryLevel,
-            message: format.apply(undefined, arguments),
+            message: util.format.apply(undefined, arguments),
           },
           {
             input: [...arguments],

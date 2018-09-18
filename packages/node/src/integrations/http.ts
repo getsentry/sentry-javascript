@@ -1,16 +1,16 @@
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
-import { ClientRequest, ClientRequestArgs, IncomingMessage, ServerResponse } from 'http';
-import { inherits } from 'util';
+import * as http from 'http';
+import * as util from 'util';
 import { getCurrentHub } from '../hub';
 
-let lastResponse: ServerResponse | undefined;
+let lastResponse: http.ServerResponse | undefined;
 
 /**
  * Request interface which can carry around unified url
  * independently of used framework
  */
-interface SentryRequest extends IncomingMessage {
+interface SentryRequest extends http.IncomingMessage {
   __ravenBreadcrumbUrl?: string;
 }
 
@@ -20,7 +20,7 @@ interface SentryRequest extends IncomingMessage {
  * @param options url that should be returned or an object containing it's parts.
  * @returns constructed url
  */
-function createBreadcrumbUrl(options: string | ClientRequestArgs): string {
+function createBreadcrumbUrl(options: string | http.ClientRequestArgs): string {
   // We could just always reconstruct this from this.agent, this._headers, this.path, etc
   // but certain other http-instrumenting libraries (like nock, which we use for tests) fail to
   // maintain the guarantee that after calling origClientRequest, those fields will be populated
@@ -54,7 +54,7 @@ function loadWrapper(nativeModule: any): any {
       const origClientRequest = originalModule.ClientRequest;
       const clientRequest = function(
         this: SentryRequest,
-        options: ClientRequestArgs | string,
+        options: http.ClientRequestArgs | string,
         callback: () => void,
       ): any {
         // Note: this won't capture a breadcrumb if a response never comes
@@ -68,7 +68,7 @@ function loadWrapper(nativeModule: any): any {
         this.__ravenBreadcrumbUrl = createBreadcrumbUrl(options);
       };
 
-      inherits(clientRequest, origClientRequest);
+      util.inherits(clientRequest, origClientRequest);
 
       fill(clientRequest.prototype, 'emit', emitWrapper);
 
@@ -80,13 +80,13 @@ function loadWrapper(nativeModule: any): any {
       // it still points at orig ClientRequest after our monkeypatch; these reimpls
       // just get that reference updated to use our new ClientRequest
       fill(originalModule, 'request', function(): any {
-        return function(options: ClientRequestArgs, callback: () => void): any {
-          return new originalModule.ClientRequest(options, callback) as ClientRequest;
+        return function(options: http.ClientRequestArgs, callback: () => void): any {
+          return new originalModule.ClientRequest(options, callback) as http.ClientRequest;
         };
       });
 
       fill(originalModule, 'get', function(): any {
-        return function(options: ClientRequestArgs, callback: () => void): any {
+        return function(options: http.ClientRequestArgs, callback: () => void): any {
           const req = originalModule.request(options, callback);
           req.end();
           return req;
@@ -101,8 +101,8 @@ function loadWrapper(nativeModule: any): any {
 /**
  * Wrapper function for request's `emit` calls
  */
-function emitWrapper(origEmit: EventListener): (event: string, response: ServerResponse) => EventListener {
-  return function(this: SentryRequest, event: string, response: ServerResponse): any {
+function emitWrapper(origEmit: EventListener): (event: string, response: http.ServerResponse) => EventListener {
+  return function(this: SentryRequest, event: string, response: http.ServerResponse): any {
     // I'm not sure why but Node.js (at least in v8.X)
     // is emitting all events twice :|
     if (lastResponse === undefined || lastResponse !== response) {

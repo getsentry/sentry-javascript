@@ -1,7 +1,7 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { readFileAsync } from '@sentry/utils/fs';
 import { snipLine } from '@sentry/utils/string';
-import { basename, dirname } from 'path';
+import * as path from 'path';
 import * as stacktrace from 'stack-trace';
 
 const LINES_OF_CONTEXT: number = 7;
@@ -30,7 +30,7 @@ function getTransaction(frame: StackFrame): string {
   return frame.module || frame.function ? `${frame.module || '?'} at ${frame.function || '?'}` : '<unknown>';
 }
 
-const mainModule: string = `${(require.main && require.main.filename && dirname(require.main.filename)) ||
+const mainModule: string = `${(require.main && require.main.filename && path.dirname(require.main.filename)) ||
   global.process.cwd()}/`;
 
 /** JSDoc */
@@ -40,8 +40,8 @@ function getModule(filename: string, base?: string): string {
   }
 
   // It's specifically a module
-  const file = basename(filename, '.js');
-  filename = dirname(filename); // tslint:disable-line:no-parameter-reassignment
+  const file = path.basename(filename, '.js');
+  filename = path.dirname(filename); // tslint:disable-line:no-parameter-reassignment
   let n = filename.lastIndexOf('/node_modules/');
   if (n > -1) {
     // /node_modules/ is 14 chars
