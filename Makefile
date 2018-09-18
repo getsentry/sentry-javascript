@@ -20,4 +20,14 @@ publish:
 publish-cdn:
 	node scripts/browser-upload-cdn.js
 
+publish-docs:
+	node ./node_modules/.bin/typedoc --options ./typedoc.js
+	rm -rf /tmp/sentry-js-docs | true
+	cp -r ./docs /tmp/sentry-js-docs
+	git checkout gh-pages
+	cp -r /tmp/sentry-js-docs/* .
+	git commit -a -m "meta: Update docs"
+	git push origin gh-pages
+	git checkout master
+
 release: bump prepare-release publish publish-cdn
