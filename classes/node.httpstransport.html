@@ -133,7 +133,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/https.ts#L6">node/src/transports/https.ts:6</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/https.ts#L6">node/src/transports/https.ts:6</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -161,7 +161,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#api">api</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/base.ts#L19">node/src/transports/base.ts:19</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/base.ts#L20">node/src/transports/base.ts:20</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -177,7 +177,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#client">client</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/base.ts#L22">node/src/transports/base.ts:22</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/base.ts#L23">node/src/transports/base.ts:23</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -193,7 +193,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#options">options</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/https.ts#L8">node/src/transports/https.ts:8</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/https.ts#L8">node/src/transports/https.ts:8</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -212,7 +212,7 @@
 								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#captureevent">captureEvent</a></p>
 								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#captureevent">captureEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/https.ts#L16">node/src/transports/https.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/https.ts#L16">node/src/transports/https.ts:16</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -235,14 +235,14 @@
 					<a name="getrequestoptions" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagProtected">Protected</span> get<wbr>Request<wbr>Options</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Request<wbr>Options<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RequestOptions</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Request<wbr>Options<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RequestOptions</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">https.RequestOptions</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#getrequestoptions">getRequestOptions</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/base.ts#L30">node/src/transports/base.ts:30</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/base.ts#L31">node/src/transports/base.ts:31</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -250,7 +250,10 @@
 									<p>Returns a build request option object used by request</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">RequestOptions</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">RequestOptions</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">https.RequestOptions</span>
+							</h4>
 						</li>
 					</ul>
 				</section>
@@ -265,7 +268,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#sendwithmodule">sendWithModule</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/node/src/transports/base.ts#L47">node/src/transports/base.ts:47</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/transports/base.ts#L48">node/src/transports/base.ts:48</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
