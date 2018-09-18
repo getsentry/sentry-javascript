@@ -73,7 +73,14 @@
 					<h1 id="sentry-javascript-sdk-minimal">Sentry JavaScript SDK Minimal</h1>
 					<p><a href="https://www.npmjs.com/package/@sentry/minimal"><img src="https://img.shields.io/npm/v/@sentry/minimal.svg" alt="npm version"></a>
 						<a href="https://www.npmjs.com/package/@sentry/minimal"><img src="https://img.shields.io/npm/dm/@sentry/minimal.svg" alt="npm dm"></a>
-					<a href="https://www.npmjs.com/package/@sentry/minimal"><img src="https://img.shields.io/npm/dt/@sentry/minimal.svg" alt="npm dt"></a></p>
+						<a href="https://www.npmjs.com/package/@sentry/minimal"><img src="https://img.shields.io/npm/dt/@sentry/minimal.svg" alt="npm dt"></a>
+					<a href="http://getsentry.github.io/sentry-javascript/"><img src="https://img.shields.io/badge/docs-typedoc-blue.svg" alt="typedoc"></a></p>
+					<h2 id="links">Links</h2>
+					<ul>
+						<li><a href="https://docs.sentry.io/quickstart/">Official SDK Docs</a></li>
+						<li><a href="http://getsentry.github.io/sentry-javascript/">TypeDoc</a></li>
+					</ul>
+					<h2 id="general">General</h2>
 					<p>A minimal Sentry SDK that uses a configured client when embedded into an application. It allows library authors add
 						support for a Sentry SDK without having to bundle the entire SDK or being dependent on a specific platform. If the user
 						is using Sentry in their application and your library uses <code>@sentry/minimal</code>, the user receives all
@@ -123,6 +130,7 @@ Sentry.captureEvent({
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#captureexception" class="tsd-kind-icon">capture<wbr>Exception</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#capturemessage" class="tsd-kind-icon">capture<wbr>Message</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#configurescope" class="tsd-kind-icon">configure<wbr>Scope</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#withscope" class="tsd-kind-icon">with<wbr>Scope</a></li>
 							</ul>
 						</section>
 					</div>
@@ -140,7 +148,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L96">minimal/src/index.ts:96</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L113">minimal/src/index.ts:113</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -180,7 +188,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L75">minimal/src/index.ts:75</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L75">minimal/src/index.ts:75</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -213,7 +221,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L63">minimal/src/index.ts:63</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L63">minimal/src/index.ts:63</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -245,7 +253,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L24">minimal/src/index.ts:24</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L24">minimal/src/index.ts:24</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -277,7 +285,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L44">minimal/src/index.ts:44</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L44">minimal/src/index.ts:44</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -315,7 +323,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/dea78bf5/packages/minimal/src/index.ts#L83">minimal/src/index.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L83">minimal/src/index.ts:83</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -329,6 +337,61 @@ Sentry.captureEvent({
 									<h5>callback: <span class="tsd-signature-type">function</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Callback function that receives Scope.</p>
+									</div>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>scope<span class="tsd-signature-symbol">: </span><a href="../classes/hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>scope: <a href="../classes/hub.scope.html" class="tsd-signature-type">Scope</a></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="withscope" class="tsd-anchor"></a>
+					<h3>with<wbr>Scope</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">with<wbr>Scope<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1d0ba070/packages/minimal/src/index.ts#L100">minimal/src/index.ts:100</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Creates a new scope with and executes the given operation within.
+										The scope is automatically removed once the operation
+									finishes or throws.</p>
+								</div>
+								<p>This is essentially a convenience function for:</p>
+								<pre><code>pushScope()<span class="hljs-comment">;</span>
+callback()<span class="hljs-comment">;</span>
+popScope()<span class="hljs-comment">;</span></code></pre>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>callback: <span class="tsd-signature-type">function</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>that will be enclosed into push/popScope.</p>
 									</div>
 									<ul class="tsd-parameters">
 										<li class="tsd-parameter-siganture">
@@ -404,6 +467,9 @@ Sentry.captureEvent({
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="minimal.html#configurescope" class="tsd-kind-icon">configure<wbr>Scope</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="minimal.html#withscope" class="tsd-kind-icon">with<wbr>Scope</a>
 					</li>
 				</ul>
 			</nav>
