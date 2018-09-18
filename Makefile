@@ -7,7 +7,7 @@ prepare-release:
 	yarn lint
 	yarn test
 
-publish:
+publish-npm:
 	cd packages/browser; npm publish
 	cd packages/core; npm publish
 	cd packages/hub; npm publish
@@ -30,4 +30,4 @@ publish-docs:
 	git push origin gh-pages
 	git checkout master
 
-release: bump prepare-release publish publish-cdn
+release: bump prepare-release publish-docs publish-npm publish-cdn
