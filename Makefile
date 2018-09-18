@@ -30,4 +30,4 @@ publish-docs:
 	git push origin gh-pages
 	git checkout master
 
-release: bump prepare-release publish-docs publish-npm publish-cdn
+release: bump prepare-release publish-npm publish-cdn

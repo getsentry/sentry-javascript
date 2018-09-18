@@ -1,6 +1,6 @@
 {
   "name": "@sentry/types",
-  "version": "4.0.0-rc.2",
+  "version": "4.0.0",
   "description": "Types for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/types",
