@@ -87,8 +87,3 @@ below:
   Typescript compiler and linter options.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
   packages.
-
-## Join the Discussion
-
-Join the discussion in our [tracking issue](https://github.com/getsentry/sentry-javascript/issues/1281) and let us know
-what you think of the updated interface and new possibilities.
