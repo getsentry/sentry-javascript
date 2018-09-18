@@ -10,6 +10,14 @@
 [![npm version](https://img.shields.io/npm/v/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/minimal.svg)](https://www.npmjs.com/package/@sentry/minimal)
+[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+
+## General
 
 A minimal Sentry SDK that uses a configured client when embedded into an application. It allows library authors add
 support for a Sentry SDK without having to bundle the entire SDK or being dependent on a specific platform. If the user

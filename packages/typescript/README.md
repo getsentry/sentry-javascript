@@ -11,6 +11,15 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 
+[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+
+## General
+
 Shared typescript configuration used at Sentry.
 
 ## Installation
