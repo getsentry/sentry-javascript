@@ -35,11 +35,16 @@ export function wrap(
   } = {},
   before?: SentryWrappedFunction,
 ): any {
+  if (!isFunction(fn)) {
+    return fn;
+  }
+
   try {
     // We don't wanna wrap it twice
     if (fn.__sentry__) {
       return fn;
     }
+
     // If this has already been wrapped in the past, return that wrapped function
     if (fn.__sentry_wrapped__) {
       return fn.__sentry_wrapped__;
@@ -51,9 +56,9 @@ export function wrap(
     return fn;
   }
 
-  const wrapped: SentryWrappedFunction = (...args: any[]) => {
+  const wrapped: SentryWrappedFunction = function(this: any): void {
     if (before && isFunction(before)) {
-      before.apply(undefined, args);
+      before.apply(this, arguments);
     }
 
     try {
@@ -61,7 +66,13 @@ export function wrap(
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means Raven caught an error invoking your application code. This is
       //       expected behavior and NOT indicative of a bug with Raven.js.
-      return fn.apply(undefined, args);
+      const wrappedArguments = Array.from(arguments).map(arg => wrap(arg, options));
+
+      if (fn.handleEvent) {
+        return fn.handleEvent.apply(this, wrappedArguments);
+      } else {
+        return fn.apply(this, wrappedArguments);
+      }
     } catch (ex) {
       ignoreNextOnError();
 
