@@ -400,25 +400,6 @@ describe('integration', function() {
       );
     });
 
-    it('should NOT catch an exception already caught via Sentry.wrap', function(done) {
-      var iframe = this.iframe;
-
-      iframeExecute(
-        iframe,
-        done,
-        function() {
-          setTimeout(done);
-          Sentry.wrap(function() {
-            foo();
-          })();
-        },
-        function() {
-          var sentryData = iframe.contentWindow.sentryData;
-          assert.equal(sentryData.length, 1); // one caught error
-        },
-      );
-    });
-
     it('should NOT catch an exception already caught [but rethrown] via Sentry.captureException', function(done) {
       var iframe = this.iframe;
       iframeExecute(
@@ -456,6 +437,8 @@ describe('integration', function() {
           div.addEventListener(
             'click',
             function() {
+              window.element = div;
+              window.context = this;
               foo();
             },
             false,
@@ -465,6 +448,11 @@ describe('integration', function() {
           div.dispatchEvent(click);
         },
         function() {
+          // Make sure we preserve the correct context
+          assert.equal(iframe.contentWindow.element, iframe.contentWindow.context);
+          delete iframe.contentWindow.element;
+          delete iframe.contentWindow.context;
+
           var sentryData = iframe.contentWindow.sentryData[0];
           assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
           assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
