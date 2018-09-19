@@ -6,6 +6,7 @@
 - [browser] feat: Use better event description instead of `event_id` for user-facing logs
 - [core] ref: Create common integrations that are exposed on `@sentry/core` and reexposed through `browser`/`node`
 - [core] feat: Debug integration
+- [browser] ref: Port TraceKit to TypeScript and disable TraceKit's remote fetching for now
 
 ## 4.0.0
 
