@@ -1,8 +1,7 @@
 import { API, getCurrentHub, logger } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
-import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { getEventDescription } from '@sentry/utils/misc';
+import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
