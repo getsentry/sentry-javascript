@@ -1,1 +1,1 @@
-// TODO
+export { Debug } from './pluggable/debug';
