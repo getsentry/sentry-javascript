@@ -1,3 +1,4 @@
+import { SentryEvent } from '@sentry/types';
 import { isString } from './is';
 
 /**
@@ -178,4 +179,24 @@ export function parseUrl(
     protocol: match[2],
     relative: match[5] + query + fragment, // everything minus origin
   };
+}
+
+/**
+ * Extracts either message or type+value from an event that can be used for user-facing logs
+ * @returns event's description
+ */
+export function getEventDescription(event: SentryEvent): string {
+  if (event.message) {
+    return event.message;
+  } else if (event.exception && event.exception.values && event.exception.values[0]) {
+    const exception = event.exception.values[0];
+
+    if (exception.type && exception.value) {
+      return `${exception.type}: ${exception.value}`;
+    } else {
+      return exception.type || exception.value || event.event_id || '<unknown>';
+    }
+  } else {
+    return event.event_id || '<unknown>';
+  }
 }
