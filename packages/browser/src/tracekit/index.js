@@ -38,7 +38,11 @@ var _is = require('@sentry/utils/is');
 var window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+      ? global
+      : typeof self !== 'undefined'
+        ? self
+        : {};
 
 var TraceKit = {};
 var _oldTraceKit = window.TraceKit;
@@ -631,7 +635,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       //   *before* the offending line.
       linesBefore = Math.floor(TraceKit.linesOfContext / 2),
       // Add one extra line if linesOfContext is odd
-      linesAfter = linesBefore + TraceKit.linesOfContext % 2,
+      linesAfter = linesBefore + (TraceKit.linesOfContext % 2),
       start = Math.max(0, line - linesBefore - 1),
       end = Math.min(source.length, line + linesAfter - 1);
 
@@ -912,12 +916,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
         element.func = guessFunctionName(element.url, element.line);
       }
 
-      // NOTE: This feature has been turned off for now, as it produces deprecation warning
-      // due to usage of synchronous XMLHttpRequest. And because we use ReportingObserver API
-      // to report deprecations, we'd report ourselves...
-      // We can re-enable this feature once we migrate Tracekit to async-oriented code
-      // and we'll be able to await for the request to come back with the blob
-      if (false && element.url && element.url.substr(0, 5) === 'blob:') {
+      if (TraceKit.remoteFetching && element.url && element.url.substr(0, 5) === 'blob:') {
         // Special case for handling JavaScript loaded into a blob.
         // We use a synchronous AJAX request here as a blob is already in
         // memory - it's not making a network request.  This will generate a warning
@@ -1426,17 +1425,10 @@ TraceKit.extendToAsynchronousCallbacks = function() {
   _helper('setInterval');
 };
 
-// Default options:
-if (!TraceKit.remoteFetching) {
-  TraceKit.remoteFetching = true;
-}
-if (!TraceKit.collectWindowErrors) {
-  TraceKit.collectWindowErrors = true;
-}
-if (!TraceKit.linesOfContext || TraceKit.linesOfContext < 1) {
-  // 5 lines before, the offending line, 5 lines after
-  TraceKit.linesOfContext = 11;
-}
+TraceKit.remoteFetching = false;
+TraceKit.collectWindowErrors = true;
+// 5 lines before, the offending line, 5 lines after
+TraceKit.linesOfContext = 11;
 
 var subscribe = TraceKit.report.subscribe;
 var installGlobalHandler = TraceKit.report.installGlobalHandler;
