@@ -16,3 +16,7 @@ export { SentryError } from './error';
 export { RequestBuffer } from './requestbuffer';
 export { Backend, Client, LogLevel, Options } from './interfaces';
 export { initAndBind, ClientClass } from './sdk';
+
+import * as Integrations from './integrations';
+
+export { Integrations };

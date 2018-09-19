@@ -31,8 +31,14 @@ export { NodeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
+import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as Handlers from './handlers';
-import * as Integrations from './integrations';
+import * as NodeIntegrations from './integrations';
 import * as Transports from './transports';
 
-export { Integrations, Transports, Handlers };
+const INTEGRATIONS = {
+  ...CoreIntegrations,
+  ...NodeIntegrations,
+};
+
+export { INTEGRATIONS as Integrations, Transports, Handlers };

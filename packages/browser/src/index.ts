@@ -31,7 +31,13 @@ export { BrowserClient } from './client';
 export { defaultIntegrations, init, lastEventId, showReportDialog } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
-import * as Integrations from './integrations';
+import { Integrations as CoreIntegrations } from '@sentry/core';
+import * as BrowserIntegrations from './integrations';
 import * as Transports from './transports';
 
-export { Integrations, Transports };
+const INTEGRATIONS = {
+  ...CoreIntegrations,
+  ...BrowserIntegrations,
+};
+
+export { INTEGRATIONS as Integrations, Transports };

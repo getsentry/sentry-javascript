@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- [browser] feat: Show dropped event url in blacklistUrl/whitelistUrl debug mode
-- [browser] feat: Use better event description instead of event_id for user-facing logs
+- [browser] feat: Show dropped event url in `blacklistUrl`/`whitelistUrl` debug mode
+- [browser] feat: Use better event description instead of `event_id` for user-facing logs
+- [core] ref: Create common integrations that are exposed on `@sentry/core` and reexposed through `browser`/`node`
 
 ## 4.0.0
 
