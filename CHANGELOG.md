@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.0.2
+
+- [browser] fix: Dont filter captured messages when they have no stacktraces
+
 ## 4.0.1
 
 - [browser] feat: Show dropped event url in `blacklistUrl`/`whitelistUrl` debug mode
