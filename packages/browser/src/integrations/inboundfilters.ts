@@ -83,7 +83,7 @@ export class InboundFilters implements Integration {
       return false;
     }
     const url = this.getEventFilterUrl(event);
-    return this.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    return !url ? false : this.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
@@ -93,7 +93,7 @@ export class InboundFilters implements Integration {
       return true;
     }
     const url = this.getEventFilterUrl(event);
-    return this.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    return !url ? true : this.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
@@ -140,7 +140,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private getEventFilterUrl(event: SentryEvent): string {
+  private getEventFilterUrl(event: SentryEvent): string | null {
     const evt = event as any;
 
     try {
@@ -149,11 +149,11 @@ export class InboundFilters implements Integration {
       } else if (evt.exception) {
         return evt.exception.values[0].stacktrace.frames[0].filename;
       } else {
-        return '';
+        return null;
       }
     } catch (oO) {
       logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
-      return '';
+      return null;
     }
   }
 }

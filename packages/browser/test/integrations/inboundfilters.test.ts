@@ -160,6 +160,7 @@ describe('InboundFilters', () => {
 
   describe('blacklistUrls/whitelistUrls', () => {
     const messageEvent = {
+      message: 'wat',
       stacktrace: {
         frames: [
           {
@@ -193,6 +194,23 @@ describe('InboundFilters', () => {
       });
       expect(inboundFilters.isBlacklistedUrl(messageEvent)).equal(true);
       expect(inboundFilters.isWhitelistedUrl(messageEvent)).equal(true);
+    });
+
+    it('should not filter captured messages with no stacktraces', () => {
+      inboundFilters.install({
+        blacklistUrls: ['https://awesome-analytics.io'],
+        whitelistUrls: ['https://awesome-analytics.io'],
+      });
+      expect(
+        inboundFilters.isBlacklistedUrl({
+          message: 'any',
+        }),
+      ).equal(false);
+      expect(
+        inboundFilters.isWhitelistedUrl({
+          message: 'any',
+        }),
+      ).equal(true);
     });
 
     it('should filter captured exception based on its stack trace using string filter', () => {
@@ -231,7 +249,7 @@ describe('InboundFilters', () => {
       expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).equal(true);
     });
 
-    it('should not fail with malformed event event and default to false', () => {
+    it('should not fail with malformed event event and default to false for isBlacklistedUrl and true for isWhitelistedUrl', () => {
       const malformedEvent = {
         stacktrace: {
           frames: undefined,
@@ -242,7 +260,7 @@ describe('InboundFilters', () => {
         whitelistUrls: ['https://awesome-analytics.io'],
       });
       expect(inboundFilters.isBlacklistedUrl(malformedEvent)).equal(false);
-      expect(inboundFilters.isWhitelistedUrl(malformedEvent)).equal(false);
+      expect(inboundFilters.isWhitelistedUrl(malformedEvent)).equal(true);
     });
   });
 });
