@@ -1,5 +1,6 @@
 import { configureScope, logger } from '@sentry/core';
 import { Integration, SentryEvent, SentryException, StackFrame } from '@sentry/types';
+import { getEventDescription } from '@sentry/utils/misc';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {
@@ -41,14 +42,18 @@ export class Dedupe implements Integration {
 
     if (this.isSameMessageEvent(currentEvent, previousEvent)) {
       logger.warn(
-        `Event dropped due to being a duplicate of previous event (same message).\n  Event: ${currentEvent.event_id}`,
+        `Event dropped due to being a duplicate of previous event (same message).\nEvent: ${getEventDescription(
+          currentEvent,
+        )}`,
       );
       return true;
     }
 
     if (this.isSameExceptionEvent(currentEvent, previousEvent)) {
       logger.warn(
-        `Event dropped due to being a duplicate of previous event (same exception).\n  Event: ${currentEvent.event_id}`,
+        `Event dropped due to being a duplicate of previous event (same exception).\nEvent: ${getEventDescription(
+          currentEvent,
+        )}`,
       );
       return true;
     }
