@@ -1,8 +1,8 @@
 import { configureScope, logger } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
-import { BrowserOptions } from '../backend';
 import { getEventDescription } from '@sentry/utils/misc';
+import { BrowserOptions } from '../backend';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -40,15 +40,25 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   public shouldDropEvent(event: SentryEvent): boolean {
     if (this.isIgnoredError(event)) {
-      logger.warn(`Event dropped due to being matched by \`ignoreErrors\` option.\n  Event: ${getEventDescription(event)}`);
+      logger.warn(
+        `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+      );
       return true;
     }
     if (this.isBlacklistedUrl(event)) {
-      logger.warn(`Event dropped due to being matched by \`blacklistUrls\` option.\n  Event: ${getEventDescription(event)}`);
+      logger.warn(
+        `Event dropped due to being matched by \`blacklistUrls\` option.\nEvent: ${getEventDescription(
+          event,
+        )}.\nUrl: ${this.getEventFilterUrl(event)}`,
+      );
       return true;
     }
     if (!this.isWhitelistedUrl(event)) {
-      logger.warn(`Event dropped due to not being matched by \`whitelistUrls\` option.\n  Event: ${getEventDescription(event)}`);
+      logger.warn(
+        `Event dropped due to not being matched by \`whitelistUrls\` option.\nEvent: ${getEventDescription(
+          event,
+        )}.\nUrl: ${this.getEventFilterUrl(event)}`,
+      );
       return true;
     }
     return false;

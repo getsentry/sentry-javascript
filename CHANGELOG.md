@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- [browser] feat: Show dropped event url in blacklistUrl/whitelistUrl debug mode
+- [browser] feat: Use better event description instead of event_id for user-facing logs
+
 ## 4.0.0
 
 This is the release of our new SDKs, `@sentry/browser`, `@sentry/node`. While there are too many changes to list for
