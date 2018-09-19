@@ -1,5 +1,5 @@
 bump:
-	yarn lerna publish --exact --skip-git --skip-npm
+	yarn lerna version --exact --no-git-tag-version --no-push
 
 prepare-release:
 	yarn clean
