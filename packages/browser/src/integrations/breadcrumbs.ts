@@ -2,6 +2,7 @@ import { API, getCurrentHub, logger } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getGlobalObject, parseUrl } from '@sentry/utils/misc';
+import { getEventDescription } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
@@ -26,14 +27,13 @@ function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
   try {
     const event: { [key: string]: any } = deserialize(serializedData);
-    const exception = event.exception && event.exception.values && event.exception.values[0];
 
     getCurrentHub().addBreadcrumb(
       {
         category: 'sentry',
         event_id: event.event_id,
         level: event.level || Severity.fromString('error'),
-        message: exception ? `${exception.type ? `${exception.type}: ` : ''}${exception.value}` : event.message,
+        message: getEventDescription(event),
       },
       {
         event,
