@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [browser] feat: Better dedupe integration event description
+
 ## 4.0.2
 
 - [browser] fix: Dont filter captured messages when they have no stacktraces
