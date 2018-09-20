@@ -115,3 +115,17 @@ export function showReportDialog(
 export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
 }
+
+/**
+ * This function is here to be API compatible with the loader
+ */
+export function forceLoad(): void {
+  // Noop
+}
+
+/**
+ * This function is here to be API compatible with the loader
+ */
+export function onLoad(callback: () => void): void {
+  callback();
+}
