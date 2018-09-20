@@ -4,6 +4,8 @@
 
 - [browser] feat: Better dedupe integration event description
 - [core] ref: Move Dedupe, FunctionString, InboundFilters and SdkInformation integrations to the core package
+- [core] feat: Provide correct platform and make a place to override event internals
+- [browser] feat: UserAgent integration
 
 ## 4.0.2
 
