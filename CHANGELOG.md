@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] feat: Better dedupe integration event description
+- [core] ref: Move Dedupe, FunctionString, InboundFilters and SdkInformation integrations to the core package
 
 ## 4.0.2
 

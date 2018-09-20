@@ -1,29 +1,28 @@
-import { getCurrentHub, initAndBind } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { DsnLike } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
-import {
-  Breadcrumbs,
-  Dedupe,
-  FunctionToString,
-  GlobalHandlers,
-  InboundFilters,
-  LinkedErrors,
-  ReportingObserver,
-  SDKInformation,
-  TryCatch,
-} from './integrations';
+import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch } from './integrations';
+import { SDK_NAME, SDK_VERSION } from './version';
 
 export const defaultIntegrations = [
-  new Dedupe(),
-  new FunctionToString(),
+  // Common
+  new CoreIntegrations.Dedupe(),
+  new CoreIntegrations.InboundFilters(),
+  new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.SDKInformation({
+    name: 'npm:@sentry/browser',
+    sdkName: SDK_NAME,
+    sdkVersion: SDK_VERSION,
+  }),
+  // Native Wrappers
   new TryCatch(),
   new Breadcrumbs(),
+  // Global Handlers
   new GlobalHandlers(),
-  new LinkedErrors(),
   new ReportingObserver(),
-  new SDKInformation(),
-  new InboundFilters(),
+  // Misc
+  new LinkedErrors(),
 ];
 
 /**

@@ -1,24 +1,28 @@
-import { initAndBind } from '@sentry/core';
+import { initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
-import {
-  ClientOptions,
-  Console,
-  Http,
-  LinkedErrors,
-  OnUncaughtException,
-  OnUnhandledRejection,
-  SDKInformation,
-} from './integrations';
+import { ClientOptions, Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { SDK_NAME, SDK_VERSION } from './version';
 
 export const defaultIntegrations = [
+  // Common
+  new CoreIntegrations.Dedupe(),
+  new CoreIntegrations.InboundFilters(),
+  new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.SDKInformation({
+    name: 'npm:@sentry/node',
+    sdkName: SDK_NAME,
+    sdkVersion: SDK_VERSION,
+  }),
+  // Native Wrappers
   new Console(),
   new Http(),
+  // Global Handlers
   new OnUncaughtException(),
   new OnUnhandledRejection(),
+  // Misc
   new ClientOptions(),
   new LinkedErrors(),
-  new SDKInformation(),
 ];
 
 /**

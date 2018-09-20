@@ -1,12 +1,19 @@
-import { configureScope, logger } from '@sentry/core';
+import { configureScope } from '@sentry/minimal';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { getEventDescription } from '@sentry/utils/misc';
-import { BrowserOptions } from '../backend';
+import { logger } from '../logger';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
+
+/** JSDoc */
+interface InboundFiltersOptions {
+  ignoreErrors?: Array<string | RegExp>;
+  blacklistUrls?: Array<string | RegExp>;
+  whitelistUrls?: Array<string | RegExp>;
+}
 
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {
@@ -24,7 +31,7 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public install(options: BrowserOptions = {}): void {
+  public install(options: InboundFiltersOptions = {}): void {
     this.configureOptions(options);
 
     configureScope(scope => {
@@ -108,7 +115,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private configureOptions(options: BrowserOptions): void {
+  private configureOptions(options: InboundFiltersOptions): void {
     if (options.ignoreErrors) {
       this.ignoreErrors = [...DEFAULT_IGNORE_ERRORS, ...options.ignoreErrors];
     }
@@ -122,13 +129,12 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   private getPossibleEventMessages(event: SentryEvent): string[] {
-    const evt = event as any;
-
-    if (evt.message) {
-      return [evt.message];
-    } else if (evt.exception) {
+    if (event.message) {
+      return [event.message];
+    } else if (event.exception) {
       try {
-        const { type, value } = evt.exception.values[0];
+        // tslint:disable-next-line:no-unsafe-any
+        const { type, value } = (event as any).exception.values[0];
         return [`${value}`, `${type}: ${value}`];
       } catch (oO) {
         logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
@@ -141,13 +147,13 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   private getEventFilterUrl(event: SentryEvent): string | null {
-    const evt = event as any;
-
     try {
-      if (evt.stacktrace) {
-        return evt.stacktrace.frames[0].filename;
-      } else if (evt.exception) {
-        return evt.exception.values[0].stacktrace.frames[0].filename;
+      if (event.stacktrace) {
+        // tslint:disable-next-line:no-unsafe-any
+        return (event as any).stacktrace.frames[0].filename;
+      } else if (event.exception) {
+        // tslint:disable-next-line:no-unsafe-any
+        return (event as any).exception.values[0].stacktrace.frames[0].filename;
       } else {
         return null;
       }

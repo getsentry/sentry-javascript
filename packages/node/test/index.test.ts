@@ -36,7 +36,6 @@ describe('SentryNode', () => {
   test('close() with to short timeout', done => {
     expect.assertions(1);
     jest.useFakeTimers();
-    getCurrentHub().pushScope();
     const client = new NodeClient({
       dsn,
       transport: SetTimeoutTransport,
@@ -55,13 +54,11 @@ describe('SentryNode', () => {
         // test
       });
     jest.runAllTimers();
-    getCurrentHub().popScope();
   });
 
   test('close() with timeout', done => {
     expect.assertions(1);
     jest.useFakeTimers();
-    getCurrentHub().pushScope();
     const client = new NodeClient({
       dsn,
       transport: SetTimeoutTransport,
@@ -81,7 +78,6 @@ describe('SentryNode', () => {
         // test
       });
     jest.runAllTimers();
-    getCurrentHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
@@ -125,7 +121,6 @@ describe('SentryNode', () => {
     });
 
     test('record auto breadcrumbs', done => {
-      getCurrentHub().pushScope();
       const client = new NodeClient({
         beforeSend: (event: SentryEvent) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
@@ -157,7 +152,6 @@ describe('SentryNode', () => {
 
     test('capture an exception', done => {
       expect.assertions(6);
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
@@ -181,12 +175,10 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      getCurrentHub().popScope();
     });
 
     test('capture a message', done => {
       expect.assertions(2);
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
@@ -199,16 +191,14 @@ describe('SentryNode', () => {
         }),
       );
       captureMessage('test');
-      getCurrentHub().popScope();
     });
 
     test('capture an event', done => {
       expect.assertions(2);
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
-            expect(event.message).toBe('test');
+            expect(event.message).toBe('test event');
             expect(event.exception).toBeUndefined();
             done();
             return event;
@@ -216,33 +206,32 @@ describe('SentryNode', () => {
           dsn,
         }),
       );
-      captureEvent({ message: 'test' });
-      getCurrentHub().popScope();
+      captureEvent({ message: 'test event' });
     });
 
-    test('capture an event in a domain', async () =>
-      new Promise<void>(resolve => {
-        const d = domain.create();
-        const client = new NodeClient({
-          beforeSend: (event: SentryEvent) => {
-            expect(event.message).toBe('test');
-            expect(event.exception).toBeUndefined();
-            resolve();
-            d.exit();
-            return event;
-          },
-          dsn,
-        });
-        d.run(() => {
-          getCurrentHub().bindClient(client);
-          expect(getCurrentHub().getClient()).toBe(client);
-          getCurrentHub().captureEvent({ message: 'test' });
-        });
-      }));
+    test('capture an event in a domain', done => {
+      const d = domain.create();
+
+      const client = new NodeClient({
+        beforeSend: (event: SentryEvent) => {
+          expect(event.message).toBe('test domain');
+          expect(event.exception).toBeUndefined();
+          done();
+          d.exit();
+          return event;
+        },
+        dsn,
+      });
+
+      d.run(() => {
+        getCurrentHub().bindClient(client);
+        expect(getCurrentHub().getClient()).toBe(client);
+        getCurrentHub().captureEvent({ message: 'test domain' });
+      });
+    });
 
     test('stacktrace order', done => {
       expect.assertions(1);
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
@@ -266,7 +255,6 @@ describe('SentryNode', () => {
       } catch (e) {
         captureException(e);
       }
-      getCurrentHub().popScope();
     });
   });
 });
