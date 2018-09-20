@@ -28,7 +28,7 @@ export {
 
 export { BrowserBackend, BrowserOptions } from './backend';
 export { BrowserClient } from './client';
-export { defaultIntegrations, init, lastEventId, showReportDialog } from './sdk';
+export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
