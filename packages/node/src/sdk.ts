@@ -1,7 +1,7 @@
 import { initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
-import { ClientOptions, Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { SDK_NAME, SDK_VERSION } from './version';
 
 export const defaultIntegrations = [
@@ -21,7 +21,6 @@ export const defaultIntegrations = [
   new OnUncaughtException(),
   new OnUnhandledRejection(),
   // Misc
-  new ClientOptions(),
   new LinkedErrors(),
 ];
 
