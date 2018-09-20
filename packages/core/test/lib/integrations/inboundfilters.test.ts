@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import { InboundFilters } from '../../src/integrations/inboundfilters';
+import { InboundFilters } from '../../../src/integrations/inboundfilters';
 
 let inboundFilters: InboundFilters;
 
@@ -11,42 +10,42 @@ describe('InboundFilters', () => {
   describe('shouldDropEvent', () => {
     it('should drop when error is ignored', () => {
       inboundFilters.isIgnoredError = () => true;
-      expect(inboundFilters.shouldDropEvent({})).equal(true);
+      expect(inboundFilters.shouldDropEvent({})).toBe(true);
     });
 
     it('should drop when url is blacklisted', () => {
       inboundFilters.isBlacklistedUrl = () => true;
-      expect(inboundFilters.shouldDropEvent({})).equal(true);
+      expect(inboundFilters.shouldDropEvent({})).toBe(true);
     });
 
     it('should drop when url is not whitelisted', () => {
       inboundFilters.isWhitelistedUrl = () => false;
-      expect(inboundFilters.shouldDropEvent({})).equal(true);
+      expect(inboundFilters.shouldDropEvent({})).toBe(true);
     });
 
     it('should drop when url is not blacklisted, but also not whitelisted', () => {
       inboundFilters.isBlacklistedUrl = () => false;
       inboundFilters.isWhitelistedUrl = () => false;
-      expect(inboundFilters.shouldDropEvent({})).equal(true);
+      expect(inboundFilters.shouldDropEvent({})).toBe(true);
     });
 
     it('should drop when url is blacklisted and whitelisted at the same time', () => {
       inboundFilters.isBlacklistedUrl = () => true;
       inboundFilters.isWhitelistedUrl = () => true;
-      expect(inboundFilters.shouldDropEvent({})).equal(true);
+      expect(inboundFilters.shouldDropEvent({})).toBe(true);
     });
 
     it('should not drop when url is not blacklisted, but whitelisted', () => {
       inboundFilters.isBlacklistedUrl = () => false;
       inboundFilters.isWhitelistedUrl = () => true;
-      expect(inboundFilters.shouldDropEvent({})).equal(false);
+      expect(inboundFilters.shouldDropEvent({})).toBe(false);
     });
 
     it('should not drop when any of checks dont match', () => {
       inboundFilters.isIgnoredError = () => false;
       inboundFilters.isBlacklistedUrl = () => false;
       inboundFilters.isWhitelistedUrl = () => true;
-      expect(inboundFilters.shouldDropEvent({})).equal(false);
+      expect(inboundFilters.shouldDropEvent({})).toBe(false);
     });
   });
 
@@ -69,33 +68,33 @@ describe('InboundFilters', () => {
       inboundFilters.install({
         ignoreErrors: ['capture'],
       });
-      expect(inboundFilters.isIgnoredError(messageEvent)).equal(true);
+      expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('string filter with exact match', () => {
       inboundFilters.install({
         ignoreErrors: ['captureMessage'],
       });
-      expect(inboundFilters.isIgnoredError(messageEvent)).equal(true);
+      expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('regexp filter with partial match', () => {
       inboundFilters.install({
         ignoreErrors: [/capture/],
       });
-      expect(inboundFilters.isIgnoredError(messageEvent)).equal(true);
+      expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('regexp filter with exact match', () => {
       inboundFilters.install({
         ignoreErrors: [/^captureMessage$/],
       });
-      expect(inboundFilters.isIgnoredError(messageEvent)).equal(true);
+      expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
       expect(
         inboundFilters.isIgnoredError({
           message: 'captureMessageSomething',
         }),
-      ).equal(false);
+      ).toBe(false);
     });
 
     it('uses message when both, message and exception are available', () => {
@@ -107,15 +106,15 @@ describe('InboundFilters', () => {
           ...exceptionEvent,
           ...messageEvent,
         }),
-      ).equal(true);
+      ).toBe(true);
     });
 
     it('can use multiple filters', () => {
       inboundFilters.install({
         ignoreErrors: ['captureMessage', /SyntaxError/],
       });
-      expect(inboundFilters.isIgnoredError(messageEvent)).equal(true);
-      expect(inboundFilters.isIgnoredError(exceptionEvent)).equal(true);
+      expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
+      expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
     });
 
     it('uses default filters', () => {
@@ -131,7 +130,7 @@ describe('InboundFilters', () => {
             ],
           },
         }),
-      ).equal(true);
+      ).toBe(true);
     });
 
     describe('on exception', () => {
@@ -139,21 +138,21 @@ describe('InboundFilters', () => {
         inboundFilters.install({
           ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
         });
-        expect(inboundFilters.isIgnoredError(exceptionEvent)).equal(true);
+        expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
 
       it('can match on exception value', () => {
         inboundFilters.install({
           ignoreErrors: [/unidentified \?/],
         });
-        expect(inboundFilters.isIgnoredError(exceptionEvent)).equal(true);
+        expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
 
       it('can match on exception type', () => {
         inboundFilters.install({
           ignoreErrors: [/^SyntaxError/],
         });
-        expect(inboundFilters.isIgnoredError(exceptionEvent)).equal(true);
+        expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
     });
   });
@@ -184,16 +183,16 @@ describe('InboundFilters', () => {
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
-      expect(inboundFilters.isBlacklistedUrl(messageEvent)).equal(true);
-      expect(inboundFilters.isWhitelistedUrl(messageEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(messageEvent)).toBe(true);
+      expect(inboundFilters.isWhitelistedUrl(messageEvent)).toBe(true);
     });
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
       inboundFilters.install({
         blacklistUrls: [/awesome-analytics\.io/],
       });
-      expect(inboundFilters.isBlacklistedUrl(messageEvent)).equal(true);
-      expect(inboundFilters.isWhitelistedUrl(messageEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(messageEvent)).toBe(true);
+      expect(inboundFilters.isWhitelistedUrl(messageEvent)).toBe(true);
     });
 
     it('should not filter captured messages with no stacktraces', () => {
@@ -205,12 +204,12 @@ describe('InboundFilters', () => {
         inboundFilters.isBlacklistedUrl({
           message: 'any',
         }),
-      ).equal(false);
+      ).toBe(false);
       expect(
         inboundFilters.isWhitelistedUrl({
           message: 'any',
         }),
-      ).equal(true);
+      ).toBe(true);
     });
 
     it('should filter captured exception based on its stack trace using string filter', () => {
@@ -218,8 +217,8 @@ describe('InboundFilters', () => {
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
-      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).equal(true);
-      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
+      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
 
     it('should filter captured exceptions based on its stack trace using regexp filter', () => {
@@ -227,8 +226,8 @@ describe('InboundFilters', () => {
         blacklistUrls: [/awesome-analytics\.io/],
         whitelistUrls: [/awesome-analytics\.io/],
       });
-      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).equal(true);
-      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
+      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
 
     it('should not filter events that doesnt pass the test', () => {
@@ -236,8 +235,8 @@ describe('InboundFilters', () => {
         blacklistUrls: ['some-other-domain.com'],
         whitelistUrls: ['some-other-domain.com'],
       });
-      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).equal(false);
-      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).equal(false);
+      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(false);
+      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(false);
     });
 
     it('should be able to use multiple filters', () => {
@@ -245,8 +244,8 @@ describe('InboundFilters', () => {
         blacklistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
         whitelistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
       });
-      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).equal(true);
-      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
+      expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
 
     it('should not fail with malformed event event and default to false for isBlacklistedUrl and true for isWhitelistedUrl', () => {
@@ -259,8 +258,8 @@ describe('InboundFilters', () => {
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
-      expect(inboundFilters.isBlacklistedUrl(malformedEvent)).equal(false);
-      expect(inboundFilters.isWhitelistedUrl(malformedEvent)).equal(true);
+      expect(inboundFilters.isBlacklistedUrl(malformedEvent)).toBe(false);
+      expect(inboundFilters.isWhitelistedUrl(malformedEvent)).toBe(true);
     });
   });
 });

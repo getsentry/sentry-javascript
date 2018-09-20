@@ -60,6 +60,12 @@ export interface Options {
   integrations?: Integration[] | ((integrations: Integration[]) => Integration[]);
 
   /**
+   * A pattern for error messages which should not be sent to Sentry.
+   * By default, all errors will be sent.
+   */
+  ignoreErrors?: Array<string | RegExp>;
+
+  /**
    * Transport object that should be used to send events to Sentry
    */
   transport?: TransportClass<Transport>;

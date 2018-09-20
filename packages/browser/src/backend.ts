@@ -12,12 +12,6 @@ import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
  */
 export interface BrowserOptions extends Options {
   /**
-   * A pattern for error messages which should not be sent to Sentry. By
-   * default, all errors will be sent.
-   */
-  ignoreErrors?: Array<string | RegExp>;
-
-  /**
    * A pattern for error URLs which should not be sent to Sentry.
    * To whitelist certain errors instead, use {@link Options.whitelistUrls}.
    * By default, all errors will be sent.

@@ -1,6 +1,5 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { configureScope } from '@sentry/minimal';
 import { Integration, SentryEvent } from '@sentry/types';
-import { SDK_NAME, SDK_VERSION } from '../version';
 
 /** Adds SDK info to an event. */
 export class SDKInformation implements Integration {
@@ -12,20 +11,31 @@ export class SDKInformation implements Integration {
   /**
    * @inheritDoc
    */
+  public constructor(
+    private readonly config: {
+      name: string;
+      sdkName: string;
+      sdkVersion: string;
+    },
+  ) {}
+
+  /**
+   * @inheritDoc
+   */
   public install(): void {
-    getCurrentHub().configureScope((scope: Scope) => {
+    configureScope(scope => {
       scope.addEventProcessor(async (event: SentryEvent) => ({
         ...event,
         sdk: {
-          name: SDK_NAME,
+          name: this.config.sdkName,
           packages: [
             ...((event.sdk && event.sdk.packages) || []),
             {
-              name: 'npm:@sentry/node',
-              version: SDK_VERSION,
+              name: this.config.name,
+              version: this.config.sdkVersion,
             },
           ],
-          version: SDK_VERSION,
+          version: this.config.sdkVersion,
         },
       }));
     });

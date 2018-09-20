@@ -16,6 +16,7 @@ export class FunctionToString implements Integration {
 
     Function.prototype.toString = function(this: SentryWrappedFunction, ...args: any[]): string {
       const context = this.__sentry__ ? this.__sentry_original__ : this;
+      // tslint:disable-next-line:no-unsafe-any
       return originalFunctionToString.apply(context, args);
     };
   }
