@@ -2,7 +2,7 @@ import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@s
 import { DsnLike } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
-import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch } from './integrations';
+import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch, UserAgent } from './integrations';
 import { SDK_NAME, SDK_VERSION } from './version';
 
 export const defaultIntegrations = [
@@ -23,6 +23,7 @@ export const defaultIntegrations = [
   new ReportingObserver(),
   // Misc
   new LinkedErrors(),
+  new UserAgent(),
 ];
 
 /**
