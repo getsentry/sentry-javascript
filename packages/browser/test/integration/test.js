@@ -143,40 +143,36 @@ describe('integration', function() {
       );
     });
 
-    it('should reject duplicate, back-to-back errors from captureError', function(done) {
+    it('should reject duplicate, back-to-back errors from captureException', function(done) {
       var iframe = this.iframe;
       iframeExecute(
         iframe,
         done,
         function() {
-          var count = 5;
-          setTimeout(function invoke() {
-            // use setTimeout to capture new error objects that have
-            // identical stack traces (can't call sequentially or callsite
-            // line number will change)
-            //
-            // order:
-            //   Error: foo
-            //   Error: foo (suppressed)
-            //   Error: foo (suppressed)
-            //   Error: bar
-            //   Error: foo
-            if (count === 2) {
-              Sentry.captureException(new Error('bar'));
-            } else {
-              Sentry.captureException(new Error('foo'));
-            }
+          setTimeout(done);
 
-            if (--count === 0) return setTimeout(done);
-            else setTimeout(invoke);
-          });
+          for (var i = 0; i < 2; i++) {
+            // Different exceptions, don't dedupe
+            Sentry.captureException(new Error(`Exception no ${Date.now()}`));
+          }
+
+          for (var i = 0; i < 2; i++) {
+            // Same exception, dedupe
+            Sentry.captureException(new Error('foo'));
+          }
+
+          // Same exceptions, different stacktrace (different line number), don't dedupe
+          Sentry.captureException(new Error('bar'));
+          Sentry.captureException(new Error('bar'));
         },
         function() {
           var sentryData = iframe.contentWindow.sentryData;
-          assert.equal(sentryData.length, 3);
-          assert.equal(sentryData[0].exception.values[0].value, 'foo');
-          assert.equal(sentryData[1].exception.values[0].value, 'bar');
+          assert.equal(sentryData.length, 5);
+          assert.match(sentryData[0].exception.values[0].value, /Exception no \d+/);
+          assert.match(sentryData[1].exception.values[0].value, /Exception no \d+/);
           assert.equal(sentryData[2].exception.values[0].value, 'foo');
+          assert.equal(sentryData[3].exception.values[0].value, 'bar');
+          assert.equal(sentryData[4].exception.values[0].value, 'bar');
         },
       );
     });
