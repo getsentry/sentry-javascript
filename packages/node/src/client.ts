@@ -1,4 +1,5 @@
-import { BaseClient } from '@sentry/core';
+import { BaseClient, Scope } from '@sentry/core';
+import { SentryEvent, SentryEventHint } from '@sentry/types';
 import { NodeBackend, NodeOptions } from './backend';
 
 /**
@@ -14,5 +15,16 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   public constructor(options: NodeOptions) {
     super(NodeBackend, options);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+    event.platform = event.platform || 'node';
+    if (this.getOptions().serverName) {
+      event.server_name = this.getOptions().serverName;
+    }
+    return super.prepareEvent(event, scope, hint);
   }
 }

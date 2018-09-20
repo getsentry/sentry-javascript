@@ -1,5 +1,5 @@
-import { API, BaseClient, SentryError } from '@sentry/core';
-import { DsnLike } from '@sentry/types';
+import { API, BaseClient, Scope, SentryError } from '@sentry/core';
+import { DsnLike, SentryEvent, SentryEventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 
@@ -17,6 +17,14 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    */
   public constructor(options: BrowserOptions) {
     super(BrowserBackend, options);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+    event.platform = event.platform || 'javascript';
+    return super.prepareEvent(event, scope, hint);
   }
 
   /** JSDoc */
