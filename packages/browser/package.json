@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Offical Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/browser",
@@ -15,7 +15,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.0.1",
+    "@sentry/core": "4.0.3",
     "@sentry/types": "4.0.1",
     "@sentry/utils": "4.0.1",
     "md5": "2.2.1"
