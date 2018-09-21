@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.0.4
+
+- [browser] feat: Add `forceLoad` and `onLoad` function to be compatible with loader API
+
 ## 4.0.3
 
 - [browser] feat: Better dedupe integration event description
