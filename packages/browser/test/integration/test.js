@@ -50,6 +50,9 @@ function canReadFunctionName() {
 
 let assertTimeout = undefined;
 function debounceAssertEventCount(sentryData, count, done) {
+  if (sentryData === undefined) {
+    return false;
+  }
   clearTimeout(assertTimeout);
   assertTimeout = setTimeout(function() {
     done(new Error(`Did not receive ${count} events`));
@@ -62,7 +65,8 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 // const frames = ['frame', 'loader', 'loader-lazy-no'];
-const frames = ['frame', 'loader-lazy-no'];
+// const frames = ['frame', 'loader-lazy-no'];
+const frames = ['loader'];
 
 for (const idx in frames) {
   describe(`integration ${frames[idx]}.html`, function() {
