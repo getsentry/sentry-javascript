@@ -249,15 +249,13 @@ for (const idx in frames) {
           },
         );
       });
-      /*
+
       it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
         var iframe = this.iframe;
         iframeExecute(
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             for (var i = 0; i < 2; i++) {
               // Different messages, same stacktrace, don't dedupe
               Sentry.captureMessage('different message, same stacktrace ' + Date.now());
@@ -272,14 +270,15 @@ for (const idx in frames) {
             Sentry.captureMessage('same message, different stacktrace');
             Sentry.captureMessage('same message, different stacktrace');
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData;
-            assert.equal(sentryData.length, 5);
-            assert.match(sentryData[0].message, /different message, same stacktrace \d+/);
-            assert.match(sentryData[1].message, /different message, same stacktrace \d+/);
-            assert.equal(sentryData[2].message, 'same message, same stacktrace');
-            assert.equal(sentryData[3].message, 'same message, different stacktrace');
-            assert.equal(sentryData[4].message, 'same message, different stacktrace');
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 5, done)) {
+              assert.match(sentryData[0].message, /different message, same stacktrace \d+/);
+              assert.match(sentryData[1].message, /different message, same stacktrace \d+/);
+              assert.equal(sentryData[2].message, 'same message, same stacktrace');
+              assert.equal(sentryData[3].message, 'same message, different stacktrace');
+              assert.equal(sentryData[4].message, 'same message, different stacktrace');
+              done();
+            }
           },
         );
       });
@@ -293,18 +292,20 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             eval('foo{};');
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            // ¯\_(ツ)_/¯
-            if (isBelowIE11() || isEdge14()) {
-              assert.equal(sentryData.exception.values[0].type, undefined);
-            } else {
-              assert.match(sentryData.exception.values[0].type, /SyntaxError/);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              // ¯\_(ツ)_/¯
+              if (isBelowIE11() || isEdge14()) {
+                assert.equal(sentryData.exception.values[0].type, undefined);
+              } else {
+                assert.match(sentryData.exception.values[0].type, /SyntaxError/);
+              }
+              assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // just one frame
+              done();
             }
-            assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // just one frame
           },
         );
       });
@@ -326,18 +327,21 @@ for (const idx in frames) {
             };
             document.head.appendChild(script);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.match(sentryData.exception.values[0].value, /stringError$/);
-            assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.match(sentryData.exception.values[0].value, /stringError$/);
+              assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
 
-            // some browsers extract proper url, line, and column for thrown strings
-            // but not all - falls back to frame url
-            assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
-            assert.match(
-              sentryData.exception.values[0].stacktrace.frames[0]['function'],
-              /throwStringError|\?|global code/i,
-            );
+              // some browsers extract proper url, line, and column for thrown strings
+              // but not all - falls back to frame url
+              assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
+              assert.match(
+                sentryData.exception.values[0].stacktrace.frames[0]['function'],
+                /throwStringError|\?|global code/i,
+              );
+              done();
+            }
           },
         );
       });
@@ -359,21 +363,24 @@ for (const idx in frames) {
             };
             document.head.appendChild(script);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.equal(sentryData.exception.values[0].type, undefined);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.equal(sentryData.exception.values[0].type, undefined);
 
-            // #<Object> is covering default Android 4.4 and 5.1 browser
-            assert.match(sentryData.exception.values[0].value, /^(\[object Object\]|#<Object>)$/);
-            assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
+              // #<Object> is covering default Android 4.4 and 5.1 browser
+              assert.match(sentryData.exception.values[0].value, /^(\[object Object\]|#<Object>)$/);
+              assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
 
-            // some browsers extract proper url, line, and column for thrown objects
-            // but not all - falls back to frame url
-            assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
-            assert.match(
-              sentryData.exception.values[0].stacktrace.frames[0]['function'],
-              /throwStringError|\?|global code/i,
-            );
+              // some browsers extract proper url, line, and column for thrown objects
+              // but not all - falls back to frame url
+              assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
+              assert.match(
+                sentryData.exception.values[0].stacktrace.frames[0]['function'],
+                /throwStringError|\?|global code/i,
+              );
+              done();
+            }
           },
         );
       });
@@ -395,26 +402,29 @@ for (const idx in frames) {
             };
             document.head.appendChild(script);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            // ¯\_(ツ)_/¯
-            if (isBelowIE11() || isEdge14()) {
-              assert.equal(sentryData.exception.values[0].type, undefined);
-            } else {
-              assert.match(sentryData.exception.values[0].type, /^Error/);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = iframe.contentWindow.sentryData[0];
+              // ¯\_(ツ)_/¯
+              if (isBelowIE11() || isEdge14()) {
+                assert.equal(sentryData.exception.values[0].type, undefined);
+              } else {
+                assert.match(sentryData.exception.values[0].type, /^Error/);
+              }
+              assert.match(sentryData.exception.values[0].value, /realError$/);
+              // 1 or 2 depending on platform
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 1);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 2);
+              assert.match(
+                sentryData.exception.values[0].stacktrace.frames[0].filename,
+                /\/test\/integration\/throw-error\.js/,
+              );
+              assert.match(
+                sentryData.exception.values[0].stacktrace.frames[0]['function'],
+                /\?|global code|throwRealError/i,
+              );
+              done();
             }
-            assert.match(sentryData.exception.values[0].value, /realError$/);
-            // 1 or 2 depending on platform
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 1);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 2);
-            assert.match(
-              sentryData.exception.values[0].stacktrace.frames[0].filename,
-              /\/test\/integration\/throw-error\.js/,
-            );
-            assert.match(
-              sentryData.exception.values[0].stacktrace.frames[0]['function'],
-              /\?|global code|throwRealError/i,
-            );
           },
         );
       });
@@ -433,9 +443,11 @@ for (const idx in frames) {
               throw e; // intentionally re-throw
             }
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData;
-            assert.equal(sentryData.length, 1);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              assert.equal(sentryData.length, 1);
+              done();
+            }
           },
         );
       });
@@ -449,8 +461,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             var div = document.createElement('div');
             document.body.appendChild(div);
             div.addEventListener(
@@ -466,15 +476,18 @@ for (const idx in frames) {
             var click = new MouseEvent('click');
             div.dispatchEvent(click);
           },
-          function() {
-            // Make sure we preserve the correct context
-            assert.equal(iframe.contentWindow.element, iframe.contentWindow.context);
-            delete iframe.contentWindow.element;
-            delete iframe.contentWindow.context;
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              // Make sure we preserve the correct context
+              assert.equal(iframe.contentWindow.element, iframe.contentWindow.context);
+              delete iframe.contentWindow.element;
+              delete iframe.contentWindow.context;
 
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
+              done();
+            }
           },
         );
       });
@@ -502,6 +515,7 @@ for (const idx in frames) {
           function() {
             var sentryData = iframe.contentWindow.sentryData[0];
             assert.equal(sentryData, null); // should never trigger error
+            done();
           },
         );
       });
@@ -514,14 +528,16 @@ for (const idx in frames) {
           done,
           function() {
             setTimeout(function() {
-              setTimeout(done, 1000);
               foo();
             }, 10);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -534,15 +550,17 @@ for (const idx in frames) {
           done,
           function() {
             var exceptionInterval = setInterval(function() {
-              setTimeout(done, 1000);
               clearInterval(exceptionInterval);
               foo();
             }, 10);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -557,14 +575,16 @@ for (const idx in frames) {
           done,
           function() {
             requestAnimationFrame(function() {
-              setTimeout(done, 1000);
               foo();
             });
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -584,7 +604,6 @@ for (const idx in frames) {
 
             xhr.open('GET', 'example.json');
             xhr.onreadystatechange = function() {
-              setTimeout(done, 1000);
               // replace onreadystatechange with no-op so exception doesn't
               // fire more than once as XHR changes loading state
               xhr.onreadystatechange = function() {};
@@ -592,11 +611,14 @@ for (const idx in frames) {
             };
             xhr.send();
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            // # of frames alter significantly between chrome/firefox & safari
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              // # of frames alter significantly between chrome/firefox & safari
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -609,26 +631,28 @@ for (const idx in frames) {
           done,
           function() {
             setTimeout(function() {
-              setTimeout(done, 1000);
               foo();
             });
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
 
-            var fn = sentryData.exception.mechanism.data.function;
-            delete sentryData.exception.mechanism.data;
+              var fn = sentryData.exception.mechanism.data.function;
+              delete sentryData.exception.mechanism.data;
 
-            if (canReadFunctionName()) {
-              assert.equal(fn, 'setTimeout');
-            } else {
-              assert.equal(fn, '<anonymous>');
+              if (canReadFunctionName()) {
+                assert.equal(fn, 'setTimeout');
+              } else {
+                assert.equal(fn, '<anonymous>');
+              }
+
+              assert.deepEqual(sentryData.exception.mechanism, {
+                type: 'instrument',
+                handled: true,
+              });
+              done();
             }
-
-            assert.deepEqual(sentryData.exception.mechanism, {
-              type: 'instrument',
-              handled: true,
-            });
           },
         );
       });
@@ -640,8 +664,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             var div = document.createElement('div');
             document.body.appendChild(div);
             div.addEventListener(
@@ -655,29 +677,32 @@ for (const idx in frames) {
             var click = new MouseEvent('click');
             div.dispatchEvent(click);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
 
-            var handler = sentryData.exception.mechanism.data.handler;
-            delete sentryData.exception.mechanism.data.handler;
-            var target = sentryData.exception.mechanism.data.target;
-            delete sentryData.exception.mechanism.data.target;
+              var handler = sentryData.exception.mechanism.data.handler;
+              delete sentryData.exception.mechanism.data.handler;
+              var target = sentryData.exception.mechanism.data.target;
+              delete sentryData.exception.mechanism.data.target;
 
-            if (canReadFunctionName()) {
-              assert.equal(handler, 'namedFunction');
-            } else {
-              assert.equal(handler, '<anonymous>');
+              if (canReadFunctionName()) {
+                assert.equal(handler, 'namedFunction');
+              } else {
+                assert.equal(handler, '<anonymous>');
+              }
+
+              // IE vs. Rest of the world
+              assert.oneOf(target, ['Node', 'EventTarget']);
+              assert.deepEqual(sentryData.exception.mechanism, {
+                type: 'instrument',
+                handled: true,
+                data: {
+                  function: 'addEventListener',
+                },
+              });
+              done();
             }
-
-            // IE vs. Rest of the world
-            assert.oneOf(target, ['Node', 'EventTarget']);
-            assert.deepEqual(sentryData.exception.mechanism, {
-              type: 'instrument',
-              handled: true,
-              data: {
-                function: 'addEventListener',
-              },
-            });
           },
         );
       });
@@ -689,7 +714,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             var div = document.createElement('div');
             document.body.appendChild(div);
             div.addEventListener(
@@ -703,21 +727,24 @@ for (const idx in frames) {
             var click = new MouseEvent('click');
             div.dispatchEvent(click);
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            var target = sentryData.exception.mechanism.data.target;
-            delete sentryData.exception.mechanism.data.target;
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              var target = sentryData.exception.mechanism.data.target;
+              delete sentryData.exception.mechanism.data.target;
 
-            // IE vs. Rest of the world
-            assert.oneOf(target, ['Node', 'EventTarget']);
-            assert.deepEqual(sentryData.exception.mechanism, {
-              type: 'instrument',
-              handled: true,
-              data: {
-                function: 'addEventListener',
-                handler: '<anonymous>',
-              },
-            });
+              // IE vs. Rest of the world
+              assert.oneOf(target, ['Node', 'EventTarget']);
+              assert.deepEqual(sentryData.exception.mechanism, {
+                type: 'instrument',
+                handled: true,
+                data: {
+                  function: 'addEventListener',
+                  handler: '<anonymous>',
+                },
+              });
+              done();
+            }
           },
         );
       });
@@ -742,18 +769,19 @@ for (const idx in frames) {
               // don't fire `done` handler until at least *one* onreadystatechange
               // has occurred (doesn't actually need to finish)
               if (xhr.readyState === 4) {
-                setTimeout(done, 1000);
+                setTimeout(function() {
+                  Sentry.captureMessage('test');
+                });
               }
             };
             xhr.send();
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
-
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+            done();
           },
         );
       });
@@ -788,6 +816,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+            done();
           },
         );
       });
@@ -801,7 +830,7 @@ for (const idx in frames) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', 'https://example.com/api/1/store/');
             xhr.send('{"message":"someMessage","level":"warning"}');
-            setTimeout(done, 1000);
+            setTimeout(done);
           },
           function() {
             var Sentry = iframe.contentWindow.Sentry;
@@ -810,6 +839,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'sentry');
             assert.equal(breadcrumbs[0].level, 'warning');
             assert.equal(breadcrumbs[0].message, 'someMessage');
+            done();
           },
         );
       });
@@ -826,16 +856,15 @@ for (const idx in frames) {
 
             fetch('example.json').then(
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
             );
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = 'example.json';
 
             if ('fetch' in window) {
@@ -859,6 +888,7 @@ for (const idx in frames) {
               assert.equal(breadcrumbs[1].data.method, 'GET');
               assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
             }
+            done();
           },
         );
       });
@@ -875,16 +905,15 @@ for (const idx in frames) {
 
             fetch(new Request('example.json')).then(
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
             );
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = 'example.json';
 
             if ('fetch' in window) {
@@ -909,6 +938,7 @@ for (const idx in frames) {
               assert.equal(breadcrumbs[1].data.method, 'GET');
               assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
+            done();
           },
         );
       });
@@ -925,16 +955,15 @@ for (const idx in frames) {
 
             fetch(123).then(
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
               function() {
-                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
               },
             );
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = '123';
 
             if ('fetch' in window) {
@@ -959,6 +988,7 @@ for (const idx in frames) {
               assert.equal(breadcrumbs[1].data.method, 'GET');
               assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
+            done();
           },
         );
       });
@@ -970,8 +1000,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -987,15 +1015,18 @@ for (const idx in frames) {
             // click <input/>
             var click = new MouseEvent('click');
             input.dispatchEvent(click);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+            done();
           },
         );
       });
@@ -1007,8 +1038,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1016,15 +1045,18 @@ for (const idx in frames) {
             var click = new MouseEvent('click');
             var input = document.getElementsByTagName('input')[0];
             input.dispatchEvent(click);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+            done();
           },
         );
       });
@@ -1036,8 +1068,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1056,15 +1086,18 @@ for (const idx in frames) {
             var click = new MouseEvent('click');
             var input = document.querySelector('.a'); // leaf node
             input.dispatchEvent(click);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > div.c > div.b > div.a');
+            done();
           },
         );
       });
@@ -1077,8 +1110,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1092,14 +1123,17 @@ for (const idx in frames) {
 
             var input = document.querySelector('.a'); // leaf node
             input.dispatchEvent(click);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, '<unknown>');
+            done();
           },
         );
       });
@@ -1111,8 +1145,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1123,15 +1155,18 @@ for (const idx in frames) {
             var input = document.getElementsByTagName('input')[0];
             input.dispatchEvent(keypress1);
             input.dispatchEvent(keypress2);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+            done();
           },
         );
       });
@@ -1144,9 +1179,7 @@ for (const idx in frames) {
           done,
           function() {
             setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
 
             // keypress <input/>
             var keypress = new KeyboardEvent('keypress');
@@ -1156,12 +1189,15 @@ for (const idx in frames) {
 
             foo(); // throw exception
           },
-          function() {
+          function(sentryData) {
+            // TODO: don't really understand what's going on here
+            // Why do we not catch an error here
             var Sentry = iframe.contentWindow.Sentry;
             var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+            done();
           },
         );
       });
@@ -1173,8 +1209,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1189,10 +1223,12 @@ for (const idx in frames) {
             input.dispatchEvent(keypress1);
             input.dispatchEvent(click);
             input.dispatchEvent(keypress2);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 3);
 
@@ -1204,6 +1240,7 @@ for (const idx in frames) {
 
             assert.equal(breadcrumbs[2].category, 'ui.input');
             assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"]');
+            done();
           },
         );
       });
@@ -1227,15 +1264,18 @@ for (const idx in frames) {
             var div = document.querySelector('[contenteditable]');
             div.dispatchEvent(keypress1);
             div.dispatchEvent(keypress2);
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > div.contenteditable');
+            done();
           },
         );
       });
@@ -1247,8 +1287,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             // some browsers trigger onpopstate for load / reset breadcrumb state
             // Sentry._breadcrumbs = [];
 
@@ -1261,10 +1299,12 @@ for (const idx in frames) {
             // (e.g. document running mocha) ... instead just "emulate" a back button
             // press by calling replaceState
             history.replaceState({}, '', '/bar?a=1#fragment');
+            setTimeout(function() {
+              Sentry.captureMessage('test');
+            });
           },
-          function() {
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+          function(sentryData) {
+            var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 4);
             assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
@@ -1283,6 +1323,7 @@ for (const idx in frames) {
 
             assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), "'from' url is incorrect");
             assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
+            done();
           },
         );
       });
@@ -1305,10 +1346,10 @@ for (const idx in frames) {
             if ('fetch' in window) {
               assert.include(Function.prototype.toString.call(window.fetch), '[native code]');
             }
+            done();
           },
         );
       });
-      */
     });
   });
 }
