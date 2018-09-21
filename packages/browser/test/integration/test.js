@@ -64,16 +64,19 @@ function debounceAssertEventCount(sentryData, count, done) {
   return true;
 }
 
-// const frames = ['frame', 'loader', 'loader-lazy-no'];
-// const frames = ['frame', 'loader-lazy-no'];
-const frames = ['loader'];
+const frames = ['frame', 'loader', 'loader-lazy-no'];
+let filename;
+let IS_ASYNC_LOADER = false;
 
 for (const idx in frames) {
-  describe(`integration ${frames[idx]}.html`, function() {
+  filename = frames[idx];
+  IS_ASYNC_LOADER = !!filename.match(/^loader$/);
+
+  describe(`integration ${filename}.html`, function() {
     this.timeout(30000);
 
     beforeEach(function(done) {
-      this.iframe = createIframe(done, frames[idx]);
+      this.iframe = createIframe(done, filename);
     });
 
     afterEach(function() {
@@ -275,12 +278,18 @@ for (const idx in frames) {
             Sentry.captureMessage('same message, different stacktrace');
           },
           function(sentryData) {
-            if (debounceAssertEventCount(sentryData, 5, done)) {
+            let eventCount = 5;
+            if (IS_ASYNC_LOADER) {
+              // On the async loader since we replay all messages from the same location
+              // we actually only receive 4 events
+              eventCount = 4;
+            }
+            if (debounceAssertEventCount(sentryData, eventCount, done)) {
               assert.match(sentryData[0].message, /different message, same stacktrace \d+/);
               assert.match(sentryData[1].message, /different message, same stacktrace \d+/);
               assert.equal(sentryData[2].message, 'same message, same stacktrace');
               assert.equal(sentryData[3].message, 'same message, different stacktrace');
-              assert.equal(sentryData[4].message, 'same message, different stacktrace');
+              !IS_ASYNC_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
               done();
             }
           },
@@ -642,6 +651,14 @@ for (const idx in frames) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
               var sentryData = sentryData[0];
 
+              if (IS_ASYNC_LOADER) {
+                // The async loader doesn't wrap setTimeout
+                // so we don't receive the full mechanism
+                assert.ok(sentryData.exception.mechanism);
+                done();
+                return;
+              }
+
               var fn = sentryData.exception.mechanism.data.function;
               delete sentryData.exception.mechanism.data;
 
@@ -684,6 +701,14 @@ for (const idx in frames) {
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
               var sentryData = sentryData[0];
+
+              if (IS_ASYNC_LOADER) {
+                // The async loader doesn't wrap addEventListener
+                // so we don't receive the full mechanism
+                assert.ok(sentryData.exception.mechanism);
+                done();
+                return;
+              }
 
               var handler = sentryData.exception.mechanism.data.handler;
               delete sentryData.exception.mechanism.data.handler;
@@ -734,6 +759,14 @@ for (const idx in frames) {
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
               var sentryData = sentryData[0];
+
+              if (IS_ASYNC_LOADER) {
+                // The async loader doesn't wrap
+                assert.ok(sentryData.exception.mechanism);
+                done();
+                return;
+              }
+
               var target = sentryData.exception.mechanism.data.target;
               delete sentryData.exception.mechanism.data.target;
 
@@ -781,6 +814,12 @@ for (const idx in frames) {
             xhr.send();
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap XHR
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].type, 'http');
@@ -812,6 +851,12 @@ for (const idx in frames) {
             xhr.send();
           },
           function() {
+            if (IS_ASYNC_LOADER) {
+              // Since we do a xhr as soon as the page loads
+              // the async loader is not able to pick this
+              done();
+              return;
+            }
             var Sentry = iframe.contentWindow.Sentry;
             var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
@@ -837,6 +882,12 @@ for (const idx in frames) {
             setTimeout(done);
           },
           function() {
+            if (IS_ASYNC_LOADER) {
+              // Since we do a xhr as soon as the page loads
+              // the async loader is not able to pick this
+              done();
+              return;
+            }
             var Sentry = iframe.contentWindow.Sentry;
             var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
             assert.equal(breadcrumbs.length, 1);
@@ -868,6 +919,13 @@ for (const idx in frames) {
             );
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
+
             var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = 'example.json';
 
@@ -917,6 +975,12 @@ for (const idx in frames) {
             );
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = 'example.json';
 
@@ -967,6 +1031,12 @@ for (const idx in frames) {
             );
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
             var breadcrumbUrl = '123';
 
@@ -1024,6 +1094,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1054,6 +1130,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1095,6 +1177,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1132,6 +1220,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1144,7 +1238,6 @@ for (const idx in frames) {
 
       it('should record consecutive keypress events into a single "input" breadcrumb', function(done) {
         var iframe = this.iframe;
-
         iframeExecute(
           iframe,
           done,
@@ -1164,6 +1257,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1177,7 +1276,6 @@ for (const idx in frames) {
 
       it('should flush keypress breadcrumbs when an error is thrown', function(done) {
         var iframe = this.iframe;
-
         iframeExecute(
           iframe,
           done,
@@ -1194,6 +1292,10 @@ for (const idx in frames) {
             foo(); // throw exception
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              done();
+              return;
+            }
             // TODO: don't really understand what's going on here
             // Why do we not catch an error here
             var Sentry = iframe.contentWindow.Sentry;
@@ -1232,6 +1334,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 3);
@@ -1273,6 +1381,12 @@ for (const idx in frames) {
             });
           },
           function(sentryData) {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+              assert.lengthOf(sentryData, 1);
+              done();
+              return;
+            }
             var breadcrumbs = sentryData[0].breadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
@@ -1303,12 +1417,16 @@ for (const idx in frames) {
             // (e.g. document running mocha) ... instead just "emulate" a back button
             // press by calling replaceState
             history.replaceState({}, '', '/bar?a=1#fragment');
-            setTimeout(function() {
-              Sentry.captureMessage('test');
-            });
+            setTimeout(done);
           },
           function(sentryData) {
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap history
+              done();
+              return;
+            }
+            var Sentry = iframe.contentWindow.Sentry;
+            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
 
             assert.equal(breadcrumbs.length, 4);
             assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
@@ -1343,6 +1461,11 @@ for (const idx in frames) {
             done();
           },
           function() {
+            if (IS_ASYNC_LOADER) {
+              // The async loader doesn't wrap anything
+              done();
+              return;
+            }
             assert.include(Function.prototype.toString.call(window.setTimeout), '[native code]');
             assert.include(Function.prototype.toString.call(window.setInterval), '[native code]');
             assert.include(Function.prototype.toString.call(window.addEventListener), '[native code]');
