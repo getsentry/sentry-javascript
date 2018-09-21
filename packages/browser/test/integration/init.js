@@ -24,6 +24,7 @@ function DummyTransport() {}
 DummyTransport.prototype.captureEvent = function(event) {
   // console.log(JSON.stringify(event, null, 2));
   sentryData.push(event);
+  done(sentryData);
   return Promise.resolve({
     status: 'success',
   });

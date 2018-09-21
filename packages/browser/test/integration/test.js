@@ -1,9 +1,8 @@
 /*global assert*/
 function iframeExecute(iframe, done, execute, assertCallback) {
-  iframe.contentWindow.done = function() {
+  iframe.contentWindow.done = function(sentryData) {
     try {
-      assertCallback(iframe);
-      done();
+      assertCallback(sentryData);
     } catch (e) {
       done(e);
     }
@@ -49,6 +48,19 @@ function canReadFunctionName() {
   return false;
 }
 
+let assertTimeout = undefined;
+function debounceAssertEventCount(sentryData, count, done) {
+  clearTimeout(assertTimeout);
+  assertTimeout = setTimeout(function() {
+    done(new Error(`Did not receive ${count} events`));
+  }, 1000);
+  if (sentryData.length != count) {
+    return false;
+  }
+  clearTimeout(assertTimeout);
+  return true;
+}
+
 // const frames = ['frame', 'loader', 'loader-lazy-no'];
 const frames = ['frame'];
 
@@ -72,12 +84,14 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             Sentry.captureMessage('Hello');
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.equal(sentryData.message, 'Hello');
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.equal(sentryData.message, 'Hello');
+              done();
+            }
           },
         );
       });
@@ -88,17 +102,19 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             try {
               foo();
             } catch (e) {
               Sentry.captureException(e);
             }
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -109,13 +125,15 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             Sentry.captureException({ foo: 'bar' });
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.isAtLeast(sentryData.stacktrace.frames.length, 1);
-            assert.isAtMost(sentryData.stacktrace.frames.length, 3);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.isAtLeast(sentryData.stacktrace.frames.length, 1);
+              assert.isAtMost(sentryData.stacktrace.frames.length, 3);
+              done();
+            }
           },
         );
       });
@@ -126,23 +144,25 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             try {
               foo();
             } catch (e) {
               Sentry.captureException(e);
             }
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData[0];
-            assert.equal(
-              sentryData.exception.values[0].stacktrace.frames[
-                sentryData.exception.values[0].stacktrace.frames.length - 1
-              ].function,
-              'bar',
-            );
-            assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
-            assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = sentryData[0];
+              assert.equal(
+                sentryData.exception.values[0].stacktrace.frames[
+                  sentryData.exception.values[0].stacktrace.frames.length - 1
+                ].function,
+                'bar',
+              );
+              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
+              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              done();
+            }
           },
         );
       });
@@ -153,8 +173,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
             for (var i = 0; i < 2; i++) {
               // Different exceptions, don't dedupe
               Sentry.captureException(new Error(`Exception no ${Date.now()}`));
@@ -169,14 +187,15 @@ for (const idx in frames) {
             Sentry.captureException(new Error('bar'));
             Sentry.captureException(new Error('bar'));
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData;
-            assert.equal(sentryData.length, 5);
-            assert.match(sentryData[0].exception.values[0].value, /Exception no \d+/);
-            assert.match(sentryData[1].exception.values[0].value, /Exception no \d+/);
-            assert.equal(sentryData[2].exception.values[0].value, 'foo');
-            assert.equal(sentryData[3].exception.values[0].value, 'bar');
-            assert.equal(sentryData[4].exception.values[0].value, 'bar');
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 5, done)) {
+              assert.match(sentryData[0].exception.values[0].value, /Exception no \d+/);
+              assert.match(sentryData[1].exception.values[0].value, /Exception no \d+/);
+              assert.equal(sentryData[2].exception.values[0].value, 'foo');
+              assert.equal(sentryData[3].exception.values[0].value, 'bar');
+              assert.equal(sentryData[4].exception.values[0].value, 'bar');
+              done();
+            }
           },
         );
       });
@@ -187,7 +206,6 @@ for (const idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
             // same error message, but different stacks means that these are considered
             // different errors
 
@@ -217,20 +235,21 @@ for (const idx in frames) {
               Sentry.captureException(e);
             }
           },
-          function() {
-            var sentryData = iframe.contentWindow.sentryData;
-            // NOTE: regex because exact error message differs per-browser
-            assert.equal(sentryData.length, 3);
-            assert.match(sentryData[0].exception.values[0].value, /^baz/);
-            assert.equal(sentryData[0].exception.values[0].type, 'ReferenceError');
-            assert.match(sentryData[1].exception.values[0].value, /^baz/);
-            assert.equal(sentryData[1].exception.values[0].type, 'ReferenceError');
-            assert.match(sentryData[2].exception.values[0].value, /^baz/);
-            assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 3, done)) {
+              // NOTE: regex because exact error message differs per-browser
+              assert.match(sentryData[0].exception.values[0].value, /^baz/);
+              assert.equal(sentryData[0].exception.values[0].type, 'ReferenceError');
+              assert.match(sentryData[1].exception.values[0].value, /^baz/);
+              assert.equal(sentryData[1].exception.values[0].type, 'ReferenceError');
+              assert.match(sentryData[2].exception.values[0].value, /^baz/);
+              assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
+              done();
+            }
           },
         );
       });
-
+      /*
       it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
         var iframe = this.iframe;
         iframeExecute(
@@ -1289,6 +1308,7 @@ for (const idx in frames) {
           },
         );
       });
+      */
     });
   });
 }
