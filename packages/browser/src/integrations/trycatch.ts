@@ -69,7 +69,7 @@ export class TryCatch implements Integration {
             mechanism: {
               data: {
                 function: 'handleEvent',
-                handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
+                handler: (fn && ((fn as any) as SentryWrappedFunction).name) || '<anonymous>',
                 target,
               },
               handled: true,
@@ -124,7 +124,7 @@ export class TryCatch implements Integration {
               mechanism: {
                 data: {
                   function: 'addEventListener',
-                  handler: ((fn as any) as SentryWrappedFunction).name || '<anonymous>',
+                  handler: (fn && ((fn as any) as SentryWrappedFunction).name) || '<anonymous>',
                   target,
                 },
                 handled: true,
