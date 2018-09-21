@@ -62,7 +62,7 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 // const frames = ['frame', 'loader', 'loader-lazy-no'];
-const frames = ['frame'];
+const frames = ['frame', 'loader-lazy-no'];
 
 for (const idx in frames) {
   describe(`integration ${frames[idx]}.html`, function() {
@@ -175,7 +175,7 @@ for (const idx in frames) {
           function() {
             for (var i = 0; i < 2; i++) {
               // Different exceptions, don't dedupe
-              Sentry.captureException(new Error(`Exception no ${Date.now()}`));
+              Sentry.captureException(new Error(`Exception no ${Date.now() + Math.random()}`));
             }
 
             for (var i = 0; i < 2; i++) {
@@ -258,7 +258,7 @@ for (const idx in frames) {
           function() {
             for (var i = 0; i < 2; i++) {
               // Different messages, same stacktrace, don't dedupe
-              Sentry.captureMessage('different message, same stacktrace ' + Date.now());
+              Sentry.captureMessage('different message, same stacktrace ' + Date.now() + Math.random());
             }
 
             for (var i = 0; i < 2; i++) {
@@ -1312,7 +1312,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
             assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
 
-            assert.ok(/\/test\/integration\/frame\.html$/.test(breadcrumbs[0].data.from), "'from' url is incorrect");
+            assert.ok(/\/test\/integration\/.*\.html$/.test(breadcrumbs[0].data.from), "'from' url is incorrect");
             assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), "'to' url is incorrect");
 
             assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), "'from' url is incorrect");
@@ -1323,6 +1323,7 @@ for (const idx in frames) {
 
             assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), "'from' url is incorrect");
             assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
+
             done();
           },
         );

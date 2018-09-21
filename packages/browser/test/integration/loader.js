@@ -19,6 +19,14 @@
     }
   }
 
+  // if lazy is false, we directly write the sdk script and return
+  if (lazy === false) {
+    var script = document.createElement(_script);
+    script.src = _sdkBundleUrl;
+    document.write(script.outerHTML);
+    return;
+  }
+
   var injected = false;
   var onLoadCallback;
 
