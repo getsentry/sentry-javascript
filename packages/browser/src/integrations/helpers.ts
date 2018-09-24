@@ -66,7 +66,7 @@ export function wrap(
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means Raven caught an error invoking your application code. This is
       //       expected behavior and NOT indicative of a bug with Raven.js.
-      const wrappedArguments = Array.from(arguments).map(arg => wrap(arg, options));
+      const wrappedArguments = Array.prototype.slice.call(arguments).map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
         return fn.handleEvent.apply(this, wrappedArguments);
