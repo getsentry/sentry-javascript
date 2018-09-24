@@ -19,14 +19,6 @@
     }
   }
 
-  // if lazy is false, we directly write the sdk script and return
-  if (lazy === false) {
-    var script = document.createElement(_script);
-    script.src = _sdkBundleUrl;
-    document.write(script.outerHTML);
-    return;
-  }
-
   var injected = false;
   var onLoadCallback;
 
@@ -200,6 +192,12 @@
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
+
+  if (!lazy) {
+    setTimeout(function() {
+      injectSdk(onLoadCallback);
+    });
+  }
 })(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundle.js', {
   dsn: 'https://public@example.com/1',
 });

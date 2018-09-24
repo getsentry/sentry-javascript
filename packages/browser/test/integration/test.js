@@ -65,12 +65,14 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 const frames = ['frame', 'loader', 'loader-lazy-no'];
+// const frames = ['loader'];
 let filename;
 let IS_ASYNC_LOADER = false;
+let IS_LOADER = false;
 
 for (const idx in frames) {
   filename = frames[idx];
-  IS_ASYNC_LOADER = !!filename.match(/^loader$/);
+  IS_LOADER = IS_ASYNC_LOADER = !!filename.match(/^loader/);
 
   describe(`integration ${filename}.html`, function() {
     this.timeout(30000);

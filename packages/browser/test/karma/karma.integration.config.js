@@ -16,7 +16,7 @@ module.exports = config => {
       { pattern: 'test/integration/loader.html', included: false },
       { pattern: 'test/integration/loader-lazy-no.html', included: false },
       { pattern: 'test/integration/common.js', included: false },
-      { pattern: 'test/integration/loader.js', included: false },
+      { pattern: 'src/loader.js', included: false },
       { pattern: 'test/integration/init.js', included: false },
       { pattern: 'build/bundle.js', included: false },
       { pattern: 'build/bundle.js.map', included: false },
