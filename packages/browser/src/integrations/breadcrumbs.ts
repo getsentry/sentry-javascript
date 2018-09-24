@@ -43,6 +43,17 @@ function addSentryBreadcrumb(serializedData: string): void {
   }
 }
 
+/** JSDoc */
+interface BreadcrumbIntegrations {
+  beacon?: boolean;
+  console?: boolean;
+  dom?: boolean;
+  fetch?: boolean;
+  history?: boolean;
+  sentry?: boolean;
+  xhr?: boolean;
+}
+
 /** Default Breadcrumbs instrumentations */
 export class Breadcrumbs implements Integration {
   /**
@@ -50,19 +61,14 @@ export class Breadcrumbs implements Integration {
    */
   public name: string = 'Breadcrumbs';
 
+  /** JSDoc */
+  private readonly options: BreadcrumbIntegrations;
+
   /**
    * @inheritDoc
    */
-  public constructor(
-    private readonly config: {
-      beacon?: boolean;
-      console?: boolean;
-      dom?: boolean;
-      fetch?: boolean;
-      history?: boolean;
-      sentry?: boolean;
-      xhr?: boolean;
-    } = {
+  public constructor(options?: BreadcrumbIntegrations) {
+    this.options = {
       beacon: true,
       console: true,
       dom: true,
@@ -70,8 +76,9 @@ export class Breadcrumbs implements Integration {
       history: true,
       sentry: true,
       xhr: true,
-    },
-  ) {}
+      ...options,
+    };
+  }
 
   /** JSDoc */
   private instrumentBeacon(options: { filterUrl?: string }): void {
@@ -447,28 +454,26 @@ export class Breadcrumbs implements Integration {
    *  - XMLHttpRequest API
    *  - Fetch API
    *  - History API
-   *
-   * Can be disabled or individually configured via the `autoBreadcrumbs` config option
    */
   public install(options: BrowserOptions = {}): void {
     const filterUrl = options.dsn && new API(options.dsn).getStoreEndpoint();
 
-    if (this.config.console) {
+    if (this.options.console) {
       this.instrumentConsole();
     }
-    if (this.config.dom) {
+    if (this.options.dom) {
       this.instrumentDOM();
     }
-    if (this.config.xhr) {
+    if (this.options.xhr) {
       this.instrumentXHR({ filterUrl });
     }
-    if (this.config.fetch) {
+    if (this.options.fetch) {
       this.instrumentFetch({ filterUrl });
     }
-    if (this.config.beacon) {
+    if (this.options.beacon) {
       this.instrumentBeacon({ filterUrl });
     }
-    if (this.config.history) {
+    if (this.options.history) {
       this.instrumentHistory();
     }
   }

@@ -9,21 +9,30 @@ import {
 } from '../tracekit';
 import { shouldIgnoreOnError } from './helpers';
 
+/** JSDoc */
+interface GlobalHandlersIntegrations {
+  onerror: boolean;
+  onunhandledrejection: boolean;
+}
+
 /** Global handlers */
 export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
   public name: string = 'GlobalHandlers';
-  public constructor(
-    private readonly options: {
-      onerror: boolean;
-      onunhandledrejection: boolean;
-    } = {
+
+  /** JSDoc */
+  private readonly options: GlobalHandlersIntegrations;
+
+  /** JSDoc */
+  public constructor(options?: GlobalHandlersIntegrations) {
+    this.options = {
       onerror: true,
       onunhandledrejection: true,
-    },
-  ) {}
+      ...options,
+    };
+  }
   /**
    * @inheritDoc
    */

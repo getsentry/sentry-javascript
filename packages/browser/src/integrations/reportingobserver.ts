@@ -63,7 +63,7 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public constructor(
-    private readonly config: {
+    private readonly options: {
       types?: ReportTypes[];
     } = {
       types: [ReportTypes.Crash, ReportTypes.Deprecation, ReportTypes.Intervention],
@@ -82,7 +82,7 @@ export class ReportingObserver implements Integration {
       ReportingObserver: any;
     }).ReportingObserver(this.handler.bind(this), {
       buffered: true,
-      types: this.config.types,
+      types: this.options.types,
     });
 
     observer.observe();
