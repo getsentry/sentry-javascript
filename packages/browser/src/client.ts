@@ -52,7 +52,11 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     return super.prepareEvent(event, scope, hint);
   }
 
-  /** JSDoc */
+  /**
+   * Show a report dialog to the user to send feedback to a specific event.
+   *
+   * @param options Set individual options for the dialog
+   */
   public showReportDialog(options: ReportDialogOptions = {}): void {
     // doesn't work without a document (React Native)
     const document = (getGlobalObject() as Window).document;
