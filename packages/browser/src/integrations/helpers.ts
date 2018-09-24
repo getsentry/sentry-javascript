@@ -2,6 +2,7 @@ import { getCurrentHub, withScope } from '@sentry/core';
 import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
+import { serializeObject } from '@sentry/utils/object';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -61,12 +62,14 @@ export function wrap(
       before.apply(this, arguments);
     }
 
+    const args = Array.prototype.slice.call(arguments);
+
     try {
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means Raven caught an error invoking your application code. This is
       //       expected behavior and NOT indicative of a bug with Raven.js.
-      const wrappedArguments = Array.prototype.slice.call(arguments).map((arg: any) => wrap(arg, options));
+      const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
         return fn.handleEvent.apply(this, wrappedArguments);
@@ -84,6 +87,11 @@ export function wrap(
             processedEvent.exception = processedEvent.exception || {};
             processedEvent.exception.mechanism = options.mechanism;
           }
+
+          processedEvent.extra = {
+            ...processedEvent.extra,
+            arguments: serializeObject(args, 2),
+          };
 
           return processedEvent;
         });

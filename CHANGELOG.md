@@ -4,6 +4,11 @@
 
 - [browser] ref: Expose `ReportDialogOptions`
 - [browser] ref: Use better default message for ReportingObserver
+- [browser] feat: Capture wrapped function arguments as extra
+- [browser] ref: Unify integrations options and set proper defaults
+- [browser] fix: Array.from is not available in old mobile browsers
+- [browser] fix: Check for anonymous function before getting its name for mechanism
+- [browser] test: Add loader + integration tests
 
 ## 4.0.4
 

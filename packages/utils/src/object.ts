@@ -232,7 +232,7 @@ function serializeValue<T>(value: T): T | string {
 }
 
 /** JSDoc */
-function serializeObject<T>(value: T, depth: number): T | string | {} {
+export function serializeObject<T>(value: T, depth: number): T | string | {} {
   if (depth === 0) {
     return serializeValue(value);
   }
