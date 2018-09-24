@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [browser] ref: Expose `ReportDialogOptions`
+
 ## 4.0.4
 
 - [browser] feat: Add `forceLoad` and `onLoad` function to be compatible with loader API

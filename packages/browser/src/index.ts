@@ -27,7 +27,7 @@ export {
 } from '@sentry/core';
 
 export { BrowserBackend, BrowserOptions } from './backend';
-export { BrowserClient } from './client';
+export { BrowserClient, ReportDialogOptions } from './client';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 

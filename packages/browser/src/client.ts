@@ -4,6 +4,31 @@ import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 
 /**
+ * All properties the report dialog supports
+ */
+export interface ReportDialogOptions {
+  [key: string]: any;
+  eventId?: string;
+  dsn?: DsnLike;
+  user?: {
+    email?: string;
+    name?: string;
+  };
+  lang?: string;
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorGeneric?: string;
+  errorFormEntry?: string;
+  successMessage?: string;
+}
+
+/**
  * The Sentry Browser SDK Client.
  *
  * @see BrowserOptions for documentation on configuration options.
@@ -27,28 +52,12 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     return super.prepareEvent(event, scope, hint);
   }
 
-  /** JSDoc */
-  public showReportDialog(options: {
-    [key: string]: any;
-    eventId?: string;
-    dsn?: DsnLike;
-    user?: {
-      email?: string;
-      name?: string;
-    };
-    lang?: string;
-    title?: string;
-    subtitle?: string;
-    subtitle2?: string;
-    labelName?: string;
-    labelEmail?: string;
-    labelComments?: string;
-    labelClose?: string;
-    labelSubmit?: string;
-    errorGeneric?: string;
-    errorFormEntry?: string;
-    successMessage?: string;
-  }): void {
+  /**
+   * Show a report dialog to the user to send feedback to a specific event.
+   *
+   * @param options Set individual options for the dialog
+   */
+  public showReportDialog(options: ReportDialogOptions = {}): void {
     // doesn't work without a document (React Native)
     const document = (getGlobalObject() as Window).document;
     if (!document) {
