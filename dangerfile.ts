@@ -1,7 +1,6 @@
 import { exec } from 'child_process';
 import { danger, message, schedule, warn } from 'danger';
 import { promisify } from 'util';
-// const { promisify } = require('util');
 
 export default async () => {
   if (!danger.github) {
