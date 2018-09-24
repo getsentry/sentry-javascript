@@ -65,7 +65,7 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 const frames = ['frame', 'loader', 'loader-lazy-no'];
-// const frames = ['loader'];
+
 let filename;
 let IS_ASYNC_LOADER = false;
 let IS_LOADER = false;
