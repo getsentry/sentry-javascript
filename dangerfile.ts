@@ -1,4 +1,7 @@
-import { danger, warn } from 'danger';
+import { exec } from 'child_process';
+import { danger, message, schedule, warn } from 'danger';
+import { promisify } from 'util';
+// const { promisify } = require('util');
 
 export default async () => {
   if (!danger.github) {
@@ -11,4 +14,9 @@ export default async () => {
   if (!hasChangelog && !isTrivial) {
     warn('Please add a changelog entry for your changes.');
   }
+
+  schedule(async () => {
+    const result = (await promisify(exec)('cd packages/browser; yarn size:check')).stdout;
+    message(`@sentry/browser gzip minified size: ${result.split('\n')[1]}`);
+  });
 };
