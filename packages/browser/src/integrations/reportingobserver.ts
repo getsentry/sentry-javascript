@@ -114,10 +114,11 @@ export class ReportingObserver implements Integration {
 
           if (report.type === ReportTypes.Crash) {
             const body = report.body as CrashReportBody;
-            details = `${body.crashId} ${body.reason}`;
+            // A fancy way to create a message out of crashId OR reason OR both OR fallback
+            details = [body.crashId || '', body.reason || ''].join(' ').trim() || details;
           } else {
             const body = report.body as DeprecationReportBody | InterventionReportBody;
-            details = body.message;
+            details = body.message || details;
           }
         }
 

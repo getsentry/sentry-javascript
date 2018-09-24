@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] ref: Expose `ReportDialogOptions`
+- [browser] ref: Use better default message for ReportingObserver
 
 ## 4.0.4
 
