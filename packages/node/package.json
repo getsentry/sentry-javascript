@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "4.0.3",
+  "version": "4.0.5",
   "description": "Offical Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/node",
@@ -15,10 +15,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.0.3",
-    "@sentry/hub": "4.0.1",
+    "@sentry/core": "4.0.5",
+    "@sentry/hub": "4.0.5",
     "@sentry/types": "4.0.1",
-    "@sentry/utils": "4.0.1",
+    "@sentry/utils": "4.0.5",
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
     "md5": "2.2.1",

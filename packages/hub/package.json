@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hub",
-  "version": "4.0.1",
+  "version": "4.0.5",
   "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/hub",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@sentry/types": "4.0.1",
-    "@sentry/utils": "4.0.1"
+    "@sentry/utils": "4.0.5"
   },
   "devDependencies": {
     "jest": "^22.4.3",

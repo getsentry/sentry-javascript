@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.0.5
+
 - [browser] ref: Expose `ReportDialogOptions`
 - [browser] ref: Use better default message for ReportingObserver
 - [browser] feat: Capture wrapped function arguments as extra
