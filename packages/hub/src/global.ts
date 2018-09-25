@@ -12,6 +12,18 @@ export function getMainCarrier(): Carrier {
 }
 
 /**
+ * Replaces the current main hub with the passed one on the global object
+ *
+ * @returns The old replaced hub
+ */
+export function makeMain(hub?: Hub): Hub | undefined {
+  const registry = getMainCarrier();
+  const oldHub = registry.hub;
+  registry.hub = hub;
+  return oldHub;
+}
+
+/**
  * Returns the default hub instance.
  *
  * If a hub is already registered in the global carrier but this module
