@@ -1,5 +1,6 @@
 import { Breadcrumb, SentryBreadcrumbHint, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
 import { uuid4 } from '@sentry/utils/misc';
+import { makeMain } from './global';
 import { Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -248,6 +249,20 @@ export class Hub {
     if (top.scope && top.client) {
       // TODO: freeze flag
       callback(top.scope);
+    }
+  }
+
+  /**
+   * For the duraction of the callback, this hub will be set as the global current Hub.
+   * This function is useful if you want to run your own client and hook into an already initialized one
+   * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration
+   */
+  public run(callback: ((hub: Hub) => void)): void {
+    const oldHub = makeMain(this);
+    try {
+      callback(this);
+    } finally {
+      makeMain(oldHub);
     }
   }
 }

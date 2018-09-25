@@ -1,5 +1,5 @@
 import { SentryEvent } from '@sentry/types';
-import { Hub, Scope } from '../../src';
+import { getCurrentHub, Hub, Scope } from '../../src';
 
 const clientFn = jest.fn();
 const asyncClientFn = async () => Promise.reject('error');
@@ -299,5 +299,19 @@ describe('Hub', () => {
     const hub = new Hub();
     const eventId = hub.captureEvent(event);
     expect(eventId).toBe(hub.lastEventId());
+  });
+
+  test('run', () => {
+    const currentHub = getCurrentHub();
+    const myScope = new Scope();
+    const myClient = { a: 'b' };
+    myScope.setExtra('a', 'b');
+    const myHub = new Hub(myClient, myScope);
+    myHub.run(hub => {
+      expect(hub.getScope()).toBe(myScope);
+      expect(hub.getClient()).toBe(myClient);
+      expect(hub).toBe(getCurrentHub());
+    });
+    expect(currentHub).toBe(getCurrentHub());
   });
 });
