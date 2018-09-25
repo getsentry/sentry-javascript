@@ -81,7 +81,7 @@ function loadWrapper(nativeModule: any): any {
       // just get that reference updated to use our new ClientRequest
       fill(originalModule, 'request', function(): any {
         return function(options: http.ClientRequestArgs, callback: () => void): any {
-          return new originalModule.ClientRequest(options, callback) as http.ClientRequest;
+          return new originalModule.ClientRequest(options, callback) as http.IncomingMessage;
         };
       });
 

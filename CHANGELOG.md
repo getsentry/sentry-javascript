@@ -11,6 +11,7 @@
 - [browser] test: Add loader + integration tests
 - [core] ref: Move SDKInformation integration into core prepareEvent method
 - [core] ref: Move debug initialization as the first step
+- [node] fix: Make handlers types compatibile with Express
 
 ## 4.0.4
 
