@@ -2,6 +2,7 @@ import { API, BaseClient, Scope, SentryError } from '@sentry/core';
 import { DsnLike, SentryEvent, SentryEventHint } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
+import { SDK_NAME, SDK_VERSION } from './version';
 
 /**
  * All properties the report dialog supports
@@ -49,6 +50,19 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    */
   protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
     event.platform = event.platform || 'javascript';
+    event.sdk = {
+      ...event.sdk,
+      name: SDK_NAME,
+      packages: [
+        ...((event.sdk && event.sdk.packages) || []),
+        {
+          name: 'npm:@sentry/browser',
+          version: SDK_VERSION,
+        },
+      ],
+      version: SDK_VERSION,
+    };
+
     return super.prepareEvent(event, scope, hint);
   }
 

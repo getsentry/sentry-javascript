@@ -1,6 +1,7 @@
 import { BaseClient, Scope } from '@sentry/core';
 import { SentryEvent, SentryEventHint } from '@sentry/types';
 import { NodeBackend, NodeOptions } from './backend';
+import { SDK_NAME, SDK_VERSION } from './version';
 
 /**
  * The Sentry Node SDK Client.
@@ -22,9 +23,23 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
    */
   protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
     event.platform = event.platform || 'node';
+    event.sdk = {
+      ...event.sdk,
+      name: SDK_NAME,
+      packages: [
+        ...((event.sdk && event.sdk.packages) || []),
+        {
+          name: 'npm:@sentry/node',
+          version: SDK_VERSION,
+        },
+      ],
+      version: SDK_VERSION,
+    };
+
     if (this.getOptions().serverName) {
       event.server_name = this.getOptions().serverName;
     }
+
     return super.prepareEvent(event, scope, hint);
   }
 }

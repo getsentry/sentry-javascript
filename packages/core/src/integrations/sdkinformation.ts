@@ -1,5 +1,10 @@
-import { configureScope } from '@sentry/minimal';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Integration } from '@sentry/types';
+import { logger } from '../logger';
+
+/**
+ * @deprecated
+ * This file can be safely removed in the next major bump
+ */
 
 /** Adds SDK info to an event. */
 export class SDKInformation implements Integration {
@@ -11,33 +16,9 @@ export class SDKInformation implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(
-    private readonly config: {
-      name: string;
-      sdkName: string;
-      sdkVersion: string;
-    },
-  ) {}
-
-  /**
-   * @inheritDoc
-   */
   public install(): void {
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => ({
-        ...event,
-        sdk: {
-          name: this.config.sdkName,
-          packages: [
-            ...((event.sdk && event.sdk.packages) || []),
-            {
-              name: this.config.name,
-              version: this.config.sdkVersion,
-            },
-          ],
-          version: this.config.sdkVersion,
-        },
-      }));
-    });
+    logger.warn(
+      "SDKInformation Integration is deprecated and can be safely removed. It's functionality has been merged into the SDK's core.",
+    );
   }
 }

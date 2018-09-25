@@ -3,18 +3,12 @@ import { DsnLike } from '@sentry/types';
 import { BrowserOptions } from './backend';
 import { BrowserClient } from './client';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch, UserAgent } from './integrations';
-import { SDK_NAME, SDK_VERSION } from './version';
 
 export const defaultIntegrations = [
   // Common
   new CoreIntegrations.Dedupe(),
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.SDKInformation({
-    name: 'npm:@sentry/browser',
-    sdkName: SDK_NAME,
-    sdkVersion: SDK_VERSION,
-  }),
   // Native Wrappers
   new TryCatch(),
   new Breadcrumbs(),
