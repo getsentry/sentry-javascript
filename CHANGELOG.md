@@ -9,6 +9,8 @@
 - [browser] fix: Array.from is not available in old mobile browsers
 - [browser] fix: Check for anonymous function before getting its name for mechanism
 - [browser] test: Add loader + integration tests
+- [core] ref: Move SDKInformation integration into core prepareEvent method
+- [core] ref: Move debug initialization as the first step
 
 ## 4.0.4
 
