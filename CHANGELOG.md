@@ -13,6 +13,7 @@
 - [core] ref: Move debug initialization as the first step
 - [node] fix: Make handlers types compatibile with Express
 - [utils] fix: Dont break when non-string is passed to truncate
+- [hub] feat: Add `run` function that makes `this` hub the current global one
 
 ## 4.0.4
 
