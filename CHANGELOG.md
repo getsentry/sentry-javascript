@@ -12,6 +12,7 @@
 - [core] ref: Move SDKInformation integration into core prepareEvent method
 - [core] ref: Move debug initialization as the first step
 - [node] fix: Make handlers types compatibile with Express
+- [utils] fix: Dont break when non-string is passed to truncate
 
 ## 4.0.4
 
