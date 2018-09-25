@@ -21,12 +21,12 @@ export function initAndBind<F extends Client, O extends Options>(
   options: O,
   defaultIntegrations: Integration[] = [],
 ): void {
-  if (getCurrentHub().getClient()) {
-    return;
-  }
-
   if (options.debug) {
     logger.enable();
+  }
+
+  if (getCurrentHub().getClient()) {
+    return;
   }
 
   const client = new clientClass(options);
