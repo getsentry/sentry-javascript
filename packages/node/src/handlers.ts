@@ -136,8 +136,12 @@ function parseRequest(
 }
 
 /** JSDoc */
-export function requestHandler(): (req: http.ClientRequest, res: http.ServerResponse, next: () => void) => void {
-  return function sentryRequestMiddleware(req: http.ClientRequest, _res: http.ServerResponse, next: () => void): void {
+export function requestHandler(): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
+  return function sentryRequestMiddleware(
+    req: http.IncomingMessage,
+    _res: http.ServerResponse,
+    next: () => void,
+  ): void {
     const local = domain.create();
     const hub = getHubFromCarrier(req);
     hub.bindClient(getCurrentHub().getClient());
@@ -169,13 +173,13 @@ function getStatusCodeFromResponse(error: MiddlewareError): number {
 /** JSDoc */
 export function errorHandler(): (
   error: MiddlewareError,
-  req: http.ClientRequest,
+  req: http.IncomingMessage,
   res: http.ServerResponse,
   next: (error: MiddlewareError) => void,
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    req: http.ClientRequest,
+    req: http.IncomingMessage,
     _res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
