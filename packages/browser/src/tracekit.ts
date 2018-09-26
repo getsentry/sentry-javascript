@@ -408,8 +408,9 @@ TraceKit.report = (function reportModuleWrapper() {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
    */
   function traceKitWindowOnUnhandledRejection(e: any) {
-    var stack = TraceKit.computeStackTrace(e.reason);
-    notifyHandlers(stack, true, e.reason);
+    var err = (e && (e.detail ? e.detail.reason : e.reason)) || e;
+    var stack = TraceKit.computeStackTrace(err);
+    notifyHandlers(stack, true, err);
   }
 
   /**
