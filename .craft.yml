@@ -1,0 +1,10 @@
+minVersion: '0.5.1'
+github:
+  owner: getsentry
+  repo: sentry-javascript
+changelogPolicy: simple
+preReleaseCommand: bash scripts/craft-pre-release.sh
+targets:
+  - name: npm
+  - name: github
+    tagPrefix: v
