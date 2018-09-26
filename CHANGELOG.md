@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- [browser] fix: Fallback to Error object when rejection `reason` is not available
+- [browser] feat: Support Bluebird's `detail.reason` for promise rejections
+
 ## 4.0.5
 
 - [browser] ref: Expose `ReportDialogOptions`
