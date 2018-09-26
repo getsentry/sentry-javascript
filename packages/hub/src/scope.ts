@@ -222,6 +222,9 @@ export class Scope {
     if (this.fingerprint && event.fingerprint === undefined) {
       event.fingerprint = this.fingerprint;
     }
+    if (this.level && event.level === undefined) {
+      event.level = this.level;
+    }
 
     const hasNoBreadcrumbs = !event.breadcrumbs || event.breadcrumbs.length === 0;
     if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
