@@ -21,7 +21,7 @@ export default async () => {
             handleResults: results => {
               if (results.length > 0) {
                 const formattedResults = prettyResults(results);
-                res(`*@sentry/${packageName}\n*\n${formattedResults}`);
+                res(`TSLint failed: **@sentry/${packageName}**\n\n${formattedResults}`);
               } else {
                 res('');
               }
@@ -31,7 +31,9 @@ export default async () => {
       }),
     )).filter(str => str.length);
     if (tsLintResult.length) {
-      fail(tsLintResult.join('\n\n'));
+      tsLintResult.forEach(tsLintFail => {
+        fail(`${tsLintFail}`);
+      });
     } else {
       message('✅ TSLint passed');
     }
