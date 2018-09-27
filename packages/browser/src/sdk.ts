@@ -1,5 +1,5 @@
-import { BrowserOptions } from './backend';
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch, UserAgent } from './integrations';
 
