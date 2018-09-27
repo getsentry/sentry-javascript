@@ -86,7 +86,7 @@ export interface Options {
   environment?: string;
 
   /** Configures the repository spec for events */
-  repos?: Repo[];
+  repos?: Record<string, Repo>;
 
   /** Sets the distribution for all events */
   dist?: string;

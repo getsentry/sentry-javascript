@@ -172,7 +172,7 @@ export interface SentryEvent {
   logger?: string;
   server_name?: string;
   release?: string;
-  repos?: Repo[];
+  repos?: Record<string, Repo>,
   dist?: string;
   environment?: string;
   sdk?: SdkInfo;
