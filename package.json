@@ -28,7 +28,6 @@
     "@types/node": "^10.0.2",
     "@types/raven": "^2.5.1",
     "@types/sinon": "^4.3.1",
-    "@zeus-ci/cli": "^0.5.2",
     "chai": "^4.1.2",
     "codecov": "^3.0.2",
     "danger": "^4.0.2",
