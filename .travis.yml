@@ -16,7 +16,7 @@ cache:
 
 matrix:
   include:
-    - name: '@sentry/packages - danger + lint'
+    - name: '@sentry/packages - build + lint + test + codecov + danger [node v8]'
       node_js: '8'
       script: scripts/danger.sh
     - name: '@sentry/packages - pack and zeus upload'
@@ -24,9 +24,6 @@ matrix:
       script: scripts/pack-and-upload.sh
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
-      script: scripts/test.sh
-    - name: '@sentry/packages - build and test [node v8]'
-      node_js: '8'
       script: scripts/test.sh
     - name: '@sentry/packages - build and test [node v10]'
       node_js: '10'
