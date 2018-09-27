@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { danger, message, schedule, warn } from 'danger';
 import { promisify } from 'util';
 import { resolve } from 'path';
-// import tslint from 'danger-plugin-tslint';
+import tslint from 'danger-plugin-tslint';
 
 const packages = ['browser', 'core', 'hub', 'minimal', 'node', 'types', 'utils'];
 
@@ -12,12 +12,10 @@ export default async () => {
   }
 
   packages.map(packageName => {
-    console.log(resolve(__dirname, 'packages', packageName, 'lint-results.json'));
+    tslint({
+      lintResultsJsonPath: resolve(__dirname, 'packages', packageName, 'lint-results.json'),
+    });
   });
-
-  // tslint({
-  //   lintResultsJsonPath: resolve(__dirname, 'lint-results.json'),
-  // });
 
   const hasChangelog = danger.git.modified_files.indexOf('CHANGELOG.md') !== -1;
   const isTrivial = (danger.github.pr.body + danger.github.pr.title).includes('#trivial');
