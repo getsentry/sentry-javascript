@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-yarn add @zeus-ci/cli -g
+yarn global add @zeus-ci/cli
 yarn
 yarn build
 node scripts/package-and-upload-to-zeus.js
