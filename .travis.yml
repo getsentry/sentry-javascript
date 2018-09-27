@@ -15,12 +15,9 @@ cache:
 
 matrix:
   include:
-    - name: '@sentry/packages - danger'
+    - name: '@sentry/packages - danger + lint'
       node_js: '8'
       script: scripts/danger.sh
-    - name: '@sentry/packages - lint'
-      node_js: '8'
-      script: scripts/lint.sh
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh

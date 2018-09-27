@@ -7,4 +7,3 @@ preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: npm
   - name: github
-    tagPrefix: v

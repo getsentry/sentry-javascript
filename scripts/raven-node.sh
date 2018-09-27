@@ -2,7 +2,7 @@
 set -e
 
 RAVEN="raven-node"
-source .travis/detect-raven.sh
+source .scripts/detect-raven.sh
 
 if [[ $SHOULD_RUN == "true" ]]; then
   cd packages/raven-node
@@ -10,4 +10,3 @@ if [[ $SHOULD_RUN == "true" ]]; then
   npm run lint
   npm run test
 fi
-
