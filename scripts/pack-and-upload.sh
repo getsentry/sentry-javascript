@@ -1,7 +1,18 @@
 #!/bin/bash
-set -e
+set -eux
 
 yarn global add @zeus-ci/cli
 yarn
 yarn build
+
+# Upload NPM packages
 node scripts/package-and-upload-to-zeus.js
+
+# Upload "sentry-browser" bundles
+zeus upload -t "application/javascript" ./packages/browser/build/bundle*
+
+# Upload docs
+rm -rf ./docs/
+make compile-docs
+zip -r gh-pages ./docs/
+zeus upload -t "application/zip+docs" ./gh-pages.zip
