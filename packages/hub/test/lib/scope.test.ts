@@ -92,6 +92,7 @@ describe('Scope', () => {
     scope.setTag('a', 'b');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
+    scope.setLevel(Severity.Warning);
     scope.addBreadcrumb({ message: 'test' }, 100);
     const event: SentryEvent = {};
     await scope.applyToEvent(event);
@@ -99,6 +100,7 @@ describe('Scope', () => {
     expect(event.tags).toEqual({ a: 'b' });
     expect(event.user).toEqual({ id: '1' });
     expect(event.fingerprint).toEqual(['abcd']);
+    expect(event.level).toEqual('warning');
     expect(event.breadcrumbs).toEqual([{ message: 'test' }]);
   });
 
