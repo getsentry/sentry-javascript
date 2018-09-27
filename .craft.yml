@@ -1,4 +1,5 @@
-minVersion: '0.5.1'
+---
+minVersion: '0.5.2'
 github:
   owner: getsentry
   repo: sentry-javascript
@@ -7,3 +8,13 @@ preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: npm
   - name: github
+  - name: registry
+    type: sdk
+    includeNames: /^sentry-browser-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/browser'
+  - name: registry
+    type: sdk
+    includeNames: /^sentry-node-.*\.tgz$/
+    config:
+      canonical: 'npm:@sentry/node'
