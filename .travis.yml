@@ -19,6 +19,9 @@ matrix:
     - name: '@sentry/packages - danger + lint'
       node_js: '8'
       script: scripts/danger.sh
+    - name: '@sentry/packages - pack and zeus upload'
+      node_js: '8'
+      script: scripts/danger.sh
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh
