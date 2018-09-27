@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+    - /^release\/.+$/
 
 install: true
 sudo: required
@@ -57,3 +58,13 @@ matrix:
     - name: 'raven-node [node v10]'
       node_js: '10'
       script: scripts/raven-node.sh
+
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/853ee4aa-d692-11e7-8c60-0a580a28020f/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always
