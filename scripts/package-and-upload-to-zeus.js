@@ -21,7 +21,7 @@ const join = require('path').join;
   await Promise.all(
     changedPackagesFolders.map(async folder => {
       const archive = (await exec(`cd ${folder}; npm pack`)).stdout.trim();
-      return promisify(exec)(`yarn zeus upload ${join(folder, archive)}`);
+      return promisify(exec)(`zeus upload ${join(folder, archive)}`);
     }),
   );
 })().catch(e => {
