@@ -21,7 +21,7 @@ matrix:
       script: scripts/danger.sh
     - name: '@sentry/packages - pack and zeus upload'
       node_js: '8'
-      script: scripts/pack-and-upload.sh
+      script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh
