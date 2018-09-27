@@ -12,7 +12,6 @@ node scripts/package-and-upload-to-zeus.js
 zeus upload -t "application/javascript" ./packages/browser/build/bundle*
 
 # Upload docs
-rm -rf ./docs/
-make compile-docs
+make build-docs
 zip -r gh-pages ./docs/
 zeus upload -t "application/zip+docs" ./gh-pages.zip

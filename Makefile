@@ -25,6 +25,7 @@ publish-cdn:
 .PHONY: publish-cdn
 
 build-docs:
+	rm -rf ./docs
 	yarn typedoc --options ./typedoc.js
 .PHONY: build-docs
 
