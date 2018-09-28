@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ClientOptions | Sentry JavaScript SDKs</title>
+	<title>Dedupe | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -52,13 +52,13 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/node.html">node</a>
+					<a href="../modules/core.html">core</a>
 				</li>
 				<li>
-					<a href="node.clientoptions.html">ClientOptions</a>
+					<a href="core.dedupe.html">Dedupe</a>
 				</li>
 			</ul>
-			<h1>Class ClientOptions</h1>
+			<h1>Class Dedupe</h1>
 		</div>
 	</div>
 </header>
@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>Apply Node specific options to event. For now, it&#39;s only <code>server_name</code>.</p>
+						<p>Deduplication filter</p>
 					</div>
 				</div>
 			</section>
@@ -76,7 +76,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ClientOptions</span>
+						<span class="target">Dedupe</span>
 					</li>
 				</ul>
 			</section>
@@ -93,13 +93,14 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="node.clientoptions.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dedupe.html#name" class="tsd-kind-icon">name</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="node.clientoptions.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dedupe.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dedupe.html#shoulddropevent" class="tsd-kind-icon">should<wbr>Drop<wbr>Event</a></li>
 							</ul>
 						</section>
 					</div>
@@ -110,11 +111,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="name" class="tsd-anchor"></a>
 					<h3>name</h3>
-					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ClientOptions&quot;</span></div>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Dedupe&quot;</span></div>
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/integrations/clientoptions.ts#L11">node/src/integrations/clientoptions.ts:11</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/integrations/dedupe.ts#L16">core/src/integrations/dedupe.ts:16</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -131,13 +132,13 @@
 					<a name="install" class="tsd-anchor"></a>
 					<h3>install</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/node.nodeoptions.html" class="tsd-signature-type">NodeOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4ff4f094/packages/node/src/integrations/clientoptions.ts#L16">node/src/integrations/clientoptions.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/integrations/dedupe.ts#L21">core/src/integrations/dedupe.ts:21</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -146,13 +147,38 @@
 									<dd></dd>
 								</dl>
 							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="shoulddropevent" class="tsd-anchor"></a>
+					<h3>should<wbr>Drop<wbr>Event</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">should<wbr>Drop<wbr>Event<span class="tsd-signature-symbol">(</span>currentEvent<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, previousEvent<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/integrations/dedupe.ts#L39">core/src/integrations/dedupe.ts:39</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <a href="../interfaces/node.nodeoptions.html" class="tsd-signature-type">NodeOptions</a><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+									<h5>currentEvent: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> previousEvent: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -167,7 +193,7 @@
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/browser.html">browser</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class="current tsd-kind-external-module">
 						<a href="../modules/core.html">core</a>
 					</li>
 					<li class=" tsd-kind-external-module">
@@ -176,7 +202,7 @@
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/minimal.html">minimal</a>
 					</li>
-					<li class="current tsd-kind-external-module">
+					<li class=" tsd-kind-external-module">
 						<a href="../modules/node.html">node</a>
 					</li>
 					<li class=" tsd-kind-external-module">
@@ -189,104 +215,74 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-enum tsd-parent-kind-external-module">
+						<a href="../enums/core.loglevel.html" class="tsd-kind-icon">Log<wbr>Level</a>
+					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.basetransport.html" class="tsd-kind-icon">Base<wbr>Transport</a>
+						<a href="core.api.html" class="tsd-kind-icon">API</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.basebackend.html" class="tsd-kind-icon">Base<wbr>Backend</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.debug.html" class="tsd-kind-icon">Debug</a>
 					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.clientoptions.html" class="tsd-kind-icon">Client<wbr>Options</a>
+						<a href="core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="node.clientoptions.html#name" class="tsd-kind-icon">name</a>
+								<a href="core.dedupe.html#name" class="tsd-kind-icon">name</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="node.clientoptions.html#install" class="tsd-kind-icon">install</a>
+								<a href="core.dedupe.html#install" class="tsd-kind-icon">install</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.dedupe.html#shoulddropevent" class="tsd-kind-icon">should<wbr>Drop<wbr>Event</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.console.html" class="tsd-kind-icon">Console</a>
+						<a href="core.dsn.html" class="tsd-kind-icon">Dsn</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.httpstransport.html" class="tsd-kind-icon">HTTPSTransport</a>
+						<a href="core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.httptransport.html" class="tsd-kind-icon">HTTPTransport</a>
+						<a href="core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.http.html" class="tsd-kind-icon">Http</a>
+						<a href="core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.linkederrors.html" class="tsd-kind-icon">Linked<wbr>Errors</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.modules.html" class="tsd-kind-icon">Modules</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.nodebackend.html" class="tsd-kind-icon">Node<wbr>Backend</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.nodeclient.html" class="tsd-kind-icon">Node<wbr>Client</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.onuncaughtexception.html" class="tsd-kind-icon">On<wbr>Uncaught<wbr>Exception</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.onunhandledrejection.html" class="tsd-kind-icon">On<wbr>Unhandled<wbr>Rejection</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="node.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
+						<a href="core.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/node.httprequest.html" class="tsd-kind-icon">HTTPRequest</a>
+						<a href="../interfaces/core.backend.html" class="tsd-kind-icon">Backend</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../interfaces/core.backendclass.html" class="tsd-kind-icon">Backend<wbr>Class</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../interfaces/core.client.html" class="tsd-kind-icon">Client</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../interfaces/core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/node.nodeoptions.html" class="tsd-kind-icon">Node<wbr>Options</a>
+						<a href="../interfaces/core.options.html" class="tsd-kind-icon">Options</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-						<a href="../modules/node.html#sdk_name" class="tsd-kind-icon">SDK_<wbr>NAME</a>
-					</li>
-					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-						<a href="../modules/node.html#sdk_version" class="tsd-kind-icon">SDK_<wbr>VERSION</a>
-					</li>
-					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
-						<a href="../modules/node.html#defaultintegrations" class="tsd-kind-icon">default<wbr>Integrations</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#defaultonfatalerror" class="tsd-kind-icon">default<wbr>OnFatal<wbr>Error</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#errorhandler" class="tsd-kind-icon">error<wbr>Handler</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#extractstackfromerror" class="tsd-kind-icon">extract<wbr>Stack<wbr>From<wbr>Error</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#getcurrenthub" class="tsd-kind-icon">get<wbr>Current<wbr>Hub</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#getexceptionfromerror" class="tsd-kind-icon">get<wbr>Exception<wbr>From<wbr>Error</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#init" class="tsd-kind-icon">init</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#makeerrorhandler" class="tsd-kind-icon">make<wbr>Error<wbr>Handler</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#parseerror" class="tsd-kind-icon">parse<wbr>Error</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#parsestack" class="tsd-kind-icon">parse<wbr>Stack</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#prepareframesforevent" class="tsd-kind-icon">prepare<wbr>Frames<wbr>For<wbr>Event</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-external-module">
-						<a href="../modules/node.html#requesthandler" class="tsd-kind-icon">request<wbr>Handler</a>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../modules/core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a>
 					</li>
 				</ul>
 			</nav>

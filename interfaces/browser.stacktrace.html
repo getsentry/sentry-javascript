@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>XHRTransport | Sentry JavaScript SDKs</title>
+	<title>StackTrace | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,158 +55,108 @@
 					<a href="../modules/browser.html">browser</a>
 				</li>
 				<li>
-					<a href="browser.xhrtransport.html">XHRTransport</a>
+					<a href="browser.stacktrace.html">StackTrace</a>
 				</li>
 			</ul>
-			<h1>Class XHRTransport</h1>
+			<h1>Interface StackTrace</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<section class="tsd-panel tsd-comment">
-				<div class="tsd-comment tsd-typography">
-					<div class="lead">
-						<p><code>XHR</code> based transport</p>
-					</div>
-				</div>
-			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="browser.basetransport.html" class="tsd-signature-type">BaseTransport</a>
-						<ul class="tsd-hierarchy">
-							<li>
-								<span class="target">XHRTransport</span>
-							</li>
-						</ul>
+						<span class="target">StackTrace</span>
 					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel">
-				<h3>Implements</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-inherited">
-							<h3>Constructors</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="browser.xhrtransport.html#constructor" class="tsd-kind-icon">constructor</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section tsd-is-inherited">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="browser.xhrtransport.html#options" class="tsd-kind-icon">options</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="browser.xhrtransport.html#url" class="tsd-kind-icon">url</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#message" class="tsd-kind-icon">message</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#mode" class="tsd-kind-icon">mode</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#stack" class="tsd-kind-icon">stack</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#url" class="tsd-kind-icon">url</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="browser.stacktrace.html#useragent" class="tsd-kind-icon">useragent</a></li>
 							</ul>
 						</section>
-						<section class="tsd-index-section ">
-							<h3>Methods</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="browser.xhrtransport.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a></li>
-							</ul>
-						</section>
-					</div>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
-				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-					<a name="constructor" class="tsd-anchor"></a>
-					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">new XHRTransport<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transportoptions.html" class="tsd-signature-type">TransportOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.xhrtransport.html" class="tsd-signature-type">XHRTransport</a></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from <a href="browser.basetransport.html">BaseTransport</a>.<a href="browser.basetransport.html#constructor">constructor</a></p>
-								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/transports/base.ts#L9">browser/src/transports/base.ts:9</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>options: <a href="../interfaces/types.transportoptions.html" class="tsd-signature-type">TransportOptions</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="browser.xhrtransport.html" class="tsd-signature-type">XHRTransport</a></h4>
-						</li>
-					</ul>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
-				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="options" class="tsd-anchor"></a>
-					<h3>options</h3>
-					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <a href="../interfaces/types.transportoptions.html" class="tsd-signature-type">TransportOptions</a></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="browser.basetransport.html">BaseTransport</a>.<a href="browser.basetransport.html#options">options</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/transports/base.ts#L11">browser/src/transports/base.ts:11</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="url" class="tsd-anchor"></a>
-					<h3>url</h3>
-					<div class="tsd-signature tsd-kind-icon">url<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="browser.basetransport.html">BaseTransport</a>.<a href="browser.basetransport.html#url">url</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/transports/base.ts#L9">browser/src/transports/base.ts:9</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<dl class="tsd-comment-tags">
-							<dt>inheritdoc</dt>
-							<dd></dd>
-						</dl>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-					<a name="captureevent" class="tsd-anchor"></a>
-					<h3>capture<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">capture<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#captureevent">captureEvent</a></p>
-								<p>Overrides <a href="browser.basetransport.html">BaseTransport</a>.<a href="browser.basetransport.html#captureevent">captureEvent</a></p>
-								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/transports/xhr.ts#L10">browser/src/transports/xhr.ts:10</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<dl class="tsd-comment-tags">
-									<dt>inheritdoc</dt>
-									<dd></dd>
-								</dl>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="message" class="tsd-anchor"></a>
+					<h3>message</h3>
+					<div class="tsd-signature tsd-kind-icon">message<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L21">browser/src/tracekit.ts:21</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="mode" class="tsd-anchor"></a>
+					<h3>mode</h3>
+					<div class="tsd-signature tsd-kind-icon">mode<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L19">browser/src/tracekit.ts:19</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Known modes: callers, failed, multiline, onerror, stack, stacktrace</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L20">browser/src/tracekit.ts:20</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="stack" class="tsd-anchor"></a>
+					<h3>stack</h3>
+					<div class="tsd-signature tsd-kind-icon">stack<span class="tsd-signature-symbol">:</span> <a href="browser.stackframe.html" class="tsd-signature-type">StackFrame</a><span class="tsd-signature-symbol">[]</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L23">browser/src/tracekit.ts:23</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="url" class="tsd-anchor"></a>
+					<h3>url</h3>
+					<div class="tsd-signature tsd-kind-icon">url<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L22">browser/src/tracekit.ts:22</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="useragent" class="tsd-anchor"></a>
+					<h3>useragent</h3>
+					<div class="tsd-signature tsd-kind-icon">useragent<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/tracekit.ts#L24">browser/src/tracekit.ts:24</a></li>
+						</ul>
+					</aside>
 				</section>
 			</section>
 		</div>
@@ -242,83 +192,89 @@
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.basetransport.html" class="tsd-kind-icon">Base<wbr>Transport</a>
+						<a href="../classes/browser.basetransport.html" class="tsd-kind-icon">Base<wbr>Transport</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.beacontransport.html" class="tsd-kind-icon">Beacon<wbr>Transport</a>
+						<a href="../classes/browser.beacontransport.html" class="tsd-kind-icon">Beacon<wbr>Transport</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.breadcrumbs.html" class="tsd-kind-icon">Breadcrumbs</a>
+						<a href="../classes/browser.breadcrumbs.html" class="tsd-kind-icon">Breadcrumbs</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.browserbackend.html" class="tsd-kind-icon">Browser<wbr>Backend</a>
+						<a href="../classes/browser.browserbackend.html" class="tsd-kind-icon">Browser<wbr>Backend</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.browserclient.html" class="tsd-kind-icon">Browser<wbr>Client</a>
+						<a href="../classes/browser.browserclient.html" class="tsd-kind-icon">Browser<wbr>Client</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.dedupe.html" class="tsd-kind-icon">Dedupe</a>
+						<a href="../classes/browser.dedupe.html" class="tsd-kind-icon">Dedupe</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.ember.html" class="tsd-kind-icon">Ember</a>
+						<a href="../classes/browser.ember.html" class="tsd-kind-icon">Ember</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.fetchtransport.html" class="tsd-kind-icon">Fetch<wbr>Transport</a>
+						<a href="../classes/browser.fetchtransport.html" class="tsd-kind-icon">Fetch<wbr>Transport</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.globalhandlers.html" class="tsd-kind-icon">Global<wbr>Handlers</a>
+						<a href="../classes/browser.globalhandlers.html" class="tsd-kind-icon">Global<wbr>Handlers</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.linkederrors.html" class="tsd-kind-icon">Linked<wbr>Errors</a>
+						<a href="../classes/browser.linkederrors.html" class="tsd-kind-icon">Linked<wbr>Errors</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.reportingobserver.html" class="tsd-kind-icon">Reporting<wbr>Observer</a>
+						<a href="../classes/browser.reportingobserver.html" class="tsd-kind-icon">Reporting<wbr>Observer</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.trycatch.html" class="tsd-kind-icon">Try<wbr>Catch</a>
+						<a href="../classes/browser.trycatch.html" class="tsd-kind-icon">Try<wbr>Catch</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.useragent.html" class="tsd-kind-icon">User<wbr>Agent</a>
+						<a href="../classes/browser.useragent.html" class="tsd-kind-icon">User<wbr>Agent</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.vue.html" class="tsd-kind-icon">Vue</a>
+						<a href="../classes/browser.vue.html" class="tsd-kind-icon">Vue</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/browser.xhrtransport.html" class="tsd-kind-icon">XHRTransport</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="browser.browseroptions.html" class="tsd-kind-icon">Browser<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="browser.reportdialogoptions.html" class="tsd-kind-icon">Report<wbr>Dialog<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="browser.sentrywrappedxmlhttprequest.html" class="tsd-kind-icon">Sentry<wbr>WrappedXMLHttp<wbr>Request</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="browser.stackframe.html" class="tsd-kind-icon">Stack<wbr>Frame</a>
 					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-class tsd-parent-kind-external-module">
-						<a href="browser.xhrtransport.html" class="tsd-kind-icon">XHRTransport</a>
+					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="browser.stacktrace.html" class="tsd-kind-icon">Stack<wbr>Trace</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-								<a href="browser.xhrtransport.html#constructor" class="tsd-kind-icon">constructor</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#message" class="tsd-kind-icon">message</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="browser.xhrtransport.html#options" class="tsd-kind-icon">options</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#mode" class="tsd-kind-icon">mode</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="browser.xhrtransport.html#url" class="tsd-kind-icon">url</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#name" class="tsd-kind-icon">name</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="browser.xhrtransport.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#stack" class="tsd-kind-icon">stack</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#url" class="tsd-kind-icon">url</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="browser.stacktrace.html#useragent" class="tsd-kind-icon">useragent</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/browser.browseroptions.html" class="tsd-kind-icon">Browser<wbr>Options</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/browser.reportdialogoptions.html" class="tsd-kind-icon">Report<wbr>Dialog<wbr>Options</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/browser.sentrywrappedxmlhttprequest.html" class="tsd-kind-icon">Sentry<wbr>WrappedXMLHttp<wbr>Request</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/browser.stackframe.html" class="tsd-kind-icon">Stack<wbr>Frame</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/browser.stacktrace.html" class="tsd-kind-icon">Stack<wbr>Trace</a>
-					</li>
 					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
 						<a href="../modules/browser.html#sdk_name" class="tsd-kind-icon">SDK_<wbr>NAME</a>
 					</li>

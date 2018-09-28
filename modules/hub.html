@@ -114,6 +114,7 @@
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#getcurrenthub" class="tsd-kind-icon">get<wbr>Current<wbr>Hub</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#gethubfromcarrier" class="tsd-kind-icon">get<wbr>Hub<wbr>From<wbr>Carrier</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#getmaincarrier" class="tsd-kind-icon">get<wbr>Main<wbr>Carrier</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#makemain" class="tsd-kind-icon">make<wbr>Main</a></li>
 							</ul>
 						</section>
 					</div>
@@ -127,7 +128,7 @@
 					<div class="tsd-signature tsd-kind-icon">API_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">3</span><span class="tsd-signature-symbol"> =&nbsp;3</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/hub/src/hub.ts#L12">hub/src/hub.ts:12</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/hub/src/hub.ts#L12">hub/src/hub.ts:12</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -151,7 +152,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/hub/src/global.ts#L21">hub/src/global.ts:21</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/hub/src/hub.ts#L297">hub/src/hub.ts:297</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -176,7 +177,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/hub/src/global.ts#L36">hub/src/global.ts:36</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/hub/src/hub.ts#L312">hub/src/hub.ts:312</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -208,7 +209,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/hub/src/global.ts#L6">hub/src/global.ts:6</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/hub/src/hub.ts#L270">hub/src/hub.ts:270</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -217,6 +218,38 @@
 								</div>
 							</div>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/hub.carrier.html" class="tsd-signature-type">Carrier</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="makemain" class="tsd-anchor"></a>
+					<h3>make<wbr>Main</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">make<wbr>Main<span class="tsd-signature-symbol">(</span>hub<span class="tsd-signature-symbol">?: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/hub/src/hub.ts#L283">hub/src/hub.ts:283</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Replaces the current main hub with the passed one on the global object</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hub: <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">undefined</span>
+							</h4>
+							<p>The old replaced hub</p>
 						</li>
 					</ul>
 				</section>
@@ -276,6 +309,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="hub.html#getmaincarrier" class="tsd-kind-icon">get<wbr>Main<wbr>Carrier</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="hub.html#makemain" class="tsd-kind-icon">make<wbr>Main</a>
 					</li>
 				</ul>
 			</nav>

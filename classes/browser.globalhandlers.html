@@ -117,21 +117,24 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Global<wbr>Handlers<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.globalhandlers.html" class="tsd-signature-type">GlobalHandlers</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Global<wbr>Handlers<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">GlobalHandlersIntegrations</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.globalhandlers.html" class="tsd-signature-type">GlobalHandlers</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/browser/src/integrations/globalhandlers.ts#L17">browser/src/integrations/globalhandlers.ts:17</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/integrations/globalhandlers.ts#L26">browser/src/integrations/globalhandlers.ts:26</a></li>
 								</ul>
 							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;{onerror: true,onunhandledrejection: true,}</span></h5>
-									<ul class="tsd-parameters">
-									</ul>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <span class="tsd-signature-type">GlobalHandlersIntegrations</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="browser.globalhandlers.html" class="tsd-signature-type">GlobalHandlers</a></h4>
@@ -148,7 +151,7 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/browser/src/integrations/globalhandlers.ts#L17">browser/src/integrations/globalhandlers.ts:17</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/integrations/globalhandlers.ts#L23">browser/src/integrations/globalhandlers.ts:23</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -171,7 +174,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3e84a1d6/packages/browser/src/integrations/globalhandlers.ts#L30">browser/src/integrations/globalhandlers.ts:30</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/browser/src/integrations/globalhandlers.ts#L39">browser/src/integrations/globalhandlers.ts:39</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -281,6 +284,9 @@
 						<a href="../interfaces/browser.browseroptions.html" class="tsd-kind-icon">Browser<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/browser.reportdialogoptions.html" class="tsd-kind-icon">Report<wbr>Dialog<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/browser.sentrywrappedxmlhttprequest.html" class="tsd-kind-icon">Sentry<wbr>WrappedXMLHttp<wbr>Request</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
@@ -311,6 +317,9 @@
 						<a href="../modules/browser.html#exceptionfromstacktrace" class="tsd-kind-icon">exception<wbr>From<wbr>Stacktrace</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#forceload" class="tsd-kind-icon">force<wbr>Load</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/browser.html#ignorenextonerror" class="tsd-kind-icon">ignore<wbr>Next<wbr>OnError</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
@@ -321,6 +330,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/browser.html#lasteventid" class="tsd-kind-icon">last<wbr>Event<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/browser.html#onload" class="tsd-kind-icon">on<wbr>Load</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/browser.html#prepareframesforevent" class="tsd-kind-icon">prepare<wbr>Frames<wbr>For<wbr>Event</a>
