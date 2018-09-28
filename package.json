@@ -6,6 +6,7 @@
     "clean": "lerna run --stream clean",
     "fix": "lerna run --stream --concurrency 1 fix",
     "lint": "lerna run --stream --concurrency 1 lint",
+    "lint:json": "lerna run --stream --concurrency 1 lint:tslint:json",
     "test": "lerna run --stream --concurrency 1 --sort test",
     "codecov": "codecov"
   },
@@ -30,6 +31,7 @@
     "chai": "^4.1.2",
     "codecov": "^3.0.2",
     "danger": "^4.0.2",
+    "danger-plugin-tslint": "^2.0.0",
     "jest": "^22.4.3",
     "karma-sinon": "^1.0.5",
     "lerna": "3.4.0",

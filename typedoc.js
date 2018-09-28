@@ -10,6 +10,7 @@ module.exports = {
     '**/packages/typescript/**/*',
     '**/packages/raven-js/**/*',
     '**/packages/raven/**/*',
+    '**/dangerfile.ts',
   ],
   mode: 'modules',
   excludeExternals: true,

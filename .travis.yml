@@ -16,51 +16,48 @@ cache:
 
 matrix:
   include:
-    - name: '@sentry/packages - danger'
+    - name: '@sentry/packages - build + lint + test + codecov + danger [node v8]'
       node_js: '8'
-      script: .travis/danger.sh
-    - name: '@sentry/packages - lint'
+      script: scripts/danger.sh
+    - name: '@sentry/packages - pack and zeus upload'
       node_js: '8'
-      script: .travis/lint.sh
+      script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
-      script: .travis/test.sh
-    - name: '@sentry/packages - build and test [node v8]'
-      node_js: '8'
-      script: .travis/test.sh
+      script: scripts/test.sh
     - name: '@sentry/packages - build and test [node v10]'
       node_js: '10'
-      script: .travis/test.sh
+      script: scripts/test.sh
     - name: '@sentry/browser - integration tests'
       node_js: '8'
       addons:
         chrome: stable
         firefox: latest
         sauce_connect: true
-      script: .travis/integration.sh
+      script: scripts/integration.sh
     - name: 'raven-js - unit and integration tests'
       node_js: '8'
       addons:
         chrome: stable
         firefox: latest
-      script: .travis/raven-js.sh
+      script: scripts/raven-js.sh
     - name: 'raven-js - saucelabs tests'
       node_js: '8'
       addons:
         sauce_connect: true
-      script: .travis/raven-js-saucelabs.sh
+      script: scripts/raven-js-saucelabs.sh
     - name: 'raven-node [node v4]'
       node_js: '4'
-      script: .travis/raven-node.sh
+      script: scripts/raven-node.sh
     - name: 'raven-node [node v6]'
       node_js: '6'
-      script: .travis/raven-node.sh
+      script: scripts/raven-node.sh
     - name: 'raven-node [node v8]'
       node_js: '8'
-      script: .travis/raven-node.sh
+      script: scripts/raven-node.sh
     - name: 'raven-node [node v10]'
       node_js: '10'
-      script: .travis/raven-node.sh
+      script: scripts/raven-node.sh
 
 notifications:
   webhooks:

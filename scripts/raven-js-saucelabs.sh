@@ -2,12 +2,10 @@
 set -e
 
 RAVEN="raven-js"
-source .travis/detect-raven.sh
+source scripts/detect-raven.sh
 
 if [[ $SHOULD_RUN == "true" ]]; then
   cd packages/raven-js
   npm install
-  npm run lint
-  npm run test
+  npm run test:ci
 fi
-

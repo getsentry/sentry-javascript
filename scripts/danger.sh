@@ -4,4 +4,7 @@ set -e
 yarn
 # We have to build it first, so that TypeScript Types are recognized correctly
 yarn build
-yarn lint
+yarn lint:json
+yarn test
+yarn codecov
+yarn danger ci

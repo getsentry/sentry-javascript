@@ -55,6 +55,7 @@
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
     "lint:tslint": "tslint -t stylish -p .",
+    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
     "fix:tslint": "tslint --fix -t stylish -p .",
