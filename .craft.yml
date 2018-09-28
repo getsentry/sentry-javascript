@@ -25,3 +25,4 @@ targets:
     includeNames: /^sentry-node-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/node'
+  - name: gh-pages
