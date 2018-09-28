@@ -156,13 +156,6 @@ export interface Request {
 }
 
 /** JSDoc */
-export interface Repo {
-  name: string;
-  prefix?: string;
-  revision?: string;
-}
-
-/** JSDoc */
 export interface SentryEvent {
   event_id?: string;
   message?: string;
@@ -172,7 +165,6 @@ export interface SentryEvent {
   logger?: string;
   server_name?: string;
   release?: string;
-  repos?: Record<string, Repo>,
   dist?: string;
   environment?: string;
   sdk?: SdkInfo;

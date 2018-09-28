@@ -85,9 +85,6 @@ export interface Options {
   /** The current environment of your application (e.g. "production"). */
   environment?: string;
 
-  /** Configures the repository spec for events */
-  repos?: Record<string, Repo>;
-
   /** Sets the distribution for all events */
   dist?: string;
 
