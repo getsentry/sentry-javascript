@@ -2,19 +2,23 @@ import { SentryEvent } from '@sentry/types';
 import { isString } from './is';
 
 /**
+ * Checks whether we're in the Node.js or Browser environment
+ *
+ * @returns Answer to given question
+ */
+export function isNodeEnv(): boolean {
+  // tslint:disable:strict-type-predicates
+  return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
+}
+
+/**
  * Safely get global scope object
  *
  * @returns Global scope object
  */
 // tslint:disable:strict-type-predicates
 export function getGlobalObject(): Window | NodeJS.Global | {} {
-  return typeof window !== 'undefined'
-    ? window
-    : typeof global !== 'undefined'
-      ? global
-      : typeof self !== 'undefined'
-        ? self
-        : {};
+  return isNodeEnv() ? global : typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
 }
 // tslint:enable:strict-type-predicates
 
