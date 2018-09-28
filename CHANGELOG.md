@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.0.6
+
 - [browser] fix: Fallback to Error object when rejection `reason` is not available
 - [browser] feat: Support Bluebird's `detail.reason` for promise rejections
 - [types] fix: Use correct type for event's repos attribute
