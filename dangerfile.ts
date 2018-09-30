@@ -3,6 +3,7 @@ import { danger, fail, message, schedule, warn } from 'danger';
 import { promisify } from 'util';
 import { resolve } from 'path';
 import tslint from 'danger-plugin-tslint';
+import codecov from 'danger-plugin-codecov';
 import { prettyResults } from 'danger-plugin-tslint/dist/prettyResults';
 
 const packages = ['browser', 'core', 'hub', 'minimal', 'node', 'types', 'utils'];
@@ -11,6 +12,8 @@ export default async () => {
   if (!danger.github) {
     return;
   }
+
+  schedule(codecov());
 
   schedule(async () => {
     const tsLintResult = (await Promise.all(

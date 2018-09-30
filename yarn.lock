@@ -2647,6 +2647,12 @@ cyclist@~0.2.2:
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/cyclist/-/cyclist-0.2.2.tgz#1b33792e11e914a2fd6d6ed6447464444e5fa640"
 
+danger-plugin-codecov@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/danger-plugin-codecov/-/danger-plugin-codecov-1.0.0.tgz#1494f8e6fc0fce7889283bf21006e997985dba3b"
+  dependencies:
+    node-fetch "^2.2.0"
+
 danger-plugin-tslint@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/danger-plugin-tslint/-/danger-plugin-tslint-2.0.0.tgz#7a9feb2180f59ada27d0647dd9b327302cd14604"
@@ -6192,7 +6198,7 @@ node-fetch-npm@^2.0.2:
     json-parse-better-errors "^1.0.0"
     safe-buffer "^5.1.1"
 
-node-fetch@^2.1.1, node-fetch@^2.1.2:
+node-fetch@^2.1.1, node-fetch@^2.1.2, node-fetch@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.2.0.tgz#4ee79bde909262f9775f731e3656d0db55ced5b5"
 
