@@ -2647,9 +2647,9 @@ cyclist@~0.2.2:
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/cyclist/-/cyclist-0.2.2.tgz#1b33792e11e914a2fd6d6ed6447464444e5fa640"
 
-danger-plugin-codecov@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/danger-plugin-codecov/-/danger-plugin-codecov-1.0.0.tgz#1494f8e6fc0fce7889283bf21006e997985dba3b"
+danger-plugin-codecov@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/danger-plugin-codecov/-/danger-plugin-codecov-1.0.1.tgz#df2dff16db07ec7fae082eecb1144aa08d3b2e86"
   dependencies:
     node-fetch "^2.2.0"
 
