@@ -15,10 +15,7 @@ export default async () => {
 
   schedule(
     codecov({
-      callback: (baseResult: any, lastCommitResult: any) => {
-        console.log(baseResult);
-        console.log(lastCommitResult);
-      },
+      debug: true,
     }),
   );
 
