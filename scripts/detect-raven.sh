@@ -1,11 +1,16 @@
 #!/bin/bash
-set -e
+set -eu
 
 echo ""
 echo "RAVEN: $RAVEN"
 
-# Does any of the commits in a PR contain "[force ci]" string?
-COMMITS=$(git --no-pager log master.. --no-merges --format=%s)
+# Find the latest commit that is present in master and the branch we test
+MASTER_TMP=master-latest-tmp
+git fetch origin master:${MASTER_TMP}
+MERGE_BASE=$(git merge-base ${MASTER_TMP} ${TRAVIS_BRANCH:-master})
+
+# Does any of the new commits contain "[force ci]" string?
+COMMITS=$(git --no-pager log ${MERGE_BASE}.. --no-merges --format=%s)
 if [[ -n "$(grep '\[force ci\]' <<< "$COMMITS")" ]]; then
   HAS_FORCE_COMMIT=true
 else
@@ -16,7 +21,7 @@ fi
 echo "HAS_FORCE_COMMIT: $HAS_FORCE_COMMIT"
 
 # Does any changed file lives in raven-js/raven-node directory?
-CHANGES=$(git --no-pager diff --name-only master)
+CHANGES=$(git --no-pager diff --name-only ${MERGE_BASE})
 if [[ -n "$(grep "$RAVEN" <<< "$CHANGES")" ]]; then
   HAS_CHANGES=true
 else
