@@ -2,7 +2,6 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
-  Repo,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,

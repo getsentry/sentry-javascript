@@ -1,11 +1,7 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
-import * as md5proxy from 'md5';
+import { md5 } from './md5';
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
-
-// Workaround for Rollup issue with overloading namespaces
-// https://github.com/rollup/rollup/issues/1267#issuecomment-296395734
-const md5 = ((md5proxy as any).default || md5proxy) as (input: string) => string;
 
 const STACKTRACE_LIMIT = 50;
 
