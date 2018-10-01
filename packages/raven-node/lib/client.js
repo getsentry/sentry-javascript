@@ -10,6 +10,7 @@ var nodeUtil = require('util'); // nodeUtil to avoid confusion with "utils"
 var events = require('events');
 var domain = require('domain');
 var md5 = require('md5');
+var Limiter = require('async-limiter');
 
 var instrumentor = require('./instrumentation/instrumentor');
 
@@ -75,6 +76,7 @@ extend(Raven.prototype, {
     this.maxReqQueueCount = options.maxReqQueueCount || 100;
     this.parseUser = options.parseUser;
     this.stacktrace = options.stacktrace || false;
+    this.zlibLimiter = new Limiter({concurrency: 25});
 
     if (!this.dsn) {
       utils.consoleAlert('no DSN provided, error reporting disabled');
@@ -329,20 +331,24 @@ extend(Raven.prototype, {
     var skwargs = stringify(kwargs);
     var eventId = kwargs.event_id;
 
-    zlib.deflate(skwargs, function(err, buff) {
-      var message = buff.toString('base64'),
-        timestamp = new Date().getTime(),
-        headers = {
-          'X-Sentry-Auth': utils.getAuthHeader(
-            timestamp,
-            self.dsn.public_key,
-            self.dsn.private_key
-          ),
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': message.length
-        };
+    this.zlibLimiter.push(function (done) {
+      zlib.deflate(skwargs, function(err, buff) {
+        done();
 
-      self.transport.send(self, message, headers, eventId, cb);
+        var message = buff.toString('base64'),
+          timestamp = new Date().getTime(),
+          headers = {
+            'X-Sentry-Auth': utils.getAuthHeader(
+              timestamp,
+              self.dsn.public_key,
+              self.dsn.private_key
+            ),
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': message.length
+          };
+
+        self.transport.send(self, message, headers, eventId, cb);
+      });
     });
   },
 

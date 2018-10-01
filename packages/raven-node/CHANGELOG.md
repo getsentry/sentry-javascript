@@ -1,5 +1,7 @@
 # Changelog
 
+- fix: Fix memory leak (fragmentation) on many concurrent calls (#1606)
+
 ## 2.6.4 - 2018-09-03
 
 - fix: Updated uuid module (#1481)

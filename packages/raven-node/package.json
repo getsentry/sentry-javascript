@@ -26,7 +26,8 @@
     "md5": "^2.2.1",
     "stack-trace": "0.0.10",
     "timed-out": "4.0.1",
-    "uuid": "3.3.2"
+    "uuid": "3.3.2",
+    "async-limiter": "~1.0.0"
   },
   "devDependencies": {
     "coffee-script": "~1.10.0",
