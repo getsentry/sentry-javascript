@@ -13,7 +13,14 @@ export default async () => {
     return;
   }
 
-  schedule(codecov());
+  schedule(
+    codecov({
+      callback: (baseResult: any, lastCommitResult: any) => {
+        console.log(baseResult);
+        console.log(lastCommitResult);
+      },
+    }),
+  );
 
   schedule(async () => {
     const tsLintResult = (await Promise.all(
