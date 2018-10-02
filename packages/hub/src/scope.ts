@@ -222,7 +222,7 @@ export class Scope {
     if (this.fingerprint && event.fingerprint === undefined) {
       event.fingerprint = this.fingerprint;
     }
-    if (this.level && event.level === undefined) {
+    if (this.level) {
       event.level = this.level;
     }
 

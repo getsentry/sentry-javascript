@@ -126,6 +126,15 @@ describe('Scope', () => {
     expect(event.breadcrumbs).toEqual([{ message: 'test2' }]);
   });
 
+  test('applyToEvent scope level should be stronger', async () => {
+    const scope = new Scope();
+    scope.setLevel(Severity.Warning);
+    const event: SentryEvent = {};
+    event.level = Severity.Critical;
+    await scope.applyToEvent(event);
+    expect(event.level).toEqual('warning');
+  });
+
   test('clear', () => {
     const scope = new Scope();
     scope.setExtra('a', 2);
