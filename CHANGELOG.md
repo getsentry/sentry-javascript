@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [hub]: Scope level overwrites level on the event
+
 ## 4.0.6
 
 - [browser] fix: Fallback to Error object when rejection `reason` is not available
