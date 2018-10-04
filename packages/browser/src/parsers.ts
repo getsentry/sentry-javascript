@@ -48,13 +48,11 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
 /** JSDoc */
 export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
   const exception = exceptionFromStacktrace(stacktrace);
-  const transaction = stacktrace.url || (stacktrace.stack && stacktrace.stack[0].url) || '<unknown>';
 
   return {
     exception: {
       values: [exception],
     },
-    transaction,
   };
 }
 
