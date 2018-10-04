@@ -25,11 +25,6 @@ function getFunction(frame: stacktrace.StackFrame): string {
   }
 }
 
-/** JSDoc */
-function getTransaction(frame: StackFrame): string {
-  return frame.module || frame.function ? `${frame.module || '?'} at ${frame.function || '?'}` : '<unknown>';
-}
-
 const mainModule: string = `${(require.main && require.main.filename && path.dirname(require.main.filename)) ||
   global.process.cwd()}/`;
 
@@ -214,17 +209,6 @@ export async function parseError(error: ExtendedError): Promise<SentryEvent> {
     event.extra = {
       [name]: extraErrorInfo,
     };
-  }
-
-  // use for loop so we don't have to reverse whole frames array
-  const frames = (exception.stacktrace && exception.stacktrace.frames) || [];
-  for (let i = frames.length - 1; i >= 0; i--) {
-    const frame = frames[i];
-
-    if (frame.in_app === true) {
-      event.transaction = getTransaction(frame);
-      break;
-    }
   }
 
   return event;
