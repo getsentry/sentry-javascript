@@ -1,7 +1,6 @@
-import { Scope } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
 import { basename, relative } from 'path';
-import { getCurrentHub } from '../../hub';
 
 type StackFrameIteratee = (frame: StackFrame) => Promise<StackFrame>;
 
@@ -67,6 +66,7 @@ export class RewriteFrames implements Integration {
 
     if (exception) {
       try {
+        // tslint:disable-next-line:no-unsafe-any
         return (exception as any).values[0].stacktrace.frames;
       } catch (_oO) {
         return undefined;

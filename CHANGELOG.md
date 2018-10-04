@@ -13,6 +13,7 @@
 - [node] feat: Make node transactions a pluggable integration with tests 
 - [core] feat: getRequestheaders should handle legacy DSNs
 - [core] fix: correct sampleRate behaviour
+- [core] feat: RewriteFrames pluggable integration
 
 ## 4.0.6
 
