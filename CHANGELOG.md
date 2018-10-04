@@ -6,6 +6,10 @@
 - [core]: ref: Check for node-env first and return more accurate global object
 - [core] ref: Remove Repo interface and repos attribute from Event
 - [browser]: ref: Include md5 lib and transcript it to TypeScript
+- [node] feat: Transactions handling for RequestHandler in Express/Hapi
+- [node] feat: Allow requestHandler to be configured
+- [node] feat: Make node transactions a pluggable integration with tests 
+- [browser] ref: Remove transaction from browser
 
 ## 4.0.6
 
