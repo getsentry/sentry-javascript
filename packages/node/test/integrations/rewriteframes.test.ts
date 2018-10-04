@@ -5,16 +5,16 @@ let rewriteFrames: RewriteFrames;
 let messageEvent: SentryEvent;
 let exceptionEvent: SentryEvent;
 
-describe('RewriteFrames', () => {
+describe.only('RewriteFrames', () => {
   beforeEach(() => {
     messageEvent = {
       stacktrace: {
         frames: [
           {
-            filename: '/some/file1.js',
+            filename: '/www/src/app/file1.js',
           },
           {
-            filename: '/some/file2.js',
+            filename: '/www/src/app/file2.js',
           },
         ],
       },
@@ -26,10 +26,10 @@ describe('RewriteFrames', () => {
             stacktrace: {
               frames: [
                 {
-                  filename: '/some/file1.js',
+                  filename: '/www/src/app/file1.js',
                 },
                 {
-                  filename: '/some/file2.js',
+                  filename: '/www/src/app/file2.js',
                 },
               ],
             },
@@ -39,7 +39,7 @@ describe('RewriteFrames', () => {
     };
   });
 
-  describe('default iteratee appends `app:///` if frame starts with `/`', () => {
+  describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames();
     });
@@ -57,6 +57,26 @@ describe('RewriteFrames', () => {
     });
   });
 
+  describe('can use custom root to perform `relative` on filepaths', () => {
+    beforeEach(() => {
+      rewriteFrames = new RewriteFrames({
+        root: '/www',
+      });
+    });
+
+    it('transforms messageEvent frames', async () => {
+      const event = await rewriteFrames.process(messageEvent);
+      expect(event.stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('transforms exceptionEvent frames', async () => {
+      const event = await rewriteFrames.process(exceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+  });
+
   describe('can use custom iteratee', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames({
@@ -69,17 +89,17 @@ describe('RewriteFrames', () => {
 
     it('transforms messageEvent frames', async () => {
       const event = await rewriteFrames.process(messageEvent);
-      expect(event.stacktrace!.frames![0].filename).toEqual('/some/file1.js');
+      expect(event.stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.stacktrace!.frames![0].function).toEqual('whoops');
-      expect(event.stacktrace!.frames![1].filename).toEqual('/some/file2.js');
+      expect(event.stacktrace!.frames![1].filename).toEqual('/www/src/app/file2.js');
       expect(event.stacktrace!.frames![1].function).toEqual('whoops');
     });
 
     it('transforms exceptionEvent frames', async () => {
       const event = await rewriteFrames.process(exceptionEvent);
-      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/some/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
-      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('/some/file2.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('/www/src/app/file2.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].function).toEqual('whoops');
     });
   });

@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
-import { basename } from 'path';
+import { basename, relative } from 'path';
 import { getCurrentHub } from '../../hub';
 
 type StackFrameIteratee = (frame: StackFrame) => Promise<StackFrame>;
@@ -15,9 +15,15 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public iteratee: StackFrameIteratee = async (frame: StackFrame) => {
+  private readonly root?: string;
+
+  /**
+   * @inheritDoc
+   */
+  private readonly iteratee: StackFrameIteratee = async (frame: StackFrame) => {
     if (frame.filename && frame.filename.startsWith('/')) {
-      frame.filename = `app:///${basename(frame.filename)}`;
+      const base = this.root ? relative(this.root, frame.filename) : basename(frame.filename);
+      frame.filename = `app:///${base}`;
     }
     return frame;
   };
@@ -25,7 +31,10 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { iteratee?: StackFrameIteratee } = {}) {
+  public constructor(options: { root?: string; iteratee?: StackFrameIteratee } = {}) {
+    if (options.root) {
+      this.root = options.root;
+    }
     if (options.iteratee) {
       this.iteratee = options.iteratee;
     }
