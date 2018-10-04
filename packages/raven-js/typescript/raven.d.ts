@@ -329,5 +329,5 @@ declare namespace Raven {
     sentry?: boolean;
   }
 
-  type LogLevel = 'critical' | 'error' | 'warning' | 'info' | 'debug' | 'warn' | 'log';
+  type LogLevel = 'fatal' | 'error' | 'warning' | 'info' | 'debug' | 'warn' | 'log';
 }
