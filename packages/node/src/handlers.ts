@@ -111,32 +111,57 @@ function parseRequest(
   req: {
     [key: string]: any;
   },
+  options?: {
+    version?: boolean;
+    request?: boolean;
+    serverName?: boolean;
+    user?: boolean;
+  },
 ): SentryEvent {
-  const preparedEvent = {
-    ...event,
-    extra: {
-      ...event.extra,
-      node: global.process.version,
-    },
-    request: {
-      ...event.request,
-      ...extractRequestData(req),
-    },
-    server_name: global.process.env.SENTRY_NAME || os.hostname(),
+  // tslint:disable-next-line:no-parameter-reassignment
+  options = {
+    request: true,
+    serverName: true,
+    user: true,
+    version: true,
+    ...options,
   };
 
-  if (req.user) {
-    preparedEvent.user = {
+  if (options.version) {
+    event.extra = {
+      ...event.extra,
+      node: global.process.version,
+    };
+  }
+
+  if (options.request) {
+    event.request = {
+      ...event.request,
+      ...extractRequestData(req),
+    };
+  }
+
+  if (options.serverName) {
+    event.server_name = global.process.env.SENTRY_NAME || os.hostname();
+  }
+
+  if (options.user && req.user) {
+    event.user = {
       ...event.user,
       ...extractUserData(req),
     };
   }
 
-  return preparedEvent;
+  return event;
 }
 
 /** JSDoc */
-export function requestHandler(): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
+export function requestHandler(options?: {
+  version?: boolean;
+  request?: boolean;
+  serverName?: boolean;
+  user?: boolean;
+}): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     _res: http.ServerResponse,
@@ -146,7 +171,7 @@ export function requestHandler(): (req: http.IncomingMessage, res: http.ServerRe
     const hub = getHubFromCarrier(req);
     hub.bindClient(getCurrentHub().getClient());
     hub.configureScope((scope: Scope) => {
-      scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req));
+      scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
     });
     local.on('error', next);
     local.run(next);
