@@ -11,6 +11,7 @@
 - [node] feat: Transactions handling for RequestHandler in Express/Hapi
 - [node] feat: Allow requestHandler to be configured
 - [node] feat: Make node transactions a pluggable integration with tests 
+- [core] feat: RewriteFrames pluggable integration
 
 ## 4.0.6
 
