@@ -77,8 +77,11 @@ export class GlobalHandlers implements Integration {
       exception: {
         ...event.exception,
         mechanism: {
+          data: {
+            mode: stacktrace.mode,
+          },
           handled: false,
-          type: stacktrace.mode === 'onerror' ? 'onerror' : 'onunhandledrejection',
+          type: stacktrace.mechanism,
         },
       },
     };

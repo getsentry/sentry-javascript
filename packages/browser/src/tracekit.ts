@@ -17,6 +17,7 @@ export interface StackTrace {
    * Known modes: callers, failed, multiline, onerror, stack, stacktrace
    */
   mode: string;
+  mechanism: string;
   name: string;
   message: string;
   url: string;
@@ -354,6 +355,7 @@ TraceKit.report = (function reportModuleWrapper() {
       processLastException();
     } else if (errorObj && isError(errorObj)) {
       stack = TraceKit.computeStackTrace(errorObj);
+      stack.mechanism = 'onerror';
       notifyHandlers(stack, true, errorObj);
     } else {
       var location: any = {
@@ -378,6 +380,7 @@ TraceKit.report = (function reportModuleWrapper() {
         name: name,
         message: msg,
         mode: 'onerror',
+        mechanism: 'onerror',
         stack: [
           {
             ...location,
@@ -410,6 +413,7 @@ TraceKit.report = (function reportModuleWrapper() {
   function traceKitWindowOnUnhandledRejection(e: any) {
     var err = (e && (e.detail ? e.detail.reason : e.reason)) || e;
     var stack = TraceKit.computeStackTrace(err);
+    stack.mechanism = 'onunhandledrejection';
     notifyHandlers(stack, true, err);
   }
 
