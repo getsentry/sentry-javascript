@@ -13,6 +13,43 @@ import { getCurrentHub } from './hub';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
+type TransactionTypes = 'path' | 'methodPath' | 'handler';
+
+/** JSDoc */
+function extractTransaction(req: { [key: string]: any }, type: TransactionTypes): string | undefined {
+  try {
+    // Express.js shape
+    const request = req as {
+      method: string;
+      route: {
+        path: string;
+        stack: [
+          {
+            name: string;
+          }
+        ];
+      };
+    };
+
+    switch (type) {
+      case 'path': {
+        return request.route.path;
+      }
+      case 'handler': {
+        return request.route.stack[0].name;
+      }
+      case 'methodPath':
+      default: {
+        const method = request.method.toUpperCase();
+        const path = request.route.path;
+        return `${method}|${path}`;
+      }
+    }
+  } catch (_oO) {
+    return undefined;
+  }
+}
+
 /** JSDoc */
 function extractRequestData(req: { [key: string]: any }): { [key: string]: string } {
   // headers:
@@ -112,16 +149,18 @@ function parseRequest(
     [key: string]: any;
   },
   options?: {
-    version?: boolean;
     request?: boolean;
     serverName?: boolean;
+    transaction?: boolean | TransactionTypes;
     user?: boolean;
+    version?: boolean;
   },
 ): SentryEvent {
   // tslint:disable-next-line:no-parameter-reassignment
   options = {
     request: true,
     serverName: true,
+    transaction: true,
     user: true,
     version: true,
     ...options,
@@ -152,15 +191,23 @@ function parseRequest(
     };
   }
 
+  if (options.transaction) {
+    const transaction = extractTransaction(req, options.transaction);
+    if (transaction) {
+      event.transaction = transaction;
+    }
+  }
+
   return event;
 }
 
 /** JSDoc */
 export function requestHandler(options?: {
-  version?: boolean;
   request?: boolean;
   serverName?: boolean;
+  transaction?: boolean | string;
   user?: boolean;
+  version?: boolean;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,

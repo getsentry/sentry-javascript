@@ -2,11 +2,15 @@
 
 ## Unreleased
 
-- [hub]: Scope level overwrites level on the event
-- [core]: ref: Check for node-env first and return more accurate global object
+- [hub] Scope level overwrites level on the event
+- [core] ref: Check for node-env first and return more accurate global object
 - [core] ref: Remove Repo interface and repos attribute from Event
-- [browser]: ref: Include md5 lib and transcript it to TypeScript
-- [browser]: feat: Better mechanism detection in TraceKit
+- [browser] ref: Include md5 lib and transcript it to TypeScript
+- [browser] feat: Better mechanism detection in TraceKit
+- [browser] ref: Remove default transaction from browser
+- [node] feat: Transactions handling for RequestHandler in Express/Hapi
+- [node] feat: Allow requestHandler to be configured
+- [node] feat: Make node transactions a pluggable integration with tests 
 
 ## 4.0.6
 
