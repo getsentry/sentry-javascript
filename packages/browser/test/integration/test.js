@@ -48,7 +48,7 @@ function canReadFunctionName() {
   return false;
 }
 
-let assertTimeout = undefined;
+var assertTimeout = undefined;
 function debounceAssertEventCount(sentryData, count, done) {
   if (sentryData === undefined) {
     return false;
@@ -64,13 +64,13 @@ function debounceAssertEventCount(sentryData, count, done) {
   return true;
 }
 
-const frames = ['frame', 'loader', 'loader-lazy-no'];
+var frames = ['frame', 'loader', 'loader-lazy-no'];
 
-let filename;
-let IS_ASYNC_LOADER = false;
-let IS_LOADER = false;
+var filename;
+var IS_ASYNC_LOADER = false;
+var IS_LOADER = false;
 
-for (const idx in frames) {
+for (var idx in frames) {
   filename = frames[idx];
   IS_LOADER = IS_ASYNC_LOADER = !!filename.match(/^loader/);
 
@@ -101,7 +101,7 @@ for (const idx in frames) {
               assert.equal(sentryData.message, 'Hello');
               done();
             }
-          },
+          }
         );
       });
 
@@ -124,7 +124,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -143,7 +143,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.stacktrace.frames.length, 3);
               done();
             }
-          },
+          }
         );
       });
 
@@ -166,13 +166,13 @@ for (const idx in frames) {
                 sentryData.exception.values[0].stacktrace.frames[
                   sentryData.exception.values[0].stacktrace.frames.length - 1
                 ].function,
-                'bar',
+                'bar'
               );
               assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -205,7 +205,7 @@ for (const idx in frames) {
               assert.equal(sentryData[4].exception.values[0].value, 'bar');
               done();
             }
-          },
+          }
         );
       });
 
@@ -255,7 +255,7 @@ for (const idx in frames) {
               assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
               done();
             }
-          },
+          }
         );
       });
 
@@ -280,7 +280,7 @@ for (const idx in frames) {
             Sentry.captureMessage('same message, different stacktrace');
           },
           function(sentryData) {
-            let eventCount = 5;
+            var eventCount = 5;
             if (IS_ASYNC_LOADER) {
               // On the async loader since we replay all messages from the same location
               // we actually only receive 4 events
@@ -294,7 +294,7 @@ for (const idx in frames) {
               !IS_ASYNC_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
               done();
             }
-          },
+          }
         );
       });
     });
@@ -321,7 +321,7 @@ for (const idx in frames) {
               assert.equal(sentryData.exception.values[0].stacktrace.frames.length, 1); // just one frame
               done();
             }
-          },
+          }
         );
       });
 
@@ -353,11 +353,11 @@ for (const idx in frames) {
               assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
               assert.match(
                 sentryData.exception.values[0].stacktrace.frames[0]['function'],
-                /throwStringError|\?|global code/i,
+                /throwStringError|\?|global code/i
               );
               done();
             }
-          },
+          }
         );
       });
 
@@ -392,11 +392,11 @@ for (const idx in frames) {
               assert.match(sentryData.exception.values[0].stacktrace.frames[0].filename, /\/test\/integration\//);
               assert.match(
                 sentryData.exception.values[0].stacktrace.frames[0]['function'],
-                /throwStringError|\?|global code/i,
+                /throwStringError|\?|global code/i
               );
               done();
             }
-          },
+          }
         );
       });
 
@@ -432,15 +432,15 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 2);
               assert.match(
                 sentryData.exception.values[0].stacktrace.frames[0].filename,
-                /\/test\/integration\/throw-error\.js/,
+                /\/test\/integration\/throw-error\.js/
               );
               assert.match(
                 sentryData.exception.values[0].stacktrace.frames[0]['function'],
-                /\?|global code|throwRealError/i,
+                /\?|global code|throwRealError/i
               );
               done();
             }
-          },
+          }
         );
       });
 
@@ -463,7 +463,7 @@ for (const idx in frames) {
               assert.equal(sentryData.length, 1);
               done();
             }
-          },
+          }
         );
       });
     });
@@ -485,7 +485,7 @@ for (const idx in frames) {
                 window.context = this;
                 foo();
               },
-              false,
+              false
             );
 
             var click = new MouseEvent('click');
@@ -503,7 +503,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
               done();
             }
-          },
+          }
         );
       });
 
@@ -531,7 +531,7 @@ for (const idx in frames) {
             var sentryData = iframe.contentWindow.sentryData[0];
             assert.equal(sentryData, null); // should never trigger error
             done();
-          },
+          }
         );
       });
 
@@ -553,7 +553,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -576,7 +576,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -600,7 +600,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -634,7 +634,7 @@ for (const idx in frames) {
               assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
               done();
             }
-          },
+          }
         );
       });
 
@@ -676,7 +676,7 @@ for (const idx in frames) {
               });
               done();
             }
-          },
+          }
         );
       });
 
@@ -694,7 +694,7 @@ for (const idx in frames) {
               function namedFunction() {
                 foo();
               },
-              false,
+              false
             );
 
             var click = new MouseEvent('click');
@@ -734,7 +734,7 @@ for (const idx in frames) {
               });
               done();
             }
-          },
+          }
         );
       });
 
@@ -752,7 +752,7 @@ for (const idx in frames) {
               function() {
                 foo();
               },
-              false,
+              false
             );
 
             var click = new MouseEvent('click');
@@ -784,7 +784,7 @@ for (const idx in frames) {
               });
               done();
             }
-          },
+          }
         );
       });
     });
@@ -827,7 +827,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             done();
-          },
+          }
         );
       });
 
@@ -868,7 +868,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
             done();
-          },
+          }
         );
       });
 
@@ -897,7 +897,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].level, 'warning');
             assert.equal(breadcrumbs[0].message, 'someMessage');
             done();
-          },
+          }
         );
       });
 
@@ -917,7 +917,7 @@ for (const idx in frames) {
               },
               function() {
                 Sentry.captureMessage('test');
-              },
+              }
             );
           },
           function(sentryData) {
@@ -953,7 +953,7 @@ for (const idx in frames) {
               assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
             }
             done();
-          },
+          }
         );
       });
 
@@ -973,7 +973,7 @@ for (const idx in frames) {
               },
               function() {
                 Sentry.captureMessage('test');
-              },
+              }
             );
           },
           function(sentryData) {
@@ -1009,7 +1009,7 @@ for (const idx in frames) {
               assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
             done();
-          },
+          }
         );
       });
 
@@ -1029,7 +1029,7 @@ for (const idx in frames) {
               },
               function() {
                 Sentry.captureMessage('test');
-              },
+              }
             );
           },
           function(sentryData) {
@@ -1065,7 +1065,7 @@ for (const idx in frames) {
               assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
             done();
-          },
+          }
         );
       });
 
@@ -1109,7 +1109,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
             done();
-          },
+          }
         );
       });
 
@@ -1145,7 +1145,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
             done();
-          },
+          }
         );
       });
 
@@ -1192,7 +1192,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, 'body > div.c > div.b > div.a');
             done();
-          },
+          }
         );
       });
 
@@ -1234,7 +1234,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.click');
             assert.equal(breadcrumbs[0].message, '<unknown>');
             done();
-          },
+          }
         );
       });
 
@@ -1272,7 +1272,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
             done();
-          },
+          }
         );
       });
 
@@ -1306,7 +1306,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
             done();
-          },
+          }
         );
       });
 
@@ -1355,7 +1355,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[2].category, 'ui.input');
             assert.equal(breadcrumbs[2].message, 'body > form#foo-form > input[name="foo"]');
             done();
-          },
+          }
         );
       });
 
@@ -1396,7 +1396,7 @@ for (const idx in frames) {
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > div.contenteditable');
             done();
-          },
+          }
         );
       });
 
@@ -1449,7 +1449,7 @@ for (const idx in frames) {
             assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
 
             done();
-          },
+          }
         );
       });
 
@@ -1477,7 +1477,7 @@ for (const idx in frames) {
               assert.include(Function.prototype.toString.call(window.fetch), '[native code]');
             }
             done();
-          },
+          }
         );
       });
     });
