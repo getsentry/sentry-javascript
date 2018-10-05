@@ -1,5 +1,6 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
+import { includes } from '@sentry/utils/string';
 import { md5 } from './md5';
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
@@ -65,7 +66,7 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   let localStack = stack;
   const firstFrameFunction = localStack[0].func || '';
 
-  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
+  if (includes(firstFrameFunction, 'captureMessage') || includes(firstFrameFunction, 'captureException')) {
     localStack = localStack.slice(1);
   }
 
