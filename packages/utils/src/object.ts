@@ -1,5 +1,5 @@
 import { SentryWrappedFunction } from '@sentry/types';
-import { isPlainObject, isUndefined } from './is';
+import { isNaN, isPlainObject, isUndefined } from './is';
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
@@ -59,8 +59,7 @@ function serializer(): (key: string, value: any) => any {
     let currentValue: any = value;
 
     // NaN and undefined are not JSON.parseable, but we want to preserve this information
-    // tslint:disable-next-line:no-unsafe-any
-    if (Number.isNaN(value)) {
+    if (isNaN(value)) {
       currentValue = NAN_VALUE;
     } else if (isUndefined(value)) {
       currentValue = UNDEFINED_VALUE;
@@ -207,7 +206,7 @@ function serializeValue<T>(value: T): T | string {
     return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
   } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'undefined') {
     return value;
-  } else if (Number.isNaN(value as any)) {
+  } else if (isNaN(value)) {
     // NaN and undefined are not JSON.parseable, but we want to preserve this information
     return '[NaN]';
   } else if (isUndefined(value)) {
@@ -293,4 +292,32 @@ export function serializeKeysToEventMessage(keys: string[], maxLength: number = 
   }
 
   return '';
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
+/** JSDoc */
+export function assign(target: any, ...args: any[]): object {
+  if (target === null || target === undefined) {
+    throw new TypeError('Cannot convert undefined or null to object');
+  }
+
+  const to = Object(target) as {
+    [key: string]: any;
+  };
+
+  for (const source of args) {
+    if (source !== null) {
+      for (const nextKey in source as {
+        [key: string]: any;
+      }) {
+        if (Object.prototype.hasOwnProperty.call(source, nextKey)) {
+          to[nextKey] = (source as {
+            [key: string]: any;
+          })[nextKey];
+        }
+      }
+    }
+  }
+
+  return to;
 }

@@ -1,4 +1,6 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import { isNaN } from '@sentry/utils/is';
+import { assign } from '@sentry/utils/object';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
@@ -65,7 +67,7 @@ export class Dsn implements DsnComponents {
       path = split.slice(0, -1).join('/');
       projectId = split.pop() as string;
     }
-    Object.assign(this, { host, pass, path, projectId, port, protocol, user });
+    assign(this, { host, pass, path, projectId, port, protocol, user });
   }
 
   /** Maps Dsn components into this instance. */
