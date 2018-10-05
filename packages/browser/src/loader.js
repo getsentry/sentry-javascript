@@ -16,7 +16,7 @@
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
-      lazy = !(document.scripts[i].dataset.lazy === 'no');
+      lazy = !(document.scripts[i].getAttribute('data-lazy') === 'no');
       break;
     }
   }
