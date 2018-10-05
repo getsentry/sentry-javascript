@@ -1,3 +1,5 @@
+// prettier-ignore
+// Prettier disabled due to trailing comma not working in IE10/11
 (function(
   _window,
   _document,
@@ -7,7 +9,7 @@
   _namespace,
   _publicKey,
   _sdkBundleUrl,
-  _config,
+  _config
 ) {
   var lazy = true;
   var forceLoad = false;
@@ -154,7 +156,7 @@
           injectSdk(onLoadCallback);
         });
       }
-    },
+    }
   };
 
   [
@@ -165,7 +167,7 @@
     'captureEvent',
     'configureScope',
     'withScope',
-    'showReportDialog',
+    'showReportDialog'
   ].forEach(function(f) {
     _window[_namespace][f] = function() {
       queue({ f: f, a: arguments });
@@ -178,7 +180,7 @@
   _window[_onerror] = function(message, source, lineno, colno, exception) {
     // Use keys as "data type" to save some characters"
     queue({
-      e: [].slice.call(arguments),
+      e: [].slice.call(arguments)
     });
 
     if (_oldOnerror) _oldOnerror.apply(_window, arguments);
@@ -188,7 +190,7 @@
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
   _window[_onunhandledrejection] = function(exception) {
     queue({
-      p: exception.reason,
+      p: exception.reason
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
@@ -199,5 +201,5 @@
     });
   }
 })(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundle.js', {
-  dsn: 'https://public@example.com/1',
+  dsn: 'https://public@example.com/1'
 });
