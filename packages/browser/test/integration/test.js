@@ -14,7 +14,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
 function createIframe(done, file) {
   var iframe = document.createElement('iframe');
   iframe.style.display = 'none';
-  iframe.src = `./base/test/integration/${file}.html`;
+  iframe.src = './base/test/integration/' + file + '.html';
   iframe.onload = function() {
     done();
   };
@@ -55,7 +55,7 @@ function debounceAssertEventCount(sentryData, count, done) {
   }
   clearTimeout(assertTimeout);
   assertTimeout = setTimeout(function() {
-    done(new Error(`Did not receive ${count} events`));
+    done(new Error('Did not receive ' + count + ' events'));
   }, 1000);
   if (sentryData.length != count) {
     return false;
@@ -74,7 +74,7 @@ for (const idx in frames) {
   filename = frames[idx];
   IS_LOADER = IS_ASYNC_LOADER = !!filename.match(/^loader/);
 
-  describe(`integration ${filename}.html`, function() {
+  describe('integration ' + filename + '.html', function() {
     this.timeout(30000);
 
     beforeEach(function(done) {
@@ -184,7 +184,7 @@ for (const idx in frames) {
           function() {
             for (var i = 0; i < 2; i++) {
               // Different exceptions, don't dedupe
-              Sentry.captureException(new Error(`Exception no ${Date.now() + Math.random()}`));
+              Sentry.captureException(new Error('Exception no ' + (Date.now() + Math.random())));
             }
 
             for (var i = 0; i < 2; i++) {
