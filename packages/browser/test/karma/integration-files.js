@@ -1,0 +1,18 @@
+module.exports = [
+  { pattern: 'test/integration/polyfills/es6-promise-4.2.4.js', included: false },
+  { pattern: 'test/integration/polyfills/whatwg-fetch-2.0.4.js', included: false },
+  { pattern: 'test/integration/123', included: false },
+  { pattern: 'test/integration/throw-string.js', included: false },
+  { pattern: 'test/integration/throw-error.js', included: false },
+  { pattern: 'test/integration/throw-object.js', included: false },
+  { pattern: 'test/integration/example.json', included: false },
+  { pattern: 'test/integration/frame.html', included: false },
+  { pattern: 'test/integration/loader.html', included: false },
+  { pattern: 'test/integration/loader-lazy-no.html', included: false },
+  { pattern: 'test/integration/common.js', included: false },
+  { pattern: 'src/loader.js', included: false },
+  { pattern: 'test/integration/init.js', included: false },
+  { pattern: 'build/bundle.js', included: false },
+  { pattern: 'build/bundle.js.map', included: false },
+  'test/integration/test.js',
+];
