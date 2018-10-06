@@ -18,6 +18,7 @@ window.originalBuiltIns = {
 
 // expose events so we can access them in our tests
 window.sentryData = [];
+window.sentryBreadcrumbs = [];
 
 // stub transport so we don't actually transmit any data
 function DummyTransport() {}
@@ -50,6 +51,9 @@ Sentry.init({
     ) {
       return null;
     }
+
+    sentryBreadcrumbs.push(breadcrumb);
+
     return breadcrumb;
   },
 });
