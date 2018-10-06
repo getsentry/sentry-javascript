@@ -36,10 +36,6 @@ function isBelowIE11() {
   return /*@cc_on!@*/ false == !false;
 }
 
-function isEdge14() {
-  return window.navigator.userAgent.indexOf('Edge/14') !== -1;
-}
-
 // Thanks for nothing IE!
 // (╯°□°）╯︵ ┻━┻
 function canReadFunctionName() {
@@ -134,7 +130,7 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            Sentry.captureException({ foo: 'bar' });
+            throwNonError();
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
@@ -182,19 +178,18 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
+            // Different exceptions, don't dedupe
             for (var i = 0; i < 2; i++) {
-              // Different exceptions, don't dedupe
-              Sentry.captureException(new Error('Exception no ' + (Date.now() + Math.random())));
+              throwRandomError();
             }
 
+            // Same exceptions and same stacktrace, dedupe
             for (var i = 0; i < 2; i++) {
-              // Same exception, dedupe
-              Sentry.captureException(new Error('foo'));
+              throwError();
             }
 
             // Same exceptions, different stacktrace (different line number), don't dedupe
-            Sentry.captureException(new Error('bar'));
-            Sentry.captureException(new Error('bar'));
+            throwSameConsecutiveErrors('bar');
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 5, done)) {
@@ -247,11 +242,11 @@ for (var idx in frames) {
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 3, done)) {
               // NOTE: regex because exact error message differs per-browser
-              assert.match(sentryData[0].exception.values[0].value, /^baz/);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               assert.equal(sentryData[0].exception.values[0].type, 'ReferenceError');
-              assert.match(sentryData[1].exception.values[0].value, /^baz/);
+              assert.match(sentryData[1].exception.values[0].value, /baz/);
               assert.equal(sentryData[1].exception.values[0].type, 'ReferenceError');
-              assert.match(sentryData[2].exception.values[0].value, /^baz/);
+              assert.match(sentryData[2].exception.values[0].value, /baz/);
               assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
               done();
             }
@@ -265,19 +260,18 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
+            // Different messages, don't dedupe
             for (var i = 0; i < 2; i++) {
-              // Different messages, same stacktrace, don't dedupe
-              Sentry.captureMessage('different message, same stacktrace ' + Date.now() + Math.random());
+              captureRandomMessage();
             }
 
+            // Same messages and same stacktrace, dedupe
             for (var i = 0; i < 2; i++) {
-              // Same messages and same stacktrace, dedupe
-              Sentry.captureMessage('same message, same stacktrace');
+              captureMessage('same message, same stacktrace');
             }
 
             // Same messages, different stacktrace (different line number), don't dedupe
-            Sentry.captureMessage('same message, different stacktrace');
-            Sentry.captureMessage('same message, different stacktrace');
+            captureSameConsecutiveMessages('same message, different stacktrace');
           },
           function(sentryData) {
             var eventCount = 5;
@@ -287,8 +281,8 @@ for (var idx in frames) {
               eventCount = 4;
             }
             if (debounceAssertEventCount(sentryData, eventCount, done)) {
-              assert.match(sentryData[0].message, /different message, same stacktrace \d+/);
-              assert.match(sentryData[1].message, /different message, same stacktrace \d+/);
+              assert.match(sentryData[0].message, /Message no \d+/);
+              assert.match(sentryData[1].message, /Message no \d+/);
               assert.equal(sentryData[2].message, 'same message, same stacktrace');
               assert.equal(sentryData[3].message, 'same message, different stacktrace');
               !IS_ASYNC_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
@@ -313,7 +307,7 @@ for (var idx in frames) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
               var sentryData = sentryData[0];
               // ¯\_(ツ)_/¯
-              if (isBelowIE11() || isEdge14()) {
+              if (isBelowIE11()) {
                 assert.equal(sentryData.exception.values[0].type, undefined);
               } else {
                 assert.match(sentryData.exception.values[0].type, /SyntaxError/);
@@ -421,7 +415,7 @@ for (var idx in frames) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
               var sentryData = iframe.contentWindow.sentryData[0];
               // ¯\_(ツ)_/¯
-              if (isBelowIE11() || isEdge14()) {
+              if (isBelowIE11()) {
                 assert.equal(sentryData.exception.values[0].type, undefined);
               } else {
                 assert.match(sentryData.exception.values[0].type, /^Error/);
@@ -497,10 +491,7 @@ for (var idx in frames) {
               assert.equal(iframe.contentWindow.element, iframe.contentWindow.context);
               delete iframe.contentWindow.element;
               delete iframe.contentWindow.context;
-
-              var sentryData = sentryData[0];
-              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 5);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               done();
             }
           }
@@ -544,13 +535,11 @@ for (var idx in frames) {
           function() {
             setTimeout(function() {
               foo();
-            }, 10);
+            });
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
-              var sentryData = sentryData[0];
-              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               done();
             }
           }
@@ -571,9 +560,7 @@ for (var idx in frames) {
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
-              var sentryData = sentryData[0];
-              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               done();
             }
           }
@@ -595,9 +582,7 @@ for (var idx in frames) {
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
-              var sentryData = sentryData[0];
-              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               done();
             }
           }
@@ -628,10 +613,7 @@ for (var idx in frames) {
           },
           function(sentryData) {
             if (debounceAssertEventCount(sentryData, 1, done)) {
-              var sentryData = sentryData[0];
-              // # of frames alter significantly between chrome/firefox & safari
-              assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 3);
-              assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+              assert.match(sentryData[0].exception.values[0].value, /baz/);
               done();
             }
           }
@@ -790,42 +772,35 @@ for (var idx in frames) {
     });
 
     describe('breadcrumbs', function() {
-      it('should record an XMLHttpRequest', function(done) {
+      it('should record an XMLHttpRequest with a handler', function(done) {
         var iframe = this.iframe;
 
         iframeExecute(
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             var xhr = new XMLHttpRequest();
-
             xhr.open('GET', 'example.json');
             xhr.setRequestHeader('Content-type', 'application/json');
             xhr.onreadystatechange = function() {
-              // don't fire `done` handler until at least *one* onreadystatechange
-              // has occurred (doesn't actually need to finish)
               if (xhr.readyState === 4) {
-                setTimeout(function() {
-                  Sentry.captureMessage('test');
-                });
+                done();
               }
             };
             xhr.send();
           },
-          function(sentryData) {
+          function() {
             if (IS_ASYNC_LOADER) {
               // The async loader doesn't wrap XHR
-              assert.lengthOf(sentryData, 1);
-              done();
-              return;
+              return done();
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].type, 'http');
+            assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+
             done();
           }
         );
@@ -842,12 +817,7 @@ for (var idx in frames) {
             // set an onload/onreadystatechange handler on XHR to verify that it finished
             // - that's the whole point of this test! :(
             setTimeout(done, 1000);
-
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             var xhr = new XMLHttpRequest();
-
             xhr.open('GET', 'example.json');
             xhr.setRequestHeader('Content-type', 'application/json');
             xhr.send();
@@ -859,14 +829,13 @@ for (var idx in frames) {
               done();
               return;
             }
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
-
             assert.equal(breadcrumbs[0].type, 'http');
             assert.equal(breadcrumbs[0].category, 'xhr');
             assert.equal(breadcrumbs[0].data.method, 'GET');
+
             done();
           }
         );
@@ -890,8 +859,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].category, 'sentry');
             assert.equal(breadcrumbs[0].level, 'warning');
@@ -908,9 +876,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             fetch('example.json').then(
               function() {
                 Sentry.captureMessage('test');
@@ -928,29 +893,22 @@ for (var idx in frames) {
               return;
             }
 
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
             var breadcrumbUrl = 'example.json';
 
             if ('fetch' in window) {
               assert.equal(breadcrumbs.length, 1);
-
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'fetch');
               assert.equal(breadcrumbs[0].data.method, 'GET');
               assert.equal(breadcrumbs[0].data.url, breadcrumbUrl);
             } else {
               // otherwise we use a fetch polyfill based on xhr
-              assert.equal(breadcrumbs.length, 2);
-
+              assert.equal(breadcrumbs.length, 1);
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'xhr');
               assert.equal(breadcrumbs[0].data.method, 'GET');
               assert.equal(breadcrumbs[0].data.url, breadcrumbUrl);
-
-              assert.equal(breadcrumbs[1].type, 'http');
-              assert.equal(breadcrumbs[1].category, 'fetch');
-              assert.equal(breadcrumbs[1].data.method, 'GET');
-              assert.equal(breadcrumbs[1].data.url, breadcrumbUrl);
             }
             done();
           }
@@ -964,9 +922,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             fetch(new Request('example.json')).then(
               function() {
                 Sentry.captureMessage('test');
@@ -983,12 +938,11 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
             var breadcrumbUrl = 'example.json';
 
             if ('fetch' in window) {
               assert.equal(breadcrumbs.length, 1);
-
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'fetch');
               assert.equal(breadcrumbs[0].data.method, 'GET');
@@ -996,17 +950,11 @@ for (var idx in frames) {
               assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
             } else {
               // otherwise we use a fetch polyfill based on xhr
-              assert.equal(breadcrumbs.length, 2);
-
+              assert.equal(breadcrumbs.length, 1);
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'xhr');
               assert.equal(breadcrumbs[0].data.method, 'GET');
               assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
-
-              assert.equal(breadcrumbs[1].type, 'http');
-              assert.equal(breadcrumbs[1].category, 'fetch');
-              assert.equal(breadcrumbs[1].data.method, 'GET');
-              assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
             done();
           }
@@ -1020,9 +968,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             fetch(123).then(
               function() {
                 Sentry.captureMessage('test');
@@ -1039,12 +984,11 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
             var breadcrumbUrl = '123';
 
             if ('fetch' in window) {
               assert.equal(breadcrumbs.length, 1);
-
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'fetch');
               assert.equal(breadcrumbs[0].data.method, 'GET');
@@ -1052,17 +996,11 @@ for (var idx in frames) {
               assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
             } else {
               // otherwise we use a fetch polyfill based on xhr
-              assert.equal(breadcrumbs.length, 2);
-
+              assert.equal(breadcrumbs.length, 1);
               assert.equal(breadcrumbs[0].type, 'http');
               assert.equal(breadcrumbs[0].category, 'xhr');
               assert.equal(breadcrumbs[0].data.method, 'GET');
               assert.ok(breadcrumbs[0].data.url.indexOf(breadcrumbUrl) !== -1);
-
-              assert.equal(breadcrumbs[1].type, 'http');
-              assert.equal(breadcrumbs[1].category, 'fetch');
-              assert.equal(breadcrumbs[1].data.method, 'GET');
-              assert.ok(breadcrumbs[1].data.url.indexOf(breadcrumbUrl) !== -1);
             }
             done();
           }
@@ -1076,9 +1014,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // add an event listener to the input. we want to make sure that
             // our breadcrumbs still work even if the page has an event listener
             // on an element that cancels event bubbling
@@ -1102,7 +1037,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
@@ -1120,9 +1055,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // click <input/>
             var click = new MouseEvent('click');
             var input = document.getElementsByTagName('input')[0];
@@ -1138,7 +1070,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
@@ -1156,9 +1088,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             var clickHandler = function(evt) {
               //evt.stopPropagation();
             };
@@ -1185,7 +1114,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
@@ -1204,9 +1133,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // click <input/>
             var click = new MouseEvent('click');
             function kaboom() {
@@ -1228,7 +1154,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].category, 'ui.click');
@@ -1244,9 +1170,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // keypress <input/> twice
             var keypress1 = new KeyboardEvent('keypress');
             var keypress2 = new KeyboardEvent('keypress');
@@ -1265,7 +1188,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
@@ -1300,8 +1223,7 @@ for (var idx in frames) {
             }
             // TODO: don't really understand what's going on here
             // Why do we not catch an error here
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
             assert.equal(breadcrumbs.length, 1);
             assert.equal(breadcrumbs[0].category, 'ui.input');
             assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
@@ -1317,9 +1239,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // 1st keypress <input/>
             var keypress1 = new KeyboardEvent('keypress');
             // click <input/>
@@ -1342,7 +1261,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 3);
 
@@ -1366,11 +1285,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            setTimeout(done, 1000);
-
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             // keypress <input/> twice
             var keypress1 = new KeyboardEvent('keypress');
             var keypress2 = new KeyboardEvent('keypress');
@@ -1380,6 +1294,7 @@ for (var idx in frames) {
             div.dispatchEvent(keypress2);
             setTimeout(function() {
               Sentry.captureMessage('test');
+              setTimeout(done, 1000);
             });
           },
           function(sentryData) {
@@ -1389,7 +1304,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var breadcrumbs = sentryData[0].breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 1);
 
@@ -1407,9 +1322,6 @@ for (var idx in frames) {
           iframe,
           done,
           function() {
-            // some browsers trigger onpopstate for load / reset breadcrumb state
-            // Sentry._breadcrumbs = [];
-
             history.pushState({}, '', '/foo');
             history.pushState({}, '', '/bar?a=1#fragment');
             history.pushState({}, '', {}); // pushState calls toString on non-string args
@@ -1427,8 +1339,7 @@ for (var idx in frames) {
               done();
               return;
             }
-            var Sentry = iframe.contentWindow.Sentry;
-            var breadcrumbs = Sentry.getCurrentHub().getScope().breadcrumbs;
+            var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
 
             assert.equal(breadcrumbs.length, 4);
             assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
