@@ -33,8 +33,12 @@ DummyTransport.prototype.captureEvent = function(event) {
 
 Sentry.init({
   dsn: 'https://public@example.com/1',
+  // debug: true,
   attachStacktrace: true,
   transport: DummyTransport,
+  // integrations: function(old) {
+  //   return [new Sentry.Integrations.Debug({ stringify: true })].concat(old);
+  // },
   beforeBreadcrumb: function(breadcrumb) {
     // Filter console logs as we use them for debugging *a lot* and they are not *that* important
     if (breadcrumb.category === 'console') {
@@ -70,4 +74,48 @@ function foo2() {
   // identical to foo, but meant for testing
   // different stack frame fns w/ same stack length
   bar();
+}
+
+function throwNonError() {
+  try {
+    throw { foo: 'bar' };
+  } catch (o_O) {
+    Sentry.captureException(o_O);
+  }
+}
+
+function throwError(message) {
+  message = message || 'foo';
+  try {
+    throw new Error(message);
+  } catch (o_O) {
+    Sentry.captureException(o_O);
+  }
+}
+
+function throwRandomError() {
+  try {
+    throw new Error('Exception no ' + (Date.now() + Math.random()));
+  } catch (o_O) {
+    Sentry.captureException(o_O);
+  }
+}
+
+function throwSameConsecutiveErrors(message) {
+  throwError(message);
+  throwError(message);
+}
+
+function captureMessage(message) {
+  message = message || 'message';
+  Sentry.captureMessage(message);
+}
+
+function captureRandomMessage() {
+  Sentry.captureMessage('Message no ' + (Date.now() + Math.random()));
+}
+
+function captureSameConsecutiveMessages(message) {
+  captureMessage(message);
+  captureMessage(message);
 }

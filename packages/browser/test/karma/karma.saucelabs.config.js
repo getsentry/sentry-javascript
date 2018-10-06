@@ -32,14 +32,14 @@ var customLaunchers = {
   sl_safari: {
     base: 'SauceLabs',
     browserName: 'safari',
-    platform: 'OS X 10.12',
-    version: '11.0',
+    platform: 'OS X 10.13',
+    version: '11.1',
   },
   sl_ios: {
     base: 'SauceLabs',
     browserName: 'iphone',
-    platform: 'OS X 10.12',
-    version: '11.0',
+    platform: 'OS X 10.13',
+    version: '11.1',
   },
   sl_android_7: {
     base: 'SauceLabs',
