@@ -56,7 +56,7 @@ export class API {
     header.push(`sentry_timestamp=${new Date().getTime()}`);
     header.push(`sentry_client=${clientName}/${clientVersion}`);
     header.push(`sentry_key=${dsn.user}`);
-    if (dsn.pass != null) {
+    if (dsn.pass != null && dsn.pass !== '') {
       header.push(`sentry_secret=${dsn.pass}`);
     }
     return {
