@@ -45,11 +45,6 @@ matrix:
            chrome: stable
            firefox: latest
          script: scripts/raven-js.sh
-       - name: 'raven-js - saucelabs tests'
-         node_js: '8'
-         addons:
-           sauce_connect: true
-         script: scripts/raven-js-saucelabs.sh
        - name: 'raven-node [node v4]'
          node_js: '4'
          script: scripts/raven-node.sh
