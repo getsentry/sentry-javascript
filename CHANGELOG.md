@@ -2,10 +2,23 @@
 
 ## Unreleased
 
-- [hub]: Scope level overwrites level on the event
-- [core]: ref: Check for node-env first and return more accurate global object
+- [all] ref: Use Mocha v4 instead of v5, as it's not supporting IE10
+- [hub] fix: Scope level overwrites level on the event
+- [utils] ref: implemented includes, assign and isNaN polyfills
+- [core] ref: Check for node-env first and return more accurate global object
 - [core] ref: Remove Repo interface and repos attribute from Event
-- [browser]: ref: Include md5 lib and transcript it to TypeScript
+- [core] ref: Rewrite RequestBuffer using Array instead of Set for IE10/11
+- [core] feat: Introduce stringify and debugger options in Debug integration
+- [browser] ref: Include md5 lib and transcript it to TypeScript
+- [browser] test: Run integration tests on SauceLabs
+- [browser] test: Fix all integration tests in IE10/11 and Android browsers
+- [browser] ref: Remove redundant debug.ts file from browser integrations
+- [browser] ref: Remove all trailing commas from integration tests cuz IE10/11
+- [browser] fix: Change loader to use getAttribute instead of dataset
+- [browser] fix: Remove trailing commas from loader for IE10/11
+- [browser] test: Store breadcrumbs in the global variable in integration tests
+- [browser] test: Update polyfills for integration tests
+- [browser] test: Stop running raven-js saucelabs tests in favour of @sentry/browser
 
 ## 4.0.6
 

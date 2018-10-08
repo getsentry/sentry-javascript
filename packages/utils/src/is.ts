@@ -116,3 +116,14 @@ export function isPlainObject(wat: any): boolean {
 export function isRegExp(wat: any): boolean {
   return Object.prototype.toString.call(wat) === '[object RegExp]';
 }
+
+/**
+ * Checks whether given value's type is a NaN
+ * {@link isNaN}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isNaN(wat: any): boolean {
+  return wat !== wat;
+}

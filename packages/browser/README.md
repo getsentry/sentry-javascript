@@ -7,10 +7,13 @@
 
 # Official Sentry SDK for Browsers
 
+[![Sauce Test Status](https://saucelabs.com/buildstatus/sentryio)](https://saucelabs.com/u/sentryio)
 [![npm version](https://img.shields.io/npm/v/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
+
+[![Sauce Test Status](https://saucelabs.com/browser-matrix/sentryio.svg)](https://saucelabs.com/u/sentryio)
 
 ## Links
 
