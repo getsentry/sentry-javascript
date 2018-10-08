@@ -347,7 +347,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const { beforeSend, sampleRate } = this.getOptions();
 
-    if (typeof sampleRate === 'number' && sampleRate > Math.random()) {
+    // 1.0 === 100% events are sent
+    // 0.0 === 0% events are sent
+    if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
       return {
         status: Status.Skipped,
       };
