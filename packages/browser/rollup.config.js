@@ -1,3 +1,4 @@
+import builtins from 'rollup-plugin-node-builtins';
 import commonjs from 'rollup-plugin-commonjs';
 import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
@@ -17,6 +18,7 @@ const bundleConfig = {
   },
   context: 'window',
   plugins: [
+    builtins(),
     typescript({
       tsconfig: 'tsconfig.build.json',
       tsconfigOverride: { compilerOptions: { declaration: false } },
