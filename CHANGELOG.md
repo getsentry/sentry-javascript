@@ -6,6 +6,7 @@
 - [core]: ref: Check for node-env first and return more accurate global object
 - [core] ref: Remove Repo interface and repos attribute from Event
 - [browser]: ref: Include md5 lib and transcript it to TypeScript
+- [browser]: feat: Better mechanism detection in TraceKit
 
 ## 4.0.6
 
