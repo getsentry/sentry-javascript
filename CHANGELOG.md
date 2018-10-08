@@ -2,35 +2,33 @@
 
 ## Unreleased
 
-- [hub] fix: Scope level overwrites level on the event
-- [core] fix: correct sampleRate behaviour
-- [core] feat: RewriteFrames pluggable integration
+- [browser] feat: Better mechanism detection in TraceKit
+- [browser] fix: Change loader to use getAttribute instead of dataset
+- [browser] fix: Remove trailing commas from loader for IE10/11
+- [browser] ref: Include md5 lib and transcript it to TypeScript
+- [browser] ref: Remove all trailing commas from integration tests cuz IE10/11
+- [browser] ref: Remove default transaction from browser
+- [browser] ref: Remove redundant debug.ts file from browser integrations
+- [browser] test: Fix all integration tests in IE10/11 and Android browsers
+- [browser] test: Run integration tests on SauceLabs
+- [browser] test: Stop running raven-js saucelabs tests in favour of @sentry/browser
+- [browser] test: Store breadcrumbs in the global variable in integration tests
+- [browser] test: Update polyfills for integration tests
+- [build] ref: Use Mocha v4 instead of v5, as it's not supporting IE10
 - [core] feat: Introduce stringify and debugger options in Debug integration
+- [core] feat: RewriteFrames pluggable integration
 - [core] feat: getRequestheaders should handle legacy DSNs
-- [core] ref: Check for node-env first and return more accurate global object
-- [core] ref: Remove Repo interface and repos attribute from Event
+- [core] fix: correct sampleRate behaviour
+- [core] misc: Warn user when beforeSend doesnt return an event or null
 - [core] ref: Check for node-env first and return more accurate global object
 - [core] ref: Remove Repo interface and repos attribute from Event
 - [core] ref: Rewrite RequestBuffer using Array instead of Set for IE10/11
-- [core] misc: Warn user when beforeSend doesnt return an event or null
-- [browser] fix: Change loader to use getAttribute instead of dataset
-- [browser] fix: Remove trailing commas from loader for IE10/11
-- [browser] feat: Better mechanism detection in TraceKit
-- [browser] ref: Include md5 lib and transcript it to TypeScript
-- [browser] ref: Remove default transaction from browser
-- [browser] ref: Include md5 lib and transcript it to TypeScript
-- [browser] ref: Remove redundant debug.ts file from browser integrations
-- [browser] ref: Remove all trailing commas from integration tests cuz IE10/11
-- [browser] test: Run integration tests on SauceLabs
-- [browser] test: Fix all integration tests in IE10/11 and Android browsers
-- [browser] test: Store breadcrumbs in the global variable in integration tests
-- [browser] test: Update polyfills for integration tests
-- [browser] test: Stop running raven-js saucelabs tests in favour of @sentry/browser
-- [node] feat: Transactions handling for RequestHandler in Express/Hapi
+- [hub] fix: Scope level overwrites level on the event
 - [node] feat: Allow requestHandler to be configured
 - [node] feat: Make node transactions a pluggable integration with tests 
+- [node] feat: Transactions handling for RequestHandler in Express/Hapi
+- [node] fix: Dont wrap native modules more than once to prevent leaks
 - [utils] ref: implemented includes, assign and isNaN polyfills
-- [build] ref: Use Mocha v4 instead of v5, as it's not supporting IE10
 
 ## 4.0.6
 

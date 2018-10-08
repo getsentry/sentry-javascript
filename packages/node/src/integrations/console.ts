@@ -14,12 +14,13 @@ function loadWrapper(nativeModule: any): any {
     return function(moduleId: string): any {
       const originalModule = originalLoad.apply(nativeModule, arguments);
 
-      if (moduleId !== 'console') {
+      if (moduleId !== 'console' || originalModule.__sentry__) {
         return originalModule;
       }
 
       ['debug', 'info', 'warn', 'error', 'log'].forEach(consoleWrapper(originalModule));
 
+      originalModule.__sentry__ = true;
       return originalModule;
     };
   };

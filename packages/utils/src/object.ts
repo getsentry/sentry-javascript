@@ -153,7 +153,7 @@ export function clone<T>(object: T): T {
  */
 
 export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
-  if (!(name in source)) {
+  if (!(name in source) || (source[name] as SentryWrappedFunction).__sentry__) {
     return;
   }
   const original = source[name] as () => any;
