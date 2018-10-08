@@ -2,6 +2,7 @@ import { configureScope } from '@sentry/minimal';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { getEventDescription } from '@sentry/utils/misc';
+import { includes } from '@sentry/utils/string';
 import { logger } from '../logger';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
@@ -108,7 +109,7 @@ export class InboundFilters implements Integration {
     if (isRegExp(pattern)) {
       return (pattern as RegExp).test(value);
     } else if (typeof pattern === 'string') {
-      return value.includes(pattern);
+      return includes(value, pattern);
     } else {
       return false;
     }

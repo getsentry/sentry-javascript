@@ -3,7 +3,7 @@ import { Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
-import { safeJoin } from '@sentry/utils/string';
+import { includes, safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
 import { BrowserOptions } from '../backend';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
@@ -97,7 +97,7 @@ export class Breadcrumbs implements Integration {
 
         // if Sentry key appears in URL, don't capture it as a request
         // but rather as our own 'sentry' type breadcrumb
-        if (options.filterUrl && url.includes(options.filterUrl)) {
+        if (options.filterUrl && includes(url, options.filterUrl)) {
           addSentryBreadcrumb(data);
           return result;
         }
@@ -210,7 +210,7 @@ export class Breadcrumbs implements Integration {
 
         // if Sentry key appears in URL, don't capture it as a request
         // but rather as our own 'sentry' type breadcrumb
-        if (options.filterUrl && url.includes(options.filterUrl)) {
+        if (options.filterUrl && includes(url, options.filterUrl)) {
           if (method === 'POST' && args[1] && args[1].body) {
             addSentryBreadcrumb(args[1].body);
           }
@@ -371,7 +371,7 @@ export class Breadcrumbs implements Integration {
           };
           // if Sentry key appears in URL, don't capture it as a request
           // but rather as our own 'sentry' type breadcrumb
-          if (isString(url) && (options.filterUrl && url.includes(options.filterUrl))) {
+          if (isString(url) && (options.filterUrl && includes(url, options.filterUrl))) {
             this.__sentry_own_request__ = true;
           }
           return originalOpen.apply(this, args);

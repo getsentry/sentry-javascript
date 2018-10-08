@@ -1,4 +1,5 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
+import { assign } from '@sentry/utils/object';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -134,7 +135,7 @@ export class Scope {
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();
-    Object.assign(newScope, scope, {
+    assign(newScope, scope, {
       scopeListeners: [],
     });
     if (scope) {

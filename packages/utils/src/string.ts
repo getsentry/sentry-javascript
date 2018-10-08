@@ -81,3 +81,18 @@ export function safeJoin(input: any[], delimiter?: string): string {
 
   return output.join(delimiter);
 }
+
+/**
+ * Checks if given value is included in the target
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
+ * @param target source string
+ * @param search string to be looked for
+ * @returns An answer
+ */
+export function includes(target: string, search: string): boolean {
+  if (search.length > target.length) {
+    return false;
+  } else {
+    return target.indexOf(search) !== -1;
+  }
+}
