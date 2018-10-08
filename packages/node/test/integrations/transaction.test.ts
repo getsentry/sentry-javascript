@@ -2,7 +2,7 @@ import { Transaction } from '../../src/integrations/pluggable/transaction';
 
 const transaction: Transaction = new Transaction();
 
-describe.only('Transaction', () => {
+describe('Transaction', () => {
   describe('extracts info from module/function of the first `in_app` frame', () => {
     it('using module only', async () => {
       const event = await transaction.process({

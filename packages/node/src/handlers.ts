@@ -16,7 +16,7 @@ const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: { [key: string]: any }, type: TransactionTypes): string | undefined {
+function extractTransaction(req: { [key: string]: any }, type: boolean | TransactionTypes): string | undefined {
   try {
     // Express.js shape
     const request = req as {
@@ -205,7 +205,7 @@ function parseRequest(
 export function requestHandler(options?: {
   request?: boolean;
   serverName?: boolean;
-  transaction?: boolean | string;
+  transaction?: boolean | TransactionTypes;
   user?: boolean;
   version?: boolean;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
