@@ -1,4 +1,4 @@
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryResponse } from '@sentry/types';
 import { getCurrentHub, Hub, Scope } from '../../src';
 
 const clientFn = jest.fn();
@@ -190,31 +190,31 @@ describe('Hub', () => {
     expect(hub.getStackTop().client).toEqual({ bla: 'a' });
   });
 
-  test('captureException', () => {
+  test('captureException', async () => {
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureException('a');
+    await hub.captureException('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureException');
     expect(spy.mock.calls[0][1]).toBe('a');
   });
 
-  test('captureMessage', () => {
+  test('captureMessage', async () => {
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureMessage('a');
+    await hub.captureMessage('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureMessage');
     expect(spy.mock.calls[0][1]).toBe('a');
   });
 
-  test('captureEvent', () => {
+  test('captureEvent', async () => {
     const event: SentryEvent = {
       extra: { b: 3 },
     };
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureEvent(event);
+    await hub.captureEvent(event);
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureEvent');
     expect(spy.mock.calls[0][1]).toBe(event);
@@ -268,36 +268,42 @@ describe('Hub', () => {
     }
   });
 
-  test('captureException should set event_id in hint', () => {
+  test('captureException should set event_id in hint', async () => {
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureException('a');
+    await hub.captureException('a');
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });
 
-  test('captureMessage should set event_id in hint', () => {
+  test('captureMessage should set event_id in hint', async () => {
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureMessage('a');
+    await hub.captureMessage('a');
     expect(spy.mock.calls[0][3].event_id).toBeTruthy();
   });
 
-  test('captureEvent should set event_id in hint', () => {
+  test('captureEvent should set event_id in hint', async () => {
     const event: SentryEvent = {
       extra: { b: 3 },
     };
     const hub = new Hub();
     const spy = jest.spyOn(hub as any, 'invokeClientAsync');
-    hub.captureEvent(event);
+    await hub.captureEvent(event);
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });
 
-  test('lastEventId should be the same as last created', () => {
-    const event: SentryEvent = {
-      extra: { b: 3 },
-    };
-    const hub = new Hub();
-    const eventId = hub.captureEvent(event);
+  test('lastEventId should be the same as last created', async () => {
+    const hub = new Hub({
+      captureEvent: async (_: SentryEvent, hint: { event_id: string }) =>
+        Promise.resolve({
+          event: {
+            event_id: hint.event_id,
+          },
+        }),
+    });
+    const eventId = await hub
+      .captureEvent({})
+      .then((response: SentryResponse) => (response.event as SentryEvent).event_id);
     expect(eventId).toBe(hub.lastEventId());
   });
 

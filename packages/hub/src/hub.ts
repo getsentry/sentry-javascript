@@ -39,11 +39,12 @@ export class Hub {
    *
    * @param method The method to call on the client/client.
    * @param args Arguments to pass to the client/frontend.
+   * @return invoked function
    */
-  private invokeClient(method: string, ...args: any[]): void {
+  private invokeClient(method: string, ...args: any[]): (() => any) | void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope);
+      return top.client[method](...args, top.scope);
     }
   }
 
@@ -53,13 +54,16 @@ export class Hub {
    *
    * @param method The method to call on the client/client.
    * @param args Arguments to pass to the client/frontend.
+   * @return invoked function
    */
-  private invokeClientAsync(method: string, ...args: any[]): void {
+  private async invokeClientAsync(method: string, ...args: any[]): Promise<any> {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope).catch((err: any) => {
+      return top.client[method](...args, top.scope).catch((err: any) => {
         console.error(err);
       });
+    } else {
+      return Promise.resolve();
     }
   }
 
@@ -173,15 +177,14 @@ export class Hub {
    *
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
-   * @returns The generated eventId.
+   * @returns client's captureException call
    */
-  public captureException(exception: any, hint?: SentryEventHint): string {
+  public async captureException(exception: any, hint?: SentryEventHint): Promise<any> {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureException', exception, {
+    return this.invokeClientAsync('captureException', exception, {
       ...hint,
       event_id: eventId,
     });
-    return eventId;
   }
 
   /**
@@ -190,15 +193,14 @@ export class Hub {
    * @param message The message to send to Sentry.
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
-   * @returns The generated eventId.
+   * @returns client's captureMessage call
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
+  public async captureMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<any> {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureMessage', message, level, {
+    return this.invokeClientAsync('captureMessage', message, level, {
       ...hint,
       event_id: eventId,
     });
-    return eventId;
   }
 
   /**
@@ -206,14 +208,14 @@ export class Hub {
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
+   * @returns client's captureEvent call
    */
-  public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
+  public async captureEvent(event: SentryEvent, hint?: SentryEventHint): Promise<any> {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureEvent', event, {
+    return this.invokeClientAsync('captureEvent', event, {
       ...hint,
       event_id: eventId,
     });
-    return eventId;
   }
 
   /**
@@ -233,9 +235,10 @@ export class Hub {
    *
    * @param breadcrumb The breadcrumb to record.
    * @param hint May contain additional information about the original breadcrumb.
+   * @returns client's addBreadcrumb call
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
-    this.invokeClient('addBreadcrumb', breadcrumb, { ...hint });
+  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): (() => any) | void {
+    return this.invokeClient('addBreadcrumb', breadcrumb, { ...hint });
   }
 
   /**
