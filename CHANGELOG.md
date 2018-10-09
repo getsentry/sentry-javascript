@@ -28,6 +28,7 @@
 - [node] feat: Make node transactions a pluggable integration with tests 
 - [node] feat: Transactions handling for RequestHandler in Express/Hapi
 - [node] fix: Dont wrap native modules more than once to prevent leaks
+- [node] fix: Update requestHandler to correctly pass scope
 - [utils] ref: implemented includes, assign and isNaN polyfills
 
 ## 4.0.6

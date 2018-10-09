@@ -27,7 +27,7 @@
   },
   "scripts": {
     "build": "run-s clean; tsc -p tsconfig.build.json",
-    "build:watch": "run-s clean; tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check '{src,test}/**/*.ts'",

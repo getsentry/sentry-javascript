@@ -215,9 +215,14 @@ export function requestHandler(options?: {
     next: () => void,
   ): void {
     const local = domain.create();
+    const currentHub = getCurrentHub();
+    const currentScope = currentHub.getScope();
     const hub = getHubFromCarrier(req);
-    hub.bindClient(getCurrentHub().getClient());
+    hub.bindClient(currentHub.getClient());
     hub.configureScope((scope: Scope) => {
+      if (currentScope) {
+        scope.inheritUserData(currentScope);
+      }
       scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
     });
     local.on('error', next);
