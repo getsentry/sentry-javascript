@@ -15,6 +15,7 @@ import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
+import { logger } from './logger';
 
 /** JSDoc */
 interface ExtensibleConsole extends Console {
@@ -368,6 +369,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
         finalEvent = await beforeSend(prepared, hint);
+        if ((typeof finalEvent as any) === 'undefined') {
+          logger.error('`beforeSend` method has to return `null` or a valid event');
+        }
       }
     } catch (exception) {
       forget(
