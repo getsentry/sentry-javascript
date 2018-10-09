@@ -189,9 +189,9 @@ export class Scope {
   public inheritUserData(from: Scope): void {
     const breadcrumbs = from.getBreadcrumbs();
     if (breadcrumbs) {
-      // Don't clone breadcrumbs as they might be quite large in size, wwhich can harm
-      // the performance. Shallow clone in this case shouuuld be enough.
-      const clonedBreadcrumbs = [...breadcrumbs];
+      // Don't clone breadcrumbs as they might be quite large in size, which can harm performance.
+      // Shallow clone in this case shouuuuuld be enough.
+      const clonedBreadcrumbs = [...breadcrumbs.map(breadcrumb => ({ ...breadcrumb }))];
       clonedBreadcrumbs.forEach(breadcrumb => {
         this.addBreadcrumb(breadcrumb);
       });

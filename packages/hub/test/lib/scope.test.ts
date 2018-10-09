@@ -233,4 +233,66 @@ describe('Scope', () => {
     const final = await localScope.applyToEvent(event, { syntheticException: new Error('what') });
     expect(final).toEqual(event);
   });
+
+  test('inheritUserData', () => {
+    const donor = new Scope();
+    const receiver = new Scope();
+
+    donor.addBreadcrumb({
+      data: {
+        some: 'data',
+      },
+      message: 'test2',
+    });
+    donor.setExtra('b', 3);
+    donor.setExtra('deep', {
+      some: 'data',
+    });
+    donor.setFingerprint(['efgh']);
+    donor.setTag('b', 'c');
+    donor.setUser({
+      extra: {
+        some: 'data',
+      },
+      id: '3',
+    });
+    donor.setLevel(Severity.Warning);
+
+    receiver.inheritUserData(donor as any);
+
+    // Should not copy eventProcessors and scopeListeners
+    expect(receiver.eventProcessors).not.toBe(donor.eventProcessors);
+    expect(receiver.scopeListeners).not.toBe(donor.scopeListeners);
+
+    // Should copy breadcrumbs, but shallow copy only
+    expect(receiver.getBreadcrumbs()).not.toBe(donor.getBreadcrumbs());
+    expect(receiver.getBreadcrumbs()[0]).not.toBe(donor.getBreadcrumbs()[0]);
+    expect(receiver.getBreadcrumbs()[0].data).toBe(donor.getBreadcrumbs()[0].data);
+    expect(receiver.getBreadcrumbs()[0].message).toBe(donor.getBreadcrumbs()[0].message);
+
+    // Should deep copy extra, user, tags, fingerprint and level
+
+    // nested object
+    expect(receiver.getExtra()).toEqual(donor.getExtra());
+    expect(receiver.getExtra()).not.toBe(donor.getExtra());
+    expect(receiver.getExtra().deep).toEqual(donor.getExtra().deep);
+    expect(receiver.getExtra().deep).not.toBe(donor.getExtra().deep);
+
+    // nested object
+    expect(receiver.getUser()).toEqual(donor.getUser());
+    expect(receiver.getUser()).not.toBe(donor.getUser());
+    expect(receiver.getUser().extra).toEqual(donor.getUser().extra);
+    expect(receiver.getUser().extra).not.toBe(donor.getUser().extra);
+
+    // non-nested object
+    expect(receiver.getTags()).toEqual(donor.getTags());
+    expect(receiver.getTags()).not.toBe(donor.getTags());
+
+    // non-nested array
+    expect(receiver.getFingerprint()).toEqual(donor.getFingerprint());
+    expect(receiver.getFingerprint()).not.toBe(donor.getFingerprint());
+
+    // string
+    expect(receiver.getLevel()).toEqual(donor.getLevel());
+  });
 });
