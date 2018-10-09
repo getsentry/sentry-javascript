@@ -122,129 +122,127 @@ declare namespace Raven {
 
     Plugins: {[id: string]: RavenPlugin};
 
-    /*
-        * Allow Raven to be configured as soon as it is loaded
-        * It uses a global RavenConfig = {dsn: '...', config: {}}
-        *
-        * @return undefined
-        */
+    /**
+     * Allow Raven to be configured as soon as it is loaded
+     * It uses a global RavenConfig = {dsn: '...', config: {}}
+     *
+     * @return undefined
+     */
     afterLoad(): void;
 
-    /*
-        * Allow multiple versions of Raven to be installed.
-        * Strip Raven from the global context and returns the instance.
-        *
-        * @return {Raven}
-        */
+    /**
+     * Allow multiple versions of Raven to be installed.
+     * Strip Raven from the global context and returns the instance.
+     *
+     * @return {Raven}
+     */
     noConflict(): RavenStatic;
 
-    /*
-        * Configure Raven with a DSN and extra options
-        *
-        * @param {string} dsn The public Sentry DSN
-        * @param {object} options Optional set of global options [optional]
-        * @return {Raven}
-        */
+    /**
+     * Configure Raven with a DSN and extra options
+     *
+     * @param {string} dsn The public Sentry DSN
+     * @param {object} options Optional set of global options [optional]
+     * @return {Raven}
+     */
     config(dsn: string, options?: RavenOptions): RavenStatic;
 
-    /*
-        * Installs a global window.onerror error handler
-        * to capture and report uncaught exceptions.
-        * At this point, install() is required to be called due
-        * to the way TraceKit is set up.
-        *
-        * @return {Raven}
-        */
+    /**
+     * Installs a global window.onerror error handler
+     * to capture and report uncaught exceptions.
+     * At this point, install() is required to be called due
+     * to the way TraceKit is set up.
+     *
+     * @return {Raven}
+     */
     install(): RavenStatic;
 
-    /*
-        * Adds a plugin to Raven
-        *
-        * @return {Raven}
-        */
+    /**
+     * Adds a plugin to Raven
+     *
+     * @return {Raven}
+     */
     addPlugin(plugin: RavenPlugin, ...pluginArgs: any[]): RavenStatic;
 
-    /*
-        * Wrap code within a context so Raven can capture errors
-        * reliably across domains that is executed immediately.
-        *
-        * @param {object} options A specific set of options for this context [optional]
-        * @param {function} func The callback to be immediately executed within the context
-        * @param {array} args An array of arguments to be called with the callback [optional]
-        */
+    /**
+     * Wrap code within a context so Raven can capture errors
+     * reliably across domains that is executed immediately.
+     *
+     * @param {object} options A specific set of options for this context [optional]
+     * @param {function} func The callback to be immediately executed within the context
+     * @param {array} args An array of arguments to be called with the callback [optional]
+     */
     context(func: Function, ...args: any[]): void;
     context(options: RavenOptions, func: Function, ...args: any[]): void;
 
-    /*
-        * Wrap code within a context and returns back a new function to be executed
-        *
-        * @param {object} options A specific set of options for this context [optional]
-        * @param {function} func The function to be wrapped in a new context
-        * @return {function} The newly wrapped functions with a context
-        */
+    /**
+     * Wrap code within a context and returns back a new function to be executed
+     *
+     * @param {object} options A specific set of options for this context [optional]
+     * @param {function} func The function to be wrapped in a new context
+     * @return {function} The newly wrapped functions with a context
+     */
     wrap(func: Function): Function;
     wrap(options: RavenOptions, func: Function): Function;
     wrap<T extends Function>(func: T): T;
     wrap<T extends Function>(options: RavenOptions, func: T): T;
 
-    /*
-        * Uninstalls the global error handler.
-        *
-        * @return {Raven}
-        */
+    /**
+     * Uninstalls the global error handler.
+     *
+     * @return {Raven}
+     */
     uninstall(): RavenStatic;
 
-    /*
-        * Manually capture an exception and send it over to Sentry
-        *
-        * @param {error|ErrorEvent|string} ex An exception to be logged
-        * @param {object} options A specific set of options for this error [optional]
-        * @return {Raven}
-        */
+    /**
+     * Manually capture an exception and send it over to Sentry
+     *
+     * @param {error|ErrorEvent|string} ex An exception to be logged
+     * @param {object} options A specific set of options for this error [optional]
+     * @return {Raven}
+     */
     captureException(
       ex: Error | ErrorEvent | string,
       options?: RavenOptions
     ): RavenStatic;
 
-    /*
-        * Manually send a message to Sentry
-        *
-        * @param {string} msg A plain message to be captured in Sentry
-        * @param {object} options A specific set of options for this message [optional]
-        * @return {Raven}
-        */
+    /**
+     * Manually send a message to Sentry
+     *
+     * @param {string} msg A plain message to be captured in Sentry
+     * @param {object} options A specific set of options for this message [optional]
+     * @return {Raven}
+     */
     captureMessage(msg: string, options?: RavenOptions): RavenStatic;
 
     /** Log a breadcrumb */
     captureBreadcrumb(crumb: Breadcrumb): RavenStatic;
 
-    /*
-        * Set/Clear a user to be sent along with the payload.
-        *
-        * @param {object} user An object representing user data [optional]
-        *                 If user is undefined, the current user context will be removed.
-        * @return {Raven}
-        */
-    setUserContext(user?: {
-      [key: string]: any;
-    }): RavenStatic;
+    /**
+     * Set/Clear a user to be sent along with the payload.
+     *
+     * @param {object} user An object representing user data [optional]
+     *                 If user is undefined, the current user context will be removed.
+     * @return {Raven}
+     */
+    setUserContext(user?: {[key: string]: any}): RavenStatic;
 
-    /*
-        * Merge extra attributes to be sent along with the payload.
-        *
-        * @param {object} context A set of data to be merged with the current extra context data [optional]
-        *                 If context is undefined, the current extra context data will be removed.
-        * @return {Raven}
-        */
+    /**
+     * Merge extra attributes to be sent along with the payload.
+     *
+     * @param {object} context A set of data to be merged with the current extra context data [optional]
+     *                 If context is undefined, the current extra context data will be removed.
+     * @return {Raven}
+     */
     setExtraContext(context?: Object): RavenStatic;
 
-    /*
-        * Merge tags to be sent along with the payload.
-        *
-        * @param {object} tags A set of data to be merged with the current tag context data [optional]
-        *                 If tags is undefined, the current tag context data will be removed.
-        * @return {Raven}
-        */
+    /**
+     * Merge tags to be sent along with the payload.
+     *
+     * @param {object} tags A set of data to be merged with the current tag context data [optional]
+     *                 If tags is undefined, the current tag context data will be removed.
+     * @return {Raven}
+     */
     setTagsContext(tags?: Object): RavenStatic;
 
     /** Clear all of the context. */
@@ -285,11 +283,11 @@ declare namespace Raven {
     /** Show Sentry user feedback dialog */
     showReportDialog(options?: Object): void;
 
-    /*
-         * Configure Raven DSN
-         *
-         * @param {string} dsn The public Sentry DSN
-         */
+    /**
+     * Configure Raven DSN
+     *
+     * @param {string} dsn The public Sentry DSN
+     */
     setDSN(dsn: string): void;
   }
 
@@ -329,5 +327,14 @@ declare namespace Raven {
     sentry?: boolean;
   }
 
-  type LogLevel = 'critical' | 'error' | 'warning' | 'info' | 'debug' | 'warn' | 'log';
+  /** Event/Breadcrumb Severity. `critical` is for Breadcrumbs only and `fatal` is for Events only. */
+  type LogLevel =
+    | 'critical'
+    | 'fatal'
+    | 'error'
+    | 'warning'
+    | 'info'
+    | 'debug'
+    | 'warn'
+    | 'log';
 }
