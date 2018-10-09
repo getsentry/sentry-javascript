@@ -27,6 +27,7 @@
 - [hub] fix: Correctly store and retrieve Hub from domain when one is active
 - [hub] fix: Copy over user data when cloning scope
 - [node] feat: Allow requestHandler to be configured
+- [node] feat: Allow pick any user attributes from requestHandler
 - [node] feat: Make node transactions a pluggable integration with tests
 - [node] feat: Transactions handling for RequestHandler in Express/Hapi
 - [node] fix: Dont wrap native modules more than once to prevent leaks

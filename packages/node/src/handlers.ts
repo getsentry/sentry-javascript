@@ -114,11 +114,15 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
   return request;
 }
 
-/** JSDoc */
-function extractUserData(req: { [key: string]: any }): { [key: string]: string } {
-  const user: { [key: string]: string } = {};
+/** Default user keys that'll be used to extract data from the request */
+const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
 
-  ['id', 'username', 'email'].forEach(key => {
+/** JSDoc */
+function extractUserData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
+  const user: { [key: string]: string } = {};
+  const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_KEYS;
+
+  attributes.forEach(key => {
     if ({}.hasOwnProperty.call(req.user, key)) {
       user[key] = (req.user as { [key: string]: string })[key];
     }
@@ -151,7 +155,7 @@ function parseRequest(
     request?: boolean;
     serverName?: boolean;
     transaction?: boolean | TransactionTypes;
-    user?: boolean;
+    user?: boolean | string[];
     version?: boolean;
   },
 ): SentryEvent {
@@ -186,7 +190,7 @@ function parseRequest(
   if (options.user && req.user) {
     event.user = {
       ...event.user,
-      ...extractUserData(req),
+      ...extractUserData(req, options.user),
     };
   }
 
@@ -205,7 +209,7 @@ export function requestHandler(options?: {
   request?: boolean;
   serverName?: boolean;
   transaction?: boolean | TransactionTypes;
-  user?: boolean;
+  user?: boolean | string[];
   version?: boolean;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
