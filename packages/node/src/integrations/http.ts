@@ -47,7 +47,7 @@ function loadWrapper(nativeModule: any): any {
     return function(this: SentryRequest, moduleId: string): any {
       const originalModule = originalLoad.apply(nativeModule, arguments);
 
-      if (moduleId !== 'http') {
+      if (moduleId !== 'http' || originalModule.__sentry__) {
         return originalModule;
       }
 
@@ -93,6 +93,7 @@ function loadWrapper(nativeModule: any): any {
         };
       });
 
+      originalModule.__sentry__ = true;
       return originalModule;
     };
   };
