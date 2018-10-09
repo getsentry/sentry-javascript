@@ -6,6 +6,7 @@ var transports = require('./transports');
 var path = require('path');
 var lsmod = require('../vendor/node-lsmod');
 var stacktrace = require('stack-trace');
+var Limiter = require('async-limiter');
 var stringify = require('../vendor/json-stringify-safe');
 
 var ravenVersion = require('../package.json').version;
@@ -16,6 +17,8 @@ var protocolMap = {
 };
 
 var consoleAlerts = new Set();
+
+var fsLimiter = new Limiter({concurrency: 25);
 
 // Default Node.js REPL depth
 var MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
@@ -279,9 +282,13 @@ function readSourceFiles(filenames, cb) {
   var sourceFiles = {};
   var numFilesToRead = filenames.length;
   return filenames.forEach(function(filename) {
-    fs.readFile(filename, function(readErr, file) {
-      if (!readErr) sourceFiles[filename] = file.toString().split('\n');
-      if (--numFilesToRead === 0) cb(sourceFiles);
+    fsLimiter.push(function (done) {
+      fs.readFile(filename, function(readErr, file) {
+        done();
+
+        if (!readErr) sourceFiles[filename] = file.toString().split('\n');
+        if (--numFilesToRead === 0) cb(sourceFiles);
+      });
     });
   });
 }
