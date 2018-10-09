@@ -368,6 +368,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
         finalEvent = await beforeSend(prepared, hint);
+
+        if (typeof finalEvent === 'undefined') {
+          finalEvent = prepared
+        }
       }
     } catch (exception) {
       forget(
