@@ -97,6 +97,7 @@
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#assign" class="tsd-kind-icon">assign</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="utils.html#clone" class="tsd-kind-icon">clone</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="utils.html#deserialize" class="tsd-kind-icon">deserialize</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#fill" class="tsd-kind-icon">fill</a></li>
@@ -106,12 +107,15 @@
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#getglobalobject" class="tsd-kind-icon">get<wbr>Global<wbr>Object</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#htmlelementasstring" class="tsd-kind-icon">html<wbr>Element<wbr>AsString</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#htmltreeasstring" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#includes" class="tsd-kind-icon">includes</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isarray" class="tsd-kind-icon">is<wbr>Array</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isdomerror" class="tsd-kind-icon">isDOMError</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isdomexception" class="tsd-kind-icon">isDOMException</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#iserror" class="tsd-kind-icon">is<wbr>Error</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#iserrorevent" class="tsd-kind-icon">is<wbr>Error<wbr>Event</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isfunction" class="tsd-kind-icon">is<wbr>Function</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isnan" class="tsd-kind-icon">is<wbr>NaN</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isnodeenv" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isplainobject" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isregexp" class="tsd-kind-icon">is<wbr>Reg<wbr>Exp</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="utils.html#isstring" class="tsd-kind-icon">is<wbr>String</a></li>
@@ -145,6 +149,37 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="assign" class="tsd-anchor"></a>
+					<h3>assign</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">assign<span class="tsd-signature-symbol">(</span>target<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L299">utils/src/object.ts:299</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>target: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
 					<a name="clone" class="tsd-anchor"></a>
 					<h3>clone</h3>
@@ -155,7 +190,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L143">utils/src/object.ts:143</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L142">utils/src/object.ts:142</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -199,7 +234,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L128">utils/src/object.ts:128</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L127">utils/src/object.ts:127</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -238,7 +273,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L156">utils/src/object.ts:156</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L155">utils/src/object.ts:155</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -305,7 +340,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/async.ts#L20">utils/src/async.ts:20</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/async.ts#L20">utils/src/async.ts:20</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -376,7 +411,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/async.ts#L5">utils/src/async.ts:5</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/async.ts#L5">utils/src/async.ts:5</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -407,7 +442,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L188">utils/src/misc.ts:188</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L192">utils/src/misc.ts:192</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -436,7 +471,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L10">utils/src/misc.ts:10</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L20">utils/src/misc.ts:20</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -464,7 +499,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L113">utils/src/misc.ts:113</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L117">utils/src/misc.ts:117</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -494,7 +529,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L78">utils/src/misc.ts:78</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L82">utils/src/misc.ts:82</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -516,6 +551,45 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="includes" class="tsd-anchor"></a>
+					<h3>includes</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">includes<span class="tsd-signature-symbol">(</span>target<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, search<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/string.ts#L92">utils/src/string.ts:92</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Checks if given value is included in the target
+									<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill</a></p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>target: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>source string</p>
+									</div>
+								</li>
+								<li>
+									<h5>search: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>string to be looked for</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<p>An answer</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="isarray" class="tsd-anchor"></a>
 					<h3>is<wbr>Array</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -525,7 +599,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L94">utils/src/is.ts:94</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L94">utils/src/is.ts:94</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -558,7 +632,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L39">utils/src/is.ts:39</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L39">utils/src/is.ts:39</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -591,7 +665,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L50">utils/src/is.ts:50</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L50">utils/src/is.ts:50</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -624,7 +698,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L8">utils/src/is.ts:8</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L8">utils/src/is.ts:8</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -657,7 +731,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L28">utils/src/is.ts:28</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L28">utils/src/is.ts:28</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -690,7 +764,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L72">utils/src/is.ts:72</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L72">utils/src/is.ts:72</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -714,6 +788,62 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="isnan" class="tsd-anchor"></a>
+					<h3>is<wbr>NaN</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>NaN<span class="tsd-signature-symbol">(</span>wat<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L127">utils/src/is.ts:127</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Checks whether given value&#39;s type is a NaN
+									<a href="utils.html#isnan">isNaN</a>.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>wat: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>A value to be checked.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<p>A boolean representing the result.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="isnodeenv" class="tsd-anchor"></a>
+					<h3>is<wbr>Node<wbr>Env</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Node<wbr>Env<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L9">utils/src/misc.ts:9</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Checks whether we&#39;re in the Node.js or Browser environment</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<p>Answer to given question</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="isplainobject" class="tsd-anchor"></a>
 					<h3>is<wbr>Plain<wbr>Object</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -723,7 +853,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L105">utils/src/is.ts:105</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L105">utils/src/is.ts:105</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -756,7 +886,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L116">utils/src/is.ts:116</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L116">utils/src/is.ts:116</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -789,7 +919,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L83">utils/src/is.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L83">utils/src/is.ts:83</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -822,7 +952,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/is.ts#L61">utils/src/is.ts:61</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/is.ts#L61">utils/src/is.ts:61</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -855,7 +985,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L260">utils/src/object.ts:260</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L259">utils/src/object.ts:259</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -900,7 +1030,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/fs.ts#L54">utils/src/fs.ts:54</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/fs.ts#L54">utils/src/fs.ts:54</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -932,7 +1062,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/fs.ts#L83">utils/src/fs.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/fs.ts#L83">utils/src/fs.ts:83</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -963,7 +1093,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L155">utils/src/misc.ts:155</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L159">utils/src/misc.ts:159</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -997,7 +1127,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/fs.ts#L13">utils/src/fs.ts:13</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/fs.ts#L13">utils/src/fs.ts:13</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1029,7 +1159,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/string.ts#L67">utils/src/string.ts:67</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/string.ts#L67">utils/src/string.ts:67</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1067,7 +1197,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L117">utils/src/object.ts:117</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L116">utils/src/object.ts:116</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1112,7 +1242,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L275">utils/src/object.ts:275</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L274">utils/src/object.ts:274</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1143,7 +1273,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L235">utils/src/object.ts:235</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L234">utils/src/object.ts:234</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1185,7 +1315,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/string.ts#L27">utils/src/string.ts:27</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/string.ts#L27">utils/src/string.ts:27</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1218,7 +1348,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L101">utils/src/supports.ts:101</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L101">utils/src/supports.ts:101</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1242,7 +1372,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L25">utils/src/supports.ts:25</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L25">utils/src/supports.ts:25</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1266,7 +1396,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L45">utils/src/supports.ts:45</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L45">utils/src/supports.ts:45</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1290,7 +1420,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L9">utils/src/supports.ts:9</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L9">utils/src/supports.ts:9</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1314,7 +1444,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L61">utils/src/supports.ts:61</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L61">utils/src/supports.ts:61</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1338,7 +1468,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L149">utils/src/supports.ts:149</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L149">utils/src/supports.ts:149</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1362,7 +1492,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L85">utils/src/supports.ts:85</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L85">utils/src/supports.ts:85</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1386,7 +1516,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L122">utils/src/supports.ts:122</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L122">utils/src/supports.ts:122</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1410,7 +1540,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/supports.ts#L112">utils/src/supports.ts:112</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/supports.ts#L112">utils/src/supports.ts:112</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1434,7 +1564,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/string.ts#L11">utils/src/string.ts:11</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/string.ts#L11">utils/src/string.ts:11</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1472,7 +1602,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/object.ts#L174">utils/src/object.ts:174</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/object.ts#L173">utils/src/object.ts:173</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1509,7 +1639,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/utils/src/misc.ts#L33">utils/src/misc.ts:33</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/utils/src/misc.ts#L37">utils/src/misc.ts:37</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1558,6 +1688,9 @@
 					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="../classes/utils.store.html" class="tsd-kind-icon">Store</a>
 					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="utils.html#assign" class="tsd-kind-icon">assign</a>
+					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="utils.html#clone" class="tsd-kind-icon">clone</a>
 					</li>
@@ -1586,6 +1719,9 @@
 						<a href="utils.html#htmltreeasstring" class="tsd-kind-icon">html<wbr>Tree<wbr>AsString</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="utils.html#includes" class="tsd-kind-icon">includes</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="utils.html#isarray" class="tsd-kind-icon">is<wbr>Array</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
@@ -1602,6 +1738,12 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="utils.html#isfunction" class="tsd-kind-icon">is<wbr>Function</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="utils.html#isnan" class="tsd-kind-icon">is<wbr>NaN</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="utils.html#isnodeenv" class="tsd-kind-icon">is<wbr>Node<wbr>Env</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="utils.html#isplainobject" class="tsd-kind-icon">is<wbr>Plain<wbr>Object</a>

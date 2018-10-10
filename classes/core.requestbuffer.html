@@ -98,6 +98,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.requestbuffer.html#add" class="tsd-kind-icon">add</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.requestbuffer.html#drain" class="tsd-kind-icon">drain</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.requestbuffer.html#length" class="tsd-kind-icon">length</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.requestbuffer.html#remove" class="tsd-kind-icon">remove</a></li>
 							</ul>
 						</section>
 					</div>
@@ -115,7 +116,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/requestbuffer.ts#L12">core/src/requestbuffer.ts:12</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/requestbuffer.ts#L12">core/src/requestbuffer.ts:12</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -147,7 +148,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/requestbuffer.ts#L31">core/src/requestbuffer.ts:31</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/requestbuffer.ts#L44">core/src/requestbuffer.ts:44</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -179,7 +180,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/f474d18/packages/core/src/requestbuffer.ts#L21">core/src/requestbuffer.ts:21</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/requestbuffer.ts#L34">core/src/requestbuffer.ts:34</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -188,6 +189,38 @@
 								</div>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="remove" class="tsd-anchor"></a>
+					<h3>remove</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">remove<span class="tsd-signature-symbol">(</span>task<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/requestbuffer.ts#L26">core/src/requestbuffer.ts:26</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Remove a promise to the queue.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>task: <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Can be any Promise<T></p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<p>Removed promise.</p>
 						</li>
 					</ul>
 				</section>
@@ -265,10 +298,16 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.requestbuffer.html#length" class="tsd-kind-icon">length</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.requestbuffer.html#remove" class="tsd-kind-icon">remove</a>
+							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
+					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
 						<a href="core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
 					</li>

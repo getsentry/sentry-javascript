@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>LogLevel | Sentry JavaScript SDKs</title>
+	<title>RewriteFrames | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,10 +55,10 @@
 					<a href="../modules/core.html">core</a>
 				</li>
 				<li>
-					<a href="core.loglevel.html">LogLevel</a>
+					<a href="core.rewriteframes.html">RewriteFrames</a>
 				</li>
 			</ul>
-			<h1>Enumeration LogLevel</h1>
+			<h1>Class RewriteFrames</h1>
 		</div>
 	</div>
 </header>
@@ -68,87 +68,156 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>Console logging verbosity for the SDK.</p>
+						<p>Rewrite event frames paths</p>
 					</div>
 				</div>
+			</section>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">RewriteFrames</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a></li>
+				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
-							<h3>Enumeration members</h3>
+							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-enum-member tsd-parent-kind-enum"><a href="core.loglevel.html#debug" class="tsd-kind-icon">Debug</a></li>
-								<li class="tsd-kind-enum-member tsd-parent-kind-enum"><a href="core.loglevel.html#error" class="tsd-kind-icon">Error</a></li>
-								<li class="tsd-kind-enum-member tsd-parent-kind-enum"><a href="core.loglevel.html#none" class="tsd-kind-icon">None</a></li>
-								<li class="tsd-kind-enum-member tsd-parent-kind-enum"><a href="core.loglevel.html#verbose" class="tsd-kind-icon">Verbose</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="core.rewriteframes.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Properties</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.rewriteframes.html#name" class="tsd-kind-icon">name</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.rewriteframes.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.rewriteframes.html#process" class="tsd-kind-icon">process</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Enumeration members</h2>
-				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum">
-					<a name="debug" class="tsd-anchor"></a>
-					<h3>Debug</h3>
-					<div class="tsd-signature tsd-kind-icon">Debug<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> =&nbsp;2</span></div>
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3>constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Rewrite<wbr>Frames<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="core.rewriteframes.html" class="tsd-signature-type">RewriteFrames</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/integrations/pluggable/rewriteframes.ts#L28">core/src/integrations/pluggable/rewriteframes.ts:28</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>inheritdoc</dt>
+									<dd></dd>
+								</dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+									<ul class="tsd-parameters">
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="core.rewriteframes.html" class="tsd-signature-type">RewriteFrames</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;RewriteFrames&quot;</span></div>
 					<aside class="tsd-sources">
+						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/interfaces.ts#L24">core/src/interfaces.ts:24</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/integrations/pluggable/rewriteframes.ts#L12">core/src/integrations/pluggable/rewriteframes.ts:12</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Information useful for debugging the SDK will be logged.</p>
-						</div>
+						<dl class="tsd-comment-tags">
+							<dt>inheritdoc</dt>
+							<dd></dd>
+						</dl>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum">
-					<a name="error" class="tsd-anchor"></a>
-					<h3>Error</h3>
-					<div class="tsd-signature tsd-kind-icon">Error<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> =&nbsp;1</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/interfaces.ts#L22">core/src/interfaces.ts:22</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Only SDK internal errors will be logged.</p>
-						</div>
-					</div>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="install" class="tsd-anchor"></a>
+					<h3>install</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/integrations/pluggable/rewriteframes.ts#L45">core/src/integrations/pluggable/rewriteframes.ts:45</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>inheritdoc</dt>
+									<dd></dd>
+								</dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum">
-					<a name="none" class="tsd-anchor"></a>
-					<h3>None</h3>
-					<div class="tsd-signature tsd-kind-icon">None<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> =&nbsp;0</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/interfaces.ts#L20">core/src/interfaces.ts:20</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>No logs will be generated.</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum">
-					<a name="verbose" class="tsd-anchor"></a>
-					<h3>Verbose</h3>
-					<div class="tsd-signature tsd-kind-icon">Verbose<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol"> =&nbsp;3</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/interfaces.ts#L26">core/src/interfaces.ts:26</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>All SDK actions will be logged.</p>
-						</div>
-					</div>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="process" class="tsd-anchor"></a>
+					<h3>process</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">process<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c8a38b6/packages/core/src/integrations/pluggable/rewriteframes.ts#L52">core/src/integrations/pluggable/rewriteframes.ts:52</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
 				</section>
 			</section>
 		</div>
@@ -183,62 +252,62 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-enum tsd-parent-kind-external-module">
+						<a href="../enums/core.loglevel.html" class="tsd-kind-icon">Log<wbr>Level</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.api.html" class="tsd-kind-icon">API</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.basebackend.html" class="tsd-kind-icon">Base<wbr>Backend</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.debug.html" class="tsd-kind-icon">Debug</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.dsn.html" class="tsd-kind-icon">Dsn</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
+					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-enum tsd-parent-kind-external-module">
-						<a href="core.loglevel.html" class="tsd-kind-icon">Log<wbr>Level</a>
+					<li class="current tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
 						<ul>
-							<li class=" tsd-kind-enum-member tsd-parent-kind-enum">
-								<a href="core.loglevel.html#debug" class="tsd-kind-icon">Debug</a>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class">
+								<a href="core.rewriteframes.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
-							<li class=" tsd-kind-enum-member tsd-parent-kind-enum">
-								<a href="core.loglevel.html#error" class="tsd-kind-icon">Error</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="core.rewriteframes.html#name" class="tsd-kind-icon">name</a>
 							</li>
-							<li class=" tsd-kind-enum-member tsd-parent-kind-enum">
-								<a href="core.loglevel.html#none" class="tsd-kind-icon">None</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.rewriteframes.html#install" class="tsd-kind-icon">install</a>
 							</li>
-							<li class=" tsd-kind-enum-member tsd-parent-kind-enum">
-								<a href="core.loglevel.html#verbose" class="tsd-kind-icon">Verbose</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.rewriteframes.html#process" class="tsd-kind-icon">process</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.api.html" class="tsd-kind-icon">API</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../classes/core.basebackend.html" class="tsd-kind-icon">Base<wbr>Backend</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../classes/core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
+						<a href="core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.debug.html" class="tsd-kind-icon">Debug</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.dsn.html" class="tsd-kind-icon">Dsn</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../classes/core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="../classes/core.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
+						<a href="core.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/core.backend.html" class="tsd-kind-icon">Backend</a>
