@@ -1,5 +1,5 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
-import { assign, clone } from '@sentry/utils/object';
+import { assign } from '@sentry/utils/object';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -186,50 +186,6 @@ export class Scope {
     this.level = undefined;
     this.fingerprint = undefined;
     this.notifyScopeListeners();
-  }
-
-  /** Inherit user data from provided scope, but make sure to not use references */
-  public inheritUserData(from: Scope): void {
-    const breadcrumbs = from.getBreadcrumbs();
-    if (breadcrumbs) {
-      // Don't clone breadcrumbs as they might be quite large in size, which can harm performance.
-      // Shallow clone in this case shouuuuuld be enough.
-      const clonedBreadcrumbs = [...breadcrumbs.map(breadcrumb => ({ ...breadcrumb }))];
-      clonedBreadcrumbs.forEach(breadcrumb => {
-        this.addBreadcrumb(breadcrumb);
-      });
-    }
-
-    const user = from.getUser();
-    if (user) {
-      this.setUser(clone(user));
-    }
-
-    const tags = from.getTags();
-    if (tags) {
-      const clonedTags = clone(tags);
-      Object.keys(clonedTags).forEach(key => {
-        this.setTag(key, clonedTags[key]);
-      });
-    }
-
-    const extra = from.getExtra();
-    if (extra) {
-      const clonedExtra = clone(extra);
-      Object.keys(clonedExtra).forEach(key => {
-        this.setExtra(key, clonedExtra[key]);
-      });
-    }
-
-    const fingerprint = from.getFingerprint();
-    if (fingerprint) {
-      this.setFingerprint(clone(fingerprint));
-    }
-
-    const level = from.getLevel();
-    if (level) {
-      this.setLevel(level);
-    }
   }
 
   /**
