@@ -33,12 +33,11 @@ export class Debug implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    if (getCurrentHub().getIntegration(this.name)) {
-      configureScope(scope => {
-        scope.addEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    configureScope(scope => {
+      scope.addEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+        if (getCurrentHub().getIntegration(this.name)) {
           // tslint:disable:no-console
           // tslint:disable:no-debugger
-
           if (this.options.debugger) {
             debugger;
           }
@@ -54,9 +53,9 @@ export class Debug implements Integration {
               console.log(hint);
             }
           }
-          return event;
-        });
+        }
+        return event;
       });
-    }
+    });
   }
 }

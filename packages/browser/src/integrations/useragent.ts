@@ -15,9 +15,9 @@ export class UserAgent implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    if (getCurrentHub().getIntegration(this.name)) {
-      configureScope(scope => {
-        scope.addEventProcessor(async (event: SentryEvent) => {
+    configureScope(scope => {
+      scope.addEventProcessor(async (event: SentryEvent) => {
+        if (getCurrentHub().getIntegration(this.name)) {
           if (!global.navigator || !global.location) {
             return event;
           }
@@ -32,8 +32,9 @@ export class UserAgent implements Integration {
             ...event,
             request,
           };
-        });
+        }
+        return event;
       });
-    }
+    });
   }
 }

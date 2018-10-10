@@ -1,5 +1,5 @@
 import { API, getCurrentHub, logger } from '@sentry/core';
-import { Integration, Severity } from '@sentry/types';
+import { Breadcrumb, Integration, SentryBreadcrumbHint, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
@@ -27,7 +27,7 @@ function addSentryBreadcrumb(serializedData: string): void {
   try {
     const event: { [key: string]: any } = deserialize(serializedData);
 
-    getCurrentHub().addBreadcrumb(
+    Breadcrumbs.addBreadcrumb(
       {
         category: 'sentry',
         event_id: event.event_id,
@@ -113,7 +113,7 @@ export class Breadcrumbs implements Integration {
           breadcrumbData.level = Severity.Error;
         }
 
-        getCurrentHub().addBreadcrumb(breadcrumbData, {
+        Breadcrumbs.addBreadcrumb(breadcrumbData, {
           input: args,
           result,
         });
@@ -156,7 +156,7 @@ export class Breadcrumbs implements Integration {
             }
           }
 
-          getCurrentHub().addBreadcrumb(breadcrumbData, {
+          Breadcrumbs.addBreadcrumb(breadcrumbData, {
             input: args,
             level,
           });
@@ -230,7 +230,7 @@ export class Breadcrumbs implements Integration {
           .apply(global, args)
           .then((response: Response) => {
             fetchData.status_code = response.status;
-            getCurrentHub().addBreadcrumb(
+            Breadcrumbs.addBreadcrumb(
               {
                 category: 'fetch',
                 data: fetchData,
@@ -244,7 +244,7 @@ export class Breadcrumbs implements Integration {
             return response;
           })
           .catch((error: Error) => {
-            getCurrentHub().addBreadcrumb(
+            Breadcrumbs.addBreadcrumb(
               {
                 category: 'fetch',
                 data: fetchData,
@@ -295,7 +295,7 @@ export class Breadcrumbs implements Integration {
         from = parsedFrom.relative;
       }
 
-      getCurrentHub().addBreadcrumb({
+      Breadcrumbs.addBreadcrumb({
         category: 'navigation',
         data: {
           from,
@@ -404,7 +404,7 @@ export class Breadcrumbs implements Integration {
               } catch (e) {
                 /* do nothing */
               }
-              getCurrentHub().addBreadcrumb(
+              Breadcrumbs.addBreadcrumb(
                 {
                   category: 'xhr',
                   data: xhr.__sentry_xhr__,
@@ -447,6 +447,13 @@ export class Breadcrumbs implements Integration {
         },
     );
   }
+
+  public static addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
+    if (getCurrentHub().getIntegration('Breadcrumbs')) {
+      getCurrentHub().addBreadcrumb(breadcrumb, hint);
+    }
+  }
+
   /**
    * Instrument browser built-ins w/ breadcrumb capturing
    *  - Console API

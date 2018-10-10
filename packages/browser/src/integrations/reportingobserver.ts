@@ -1,4 +1,4 @@
-import { captureMessage, withScope } from '@sentry/core';
+import { captureMessage, getCurrentHub, withScope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { supportsReportingObserver } from '@sentry/utils/supports';
@@ -92,6 +92,9 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public handler(reports: Report[]): void {
+    if (!getCurrentHub().getIntegration(this.name)) {
+      return;
+    }
     for (const report of reports) {
       withScope(scope => {
         scope.setExtra('url', report.url);

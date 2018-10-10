@@ -43,11 +43,14 @@ export class RewriteFrames implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    if (getCurrentHub().getIntegration(this.name)) {
-      getCurrentHub().configureScope((scope: Scope) => {
-        scope.addEventProcessor(async event => this.process(event));
+    getCurrentHub().configureScope((scope: Scope) => {
+      scope.addEventProcessor(async event => {
+        if (getCurrentHub().getIntegration(this.name)) {
+          return this.process(event);
+        }
+        return event;
       });
-    }
+    });
   }
 
   /** JSDoc */

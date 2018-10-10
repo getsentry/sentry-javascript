@@ -24,9 +24,9 @@ export interface IntegrationIndex {
  */
 export function setupIntegrations<O extends Options>(options: O): IntegrationIndex {
   const integrations: IntegrationIndex = {};
-  let integrationsToInstall = options.defaultIntegrations === false ? [] : [...options.defaultIntegrations];
-  if (Array.isArray(integrationsToInstall)) {
-    const providedIntegrationsNames = integrationsToInstall.map(i => i.name);
+  let integrationsToInstall = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
+  if (Array.isArray(options.integrations)) {
+    const providedIntegrationsNames = options.integrations.map(i => i.name);
     integrationsToInstall = [
       // Leave only unique integrations, that were not overridden with provided integrations with the same name
       ...integrationsToInstall.filter(integration => providedIntegrationsNames.indexOf(integration.name) === -1),
@@ -39,10 +39,10 @@ export function setupIntegrations<O extends Options>(options: O): IntegrationInd
   // Just in case someone will return non-array from a `itegrations` callback
   if (Array.isArray(integrationsToInstall)) {
     integrationsToInstall.forEach(integration => {
+      integrations[name] = integration;
       if (installedIntegrations.indexOf(integration.name) !== -1) {
         return;
       }
-      integrations[name] = integration;
       try {
         if (integration.setupOnce) {
           // TODO remove
