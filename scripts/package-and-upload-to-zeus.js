@@ -8,7 +8,7 @@ const join = require('path').join;
 
   if (
     !/^yarn/.test(lines[0]) ||
-    !/lerna changed -p$/.test(lines[1]) ||
+    !/lerna changed/.test(lines[1]) ||
     !/^Done/.test(lines[lines.length - 2]) ||
     lines.length < 4
   ) {
