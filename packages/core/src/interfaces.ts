@@ -47,9 +47,10 @@ export interface Options {
   dsn?: string;
 
   /**
-   * If this is set to false, default integrations will not be added.
+   * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
+   * recommended default integrations.
    */
-  defaultIntegrations?: boolean;
+  defaultIntegrations?: boolean | Integration[];
 
   /**
    * List of integrations that should be installed after SDK was initialized.
@@ -212,6 +213,9 @@ export interface Client<O extends Options = Options> {
    * @param timeout Maximum time in ms the client should wait.
    */
   close(timeout?: number): Promise<boolean>;
+
+  /** Returns an array of installed integrations on the client. */
+  getIntegration(name: string): Integration | null;
 }
 
 /**

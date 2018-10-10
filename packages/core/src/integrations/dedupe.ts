@@ -1,4 +1,4 @@
-import { configureScope } from '@sentry/minimal';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { getEventDescription } from '@sentry/utils/misc';
 import { logger } from '../logger';
@@ -18,9 +18,9 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
-    configureScope(scope => {
-      scope.addEventProcessor(async (currentEvent: SentryEvent) => {
+  public setupOnce(): void {
+    addGlobalEventProcessor(async (currentEvent: SentryEvent) => {
+      if (getCurrentHub().getIntegration(this.name)) {
         // Juuust in case something goes wrong
         try {
           if (this.shouldDropEvent(currentEvent, this.previousEvent)) {
@@ -31,7 +31,8 @@ export class Dedupe implements Integration {
         }
 
         return (this.previousEvent = currentEvent);
-      });
+      }
+      return currentEvent;
     });
   }
 

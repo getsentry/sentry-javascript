@@ -162,7 +162,7 @@ export class TryCatch implements Integration {
    * Wrap timer functions and event targets to catch errors
    * and provide better metadata.
    */
-  public install(): void {
+  public setupOnce(): void {
     this.ignoreOnError = this.ignoreOnError;
 
     const global = getGlobalObject();

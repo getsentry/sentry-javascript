@@ -455,7 +455,7 @@ export class Breadcrumbs implements Integration {
    *  - Fetch API
    *  - History API
    */
-  public install(options: BrowserOptions = {}): void {
+  public setupOnce(options: BrowserOptions = {}): void {
     const filterUrl = options.dsn && new API(options.dsn).getStoreEndpoint();
 
     if (this.options.console) {

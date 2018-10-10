@@ -196,7 +196,9 @@ export interface Mechanism {
 /** JSDoc */
 export interface Integration {
   name: string;
-  install(options?: object): void;
+  /** @deprecated */
+  install?(options?: object): void;
+  setupOnce?(options?: object): void; // TODO: make not optional
 }
 
 /** JSDoc */

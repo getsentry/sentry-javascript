@@ -1,4 +1,4 @@
-import { Breadcrumb, SentryBreadcrumbHint, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import { Breadcrumb, Integration, SentryBreadcrumbHint, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -263,6 +263,11 @@ export class Hub {
     } finally {
       makeMain(oldHub);
     }
+  }
+
+  /** Returns the integration if installed on the current client. */
+  public getIntegration(name: string): Integration | null {
+    return this.getClient().getIntegration(name);
   }
 }
 

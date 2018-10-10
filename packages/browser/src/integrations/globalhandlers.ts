@@ -36,7 +36,7 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
       // TODO: use stack.context to get a valuable information from TraceKit, eg.
       // [
@@ -55,7 +55,9 @@ export class GlobalHandlers implements Integration {
       if (shouldIgnoreOnError()) {
         return;
       }
-      getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+      if (getCurrentHub().getIntegration(this.name)) {
+        getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+      }
     });
 
     if (this.options.onerror) {

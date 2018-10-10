@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/hub';
 import { configureScope } from '@sentry/minimal';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
@@ -32,17 +33,19 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public install(options: InboundFiltersOptions = {}): void {
-    this.configureOptions(options);
+  public setupOnce(options: InboundFiltersOptions = {}): void {
+    if (getCurrentHub().getIntegration(this.name)) {
+      this.configureOptions(options);
 
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
-        if (this.shouldDropEvent(event)) {
-          return null;
-        }
-        return event;
+      configureScope(scope => {
+        scope.addEventProcessor(async (event: SentryEvent) => {
+          if (this.shouldDropEvent(event)) {
+            return null;
+          }
+          return event;
+        });
       });
-    });
+    }
   }
 
   /** JSDoc */
