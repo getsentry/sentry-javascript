@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.1.0
+
 - [browser] feat: Better mechanism detection in TraceKit
 - [browser] fix: Change loader to use getAttribute instead of dataset
 - [browser] fix: Remove trailing commas from loader for IE10/11
