@@ -1,15 +1,15 @@
 import { expect } from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
-import * as path from 'path';
+import { join } from '../path';
 
 import { Store } from '../src/store';
 
 jest.useFakeTimers();
 
-const folder = path.join(os.tmpdir(), 'test');
+const folder = join(os.tmpdir(), 'test');
 const filename = 'data';
-const finalFilename = path.join(folder, `${filename}.json`);
+const finalFilename = join(folder, `${filename}.json`);
 const inital = ['a', 'b'];
 let store: Store<string[]>;
 
@@ -58,11 +58,11 @@ describe('Store', () => {
   });
 
   it('should create all intermediate folders', async () => {
-    const newPath = path.join(folder, 'test');
+    const newPath = join(folder, 'test');
     store = new Store<string[]>(newPath, filename, inital);
     store.update(current => current.map(value => `${value}1`));
     jest.runAllTimers();
-    const realFilename = path.join(newPath, `${filename}.json`);
+    const realFilename = join(newPath, `${filename}.json`);
     expect(fs.existsSync(folder)).to.be.true;
     expect(fs.existsSync(newPath)).to.be.true;
     expect(fs.existsSync(realFilename)).to.be.true;

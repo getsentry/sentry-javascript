@@ -1,6 +1,6 @@
 import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
-import { basename, relative } from 'path';
+import { basename, relative } from '@sentry/utils/path';
 
 type StackFrameIteratee = (frame: StackFrame) => Promise<StackFrame>;
 

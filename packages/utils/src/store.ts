@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
 import { mkdirpSync } from './fs';
+import { dirname, join } from './path';
 
 /**
  * Lazily serializes data to a JSON file to persist. When created, it loads data
