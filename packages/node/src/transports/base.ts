@@ -42,7 +42,7 @@ export abstract class BaseTransport implements Transport {
       method: 'POST',
       path: this.api.getStoreEndpointPath(),
       port: dsn.port,
-      protocol: dsn.protocol,
+      protocol: `${dsn.protocol}:`,
     };
   }
 
