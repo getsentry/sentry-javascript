@@ -287,6 +287,11 @@ export function makeMain(hub?: Hub): Hub | undefined {
   return oldHub;
 }
 
+/** Domain interface with attached Hub */
+interface SentryDomain extends NodeJS.Domain {
+  __SENTRY__?: Carrier;
+}
+
 /**
  * Returns the default hub instance.
  *
@@ -301,7 +306,28 @@ export function getCurrentHub(): Hub {
     registry.hub = new Hub();
   }
 
-  return registry.hub;
+  let domain = null;
+  try {
+    domain = process.domain as SentryDomain;
+  } catch (_Oo) {
+    // We do not have process
+  }
+
+  if (!domain) {
+    return registry.hub;
+  }
+
+  let carrier = domain.__SENTRY__;
+  if (!carrier) {
+    domain.__SENTRY__ = carrier = {};
+  }
+
+  if (!carrier.hub) {
+    const top = registry.hub.getStackTop();
+    carrier.hub = top ? new Hub(top.client, Scope.clone(top.scope)) : new Hub();
+  }
+
+  return carrier.hub;
 }
 
 /**

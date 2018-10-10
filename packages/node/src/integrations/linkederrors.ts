@@ -1,5 +1,5 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
-import { getCurrentHub } from '../hub';
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
