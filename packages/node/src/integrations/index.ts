@@ -5,3 +5,4 @@ export { OnUnhandledRejection } from './onunhandledrejection';
 export { LinkedErrors } from './linkederrors';
 
 export { Modules } from './pluggable/modules';
+export { Transaction } from './pluggable/transaction';

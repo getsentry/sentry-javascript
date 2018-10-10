@@ -1,10 +1,11 @@
 import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
+import { basename, relative } from 'path';
 
 type StackFrameIteratee = (frame: StackFrame) => Promise<StackFrame>;
 
 /** Rewrite event frames paths */
-export abstract class CoreRewriteFrames implements Integration {
+export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
@@ -13,17 +14,30 @@ export abstract class CoreRewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  protected root?: string;
+  private readonly root?: string;
 
   /**
    * @inheritDoc
    */
-  protected abstract iteratee: StackFrameIteratee;
+  private readonly iteratee: StackFrameIteratee = async (frame: StackFrame) => {
+    if (frame.filename && frame.filename.startsWith('/')) {
+      const base = this.root ? relative(this.root, frame.filename) : basename(frame.filename);
+      frame.filename = `app:///${base}`;
+    }
+    return frame;
+  };
 
   /**
    * @inheritDoc
    */
-  public constructor(protected readonly options: { root?: string; iteratee?: StackFrameIteratee } = {}) {}
+  public constructor(options: { root?: string; iteratee?: StackFrameIteratee } = {}) {
+    if (options.root) {
+      this.root = options.root;
+    }
+    if (options.iteratee) {
+      this.iteratee = options.iteratee;
+    }
+  }
 
   /**
    * @inheritDoc
@@ -36,12 +50,6 @@ export abstract class CoreRewriteFrames implements Integration {
 
   /** JSDoc */
   public async process(event: SentryEvent): Promise<SentryEvent> {
-    if (this.options.root) {
-      this.root = this.options.root;
-    }
-    if (this.options.iteratee) {
-      this.iteratee = this.options.iteratee;
-    }
     const frames = this.getFramesFromEvent(event);
     if (frames) {
       for (const i in frames) {
