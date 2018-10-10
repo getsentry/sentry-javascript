@@ -217,10 +217,10 @@ export function requestHandler(options?: {
     local.on('error', next);
     local.run(() => {
       const hub = setHubToCarrier(req, getCurrentHub());
-      hub.configureScope((scope: Scope) => {
-        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
-      });
-      return next();
+      hub.configureScope(scope =>
+        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options)),
+      );
+      next();
     });
   };
 }

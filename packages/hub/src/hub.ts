@@ -317,7 +317,6 @@ export function getCurrentHub(): Hub {
   if (!domain.active) {
     return registry.hub;
   }
-
   let carrier = domain.active.__SENTRY__;
   if (!carrier) {
     domain.active.__SENTRY__ = carrier = {};
@@ -346,6 +345,11 @@ export function getHubFromCarrier(carrier: any): Hub {
   }
 }
 
+/**
+ * This will set a {@link Hub} to the passed object on __SENTRY__.hub.
+ * @param carrier object
+ * @param Hub hub
+ */
 export function setHubToCarrier(carrier: any, hub: Hub): Hub {
   if (carrier && !carrier.__SENTRY__) {
     carrier.__SENTRY__ = {};

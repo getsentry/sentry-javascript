@@ -29,12 +29,6 @@ export abstract class CoreRewriteFrames implements Integration {
    * @inheritDoc
    */
   public install(): void {
-    if (this.options.root) {
-      this.root = this.options.root;
-    }
-    if (this.options.iteratee) {
-      this.iteratee = this.options.iteratee;
-    }
     getCurrentHub().configureScope((scope: Scope) => {
       scope.addEventProcessor(async event => this.process(event));
     });
@@ -42,6 +36,12 @@ export abstract class CoreRewriteFrames implements Integration {
 
   /** JSDoc */
   public async process(event: SentryEvent): Promise<SentryEvent> {
+    if (this.options.root) {
+      this.root = this.options.root;
+    }
+    if (this.options.iteratee) {
+      this.iteratee = this.options.iteratee;
+    }
     const frames = this.getFramesFromEvent(event);
     if (frames) {
       for (const i in frames) {
