@@ -35,6 +35,7 @@ export abstract class BaseTransport implements Transport {
     };
 
     const dsn = this.api.getDsn();
+    const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
     return {
       agent: this.client,
       headers,
@@ -42,7 +43,7 @@ export abstract class BaseTransport implements Transport {
       method: 'POST',
       path: this.api.getStoreEndpointPath(),
       port: dsn.port,
-      protocol: dsn.protocol,
+      protocol,
     };
   }
 
