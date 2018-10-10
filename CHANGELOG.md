@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- [tbd] tbd
+
+## 4.1.1
+
+- [browser] fix: Use our own path utils instead of node built-ins
+- [node] fix: Add colon to node base protocol to follow http module
+- [utils] feat: Create internal path module
+
 ## 4.1.0
 
 - [browser] feat: Better mechanism detection in TraceKit
