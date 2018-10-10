@@ -1,5 +1,5 @@
 import { SentryEvent, StackFrame } from '@sentry/types';
-import { RewriteFrames } from '../../src/integrations/pluggable/rewriteframes';
+import { RewriteFrames } from '../../../src/integrations/pluggable/rewriteframes';
 
 let rewriteFrames: RewriteFrames;
 let messageEvent: SentryEvent;

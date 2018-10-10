@@ -139,6 +139,9 @@ export class Scope {
       scopeListeners: [],
     });
     if (scope) {
+      newScope.extra = assign(scope.extra);
+      newScope.tags = assign(scope.tags) as any;
+      newScope.breadcrumbs = [...scope.breadcrumbs];
       newScope.eventProcessors = [...scope.eventProcessors];
     }
     return newScope;

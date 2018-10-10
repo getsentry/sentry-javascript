@@ -1,7 +1,6 @@
-import { Scope } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
 import { NodeOptions } from '../../backend';
-import { getCurrentHub } from '../../hub';
 
 /** Add node transaction to the event */
 export class Transaction implements Integration {

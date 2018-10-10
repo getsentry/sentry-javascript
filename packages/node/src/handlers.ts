@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { getHubFromCarrier, Scope } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
@@ -9,7 +9,6 @@ import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 import { NodeClient } from './client';
-import { getCurrentHub } from './hub';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
@@ -208,20 +207,22 @@ export function requestHandler(options?: {
   transaction?: boolean | TransactionTypes;
   user?: boolean;
   version?: boolean;
-}): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
+}): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
-    _res: http.ServerResponse,
-    next: () => void,
+    res: http.ServerResponse,
+    next: (error?: any) => void,
   ): void {
     const local = domain.create();
-    const hub = getHubFromCarrier(req);
-    hub.bindClient(getCurrentHub().getClient());
-    hub.configureScope((scope: Scope) => {
-      scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
-    });
+    local.add(req);
+    local.add(res);
     local.on('error', next);
-    local.run(next);
+    local.run(() => {
+      getCurrentHub().configureScope(scope =>
+        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options)),
+      );
+      next();
+    });
   };
 }
 
@@ -238,7 +239,6 @@ interface MiddlewareError extends Error {
 /** JSDoc */
 function getStatusCodeFromResponse(error: MiddlewareError): number {
   const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
-
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
@@ -251,7 +251,7 @@ export function errorHandler(): (
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    req: http.IncomingMessage,
+    _req: http.IncomingMessage,
     _res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
@@ -260,7 +260,7 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    getHubFromCarrier(req).captureException(error, { originalException: error });
+    getCurrentHub().captureException(error, { originalException: error });
     next(error);
   };
 }

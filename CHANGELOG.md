@@ -24,11 +24,14 @@
 - [core] ref: Remove Repo interface and repos attribute from Event
 - [core] ref: Rewrite RequestBuffer using Array instead of Set for IE10/11
 - [hub] fix: Scope level overwrites level on the event
+- [hub] fix: Correctly store and retrieve Hub from domain when one is active
+- [hub] fix: Copy over user data when cloning scope
 - [node] feat: Allow requestHandler to be configured
 - [node] feat: Make node transactions a pluggable integration with tests
 - [node] feat: Transactions handling for RequestHandler in Express/Hapi
 - [node] fix: Dont wrap native modules more than once to prevent leaks
-- [node] fix: Add same protocol of dsn the base transport option
+- [node] fix: Add the same protocol as dsn to base transport option
+- [node] fix: Use getCurrentHub to retrieve correct hub in requestHandler
 - [utils] ref: implemented includes, assign and isNaN polyfills
 
 ## 4.0.6

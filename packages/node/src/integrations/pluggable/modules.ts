@@ -1,8 +1,7 @@
-import { Scope } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import * as lsmod from 'lsmod';
 import { NodeOptions } from '../../backend';
-import { getCurrentHub } from '../../hub';
 
 let moduleCache: { [key: string]: string };
 

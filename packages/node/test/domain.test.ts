@@ -1,39 +1,7 @@
-import { Layer } from '@sentry/hub';
+import { getCurrentHub, Hub } from '@sentry/hub';
 import * as domain from 'domain';
 
-const mockgetCurrentHub = jest.fn();
-
-class MockHub {
-  public constructor(public stack: Layer[] = []) {
-    MockHub.instance = this;
-  }
-  public static instance: MockHub;
-
-  public getStack(): Layer[] {
-    return this.stack;
-  }
-
-  public getStackTop(): Layer {
-    return this.stack[this.stack.length - 1];
-  }
-}
-
-const mockHub = MockHub;
-jest.mock('@sentry/hub', () => ({
-  Hub: mockHub,
-  getCurrentHub: mockgetCurrentHub,
-}));
-
-import { getCurrentHub } from '../src';
-
 describe('domains', () => {
-  let globalHub: MockHub;
-
-  beforeEach(() => {
-    globalHub = new MockHub();
-    mockgetCurrentHub.mockReturnValue(globalHub);
-  });
-
   afterEach(() => {
     if (domain.active) {
       domain.active.exit();
@@ -44,26 +12,20 @@ describe('domains', () => {
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
     const hub = getCurrentHub();
-    expect(hub).toBe(globalHub);
+    expect(hub).toEqual(new Hub());
   });
 
-  test('domain hub inheritance', () => {
-    globalHub.stack = [];
-    const d = domain.create();
-    d.run(() => {
-      const hub = getCurrentHub();
-      expect(globalHub).not.toBe(hub);
-      expect(globalHub.getStack()).toEqual(hub.getStack());
+  test('domain hub scope inheritance', () => {
+    const globalHub = getCurrentHub();
+    globalHub.configureScope(scope => {
+      scope.setExtra('a', 'b');
+      scope.setTag('a', 'b');
+      scope.addBreadcrumb({ message: 'a' });
     });
-  });
-
-  test('domain hub isolation', () => {
     const d = domain.create();
     d.run(() => {
       const hub = getCurrentHub();
-      hub.getStack().push({ client: 'whatever' });
-      expect(hub.getStack()).toEqual([{ client: 'whatever' }]);
-      expect(globalHub.getStack()).toEqual([]);
+      expect(globalHub).toEqual(hub);
     });
   });
 
@@ -84,7 +46,7 @@ describe('domains', () => {
         .push({ client: 'process' });
 
       setTimeout(() => {
-        expect(getCurrentHub().getStack()).toEqual([{ client: 'process' }]);
+        expect(getCurrentHub().getStack()[1]).toEqual({ client: 'process' });
       }, 50);
     });
 
@@ -94,7 +56,7 @@ describe('domains', () => {
         .push({ client: 'local' });
 
       setTimeout(() => {
-        expect(getCurrentHub().getStack()).toEqual([{ client: 'local' }]);
+        expect(getCurrentHub().getStack()[1]).toEqual({ client: 'local' });
         done();
       }, 100);
     });
