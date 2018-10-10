@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { getCurrentHub, getHubFromCarrier, Scope, setHubToCarrier } from '@sentry/hub';
+import { getCurrentHub, Scope } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
@@ -210,14 +210,15 @@ export function requestHandler(options?: {
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
-    _res: http.ServerResponse,
+    res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
     const local = domain.create();
+    local.add(req);
+    local.add(res);
     local.on('error', next);
     local.run(() => {
-      const hub = setHubToCarrier(req, getCurrentHub());
-      hub.configureScope(scope =>
+      getCurrentHub().configureScope(scope =>
         scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options)),
       );
       next();
@@ -250,7 +251,7 @@ export function errorHandler(): (
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    req: http.IncomingMessage,
+    _req: http.IncomingMessage,
     _res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
@@ -259,7 +260,7 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    getHubFromCarrier(req).captureException(error, { originalException: error });
+    getCurrentHub().captureException(error, { originalException: error });
     next(error);
   };
 }

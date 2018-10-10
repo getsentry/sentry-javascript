@@ -287,6 +287,7 @@ export function makeMain(hub?: Hub): Hub | undefined {
   return oldHub;
 }
 
+/** Domain interface with attached Hub */
 interface SentryDomain extends NodeJS.Domain {
   __SENTRY__?: Carrier;
 }
@@ -342,17 +343,4 @@ export function getHubFromCarrier(carrier: any): Hub {
     carrier.__SENTRY__.hub = new Hub();
     return carrier.__SENTRY__.hub;
   }
-}
-
-/**
- * This will set a {@link Hub} to the passed object on __SENTRY__.hub.
- * @param carrier object
- * @param Hub hub
- */
-export function setHubToCarrier(carrier: any, hub: Hub): Hub {
-  if (carrier && !carrier.__SENTRY__) {
-    carrier.__SENTRY__ = {};
-  }
-  carrier.__SENTRY__.hub = hub;
-  return hub;
 }
