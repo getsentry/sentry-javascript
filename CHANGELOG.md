@@ -25,9 +25,10 @@
 - [core] ref: Rewrite RequestBuffer using Array instead of Set for IE10/11
 - [hub] fix: Scope level overwrites level on the event
 - [node] feat: Allow requestHandler to be configured
-- [node] feat: Make node transactions a pluggable integration with tests 
+- [node] feat: Make node transactions a pluggable integration with tests
 - [node] feat: Transactions handling for RequestHandler in Express/Hapi
 - [node] fix: Dont wrap native modules more than once to prevent leaks
+- [node] fix: Add same protocol of dsn the base transport option
 - [utils] ref: implemented includes, assign and isNaN polyfills
 
 ## 4.0.6
