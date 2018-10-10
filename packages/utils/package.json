@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "4.0.6",
+  "version": "4.1.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/utils",
@@ -13,7 +13,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "4.0.6"
+    "@sentry/types": "4.1.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",
