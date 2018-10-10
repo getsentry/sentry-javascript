@@ -4,4 +4,4 @@ export { SDKInformation } from './sdkinformation';
 export { InboundFilters } from './inboundfilters';
 
 export { Debug } from './pluggable/debug';
-export { RewriteFrames } from './pluggable/rewriteframes';
+export { CoreRewriteFrames } from './pluggable/corerewriteframes';

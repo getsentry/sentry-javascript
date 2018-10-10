@@ -1,8 +1,8 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import * as http from 'http';
 import * as util from 'util';
-import { getCurrentHub } from '../hub';
 
 let lastResponse: http.ServerResponse | undefined;
 

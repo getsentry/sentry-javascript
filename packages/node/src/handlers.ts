@@ -1,5 +1,5 @@
 import { logger } from '@sentry/core';
-import { getHubFromCarrier, Scope } from '@sentry/hub';
+import { getCurrentHub, getHubFromCarrier, Scope, setHubToCarrier } from '@sentry/hub';
 import { SentryEvent, Severity } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { serialize } from '@sentry/utils/object';
@@ -9,7 +9,6 @@ import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
 import { NodeClient } from './client';
-import { getCurrentHub } from './hub';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
@@ -208,25 +207,21 @@ export function requestHandler(options?: {
   transaction?: boolean | TransactionTypes;
   user?: boolean;
   version?: boolean;
-}): (req: http.IncomingMessage, res: http.ServerResponse, next: () => void) => void {
+}): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     _res: http.ServerResponse,
-    next: () => void,
+    next: (error?: any) => void,
   ): void {
     const local = domain.create();
-    const currentHub = getCurrentHub();
-    const currentScope = currentHub.getScope();
-    const hub = getHubFromCarrier(req);
-    hub.bindClient(currentHub.getClient());
-    hub.configureScope((scope: Scope) => {
-      if (currentScope) {
-        scope.inheritUserData(currentScope);
-      }
-      scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
-    });
     local.on('error', next);
-    local.run(next);
+    local.run(() => {
+      const hub = setHubToCarrier(req, getCurrentHub());
+      hub.configureScope((scope: Scope) => {
+        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options));
+      });
+      return next();
+    });
   };
 }
 
@@ -243,7 +238,6 @@ interface MiddlewareError extends Error {
 /** JSDoc */
 function getStatusCodeFromResponse(error: MiddlewareError): number {
   const statusCode = error.status || error.statusCode || error.status_code || (error.output && error.output.statusCode);
-
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 

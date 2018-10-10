@@ -301,7 +301,34 @@ export function getCurrentHub(): Hub {
     registry.hub = new Hub();
   }
 
-  return registry.hub;
+  let domain: {
+    active?: {
+      __SENTRY__?: Carrier;
+    };
+  };
+
+  try {
+    // tslint:disable-next-line:no-var-requires
+    domain = require('domain');
+  } catch {
+    domain = {};
+  }
+
+  if (!domain.active) {
+    return registry.hub;
+  }
+
+  let carrier = domain.active.__SENTRY__;
+  if (!carrier) {
+    domain.active.__SENTRY__ = carrier = {};
+  }
+
+  if (!carrier.hub) {
+    const top = registry.hub.getStackTop();
+    carrier.hub = top ? new Hub(top.client, Scope.clone(top.scope)) : new Hub();
+  }
+
+  return carrier.hub;
 }
 
 /**
@@ -317,4 +344,12 @@ export function getHubFromCarrier(carrier: any): Hub {
     carrier.__SENTRY__.hub = new Hub();
     return carrier.__SENTRY__.hub;
   }
+}
+
+export function setHubToCarrier(carrier: any, hub: Hub): Hub {
+  if (carrier && !carrier.__SENTRY__) {
+    carrier.__SENTRY__ = {};
+  }
+  carrier.__SENTRY__.hub = hub;
+  return hub;
 }

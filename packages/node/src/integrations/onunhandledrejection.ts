@@ -1,5 +1,5 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Integration } from '@sentry/types';
-import { getCurrentHub } from '../hub';
 
 /** Global Promise Rejection handler */
 export class OnUnhandledRejection implements Integration {
