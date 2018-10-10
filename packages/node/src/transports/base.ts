@@ -34,10 +34,12 @@ export abstract class BaseTransport implements Transport {
       ...this.options.headers,
     };
 
+    const dsn = this.api.getDsn();
     return {
       agent: this.client,
       headers,
-      hostname: this.api.getDsn().host,
+      hostname: dsn.host,
+      protocol: dsn.protocol,
       method: 'POST',
       path: this.api.getStoreEndpointPath(),
       port: this.api.getDsn().port,
