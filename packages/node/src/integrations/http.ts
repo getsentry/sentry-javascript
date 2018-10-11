@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import * as http from 'http';
@@ -12,6 +12,32 @@ let lastResponse: http.ServerResponse | undefined;
  */
 interface SentryRequest extends http.IncomingMessage {
   __ravenBreadcrumbUrl?: string;
+}
+
+/** http module integration */
+export class Http implements Integration {
+  /**
+   * @inheritDoc
+   */
+  public name: string = 'Http';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Http';
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
+    const nativeModule = require('module');
+    fill(nativeModule, '_load', loadWrapper(nativeModule));
+    // observation: when the https module does its own require('http'), it *does not* hit our hooked require to instrument http on the fly
+    // but if we've previously instrumented http, https *does* get our already-instrumented version
+    // this is because raven's transports are required before this instrumentation takes place, which loads https (and http)
+    // so module cache will have uninstrumented http; proactively loading it here ensures instrumented version is in module cache
+    // alternatively we could refactor to load our transports later, but this is easier and doesn't have much drawback
+    require('http');
+  }
 }
 
 /**
@@ -119,7 +145,7 @@ function emitWrapper(origEmit: EventListener): (event: string, response: http.Se
     const isInterestingEvent = event === 'response' || event === 'error';
     const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(dsn.host);
 
-    if (isInterestingEvent && isNotSentryRequest) {
+    if (isInterestingEvent && isNotSentryRequest && getCurrentHub().getIntegration(Http)) {
       getCurrentHub().addBreadcrumb(
         {
           category: 'http',
@@ -140,25 +166,4 @@ function emitWrapper(origEmit: EventListener): (event: string, response: http.Se
 
     return origEmit.apply(this, arguments);
   };
-}
-
-/** http module integration */
-export class Http implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public name: string = 'Http';
-  /**
-   * @inheritDoc
-   */
-  public install(): void {
-    const nativeModule = require('module');
-    fill(nativeModule, '_load', loadWrapper(nativeModule));
-    // observation: when the https module does its own require('http'), it *does not* hit our hooked require to instrument http on the fly
-    // but if we've previously instrumented http, https *does* get our already-instrumented version
-    // this is because raven's transports are required before this instrumentation takes place, which loads https (and http)
-    // so module cache will have uninstrumented http; proactively loading it here ensures instrumented version is in module cache
-    // alternatively we could refactor to load our transports later, but this is easier and doesn't have much drawback
-    require('http');
-  }
 }

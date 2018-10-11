@@ -1,4 +1,4 @@
-import { configureScope, getCurrentHub } from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -14,27 +14,30 @@ export class UserAgent implements Integration {
   /**
    * @inheritDoc
    */
+  public static id: string = 'UserAgent';
+
+  /**
+   * @inheritDoc
+   */
   public setupOnce(): void {
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
-        if (getCurrentHub().getIntegration(this.name)) {
-          if (!global.navigator || !global.location) {
-            return event;
-          }
-
-          // HTTP Interface: https://docs.sentry.io/clientdev/interfaces/http/?platform=javascript
-          const request = event.request || {};
-          request.url = request.url || global.location.href;
-          request.headers = request.headers || {};
-          request.headers['User-Agent'] = global.navigator.userAgent;
-
-          return {
-            ...event,
-            request,
-          };
+    addGlobalEventProcessor(async (event: SentryEvent) => {
+      if (getCurrentHub().getIntegration(UserAgent)) {
+        if (!global.navigator || !global.location) {
+          return event;
         }
-        return event;
-      });
+
+        // HTTP Interface: https://docs.sentry.io/clientdev/interfaces/http/?platform=javascript
+        const request = event.request || {};
+        request.url = request.url || global.location.href;
+        request.headers = request.headers || {};
+        request.headers['User-Agent'] = global.navigator.userAgent;
+
+        return {
+          ...event,
+          request,
+        };
+      }
+      return event;
     });
   }
 }

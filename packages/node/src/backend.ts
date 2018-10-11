@@ -1,5 +1,4 @@
-import { BaseBackend, Dsn, Options, SentryError } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { BaseBackend, Dsn, getCurrentHub, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';

@@ -242,12 +242,20 @@ export class Scope {
   }
 }
 
+/**
+ * Retruns the global event processors.
+ */
 function getGlobalEventProcessors(): EventProcessor[] {
   const global: any = getGlobalObject();
+  global.__SENTRY__ = global.__SENTRY__ || {};
   global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
   return global.__SENTRY__.globalEventProcessors;
 }
 
+/**
+ * Add a EventProcessor to be kept globally.
+ * @param callback EventProcessor to add
+ */
 export function addGlobalEventProcessor(callback: EventProcessor): void {
   getGlobalEventProcessors().push(callback);
 }

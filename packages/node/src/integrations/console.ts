@@ -1,7 +1,29 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { fill } from '@sentry/utils/object';
 import * as util from 'util';
+
+/** Console module integration */
+export class Console implements Integration {
+  /**
+   * @inheritDoc
+   */
+  public name: string = 'Console';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Console';
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
+    const nativeModule = require('module');
+    fill(nativeModule, '_load', loadWrapper(nativeModule));
+    // special case: since console is built-in and app-level code won't require() it, do that here
+    require('console');
+  }
+}
 
 /**
  * Wrapper function for internal _load calls within `require`
@@ -56,37 +78,22 @@ function consoleWrapper(originalModule: any): any {
       }
 
       return function(): any {
-        getCurrentHub().addBreadcrumb(
-          {
-            category: 'console',
-            level: sentryLevel,
-            message: util.format.apply(undefined, arguments),
-          },
-          {
-            input: [...arguments],
-            level,
-          },
-        );
+        if (getCurrentHub().getIntegration(Console)) {
+          getCurrentHub().addBreadcrumb(
+            {
+              category: 'console',
+              level: sentryLevel,
+              message: util.format.apply(undefined, arguments),
+            },
+            {
+              input: [...arguments],
+              level,
+            },
+          );
+        }
 
         originalConsoleLevel.apply(originalModule, arguments);
       };
     });
   };
-}
-
-/** Console module integration */
-export class Console implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public name: string = 'Console';
-  /**
-   * @inheritDoc
-   */
-  public install(): void {
-    const nativeModule = require('module');
-    fill(nativeModule, '_load', loadWrapper(nativeModule));
-    // special case: since console is built-in and app-level code won't require() it, do that here
-    require('console');
-  }
 }

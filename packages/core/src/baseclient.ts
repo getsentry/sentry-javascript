@@ -2,6 +2,7 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
+  IntegrationClass,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
@@ -125,7 +126,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   private installed?: boolean;
 
   /** Array of used integrations. */
-  private integrations?: IntegrationIndex;
+  private readonly integrations: IntegrationIndex;
 
   /**
    * Initializes this client instance.
@@ -140,8 +141,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (options.dsn) {
       this.dsn = new Dsn(options.dsn);
     }
-
-    this.integrations = setupIntegrations(options);
+    // We have to setup the integrations in the constructor since we do not want
+    // that anyone needs to call client.install();
+    this.integrations = setupIntegrations(this.options);
   }
 
   /**
@@ -421,7 +423,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public getIntegration(name: string): Integration | null {
-    return (this.integrations && this.integrations[name]) || null;
+  public getIntegrations(): IntegrationIndex {
+    return this.integrations || {};
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    return (this.integrations[integration.id] as T) || null;
   }
 }

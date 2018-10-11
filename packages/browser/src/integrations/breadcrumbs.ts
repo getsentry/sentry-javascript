@@ -22,28 +22,6 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 }
 
 /** JSDoc */
-function addSentryBreadcrumb(serializedData: string): void {
-  // There's always something that can go wrong with deserialization...
-  try {
-    const event: { [key: string]: any } = deserialize(serializedData);
-
-    Breadcrumbs.addBreadcrumb(
-      {
-        category: 'sentry',
-        event_id: event.event_id,
-        level: event.level || Severity.fromString('error'),
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
-  } catch (_oO) {
-    logger.error('Error while adding sentry type breadcrumb');
-  }
-}
-
-/** JSDoc */
 interface BreadcrumbIntegrations {
   beacon?: boolean;
   console?: boolean;
@@ -60,6 +38,11 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public name: string = 'Breadcrumbs';
+
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Breadcrumbs';
 
   /** JSDoc */
   private readonly options: BreadcrumbIntegrations;
@@ -448,8 +431,13 @@ export class Breadcrumbs implements Integration {
     );
   }
 
+  /**
+   * Helper that checks if integration is enabled on the client.
+   * @param breadcrumb Breadcrumb
+   * @param hint SentryBreadcrumbHint
+   */
   public static addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
-    if (getCurrentHub().getIntegration('Breadcrumbs')) {
+    if (getCurrentHub().getIntegration(Breadcrumbs)) {
       getCurrentHub().addBreadcrumb(breadcrumb, hint);
     }
   }
@@ -483,5 +471,27 @@ export class Breadcrumbs implements Integration {
     if (this.options.history) {
       this.instrumentHistory();
     }
+  }
+}
+
+/** JSDoc */
+function addSentryBreadcrumb(serializedData: string): void {
+  // There's always something that can go wrong with deserialization...
+  try {
+    const event: { [key: string]: any } = deserialize(serializedData);
+
+    Breadcrumbs.addBreadcrumb(
+      {
+        category: 'sentry',
+        event_id: event.event_id,
+        level: event.level || Severity.fromString('error'),
+        message: getEventDescription(event),
+      },
+      {
+        event,
+      },
+    );
+  } catch (_oO) {
+    logger.error('Error while adding sentry type breadcrumb');
   }
 }

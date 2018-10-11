@@ -65,30 +65,34 @@ describe('InboundFilters', () => {
     };
 
     it('string filter with partial match', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: ['capture'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('string filter with exact match', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: ['captureMessage'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('regexp filter with partial match', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: [/capture/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
     });
 
     it('regexp filter with exact match', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: [/^captureMessage$/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
       expect(
         inboundFilters.isIgnoredError({
@@ -98,9 +102,10 @@ describe('InboundFilters', () => {
     });
 
     it('uses message when both, message and exception are available', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: [/captureMessage/],
       });
+      inboundFilters.setupOnce();
       expect(
         inboundFilters.isIgnoredError({
           ...exceptionEvent,
@@ -110,15 +115,16 @@ describe('InboundFilters', () => {
     });
 
     it('can use multiple filters', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         ignoreErrors: ['captureMessage', /SyntaxError/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isIgnoredError(messageEvent)).toBe(true);
       expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
     });
 
     it('uses default filters', () => {
-      inboundFilters.install();
+      inboundFilters.setupOnce();
       expect(
         inboundFilters.isIgnoredError({
           exception: {
@@ -135,23 +141,26 @@ describe('InboundFilters', () => {
 
     describe('on exception', () => {
       it('uses exceptions data when message is unavailable', () => {
-        inboundFilters.install({
+        inboundFilters = new InboundFilters({
           ignoreErrors: ['SyntaxError: unidentified ? at line 1337'],
         });
+        inboundFilters.setupOnce();
         expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
 
       it('can match on exception value', () => {
-        inboundFilters.install({
+        inboundFilters = new InboundFilters({
           ignoreErrors: [/unidentified \?/],
         });
+        inboundFilters.setupOnce();
         expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
 
       it('can match on exception type', () => {
-        inboundFilters.install({
+        inboundFilters = new InboundFilters({
           ignoreErrors: [/^SyntaxError/],
         });
+        inboundFilters.setupOnce();
         expect(inboundFilters.isIgnoredError(exceptionEvent)).toBe(true);
       });
     });
@@ -179,27 +188,30 @@ describe('InboundFilters', () => {
     };
 
     it('should filter captured message based on its stack trace using string filter', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(messageEvent)).toBe(true);
       expect(inboundFilters.isWhitelistedUrl(messageEvent)).toBe(true);
     });
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: [/awesome-analytics\.io/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(messageEvent)).toBe(true);
       expect(inboundFilters.isWhitelistedUrl(messageEvent)).toBe(true);
     });
 
     it('should not filter captured messages with no stacktraces', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
+      inboundFilters.setupOnce();
       expect(
         inboundFilters.isBlacklistedUrl({
           message: 'any',
@@ -213,37 +225,41 @@ describe('InboundFilters', () => {
     });
 
     it('should filter captured exception based on its stack trace using string filter', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
       expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
 
     it('should filter captured exceptions based on its stack trace using regexp filter', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: [/awesome-analytics\.io/],
         whitelistUrls: [/awesome-analytics\.io/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
       expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
 
     it('should not filter events that doesnt pass the test', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['some-other-domain.com'],
         whitelistUrls: ['some-other-domain.com'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(false);
       expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(false);
     });
 
     it('should be able to use multiple filters', () => {
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
         whitelistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(exceptionEvent)).toBe(true);
       expect(inboundFilters.isWhitelistedUrl(exceptionEvent)).toBe(true);
     });
@@ -254,10 +270,11 @@ describe('InboundFilters', () => {
           frames: undefined,
         },
       };
-      inboundFilters.install({
+      inboundFilters = new InboundFilters({
         blacklistUrls: ['https://awesome-analytics.io'],
         whitelistUrls: ['https://awesome-analytics.io'],
       });
+      inboundFilters.setupOnce();
       expect(inboundFilters.isBlacklistedUrl(malformedEvent)).toBe(false);
       expect(inboundFilters.isWhitelistedUrl(malformedEvent)).toBe(true);
     });

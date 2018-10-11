@@ -7,7 +7,7 @@ export {
   configureScope,
   withScope,
 } from '@sentry/minimal';
-export { getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';
+export { addGlobalEventProcessor, getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';
 export { API } from './api';
 export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';

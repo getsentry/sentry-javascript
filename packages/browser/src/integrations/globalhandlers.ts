@@ -22,6 +22,11 @@ export class GlobalHandlers implements Integration {
    */
   public name: string = 'GlobalHandlers';
 
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'GlobalHandlers';
+
   /** JSDoc */
   private readonly options: GlobalHandlersIntegrations;
 
@@ -55,8 +60,9 @@ export class GlobalHandlers implements Integration {
       if (shouldIgnoreOnError()) {
         return;
       }
-      if (getCurrentHub().getIntegration(this.name)) {
-        getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+      const self = getCurrentHub().getIntegration(GlobalHandlers);
+      if (self) {
+        getCurrentHub().captureEvent(self.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
       }
     });
 

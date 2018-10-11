@@ -1,6 +1,5 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
-import { NodeOptions } from '../../backend';
 
 /** Add node transaction to the event */
 export class Transaction implements Integration {
@@ -8,13 +7,21 @@ export class Transaction implements Integration {
    * @inheritDoc
    */
   public name: string = 'Transaction';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Transaction';
 
   /**
    * @inheritDoc
    */
-  public install(_: NodeOptions = {}): void {
-    getCurrentHub().configureScope((scope: Scope) => {
-      scope.addEventProcessor(async event => this.process(event));
+  public setupOnce(): void {
+    addGlobalEventProcessor(async event => {
+      const self = getCurrentHub().getIntegration(Transaction);
+      if (self) {
+        return self.process(event);
+      }
+      return event;
     });
   }
 

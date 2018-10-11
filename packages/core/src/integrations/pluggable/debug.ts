@@ -1,5 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
-import { configureScope } from '@sentry/minimal';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryEventHint } from '@sentry/types';
 
 /** JSDoc */
@@ -14,6 +13,11 @@ export class Debug implements Integration {
    * @inheritDoc
    */
   public name: string = 'Debug';
+
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Debug';
 
   /** JSDoc */
   private readonly options: DebugOptions;
@@ -32,30 +36,29 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
-        if (getCurrentHub().getIntegration(this.name)) {
-          // tslint:disable:no-console
-          // tslint:disable:no-debugger
-          if (this.options.debugger) {
-            debugger;
-          }
+  public setupOnce(): void {
+    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+      const self = getCurrentHub().getIntegration(Debug);
+      if (self) {
+        // tslint:disable:no-console
+        // tslint:disable:no-debugger
+        if (self.options.debugger) {
+          debugger;
+        }
 
-          if (this.options.stringify) {
-            console.log(JSON.stringify(event, null, 2));
-            if (hint) {
-              console.log(JSON.stringify(hint, null, 2));
-            }
-          } else {
-            console.log(event);
-            if (hint) {
-              console.log(hint);
-            }
+        if (self.options.stringify) {
+          console.log(JSON.stringify(event, null, 2));
+          if (hint) {
+            console.log(JSON.stringify(hint, null, 2));
+          }
+        } else {
+          console.log(event);
+          if (hint) {
+            console.log(hint);
           }
         }
-        return event;
-      });
+      }
+      return event;
     });
   }
 }

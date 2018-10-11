@@ -1,3 +1,4 @@
+// tslint:disable:deprecation
 import { Integration } from '@sentry/types';
 import { Options } from '../interfaces';
 import { logger } from '../logger';
@@ -10,10 +11,70 @@ export { InboundFilters } from './inboundfilters';
 export { Debug } from './pluggable/debug';
 export { RewriteFrames } from './pluggable/rewriteframes';
 
-const installedIntegrations: string[] = [];
+export const installedIntegrations: string[] = [];
 
+/** Map of integrations assigned to a client */
 export interface IntegrationIndex {
   [key: string]: Integration;
+}
+
+/** Gets integration to install */
+export function getIntegrationsToSetup(options: Options): Integration[] {
+  const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
+  const userIntegrations = options.integrations;
+  let integrations: Integration[] = [];
+  if (Array.isArray(userIntegrations)) {
+    const userIntegrationsNames = userIntegrations.map(i => i.name);
+    const pickedIntegrationsNames = [];
+
+    // Leave only unique default integrations, that were not overridden with provided user integrations
+    for (const defaultIntegration of defaultIntegrations) {
+      if (
+        userIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1 &&
+        pickedIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1
+      ) {
+        integrations.push(defaultIntegration);
+        pickedIntegrationsNames.push(getIntegrationName(defaultIntegration));
+      }
+    }
+
+    // Don't add same user integration twice
+    for (const userIntegration of userIntegrations) {
+      if (pickedIntegrationsNames.indexOf(getIntegrationName(userIntegration)) === -1) {
+        integrations.push(userIntegration);
+        pickedIntegrationsNames.push(getIntegrationName(userIntegration));
+      }
+    }
+  } else if (typeof userIntegrations === 'function') {
+    integrations = userIntegrations(defaultIntegrations);
+    integrations = Array.isArray(integrations) ? integrations : [integrations];
+  } else {
+    return [...defaultIntegrations];
+  }
+
+  return integrations;
+}
+
+/** Setup given integration */
+export function setupIntegration(integration: Integration, options: Options): void {
+  if (installedIntegrations.indexOf(getIntegrationName(integration)) !== -1) {
+    return;
+  }
+
+  try {
+    integration.setupOnce();
+  } catch (_Oo) {
+    /** @deprecated */
+    // TODO: Remove in v5
+    logger.warn(`Integration ${getIntegrationName(integration)}: The install method is deprecated. Use "setupOnce".`);
+
+    if (integration.install) {
+      integration.install(options);
+    }
+  }
+
+  installedIntegrations.push(getIntegrationName(integration));
+  logger.log(`Integration installed: ${getIntegrationName(integration)}`);
 }
 
 /**
@@ -24,40 +85,21 @@ export interface IntegrationIndex {
  */
 export function setupIntegrations<O extends Options>(options: O): IntegrationIndex {
   const integrations: IntegrationIndex = {};
-  let integrationsToInstall = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
-  if (Array.isArray(options.integrations)) {
-    const providedIntegrationsNames = options.integrations.map(i => i.name);
-    integrationsToInstall = [
-      // Leave only unique integrations, that were not overridden with provided integrations with the same name
-      ...integrationsToInstall.filter(integration => providedIntegrationsNames.indexOf(integration.name) === -1),
-      ...options.integrations,
-    ];
-  } else if (typeof options.integrations === 'function') {
-    integrationsToInstall = options.integrations(integrationsToInstall);
-  }
-
-  // Just in case someone will return non-array from a `itegrations` callback
-  if (Array.isArray(integrationsToInstall)) {
-    integrationsToInstall.forEach(integration => {
-      integrations[name] = integration;
-      if (installedIntegrations.indexOf(integration.name) !== -1) {
-        return;
-      }
-      try {
-        if (integration.setupOnce) {
-          // TODO remove
-          integration.setupOnce(options);
-        }
-      } catch (_Oo) {
-        logger.warn(`Integration ${integration.name}: The install method is deprecated. Use "setupOnce".`);
-        if (integration.install) {
-          // TODO remove if
-          integration.install(options);
-        }
-      }
-      installedIntegrations.push(integration.name);
-      logger.log(`Integration installed: ${integration.name}`);
-    });
-  }
+  getIntegrationsToSetup(options).forEach(integration => {
+    integrations[getIntegrationName(integration)] = integration;
+    setupIntegration(integration, options);
+  });
   return integrations;
+}
+
+/**
+ * Returns the integration static id.
+ * @param integration Integration to retrieve id
+ */
+function getIntegrationName(integration: Integration): string {
+  /**
+   * @depracted
+   */
+  // tslint:disable-next-line:no-unsafe-any
+  return (integration as any).constructor.id || integration.name;
 }

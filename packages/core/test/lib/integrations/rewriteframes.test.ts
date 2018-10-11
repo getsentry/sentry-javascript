@@ -5,7 +5,7 @@ let rewriteFrames: RewriteFrames;
 let messageEvent: SentryEvent;
 let exceptionEvent: SentryEvent;
 
-describe.only('RewriteFrames', () => {
+describe('RewriteFrames', () => {
   beforeEach(() => {
     messageEvent = {
       stacktrace: {

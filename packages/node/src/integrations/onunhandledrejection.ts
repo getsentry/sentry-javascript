@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
 
 /** Global Promise Rejection handler */
@@ -10,7 +10,12 @@ export class OnUnhandledRejection implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public static id: string = 'OnUnhandledRejection';
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
     global.process.on('unhandledRejection', this.sendUnhandledPromise.bind(this));
   }
 
@@ -20,6 +25,9 @@ export class OnUnhandledRejection implements Integration {
    * @param promise promise
    */
   public sendUnhandledPromise(reason: any, promise: any): void {
+    if (!getCurrentHub().getIntegration(OnUnhandledRejection)) {
+      return;
+    }
     const context = (promise.domain && promise.domain.sentryContext) || {};
     getCurrentHub().withScope(() => {
       getCurrentHub().configureScope(scope => {

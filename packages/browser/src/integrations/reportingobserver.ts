@@ -58,6 +58,10 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public readonly name: string = 'ReportingObserver';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'ReportingObserver';
 
   /**
    * @inheritDoc
@@ -73,7 +77,7 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     if (!supportsReportingObserver()) {
       return;
     }
@@ -92,7 +96,7 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public handler(reports: Report[]): void {
-    if (!getCurrentHub().getIntegration(this.name)) {
+    if (!getCurrentHub().getIntegration(ReportingObserver)) {
       return;
     }
     for (const report of reports) {

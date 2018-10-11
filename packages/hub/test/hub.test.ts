@@ -1,5 +1,5 @@
 import { SentryEvent } from '@sentry/types';
-import { getCurrentHub, Hub, Scope } from '../../src';
+import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn = jest.fn();
 const asyncClientFn = async () => Promise.reject('error');

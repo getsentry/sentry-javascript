@@ -1,14 +1,7 @@
-import { getCurrentHub, Hub } from '@sentry/hub';
+import { getCurrentHub, Hub } from '@sentry/core';
 import * as domain from 'domain';
 
 describe('domains', () => {
-  afterEach(() => {
-    if (domain.active) {
-      domain.active.exit();
-    }
-    jest.resetAllMocks();
-  });
-
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
     const hub = getCurrentHub();
@@ -33,6 +26,7 @@ describe('domains', () => {
     const d = domain.create();
     d.run(() => {
       expect(getCurrentHub()).toBe(getCurrentHub());
+      d.exit();
     });
   });
 
@@ -47,6 +41,7 @@ describe('domains', () => {
 
       setTimeout(() => {
         expect(getCurrentHub().getStack()[1]).toEqual({ client: 'process' });
+        d1.exit();
       }, 50);
     });
 
@@ -57,6 +52,7 @@ describe('domains', () => {
 
       setTimeout(() => {
         expect(getCurrentHub().getStack()[1]).toEqual({ client: 'local' });
+        d2.exit();
         done();
       }, 100);
     });

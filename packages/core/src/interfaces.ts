@@ -2,6 +2,7 @@ import { Scope } from '@sentry/hub';
 import {
   Breadcrumb,
   Integration,
+  IntegrationClass,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
@@ -215,7 +216,7 @@ export interface Client<O extends Options = Options> {
   close(timeout?: number): Promise<boolean>;
 
   /** Returns an array of installed integrations on the client. */
-  getIntegration(name: string): Integration | null;
+  getIntegration<T extends Integration>(integartion: IntegrationClass<T>): T | null;
 }
 
 /**

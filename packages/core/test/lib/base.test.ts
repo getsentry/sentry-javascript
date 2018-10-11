@@ -1,8 +1,9 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, Status } from '@sentry/types';
+import { Breadcrumb, SentryEvent, Status } from '@sentry/types';
 import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
+import { TestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
@@ -362,6 +363,17 @@ describe('BaseClient', () => {
       const scope = new Scope();
       await client.captureEvent({}, undefined, scope);
       // TODO: Test rate limiting queues here
+    });
+  });
+
+  describe('integrations', () => {
+    test('setup each one of them on ctor', () => {
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        integrations: [new TestIntegration()],
+      });
+      expect(Object.keys(client.getIntegrations()).length).toBe(1);
+      expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
   });
 });

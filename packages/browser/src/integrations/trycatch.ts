@@ -13,6 +13,11 @@ export class TryCatch implements Integration {
    */
   public name: string = 'TryCatch';
 
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'TryCatch';
+
   /** JSDoc */
   private wrapTimeFunction(original: () => void): () => number {
     return function(this: any, ...args: any[]): number {

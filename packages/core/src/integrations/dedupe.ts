@@ -18,19 +18,25 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
+  public static id: string = 'Dedupe';
+
+  /**
+   * @inheritDoc
+   */
   public setupOnce(): void {
     addGlobalEventProcessor(async (currentEvent: SentryEvent) => {
-      if (getCurrentHub().getIntegration(this.name)) {
+      const self = getCurrentHub().getIntegration(Dedupe);
+      if (self) {
         // Juuust in case something goes wrong
         try {
-          if (this.shouldDropEvent(currentEvent, this.previousEvent)) {
+          if (self.shouldDropEvent(currentEvent, self.previousEvent)) {
             return null;
           }
         } catch (_oO) {
-          return (this.previousEvent = currentEvent);
+          return (self.previousEvent = currentEvent);
         }
 
-        return (this.previousEvent = currentEvent);
+        return (self.previousEvent = currentEvent);
       }
       return currentEvent;
     });
