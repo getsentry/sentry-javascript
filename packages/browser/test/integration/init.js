@@ -40,6 +40,9 @@ Sentry.init({
   //   return [new Sentry.Integrations.Debug({ stringify: true })].concat(old);
   // },
   beforeBreadcrumb: function(breadcrumb) {
+    if (window.forceAllBreadcrumbs) {
+      return breadcrumb;
+    }
     // Filter console logs as we use them for debugging *a lot* and they are not *that* important
     if (breadcrumb.category === 'console') {
       return null;

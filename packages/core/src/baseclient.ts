@@ -5,55 +5,16 @@ import {
   SentryEvent,
   SentryEventHint,
   SentryResponse,
-  SentryWrappedFunction,
   Severity,
   Status,
 } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
-import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { Backend, Client, Options } from './interfaces';
 import { logger } from './logger';
-
-/** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
-
-/** JSDoc */
-async function beforeBreadcrumbConsoleLoopGuard(
-  callback: () => Breadcrumb | Promise<Breadcrumb | null> | null,
-): Promise<Breadcrumb | null> {
-  const global = getGlobalObject() as Window;
-  const levels = ['debug', 'info', 'warn', 'error', 'log'];
-
-  if (!('console' in global)) {
-    return callback();
-  }
-
-  const originalConsole = global.console as ExtensibleConsole;
-
-  // Restore all wrapped console methods
-  levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
-      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_original__;
-    }
-  });
-
-  // Perform callback manipulations
-  const result = await callback();
-
-  // Revert restoration to wrapped state
-  levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
-      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_wrapped__;
-    }
-  });
-
-  return result;
-}
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -214,7 +175,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint, scope?: Scope): Promise<void> {
+  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint, scope?: Scope): void {
     const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
 
     if (maxBreadcrumbs <= 0) {
@@ -223,15 +184,13 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb
-      ? await beforeBreadcrumbConsoleLoopGuard(() => beforeBreadcrumb(mergedBreadcrumb, hint))
-      : mergedBreadcrumb;
+    const finalBreadcrumb = beforeBreadcrumb ? beforeBreadcrumb(mergedBreadcrumb, hint) : mergedBreadcrumb;
 
     if (finalBreadcrumb === null) {
       return;
     }
 
-    if ((await this.getBackend().storeBreadcrumb(finalBreadcrumb)) && scope) {
+    if (this.getBackend().storeBreadcrumb(finalBreadcrumb) && scope) {
       scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
   }

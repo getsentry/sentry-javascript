@@ -124,10 +124,7 @@ export interface Options {
    * @param breadcrumb The breadcrumb as created by the SDK.
    * @returns The breadcrumb that will be added | null.
    */
-  beforeBreadcrumb?(
-    breadcrumb: Breadcrumb,
-    hint?: SentryBreadcrumbHint,
-  ): Breadcrumb | null | Promise<Breadcrumb | null>;
+  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): Breadcrumb | null;
 }
 
 /**
@@ -264,7 +261,7 @@ export interface Backend {
    * @param breadcrumb The breadcrumb to store.
    * @returns True if the breadcrumb should be merged by the client.
    */
-  storeBreadcrumb(breadcrumb: Breadcrumb): boolean | Promise<boolean>;
+  storeBreadcrumb(breadcrumb: Breadcrumb): boolean;
 
   /**
    * Receives the whole scope and stores it in a platform-dependent way.

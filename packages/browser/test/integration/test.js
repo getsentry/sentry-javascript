@@ -1391,6 +1391,32 @@ for (var idx in frames) {
           }
         );
       });
+
+      it('should add breadcrumbs on thrown errors', function(done) {
+        var iframe = this.iframe;
+
+        iframeExecute(
+          iframe,
+          done,
+          function() {
+            window.forceAllBreadcrumbs = true;
+            var logs = document.createElement('script');
+            logs.src = 'console-logs.js';
+            logs.onload = function() {
+              done();
+            };
+            document.head.appendChild(logs);
+          },
+          function(sentryData) {
+            if (debounceAssertEventCount(sentryData, 1, done)) {
+              var sentryData = iframe.contentWindow.sentryData[0];
+              assert.ok(sentryData.breadcrumbs);
+              assert.lengthOf(sentryData.breadcrumbs, 3);
+              done();
+            }
+          }
+        );
+      });
     });
   });
 }
