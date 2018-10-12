@@ -58,7 +58,7 @@ Sentry.init({
     }
 
     // Filter "refresh" like navigation which occurs in Mocha when testing on Android 4
-    if (breadcrumb.category === 'navigation' && breadcrumb.data.from === breadcrumb.data.from) {
+    if (breadcrumb.category === 'navigation' && breadcrumb.data.to === breadcrumb.data.from) {
       return null;
     }
 
