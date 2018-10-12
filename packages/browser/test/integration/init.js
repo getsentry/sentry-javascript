@@ -33,7 +33,7 @@ DummyTransport.prototype.captureEvent = function(event) {
 
 Sentry.init({
   dsn: 'https://public@example.com/1',
-  debug: true,
+  // debug: true,
   attachStacktrace: true,
   transport: DummyTransport,
   // integrations: function(old) {
