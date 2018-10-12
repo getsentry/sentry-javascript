@@ -80,109 +80,68 @@ describe('BaseClient', () => {
   });
 
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
-    test('adds a breadcrumb', async () => {
+    test('adds a breadcrumb', () => {
       const client = new TestClient({});
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs()[1].message).toBe('world');
     });
 
-    test('adds a timestamp to new breadcrumbs', async () => {
+    test('adds a timestamp to new breadcrumbs', () => {
       const client = new TestClient({});
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs()[1].timestamp).toBeGreaterThan(1);
     });
 
-    test('discards breadcrumbs beyond maxBreadcrumbs', async () => {
+    test('discards breadcrumbs beyond maxBreadcrumbs', () => {
       const client = new TestClient({ maxBreadcrumbs: 1 });
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      await client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs().length).toBe(1);
       expect(scope.getBreadcrumbs()[0].message).toBe('world');
     });
 
-    test('allows concurrent updates', async () => {
+    test('allows concurrent updates', () => {
       const client = new TestClient({});
       const scope = new Scope();
-      await Promise.all([
-        client.addBreadcrumb({ message: 'hello' }, undefined, scope),
-        client.addBreadcrumb({ message: 'world' }, undefined, scope),
-      ]);
+      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      client.addBreadcrumb({ message: 'world' }, undefined, scope);
       expect(scope.getBreadcrumbs()).toHaveLength(2);
     });
 
-    test('calls beforeBreadcrumb and adds the breadcrumb without any changes', async () => {
+    test('calls beforeBreadcrumb and adds the breadcrumb without any changes', () => {
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs()[0].message).toBe('hello');
     });
 
-    test('calls beforeBreadcrumb and uses the new one', async () => {
+    test('calls beforeBreadcrumb and uses the new one', () => {
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs()[0].message).toBe('changed');
     });
 
-    test('calls beforeBreadcrumb and discards the breadcrumb when returned null', async () => {
+    test('calls beforeBreadcrumb and discards the breadcrumb when returned null', () => {
       const beforeBreadcrumb = jest.fn(() => null);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       expect(scope.getBreadcrumbs().length).toBe(0);
     });
 
-    test('calls async beforeBreadcrumb and adds the breadcrumb without any changes', async () => {
-      const beforeBreadcrumb = jest.fn(
-        async breadcrumb =>
-          new Promise<Breadcrumb>(resolve => {
-            resolve(breadcrumb);
-          }),
-      );
-      const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
-    });
-
-    test('calls async beforeBreadcrumb and discards the breadcrumb when returned null', async () => {
-      const beforeBreadcrumb = jest.fn(
-        async () =>
-          new Promise<null>(resolve => {
-            resolve(null);
-          }),
-      );
-      const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs().length).toBe(0);
-    });
-
-    test('calls async beforeBreadcrumb and uses the new one', async () => {
-      const beforeBreadcrumb = jest.fn(
-        async () =>
-          new Promise<Breadcrumb>(resolve => {
-            resolve({ message: 'changed' });
-          }),
-      );
-      const client = new TestClient({ beforeBreadcrumb });
-      const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[0].message).toBe('changed');
-    });
-
-    test('calls beforeBreadcrumb gets an access to a hint as a second argument', async () => {
+    test('calls beforeBreadcrumb gets an access to a hint as a second argument', () => {
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      await client.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' }, scope);
+      client.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' }, scope);
       expect(scope.getBreadcrumbs()[0].message).toBe('hello');
       expect(scope.getBreadcrumbs()[0].data).toBe('someRandomThing');
     });

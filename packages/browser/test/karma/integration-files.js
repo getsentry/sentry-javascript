@@ -2,6 +2,7 @@ module.exports = [
   { pattern: 'test/integration/polyfills/es6-promise-4.2.5.auto.js', included: false },
   { pattern: 'test/integration/polyfills/whatwg-fetch-3.0.0.js', included: false },
   { pattern: 'test/integration/123', included: false },
+  { pattern: 'test/integration/console-logs.js', included: false },
   { pattern: 'test/integration/throw-string.js', included: false },
   { pattern: 'test/integration/throw-error.js', included: false },
   { pattern: 'test/integration/throw-object.js', included: false },

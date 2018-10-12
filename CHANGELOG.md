@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- [tbd] tbd
+- [browser] fix: Make `addBreadcrumb` sync internally, `beforeBreadcrumb` is now only sync
+- [browser] fix: Remove internal `console` guard in `beforeBreadcrumb`
 
 ## 4.1.1
 
