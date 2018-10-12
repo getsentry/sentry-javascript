@@ -1378,7 +1378,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              window.forceAllBreadcrumbs = true;
+              window.allowConsoleBreadcrumbs = true;
               var logs = document.createElement('script');
               logs.src = 'console-logs.js';
               logs.onload = function() {
