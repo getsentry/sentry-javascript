@@ -1,5 +1,4 @@
 import { getCurrentHub } from '@sentry/core';
-import { Carrier, Hub } from '@sentry/hub';
 import { SentryEvent } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { logger } from '@sentry/utils/logger';

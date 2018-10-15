@@ -1,4 +1,7 @@
+import { logger } from '@sentry/utils/logger';
 import { InboundFilters } from '../../../src/integrations/inboundfilters';
+
+logger.disable();
 
 let inboundFilters: InboundFilters;
 

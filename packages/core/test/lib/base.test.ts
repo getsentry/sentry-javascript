@@ -26,8 +26,8 @@ jest.mock('@sentry/utils/misc', () => ({
       },
     };
   },
-  consoleSandbox(cb: () => void): void {
-    cb();
+  consoleSandbox(cb: () => any): any {
+    return cb();
   },
 }));
 

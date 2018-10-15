@@ -325,28 +325,21 @@ export function getCurrentHub(): Hub {
     registry.hub = new Hub();
   }
 
-  let domain = null;
   try {
-    domain = process.domain as SentryDomain;
-  } catch (_Oo) {
-    // We do not have process
-  }
+    const domain = process.domain as SentryDomain;
 
-  if (!domain) {
+    if (!domain.__SENTRY__) {
+      return registry.hub;
+    }
+
+    if (!domain.__SENTRY__.hub || domain.__SENTRY__.hub.isOlderThan(API_VERSION)) {
+      domain.__SENTRY__.hub = new Hub(registry.hub.getStackTop().client, Scope.clone(registry.hub.getStackTop().scope));
+    }
+
+    return domain.__SENTRY__.hub;
+  } catch (_Oo) {
     return registry.hub;
   }
-
-  let carrier = domain.__SENTRY__;
-  if (!carrier) {
-    domain.__SENTRY__ = carrier = {};
-  }
-
-  if (!carrier.hub) {
-    const top = registry.hub.getStackTop();
-    carrier.hub = top ? new Hub(top.client, Scope.clone(top.scope)) : new Hub();
-  }
-
-  return carrier.hub;
 }
 
 /**
@@ -362,4 +355,18 @@ export function getHubFromCarrier(carrier: any): Hub {
     carrier.__SENTRY__.hub = new Hub();
     return carrier.__SENTRY__.hub;
   }
+}
+
+/**
+ * This will set passed {@link Hub} on the passed object's __SENTRY__.hub attribute
+ * @param carrier object
+ * @param hub Hub
+ */
+export function setHubOnCarrier(carrier: any, hub: Hub): boolean {
+  if (!carrier) {
+    return false;
+  }
+  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+  carrier.__SENTRY__.hub = hub;
+  return true;
 }
