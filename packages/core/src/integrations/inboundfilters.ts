@@ -1,9 +1,9 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 import { includes } from '@sentry/utils/string';
-import { logger } from '../logger';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.

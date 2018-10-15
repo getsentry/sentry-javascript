@@ -1,5 +1,6 @@
-import { getCurrentHub, logger } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { eventFromStacktrace } from '../parsers';
 import {
   installGlobalHandler,

@@ -1,4 +1,3 @@
-export { logger } from './logger';
 export {
   addBreadcrumb,
   captureException,

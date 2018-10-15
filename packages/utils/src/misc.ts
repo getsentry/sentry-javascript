@@ -1,4 +1,4 @@
-import { SentryEvent } from '@sentry/types';
+import { SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isString } from './is';
 
 /**
@@ -203,4 +203,40 @@ export function getEventDescription(event: SentryEvent): string {
   } else {
     return event.event_id || '<unknown>';
   }
+}
+
+/** JSDoc */
+interface ExtensibleConsole extends Console {
+  [key: string]: any;
+}
+
+/** JSDoc */
+export function consoleSandbox(callback: () => any): any {
+  const global = getGlobalObject() as Window;
+  const levels = ['debug', 'info', 'warn', 'error', 'log'];
+
+  if (!('console' in global)) {
+    return callback();
+  }
+
+  const originalConsole = global.console as ExtensibleConsole;
+  const wrappedLevels: { [key: string]: any } = {};
+
+  // Restore all wrapped console methods
+  levels.forEach(level => {
+    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
+      wrappedLevels[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_wrapped__;
+      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_original__;
+    }
+  });
+
+  // Perform callback manipulations
+  const result = callback();
+
+  // Revert restoration to wrapped state
+  Object.keys(wrappedLevels).forEach(level => {
+    originalConsole[level] = wrappedLevels[level];
+  });
+
+  return result;
 }

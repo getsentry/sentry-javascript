@@ -7,18 +7,17 @@ import {
   SentryEvent,
   SentryEventHint,
   SentryResponse,
-  SentryWrappedFunction,
   Severity,
   Status,
 } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
-import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { logger } from '@sentry/utils/logger';
+import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integrations';
 import { Backend, Client, Options } from './interfaces';
-import { logger } from './logger';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -36,39 +35,6 @@ const MAX_BREADCRUMBS = 100;
  * By default, truncates URL values to 250 chars
  */
 const MAX_URL_LENGTH = 250;
-
-/** JSDoc */
-interface ExtensibleConsole extends Console {
-  [key: string]: any;
-}
-/** JSDoc */
-function beforeBreadcrumbConsoleLoopGuard(callback: () => Breadcrumb | null): Breadcrumb | null {
-  const global = getGlobalObject() as Window;
-  const levels = ['debug', 'info', 'warn', 'error', 'log'];
-  if (!('console' in global)) {
-    return callback();
-  }
-  const originalConsole = global.console as ExtensibleConsole;
-  const wrappedLevels: { [key: string]: any } = {};
-
-  // Restore all wrapped console methods
-  levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
-      wrappedLevels[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_wrapped__;
-      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_original__;
-    }
-  });
-
-  // Perform callback manipulations
-  const result = callback();
-
-  // Revert restoration to wrapped state
-  Object.keys(wrappedLevels).forEach(level => {
-    originalConsole[level] = wrappedLevels[level];
-  });
-
-  return result;
-}
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -228,7 +194,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
     const finalBreadcrumb = beforeBreadcrumb
-      ? beforeBreadcrumbConsoleLoopGuard(() => beforeBreadcrumb(mergedBreadcrumb, hint))
+      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
       : mergedBreadcrumb;
 
     if (finalBreadcrumb === null) {
@@ -431,6 +397,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    return (this.integrations[integration.id] as T) || null;
+    try {
+      return (this.integrations[integration.id] as T) || null;
+    } catch (_oO) {
+      logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      return null;
+    }
   }
 }

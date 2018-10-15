@@ -1,8 +1,8 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
-import { logger } from './logger';
 import { RequestBuffer } from './requestbuffer';
 
 /** A class object that can instanciate Backend objects. */

@@ -1,6 +1,7 @@
-import { API, getCurrentHub, logger } from '@sentry/core';
+import { API, getCurrentHub } from '@sentry/core';
 import { Breadcrumb, Integration, SentryBreadcrumbHint, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
 import { includes, safeJoin } from '@sentry/utils/string';

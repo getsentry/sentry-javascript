@@ -1,7 +1,7 @@
 // tslint:disable:deprecation
 import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { Options } from '../interfaces';
-import { logger } from '../logger';
 
 export { Dedupe } from './dedupe';
 export { FunctionToString } from './functiontostring';

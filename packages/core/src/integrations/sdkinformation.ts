@@ -1,5 +1,5 @@
 import { Integration } from '@sentry/types';
-import { logger } from '../logger';
+import { logger } from '@sentry/utils/logger';
 
 /**
  * @deprecated

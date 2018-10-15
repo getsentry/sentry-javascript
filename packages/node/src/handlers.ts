@@ -1,6 +1,8 @@
-import { getCurrentHub, logger } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import { Carrier, Hub } from '@sentry/hub';
 import { SentryEvent } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
+import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
 import * as cookie from 'cookie';
 import * as domain from 'domain';

@@ -7,6 +7,7 @@ import {
   SentryEventHint,
   Severity,
 } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -66,7 +67,7 @@ export class Hub {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
       top.client[method](...args, top.scope).catch((err: any) => {
-        console.error(err);
+        logger.error(err);
       });
     }
   }
@@ -274,8 +275,13 @@ export class Hub {
   }
 
   /** Returns the integration if installed on the current client. */
-  public getIntegration<T extends Integration>(integartion: IntegrationClass<T>): T | null {
-    return this.getClient().getIntegration(integartion);
+  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    try {
+      return this.getClient().getIntegration(integration);
+    } catch (_oO) {
+      logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+      return null;
+    }
   }
 }
 

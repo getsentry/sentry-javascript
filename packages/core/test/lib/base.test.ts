@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, Status } from '@sentry/types';
+import { SentryEvent, Status } from '@sentry/types';
 import { SentryError } from '../../src/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -12,7 +12,22 @@ jest.mock('@sentry/utils/misc', () => ({
     return '42';
   },
   getGlobalObject(): object {
-    return {};
+    return {
+      console: {
+        log(): void {
+          // no-empty
+        },
+        warn(): void {
+          // no-empty
+        },
+        error(): void {
+          // no-empty
+        },
+      },
+    };
+  },
+  consoleSandbox(cb: () => void): void {
+    cb();
   },
 }));
 

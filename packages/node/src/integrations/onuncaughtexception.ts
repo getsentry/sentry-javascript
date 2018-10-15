@@ -1,5 +1,6 @@
-import { getCurrentHub, logger, Scope } from '@sentry/core';
+import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration, SentryEvent, Severity } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { defaultOnFatalError } from '../handlers';
 
 /** Global Promise Rejection handler */

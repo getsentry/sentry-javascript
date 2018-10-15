@@ -1,4 +1,5 @@
 import { SentryEvent } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn = jest.fn();
@@ -50,9 +51,7 @@ describe('Hub', () => {
   });
 
   test('invoke client async catch error in case', done => {
-    const orig = global.console;
-    // @ts-ignore
-    global.console = { error: jest.fn() };
+    jest.spyOn(logger, 'error');
     const hub = new Hub({
       asyncClientFn,
       clientFn,
@@ -60,8 +59,7 @@ describe('Hub', () => {
     (hub as any).invokeClientAsync('asyncClientFn', true);
     setTimeout(() => {
       // tslint:disable-next-line
-      expect(console.error).toHaveBeenCalled();
-      global.console = orig;
+      expect(logger.error).toHaveBeenCalled();
       done();
     });
   });
