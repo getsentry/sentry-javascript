@@ -163,7 +163,7 @@ export class Breadcrumbs implements Integration {
 
           // this fails for some browsers. :(
           if (originalConsoleLevel) {
-            originalConsoleLevel.apply(global.console, args);
+            Function.prototype.apply.call(originalConsoleLevel, global.console, args);
           }
         };
       });
