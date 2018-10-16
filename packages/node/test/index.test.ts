@@ -217,7 +217,6 @@ describe('SentryNode', () => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
           done();
-          d.exit();
           return event;
         },
         dsn,

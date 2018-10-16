@@ -9,8 +9,19 @@ import {
 } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import * as domain from 'domain';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
+
+declare module 'domain' {
+  export let active: Domain;
+  /**
+   * Extension for domain interface
+   */
+  export interface Domain {
+    __SENTRY__?: Carrier;
+  }
+}
 
 /**
  * API compatibility version of this hub.
@@ -291,7 +302,7 @@ export function getMainCarrier(): Carrier {
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
     hub: undefined,
   };
-  return carrier.__SENTRY__;
+  return carrier;
 }
 
 /**
@@ -299,16 +310,11 @@ export function getMainCarrier(): Carrier {
  *
  * @returns The old replaced hub
  */
-export function makeMain(hub?: Hub): Hub | undefined {
+export function makeMain(hub: Hub): Hub {
   const registry = getMainCarrier();
-  const oldHub = registry.hub;
-  registry.hub = hub;
+  const oldHub = getHubFromCarrier(registry);
+  setHubOnCarrier(registry, hub);
   return oldHub;
-}
-
-/** Domain interface with attached Hub */
-interface SentryDomain extends NodeJS.Domain {
-  __SENTRY__?: Carrier;
 }
 
 /**
@@ -319,26 +325,46 @@ interface SentryDomain extends NodeJS.Domain {
  * Otherwise, the currently registered hub will be returned.
  */
 export function getCurrentHub(): Hub {
+  // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
-  if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
-    registry.hub = new Hub();
+  // If there's no hub, or its an old API, assign a new one
+  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+    setHubOnCarrier(registry, new Hub());
   }
 
+  // Prefer domains over global if they are there
   try {
-    const domain = process.domain as SentryDomain;
+    const activeDomain = domain.active;
 
-    if (!domain.__SENTRY__) {
-      return registry.hub;
+    // If there no active domain, just return global hub
+    if (!activeDomain) {
+      return getHubFromCarrier(registry);
     }
 
-    if (!domain.__SENTRY__.hub || domain.__SENTRY__.hub.isOlderThan(API_VERSION)) {
-      domain.__SENTRY__.hub = new Hub(registry.hub.getStackTop().client, Scope.clone(registry.hub.getStackTop().scope));
+    // If there's no hub on current domain, or its an old API, assign a new one
+    if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
+      const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
+      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
     }
 
-    return domain.__SENTRY__.hub;
+    // Return hub that lives on a domain
+    return getHubFromCarrier(activeDomain);
   } catch (_Oo) {
-    return registry.hub;
+    // Return hub that lives on a global object
+    return getHubFromCarrier(registry);
+  }
+}
+
+/**
+ * This will tell whether a carrier has a hub on it or not
+ * @param carrier object
+ */
+export function hasHubOnCarrier(carrier: any): boolean {
+  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
+    return true;
+  } else {
+    return false;
   }
 }
 

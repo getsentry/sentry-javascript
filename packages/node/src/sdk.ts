@@ -1,5 +1,6 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import * as domain from 'domain';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
@@ -68,7 +69,7 @@ export function init(options: NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
-  if (process.domain) {
+  if (domain.active) {
     setHubOnCarrier(getMainCarrier(), getCurrentHub());
   }
 
