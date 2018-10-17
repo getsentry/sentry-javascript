@@ -1,5 +1,5 @@
 import { getCurrentHub, Scope } from '@sentry/core';
-import { Integration, SentryEvent, Severity } from '@sentry/types';
+import { Integration, Severity } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { defaultOnFatalError } from '../handlers';
 
@@ -33,7 +33,7 @@ export class OnUncaughtException implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    global.process.on('uncaughtException', this.handler);
+    global.process.on('uncaughtException', this.handler.bind(this));
   }
 }
 
@@ -49,23 +49,18 @@ export function makeErrorHandler(
 
   return (error: Error): void => {
     if (!caughtFirstError) {
+      const hub = getCurrentHub();
+
       // this is the first uncaught error and the ultimate reason for shutting down
       // we want to do absolutely everything possible to ensure it gets captured
       // also we want to make sure we don't go recursion crazy if more errors happen after this one
       firstError = error;
       caughtFirstError = true;
 
-      if (getCurrentHub().getIntegration(OnUncaughtException)) {
-        getCurrentHub().withScope(async () => {
-          getCurrentHub().configureScope((scope: Scope) => {
-            scope.addEventProcessor(async (event: SentryEvent) => ({
-              ...event,
-              level: Severity.Fatal,
-            }));
-          });
-
-          getCurrentHub().captureException(error, { originalException: error });
-
+      if (hub.getIntegration(OnUncaughtException)) {
+        hub.withScope(async (scope: Scope) => {
+          scope.setLevel(Severity.Fatal);
+          hub.captureException(error, { originalException: error });
           if (!calledFatalError) {
             calledFatalError = true;
             onFatalError(error);
