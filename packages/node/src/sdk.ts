@@ -1,4 +1,6 @@
-import { initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import * as domain from 'domain';
 import { NodeOptions } from './backend';
 import { NodeClient } from './client';
 import { Console, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
@@ -62,6 +64,14 @@ export const defaultIntegrations = [
  *
  * @see NodeOptions for documentation on configuration options.
  */
-export function init(options: NodeOptions): void {
-  initAndBind(NodeClient, options, defaultIntegrations);
+export function init(options: NodeOptions = {}): void {
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = defaultIntegrations;
+  }
+
+  if (domain.active) {
+    setHubOnCarrier(getMainCarrier(), getCurrentHub());
+  }
+
+  initAndBind(NodeClient, options);
 }

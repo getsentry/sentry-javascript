@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
 import { basename, relative } from '@sentry/utils/path';
 
@@ -10,6 +10,11 @@ export class RewriteFrames implements Integration {
    * @inheritDoc
    */
   public name: string = 'RewriteFrames';
+
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'RewriteFrames';
 
   /**
    * @inheritDoc
@@ -42,9 +47,13 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
-    getCurrentHub().configureScope((scope: Scope) => {
-      scope.addEventProcessor(async event => this.process(event));
+  public setupOnce(): void {
+    addGlobalEventProcessor(async event => {
+      const self = getCurrentHub().getIntegration(RewriteFrames);
+      if (self) {
+        return self.process(event);
+      }
+      return event;
     });
   }
 

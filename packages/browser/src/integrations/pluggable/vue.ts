@@ -19,6 +19,10 @@ export class Vue implements Integration {
    * @inheritDoc
    */
   public name: string = 'Vue';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Vue';
 
   /**
    * @inheritDoc
@@ -51,7 +55,7 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     if (!this.Vue || !this.Vue.config) {
       return;
     }
@@ -70,24 +74,26 @@ export class Vue implements Integration {
         metadata.lifecycleHook = info;
       }
 
-      withScope(scope => {
-        Object.keys(metadata).forEach(key => {
-          scope.setExtra(key, metadata[key]);
-        });
+      if (getCurrentHub().getIntegration(Vue)) {
+        withScope(scope => {
+          Object.keys(metadata).forEach(key => {
+            scope.setExtra(key, metadata[key]);
+          });
 
-        scope.addEventProcessor(async (event: SentryEvent) => {
-          if (event.sdk) {
-            const integrations = event.sdk.integrations || [];
-            event.sdk = {
-              ...event.sdk,
-              integrations: [...integrations, 'vue'],
-            };
-          }
-          return event;
-        });
+          scope.addEventProcessor(async (event: SentryEvent) => {
+            if (event.sdk) {
+              const integrations = event.sdk.integrations || [];
+              event.sdk = {
+                ...event.sdk,
+                integrations: [...integrations, 'vue'],
+              };
+            }
+            return event;
+          });
 
-        getCurrentHub().captureException(error, { originalException: error });
-      });
+          getCurrentHub().captureException(error, { originalException: error });
+        });
+      }
 
       if (typeof oldOnError === 'function') {
         oldOnError.call(this.Vue, error, vm, info);

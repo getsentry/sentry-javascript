@@ -1,5 +1,5 @@
 import { SentryEvent, SentryEventHint, Severity } from '@sentry/types';
-import { Scope } from '../../src';
+import { Scope } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {

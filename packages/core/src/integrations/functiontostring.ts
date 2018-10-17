@@ -11,7 +11,7 @@ export class FunctionToString implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     originalFunctionToString = Function.prototype.toString;
 
     Function.prototype.toString = function(this: SentryWrappedFunction, ...args: any[]): string {

@@ -1,7 +1,27 @@
-import { Breadcrumb, SentryBreadcrumbHint, SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import {
+  Breadcrumb,
+  Integration,
+  IntegrationClass,
+  SentryBreadcrumbHint,
+  SentryEvent,
+  SentryEventHint,
+  Severity,
+} from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import * as domain from 'domain';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
+
+declare module 'domain' {
+  export let active: Domain;
+  /**
+   * Extension for domain interface
+   */
+  export interface Domain {
+    __SENTRY__?: Carrier;
+  }
+}
 
 /**
  * API compatibility version of this hub.
@@ -58,7 +78,7 @@ export class Hub {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
       top.client[method](...args, top.scope).catch((err: any) => {
-        console.error(err);
+        logger.error(err);
       });
     }
   }
@@ -264,6 +284,16 @@ export class Hub {
       makeMain(oldHub);
     }
   }
+
+  /** Returns the integration if installed on the current client. */
+  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    try {
+      return this.getClient().getIntegration(integration);
+    } catch (_oO) {
+      logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+      return null;
+    }
+  }
 }
 
 /** Returns the global shim registry. */
@@ -272,7 +302,7 @@ export function getMainCarrier(): Carrier {
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
     hub: undefined,
   };
-  return carrier.__SENTRY__;
+  return carrier;
 }
 
 /**
@@ -280,16 +310,11 @@ export function getMainCarrier(): Carrier {
  *
  * @returns The old replaced hub
  */
-export function makeMain(hub?: Hub): Hub | undefined {
+export function makeMain(hub: Hub): Hub {
   const registry = getMainCarrier();
-  const oldHub = registry.hub;
-  registry.hub = hub;
+  const oldHub = getHubFromCarrier(registry);
+  setHubOnCarrier(registry, hub);
   return oldHub;
-}
-
-/** Domain interface with attached Hub */
-interface SentryDomain extends NodeJS.Domain {
-  __SENTRY__?: Carrier;
 }
 
 /**
@@ -300,34 +325,47 @@ interface SentryDomain extends NodeJS.Domain {
  * Otherwise, the currently registered hub will be returned.
  */
 export function getCurrentHub(): Hub {
+  // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
-  if (!registry.hub || registry.hub.isOlderThan(API_VERSION)) {
-    registry.hub = new Hub();
+  // If there's no hub, or its an old API, assign a new one
+  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+    setHubOnCarrier(registry, new Hub());
   }
 
-  let domain = null;
+  // Prefer domains over global if they are there
   try {
-    domain = process.domain as SentryDomain;
+    const activeDomain = domain.active;
+
+    // If there no active domain, just return global hub
+    if (!activeDomain) {
+      return getHubFromCarrier(registry);
+    }
+
+    // If there's no hub on current domain, or its an old API, assign a new one
+    if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
+      const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
+      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
+    }
+
+    // Return hub that lives on a domain
+    return getHubFromCarrier(activeDomain);
   } catch (_Oo) {
-    // We do not have process
+    // Return hub that lives on a global object
+    return getHubFromCarrier(registry);
   }
+}
 
-  if (!domain) {
-    return registry.hub;
+/**
+ * This will tell whether a carrier has a hub on it or not
+ * @param carrier object
+ */
+export function hasHubOnCarrier(carrier: any): boolean {
+  if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
+    return true;
+  } else {
+    return false;
   }
-
-  let carrier = domain.__SENTRY__;
-  if (!carrier) {
-    domain.__SENTRY__ = carrier = {};
-  }
-
-  if (!carrier.hub) {
-    const top = registry.hub.getStackTop();
-    carrier.hub = top ? new Hub(top.client, Scope.clone(top.scope)) : new Hub();
-  }
-
-  return carrier.hub;
 }
 
 /**
@@ -343,4 +381,18 @@ export function getHubFromCarrier(carrier: any): Hub {
     carrier.__SENTRY__.hub = new Hub();
     return carrier.__SENTRY__.hub;
   }
+}
+
+/**
+ * This will set passed {@link Hub} on the passed object's __SENTRY__.hub attribute
+ * @param carrier object
+ * @param hub Hub
+ */
+export function setHubOnCarrier(carrier: any, hub: Hub): boolean {
+  if (!carrier) {
+    return false;
+  }
+  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
+  carrier.__SENTRY__.hub = hub;
+  return true;
 }

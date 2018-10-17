@@ -1,7 +1,6 @@
-import { getCurrentHub, Scope } from '@sentry/hub';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import * as lsmod from 'lsmod';
-import { NodeOptions } from '../../backend';
 
 let moduleCache: { [key: string]: string };
 
@@ -11,16 +10,23 @@ export class Modules implements Integration {
    * @inheritDoc
    */
   public name: string = 'Modules';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Modules';
 
   /**
    * @inheritDoc
    */
-  public install(_: NodeOptions = {}): void {
-    getCurrentHub().configureScope((scope: Scope) => {
-      scope.addEventProcessor(async event => ({
+  public setupOnce(): void {
+    addGlobalEventProcessor(async event => {
+      if (!getCurrentHub().getIntegration(Modules)) {
+        return event;
+      }
+      return {
         ...event,
         modules: this.getModules(),
-      }));
+      };
     });
   }
 

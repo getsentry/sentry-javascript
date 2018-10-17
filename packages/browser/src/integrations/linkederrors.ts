@@ -1,4 +1,4 @@
-import { configureScope } from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
 import { exceptionFromStacktrace } from '../parsers';
 import { computeStackTrace } from '../tracekit';
@@ -23,6 +23,11 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
+  public static id: string = 'LinkedErrors';
+
+  /**
+   * @inheritDoc
+   */
   private readonly key: string;
 
   /**
@@ -41,8 +46,14 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
-    configureScope(scope => scope.addEventProcessor(this.handler.bind(this)));
+  public setupOnce(): void {
+    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+      const self = getCurrentHub().getIntegration(LinkedErrors);
+      if (self) {
+        return self.handler(event, hint);
+      }
+      return event;
+    });
   }
 
   /**

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { stub } from 'sinon';
+import { SinonSpy, spy, stub } from 'sinon';
 import {
   addBreadcrumb,
   BrowserBackend,
@@ -10,6 +10,7 @@ import {
   configureScope,
   getCurrentHub,
   init,
+  Integrations,
   Scope,
   SentryEvent,
   Status,
@@ -20,8 +21,13 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 declare var global: any;
 
 describe('SentryBrowser', () => {
+  const beforeSend: SinonSpy = spy();
+
   before(() => {
-    init({ dsn });
+    init({
+      beforeSend,
+      dsn,
+    });
   });
 
   beforeEach(() => {
@@ -30,6 +36,7 @@ describe('SentryBrowser', () => {
 
   afterEach(() => {
     getCurrentHub().popScope();
+    beforeSend.resetHistory();
   });
 
   describe('getContext() / setContext()', () => {
@@ -72,24 +79,13 @@ describe('SentryBrowser', () => {
       s.restore();
     });
 
-    it('should record auto breadcrumbs', done => {
-      getCurrentHub().pushScope();
-      getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: (event: SentryEvent) => {
-            expect(event.breadcrumbs!).to.have.lengthOf(2);
-            done();
-            return event;
-          },
-          dsn,
-        }),
-      );
-
+    it('should record breadcrumbs', async () => {
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
-      getCurrentHub().popScope();
+      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      expect(beforeSend.args[0][0].breadcrumbs).to.have.lengthOf(2);
     });
   });
 
@@ -104,32 +100,24 @@ describe('SentryBrowser', () => {
       s.restore();
     });
 
-    it('should capture an exception', done => {
-      getCurrentHub().pushScope();
-      getCurrentHub().bindClient(
-        new BrowserClient({
-          beforeSend: (event: SentryEvent) => {
-            expect(event.exception).to.not.be.undefined;
-            expect(event.exception!.values![0]).to.not.be.undefined;
-            expect(event.exception!.values![0].type).to.equal('Error');
-            expect(event.exception!.values![0].value).to.equal('test');
-            expect(event.exception!.values![0].stacktrace).to.not.be.empty;
-            done();
-            return event;
-          },
-          dsn,
-        }),
-      );
+    it('should capture an exception', async () => {
       try {
         throw new Error('test');
       } catch (e) {
         captureException(e);
       }
-      getCurrentHub().popScope();
+
+      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+
+      const event = beforeSend.args[0][0];
+      expect(event.exception).to.not.be.undefined;
+      expect(event.exception.values[0]).to.not.be.undefined;
+      expect(event.exception.values[0].type).to.equal('Error');
+      expect(event.exception.values[0].value).to.equal('test');
+      expect(event.exception.values[0].stacktrace).to.not.be.empty;
     });
 
     it('should capture a message', done => {
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: (event: SentryEvent) => {
@@ -142,11 +130,9 @@ describe('SentryBrowser', () => {
         }),
       );
       captureMessage('test');
-      getCurrentHub().popScope();
     });
 
     it('should capture an event', done => {
-      getCurrentHub().pushScope();
       getCurrentHub().bindClient(
         new BrowserClient({
           beforeSend: (event: SentryEvent) => {
@@ -159,7 +145,50 @@ describe('SentryBrowser', () => {
         }),
       );
       captureEvent({ message: 'event' });
-      getCurrentHub().popScope();
+    });
+
+    it('should dedupe an event', async () => {
+      captureMessage('event222');
+      captureMessage('event222');
+
+      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+
+      expect(beforeSend.calledOnce).to.be.true;
+    });
+
+    it('should not dedupe an event on bound client', async () => {
+      const localBeforeSend = spy();
+      getCurrentHub().bindClient(
+        new BrowserClient({
+          beforeSend: localBeforeSend,
+          dsn,
+          integrations: [],
+        }),
+      );
+
+      captureMessage('event222');
+      captureMessage('event222');
+
+      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+
+      expect(localBeforeSend.calledTwice).to.be.true;
+    });
+
+    it('should use inboundfilter rules of bound client', async () => {
+      const localBeforeSend = spy();
+      getCurrentHub().bindClient(
+        new BrowserClient({
+          beforeSend: localBeforeSend,
+          dsn,
+          integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
+        }),
+      );
+
+      captureMessage('capture');
+
+      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+
+      expect(localBeforeSend.called).to.be.false;
     });
   });
 });

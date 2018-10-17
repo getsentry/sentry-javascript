@@ -8,6 +8,10 @@ export class Ember implements Integration {
    * @inheritDoc
    */
   public name: string = 'Ember';
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Ember';
 
   /**
    * @inheritDoc
@@ -28,7 +32,7 @@ export class Ember implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     if (!this.Ember) {
       return;
     }
@@ -36,10 +40,12 @@ export class Ember implements Integration {
     const oldOnError = this.Ember.onerror;
 
     this.Ember.onerror = (error: Error): void => {
-      withScope(scope => {
-        this.addIntegrationToSdkInfo(scope);
-        getCurrentHub().captureException(error, { originalException: error });
-      });
+      if (getCurrentHub().getIntegration(Ember)) {
+        withScope(scope => {
+          this.addIntegrationToSdkInfo(scope);
+          getCurrentHub().captureException(error, { originalException: error });
+        });
+      }
 
       if (typeof oldOnError === 'function') {
         oldOnError.call(this.Ember, error);
@@ -49,17 +55,19 @@ export class Ember implements Integration {
     this.Ember.RSVP.on(
       'error',
       (reason: any): void => {
-        const scope = getCurrentHub().pushScope();
-        if (reason instanceof Error) {
-          scope.setExtra('context', 'Unhandled Promise error detected');
-          this.addIntegrationToSdkInfo(scope);
-          getCurrentHub().captureException(reason, { originalException: reason });
-        } else {
-          scope.setExtra('reason', reason);
-          this.addIntegrationToSdkInfo(scope);
-          captureMessage('Unhandled Promise error detected');
+        if (getCurrentHub().getIntegration(Ember)) {
+          const scope = getCurrentHub().pushScope();
+          if (reason instanceof Error) {
+            scope.setExtra('context', 'Unhandled Promise error detected');
+            this.addIntegrationToSdkInfo(scope);
+            getCurrentHub().captureException(reason, { originalException: reason });
+          } else {
+            scope.setExtra('reason', reason);
+            this.addIntegrationToSdkInfo(scope);
+            captureMessage('Unhandled Promise error detected');
+          }
+          getCurrentHub().popScope();
         }
-        getCurrentHub().popScope();
       },
     );
   }

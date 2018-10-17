@@ -1,11 +1,12 @@
-import { API, getCurrentHub, logger } from '@sentry/core';
-import { Integration, Severity } from '@sentry/types';
+import { API, getCurrentHub } from '@sentry/core';
+import { Breadcrumb, Integration, SentryBreadcrumbHint, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { deserialize, fill } from '@sentry/utils/object';
 import { includes, safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
-import { BrowserOptions } from '../backend';
+import { BrowserClient } from '../client';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 const global = getGlobalObject() as Window;
@@ -19,28 +20,6 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
     url?: string;
     status_code?: number;
   };
-}
-
-/** JSDoc */
-function addSentryBreadcrumb(serializedData: string): void {
-  // There's always something that can go wrong with deserialization...
-  try {
-    const event: { [key: string]: any } = deserialize(serializedData);
-
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'sentry',
-        event_id: event.event_id,
-        level: event.level || Severity.fromString('error'),
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
-  } catch (_oO) {
-    logger.error('Error while adding sentry type breadcrumb');
-  }
 }
 
 /** JSDoc */
@@ -60,6 +39,11 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public name: string = 'Breadcrumbs';
+
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'Breadcrumbs';
 
   /** JSDoc */
   private readonly options: BreadcrumbIntegrations;
@@ -81,7 +65,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentBeacon(options: { filterUrl?: string }): void {
+  private instrumentBeacon(): void {
     if (!supportsBeacon()) {
       return;
     }
@@ -95,11 +79,16 @@ export class Breadcrumbs implements Integration {
         // https://developer.mozilla.org/en-US/docs/Web/API/Beacon_API/Using_the_Beacon_API
         const result = originalBeaconFunction.apply(this, args);
 
-        // if Sentry key appears in URL, don't capture it as a request
-        // but rather as our own 'sentry' type breadcrumb
-        if (options.filterUrl && includes(url, options.filterUrl)) {
-          addSentryBreadcrumb(data);
-          return result;
+        const client = getCurrentHub().getClient() as BrowserClient;
+        const dsn = client && client.getDsn();
+        if (dsn) {
+          const filterUrl = new API(dsn).getStoreEndpoint();
+          // if Sentry key appears in URL, don't capture it as a request
+          // but rather as our own 'sentry' type breadcrumb
+          if (filterUrl && includes(url, filterUrl)) {
+            addSentryBreadcrumb(data);
+            return result;
+          }
         }
 
         // What is wrong with you TypeScript...
@@ -113,7 +102,7 @@ export class Breadcrumbs implements Integration {
           breadcrumbData.level = Severity.Error;
         }
 
-        getCurrentHub().addBreadcrumb(breadcrumbData, {
+        Breadcrumbs.addBreadcrumb(breadcrumbData, {
           input: args,
           result,
         });
@@ -156,7 +145,7 @@ export class Breadcrumbs implements Integration {
             }
           }
 
-          getCurrentHub().addBreadcrumb(breadcrumbData, {
+          Breadcrumbs.addBreadcrumb(breadcrumbData, {
             input: args,
             level,
           });
@@ -182,7 +171,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentFetch(options: { filterUrl?: string }): void {
+  private instrumentFetch(): void {
     if (!supportsNativeFetch()) {
       return;
     }
@@ -208,13 +197,18 @@ export class Breadcrumbs implements Integration {
           method = args[1].method;
         }
 
-        // if Sentry key appears in URL, don't capture it as a request
-        // but rather as our own 'sentry' type breadcrumb
-        if (options.filterUrl && includes(url, options.filterUrl)) {
-          if (method === 'POST' && args[1] && args[1].body) {
-            addSentryBreadcrumb(args[1].body);
+        const client = getCurrentHub().getClient() as BrowserClient;
+        const dsn = client && client.getDsn();
+        if (dsn) {
+          const filterUrl = new API(dsn).getStoreEndpoint();
+          // if Sentry key appears in URL, don't capture it as a request
+          // but rather as our own 'sentry' type breadcrumb
+          if (filterUrl && includes(url, filterUrl)) {
+            if (method === 'POST' && args[1] && args[1].body) {
+              addSentryBreadcrumb(args[1].body);
+            }
+            return originalFetch.apply(global, args);
           }
-          return originalFetch.apply(global, args);
         }
 
         const fetchData: {
@@ -230,7 +224,7 @@ export class Breadcrumbs implements Integration {
           .apply(global, args)
           .then((response: Response) => {
             fetchData.status_code = response.status;
-            getCurrentHub().addBreadcrumb(
+            Breadcrumbs.addBreadcrumb(
               {
                 category: 'fetch',
                 data: fetchData,
@@ -244,7 +238,7 @@ export class Breadcrumbs implements Integration {
             return response;
           })
           .catch((error: Error) => {
-            getCurrentHub().addBreadcrumb(
+            Breadcrumbs.addBreadcrumb(
               {
                 category: 'fetch',
                 data: fetchData,
@@ -295,7 +289,7 @@ export class Breadcrumbs implements Integration {
         from = parsedFrom.relative;
       }
 
-      getCurrentHub().addBreadcrumb({
+      Breadcrumbs.addBreadcrumb({
         category: 'navigation',
         data: {
           from,
@@ -334,7 +328,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentXHR(options: { filterUrl?: string }): void {
+  private instrumentXHR(): void {
     if (!('XMLHttpRequest' in global)) {
       return;
     }
@@ -369,11 +363,18 @@ export class Breadcrumbs implements Integration {
             method: args[0],
             url: args[1],
           };
-          // if Sentry key appears in URL, don't capture it as a request
-          // but rather as our own 'sentry' type breadcrumb
-          if (isString(url) && (options.filterUrl && includes(url, options.filterUrl))) {
-            this.__sentry_own_request__ = true;
+
+          const client = getCurrentHub().getClient() as BrowserClient;
+          const dsn = client && client.getDsn();
+          if (dsn) {
+            const filterUrl = new API(dsn).getStoreEndpoint();
+            // if Sentry key appears in URL, don't capture it as a request
+            // but rather as our own 'sentry' type breadcrumb
+            if (isString(url) && (filterUrl && includes(url, filterUrl))) {
+              this.__sentry_own_request__ = true;
+            }
           }
+
           return originalOpen.apply(this, args);
         },
     );
@@ -404,7 +405,7 @@ export class Breadcrumbs implements Integration {
               } catch (e) {
                 /* do nothing */
               }
-              getCurrentHub().addBreadcrumb(
+              Breadcrumbs.addBreadcrumb(
                 {
                   category: 'xhr',
                   data: xhr.__sentry_xhr__,
@@ -447,6 +448,18 @@ export class Breadcrumbs implements Integration {
         },
     );
   }
+
+  /**
+   * Helper that checks if integration is enabled on the client.
+   * @param breadcrumb Breadcrumb
+   * @param hint SentryBreadcrumbHint
+   */
+  public static addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
+    if (getCurrentHub().getIntegration(Breadcrumbs)) {
+      getCurrentHub().addBreadcrumb(breadcrumb, hint);
+    }
+  }
+
   /**
    * Instrument browser built-ins w/ breadcrumb capturing
    *  - Console API
@@ -455,9 +468,7 @@ export class Breadcrumbs implements Integration {
    *  - Fetch API
    *  - History API
    */
-  public install(options: BrowserOptions = {}): void {
-    const filterUrl = options.dsn && new API(options.dsn).getStoreEndpoint();
-
+  public setupOnce(): void {
     if (this.options.console) {
       this.instrumentConsole();
     }
@@ -465,16 +476,37 @@ export class Breadcrumbs implements Integration {
       this.instrumentDOM();
     }
     if (this.options.xhr) {
-      this.instrumentXHR({ filterUrl });
+      this.instrumentXHR();
     }
     if (this.options.fetch) {
-      this.instrumentFetch({ filterUrl });
+      this.instrumentFetch();
     }
     if (this.options.beacon) {
-      this.instrumentBeacon({ filterUrl });
+      this.instrumentBeacon();
     }
     if (this.options.history) {
       this.instrumentHistory();
     }
+  }
+}
+
+/** JSDoc */
+function addSentryBreadcrumb(serializedData: string): void {
+  // There's always something that can go wrong with deserialization...
+  try {
+    const event: { [key: string]: any } = deserialize(serializedData);
+    Breadcrumbs.addBreadcrumb(
+      {
+        category: 'sentry',
+        event_id: event.event_id,
+        level: event.level || Severity.fromString('error'),
+        message: getEventDescription(event),
+      },
+      {
+        event,
+      },
+    );
+  } catch (_oO) {
+    logger.error('Error while adding sentry type breadcrumb');
   }
 }

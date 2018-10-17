@@ -1,4 +1,4 @@
-import { configureScope } from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -14,9 +14,14 @@ export class UserAgent implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
+  public static id: string = 'UserAgent';
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
+    addGlobalEventProcessor(async (event: SentryEvent) => {
+      if (getCurrentHub().getIntegration(UserAgent)) {
         if (!global.navigator || !global.location) {
           return event;
         }
@@ -31,7 +36,8 @@ export class UserAgent implements Integration {
           ...event,
           request,
         };
-      });
+      }
+      return event;
     });
   }
 }

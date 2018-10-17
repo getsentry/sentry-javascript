@@ -193,10 +193,28 @@ export interface Mechanism {
   };
 }
 
-/** JSDoc */
+/** Integration interface */
 export interface Integration {
+  // TODO: Remove with v5
+  /**
+   * @deprecated Use {@link IntegrationClass.id} instead
+   */
   name: string;
-  install(options?: object): void;
+  // TODO: Remove with v5
+  /** @deprecated */
+  install?(options?: object): void;
+
+  // This takes no options on purpose, options should be passed in the constructor
+  setupOnce(): void; // TODO: make not optional
+}
+
+/** Integration Class Interface */
+export interface IntegrationClass<T> {
+  new (): T;
+  /**
+   * Property that holds the integration name
+   */
+  id: string;
 }
 
 /** JSDoc */

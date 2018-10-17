@@ -40,11 +40,9 @@ Sentry.init({
   //   return [new Sentry.Integrations.Debug({ stringify: true })].concat(old);
   // },
   beforeBreadcrumb: function(breadcrumb) {
-    if (window.forceAllBreadcrumbs) {
-      return breadcrumb;
-    }
     // Filter console logs as we use them for debugging *a lot* and they are not *that* important
-    if (breadcrumb.category === 'console') {
+    // But allow then if we explicitly say so (for one of integration tests)
+    if (breadcrumb.category === 'console' && !window.allowConsoleBreadcrumbs) {
       return null;
     }
 
@@ -56,6 +54,11 @@ Sentry.init({
       breadcrumb.type === 'http' &&
       (breadcrumb.data.url.indexOf('test.js') !== -1 || breadcrumb.data.url.indexOf('frame.html') !== -1)
     ) {
+      return null;
+    }
+
+    // Filter "refresh" like navigation which occurs in Mocha when testing on Android 4
+    if (breadcrumb.category === 'navigation' && breadcrumb.data.to === breadcrumb.data.from) {
       return null;
     }
 

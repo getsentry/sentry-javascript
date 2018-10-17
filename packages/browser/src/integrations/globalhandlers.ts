@@ -1,5 +1,6 @@
-import { getCurrentHub, logger } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { eventFromStacktrace } from '../parsers';
 import {
   installGlobalHandler,
@@ -22,6 +23,11 @@ export class GlobalHandlers implements Integration {
    */
   public name: string = 'GlobalHandlers';
 
+  /**
+   * @inheritDoc
+   */
+  public static id: string = 'GlobalHandlers';
+
   /** JSDoc */
   private readonly options: GlobalHandlersIntegrations;
 
@@ -36,7 +42,7 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
       // TODO: use stack.context to get a valuable information from TraceKit, eg.
       // [
@@ -55,7 +61,10 @@ export class GlobalHandlers implements Integration {
       if (shouldIgnoreOnError()) {
         return;
       }
-      getCurrentHub().captureEvent(this.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+      const self = getCurrentHub().getIntegration(GlobalHandlers);
+      if (self) {
+        getCurrentHub().captureEvent(self.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+      }
     });
 
     if (this.options.onerror) {

@@ -1,3 +1,3 @@
 export { Carrier, Layer } from './interfaces';
-export { Scope } from './scope';
-export { getCurrentHub, getHubFromCarrier, Hub } from './hub';
+export { addGlobalEventProcessor, Scope } from './scope';
+export { getCurrentHub, getHubFromCarrier, getMainCarrier, Hub, setHubOnCarrier } from './hub';

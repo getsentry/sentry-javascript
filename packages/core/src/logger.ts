@@ -1,4 +1,4 @@
-import { getGlobalObject } from '@sentry/utils/misc';
+import { consoleSandbox, getGlobalObject } from '@sentry/utils/misc';
 
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject() as Window;
@@ -28,21 +28,27 @@ class Logger {
     if (this.disabled) {
       return;
     }
-    this.console.log(`Sentry Logger [Log]: ${message}`); // tslint:disable-line:no-console
+    consoleSandbox(() => {
+      this.console.log(`Sentry Logger [Log]: ${message}`); // tslint:disable-line:no-console
+    });
   }
   /** JSDoc */
   public warn(message: any): void {
     if (this.disabled) {
       return;
     }
-    this.console.warn(`Sentry Logger [Warn]: ${message}`); // tslint:disable-line:no-console
+    consoleSandbox(() => {
+      this.console.warn(`Sentry Logger [Warn]: ${message}`); // tslint:disable-line:no-console
+    });
   }
   /** JSDoc */
   public error(message: any): void {
     if (this.disabled) {
       return;
     }
-    this.console.error(`Sentry Logger [Error]: ${message}`); // tslint:disable-line:no-console
+    consoleSandbox(() => {
+      this.console.error(`Sentry Logger [Error]: ${message}`); // tslint:disable-line:no-console
+    });
   }
 }
 

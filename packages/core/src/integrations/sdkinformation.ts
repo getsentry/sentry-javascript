@@ -1,5 +1,5 @@
 import { Integration } from '@sentry/types';
-import { logger } from '../logger';
+import { logger } from '@sentry/utils/logger';
 
 /**
  * @deprecated
@@ -16,7 +16,7 @@ export class SDKInformation implements Integration {
   /**
    * @inheritDoc
    */
-  public install(): void {
+  public setupOnce(): void {
     logger.warn(
       "SDKInformation Integration is deprecated and can be safely removed. It's functionality has been merged into the SDK's core.",
     );

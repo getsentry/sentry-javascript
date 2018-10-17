@@ -42,6 +42,7 @@
     "rollup-plugin-license": "^0.6.0",
     "rollup-plugin-node-resolve": "^3.3.0",
     "rollup-plugin-npm": "^2.0.0",
+    "rollup-plugin-shim": "^1.0.0",
     "rollup-plugin-typescript2": "^0.13.0",
     "rollup-plugin-uglify": "^3.0.0",
     "sinon": "^5.0.3",

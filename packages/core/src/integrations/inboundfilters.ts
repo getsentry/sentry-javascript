@@ -1,9 +1,9 @@
-import { configureScope } from '@sentry/minimal';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 import { includes } from '@sentry/utils/string';
-import { logger } from '../logger';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -32,16 +32,25 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public install(options: InboundFiltersOptions = {}): void {
-    this.configureOptions(options);
+  public static id: string = 'InboundFilters';
 
-    configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
-        if (this.shouldDropEvent(event)) {
+  public constructor(private readonly options: InboundFiltersOptions = {}) {
+    this.configureOptions();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
+    addGlobalEventProcessor(async (event: SentryEvent) => {
+      const self = getCurrentHub().getIntegration(InboundFilters);
+      if (self) {
+        self.configureOptions();
+        if (self.shouldDropEvent(event)) {
           return null;
         }
-        return event;
-      });
+      }
+      return event;
     });
   }
 
@@ -116,15 +125,15 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private configureOptions(options: InboundFiltersOptions): void {
-    if (options.ignoreErrors) {
-      this.ignoreErrors = [...DEFAULT_IGNORE_ERRORS, ...options.ignoreErrors];
+  private configureOptions(): void {
+    if (this.options.ignoreErrors) {
+      this.ignoreErrors = [...DEFAULT_IGNORE_ERRORS, ...this.options.ignoreErrors];
     }
-    if (options.blacklistUrls) {
-      this.blacklistUrls = [...options.blacklistUrls];
+    if (this.options.blacklistUrls) {
+      this.blacklistUrls = [...this.options.blacklistUrls];
     }
-    if (options.whitelistUrls) {
-      this.whitelistUrls = [...options.whitelistUrls];
+    if (this.options.whitelistUrls) {
+      this.whitelistUrls = [...this.options.whitelistUrls];
     }
   }
 
