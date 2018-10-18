@@ -4,8 +4,9 @@
 
 - [browser] fix: Make `addBreadcrumb` sync internally, `beforeBreadcrumb` is now only sync
 - [browser] fix: Remove internal `console` guard in `beforeBreadcrumb`
-- [core]: Integrations now live on the `Client`. This means that when binding a new Client to the `Hub` the client
+- [core] feat: Integrations now live on the `Client`. This means that when binding a new Client to the `Hub` the client
   itself can decide which integration should run.
+- [node] ref: Simplify Node global handlers code
 
 ## 4.1.1
 
