@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.2.0
+
 - [browser] fix: Make `addBreadcrumb` sync internally, `beforeBreadcrumb` is now only sync
 - [browser] fix: Remove internal `console` guard in `beforeBreadcrumb`
 - [core] feat: Integrations now live on the `Client`. This means that when binding a new Client to the `Hub` the client
