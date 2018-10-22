@@ -7,4 +7,4 @@ OLD_VERSION="${1}"
 NEW_VERSION="${2}"
  # Do not tag and commit changes made by "npm version"
 export npm_config_git_tag_version=false
-yarn lerna version --exact --no-git-tag-version --no-push -y --include-merged-tags "${NEW_VERSION}"
+yarn lerna version --exact --no-git-tag-version --no-push --include-merged-tags -y "${NEW_VERSION}"
