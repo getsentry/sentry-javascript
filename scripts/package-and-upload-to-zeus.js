@@ -18,6 +18,11 @@ const join = require('path').join;
     return /^\//.test(line);
   });
 
+  console.log('---------------------');
+  console.log('Changed Packages:');
+  console.log(changedPackagesFolders);
+  console.log('---------------------');
+
   await Promise.all(
     changedPackagesFolders.map(async folder => {
       const archive = (await exec(`cd ${folder}; npm pack`)).stdout.trim();

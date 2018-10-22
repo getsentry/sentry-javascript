@@ -7,10 +7,10 @@ yarn build
 
 # Temp workaround
 git clone https://github.com/HazAT/lerna.git
-cd lerna/core/lerna
-yarn link
-cd ../../../
-yarn link lerna
+cd lerna
+npm link
+cd ../
+npm link lerna
 ############################################
 
 # Upload NPM packages
