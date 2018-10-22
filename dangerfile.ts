@@ -13,11 +13,7 @@ export default async () => {
     return;
   }
 
-  schedule(
-    codecov({
-      debug: true,
-    }),
-  );
+  schedule(codecov({ debug: true }));
 
   schedule(async () => {
     const tsLintResult = (await Promise.all(
