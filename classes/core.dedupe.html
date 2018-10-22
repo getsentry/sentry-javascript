@@ -94,12 +94,13 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dedupe.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="core.dedupe.html#id" class="tsd-kind-icon">id</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dedupe.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dedupe.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dedupe.html#shoulddropevent" class="tsd-kind-icon">should<wbr>Drop<wbr>Event</a></li>
 							</ul>
 						</section>
@@ -115,7 +116,24 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/integrations/dedupe.ts#L16">core/src/integrations/dedupe.ts:16</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/dedupe.ts#L16">core/src/integrations/dedupe.ts:16</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>Use <a href="../interfaces/types.integrationclass.html#id">IntegrationClass.id</a> instead</p>
+							</dd>
+						</dl>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="id" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> id</h3>
+					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Dedupe&quot;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/dedupe.ts#L21">core/src/integrations/dedupe.ts:21</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -129,16 +147,17 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="install" class="tsd-anchor"></a>
-					<h3>install</h3>
+					<a name="setuponce" class="tsd-anchor"></a>
+					<h3>setup<wbr>Once</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/integrations/dedupe.ts#L21">core/src/integrations/dedupe.ts:21</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/dedupe.ts#L26">core/src/integrations/dedupe.ts:26</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -161,7 +180,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/integrations/dedupe.ts#L39">core/src/integrations/dedupe.ts:39</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/dedupe.ts#L46">core/src/integrations/dedupe.ts:46</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -238,8 +257,11 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="core.dedupe.html#name" class="tsd-kind-icon">name</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="core.dedupe.html#id" class="tsd-kind-icon">id</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="core.dedupe.html#install" class="tsd-kind-icon">install</a>
+								<a href="core.dedupe.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.dedupe.html#shoulddropevent" class="tsd-kind-icon">should<wbr>Drop<wbr>Event</a>
@@ -282,10 +304,25 @@
 						<a href="../interfaces/core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/core.options.html" class="tsd-kind-icon">Options</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/core.html#getintegrationstosetup" class="tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="../modules/core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/core.html#setupintegration" class="tsd-kind-icon">setup<wbr>Integration</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../modules/core.html#setupintegrations" class="tsd-kind-icon">setup<wbr>Integrations</a>
 					</li>
 				</ul>
 			</nav>

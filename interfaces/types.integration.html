@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>JSDoc</p>
+						<p>Integration interface</p>
 					</div>
 				</div>
 			</section>
@@ -120,6 +120,7 @@
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="types.integration.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="types.integration.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 							</ul>
 						</section>
 					</div>
@@ -133,16 +134,23 @@
 					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/types/src/index.ts#L198">types/src/index.ts:198</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/types/src/index.ts#L202">types/src/index.ts:202</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>Use <a href="types.integrationclass.html#id">IntegrationClass.id</a> instead</p>
+							</dd>
+						</dl>
+					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
 					<a name="install" class="tsd-anchor"></a>
-					<h3>install</h3>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> install</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
 						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
@@ -150,15 +158,38 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/types/src/index.ts#L199">types/src/index.ts:199</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/types/src/index.ts#L205">types/src/index.ts:205</a></li>
 								</ul>
 							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>deprecated</dt>
+									<dd></dd>
+								</dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5>
 								</li>
 							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="setuponce" class="tsd-anchor"></a>
+					<h3>setup<wbr>Once</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/types/src/index.ts#L208">types/src/index.ts:208</a></li>
+								</ul>
+							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
@@ -219,10 +250,16 @@
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="types.integration.html#install" class="tsd-kind-icon">install</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="types.integration.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
+							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="types.integrationclass.html" class="tsd-kind-icon">Integration<wbr>Class</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="types.mechanism.html" class="tsd-kind-icon">Mechanism</a>
 					</li>

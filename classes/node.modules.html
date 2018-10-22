@@ -94,12 +94,13 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="node.modules.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="node.modules.html#id" class="tsd-kind-icon">id</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="node.modules.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="node.modules.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 							</ul>
 						</section>
 					</div>
@@ -114,7 +115,24 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/node/src/integrations/pluggable/modules.ts#L13">node/src/integrations/pluggable/modules.ts:13</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/node/src/integrations/pluggable/modules.ts#L12">node/src/integrations/pluggable/modules.ts:12</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>Use <a href="../interfaces/types.integrationclass.html#id">IntegrationClass.id</a> instead</p>
+							</dd>
+						</dl>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="id" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> id</h3>
+					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Modules&quot;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/node/src/integrations/pluggable/modules.ts#L16">node/src/integrations/pluggable/modules.ts:16</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -128,16 +146,17 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="install" class="tsd-anchor"></a>
-					<h3>install</h3>
+					<a name="setuponce" class="tsd-anchor"></a>
+					<h3>setup<wbr>Once</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span>_<span class="tsd-signature-symbol">?: </span><a href="../interfaces/node.nodeoptions.html" class="tsd-signature-type">NodeOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/node/src/integrations/pluggable/modules.ts#L18">node/src/integrations/pluggable/modules.ts:18</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/node/src/integrations/pluggable/modules.ts#L21">node/src/integrations/pluggable/modules.ts:21</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -146,12 +165,6 @@
 									<dd></dd>
 								</dl>
 							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> _: <a href="../interfaces/node.nodeoptions.html" class="tsd-signature-type">NodeOptions</a><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
-								</li>
-							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
@@ -215,8 +228,11 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="node.modules.html#name" class="tsd-kind-icon">name</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="node.modules.html#id" class="tsd-kind-icon">id</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="node.modules.html#install" class="tsd-kind-icon">install</a>
+								<a href="node.modules.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
 							</li>
 						</ul>
 					</li>

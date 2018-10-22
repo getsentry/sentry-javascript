@@ -100,13 +100,14 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="browser.linkederrors.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="browser.linkederrors.html#id" class="tsd-kind-icon">id</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.linkederrors.html#handler" class="tsd-kind-icon">handler</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.linkederrors.html#install" class="tsd-kind-icon">install</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.linkederrors.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.linkederrors.html#walkerrortree" class="tsd-kind-icon">walk<wbr>Error<wbr>Tree</a></li>
 							</ul>
 						</section>
@@ -125,7 +126,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/browser/src/integrations/linkederrors.ts#L31">browser/src/integrations/linkederrors.ts:31</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L36">browser/src/integrations/linkederrors.ts:36</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -156,7 +157,24 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/browser/src/integrations/linkederrors.ts#L21">browser/src/integrations/linkederrors.ts:21</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L21">browser/src/integrations/linkederrors.ts:21</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<dl class="tsd-comment-tags">
+							<dt>deprecated</dt>
+							<dd><p>Use <a href="../interfaces/types.integrationclass.html#id">IntegrationClass.id</a> instead</p>
+							</dd>
+						</dl>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="id" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> id</h3>
+					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;LinkedErrors&quot;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L26">browser/src/integrations/linkederrors.ts:26</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -179,7 +197,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/browser/src/integrations/linkederrors.ts#L51">browser/src/integrations/linkederrors.ts:51</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L62">browser/src/integrations/linkederrors.ts:62</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -205,16 +223,17 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="install" class="tsd-anchor"></a>
-					<h3>install</h3>
+					<a name="setuponce" class="tsd-anchor"></a>
+					<h3>setup<wbr>Once</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">install<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/browser/src/integrations/linkederrors.ts#L44">browser/src/integrations/linkederrors.ts:44</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L49">browser/src/integrations/linkederrors.ts:49</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -237,7 +256,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/browser/src/integrations/linkederrors.ts#L63">browser/src/integrations/linkederrors.ts:63</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/browser/src/integrations/linkederrors.ts#L74">browser/src/integrations/linkederrors.ts:74</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -330,11 +349,14 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="browser.linkederrors.html#name" class="tsd-kind-icon">name</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="browser.linkederrors.html#id" class="tsd-kind-icon">id</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="browser.linkederrors.html#handler" class="tsd-kind-icon">handler</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="browser.linkederrors.html#install" class="tsd-kind-icon">install</a>
+								<a href="browser.linkederrors.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="browser.linkederrors.html#walkerrortree" class="tsd-kind-icon">walk<wbr>Error<wbr>Tree</a>

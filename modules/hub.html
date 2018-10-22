@@ -103,6 +103,12 @@
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
+							<h3>Type aliases</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-type-alias tsd-parent-kind-external-module"><a href="hub.html#eventprocessor" class="tsd-kind-icon">Event<wbr>Processor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
 							<h3>Variables</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-variable tsd-parent-kind-external-module"><a href="hub.html#api_version" class="tsd-kind-icon">API_<wbr>VERSION</a></li>
@@ -111,12 +117,52 @@
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#addglobaleventprocessor" class="tsd-kind-icon">add<wbr>Global<wbr>Event<wbr>Processor</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#getcurrenthub" class="tsd-kind-icon">get<wbr>Current<wbr>Hub</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#gethubfromcarrier" class="tsd-kind-icon">get<wbr>Hub<wbr>From<wbr>Carrier</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#getmaincarrier" class="tsd-kind-icon">get<wbr>Main<wbr>Carrier</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#hashuboncarrier" class="tsd-kind-icon">has<wbr>Hub<wbr>OnCarrier</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#makemain" class="tsd-kind-icon">make<wbr>Main</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="hub.html#sethuboncarrier" class="tsd-kind-icon">set<wbr>Hub<wbr>OnCarrier</a></li>
 							</ul>
 						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Type aliases</h2>
+				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-external-module">
+					<a name="eventprocessor" class="tsd-anchor"></a>
+					<h3>Event<wbr>Processor</h3>
+					<div class="tsd-signature tsd-kind-icon">Event<wbr>Processor<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/scope.ts#L5">hub/src/scope.ts:5</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-siganture">
+								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-type-alias tsd-is-not-exported">
+									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+								</ul>
+								<ul class="tsd-descriptions">
+									<li class="tsd-description">
+										<h4 class="tsd-parameters-title">Parameters</h4>
+										<ul class="tsd-parameters">
+											<li>
+												<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+											</li>
+											<li>
+												<h5><span class="tsd-flag ts-flagOptional">Optional</span> hint: <a href="../interfaces/types.sentryeventhint.html" class="tsd-signature-type">SentryEventHint</a></h5>
+											</li>
+										</ul>
+										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+									</li>
+								</ul>
+							</li>
+						</ul>
 					</div>
 				</section>
 			</section>
@@ -128,7 +174,7 @@
 					<div class="tsd-signature tsd-kind-icon">API_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">3</span><span class="tsd-signature-symbol"> =&nbsp;3</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/hub/src/hub.ts#L12">hub/src/hub.ts:12</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L32">hub/src/hub.ts:32</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -143,6 +189,37 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="addglobaleventprocessor" class="tsd-anchor"></a>
+					<h3>add<wbr>Global<wbr>Event<wbr>Processor</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Global<wbr>Event<wbr>Processor<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><a href="hub.html#eventprocessor" class="tsd-signature-type">EventProcessor</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/scope.ts#L259">hub/src/scope.ts:259</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Add a EventProcessor to be kept globally.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>callback: <a href="hub.html#eventprocessor" class="tsd-signature-type">EventProcessor</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>EventProcessor to add</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="getcurrenthub" class="tsd-anchor"></a>
 					<h3>get<wbr>Current<wbr>Hub</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -152,7 +229,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/hub/src/hub.ts#L302">hub/src/hub.ts:302</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L327">hub/src/hub.ts:327</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -177,7 +254,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/hub/src/hub.ts#L338">hub/src/hub.ts:338</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L376">hub/src/hub.ts:376</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -209,7 +286,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/hub/src/hub.ts#L270">hub/src/hub.ts:270</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L300">hub/src/hub.ts:300</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -222,16 +299,47 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
-					<a name="makemain" class="tsd-anchor"></a>
-					<h3>make<wbr>Main</h3>
+					<a name="hashuboncarrier" class="tsd-anchor"></a>
+					<h3>has<wbr>Hub<wbr>OnCarrier</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">make<wbr>Main<span class="tsd-signature-symbol">(</span>hub<span class="tsd-signature-symbol">?: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Hub<wbr>OnCarrier<span class="tsd-signature-symbol">(</span>carrier<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/hub/src/hub.ts#L283">hub/src/hub.ts:283</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L363">hub/src/hub.ts:363</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>This will tell whether a carrier has a hub on it or not</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>carrier: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>object</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="makemain" class="tsd-anchor"></a>
+					<h3>make<wbr>Main</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">make<wbr>Main<span class="tsd-signature-symbol">(</span>hub<span class="tsd-signature-symbol">: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L313">hub/src/hub.ts:313</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -242,14 +350,48 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> hub: <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></h5>
+									<h5>hub: <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a>
-								<span class="tsd-signature-symbol"> | </span>
-								<span class="tsd-signature-type">undefined</span>
-							</h4>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></h4>
 							<p>The old replaced hub</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="sethuboncarrier" class="tsd-anchor"></a>
+					<h3>set<wbr>Hub<wbr>OnCarrier</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Hub<wbr>OnCarrier<span class="tsd-signature-symbol">(</span>carrier<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, hub<span class="tsd-signature-symbol">: </span><a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/hub/src/hub.ts#L391">hub/src/hub.ts:391</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>This will set passed <a href="../classes/hub.hub-1.html">Hub</a> on the passed object&#39;s <strong>SENTRY</strong>.hub attribute</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>carrier: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>object</p>
+									</div>
+								</li>
+								<li>
+									<h5>hub: <a href="../classes/hub.hub-1.html" class="tsd-signature-type">Hub</a></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Hub</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -298,8 +440,14 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/hub.layer.html" class="tsd-kind-icon">Layer</a>
 					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-external-module">
+						<a href="hub.html#eventprocessor" class="tsd-kind-icon">Event<wbr>Processor</a>
+					</li>
 					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
 						<a href="hub.html#api_version" class="tsd-kind-icon">API_<wbr>VERSION</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="hub.html#addglobaleventprocessor" class="tsd-kind-icon">add<wbr>Global<wbr>Event<wbr>Processor</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="hub.html#getcurrenthub" class="tsd-kind-icon">get<wbr>Current<wbr>Hub</a>
@@ -311,7 +459,13 @@
 						<a href="hub.html#getmaincarrier" class="tsd-kind-icon">get<wbr>Main<wbr>Carrier</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="hub.html#hashuboncarrier" class="tsd-kind-icon">has<wbr>Hub<wbr>OnCarrier</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="hub.html#makemain" class="tsd-kind-icon">make<wbr>Main</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="hub.html#sethuboncarrier" class="tsd-kind-icon">set<wbr>Hub<wbr>OnCarrier</a>
 					</li>
 				</ul>
 			</nav>

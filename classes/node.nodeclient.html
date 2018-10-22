@@ -120,6 +120,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodeclient.html#close" class="tsd-kind-icon">close</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.nodeclient.html#getbackend" class="tsd-kind-icon">get<wbr>Backend</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodeclient.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="node.nodeclient.html#getintegration" class="tsd-kind-icon">get<wbr>Integration</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodeclient.html#getintegrations" class="tsd-kind-icon">get<wbr>Integrations</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodeclient.html#getoptions" class="tsd-kind-icon">get<wbr>Options</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodeclient.html#install" class="tsd-kind-icon">install</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.nodeclient.html#isenabled" class="tsd-kind-icon">is<wbr>Enabled</a></li>
@@ -143,7 +145,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/node/src/client.ts#L12">node/src/client.ts:12</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/node/src/client.ts#L12">node/src/client.ts:12</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -173,7 +175,7 @@
 					<a name="addbreadcrumb" class="tsd-anchor"></a>
 					<h3>add<wbr>Breadcrumb</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>breadcrumb<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>breadcrumb<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>, hint<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a>, scope<span class="tsd-signature-symbol">?: </span><a href="hub.scope.html" class="tsd-signature-type">Scope</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -181,7 +183,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#addbreadcrumb">addBreadcrumb</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#addbreadcrumb">addBreadcrumb</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L217">core/src/baseclient.ts:217</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L187">core/src/baseclient.ts:187</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -204,7 +206,7 @@
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> scope: <a href="hub.scope.html" class="tsd-signature-type">Scope</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -219,7 +221,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#buffer">buffer</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L166">core/src/baseclient.ts:166</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L136">core/src/baseclient.ts:136</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -252,7 +254,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#captureevent">captureEvent</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#captureevent">captureEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L204">core/src/baseclient.ts:204</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L174">core/src/baseclient.ts:174</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -289,7 +291,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#captureexception">captureException</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#captureexception">captureException</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L175">core/src/baseclient.ts:175</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L145">core/src/baseclient.ts:145</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -326,7 +328,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#capturemessage">captureMessage</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#capturemessage">captureMessage</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L187">core/src/baseclient.ts:187</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L157">core/src/baseclient.ts:157</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -366,7 +368,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#close">close</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#close">close</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L413">core/src/baseclient.ts:413</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L383">core/src/baseclient.ts:383</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -396,7 +398,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getbackend">getBackend</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L254">core/src/baseclient.ts:254</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L224">core/src/baseclient.ts:224</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -420,7 +422,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#getdsn">getDsn</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getdsn">getDsn</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L242">core/src/baseclient.ts:242</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L212">core/src/baseclient.ts:212</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -432,6 +434,69 @@
 								<span class="tsd-signature-symbol"> | </span>
 								<span class="tsd-signature-type">undefined</span>
 							</h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+					<a name="getintegration" class="tsd-anchor"></a>
+					<h3>get<wbr>Integration</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Integration&lt;T&gt;<span class="tsd-signature-symbol">(</span>integration<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.integrationclass.html" class="tsd-signature-type">IntegrationClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#getintegration">getIntegration</a></p>
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getintegration">getIntegration</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L399">core/src/baseclient.ts:399</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Returns an array of installed integrations on the client.</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>T<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>integration: <a href="../interfaces/types.integrationclass.html" class="tsd-signature-type">IntegrationClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">null</span>
+							</h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="getintegrations" class="tsd-anchor"></a>
+					<h3>get<wbr>Integrations</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Integrations<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/core.integrationindex.html" class="tsd-signature-type">IntegrationIndex</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getintegrations">getIntegrations</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L392">core/src/baseclient.ts:392</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>inheritdoc</dt>
+									<dd></dd>
+								</dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/core.integrationindex.html" class="tsd-signature-type">IntegrationIndex</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -447,7 +512,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#getoptions">getOptions</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#getoptions">getOptions</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L249">core/src/baseclient.ts:249</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L219">core/src/baseclient.ts:219</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -471,7 +536,7 @@
 								<p>Implementation of <a href="../interfaces/core.client.html">Client</a>.<a href="../interfaces/core.client.html#install">install</a></p>
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#install">install</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L148">core/src/baseclient.ts:148</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L118">core/src/baseclient.ts:118</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -498,7 +563,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#isenabled">isEnabled</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L259">core/src/baseclient.ts:259</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L229">core/src/baseclient.ts:229</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -521,7 +586,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#prepareevent">prepareEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/node/src/client.ts#L24">node/src/client.ts:24</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/node/src/client.ts#L24">node/src/client.ts:24</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -557,7 +622,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="core.baseclient.html">BaseClient</a>.<a href="core.baseclient.html#processevent">processEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/baseclient.ts#L337">core/src/baseclient.ts:337</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/baseclient.ts#L307">core/src/baseclient.ts:307</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -710,6 +775,12 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.nodeclient.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+								<a href="node.nodeclient.html#getintegration" class="tsd-kind-icon">get<wbr>Integration</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="node.nodeclient.html#getintegrations" class="tsd-kind-icon">get<wbr>Integrations</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.nodeclient.html#getoptions" class="tsd-kind-icon">get<wbr>Options</a>

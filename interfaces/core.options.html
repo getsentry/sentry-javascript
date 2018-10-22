@@ -130,7 +130,7 @@
 					<div class="tsd-signature tsd-kind-icon">attach<wbr>Stacktrace<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L100">core/src/interfaces.ts:100</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L102">core/src/interfaces.ts:102</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -145,7 +145,7 @@
 					<div class="tsd-signature tsd-kind-icon">debug<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L34">core/src/interfaces.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L35">core/src/interfaces.ts:35</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -157,15 +157,16 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="defaultintegrations" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> default<wbr>Integrations</h3>
-					<div class="tsd-signature tsd-kind-icon">default<wbr>Integrations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<div class="tsd-signature tsd-kind-icon">default<wbr>Integrations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><a href="types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L52">core/src/interfaces.ts:52</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L54">core/src/interfaces.ts:54</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>If this is set to false, default integrations will not be added.</p>
+							<p>If this is set to false, default integrations will not be added, otherwise this will internally be set to the
+							recommended default integrations.</p>
 						</div>
 					</div>
 				</section>
@@ -175,7 +176,7 @@
 					<div class="tsd-signature tsd-kind-icon">dist<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L88">core/src/interfaces.ts:88</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L90">core/src/interfaces.ts:90</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -190,7 +191,7 @@
 					<div class="tsd-signature tsd-kind-icon">dsn<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L47">core/src/interfaces.ts:47</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L48">core/src/interfaces.ts:48</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -206,7 +207,7 @@
 					<div class="tsd-signature tsd-kind-icon">enabled<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L41">core/src/interfaces.ts:41</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L42">core/src/interfaces.ts:42</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -223,7 +224,7 @@
 					<div class="tsd-signature tsd-kind-icon">environment<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L85">core/src/interfaces.ts:85</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L87">core/src/interfaces.ts:87</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -238,7 +239,7 @@
 					<div class="tsd-signature tsd-kind-icon">ignore<wbr>Errors<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L65">core/src/interfaces.ts:65</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L67">core/src/interfaces.ts:67</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -254,7 +255,7 @@
 					<div class="tsd-signature tsd-kind-icon">integrations<span class="tsd-signature-symbol">:</span> <a href="types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L59">core/src/interfaces.ts:59</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L61">core/src/interfaces.ts:61</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -271,7 +272,7 @@
 					<div class="tsd-signature tsd-kind-icon">log<wbr>Level<span class="tsd-signature-symbol">:</span> <a href="../enums/core.loglevel.html" class="tsd-signature-type">LogLevel</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L94">core/src/interfaces.ts:94</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L96">core/src/interfaces.ts:96</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -286,7 +287,7 @@
 					<div class="tsd-signature tsd-kind-icon">max<wbr>Breadcrumbs<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L91">core/src/interfaces.ts:91</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L93">core/src/interfaces.ts:93</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -301,7 +302,7 @@
 					<div class="tsd-signature tsd-kind-icon">release<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L82">core/src/interfaces.ts:82</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L84">core/src/interfaces.ts:84</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -318,7 +319,7 @@
 					<div class="tsd-signature tsd-kind-icon">sample<wbr>Rate<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L97">core/src/interfaces.ts:97</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L99">core/src/interfaces.ts:99</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -333,7 +334,7 @@
 					<div class="tsd-signature tsd-kind-icon">transport<span class="tsd-signature-symbol">:</span> <a href="types.transportclass.html" class="tsd-signature-type">TransportClass</a><span class="tsd-signature-symbol">&lt;</span><a href="types.transport.html" class="tsd-signature-type">Transport</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L70">core/src/interfaces.ts:70</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L72">core/src/interfaces.ts:72</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -348,7 +349,7 @@
 					<div class="tsd-signature tsd-kind-icon">transport<wbr>Options<span class="tsd-signature-symbol">:</span> <a href="types.transportoptions.html" class="tsd-signature-type">TransportOptions</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L75">core/src/interfaces.ts:75</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L77">core/src/interfaces.ts:77</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -364,13 +365,13 @@
 					<a name="beforebreadcrumb" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> before<wbr>Breadcrumb</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">before<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>breadcrumb<span class="tsd-signature-symbol">: </span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>, hint<span class="tsd-signature-symbol">?: </span><a href="types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">before<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>breadcrumb<span class="tsd-signature-symbol">: </span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>, hint<span class="tsd-signature-symbol">?: </span><a href="types.sentrybreadcrumbhint.html" class="tsd-signature-type">SentryBreadcrumbHint</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L127">core/src/interfaces.ts:127</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L129">core/src/interfaces.ts:129</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -397,8 +398,6 @@
 							<h4 class="tsd-returns-title">Returns <a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a>
 								<span class="tsd-signature-symbol"> | </span>
 								<span class="tsd-signature-type">null</span>
-								<span class="tsd-signature-symbol"> | </span>
-								<span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span>
 							</h4>
 							<p>The breadcrumb that will be added | null.</p>
 						</li>
@@ -414,7 +413,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/interfaces.ts#L114">core/src/interfaces.ts:114</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/interfaces.ts#L116">core/src/interfaces.ts:116</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -535,6 +534,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
@@ -595,8 +597,20 @@
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="../modules/core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/core.html#getintegrationstosetup" class="tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup</a>
+					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="../modules/core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/core.html#setupintegration" class="tsd-kind-icon">setup<wbr>Integration</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../modules/core.html#setupintegrations" class="tsd-kind-icon">setup<wbr>Integrations</a>
 					</li>
 				</ul>
 			</nav>

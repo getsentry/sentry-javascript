@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Debug | Sentry JavaScript SDKs</title>
+	<title>IntegrationIndex | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,10 +55,10 @@
 					<a href="../modules/core.html">core</a>
 				</li>
 				<li>
-					<a href="core.debug.html">Debug</a>
+					<a href="core.integrationindex.html">IntegrationIndex</a>
 				</li>
 			</ul>
-			<h1>Class Debug</h1>
+			<h1>Interface IntegrationIndex</h1>
 		</div>
 	</div>
 </header>
@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>JSDoc</p>
+						<p>Map of integrations assigned to a client</p>
 					</div>
 				</div>
 			</section>
@@ -76,137 +76,18 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">Debug</span>
+						<span class="target">IntegrationIndex</span>
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel">
-				<h3>Implements</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a></li>
-				</ul>
-			</section>
-			<section class="tsd-panel-group tsd-index-group">
-				<h2>Index</h2>
-				<section class="tsd-panel tsd-index-panel">
-					<div class="tsd-index-content">
-						<section class="tsd-index-section ">
-							<h3>Constructors</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="core.debug.html#constructor" class="tsd-kind-icon">constructor</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section ">
-							<h3>Properties</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.debug.html#name" class="tsd-kind-icon">name</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="core.debug.html#id" class="tsd-kind-icon">id</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section ">
-							<h3>Methods</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.debug.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
-							</ul>
-						</section>
+			<section class="tsd-panel tsd-kind-interface tsd-parent-kind-external-module">
+				<h3 class="tsd-before-signature">Indexable</h3>
+				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="types.integration.html" class="tsd-signature-type">Integration</a></div>
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Map of integrations assigned to a client</p>
 					</div>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
-					<a name="constructor" class="tsd-anchor"></a>
-					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Debug<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">DebugOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="core.debug.html" class="tsd-signature-type">Debug</a></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/pluggable/debug.ts#L23">core/src/integrations/pluggable/debug.ts:23</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<dl class="tsd-comment-tags">
-									<dt>inheritdoc</dt>
-									<dd></dd>
-								</dl>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <span class="tsd-signature-type">DebugOptions</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="core.debug.html" class="tsd-signature-type">Debug</a></h4>
-						</li>
-					</ul>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="name" class="tsd-anchor"></a>
-					<h3>name</h3>
-					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Debug&quot;</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/pluggable/debug.ts#L15">core/src/integrations/pluggable/debug.ts:15</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<dl class="tsd-comment-tags">
-							<dt>deprecated</dt>
-							<dd><p>Use <a href="../interfaces/types.integrationclass.html#id">IntegrationClass.id</a> instead</p>
-							</dd>
-						</dl>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
-					<a name="id" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagStatic">Static</span> id</h3>
-					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Debug&quot;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/pluggable/debug.ts#L20">core/src/integrations/pluggable/debug.ts:20</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<dl class="tsd-comment-tags">
-							<dt>inheritdoc</dt>
-							<dd></dd>
-						</dl>
-					</div>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="setuponce" class="tsd-anchor"></a>
-					<h3>setup<wbr>Once</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
-								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/pluggable/debug.ts#L39">core/src/integrations/pluggable/debug.ts:39</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<dl class="tsd-comment-tags">
-									<dt>inheritdoc</dt>
-									<dd></dd>
-								</dl>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
-						</li>
-					</ul>
-				</section>
+				</div>
 			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -244,76 +125,62 @@
 						<a href="../enums/core.loglevel.html" class="tsd-kind-icon">Log<wbr>Level</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.api.html" class="tsd-kind-icon">API</a>
+						<a href="../classes/core.api.html" class="tsd-kind-icon">API</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="core.basebackend.html" class="tsd-kind-icon">Base<wbr>Backend</a>
+						<a href="../classes/core.basebackend.html" class="tsd-kind-icon">Base<wbr>Backend</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
+						<a href="../classes/core.baseclient.html" class="tsd-kind-icon">Base<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.debug.html" class="tsd-kind-icon">Debug</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.dsn.html" class="tsd-kind-icon">Dsn</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="../classes/core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="core.backend.html" class="tsd-kind-icon">Backend</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.backendclass.html" class="tsd-kind-icon">Backend<wbr>Class</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.client.html" class="tsd-kind-icon">Client</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
 					</li>
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.debug.html" class="tsd-kind-icon">Debug</a>
-						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class">
-								<a href="core.debug.html#constructor" class="tsd-kind-icon">constructor</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.debug.html#name" class="tsd-kind-icon">name</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
-								<a href="core.debug.html#id" class="tsd-kind-icon">id</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="core.debug.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
-							</li>
-						</ul>
+					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
 					</li>
 				</ul>
 				<ul class="after-current">
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.dsn.html" class="tsd-kind-icon">Dsn</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.sdkinformation.html" class="tsd-kind-icon">SDKInformation</a>
-					</li>
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.sentryerror.html" class="tsd-kind-icon">Sentry<wbr>Error</a>
-					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/core.backend.html" class="tsd-kind-icon">Backend</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../interfaces/core.backendclass.html" class="tsd-kind-icon">Backend<wbr>Class</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../interfaces/core.client.html" class="tsd-kind-icon">Client</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../interfaces/core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="../interfaces/core.options.html" class="tsd-kind-icon">Options</a>
+						<a href="core.options.html" class="tsd-kind-icon">Options</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
 						<a href="../modules/core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a>

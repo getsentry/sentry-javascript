@@ -119,31 +119,82 @@
 								<li class="tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter"><a href="../interfaces/core.backendclass.html" class="tsd-kind-icon">Backend<wbr>Class</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter"><a href="../interfaces/core.client.html" class="tsd-kind-icon">Client</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-external-module tsd-has-type-parameter"><a href="../interfaces/core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a></li>
+								<li class="tsd-kind-interface tsd-parent-kind-external-module"><a href="../interfaces/core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-external-module"><a href="../interfaces/core.options.html" class="tsd-kind-icon">Options</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Variables</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-variable tsd-parent-kind-external-module"><a href="core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="core.html#getintegrationstosetup" class="tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="core.html#setupintegration" class="tsd-kind-icon">setup<wbr>Integration</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter"><a href="core.html#setupintegrations" class="tsd-kind-icon">setup<wbr>Integrations</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Variables</h2>
+				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-external-module">
+					<a name="installedintegrations" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagConst">Const</span> installed<wbr>Integrations</h3>
+					<div class="tsd-signature tsd-kind-icon">installed<wbr>Integrations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/index.ts#L14">core/src/integrations/index.ts:14</a></li>
+						</ul>
+					</aside>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
-				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-					<a name="initandbind" class="tsd-anchor"></a>
-					<h3>init<wbr>And<wbr>Bind</h3>
-					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
-						<li class="tsd-signature tsd-kind-icon">init<wbr>And<wbr>Bind&lt;F, O&gt;<span class="tsd-signature-symbol">(</span>clientClass<span class="tsd-signature-symbol">: </span><a href="../interfaces/core.clientclass.html" class="tsd-signature-type">ClientClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">F</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">O</span><span class="tsd-signature-symbol">&gt;</span>, options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">O</span>, defaultIntegrations<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="getintegrationstosetup" class="tsd-anchor"></a>
+					<h3>get<wbr>Integrations<wbr>ToSetup</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><a href="../interfaces/core.options.html" class="tsd-signature-type">Options</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/3fd9e95/packages/core/src/sdk.ts#L19">core/src/sdk.ts:19</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/index.ts#L22">core/src/integrations/index.ts:22</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Gets integration to install</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <a href="../interfaces/core.options.html" class="tsd-signature-type">Options</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+					<a name="initandbind" class="tsd-anchor"></a>
+					<h3>init<wbr>And<wbr>Bind</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">init<wbr>And<wbr>Bind&lt;F, O&gt;<span class="tsd-signature-symbol">(</span>clientClass<span class="tsd-signature-symbol">: </span><a href="../interfaces/core.clientclass.html" class="tsd-signature-type">ClientClass</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">F</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">O</span><span class="tsd-signature-symbol">&gt;</span>, options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">O</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/sdk.ts#L18">core/src/sdk.ts:18</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -175,12 +226,75 @@
 										<p>Options to pass to the client.</p>
 									</div>
 								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> defaultIntegrations: <a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></h5>
-								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<p>The installed and bound client instance.</p>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="setupintegration" class="tsd-anchor"></a>
+					<h3>setup<wbr>Integration</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Integration<span class="tsd-signature-symbol">(</span>integration<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a>, options<span class="tsd-signature-symbol">: </span><a href="../interfaces/core.options.html" class="tsd-signature-type">Options</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/index.ts#L59">core/src/integrations/index.ts:59</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Setup given integration</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>integration: <a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a></h5>
+								</li>
+								<li>
+									<h5>options: <a href="../interfaces/core.options.html" class="tsd-signature-type">Options</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+					<a name="setupintegrations" class="tsd-anchor"></a>
+					<h3>setup<wbr>Integrations</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Integrations&lt;O&gt;<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">O</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/core.integrationindex.html" class="tsd-signature-type">IntegrationIndex</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/4b4e172/packages/core/src/integrations/index.ts#L86">core/src/integrations/index.ts:86</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Given a list of integration instances this installs them all. When <code>withDefaults</code> is set to <code>true</code> then all default
+									integrations are added unless they were already provided before.</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>O<span class="tsd-signature-symbol">: </span><a href="../interfaces/core.options.html" class="tsd-signature-type">Options</a></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>options: <span class="tsd-signature-type">O</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/core.integrationindex.html" class="tsd-signature-type">IntegrationIndex</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -269,10 +383,25 @@
 						<a href="../interfaces/core.clientclass.html" class="tsd-kind-icon">Client<wbr>Class</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/core.integrationindex.html" class="tsd-kind-icon">Integration<wbr>Index</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/core.options.html" class="tsd-kind-icon">Options</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-external-module">
+						<a href="core.html#installedintegrations" class="tsd-kind-icon">installed<wbr>Integrations</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="core.html#getintegrationstosetup" class="tsd-kind-icon">get<wbr>Integrations<wbr>ToSetup</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
 						<a href="core.html#initandbind" class="tsd-kind-icon">init<wbr>And<wbr>Bind</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="core.html#setupintegration" class="tsd-kind-icon">setup<wbr>Integration</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-has-type-parameter">
+						<a href="core.html#setupintegrations" class="tsd-kind-icon">setup<wbr>Integrations</a>
 					</li>
 				</ul>
 			</nav>
