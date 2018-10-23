@@ -38,7 +38,7 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Breadcrumbs';
+  public name: string = Breadcrumbs.id;
 
   /**
    * @inheritDoc

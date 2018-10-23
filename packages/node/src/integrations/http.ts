@@ -19,7 +19,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Http';
+  public name: string = Http.id;
   /**
    * @inheritDoc
    */

@@ -21,7 +21,7 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'GlobalHandlers';
+  public name: string = GlobalHandlers.id;
 
   /**
    * @inheritDoc

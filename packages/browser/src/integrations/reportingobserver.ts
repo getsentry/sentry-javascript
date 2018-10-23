@@ -57,7 +57,7 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = 'ReportingObserver';
+  public readonly name: string = ReportingObserver.id;
   /**
    * @inheritDoc
    */

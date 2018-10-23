@@ -13,7 +13,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Dedupe';
+  public name: string = Dedupe.id;
 
   /**
    * @inheritDoc

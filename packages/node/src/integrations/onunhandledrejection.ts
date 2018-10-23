@@ -6,7 +6,7 @@ export class OnUnhandledRejection implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'OnUnhandledRejection';
+  public name: string = OnUnhandledRejection.id;
   /**
    * @inheritDoc
    */

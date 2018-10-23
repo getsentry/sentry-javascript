@@ -28,7 +28,7 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'InboundFilters';
+  public name: string = InboundFilters.id;
   /**
    * @inheritDoc
    */

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+## 4.2.2
+
+- [core]: "De-deprecate" name of `Integration` interface.
 
 ## 4.2.1
 

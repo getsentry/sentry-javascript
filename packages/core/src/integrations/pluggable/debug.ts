@@ -12,7 +12,7 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Debug';
+  public name: string = Debug.id;
 
   /**
    * @inheritDoc

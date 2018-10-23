@@ -7,7 +7,7 @@ export class Ember implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Ember';
+  public name: string = Ember.id;
   /**
    * @inheritDoc
    */

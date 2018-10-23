@@ -8,7 +8,7 @@ export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'OnUncaughtException';
+  public name: string = OnUncaughtException.id;
   /**
    * @inheritDoc
    */

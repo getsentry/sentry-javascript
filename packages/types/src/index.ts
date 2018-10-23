@@ -195,9 +195,8 @@ export interface Mechanism {
 
 /** Integration interface */
 export interface Integration {
-  // TODO: Remove with v5
   /**
-   * @deprecated Use {@link IntegrationClass.id} instead
+   * Returns {@link IntegrationClass.id}
    */
   name: string;
   // TODO: Remove with v5

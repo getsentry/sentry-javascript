@@ -18,7 +18,7 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Vue';
+  public name: string = Vue.id;
   /**
    * @inheritDoc
    */
