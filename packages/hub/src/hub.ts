@@ -9,7 +9,6 @@ import {
 } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject, uuid4 } from '@sentry/utils/misc';
-import * as domain from 'domain';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -335,6 +334,7 @@ export function getCurrentHub(): Hub {
 
   // Prefer domains over global if they are there
   try {
+    const domain = require('domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
