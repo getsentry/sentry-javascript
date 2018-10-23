@@ -1,3 +1,6 @@
+git:
+  depth: false # we need this to make proper releases
+
 branches:
   only:
     - master
