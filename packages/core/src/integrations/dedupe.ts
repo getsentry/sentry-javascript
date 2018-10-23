@@ -1,7 +1,7 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryException, StackFrame } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
-import { logger } from '../logger';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {
