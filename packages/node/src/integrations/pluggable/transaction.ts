@@ -6,7 +6,7 @@ export class Transaction implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Transaction';
+  public name: string = Transaction.id;
   /**
    * @inheritDoc
    */

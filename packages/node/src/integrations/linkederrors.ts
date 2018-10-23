@@ -17,7 +17,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = 'LinkedErrors';
+  public readonly name: string = LinkedErrors.id;
   /**
    * @inheritDoc
    */

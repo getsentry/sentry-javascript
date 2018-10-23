@@ -9,7 +9,7 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'RewriteFrames';
+  public name: string = RewriteFrames.id;
 
   /**
    * @inheritDoc

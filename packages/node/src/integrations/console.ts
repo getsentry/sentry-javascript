@@ -8,7 +8,7 @@ export class Console implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Console';
+  public name: string = Console.id;
   /**
    * @inheritDoc
    */

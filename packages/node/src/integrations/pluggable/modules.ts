@@ -9,7 +9,7 @@ export class Modules implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'Modules';
+  public name: string = Modules.id;
   /**
    * @inheritDoc
    */

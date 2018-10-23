@@ -11,7 +11,7 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = 'TryCatch';
+  public name: string = TryCatch.id;
 
   /**
    * @inheritDoc
