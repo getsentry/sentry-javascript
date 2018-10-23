@@ -3,7 +3,7 @@ const exec = promisify(require('child_process').exec);
 const join = require('path').join;
 
 (async () => {
-  const result = (await exec('yarn lerna changed -p --include-merged-tags')).stdout;
+  const result = (await exec('yarn lerna changed --include-merged-tags -p')).stdout;
   const lines = result.split('\n');
 
   if (
