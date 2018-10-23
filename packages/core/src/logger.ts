@@ -8,12 +8,11 @@ class Logger {
   /** JSDoc */
   private readonly console: Console;
   /** JSDoc */
-  private disabled: boolean;
+  private disabled: boolean = true;
 
   /** JSDoc */
   public constructor() {
     this.console = global.console;
-    this.disabled = true;
   }
   /** JSDoc */
   public disable(): void {
