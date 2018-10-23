@@ -101,7 +101,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
       client.addBreadcrumb({ message: 'world' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[1].message).toBe('world');
+      expect((scope as any).breadcrumbs[1].message).toBe('world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -109,7 +109,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
       client.addBreadcrumb({ message: 'world' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[1].timestamp).toBeGreaterThan(1);
+      expect((scope as any).breadcrumbs[1].timestamp).toBeGreaterThan(1);
     });
 
     test('discards breadcrumbs beyond maxBreadcrumbs', () => {
@@ -117,8 +117,8 @@ describe('BaseClient', () => {
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'hello' }, 100);
       client.addBreadcrumb({ message: 'world' }, undefined, scope);
-      expect(scope.getBreadcrumbs().length).toBe(1);
-      expect(scope.getBreadcrumbs()[0].message).toBe('world');
+      expect((scope as any).breadcrumbs.length).toBe(1);
+      expect((scope as any).breadcrumbs[0].message).toBe('world');
     });
 
     test('allows concurrent updates', () => {
@@ -126,7 +126,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       client.addBreadcrumb({ message: 'hello' }, undefined, scope);
       client.addBreadcrumb({ message: 'world' }, undefined, scope);
-      expect(scope.getBreadcrumbs()).toHaveLength(2);
+      expect((scope as any).breadcrumbs).toHaveLength(2);
     });
 
     test('calls beforeBreadcrumb and adds the breadcrumb without any changes', () => {
@@ -134,7 +134,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
       client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
+      expect((scope as any).breadcrumbs[0].message).toBe('hello');
     });
 
     test('calls beforeBreadcrumb and uses the new one', () => {
@@ -142,7 +142,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
       client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs()[0].message).toBe('changed');
+      expect((scope as any).breadcrumbs[0].message).toBe('changed');
     });
 
     test('calls beforeBreadcrumb and discards the breadcrumb when returned null', () => {
@@ -150,7 +150,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
       client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      expect(scope.getBreadcrumbs().length).toBe(0);
+      expect((scope as any).breadcrumbs.length).toBe(0);
     });
 
     test('calls beforeBreadcrumb gets an access to a hint as a second argument', () => {
@@ -158,8 +158,8 @@ describe('BaseClient', () => {
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
       client.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' }, scope);
-      expect(scope.getBreadcrumbs()[0].message).toBe('hello');
-      expect(scope.getBreadcrumbs()[0].data).toBe('someRandomThing');
+      expect((scope as any).breadcrumbs[0].message).toBe('hello');
+      expect((scope as any).breadcrumbs[0].data).toBe('someRandomThing');
     });
   });
 

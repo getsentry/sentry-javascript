@@ -10,7 +10,7 @@ class Logger {
 
   /** JSDoc */
   public constructor() {
-    this.enabled = true;
+    this.enabled = false;
   }
 
   /** JSDoc */

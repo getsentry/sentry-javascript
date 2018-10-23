@@ -76,7 +76,7 @@ describe('Hub', () => {
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
     expect(hub.getStack()[1].scope).not.toBe(localScope);
-    expect((hub.getStack()[1].scope as Scope).getExtra()).toEqual({ a: 'b' });
+    expect(((hub.getStack()[1].scope as Scope) as any).extra).toEqual({ a: 'b' });
   });
 
   test('pushScope inherit client', () => {
@@ -241,7 +241,7 @@ describe('Hub', () => {
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' }, localScope);
     hub.configureScope(confScope => {
-      expect(confScope.getExtra()).toEqual({ a: 'b' });
+      expect((confScope as any).extra).toEqual({ a: 'b' });
     });
   });
 

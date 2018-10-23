@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- [core]: Invert logger logic the explicitly enable it.
+- [hub]: Require `domain` in `getCurrentHub` in try/catch - Fixed #1670
+- [hub]: Removed exposed getter on the Scope.
+
 ## 4.2.0
 
 - [browser] fix: Make `addBreadcrumb` sync internally, `beforeBreadcrumb` is now only sync
