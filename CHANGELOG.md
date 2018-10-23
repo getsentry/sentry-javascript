@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.2.1
+
 - [core]: Invert logger logic the explicitly enable it.
 - [hub]: Require `domain` in `getCurrentHub` in try/catch - Fixed #1670
 - [hub]: Removed exposed getter on the Scope.
