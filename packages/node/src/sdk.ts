@@ -40,7 +40,7 @@ export const defaultIntegrations = [
  * const { configureScope } = require('@sentry/node');
  * configureScope((scope: Scope) => {
  *   scope.setExtra({ battery: 0.7 });
- *   scope.setTags({ user_mode: 'admin' });
+ *   scope.setTag({ user_mode: 'admin' });
  *   scope.setUser({ id: '4711' });
  * });
  *
