@@ -148,36 +148,6 @@ export class Scope {
     return newScope;
   }
 
-  /** Returns tags. */
-  public getTags(): { [key: string]: string } {
-    return this.tags;
-  }
-
-  /** Returns extra. */
-  public getExtra(): { [key: string]: any } {
-    return this.extra;
-  }
-
-  /** Returns extra. */
-  public getUser(): User {
-    return this.user;
-  }
-
-  /** Returns fingerprint. */
-  public getFingerprint(): string[] | undefined {
-    return this.fingerprint;
-  }
-
-  /** Returns breadcrumbs. */
-  public getBreadcrumbs(): Breadcrumb[] {
-    return this.breadcrumbs;
-  }
-
-  /** Returns level. */
-  public getLevel(): Severity | undefined {
-    return this.level;
-  }
-
   /** Clears the current scope and resets its properties. */
   public clear(): void {
     this.breadcrumbs = [];

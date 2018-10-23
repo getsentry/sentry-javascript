@@ -10,59 +10,59 @@ describe('Scope', () => {
   test('fingerprint', () => {
     const scope = new Scope();
     scope.setFingerprint(['abcd']);
-    expect(scope.getFingerprint()).toEqual(['abcd']);
+    expect((scope as any).fingerprint).toEqual(['abcd']);
   });
 
   test('extra', () => {
     const scope = new Scope();
     scope.setExtra('a', 1);
-    expect(scope.getExtra()).toEqual({ a: 1 });
+    expect((scope as any).extra).toEqual({ a: 1 });
   });
 
   test('tags', () => {
     const scope = new Scope();
     scope.setTag('a', 'b');
-    expect(scope.getTags()).toEqual({ a: 'b' });
+    expect((scope as any).tags).toEqual({ a: 'b' });
   });
 
   test('user', () => {
     const scope = new Scope();
     scope.setUser({ id: '1' });
-    expect(scope.getUser()).toEqual({ id: '1' });
+    expect((scope as any).user).toEqual({ id: '1' });
   });
 
   test('breadcrumbs', () => {
     const scope = new Scope();
     scope.addBreadcrumb({ message: 'test' }, 100);
-    expect(scope.getBreadcrumbs()).toEqual([{ message: 'test' }]);
+    expect((scope as any).breadcrumbs).toEqual([{ message: 'test' }]);
   });
 
   test('level', () => {
     const scope = new Scope();
     scope.setLevel(Severity.Critical);
-    expect(scope.getLevel()).toEqual(Severity.Critical);
+    expect((scope as any).level).toEqual(Severity.Critical);
   });
 
   test('chaining', () => {
     const scope = new Scope();
     scope.setLevel(Severity.Critical).setUser({ id: '1' });
-    expect(scope.getLevel()).toEqual(Severity.Critical);
-    expect(scope.getUser()).toEqual({ id: '1' });
+    expect((scope as any).level).toEqual(Severity.Critical);
+    expect((scope as any).user).toEqual({ id: '1' });
   });
 
   test('basic inheritance', () => {
     const parentScope = new Scope();
     parentScope.setExtra('a', 1);
     const scope = Scope.clone(parentScope);
-    expect(parentScope.getExtra()).toEqual(scope.getExtra());
+    expect((parentScope as any).extra).toEqual((scope as any).extra);
   });
 
   test('parent changed inheritance', () => {
     const parentScope = new Scope();
     const scope = Scope.clone(parentScope);
     parentScope.setExtra('a', 2);
-    expect(scope.getExtra()).toEqual({});
-    expect(parentScope.getExtra()).toEqual({ a: 2 });
+    expect((scope as any).extra).toEqual({});
+    expect((parentScope as any).extra).toEqual({ a: 2 });
   });
 
   test('child override inheritance', () => {
@@ -71,8 +71,8 @@ describe('Scope', () => {
 
     const scope = Scope.clone(parentScope);
     scope.setExtra('a', 2);
-    expect(parentScope.getExtra()).toEqual({ a: 1 });
-    expect(scope.getExtra()).toEqual({ a: 2 });
+    expect((parentScope as any).extra).toEqual({ a: 1 });
+    expect((scope as any).extra).toEqual({ a: 2 });
   });
 
   test('listeners', () => {
@@ -142,9 +142,9 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
-    expect(scope.getExtra()).toEqual({ a: 2 });
+    expect((scope as any).extra).toEqual({ a: 2 });
     scope.clear();
-    expect(scope.getExtra()).toEqual({});
+    expect((scope as any).extra).toEqual({});
   });
 
   test('addEventProcessor', async done => {
