@@ -3,7 +3,6 @@ import uglify from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
-import shim from 'rollup-plugin-shim';
 
 const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
@@ -18,9 +17,6 @@ const bundleConfig = {
   },
   context: 'window',
   plugins: [
-    shim({
-      domain: `export default {}`,
-    }),
     typescript({
       tsconfig: 'tsconfig.build.json',
       tsconfigOverride: { compilerOptions: { declaration: false } },

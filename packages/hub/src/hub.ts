@@ -334,7 +334,7 @@ export function getCurrentHub(): Hub {
 
   // Prefer domains over global if they are there
   try {
-    const domain = require('domain');
+    const domain = (getGlobalObject() as any).module.require('domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
