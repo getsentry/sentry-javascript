@@ -16,7 +16,7 @@ import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
-import { IntegrationIndex, setupIntegrations } from './integrations';
+import { IntegrationIndex, setupIntegrations } from './integration';
 import { Backend, Client, Options } from './interfaces';
 
 /**
