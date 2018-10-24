@@ -26,7 +26,6 @@ convenient interface and improved consistency between various JavaScript environ
 - [Supported Platforms](#supported-platforms)
 - [Installation and Usage](#installation-and-usage)
 - [Other Packages](#other-packages)
-- [Join the Discussion](#join-the-discussion)
 
 ## Supported Platforms
 
