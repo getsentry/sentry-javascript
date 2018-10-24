@@ -38,7 +38,7 @@ export const defaultIntegrations = [
  * import { configureScope } from '@sentry/browser';
  * configureScope((scope: Scope) => {
  *   scope.setExtra({ battery: 0.7 });
- *   scope.setTags({ user_mode: 'admin' });
+ *   scope.setTag({ user_mode: 'admin' });
  *   scope.setUser({ id: '4711' });
  * });
  *
