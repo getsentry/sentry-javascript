@@ -8,7 +8,7 @@ import {
   Severity,
 } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
-import { bundlerSafeRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -334,10 +334,10 @@ export function getCurrentHub(): Hub {
 
   // Prefer domains over global if they are there
   try {
-    // We need to use `bundlerSafeRequire` because `require` on it's own will be optimized by webpack.
-    // We do not want this to happen, we need to try `require` the domain node module and fail if we are in browser
+    // We need to use `dynamicRequire` because `require` on it's own will be optimized by webpack.
+    // We do not want this to happen, we need to try to `require` the domain node module and fail if we are in browser
     // for example so we do not have to shim it and use `getCurrentHub` universally.
-    const domain = bundlerSafeRequire('domain');
+    const domain = dynamicRequire(module, 'domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
