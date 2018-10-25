@@ -2,13 +2,11 @@
 
 ## Unreleased
 
-## 4.2.3
-
-- [core]: Several internal fixes regarding integration, exports and domain.
-
 ## 4.2.2
 
+- [core]: Several internal fixes regarding integration, exports and domain.
 - [core]: "De-deprecate" name of `Integration` interface.
+- [node]: Export `parseRequest` on `Handlers`.
 
 ## 4.2.1
 

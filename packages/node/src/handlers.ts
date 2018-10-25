@@ -145,8 +145,15 @@ function extractUserData(req: { [key: string]: any }, keys: boolean | string[]):
   return user;
 }
 
-/** JSDoc */
-function parseRequest(
+/**
+ * Enriches passed event with request data.
+ *
+ *
+ * @param event Will be mutated and enriched with req data
+ * @param req Request object
+ * @param options object containing flags to enable functionality
+ */
+export function parseRequest(
   event: SentryEvent,
   req: {
     [key: string]: any;
