@@ -48,8 +48,10 @@
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "jest",
+    "test": "run-s test:jest test:express",
+    "test:jest": "jest",
     "test:watch": "jest --watch --notify",
+    "test:express": "node test/manual/express.js",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
   "jest": {
