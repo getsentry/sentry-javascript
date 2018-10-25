@@ -2,6 +2,17 @@ import { SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isString } from './is';
 
 /**
+ * Requires a module which is protected against bundler minification.
+ *
+ * @param request The module path to resolve
+ */
+export function bundlerSafeRequire(request: string): any {
+  // We need to do this check for global.module || module here because if we are calling this inside a
+  // active domain, global.module is undefined.
+  return ((getGlobalObject() as any).module || module).require(request);
+}
+
+/**
  * Checks whether we're in the Node.js or Browser environment
  *
  * @returns Answer to given question

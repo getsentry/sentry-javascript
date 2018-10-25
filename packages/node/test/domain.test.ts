@@ -28,4 +28,37 @@ describe('domains', () => {
       expect(getCurrentHub()).toBe(getCurrentHub());
     });
   });
+
+  test('concurrent domain hubs', done => {
+    const d1 = domain.create();
+    const d2 = domain.create();
+    let d1done = false;
+    let d2done = false;
+
+    d1.run(() => {
+      const hub = getCurrentHub();
+      hub.getStack().push({ client: 'process' });
+      expect(hub.getStack()[1]).toEqual({ client: 'process' });
+      // Just in case so we don't have to worry which one finishes first
+      // (although it always should be d2)
+      setTimeout(() => {
+        d1done = true;
+        if (d2done) {
+          done();
+        }
+      });
+    });
+
+    d2.run(() => {
+      const hub = getCurrentHub();
+      hub.getStack().push({ client: 'local' });
+      expect(hub.getStack()[1]).toEqual({ client: 'local' });
+      setTimeout(() => {
+        d2done = true;
+        if (d1done) {
+          done();
+        }
+      });
+    });
+  });
 });
