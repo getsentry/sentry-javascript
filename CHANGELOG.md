@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- [utils]: `bundlerSafeRequire` renamed to `dynamicRequire` now takes two arguments, first is should be `module`, second `request` / `moduleName`.
+## 4.2.3
+
+- [utils]: `bundlerSafeRequire` renamed to `dynamicRequire` now takes two arguments, first is should be `module`, second
+  `request` / `moduleName`.
 
 ## 4.2.2
 
