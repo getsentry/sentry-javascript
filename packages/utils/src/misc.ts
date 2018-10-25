@@ -9,6 +9,7 @@ import { isString } from './is';
 export function bundlerSafeRequire(request: string): any {
   // We need to do this check for global.module || module here because if we are calling this inside a
   // active domain, global.module is undefined.
+  // tslint:disable-next-line
   return ((getGlobalObject() as any).module || module).require(request);
 }
 
