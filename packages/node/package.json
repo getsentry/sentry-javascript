@@ -28,6 +28,7 @@
     "@types/cookie": "0.3.1",
     "@types/md5": "2.1.32",
     "@types/stack-trace": "0.0.29",
+    "express": "^4.16.4",
     "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.14.0",
@@ -56,14 +57,9 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "ts"],
     "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.ts"
-    ],
+    "testMatch": ["**/*.test.ts"],
     "globals": {
       "ts-jest": {
         "tsConfigFile": "./tsconfig.json"
