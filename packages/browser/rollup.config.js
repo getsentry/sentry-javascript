@@ -42,6 +42,7 @@ export default [
       format: 'cjs',
       exports: 'named',
       interop: false,
+      sourcemap: true,
     },
     external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
     plugins: [

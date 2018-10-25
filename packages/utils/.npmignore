@@ -3,4 +3,3 @@
 !*.d.ts
 !*.js
 jest.config.js
-!/src/**/*
