@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+
+## 4.2.3
+
+- [core]: Several internal fixes regarding integration, exports and domain.
+
 ## 4.2.2
 
 - [core]: "De-deprecate" name of `Integration` interface.

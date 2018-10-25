@@ -1,5 +1,5 @@
 import { Integration } from '@sentry/types';
-import { installedIntegrations } from '../../src/integrations';
+import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { TestClient } from '../mocks/client';
 
