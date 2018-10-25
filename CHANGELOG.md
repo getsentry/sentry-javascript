@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [utils]: `bundlerSafeRequire` now takes two arguments, first is should be `require`, second `request` / `moduleName`.
+
 ## 4.2.2
 
 - [core]: Several internal fixes regarding integration, exports and domain.

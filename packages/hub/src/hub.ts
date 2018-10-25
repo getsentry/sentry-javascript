@@ -337,7 +337,7 @@ export function getCurrentHub(): Hub {
     // We need to use `bundlerSafeRequire` because `require` on it's own will be optimized by webpack.
     // We do not want this to happen, we need to try `require` the domain node module and fail if we are in browser
     // for example so we do not have to shim it and use `getCurrentHub` universally.
-    const domain = bundlerSafeRequire('domain');
+    const domain = bundlerSafeRequire(module.require, 'domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
