@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/core",
@@ -15,10 +15,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "4.2.1",
-    "@sentry/minimal": "4.2.1",
-    "@sentry/types": "4.2.1",
-    "@sentry/utils": "4.2.1"
+    "@sentry/hub": "4.2.2",
+    "@sentry/minimal": "4.2.2",
+    "@sentry/types": "4.2.2",
+    "@sentry/utils": "4.2.2"
   },
   "devDependencies": {
     "jest": "^22.4.3",
