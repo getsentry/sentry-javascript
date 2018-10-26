@@ -72,7 +72,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public walkErrorTree(error: ExtendedError, key: string, stack: SentryException[] = []): SentryException[] {
-    if (!(error[key] instanceof Error) || stack.length >= this.limit) {
+    if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
       return stack;
     }
     const stacktrace = computeStackTrace(error[key]);
