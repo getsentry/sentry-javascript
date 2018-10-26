@@ -54,14 +54,15 @@ describe('LinkedErrors', () => {
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
-      const one: ExtendedError = new Error('one');
-      const two: ExtendedError = new TypeError('two');
       const three: ExtendedError = new SyntaxError('three');
 
-      const originalException = one;
-      one.cause = two;
+      const two: ExtendedError = new TypeError('two');
       two.cause = three;
 
+      const one: ExtendedError = new Error('one');
+      one.cause = two;
+
+      const originalException = one;
       const backend = new BrowserBackend({});
       const event = await backend.eventFromException(originalException);
       const result = linkedErrors.handler(event, {
@@ -86,14 +87,15 @@ describe('LinkedErrors', () => {
         key: 'reason',
       });
 
-      const one: ExtendedError = new Error('one');
-      const two: ExtendedError = new TypeError('two');
       const three: ExtendedError = new SyntaxError('three');
 
-      const originalException = one;
-      one.reason = two;
+      const two: ExtendedError = new TypeError('two');
       two.reason = three;
 
+      const one: ExtendedError = new Error('one');
+      one.reason = two;
+
+      const originalException = one;
       const backend = new BrowserBackend({});
       const event = await backend.eventFromException(originalException);
       const result = linkedErrors.handler(event, {
