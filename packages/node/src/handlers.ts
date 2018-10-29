@@ -82,7 +82,7 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
   // query string:
   //   node: req.url (raw)
   //   express, koa: req.query
-  const query = req.query || url.parse(originalUrl || '', true).query;
+  const query = url.parse(originalUrl || '', false).query;
   // cookies:
   //   node, express, koa: req.headers.cookie
   const cookies = cookie.parse(headers.cookie || '');
