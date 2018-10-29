@@ -64,7 +64,7 @@ export class LinkedErrors implements Integration {
       return event;
     }
     const linkedErrors = this.walkErrorTree(hint.originalException, this.key);
-    event.exception.values = [...event.exception.values, ...linkedErrors];
+    event.exception.values = [...linkedErrors, ...event.exception.values];
     return event;
   }
 
@@ -77,6 +77,6 @@ export class LinkedErrors implements Integration {
     }
     const stacktrace = computeStackTrace(error[key]);
     const exception = exceptionFromStacktrace(stacktrace);
-    return this.walkErrorTree(error[key], key, [...stack, exception]);
+    return this.walkErrorTree(error[key], key, [exception, ...stack]);
   }
 }
