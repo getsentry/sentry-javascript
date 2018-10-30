@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- [browser/node]: Fix `LinkedErrors` integration to send exceptions in correct order and take main exception into the `limit` count
+- [core]: Fix `InboundFilters` integration so that it reads and merge configuration from the `init` call as well
+- [browser]: Use `withScope` in `Ember` integration instead of manual `pushPop/popScope` calls
+
 ## 4.2.3
 
 - [utils]: `bundlerSafeRequire` renamed to `dynamicRequire` now takes two arguments, first is should be `module`, second
