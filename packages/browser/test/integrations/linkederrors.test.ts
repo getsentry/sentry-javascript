@@ -102,7 +102,6 @@ describe('LinkedErrors', () => {
         originalException,
       });
 
-      // It shouldn't include root exception, as it's already processed in the event by the main error handler
       expect(result!.exception!.values!.length).equal(3);
       expect(result!.exception!.values![0].type).equal('SyntaxError');
       expect(result!.exception!.values![0].value).equal('three');
@@ -120,28 +119,24 @@ describe('LinkedErrors', () => {
         limit: 2,
       });
 
-      const three: ExtendedError = new SyntaxError('three');
-
+      const one: ExtendedError = new Error('one');
       const two: ExtendedError = new TypeError('two');
+      const three: ExtendedError = new SyntaxError('three');
+      one.cause = two;
       two.cause = three;
 
-      const one: ExtendedError = new Error('one');
-      one.cause = two;
-
-      const originalException = one;
       const backend = new BrowserBackend({});
-      const event = await backend.eventFromException(originalException);
+      const event = await backend.eventFromException(one);
       const result = linkedErrors.handler(event, {
-        originalException,
+        originalException: one,
       });
 
-      // It shouldn't include root exception, as it's already processed in the event by the main error handler
       expect(result!.exception!.values!.length).equal(2);
-      expect(result!.exception!.values![0].type).equal('Error');
-      expect(result!.exception!.values![0].value).equal('one');
+      expect(result!.exception!.values![0].type).equal('TypeError');
+      expect(result!.exception!.values![0].value).equal('two');
       expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![1].type).equal('TypeError');
-      expect(result!.exception!.values![1].value).equal('two');
+      expect(result!.exception!.values![1].type).equal('Error');
+      expect(result!.exception!.values![1].value).equal('one');
       expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
     });
   });
