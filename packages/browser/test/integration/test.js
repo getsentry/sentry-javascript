@@ -78,6 +78,31 @@ for (var idx in frames) {
         document.body.removeChild(this.iframe);
       });
 
+      describe('config', function() {
+        it('should allow to ignore specific errors', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              Sentry.captureException(new Error('foo'));
+              Sentry.captureException(new Error('ignoreErrorTest'));
+              Sentry.captureException(new Error('bar'));
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 2, done)) {
+                assert.equal(sentryData[0].exception.values[0].type, 'Error');
+                assert.equal(sentryData[0].exception.values[0].value, 'foo');
+                assert.equal(sentryData[1].exception.values[0].type, 'Error');
+                assert.equal(sentryData[1].exception.values[0].value, 'bar');
+                done();
+              }
+            }
+          );
+        });
+      });
+
       describe('API', function() {
         it('should capture Sentry.captureMessage', function(done) {
           var iframe = this.iframe;

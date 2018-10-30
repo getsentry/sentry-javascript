@@ -36,6 +36,7 @@ Sentry.init({
   // debug: true,
   attachStacktrace: true,
   transport: DummyTransport,
+  ignoreErrors: ['ignoreErrorTest'],
   // integrations: function(old) {
   //   return [new Sentry.Integrations.Debug({ stringify: true })].concat(old);
   // },
