@@ -4,6 +4,7 @@ import { isRegExp } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 import { includes } from '@sentry/utils/string';
+import { Client } from '../interfaces';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -18,13 +19,6 @@ interface InboundFiltersOptions {
 
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {
-  /** JSDoc */
-  private ignoreErrors?: Array<string | RegExp> = DEFAULT_IGNORE_ERRORS;
-  /** JSDoc */
-  private blacklistUrls?: Array<string | RegExp>;
-  /** JSDoc */
-  private whitelistUrls?: Array<string | RegExp>;
-
   /**
    * @inheritDoc
    */
@@ -34,19 +28,23 @@ export class InboundFilters implements Integration {
    */
   public static id: string = 'InboundFilters';
 
-  public constructor(private readonly options: InboundFiltersOptions = {}) {
-    this.configureOptions();
-  }
+  public constructor(private readonly options: InboundFiltersOptions = {}) {}
 
   /**
    * @inheritDoc
    */
   public setupOnce(): void {
     addGlobalEventProcessor(async (event: SentryEvent) => {
-      const self = getCurrentHub().getIntegration(InboundFilters);
+      const hub = getCurrentHub();
+      if (!hub) {
+        return event;
+      }
+      const self = hub.getIntegration(InboundFilters);
       if (self) {
-        self.configureOptions();
-        if (self.shouldDropEvent(event)) {
+        const client = hub.getClient() as Client;
+        const clientOptions = client ? client.getOptions() : {};
+        const options = self.mergeOptions(clientOptions);
+        if (self.shouldDropEvent(event, options)) {
           return null;
         }
       }
@@ -55,14 +53,14 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public shouldDropEvent(event: SentryEvent): boolean {
-    if (this.isIgnoredError(event)) {
+  public shouldDropEvent(event: SentryEvent, options: InboundFiltersOptions): boolean {
+    if (this.isIgnoredError(event, options)) {
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
       return true;
     }
-    if (this.isBlacklistedUrl(event)) {
+    if (this.isBlacklistedUrl(event, options)) {
       logger.warn(
         `Event dropped due to being matched by \`blacklistUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -70,7 +68,7 @@ export class InboundFilters implements Integration {
       );
       return true;
     }
-    if (!this.isWhitelistedUrl(event)) {
+    if (!this.isWhitelistedUrl(event, options)) {
       logger.warn(
         `Event dropped due to not being matched by \`whitelistUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -82,35 +80,48 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isIgnoredError(event: SentryEvent): boolean {
-    if (!this.ignoreErrors) {
+  public isIgnoredError(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+    if (!options.ignoreErrors || !options.ignoreErrors.length) {
       return false;
     }
 
     return this.getPossibleEventMessages(event).some(message =>
       // Not sure why TypeScript complains here...
-      (this.ignoreErrors as Array<RegExp | string>).some(pattern => this.isMatchingPattern(message, pattern)),
+      (options.ignoreErrors as Array<RegExp | string>).some(pattern => this.isMatchingPattern(message, pattern)),
     );
   }
 
   /** JSDoc */
-  public isBlacklistedUrl(event: SentryEvent): boolean {
+  public isBlacklistedUrl(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
-    if (!this.blacklistUrls) {
+    if (!options.blacklistUrls || !options.blacklistUrls.length) {
       return false;
     }
     const url = this.getEventFilterUrl(event);
-    return !url ? false : this.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    return !url ? false : options.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
-  public isWhitelistedUrl(event: SentryEvent): boolean {
+  public isWhitelistedUrl(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
-    if (!this.whitelistUrls) {
+    if (!options.whitelistUrls || !options.whitelistUrls.length) {
       return true;
     }
     const url = this.getEventFilterUrl(event);
-    return !url ? true : this.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    return !url ? true : options.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+  }
+
+  /** JSDoc */
+  public mergeOptions(clientOptions: InboundFiltersOptions = {}): InboundFiltersOptions {
+    return {
+      blacklistUrls: [...(this.options.blacklistUrls || []), ...(clientOptions.blacklistUrls || [])],
+      ignoreErrors: [
+        ...(this.options.ignoreErrors || []),
+        ...(clientOptions.ignoreErrors || []),
+        ...DEFAULT_IGNORE_ERRORS,
+      ],
+      whitelistUrls: [...(this.options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
+    };
   }
 
   /** JSDoc */
@@ -121,19 +132,6 @@ export class InboundFilters implements Integration {
       return includes(value, pattern);
     } else {
       return false;
-    }
-  }
-
-  /** JSDoc */
-  private configureOptions(): void {
-    if (this.options.ignoreErrors) {
-      this.ignoreErrors = [...DEFAULT_IGNORE_ERRORS, ...this.options.ignoreErrors];
-    }
-    if (this.options.blacklistUrls) {
-      this.blacklistUrls = [...this.options.blacklistUrls];
-    }
-    if (this.options.whitelistUrls) {
-      this.whitelistUrls = [...this.options.whitelistUrls];
     }
   }
 
