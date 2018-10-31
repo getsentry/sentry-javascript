@@ -49,6 +49,8 @@ export class Ember implements Integration {
 
       if (typeof oldOnError === 'function') {
         oldOnError.call(this.Ember, error);
+      } else if (this.Ember.testing) {
+        throw error;
       }
     };
 
