@@ -2,9 +2,14 @@
 
 ## Unreleased
 
-- [browser/node]: Fix `LinkedErrors` integration to send exceptions in correct order and take main exception into the `limit` count
+## 4.2.4
+
+- [browser/node]: Fix `LinkedErrors` integration to send exceptions in correct order and take main exception into the
+  `limit` count
 - [core]: Fix `InboundFilters` integration so that it reads and merge configuration from the `init` call as well
 - [browser]: Use `withScope` in `Ember` integration instead of manual `pushPop/popScope` calls
+- [browser] fix: rethrow errors in testing mode with `Ember` integration (#1696)
+- [node] ref: Send raw query string to be processed by Relay
 
 ## 4.2.3
 
