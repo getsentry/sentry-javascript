@@ -14,6 +14,7 @@ export {
 } from '@sentry/types';
 
 export {
+  addGlobalEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,
