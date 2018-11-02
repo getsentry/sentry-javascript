@@ -109,6 +109,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#isblacklistedurl" class="tsd-kind-icon">is<wbr>Blacklisted<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#isignorederror" class="tsd-kind-icon">is<wbr>Ignored<wbr>Error</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#iswhitelistedurl" class="tsd-kind-icon">is<wbr>Whitelisted<wbr>Url</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#mergeoptions" class="tsd-kind-icon">merge<wbr>Options</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#shoulddropevent" class="tsd-kind-icon">should<wbr>Drop<wbr>Event</a></li>
 							</ul>
@@ -128,7 +129,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L35">core/src/integrations/inboundfilters.ts:35</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L29">core/src/integrations/inboundfilters.ts:29</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -151,7 +152,7 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L31">core/src/integrations/inboundfilters.ts:31</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L25">core/src/integrations/inboundfilters.ts:25</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -166,7 +167,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;InboundFilters&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L35">core/src/integrations/inboundfilters.ts:35</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L29">core/src/integrations/inboundfilters.ts:29</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -183,13 +184,13 @@
 					<a name="isblacklistedurl" class="tsd-anchor"></a>
 					<h3>is<wbr>Blacklisted<wbr>Url</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">is<wbr>Blacklisted<wbr>Url<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Blacklisted<wbr>Url<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L97">core/src/integrations/inboundfilters.ts:97</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L95">core/src/integrations/inboundfilters.ts:95</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -201,6 +202,9 @@
 							<ul class="tsd-parameters">
 								<li>
 									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
@@ -211,13 +215,13 @@
 					<a name="isignorederror" class="tsd-anchor"></a>
 					<h3>is<wbr>Ignored<wbr>Error</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">is<wbr>Ignored<wbr>Error<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Ignored<wbr>Error<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L85">core/src/integrations/inboundfilters.ts:85</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L83">core/src/integrations/inboundfilters.ts:83</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -229,6 +233,9 @@
 							<ul class="tsd-parameters">
 								<li>
 									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
@@ -239,13 +246,13 @@
 					<a name="iswhitelistedurl" class="tsd-anchor"></a>
 					<h3>is<wbr>Whitelisted<wbr>Url</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">is<wbr>Whitelisted<wbr>Url<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Whitelisted<wbr>Url<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L107">core/src/integrations/inboundfilters.ts:107</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L105">core/src/integrations/inboundfilters.ts:105</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -258,8 +265,39 @@
 								<li>
 									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="mergeoptions" class="tsd-anchor"></a>
+					<h3>merge<wbr>Options</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">merge<wbr>Options<span class="tsd-signature-symbol">(</span>clientOptions<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">InboundFiltersOptions</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L115">core/src/integrations/inboundfilters.ts:115</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> clientOptions: <span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">InboundFiltersOptions</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -274,7 +312,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L44">core/src/integrations/inboundfilters.ts:44</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L36">core/src/integrations/inboundfilters.ts:36</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -291,13 +329,13 @@
 					<a name="shoulddropevent" class="tsd-anchor"></a>
 					<h3>should<wbr>Drop<wbr>Event</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">should<wbr>Drop<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+						<li class="tsd-signature tsd-kind-icon">should<wbr>Drop<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/e3d42275/packages/core/src/integrations/inboundfilters.ts#L58">core/src/integrations/inboundfilters.ts:58</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/60fee6bf/packages/core/src/integrations/inboundfilters.ts#L56">core/src/integrations/inboundfilters.ts:56</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -309,6 +347,9 @@
 							<ul class="tsd-parameters">
 								<li>
 									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5>options: <span class="tsd-signature-type">InboundFiltersOptions</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
@@ -394,6 +435,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.inboundfilters.html#iswhitelistedurl" class="tsd-kind-icon">is<wbr>Whitelisted<wbr>Url</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.inboundfilters.html#mergeoptions" class="tsd-kind-icon">merge<wbr>Options</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.inboundfilters.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
