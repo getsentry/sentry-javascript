@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
-import { join } from '../path';
+import { join } from 'path';
 
 import { Store } from '../src/store';
 

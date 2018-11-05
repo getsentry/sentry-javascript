@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [utils]: Use node internal `path` / `fs` for `store.ts`
+
 ## 4.2.4
 
 - [browser]: Use `withScope` in `Ember` integration instead of manual `pushPop/popScope` calls
