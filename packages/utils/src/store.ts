@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
 import { mkdirpSync } from './fs';
-import { dirname, join } from './path';
 
 /**
+ * Note, this class is only compatible with Node.
  * Lazily serializes data to a JSON file to persist. When created, it loads data
  * from that file if it already exists.
  */
