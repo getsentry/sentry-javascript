@@ -1,7 +1,7 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
-import { Breadcrumbs, GlobalHandlers, LinkedErrors, ReportingObserver, TryCatch, UserAgent } from './integrations';
+import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
   // Common
@@ -13,7 +13,6 @@ export const defaultIntegrations = [
   new Breadcrumbs(),
   // Global Handlers
   new GlobalHandlers(),
-  new ReportingObserver(),
   // Misc
   new LinkedErrors(),
   new UserAgent(),
