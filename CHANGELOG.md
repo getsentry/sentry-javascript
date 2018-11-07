@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [browser]: Move `ReportingObserver` integration to "pluggable" making it an opt-in integration
 - [utils]: Use node internal `path` / `fs` for `store.ts`
 
 ## 4.2.4
