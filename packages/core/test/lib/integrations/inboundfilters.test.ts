@@ -8,6 +8,11 @@ describe('InboundFilters', () => {
   });
 
   describe('shouldDropEvent', () => {
+    it('should drop when error is internal one', () => {
+      inboundFilters.isSentryError = () => true;
+      expect(inboundFilters.shouldDropEvent({}, inboundFilters.mergeOptions())).toBe(true);
+    });
+
     it('should drop when error is ignored', () => {
       inboundFilters.isIgnoredError = () => true;
       expect(inboundFilters.shouldDropEvent({}, inboundFilters.mergeOptions())).toBe(true);
@@ -46,6 +51,47 @@ describe('InboundFilters', () => {
       inboundFilters.isBlacklistedUrl = () => false;
       inboundFilters.isWhitelistedUrl = () => true;
       expect(inboundFilters.shouldDropEvent({}, inboundFilters.mergeOptions())).toBe(false);
+    });
+  });
+
+  describe('isSentryError', () => {
+    const messageEvent = {
+      message: 'captureMessage',
+    };
+    const exceptionEvent = {
+      exception: {
+        values: [
+          {
+            type: 'SyntaxError',
+            value: 'unidentified ? at line 1337',
+          },
+        ],
+      },
+    };
+    const sentryEvent = {
+      exception: {
+        values: [
+          {
+            type: 'SentryError',
+            value: 'something something server connection',
+          },
+        ],
+      },
+    };
+
+    it('should work as expected', () => {
+      expect(inboundFilters.isSentryError(messageEvent, inboundFilters.mergeOptions())).toBe(false);
+      expect(inboundFilters.isSentryError(exceptionEvent, inboundFilters.mergeOptions())).toBe(false);
+      expect(inboundFilters.isSentryError(sentryEvent, inboundFilters.mergeOptions())).toBe(true);
+    });
+
+    it('should be configurable', () => {
+      inboundFilters = new InboundFilters({
+        ignoreInternal: false,
+      });
+      expect(inboundFilters.isSentryError(messageEvent, inboundFilters.mergeOptions())).toBe(false);
+      expect(inboundFilters.isSentryError(exceptionEvent, inboundFilters.mergeOptions())).toBe(false);
+      expect(inboundFilters.isSentryError(sentryEvent, inboundFilters.mergeOptions())).toBe(false);
     });
   });
 

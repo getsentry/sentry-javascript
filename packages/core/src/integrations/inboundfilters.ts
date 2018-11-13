@@ -12,8 +12,9 @@ const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script e
 
 /** JSDoc */
 interface InboundFiltersOptions {
-  ignoreErrors?: Array<string | RegExp>;
   blacklistUrls?: Array<string | RegExp>;
+  ignoreErrors?: Array<string | RegExp>;
+  ignoreInternal?: boolean;
   whitelistUrls?: Array<string | RegExp>;
 }
 
@@ -54,6 +55,10 @@ export class InboundFilters implements Integration {
 
   /** JSDoc */
   public shouldDropEvent(event: SentryEvent, options: InboundFiltersOptions): boolean {
+    if (this.isSentryError(event, options)) {
+      logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
+      return true;
+    }
     if (this.isIgnoredError(event, options)) {
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
@@ -77,6 +82,20 @@ export class InboundFilters implements Integration {
       return true;
     }
     return false;
+  }
+
+  /** JSDoc */
+  public isSentryError(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+    if (!options.ignoreInternal) {
+      return false;
+    }
+
+    try {
+      // tslint:disable-next-line:no-unsafe-any
+      return (event as any).exception.values[0].type === 'SentryError';
+    } catch (_oO) {
+      return false;
+    }
   }
 
   /** JSDoc */
@@ -120,6 +139,7 @@ export class InboundFilters implements Integration {
         ...(clientOptions.ignoreErrors || []),
         ...DEFAULT_IGNORE_ERRORS,
       ],
+      ignoreInternal: typeof this.options.ignoreInternal !== 'undefined' ? this.options.ignoreInternal : true,
       whitelistUrls: [...(this.options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
     };
   }
