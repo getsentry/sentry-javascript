@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+- [core] feat: Filter internal Sentry errors from transports/sdk
+
 ## 4.3.0
 
 - [browser]: Move `ReportingObserver` integration to "pluggable" making it an opt-in integration
