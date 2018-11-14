@@ -68,7 +68,6 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   ): Promise<SentryEvent> {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
-      fingerprint: [message],
       level,
       message,
     };

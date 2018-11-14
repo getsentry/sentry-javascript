@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [core] feat: Filter internal Sentry errors from transports/sdk
+- [core] ref: Better fingerprint handling
 
 ## 4.3.0
 

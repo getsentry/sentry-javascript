@@ -112,7 +112,6 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   ): Promise<SentryEvent> {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
-      fingerprint: [message],
       level,
       message,
     };

@@ -122,8 +122,18 @@ describe('Scope', () => {
     expect(event.extra).toEqual({ a: 2, b: 3 });
     expect(event.tags).toEqual({ a: 'b', b: 'c' });
     expect(event.user).toEqual({ id: '3' });
-    expect(event.fingerprint).toEqual(['efgh']);
+    expect(event.fingerprint).toEqual(['efgh', 'abcd']);
     expect(event.breadcrumbs).toEqual([{ message: 'test2' }]);
+  });
+
+  test('applyToEvent message fingerprint', async () => {
+    const scope = new Scope();
+    const event: SentryEvent = {
+      fingerprint: ['bar'],
+      message: 'foo',
+    };
+    await scope.applyToEvent(event);
+    expect(event.fingerprint).toEqual(['bar', 'foo']);
   });
 
   test('applyToEvent scope level should be stronger', async () => {
