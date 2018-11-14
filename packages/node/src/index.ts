@@ -35,6 +35,7 @@ export { SDK_NAME, SDK_VERSION } from './version';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
+import * as Parsers from './parsers';
 import * as Transports from './transports';
 
 const INTEGRATIONS = {
@@ -42,4 +43,4 @@ const INTEGRATIONS = {
   ...NodeIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Transports, Handlers };
+export { INTEGRATIONS as Integrations, Transports, Parsers, Handlers };

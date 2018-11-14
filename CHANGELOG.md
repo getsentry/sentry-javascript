@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [core] feat: Filter internal Sentry errors from transports/sdk
+- [node] ref: Expose Parsers functions
 
 ## 4.3.0
 
