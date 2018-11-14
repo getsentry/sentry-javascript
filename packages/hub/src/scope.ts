@@ -173,6 +173,32 @@ export class Scope {
   }
 
   /**
+   * Applies fingerprint from the scope to the event if there's one,
+   * uses message if there's one instead or get rid of empty fingerprint
+   */
+  private applyFingerprint(event: SentryEvent): void {
+    // Make sure it's an array first and we actually have something in place
+    event.fingerprint = event.fingerprint
+      ? Array.isArray(event.fingerprint)
+        ? event.fingerprint
+        : [event.fingerprint]
+      : [];
+
+    // If we have something on the scope, then merge it with event
+    if (this.fingerprint) {
+      event.fingerprint = event.fingerprint.concat(this.fingerprint);
+    } else if (event.message) {
+      // If not, but we have message, use it instead
+      event.fingerprint = event.fingerprint.concat(event.message);
+    }
+
+    // If we have no data at all, remove empty array default
+    if (event.fingerprint && !event.fingerprint.length) {
+      delete event.fingerprint;
+    }
+  }
+
+  /**
    * Applies the current context and fingerprint to the event.
    * Note that breadcrumbs will be added by the client.
    * Also if the event has already breadcrumbs on it, we do not merge them.
@@ -194,12 +220,12 @@ export class Scope {
     if (this.user && Object.keys(this.user).length) {
       event.user = { ...this.user, ...event.user };
     }
-    if (this.fingerprint && event.fingerprint === undefined) {
-      event.fingerprint = this.fingerprint;
-    }
     if (this.level) {
       event.level = this.level;
     }
+
+    this.applyFingerprint(event);
+
     const hasNoBreadcrumbs = !event.breadcrumbs || event.breadcrumbs.length === 0;
     if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
       event.breadcrumbs =
