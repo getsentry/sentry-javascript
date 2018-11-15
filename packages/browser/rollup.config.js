@@ -20,6 +20,7 @@ const bundleConfig = {
     typescript({
       tsconfig: 'tsconfig.build.json',
       tsconfigOverride: { compilerOptions: { declaration: false } },
+      include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
     }),
     resolve({
       jsnext: true,
@@ -44,10 +45,11 @@ export default [
       interop: false,
       sourcemap: true,
     },
-    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
+    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal', 'tslib'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
+        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
       }),
       resolve({
         jsnext: true,
