@@ -26,7 +26,7 @@
     "typescript": "^3.0.1"
   },
   "scripts": {
-    "build": "run-s clean; tsc -p tsconfig.build.json",
+    "build": "run-s clean && tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
