@@ -3,7 +3,6 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    // "rootDir": "src",
     "paths": {
       "@sentry/utils/*": ["../utils/src/*"],
       "@sentry/core": ["../core/src"],
