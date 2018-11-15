@@ -130,7 +130,7 @@ export class Breadcrumbs implements Integration {
             category: 'console',
             data: {
               extra: {
-                arguments: args.slice(1),
+                arguments: args,
               },
               logger: 'console',
             },
