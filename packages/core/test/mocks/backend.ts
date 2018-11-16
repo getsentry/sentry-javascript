@@ -33,7 +33,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
             value: exception.message,
           },
         ],
-      }
+      },
     };
   }
 

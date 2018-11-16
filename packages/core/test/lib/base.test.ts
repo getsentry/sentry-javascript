@@ -177,7 +177,7 @@ describe('BaseClient', () => {
               value: 'test exception',
             },
           ],
-        }
+        },
       });
     });
 
