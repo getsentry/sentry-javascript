@@ -181,10 +181,8 @@ export function urlEncode(object: { [key: string]: any }): string {
 
 // Default Node.js REPL depth
 const MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
-// TODO: Or is it 200kb? 🤔 — Kamil
-// NOTE: Yes, it is
-// 50kB, as 100kB is max payload size, so half sounds reasonable
-const MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
+// 100kB, as 200kB is max payload size, so half sounds reasonable
+const MAX_SERIALIZE_EXCEPTION_SIZE = 100 * 1024;
 const MAX_SERIALIZE_KEYS_LENGTH = 40;
 
 /** JSDoc */

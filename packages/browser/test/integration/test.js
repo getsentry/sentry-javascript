@@ -1422,6 +1422,9 @@ for (var idx in frames) {
                 var sentryData = iframe.contentWindow.sentryData[0];
                 assert.ok(sentryData.breadcrumbs);
                 assert.lengthOf(sentryData.breadcrumbs, 3);
+                assert.deepEqual(sentryData.breadcrumbs[0].data.extra.arguments, ['One']);
+                assert.deepEqual(sentryData.breadcrumbs[1].data.extra.arguments, ['Two', { a: 1 }]);
+                assert.deepEqual(sentryData.breadcrumbs[2].data.extra.arguments, ['Error 2', { b: '[Object]' }]);
                 done();
               }
             }

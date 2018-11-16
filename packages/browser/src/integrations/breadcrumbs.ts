@@ -3,7 +3,7 @@ import { Breadcrumb, Integration, SentryBreadcrumbHint, Severity } from '@sentry
 import { isFunction, isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { deserialize, fill } from '@sentry/utils/object';
+import { deserialize, fill, serializeObject } from '@sentry/utils/object';
 import { includes, safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
 import { BrowserClient } from '../client';
@@ -130,7 +130,7 @@ export class Breadcrumbs implements Integration {
             category: 'console',
             data: {
               extra: {
-                arguments: args.slice(1),
+                arguments: serializeObject(args, 2),
               },
               logger: 'console',
             },
@@ -141,7 +141,7 @@ export class Breadcrumbs implements Integration {
           if (level === 'assert') {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-              breadcrumbData.data.extra.arguments = args.slice(1);
+              breadcrumbData.data.extra.arguments = serializeObject(args.slice(1), 2);
             }
           }
 
