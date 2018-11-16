@@ -108,6 +108,7 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#isblacklistedurl" class="tsd-kind-icon">is<wbr>Blacklisted<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#isignorederror" class="tsd-kind-icon">is<wbr>Ignored<wbr>Error</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#issentryerror" class="tsd-kind-icon">is<wbr>Sentry<wbr>Error</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#iswhitelistedurl" class="tsd-kind-icon">is<wbr>Whitelisted<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#mergeoptions" class="tsd-kind-icon">merge<wbr>Options</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.inboundfilters.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
@@ -129,7 +130,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L29">core/src/integrations/inboundfilters.ts:29</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L30">core/src/integrations/inboundfilters.ts:30</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -152,7 +153,7 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L25">core/src/integrations/inboundfilters.ts:25</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L26">core/src/integrations/inboundfilters.ts:26</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -167,7 +168,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;InboundFilters&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L29">core/src/integrations/inboundfilters.ts:29</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L30">core/src/integrations/inboundfilters.ts:30</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -190,7 +191,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L95">core/src/integrations/inboundfilters.ts:95</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L114">core/src/integrations/inboundfilters.ts:114</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -221,7 +222,38 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L83">core/src/integrations/inboundfilters.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L102">core/src/integrations/inboundfilters.ts:102</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>JSDoc</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="issentryerror" class="tsd-anchor"></a>
+					<h3>is<wbr>Sentry<wbr>Error</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Sentry<wbr>Error<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">InboundFiltersOptions</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L88">core/src/integrations/inboundfilters.ts:88</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -252,7 +284,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L105">core/src/integrations/inboundfilters.ts:105</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L124">core/src/integrations/inboundfilters.ts:124</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -283,7 +315,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L115">core/src/integrations/inboundfilters.ts:115</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L134">core/src/integrations/inboundfilters.ts:134</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -312,7 +344,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L36">core/src/integrations/inboundfilters.ts:36</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L37">core/src/integrations/inboundfilters.ts:37</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -335,7 +367,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/a461af58/packages/core/src/integrations/inboundfilters.ts#L56">core/src/integrations/inboundfilters.ts:56</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c3cae24a/packages/core/src/integrations/inboundfilters.ts#L57">core/src/integrations/inboundfilters.ts:57</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -432,6 +464,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.inboundfilters.html#isignorederror" class="tsd-kind-icon">is<wbr>Ignored<wbr>Error</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.inboundfilters.html#issentryerror" class="tsd-kind-icon">is<wbr>Sentry<wbr>Error</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="core.inboundfilters.html#iswhitelistedurl" class="tsd-kind-icon">is<wbr>Whitelisted<wbr>Url</a>
