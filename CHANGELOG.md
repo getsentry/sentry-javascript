@@ -2,9 +2,12 @@
 
 ## Unreleased
 
+## 4.3.1
+
+- [browser] ref: Breadcrumbs will no be logged only to a max object depth of 2
 - [core] feat: Filter internal Sentry errors from transports/sdk
-- [node] ref: Expose Parsers functions
 - [core] ref: Better fingerprint handling
+- [node] ref: Expose Parsers functions
 
 ## 4.3.0
 
