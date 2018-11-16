@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+## 4.3.2
+
+- [browser] fix: Typings for npm package
 
 ## 4.3.1
 
