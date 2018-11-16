@@ -26,15 +26,15 @@
     "typescript": "^3.0.1"
   },
   "scripts": {
-    "build": "run-s clean; tsc -p tsconfig.build.json",
+    "build": "run-s clean && tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
-    "lint:prettier": "prettier-check '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",
     "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
     "fix": "run-s fix:tslint fix:prettier",
-    "fix:prettier": "prettier --write '{src,test}/**/*.ts'",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch --notify"
