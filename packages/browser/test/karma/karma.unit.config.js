@@ -14,8 +14,15 @@ module.exports = config => {
     karmaTypescriptConfig: {
       tsconfig: 'tsconfig.json',
       compilerOptions: {
-        declaration: false,
         allowJs: true,
+        declaration: false,
+        paths: {
+          '@sentry/utils/*': ['../../utils/src/*'],
+          '@sentry/core': ['../../core/src'],
+          '@sentry/hub': ['../../hub/src'],
+          '@sentry/types': ['../../types/src'],
+          '@sentry/minimal': ['../../minimal/src'],
+        },
       },
       bundlerOptions: {
         sourceMap: true,
