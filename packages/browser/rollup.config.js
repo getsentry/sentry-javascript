@@ -19,7 +19,18 @@ const bundleConfig = {
   plugins: [
     typescript({
       tsconfig: 'tsconfig.build.json',
-      tsconfigOverride: { compilerOptions: { declaration: false } },
+      tsconfigOverride: {
+        compilerOptions: {
+          declaration: false,
+          paths: {
+            '@sentry/utils/*': ['../utils/src/*'],
+            '@sentry/core': ['../core/src'],
+            '@sentry/hub': ['../hub/src'],
+            '@sentry/types': ['../types/src'],
+            '@sentry/minimal': ['../minimal/src'],
+          },
+        },
+      },
       include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
     }),
     resolve({
@@ -45,11 +56,15 @@ export default [
       interop: false,
       sourcemap: true,
     },
-    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal', 'tslib'],
+    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
-        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+        tsconfigOverride: {
+          compilerOptions: {
+            rootDir: 'src',
+          },
+        },
       }),
       resolve({
         jsnext: true,
