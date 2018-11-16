@@ -174,11 +174,10 @@ describe('BaseClient', () => {
           values: [
             {
               type: 'Error',
-              value: 'random error',
+              value: 'test exception',
             },
           ],
-        },
-        message: 'Error: test exception',
+        }
       });
     });
 
@@ -188,6 +187,7 @@ describe('BaseClient', () => {
       await client.captureMessage('test message', undefined, undefined, scope);
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
+        fingerprint: ['test message'],
         message: 'test message',
       });
     });
@@ -215,6 +215,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
+        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -229,6 +230,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'env',
         event_id: '42',
+        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -242,6 +244,7 @@ describe('BaseClient', () => {
       await client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         event_id: '42',
+        fingerprint: ['message'],
         message: 'message',
         release: 'v1.0.0',
       });
@@ -255,6 +258,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: 'breadcrumb' }],
         event_id: '42',
+        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -268,6 +272,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: '2' }],
         event_id: '42',
+        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -282,6 +287,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         event_id: '42',
         extra: { b: 'b' },
+        fingerprint: ['message'],
         message: 'message',
         tags: { a: 'a' },
         user: { id: 'user' },

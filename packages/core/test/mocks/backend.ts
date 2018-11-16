@@ -29,12 +29,11 @@ export class TestBackend extends BaseBackend<TestOptions> {
       exception: {
         values: [
           {
-            type: 'Error',
-            value: 'random error',
+            type: exception.name,
+            value: exception.message,
           },
         ],
-      },
-      message: String(exception),
+      }
     };
   }
 
