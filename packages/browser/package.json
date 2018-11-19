@@ -17,7 +17,8 @@
   "dependencies": {
     "@sentry/core": "4.3.2",
     "@sentry/types": "4.3.2",
-    "@sentry/utils": "4.3.2"
+    "@sentry/utils": "4.3.2",
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/md5": "2.1.32",
