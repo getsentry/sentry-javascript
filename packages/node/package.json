@@ -19,6 +19,7 @@
     "@sentry/hub": "4.3.2",
     "@sentry/types": "4.3.2",
     "@sentry/utils": "4.3.2",
+    "@types/stack-trace": "0.0.29",
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
     "md5": "2.2.1",
@@ -27,7 +28,6 @@
   "devDependencies": {
     "@types/cookie": "0.3.1",
     "@types/md5": "2.1.32",
-    "@types/stack-trace": "0.0.29",
     "express": "^4.16.4",
     "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",
