@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@sentry/hub": "4.3.2",
-    "@sentry/types": "4.3.2"
+    "@sentry/types": "4.3.2",
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "jest": "^22.4.3",
