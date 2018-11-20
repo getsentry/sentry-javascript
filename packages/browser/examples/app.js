@@ -5,13 +5,15 @@ class HappyIntegration {
   }
 
   setupOnce() {
-    Sentry.configureScope(scope => {
-      scope.addEventProcessor(async event => {
+    Sentry.addGlobalEventProcessor(async (event) => {
+      const self = getCurrentHub().getIntegration(HappyIntegration);
+      // Run the integration ONLY when it was installed on the current Hub
+      if (self) {
         if (event.message === "Happy Message") {
           event.message = `\\o/ ${event.message} \\o/`;
         }
-        return event;
-      });
+      }
+      return event;
     });
   }
 }
