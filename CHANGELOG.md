@@ -4,6 +4,9 @@
 ## 4.3.2
 
 - [browser] fix: Typings for npm package
+- [build] ref: Dont emit TypeScript helpers in every file separately
+- [node] fix: Move stacktrace types from devDeps to deps as its exposed
+- [browser] misc: Added browser examples page
 
 ## 4.3.1
 
