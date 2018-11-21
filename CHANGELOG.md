@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+
+## 4.3.4
+
+- [utils] fix: Broken tslib import - Fixes #1757
+
 ## 4.3.3
 
 - [build] ref: Dont emit TypeScript helpers in every file separately
