@@ -303,7 +303,9 @@ export function assign(target: any, ...args: any[]): object {
     [key: string]: any;
   };
 
-  for (const source of args) {
+  // tslint:disable-next-line
+  for (let i = 0; i < args.length; i++) {
+    const source = args[i];
     if (source !== null) {
       for (const nextKey in source as {
         [key: string]: any;
