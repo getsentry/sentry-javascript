@@ -6,4 +6,5 @@ yarn
 yarn build
 cd packages/browser
 yarn test:integration
+yarn test:manual
 
