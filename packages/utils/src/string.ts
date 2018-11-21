@@ -70,8 +70,9 @@ export function safeJoin(input: any[], delimiter?: string): string {
   }
 
   const output = [];
-
-  for (const value of input) {
+  // tslint:disable-next-line
+  for (let i = 0; i < input.length; i++) {
+    const value = input[i];
     try {
       output.push(String(value));
     } catch (e) {
