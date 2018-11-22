@@ -59,6 +59,7 @@ describe('filterAsync', () => {
     await filterAsync(
       [1],
       function predicate(this: {}): boolean {
+        // tslint:disable-next-line:no-inferred-empty-object-type
         expect(this).toBe(that);
         return false;
       },
