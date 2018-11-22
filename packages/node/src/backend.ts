@@ -1,8 +1,8 @@
 import { BaseBackend, Dsn, getCurrentHub, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
+import { createHash } from 'crypto';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
-import * as md5 from 'md5';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
 
@@ -38,7 +38,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
         getCurrentHub().configureScope(scope => {
           scope.setExtra('__serialized__', limitObjectDepthToSize(exception as {}));
-          scope.setFingerprint([md5(keys.join(''))]);
+          scope.setFingerprint([
+            createHash('md5')
+              .update(keys.join(''))
+              .digest('hex'),
+          ]);
         });
 
         ex = (hint && hint.syntheticException) || new Error(message);
@@ -100,8 +104,8 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       this.transport = this.options.transport
         ? new this.options.transport({ dsn })
         : dsn.protocol === 'http'
-          ? new HTTPTransport(transportOptions)
-          : new HTTPSTransport(transportOptions);
+        ? new HTTPTransport(transportOptions)
+        : new HTTPSTransport(transportOptions);
     }
 
     return this.transport.captureEvent(event);
