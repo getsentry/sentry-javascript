@@ -1,6 +1,7 @@
 import { API, SentryError } from '@sentry/core';
 import { SentryEvent, SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
 import { serialize } from '@sentry/utils/object';
+import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
@@ -33,9 +34,11 @@ export abstract class BaseTransport implements Transport {
       ...this.api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-
     const dsn = this.api.getDsn();
-    return {
+
+    const options: {
+      [key: string]: any;
+    } = {
       agent: this.client,
       headers,
       hostname: dsn.host,
@@ -44,6 +47,12 @@ export abstract class BaseTransport implements Transport {
       port: dsn.port,
       protocol: `${dsn.protocol}:`,
     };
+
+    if (this.options.caCerts) {
+      options.ca = fs.readFileSync(this.options.caCerts);
+    }
+
+    return options;
   }
 
   /** JSDoc */

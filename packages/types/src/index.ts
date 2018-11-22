@@ -225,9 +225,17 @@ export interface SentryResponse {
 
 /** JSDoc */
 export interface TransportOptions {
+  [key: string]: any;
+  /** Sentry DSN */
   dsn: DsnLike;
   /** Define custom headers */
   headers?: object;
+  /** Set a HTTP proxy that should be used for outbound requests. */
+  httpProxy?: string;
+  /** Set a HTTPS proxy that should be used for outbound requests. */
+  httpsProxy?: string;
+  /** HTTPS proxy certificates path */
+  caCerts?: string;
 }
 
 /** JSDoc */
