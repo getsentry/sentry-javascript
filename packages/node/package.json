@@ -22,13 +22,12 @@
     "@types/stack-trace": "0.0.29",
     "cookie": "0.3.1",
     "lsmod": "1.0.0",
-    "md5": "2.2.1",
     "stack-trace": "0.0.10",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/cookie": "0.3.1",
-    "@types/md5": "2.1.32",
+    "@types/node": "^10.12.10",
     "express": "^4.16.4",
     "jest": "^22.4.3",
     "npm-run-all": "^4.1.2",

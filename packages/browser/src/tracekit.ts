@@ -502,11 +502,14 @@ TraceKit.report = (function reportModuleWrapper() {
     // slow slow IE to see if onerror occurs or not before reporting
     // this exception; otherwise, we will end up with an incomplete
     // stack trace
-    setTimeout(function() {
-      if (lastException === ex) {
-        processLastException();
-      }
-    }, stack.incomplete ? 2000 : 0);
+    setTimeout(
+      function() {
+        if (lastException === ex) {
+          processLastException();
+        }
+      },
+      stack.incomplete ? 2000 : 0,
+    );
 
     throw ex; // re-throw to propagate to the top level (and cause window.onerror)
   }

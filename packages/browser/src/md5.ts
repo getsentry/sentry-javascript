@@ -237,8 +237,8 @@ function str2rstrUTF8(input: string) {
 }
 
 /*
-* Take string arguments and return either raw or hex encoded strings
-*/
+ * Take string arguments and return either raw or hex encoded strings
+ */
 function rawMD5(s: string) {
   return rstrMD5(str2rstrUTF8(s));
 }
