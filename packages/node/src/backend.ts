@@ -11,6 +11,8 @@ import { HTTPSTransport, HTTPTransport } from './transports';
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
+  [key: string]: any;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 
@@ -19,6 +21,15 @@ export interface NodeOptions extends Options {
 
   /** Maximum time to wait to drain the request queue, before the process is allowed to exit. */
   shutdownTimeout?: number;
+
+  /** Set a HTTP proxy that should be used for outbound requests. */
+  httpProxy?: string;
+
+  /** Set a HTTPS proxy that should be used for outbound requests. */
+  httpsProxy?: string;
+
+  /** HTTPS proxy certificates path */
+  caCerts?: string;
 }
 
 /** The Sentry Node SDK Backend. */
@@ -101,6 +112,14 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     if (!this.transport) {
       const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+      const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
+
+      for (const option of clientOptions) {
+        if (this.options[option]) {
+          transportOptions[option] = transportOptions[option] || this.options[option];
+        }
+      }
+
       this.transport = this.options.transport
         ? new this.options.transport({ dsn })
         : dsn.protocol === 'http'

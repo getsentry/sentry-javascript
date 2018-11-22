@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [node] HTTP(S) Proxy support
+
 ## 4.3.4
 
 - [utils] fix: Broken tslib import - Fixes #1757
