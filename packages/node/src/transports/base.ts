@@ -21,7 +21,10 @@ export abstract class BaseTransport implements Transport {
   protected api: API;
 
   /** The Agent used for corresponding transport */
-  protected client: http.Agent | https.Agent | undefined;
+  public module?: HTTPRequest;
+
+  /** The Agent used for corresponding transport */
+  public client?: http.Agent | https.Agent;
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {

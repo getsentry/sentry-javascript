@@ -1,21 +1,17 @@
+import { SentryError } from '@sentry/core';
+import { TransportOptions } from '@sentry/types';
+import * as HttpsProxyAgent from 'https-proxy-agent';
+import { HTTPTransport } from '../../src/transports/http';
+
+const mockSetEncoding = jest.fn();
+const dsn = 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
 let mockReturnCode = 200;
 let mockHeaders = {};
-let mockCheckHeaders: any;
-const mockSetEncoding = jest.fn();
-jest.mock('http', () => ({
-  Agent: jest.fn(),
-  request: (options: any, callback: any) => {
-    expect(options.headers['X-Sentry-Auth']).toContain('sentry_version');
-    expect(options.headers['X-Sentry-Auth']).toContain('sentry_timestamp');
-    expect(options.headers['X-Sentry-Auth']).toContain('sentry_client');
-    expect(options.headers['X-Sentry-Auth']).toContain('sentry_key');
-    expect(options.port).toEqual('8989');
-    expect(options.path).toEqual('/mysubpath/api/50622/store/');
-    expect(options.hostname).toEqual('sentry.io');
-    if (mockCheckHeaders) {
-      expect(options.headers).toEqual(expect.objectContaining(mockCheckHeaders));
-    }
-    return {
+
+function createTransport(options: TransportOptions): HTTPTransport {
+  const transport = new HTTPTransport(options);
+  transport.module = {
+    request: jest.fn().mockImplementation((_options: any, callback: any) => ({
       end: () => {
         callback({
           headers: mockHeaders,
@@ -24,36 +20,52 @@ jest.mock('http', () => ({
         });
       },
       on: jest.fn(),
-    };
-  },
-}));
+    })),
+  };
+  return transport;
+}
 
-import { Dsn, SentryError } from '@sentry/core';
-import { getCurrentHub, init, NodeClient } from '../../src';
-
-const dsn = 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
+function assertBasicOptions(options: any): void {
+  expect(options.headers['X-Sentry-Auth']).toContain('sentry_version');
+  expect(options.headers['X-Sentry-Auth']).toContain('sentry_timestamp');
+  expect(options.headers['X-Sentry-Auth']).toContain('sentry_client');
+  expect(options.headers['X-Sentry-Auth']).toContain('sentry_key');
+  expect(options.port).toEqual('8989');
+  expect(options.path).toEqual('/mysubpath/api/50622/store/');
+  expect(options.hostname).toEqual('sentry.io');
+}
 
 describe('HTTPTransport', () => {
   beforeEach(() => {
-    mockHeaders = {};
     mockReturnCode = 200;
+    mockHeaders = {};
+    jest.clearAllMocks();
   });
 
   test('send 200', async () => {
-    init({
-      dsn,
+    const transport = createTransport({ dsn });
+    await transport.captureEvent({
+      message: 'test',
     });
-    await getCurrentHub()
-      .getClient()
-      .captureMessage('test');
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions);
     expect(mockSetEncoding).toHaveBeenCalled();
   });
 
   test('send 400', async () => {
     mockReturnCode = 400;
-    const client = new NodeClient({ dsn });
-    client.install();
-    return expect(client.captureMessage('test')).rejects.toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.captureEvent({
+        message: 'test',
+      });
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
   });
 
   test('send x-sentry-error header', async () => {
@@ -61,26 +73,52 @@ describe('HTTPTransport', () => {
     mockHeaders = {
       'x-sentry-error': 'test-failed',
     };
-    const client = new NodeClient({ dsn });
-    client.install();
-    return expect(client.captureMessage('test')).rejects.toEqual(
-      new SentryError(`HTTP Error (${mockReturnCode}): test-failed`),
-    );
+    const transport = createTransport({ dsn });
+
+    try {
+      await transport.captureEvent({
+        message: 'test',
+      });
+    } catch (e) {
+      const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+      assertBasicOptions(requestOptions);
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode}): test-failed`));
+    }
   });
 
   test('transport options', async () => {
     mockReturnCode = 200;
-    const client = new NodeClient({
+    const transport = createTransport({
       dsn,
-      transportOptions: {
-        dsn: new Dsn(dsn),
-        headers: {
-          a: 'b',
-        },
+      headers: {
+        a: 'b',
       },
     });
-    client.install();
-    mockCheckHeaders = { a: 'b' };
-    await client.captureMessage('test');
+    await transport.captureEvent({
+      message: 'test',
+    });
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions);
+    expect(requestOptions.headers).toEqual(expect.objectContaining({ a: 'b' }));
+  });
+
+  test('http proxy', async () => {
+    mockReturnCode = 200;
+    const transport = createTransport({
+      dsn,
+      httpProxy: 'http://example.com:8080',
+    });
+    await transport.captureEvent({
+      message: 'test',
+    });
+
+    const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
+    assertBasicOptions(requestOptions);
+    expect(requestOptions.agent).toBeInstanceOf(HttpsProxyAgent);
+    expect(requestOptions.agent.secureProxy).toEqual(false);
+    expect(requestOptions.agent.proxy).toEqual(
+      expect.objectContaining({ protocol: 'http:', port: 8080, host: 'example.com' }),
+    );
   });
 });
