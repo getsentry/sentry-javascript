@@ -220,6 +220,7 @@ describe('serialize()', () => {
 describe('deserialize()', () => {
   for (const entry of MATRIX) {
     test(`deserializes a ${entry.name}`, () => {
+      // tslint:disable-next-line:no-inferred-empty-object-type
       expect(deserialize(entry.serialized)).toEqual(entry.object);
     });
   }
