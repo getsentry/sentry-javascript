@@ -75,3 +75,12 @@ export function init(options: NodeOptions = {}): void {
 
   initAndBind(NodeClient, options);
 }
+
+/**
+ * This is the getter for lastEventId.
+ *
+ * @returns The last event id of a captured event.
+ */
+export function lastEventId(): string | undefined {
+  return getCurrentHub().lastEventId();
+}

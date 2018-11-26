@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [node] HTTP(S) Proxy support
+- [npde] Expose lastEventId method
 
 ## 4.3.4
 
