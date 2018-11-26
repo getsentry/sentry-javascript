@@ -8,6 +8,16 @@ const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
   .trim();
 
+const uglifyInstance = uglify({
+  mangle: {
+    // captureExceptions and captureMessage are public API methods and they don't need to be listed here
+    // as mangler doesn't touch user-facing thing, however sentryWrapepd is not, and it would be mangled into a minified version.
+    // We need those full names to correctly detect our internal frames for stripping.
+    // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
+    reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
+  },
+});
+
 const bundleConfig = {
   input: 'src/index.ts',
   output: {
@@ -86,13 +96,7 @@ export default [
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
       .slice(0, -1)
-      .concat(
-        uglify({
-          mangle: {
-            reserved: ['addBreadcrumb', 'captureException', 'captureMessage', 'sentryWrapped'],
-          },
-        }),
-      )
+      .concat(uglifyInstance)
       .concat(bundleConfig.plugins.slice(-1)),
   }),
 ];
