@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { captureException, getCurrentHub } from '@sentry/core';
 import { SentryEvent } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { logger } from '@sentry/utils/logger';
@@ -271,7 +271,7 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    getCurrentHub().captureException(error, { originalException: error });
+    captureException(error);
     next(error);
   };
 }

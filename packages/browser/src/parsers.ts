@@ -64,10 +64,18 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   }
 
   let localStack = stack;
-  const firstFrameFunction = localStack[0].func || '';
 
+  const firstFrameFunction = localStack[0].func || '';
+  const lastFrameFunction = localStack[localStack.length - 1].func || '';
+
+  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
   if (includes(firstFrameFunction, 'captureMessage') || includes(firstFrameFunction, 'captureException')) {
     localStack = localStack.slice(1);
+  }
+
+  // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
+  if (includes(lastFrameFunction, 'sentryWrapped')) {
+    localStack = localStack.slice(0, -1);
   }
 
   // The frame where the crash happened, should be the last entry in the array

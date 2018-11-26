@@ -1,4 +1,4 @@
-import { captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
+import { captureException, captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -43,7 +43,7 @@ export class Ember implements Integration {
       if (getCurrentHub().getIntegration(Ember)) {
         withScope(scope => {
           this.addIntegrationToSdkInfo(scope);
-          getCurrentHub().captureException(error, { originalException: error });
+          captureException(error);
         });
       }
 
@@ -62,7 +62,7 @@ export class Ember implements Integration {
             if (reason instanceof Error) {
               scope.setExtra('context', 'Unhandled Promise error detected');
               this.addIntegrationToSdkInfo(scope);
-              getCurrentHub().captureException(reason, { originalException: reason });
+              captureException(reason);
             } else {
               scope.setExtra('reason', reason);
               this.addIntegrationToSdkInfo(scope);

@@ -86,7 +86,13 @@ export default [
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
       .slice(0, -1)
-      .concat(uglify())
+      .concat(
+        uglify({
+          mangle: {
+            reserved: ['addBreadcrumb', 'captureException', 'captureMessage', 'sentryWrapped'],
+          },
+        }),
+      )
       .concat(bundleConfig.plugins.slice(-1)),
   }),
 ];

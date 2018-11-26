@@ -1,4 +1,4 @@
-import { getCurrentHub, withScope } from '@sentry/core';
+import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
@@ -57,7 +57,7 @@ export function wrap(
     return fn;
   }
 
-  const wrapped: SentryWrappedFunction = function(this: any): void {
+  const sentryWrapped: SentryWrappedFunction = function(this: any): void {
     if (before && isFunction(before)) {
       before.apply(this, arguments);
     }
@@ -96,7 +96,7 @@ export function wrap(
           return processedEvent;
         });
 
-        getCurrentHub().captureException(ex, { originalException: ex });
+        captureException(ex);
       });
 
       throw ex;
@@ -108,20 +108,20 @@ export function wrap(
   try {
     for (const property in fn) {
       if (Object.prototype.hasOwnProperty.call(fn, property)) {
-        wrapped[property] = fn[property];
+        sentryWrapped[property] = fn[property];
       }
     }
   } catch (_oO) {} // tslint:disable-line:no-empty
 
-  wrapped.prototype = fn.prototype;
-  fn.__sentry_wrapped__ = wrapped;
+  sentryWrapped.prototype = fn.prototype;
+  fn.__sentry_wrapped__ = sentryWrapped;
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  wrapped.__sentry__ = true;
-  wrapped.__sentry_original__ = fn;
+  sentryWrapped.__sentry__ = true;
+  sentryWrapped.__sentry_original__ = fn;
 
-  return wrapped;
+  return sentryWrapped;
 }
 
 /**
