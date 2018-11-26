@@ -1,4 +1,4 @@
-import { getCurrentHub, withScope } from '@sentry/core';
+import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isPlainObject, isUndefined } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
@@ -91,7 +91,7 @@ export class Vue implements Integration {
             return event;
           });
 
-          getCurrentHub().captureException(error, { originalException: error });
+          captureException(error);
         });
       }
 
