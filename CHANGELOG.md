@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.4.0
+
 - [node] HTTP(S) Proxy support
 - [node] Expose lastEventId method
 - [browser] Correctly detect and remove wrapped function frames
