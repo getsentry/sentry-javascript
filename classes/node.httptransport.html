@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>/** Node http module transport</p>
+						<p>Node http module transport</p>
 					</div>
 				</div>
 			</section>
@@ -105,7 +105,8 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httptransport.html#api" class="tsd-kind-icon">api</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httptransport.html#client" class="tsd-kind-icon">client</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="node.httptransport.html#client" class="tsd-kind-icon">client</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="node.httptransport.html#module" class="tsd-kind-icon">module</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="node.httptransport.html#options" class="tsd-kind-icon">options</a></li>
 							</ul>
 						</section>
@@ -133,7 +134,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/http.ts#L6">node/src/transports/http.ts:6</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/http.ts#L8">node/src/transports/http.ts:8</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -161,7 +162,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#api">api</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/base.ts#L20">node/src/transports/base.ts:20</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/base.ts#L21">node/src/transports/base.ts:21</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -170,14 +171,30 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="client" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagProtected">Protected</span> client</h3>
-					<div class="tsd-signature tsd-kind-icon">client<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Agent</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Agent</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> client</h3>
+					<div class="tsd-signature tsd-kind-icon">client<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Agent</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Agent</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#client">client</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/base.ts#L23">node/src/transports/base.ts:23</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/base.ts#L27">node/src/transports/base.ts:27</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The Agent used for corresponding transport</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="module" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> module</h3>
+					<div class="tsd-signature tsd-kind-icon">module<span class="tsd-signature-symbol">:</span> <a href="../interfaces/node.httprequest.html" class="tsd-signature-type">HTTPRequest</a></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#module">module</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/base.ts#L24">node/src/transports/base.ts:24</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -193,7 +210,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#options">options</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/http.ts#L8">node/src/transports/http.ts:8</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/http.ts#L10">node/src/transports/http.ts:10</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -212,7 +229,7 @@
 								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#captureevent">captureEvent</a></p>
 								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#captureevent">captureEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/http.ts#L16">node/src/transports/http.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/http.ts#L23">node/src/transports/http.ts:23</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -242,7 +259,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#getrequestoptions">getRequestOptions</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/base.ts#L31">node/src/transports/base.ts:31</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/base.ts#L35">node/src/transports/base.ts:35</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -268,7 +285,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#sendwithmodule">sendWithModule</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/df8243c8/packages/node/src/transports/base.ts#L50">node/src/transports/base.ts:50</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/5051a07f/packages/node/src/transports/base.ts#L62">node/src/transports/base.ts:62</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -342,8 +359,11 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="node.httptransport.html#api" class="tsd-kind-icon">api</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.httptransport.html#client" class="tsd-kind-icon">client</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="node.httptransport.html#module" class="tsd-kind-icon">module</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
 								<a href="node.httptransport.html#options" class="tsd-kind-icon">options</a>
@@ -414,6 +434,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/node.html#init" class="tsd-kind-icon">init</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/node.html#lasteventid" class="tsd-kind-icon">last<wbr>Event<wbr>Id</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/node.html#makeerrorhandler" class="tsd-kind-icon">make<wbr>Error<wbr>Handler</a>
