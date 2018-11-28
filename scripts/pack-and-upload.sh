@@ -5,14 +5,6 @@ yarn global add @zeus-ci/cli
 yarn
 yarn build
 
-# Temp workaround
-############################################
-git clone https://github.com/HazAT/lerna.git
-cd lerna
-npm link
-cd ../
-npm link lerna
-
 # Sanity Check
 yarn lerna changed --include-merged-tags -p
 
