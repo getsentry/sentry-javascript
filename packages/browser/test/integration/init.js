@@ -37,6 +37,7 @@ Sentry.init({
   attachStacktrace: true,
   transport: DummyTransport,
   ignoreErrors: ['ignoreErrorTest'],
+  blacklistUrls: ['foo.js'],
   // integrations: function(old) {
   //   return [new Sentry.Integrations.Debug({ stringify: true })].concat(old);
   // },
