@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "4.4.0",
+  "version": "4.4.1",
   "description": "Offical Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/browser",
@@ -15,9 +15,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.4.0",
-    "@sentry/types": "4.4.0",
-    "@sentry/utils": "4.4.0",
+    "@sentry/core": "4.4.1",
+    "@sentry/types": "4.4.1",
+    "@sentry/utils": "4.4.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
