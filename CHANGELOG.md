@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.4.1
+
+- [core] Bump dependencies to remove flatmap-stream
+
 ## 4.4.0
 
 - [node] HTTP(S) Proxy support
