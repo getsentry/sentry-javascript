@@ -27,3 +27,6 @@ lerna-debug.log
 
 docs
 lint-results.json
+
+# built esm
+/packages/*/esm

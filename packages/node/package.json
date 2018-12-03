@@ -2,8 +2,8 @@
   "name": "@sentry/node",
   "version": "4.4.1",
   "description": "Offical Sentry SDK for Node.js",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/node",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {

@@ -2,8 +2,8 @@
   "name": "@sentry/browser",
   "version": "4.4.1",
   "description": "Offical Sentry SDK for browsers",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/browser",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -11,6 +11,7 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
   },
@@ -52,8 +53,12 @@
     "webpack": "^4.26.0"
   },
   "scripts": {
-    "build": "rollup --config",
-    "build:watch": "rollup --config --watch",
+    "build": "run-p build:esm build:es5",
+    "build:es5": "rollup --config",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "run-p build:esm:watch build:es5:watch",
+    "build:es5:watch": "rollup --config --watch",
+    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage .rpt2_cache build",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",

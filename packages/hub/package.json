@@ -2,8 +2,8 @@
   "name": "@sentry/hub",
   "version": "4.4.1",
   "description": "Sentry hub which handles global state managment.",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/hub",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hub",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -11,6 +11,7 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "module": "esm/index.js",
   "publishConfig": {
     "access": "public"
   },
@@ -29,8 +30,12 @@
     "typescript": "^3.0.1"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build": "run-p build:es5 build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "run-p build:es5:watch build:esm:watch",
+    "build:es5:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
