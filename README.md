@@ -72,6 +72,17 @@ init({
 captureMessage('Hello, world!');
 ```
 
+If you want sentry to be customized for the browsers you want to support use the `esm` build:
+```javascript
+import { init, captureMessage } from '@sentry/browser/esm';
+```
+
+and add it to your babel/... build, if you want to support older browsers
+
+> TIP: You can use [`<script type="module" str="newbrowser.js">` + 
+  `<script nomodule src="oldbrowser.js">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Module_Fallback)
+  to provide builds for newer and older browsers
+
 ## Other Packages
 
 Besides the high-level SDKs, this repository contains shared packages, helpers and configuration used for SDK
