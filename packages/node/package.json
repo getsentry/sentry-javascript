@@ -52,7 +52,7 @@
     "test": "run-s test:jest test:express",
     "test:jest": "jest",
     "test:watch": "jest --watch --notify",
-    "test:express": "node test/manual/express.js",
+    "test:express": "node test/manual/express-scope-separation/start.js",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
   "jest": {
@@ -60,14 +60,9 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "ts"],
     "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.ts"
-    ],
+    "testMatch": ["**/*.test.ts"],
     "globals": {
       "ts-jest": {
         "tsConfig": "./tsconfig.json",

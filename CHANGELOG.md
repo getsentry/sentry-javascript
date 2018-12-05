@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- [node] Port memory-leak tests from raven-node
+- [core] feat: ExtraErrorData integration
+
 ## 4.4.1
 
 - [core] Bump dependencies to remove flatmap-stream
