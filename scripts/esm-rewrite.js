@@ -36,13 +36,8 @@ const changes = replace.sync(options);
 
 if ('VERBOSE' in process.env) {
   if (changes.length > 0) {
-    console.log(
-      `Imports rewritten to esm in:\n - ${changes
-        .map(function(path) {
-          relative(`${process.cwd()}/esm`, path);
-        })
-        .join('\n - ')}`,
-    );
+    const esmDir = `${process.cwd()}/esm`;
+    console.log(`Imports rewritten to esm in:\n - ${changes.map(path => relative(esmDir, path)).join('\n - ')}`);
   } else {
     console.log('No imports rewritten');
   }
