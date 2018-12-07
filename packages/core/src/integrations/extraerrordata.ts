@@ -1,12 +1,13 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryEventHint } from '@sentry/types';
 import { isError } from '@sentry/utils/is';
+import { logger } from '../../../utils/logger';
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
  */
 interface ExtendedError extends Error {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** Patch toString calls to return proper name for wrapped functions */
@@ -50,22 +51,23 @@ export class ExtraErrorData implements Integration {
           ...errorData,
         },
       };
-    } else {
-      return event;
     }
+
+    return event;
   }
 
   /**
    * Extract extra information from the Error object
    */
-  private extractErrorData(error: ExtendedError): { [key: string]: any } | null {
+  private extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
+      const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
       const name = error.name || error.constructor.name;
-      const errorKeys = Object.keys(error).filter(key => !(key in ['name', 'message', 'stack']));
+      const errorKeys = Object.keys(error).filter(key => nativeKeys.indexOf(key) === -1);
 
       if (errorKeys.length) {
-        const extraErrorInfo: { [key: string]: any } = {};
+        const extraErrorInfo: { [key: string]: unknown } = {};
         for (const key of errorKeys) {
           let value = error[key];
           if (isError(value)) {
@@ -79,7 +81,8 @@ export class ExtraErrorData implements Integration {
       }
 
       return null;
-    } catch (_oO) {
+    } catch (oO) {
+      logger.error('Unable to extract extra data from the Error object:', oO);
       return null;
     }
   }
