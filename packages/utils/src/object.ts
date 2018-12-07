@@ -9,99 +9,6 @@ interface ExtendedError extends Error {
 }
 
 /**
- * Transforms Error object into an object literal with all it's attributes
- * attached to it.
- *
- * Based on: https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
- *
- * @param error An Error containing all relevant information
- * @returns An object with all error properties
- */
-function objectifyError(error: ExtendedError): object {
-  // These properties are implemented as magical getters and don't show up in `for-in` loop
-  const err: {
-    stack: string | undefined;
-    message: string;
-    name: string;
-    [key: string]: any;
-  } = {
-    message: error.message,
-    name: error.name,
-    stack: error.stack,
-  };
-
-  for (const i in error) {
-    if (Object.prototype.hasOwnProperty.call(error, i)) {
-      err[i] = error[i];
-    }
-  }
-
-  return err;
-}
-
-const NAN_VALUE = '[NaN]';
-const UNDEFINED_VALUE = '[undefined]';
-
-/**
- * Serializer function used as 2nd argument to JSON.serialize in `serialize()` util function.
- */
-function serializer(): (key: string, value: any) => any {
-  const stack: any[] = [];
-  const keys: string[] = [];
-  const cycleReplacer = (_: string, value: any) => {
-    if (stack[0] === value) {
-      return '[Circular ~]';
-    }
-    return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`;
-  };
-
-  return function(this: any, key: string, value: any): any {
-    let currentValue: any = value;
-
-    // NaN and undefined are not JSON.parseable, but we want to preserve this information
-    if (isNaN(value)) {
-      currentValue = NAN_VALUE;
-    } else if (isUndefined(value)) {
-      currentValue = UNDEFINED_VALUE;
-    }
-
-    if (stack.length > 0) {
-      const thisPos = stack.indexOf(this);
-
-      if (thisPos !== -1) {
-        stack.splice(thisPos + 1);
-        keys.splice(thisPos, Infinity, key);
-      } else {
-        stack.push(this);
-        keys.push(key);
-      }
-
-      if (stack.indexOf(currentValue) !== -1) {
-        currentValue = cycleReplacer.call(this, key, currentValue);
-      }
-    } else {
-      stack.push(currentValue);
-    }
-
-    return currentValue instanceof Error ? objectifyError(currentValue) : currentValue;
-  };
-}
-
-/**
- * Reviver function used as 2nd argument to JSON.parse in `deserialize()` util function.
- */
-function reviver(_key: string, value: any): any {
-  // NaN and undefined are not JSON.parseable, but we want to preserve this information
-  if (value === NAN_VALUE) {
-    return NaN;
-  }
-  if (value === UNDEFINED_VALUE) {
-    return undefined;
-  }
-  return value;
-}
-
-/**
  * Serializes the given object into a string.
  * Like JSON.stringify, but doesn't throw on circular references.
  * Based on a `json-stringify-safe` package and modified to handle Errors serialization.
@@ -114,7 +21,7 @@ function reviver(_key: string, value: any): any {
  * @returns A string containing the serialized object.
  */
 export function serialize<T>(object: T): string {
-  return JSON.stringify(object, serializer());
+  return JSON.stringify(object);
 }
 
 /**
@@ -125,7 +32,7 @@ export function serialize<T>(object: T): string {
  * @returns The deserialized object.
  */
 export function deserialize<T>(str: string): T {
-  return JSON.parse(str, reviver) as T;
+  return JSON.parse(str) as T;
 }
 
 /**
@@ -320,4 +227,142 @@ export function assign(target: any, ...args: any[]): object {
   }
 
   return to;
+}
+
+/**
+ * Transforms Error object into an object literal with all it's attributes
+ * attached to it.
+ *
+ * Based on: https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
+ *
+ * @param error An Error containing all relevant information
+ * @returns An object with all error properties
+ */
+function objectifyError(error: ExtendedError): object {
+  // These properties are implemented as magical getters and don't show up in `for-in` loop
+  const err: {
+    stack: string | undefined;
+    message: string;
+    name: string;
+    [key: string]: any;
+  } = {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  };
+
+  for (const i in error) {
+    if (Object.prototype.hasOwnProperty.call(error, i)) {
+      err[i] = error[i];
+    }
+  }
+
+  return err;
+}
+
+/**
+ * standardizeValue()
+ *
+ * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
+ * serializes Error objects
+ * filter global objects
+ */
+function standardizeValue(value: any, key: any): any {
+  if (key === 'domain' && typeof value === 'object' && (value as { _events: any })._events) {
+    return '[Domain]';
+  }
+
+  if (key === 'domainEmitter') {
+    return '[DomainEmitter]';
+  }
+
+  if (typeof (global as any) !== 'undefined' && value === global) {
+    return '[Global]';
+  }
+
+  if (typeof (window as any) !== 'undefined' && value === window) {
+    return '[Window]';
+  }
+
+  if (typeof (document as any) !== 'undefined' && value === document) {
+    return '[Document]';
+  }
+
+  if (value instanceof Date) {
+    return `[Date] ${value}`;
+  }
+
+  if (value instanceof Error) {
+    return objectifyError(value);
+  }
+
+  if (isNaN(value)) {
+    return '[NaN]';
+  }
+
+  if (isUndefined(value)) {
+    return '[undefined]';
+  }
+
+  if (typeof value === 'function') {
+    return `[Function] ${(value as () => void).name || '<unknown-function-name>'}`;
+  }
+
+  return value;
+}
+
+/**
+ * standardizer()
+ *
+ * Remove circular references,
+ * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
+ * and takes care of Error objects serialization
+ */
+function standardizer(): (key: string, value: any) => any {
+  const stack: any[] = [];
+  const keys: string[] = [];
+
+  /** recursive */
+  function cycleStandardizer(_key: string, value: any): any {
+    if (stack[0] === value) {
+      return '[Circular ~]';
+    }
+    return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`;
+  }
+
+  return function(this: any, key: string, value: any): any {
+    if (stack.length > 0) {
+      const thisPos = stack.indexOf(this);
+
+      if (thisPos === -1) {
+        stack.push(this);
+        keys.push(key);
+      } else {
+        stack.splice(thisPos + 1);
+        keys.splice(thisPos, Infinity, key);
+      }
+
+      if (stack.indexOf(value) !== -1) {
+        // tslint:disable-next-line:no-parameter-reassignment
+        value = cycleStandardizer.call(this, key, value);
+      }
+    } else {
+      stack.push(value);
+    }
+
+    return standardizeValue(value, key);
+  };
+}
+
+/**
+ * safeNormalize()
+ *
+ * Creates a copy of the input by applying standardizer function on it and parsing it back to unify the data
+ */
+export function safeNormalize(input: any): any {
+  try {
+    return JSON.parse(JSON.stringify(input, standardizer()));
+  } catch (_oO) {
+    return '**non-serializable**';
+  }
 }
