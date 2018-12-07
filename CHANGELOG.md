@@ -4,6 +4,8 @@
 
 - [node] Port memory-leak tests from raven-node
 - [core] feat: ExtraErrorData integration
+- [hub] ref: use safeNormalize on any data we store on Scope
+- [utils] feat: Introduce safeNormalize util method to unify stored data
 
 ## 4.4.1
 
