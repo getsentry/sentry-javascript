@@ -38,5 +38,5 @@
     "fix:tslint": "tslint --fix -t stylish -p ."
   },
   "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d",
-  "sideEffects": true
+  "sideEffects": false
 }
