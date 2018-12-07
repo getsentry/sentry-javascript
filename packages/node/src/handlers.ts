@@ -201,6 +201,10 @@ export function parseRequest(
     };
   }
 
+  if (req.extraContext && typeof req.extraContext === 'object') {
+    event.extra = req.extraContext;
+  }
+
   if (options.transaction) {
     const transaction = extractTransaction(req, options.transaction);
     if (transaction) {
