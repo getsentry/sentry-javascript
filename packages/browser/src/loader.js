@@ -22,7 +22,7 @@
   }
 
   var injected = false;
-  var onLoadCallback;
+  var onLoadCallbacks = [];
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
@@ -40,13 +40,13 @@
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
-      injectSdk(onLoadCallback);
+      injectSdk(onLoadCallbacks);
     }
     queue.data.push(content);
   };
   queue.data = [];
 
-  function injectSdk(callback) {
+  function injectSdk(callbacks) {
     if (injected) {
       return;
     }
@@ -85,7 +85,7 @@
           oldInit(target);
         };
 
-        sdkLoaded(callback, SDK);
+        sdkLoaded(callbacks, SDK);
       } catch (o_O) {
         console.error(o_O);
       }
@@ -94,11 +94,14 @@
     _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
   }
 
-  function sdkLoaded(callback, SDK) {
+  function sdkLoaded(callbacks, SDK) {
     try {
-      if (callback) {
-        callback();
+      for (var i = 0; i < callbacks.length; i++) {
+        if (typeof callbacks[i] === 'function') {
+          callbacks[i]();
+        }
       }
+
       var data = queue.data;
 
       // We want to replay all calls to Sentry first to make sure init is called before
@@ -142,18 +145,18 @@
   // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
   // that the first Sentry "instance" is our with onLoad
   _window[_namespace] = {
-    onLoad: function(callback) {
+    onLoad: function (callback) {
+      onLoadCallbacks.push(callback);
       if (lazy && !forceLoad) {
-        onLoadCallback = callback;
-      } else {
-        injectSdk(callback);
+        return;
       }
+      injectSdk(onLoadCallbacks);
     },
     forceLoad: function() {
       forceLoad = true;
       if (lazy) {
         setTimeout(function() {
-          injectSdk(onLoadCallback);
+          injectSdk(onLoadCallbacks);
         });
       }
     }
@@ -197,7 +200,7 @@
 
   if (!lazy) {
     setTimeout(function() {
-      injectSdk(onLoadCallback);
+      injectSdk(onLoadCallbacks);
     });
   }
 })(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundle.js', {
