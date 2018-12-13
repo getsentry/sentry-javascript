@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Dsn | Sentry JavaScript SDKs</title>
+	<title>ExtraErrorData | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,10 +55,10 @@
 					<a href="../modules/core.html">core</a>
 				</li>
 				<li>
-					<a href="core.dsn.html">Dsn</a>
+					<a href="core.extraerrordata.html">ExtraErrorData</a>
 				</li>
 			</ul>
-			<h1>Class Dsn</h1>
+			<h1>Class ExtraErrorData</h1>
 		</div>
 	</div>
 </header>
@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>The Sentry Dsn, identifying a Sentry instance and project.</p>
+						<p>Patch toString calls to return proper name for wrapped functions</p>
 					</div>
 				</div>
 			</section>
@@ -76,14 +76,14 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">Dsn</span>
+						<span class="target">ExtraErrorData</span>
 					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel">
 				<h3>Implements</h3>
 				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/types.dsncomponents.html" class="tsd-signature-type">DsnComponents</a></li>
+					<li><a href="../interfaces/types.integration.html" class="tsd-signature-type">Integration</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -91,211 +91,111 @@
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
-							<h3>Constructors</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="core.dsn.html#constructor" class="tsd-kind-icon">constructor</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#host" class="tsd-kind-icon">host</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#pass" class="tsd-kind-icon">pass</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#path" class="tsd-kind-icon">path</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#port" class="tsd-kind-icon">port</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#projectid" class="tsd-kind-icon">project<wbr>Id</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#protocol" class="tsd-kind-icon">protocol</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.dsn.html#user" class="tsd-kind-icon">user</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="core.extraerrordata.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="core.extraerrordata.html#id" class="tsd-kind-icon">id</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.dsn.html#tostring" class="tsd-kind-icon">to<wbr>String</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.extraerrordata.html#enhanceeventwitherrordata" class="tsd-kind-icon">enhance<wbr>Event<wbr>With<wbr>Error<wbr>Data</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="core.extraerrordata.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
-					<a name="constructor" class="tsd-anchor"></a>
-					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Dsn<span class="tsd-signature-symbol">(</span>from<span class="tsd-signature-symbol">: </span><a href="../modules/types.html#dsnlike" class="tsd-signature-type">DsnLike</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="core.dsn.html" class="tsd-signature-type">Dsn</a></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L24">core/src/dsn.ts:24</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Creates a new Dsn component</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>from: <a href="../modules/types.html#dsnlike" class="tsd-signature-type">DsnLike</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="core.dsn.html" class="tsd-signature-type">Dsn</a></h4>
-						</li>
-					</ul>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="host" class="tsd-anchor"></a>
-					<h3>host</h3>
-					<div class="tsd-signature tsd-kind-icon">host<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;ExtraErrorData.id</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#host">host</a></p>
+						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L18">core/src/dsn.ts:18</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/integrations/extraerrordata.ts#L18">core/src/integrations/extraerrordata.ts:18</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>Hostname of the Sentry instance.</p>
+							<p>Returns <a href="../interfaces/types.integrationclass.html#id">IntegrationClass.id</a></p>
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="pass" class="tsd-anchor"></a>
-					<h3>pass</h3>
-					<div class="tsd-signature tsd-kind-icon">pass<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="id" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> id</h3>
+					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ExtraErrorData&quot;</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#pass">pass</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L16">core/src/dsn.ts:16</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/integrations/extraerrordata.ts#L23">core/src/integrations/extraerrordata.ts:23</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Private authorization key (deprecated, optional).</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="path" class="tsd-anchor"></a>
-					<h3>path</h3>
-					<div class="tsd-signature tsd-kind-icon">path<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#path">path</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L22">core/src/dsn.ts:22</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Path</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="port" class="tsd-anchor"></a>
-					<h3>port</h3>
-					<div class="tsd-signature tsd-kind-icon">port<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#port">port</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L20">core/src/dsn.ts:20</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Port of the Sentry instance.</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="projectid" class="tsd-anchor"></a>
-					<h3>project<wbr>Id</h3>
-					<div class="tsd-signature tsd-kind-icon">project<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#projectid">projectId</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L24">core/src/dsn.ts:24</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Project ID</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="protocol" class="tsd-anchor"></a>
-					<h3>protocol</h3>
-					<div class="tsd-signature tsd-kind-icon">protocol<span class="tsd-signature-symbol">:</span> <a href="../modules/types.html#dsnprotocol" class="tsd-signature-type">DsnProtocol</a></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#protocol">protocol</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L12">core/src/dsn.ts:12</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Protocol used to connect to Sentry.</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="user" class="tsd-anchor"></a>
-					<h3>user</h3>
-					<div class="tsd-signature tsd-kind-icon">user<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/types.dsncomponents.html">DsnComponents</a>.<a href="../interfaces/types.dsncomponents.html#user">user</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L14">core/src/dsn.ts:14</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Public authorization key.</p>
-						</div>
+						<dl class="tsd-comment-tags">
+							<dt>inheritdoc</dt>
+							<dd></dd>
+						</dl>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="tostring" class="tsd-anchor"></a>
-					<h3>to<wbr>String</h3>
+					<a name="enhanceeventwitherrordata" class="tsd-anchor"></a>
+					<h3>enhance<wbr>Event<wbr>With<wbr>Error<wbr>Data</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">to<wbr>String<span class="tsd-signature-symbol">(</span>withPassword<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+						<li class="tsd-signature tsd-kind-icon">enhance<wbr>Event<wbr>With<wbr>Error<wbr>Data<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, error<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Error</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/dsn.ts#L46">core/src/dsn.ts:46</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/integrations/extraerrordata.ts#L43">core/src/integrations/extraerrordata.ts:43</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>Renders the string representation of this Dsn.</p>
+									<p>Attaches extracted information from the Error object to extra field in the SentryEvent</p>
 								</div>
-								<p>By default, this will render the public representation without the password
-									component. To get the deprecated private representation, set <code>withPassword</code>
-								to true.</p>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> withPassword: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></h5>
-									<div class="tsd-comment tsd-typography">
-										<p>When set to true, the password will be included.</p>
-									</div>
+									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+								</li>
+								<li>
+									<h5>error: <span class="tsd-signature-type">Error</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setuponce" class="tsd-anchor"></a>
+					<h3>setup<wbr>Once</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Once<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#setuponce">setupOnce</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/integrations/extraerrordata.ts#L28">core/src/integrations/extraerrordata.ts:28</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>inheritdoc</dt>
+									<dd></dd>
+								</dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -350,45 +250,30 @@
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
 						<a href="core.dedupe.html" class="tsd-kind-icon">Dedupe</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="core.dsn.html" class="tsd-kind-icon">Dsn</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.dsn.html" class="tsd-kind-icon">Dsn</a>
+						<a href="core.extraerrordata.html" class="tsd-kind-icon">Extra<wbr>Error<wbr>Data</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class">
-								<a href="core.dsn.html#constructor" class="tsd-kind-icon">constructor</a>
-							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#host" class="tsd-kind-icon">host</a>
+								<a href="core.extraerrordata.html#name" class="tsd-kind-icon">name</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#pass" class="tsd-kind-icon">pass</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#path" class="tsd-kind-icon">path</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#port" class="tsd-kind-icon">port</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#projectid" class="tsd-kind-icon">project<wbr>Id</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#protocol" class="tsd-kind-icon">protocol</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="core.dsn.html#user" class="tsd-kind-icon">user</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="core.extraerrordata.html#id" class="tsd-kind-icon">id</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="core.dsn.html#tostring" class="tsd-kind-icon">to<wbr>String</a>
+								<a href="core.extraerrordata.html#enhanceeventwitherrordata" class="tsd-kind-icon">enhance<wbr>Event<wbr>With<wbr>Error<wbr>Data</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="core.extraerrordata.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
-						<a href="core.extraerrordata.html" class="tsd-kind-icon">Extra<wbr>Error<wbr>Data</a>
-					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
 						<a href="core.functiontostring.html" class="tsd-kind-icon">Function<wbr>ToString</a>
 					</li>
