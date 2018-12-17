@@ -193,25 +193,12 @@ export async function getExceptionFromError(error: Error): Promise<SentryExcepti
 export async function parseError(error: ExtendedError): Promise<SentryEvent> {
   const name = error.name || error.constructor.name;
   const exception = await getExceptionFromError(error);
-  const event: SentryEvent = {
+  return {
     exception: {
       values: [exception],
     },
     message: `${name}: ${error.message || '<no message>'}`,
   };
-  const errorKeys = Object.keys(error).filter(key => !(key in ['name', 'message', 'stack', 'domain']));
-
-  if (errorKeys.length) {
-    const extraErrorInfo: { [key: string]: any } = {};
-    for (const key of errorKeys) {
-      extraErrorInfo[key] = error[key];
-    }
-    event.extra = {
-      [name]: extraErrorInfo,
-    };
-  }
-
-  return event;
 }
 
 /** JSDoc */

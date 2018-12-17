@@ -1,6 +1,6 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
-import { assign } from '@sentry/utils/object';
+import { assign, safeNormalize } from '@sentry/utils/object';
 
 export type EventProcessor = (event: SentryEvent, hint?: SentryEventHint) => Promise<SentryEvent | null>;
 
@@ -85,7 +85,7 @@ export class Scope {
    * @param user User context object to merge into current context.
    */
   public setUser(user: User): Scope {
-    this.user = user;
+    this.user = safeNormalize(user);
     this.notifyScopeListeners();
     return this;
   }
@@ -95,7 +95,7 @@ export class Scope {
    * @param tags Tags context object to merge into current context.
    */
   public setTag(key: string, value: string): Scope {
-    this.tags = { ...this.tags, [key]: value };
+    this.tags = { ...this.tags, [key]: safeNormalize(value) };
     this.notifyScopeListeners();
     return this;
   }
@@ -105,7 +105,7 @@ export class Scope {
    * @param extra context object to merge into current context.
    */
   public setExtra(key: string, extra: any): Scope {
-    this.extra = { ...this.extra, [key]: extra };
+    this.extra = { ...this.extra, [key]: safeNormalize(extra) };
     this.notifyScopeListeners();
     return this;
   }
@@ -115,7 +115,7 @@ export class Scope {
    * @param fingerprint string[] to group events in Sentry.
    */
   public setFingerprint(fingerprint: string[]): Scope {
-    this.fingerprint = fingerprint;
+    this.fingerprint = safeNormalize(fingerprint);
     this.notifyScopeListeners();
     return this;
   }
@@ -125,7 +125,7 @@ export class Scope {
    * @param level string {@link Severity}
    */
   public setLevel(level: Severity): Scope {
-    this.level = level;
+    this.level = safeNormalize(level);
     this.notifyScopeListeners();
     return this;
   }
@@ -167,8 +167,8 @@ export class Scope {
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
     this.breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-        ? [...this.breadcrumbs, breadcrumb].slice(-maxBreadcrumbs)
-        : [...this.breadcrumbs, breadcrumb];
+        ? [...this.breadcrumbs, safeNormalize(breadcrumb)].slice(-maxBreadcrumbs)
+        : [...this.breadcrumbs, safeNormalize(breadcrumb)];
     this.notifyScopeListeners();
   }
 
