@@ -1,18 +1,16 @@
-import * as Limiter from 'async-limiter';
 import { mkdir, mkdirSync, readFile, statSync } from 'fs';
 import { dirname, resolve } from 'path';
 
-// tslint:disable-next-line:no-unsafe-any
-const fsLimiter = new Limiter({ concurrency: 25 });
 const _0777 = parseInt('0777', 8);
 
 /**
  * Asynchronously reads given files content.
  *
  * @param path A relative or absolute path to the file
+ * @param fsLimiter A limiter instance that prevents excessive file access
  * @returns A Promise that resolves when the file has been read.
  */
-export async function readFileAsync(path: string): Promise<Error | string> {
+export async function readFileAsync(path: string, fsLimiter: any): Promise<Error | string> {
   // We cannot use util.promisify here because that was only introduced in Node
   // 8 and we need to support older Node versions.
   return new Promise<Error | string>((res, reject) => {
@@ -20,7 +18,6 @@ export async function readFileAsync(path: string): Promise<Error | string> {
     fsLimiter.push((done: () => void) => {
       readFile(path, 'utf8', (err, data) => {
         done();
-
         if (err) {
           reject(err);
         } else {

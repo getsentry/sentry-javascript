@@ -30,6 +30,9 @@ export interface NodeOptions extends Options {
 
   /** HTTPS proxy certificates path */
   caCerts?: string;
+
+  /** Sets the number of context lines for each frame when loading a file. */
+  frameContextLines?: number;
 }
 
 /** The Sentry Node SDK Backend. */
@@ -65,7 +68,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       }
     }
 
-    const event: SentryEvent = await parseError(ex as Error);
+    const event: SentryEvent = await parseError(ex as Error, this.options);
 
     return {
       ...event,
@@ -89,7 +92,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     if (this.options.attachStacktrace && hint && hint.syntheticException) {
       const stack = hint.syntheticException ? await extractStackFromError(hint.syntheticException) : [];
-      const frames = await parseStack(stack);
+      const frames = await parseStack(stack, this.options);
       event.stacktrace = {
         frames: prepareFramesForEvent(frames),
       };

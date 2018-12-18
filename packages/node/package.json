@@ -20,6 +20,7 @@
     "@sentry/types": "4.4.2",
     "@sentry/utils": "4.4.2",
     "@types/stack-trace": "0.0.29",
+    "async-limiter": "^1.0.0",
     "cookie": "0.3.1",
     "https-proxy-agent": "^2.2.1",
     "lsmod": "1.0.0",

@@ -151,12 +151,14 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(6);
+      expect.assertions(8);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].type).toBe('Error');
             expect(event.exception!.values![0].value).toBe('test');
@@ -165,6 +167,36 @@ describe('SentryNode', () => {
             return event;
           },
           dsn,
+        }),
+      );
+      configureScope((scope: Scope) => {
+        scope.setTag('test', '1');
+      });
+      try {
+        throw new Error('test');
+      } catch (e) {
+        captureException(e);
+      }
+    });
+
+    test('capture an exception no pre/post context', done => {
+      expect.assertions(8);
+      getCurrentHub().bindClient(
+        new NodeClient({
+          beforeSend: (event: SentryEvent) => {
+            expect(event.tags).toEqual({ test: '1' });
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].type).toBe('Error');
+            expect(event.exception!.values![0].value).toBe('test');
+            expect(event.exception!.values![0].stacktrace).toBeTruthy();
+            done();
+            return event;
+          },
+          dsn,
+          frameContextLines: 0,
         }),
       );
       configureScope((scope: Scope) => {
