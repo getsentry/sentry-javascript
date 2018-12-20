@@ -1,7 +1,7 @@
 import { BaseBackend, Dsn, getCurrentHub, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
-import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
+import { limitObjectDepthToSize, serialize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
@@ -130,6 +130,6 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         : new HTTPSTransport(transportOptions);
     }
 
-    return this.transport.captureEvent(event);
+    return this.transport.sendEvent(serialize(event));
   }
 }

@@ -3,7 +3,6 @@ import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Tra
 import { logger } from '@sentry/utils/logger';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
-import { RequestBuffer } from './requestbuffer';
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -27,9 +26,6 @@ export abstract class BaseBackend<O extends Options> implements Backend {
 
   /** Cached transport used internally. */
   protected transport?: Transport;
-
-  /** A simple buffer holding all requests. */
-  protected readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
 
   /**
    * @inheritDoc
@@ -64,12 +60,5 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public storeScope(_: Scope): void {
     // Noop
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getBuffer(): RequestBuffer<SentryResponse> {
-    return this.buffer;
   }
 }

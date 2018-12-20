@@ -1,6 +1,5 @@
-import { API, SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
-import { serialize } from '@sentry/utils/object';
+import { API, RequestBuffer, SentryError } from '@sentry/core';
+import { SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -25,6 +24,9 @@ export abstract class BaseTransport implements Transport {
 
   /** The Agent used for corresponding transport */
   public client?: http.Agent | https.Agent;
+
+  /** A simple buffer holding all requests. */
+  protected readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer(30);
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
@@ -59,40 +61,41 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async sendWithModule(httpModule: HTTPRequest, event: SentryEvent): Promise<SentryResponse> {
-    const requestOptions = this.getRequestOptions();
-    return new Promise<SentryResponse>((resolve, reject) => {
-      const req = httpModule.request(requestOptions, (res: http.IncomingMessage) => {
-        res.setEncoding('utf8');
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({
-            status: Status.fromHttpCode(res.statusCode),
-          });
-        } else {
-          if (res.headers && res.headers['x-sentry-error']) {
-            const reason = res.headers['x-sentry-error'];
-            reject(new SentryError(`HTTP Error (${res.statusCode}): ${reason}`));
+  protected async sendWithModule(httpModule: HTTPRequest, body: string): Promise<SentryResponse> {
+    return this.buffer.add(
+      new Promise<SentryResponse>((resolve, reject) => {
+        const req = httpModule.request(this.getRequestOptions(), (res: http.IncomingMessage) => {
+          res.setEncoding('utf8');
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({
+              status: Status.fromHttpCode(res.statusCode),
+            });
           } else {
-            reject(new SentryError(`HTTP Error (${res.statusCode})`));
+            if (res.headers && res.headers['x-sentry-error']) {
+              const reason = res.headers['x-sentry-error'];
+              reject(new SentryError(`HTTP Error (${res.statusCode}): ${reason}`));
+            } else {
+              reject(new SentryError(`HTTP Error (${res.statusCode})`));
+            }
           }
-        }
-        // force the socket to drain
-        res.on('data', () => {
-          // Drain
+          // force the socket to drain
+          res.on('data', () => {
+            // Drain
+          });
+          res.on('end', () => {
+            // Drain
+          });
         });
-        res.on('end', () => {
-          // Drain
-        });
-      });
-      req.on('error', reject);
-      req.end(serialize(event));
-    });
+        req.on('error', reject);
+        req.end(body);
+      }),
+    );
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
+  public async sendEvent(_: string): Promise<SentryResponse> {
     throw new SentryError('Transport Class has to implement `captureEvent` method');
   }
 }

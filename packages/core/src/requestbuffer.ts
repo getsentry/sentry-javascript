@@ -1,5 +1,7 @@
 /** A simple queue that holds promises. */
 export class RequestBuffer<T> {
+  public constructor(protected limit: number = 30) {}
+
   /** Internal set of queued Promises */
   private readonly buffer: Array<Promise<T>> = [];
 
@@ -10,6 +12,9 @@ export class RequestBuffer<T> {
    * @returns The original promise.
    */
   public async add(task: Promise<T>): Promise<T> {
+    if (this.length() >= this.limit) {
+      return Promise.reject('Discarded');
+    }
     if (this.buffer.indexOf(task) === -1) {
       this.buffer.push(task);
     }

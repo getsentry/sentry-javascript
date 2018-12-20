@@ -1,5 +1,5 @@
 import { API, SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse, Transport, TransportOptions } from '@sentry/types';
+import { SentryResponse, Transport, TransportOptions } from '@sentry/types';
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
@@ -15,7 +15,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async captureEvent(_: SentryEvent): Promise<SentryResponse> {
+  public async sendEvent(_: string): Promise<SentryResponse> {
     throw new SentryError('Transport Class has to implement `captureEvent` method');
   }
 }

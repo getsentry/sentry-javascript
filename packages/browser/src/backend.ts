@@ -2,6 +2,7 @@ import { BaseBackend, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
+import { serialize } from '@sentry/utils/object';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
@@ -153,6 +154,6 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       }
     }
 
-    return this.transport.captureEvent(event);
+    return this.transport.sendEvent(serialize(event));
   }
 }

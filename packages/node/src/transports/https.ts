@@ -1,5 +1,5 @@
 import { SentryError } from '@sentry/core';
-import { SentryEvent, SentryResponse, TransportOptions } from '@sentry/types';
+import { SentryResponse, TransportOptions } from '@sentry/types';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 import { BaseTransport } from './base';
@@ -14,17 +14,17 @@ export class HTTPSTransport extends BaseTransport {
     this.client = proxy
       ? // tslint:disable-next-line:no-unsafe-any
         (new HttpsProxyAgent(proxy) as https.Agent)
-      : new https.Agent({ keepAlive: true, maxSockets: 100 });
+      : new https.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
+  public async sendEvent(body: string): Promise<SentryResponse> {
     if (!this.module) {
       throw new SentryError('No module available in HTTPSTransport');
     }
 
-    return this.sendWithModule(this.module, event);
+    return this.sendWithModule(this.module, body);
   }
 }
