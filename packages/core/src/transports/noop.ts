@@ -15,7 +15,7 @@ export class NoopTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public close(_?: number): Promise<boolean> {
+  public async close(_?: number): Promise<boolean> {
     return Promise.resolve(true);
   }
 }

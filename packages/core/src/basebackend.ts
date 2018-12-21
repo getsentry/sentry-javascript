@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
+import { NoopTransport } from './transports/noop';
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -33,7 +34,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * Sets up the transport so it can be used later to send requests.
    */
   protected setupTransport(): Transport {
-    throw new SentryError('Backend has to implement `setupTransport` method');
+    return new NoopTransport();
   }
 
   /**
@@ -54,9 +55,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    const response = await this.transport.sendEvent(serialize(event));
-    logger.log(`Request finished with: ${response}`);
-    return response;
+    return this.transport.sendEvent(serialize(event));
   }
 
   /**

@@ -69,13 +69,12 @@ describe('SentryBrowser', () => {
   });
 
   describe('breadcrumbs', () => {
-    it.only('should record breadcrumbs', async () => {
+    it('should record breadcrumbs', async () => {
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
       await (getCurrentHub().getClient() as BrowserClient).close(2000);
-      console.log(beforeSend.calledOnce);
       expect(beforeSend.args[0][0].breadcrumbs).to.have.lengthOf(2);
     });
   });

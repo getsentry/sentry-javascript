@@ -1,8 +1,7 @@
-import { BaseBackend, Dsn, getCurrentHub, NoopTransport, Options } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
+import { BaseBackend, Dsn, getCurrentHub, Options } from '@sentry/core';
+import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
-import { limitObjectDepthToSize, serialize, serializeKeysToEventMessage } from '@sentry/utils/object';
+import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
@@ -42,13 +41,12 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    * @inheritdoc
    */
   protected setupTransport(): Transport {
-    let dsn: Dsn | undefined;
-
     if (!this.options.dsn) {
-      return new NoopTransport();
+      // We return the noop transport here in case there is no Dsn.
+      return super.setupTransport();
     }
 
-    dsn = new Dsn(this.options.dsn);
+    const dsn = new Dsn(this.options.dsn);
 
     const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
     const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
@@ -130,39 +128,5 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     }
 
     return event;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    let dsn: Dsn;
-
-    if (!this.options.dsn) {
-      logger.warn(`Event has been skipped because no Dsn is configured.`);
-      // We do nothing in case there is no DSN
-      return { status: Status.Skipped, reason: `Event has been skipped because no Dsn is configured.` };
-    } else {
-      dsn = new Dsn(this.options.dsn);
-    }
-
-    if (!this.transport) {
-      const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
-      const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
-
-      for (const option of clientOptions) {
-        if (this.options[option]) {
-          transportOptions[option] = transportOptions[option] || this.options[option];
-        }
-      }
-
-      this.transport = this.options.transport
-        ? new this.options.transport({ dsn })
-        : dsn.protocol === 'http'
-        ? new HTTPTransport(transportOptions)
-        : new HTTPSTransport(transportOptions);
-    }
-
-    return this.transport.sendEvent(serialize(event));
   }
 }

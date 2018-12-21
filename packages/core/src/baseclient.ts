@@ -18,6 +18,7 @@ import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { Backend, Client, Options } from './interfaces';
+import { PromiseBuffer } from './promisebuffer';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -94,6 +95,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   private readonly integrations: IntegrationIndex;
 
+  /** A simple buffer holding all requests. */
+  protected readonly buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer();
+
   /**
    * Initializes this client instance.
    *
@@ -132,8 +136,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    const event = await this.getBackend().eventFromException(exception, hint);
-    return this.captureEvent(event, hint, scope);
+    return this.buffer.add(
+      (async () => {
+        const event = await this.getBackend().eventFromException(exception, hint);
+        return this.captureEvent(event, hint, scope);
+      })(),
+    );
   }
 
   /**
@@ -145,15 +153,25 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     hint?: SentryEventHint,
     scope?: Scope,
   ): Promise<SentryResponse> {
-    const event = await this.getBackend().eventFromMessage(message, level, hint);
-    return this.captureEvent(event, hint, scope);
+    return this.buffer.add(
+      (async () => {
+        const event = await this.getBackend().eventFromMessage(message, level, hint);
+        return this.captureEvent(event, hint, scope);
+      })(),
+    );
   }
 
   /**
    * @inheritDoc
    */
   public async captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    return this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope);
+    // Adding this here is technically not correct since if you call captureMessage/captureException it's already
+    // buffered. But since we not really need the count and we only need to know if the buffer is full or not,
+    // This is fine...
+    return this.buffer.add(
+      (async () =>
+        this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope))(),
+    );
   }
 
   /**
@@ -313,7 +331,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
-        console.log('would call before send');
         finalEvent = await beforeSend(prepared, hint);
         if ((typeof finalEvent as any) === 'undefined') {
           logger.error('`beforeSend` method has to return `null` or a valid event');
@@ -342,34 +359,36 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       };
     }
 
-    const response = await send(finalEvent);
-    response.event = finalEvent;
+    try {
+      const response = await send(finalEvent);
+      response.event = finalEvent;
 
-    if (response.status === Status.RateLimit) {
-      // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-      // implementors to override this method and handle it themselves.
+      if (response.status === Status.RateLimit) {
+        // TODO: Handle rate limits and maintain a queue. For now, we require SDK
+        // implementors to override this method and handle it themselves.
+      }
+      return response;
+    } catch (error) {
+      // We have a catch here since the transport can reject the request internally.
+      // If we do not catch this here, we will run into an endless loop.
+      logger.error(`${error}`);
+      return {
+        reason: `${error}`,
+        status: Status.Failed,
+      };
     }
-
-    return response;
   }
 
   /**
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.getBackend()
-      .getTransport()
-      .close(timeout);
-
-    return new Promise<boolean>(resolve => {
-      setTimeout(() => {
-        resolve(
-          this.getBackend()
-            .getTransport()
-            .close(timeout),
-        );
-      }, 100);
-    });
+    return (await Promise.all([
+      this.getBackend()
+        .getTransport()
+        .close(timeout),
+      this.buffer.drain(timeout),
+    ])).reduce((prev, current) => prev && current);
   }
 
   /**

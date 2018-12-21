@@ -1,4 +1,4 @@
-import { BaseBackend, NoopTransport, Options, SentryError } from '@sentry/core';
+import { BaseBackend, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
@@ -50,7 +50,8 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    */
   protected setupTransport(): Transport {
     if (!this.options.dsn) {
-      return new NoopTransport();
+      // We return the noop transport here in case there is no Dsn.
+      return super.setupTransport();
     }
 
     const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
