@@ -1,6 +1,7 @@
-import { BaseBackend, Dsn, getCurrentHub, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
+import { BaseBackend, Dsn, getCurrentHub, NoopTransport, Options } from '@sentry/core';
+import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { limitObjectDepthToSize, serialize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
@@ -37,6 +38,36 @@ export interface NodeOptions extends Options {
 
 /** The Sentry Node SDK Backend. */
 export class NodeBackend extends BaseBackend<NodeOptions> {
+  /**
+   * @inheritdoc
+   */
+  protected setupTransport(): Transport {
+    let dsn: Dsn | undefined;
+
+    if (!this.options.dsn) {
+      return new NoopTransport();
+    }
+
+    dsn = new Dsn(this.options.dsn);
+
+    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+    const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
+
+    for (const option of clientOptions) {
+      if (this.options[option]) {
+        transportOptions[option] = transportOptions[option] || this.options[option];
+      }
+    }
+
+    if (this.options.transport) {
+      return new this.options.transport(transportOptions);
+    } else if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    } else {
+      return new HTTPSTransport(transportOptions);
+    }
+  }
+
   /**
    * @inheritDoc
    */
@@ -108,7 +139,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     let dsn: Dsn;
 
     if (!this.options.dsn) {
-      throw new SentryError('Cannot sendEvent without a valid DSN');
+      logger.warn(`Event has been skipped because no Dsn is configured.`);
+      // We do nothing in case there is no DSN
+      return { status: Status.Skipped, reason: `Event has been skipped because no Dsn is configured.` };
     } else {
       dsn = new Dsn(this.options.dsn);
     }

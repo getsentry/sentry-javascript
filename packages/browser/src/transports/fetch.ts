@@ -21,10 +21,10 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
-    const response = await global.fetch(this.url, defaultOptions);
-
-    return {
-      status: Status.fromHttpCode(response.status),
-    };
+    return this.buffer.add(
+      global.fetch(this.url, defaultOptions).then(response => ({
+        status: Status.fromHttpCode(response.status),
+      })),
+    );
   }
 }

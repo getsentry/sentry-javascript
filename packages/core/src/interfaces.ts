@@ -276,4 +276,12 @@ export interface Backend {
    * @param scope The scope to store.
    */
   storeScope(scope: Scope): void;
+
+  /**
+   * Returns the transport that is used by the backend.
+   * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
+   *
+   * @returns The transport.
+   */
+  getTransport(): Transport;
 }

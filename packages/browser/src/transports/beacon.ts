@@ -12,8 +12,10 @@ export class BeaconTransport extends BaseTransport {
   public async sendEvent(body: string): Promise<SentryResponse> {
     const result = global.navigator.sendBeacon(this.url, body);
 
-    return {
-      status: result ? Status.Success : Status.Failed,
-    };
+    return this.buffer.add(
+      Promise.resolve({
+        status: result ? Status.Success : Status.Failed,
+      }),
+    );
   }
 }

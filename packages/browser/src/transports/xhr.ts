@@ -7,25 +7,27 @@ export class XHRTransport extends BaseTransport {
    * @inheritDoc
    */
   public async sendEvent(body: string): Promise<SentryResponse> {
-    return new Promise<SentryResponse>((resolve, reject) => {
-      const request = new XMLHttpRequest();
+    return this.buffer.add(
+      new Promise<SentryResponse>((resolve, reject) => {
+        const request = new XMLHttpRequest();
 
-      request.onreadystatechange = () => {
-        if (request.readyState !== 4) {
-          return;
-        }
+        request.onreadystatechange = () => {
+          if (request.readyState !== 4) {
+            return;
+          }
 
-        if (request.status === 200) {
-          resolve({
-            status: Status.fromHttpCode(request.status),
-          });
-        }
+          if (request.status === 200) {
+            resolve({
+              status: Status.fromHttpCode(request.status),
+            });
+          }
 
-        reject(request);
-      };
+          reject(request);
+        };
 
-      request.open('POST', this.url);
-      request.send(body);
-    });
+        request.open('POST', this.url);
+        request.send(body);
+      }),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
+import { serialize } from '@sentry/utils/object';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
 
@@ -16,16 +17,24 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /** Options passed to the SDK. */
   protected readonly options: O;
 
+  /** Cached transport used internally. */
+  protected transport: Transport;
+
   /** Creates a new browser backend instance. */
   public constructor(options: O) {
     this.options = options;
     if (!this.options.dsn) {
       logger.warn('No DSN provided, backend will not do anything.');
     }
+    this.transport = this.setupTransport();
   }
 
-  /** Cached transport used internally. */
-  protected transport?: Transport;
+  /**
+   * Sets up the transport so it can be used later to send requests.
+   */
+  protected setupTransport(): Transport {
+    throw new SentryError('Backend has to implement `setupTransport` method');
+  }
 
   /**
    * @inheritDoc
@@ -44,8 +53,10 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_event: SentryEvent): Promise<SentryResponse> {
-    throw new SentryError('Backend has to implement `sendEvent` method');
+  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+    const response = await this.transport.sendEvent(serialize(event));
+    logger.log(`Request finished with: ${response}`);
+    return response;
   }
 
   /**
@@ -60,5 +71,12 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public storeScope(_: Scope): void {
     // Noop
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTransport(): Transport {
+    return this.transport;
   }
 }

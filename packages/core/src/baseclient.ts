@@ -313,6 +313,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
+        console.log('would call before send');
         finalEvent = await beforeSend(prepared, hint);
         if ((typeof finalEvent as any) === 'undefined') {
           logger.error('`beforeSend` method has to return `null` or a valid event');
@@ -355,9 +356,20 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async close(_?: number): Promise<boolean> {
-    // TODO
-    return true;
+  public async close(timeout?: number): Promise<boolean> {
+    return this.getBackend()
+      .getTransport()
+      .close(timeout);
+
+    return new Promise<boolean>(resolve => {
+      setTimeout(() => {
+        resolve(
+          this.getBackend()
+            .getTransport()
+            .close(timeout),
+        );
+      }, 100);
+    });
   }
 
   /**

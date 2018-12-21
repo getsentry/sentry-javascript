@@ -17,7 +17,7 @@ export interface HTTPRequest {
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /** API object */
-  protected api: API;
+  protected api?: API;
 
   /** The Agent used for corresponding transport */
   public module?: HTTPRequest;
@@ -35,6 +35,10 @@ export abstract class BaseTransport implements Transport {
 
   /** Returns a build request option object used by request */
   protected getRequestOptions(): http.RequestOptions | https.RequestOptions {
+    if (!this.api) {
+      return {};
+    }
+
     const headers = {
       ...this.api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
@@ -64,6 +68,10 @@ export abstract class BaseTransport implements Transport {
   protected async sendWithModule(httpModule: HTTPRequest, body: string): Promise<SentryResponse> {
     return this.buffer.add(
       new Promise<SentryResponse>((resolve, reject) => {
+        if (!this.api) {
+          resolve({ status: Status.Skipped, reason: `Event has been skipped because no Dsn is configured.` });
+          return;
+        }
         const req = httpModule.request(this.getRequestOptions(), (res: http.IncomingMessage) => {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
@@ -96,6 +104,13 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public async sendEvent(_: string): Promise<SentryResponse> {
-    throw new SentryError('Transport Class has to implement `captureEvent` method');
+    throw new SentryError('Transport Class has to implement `sendEvent` method');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public close(timeout?: number): Promise<boolean> {
+    return this.buffer.drain(timeout);
   }
 }
