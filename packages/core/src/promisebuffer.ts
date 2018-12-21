@@ -22,7 +22,7 @@ export class PromiseBuffer<T> {
    */
   public async add(task: Promise<T>): Promise<T> {
     if (!this.isReady()) {
-      return Promise.reject(new SentryError('Not adding promises due to internal limit.'));
+      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
     if (this.buffer.indexOf(task) === -1) {
       this.buffer.push(task);
