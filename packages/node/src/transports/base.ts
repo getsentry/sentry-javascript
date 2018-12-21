@@ -102,7 +102,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): Promise<boolean> {
+  public async close(timeout?: number): Promise<boolean> {
     return this.buffer.drain(timeout);
   }
 }
