@@ -55,6 +55,11 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+    // TODO: Remove with v5
+    if (this.transport.captureEvent) {
+      return this.transport.captureEvent(event);
+    }
+    // --------------------
     return this.transport.sendEvent(serialize(event));
   }
 
