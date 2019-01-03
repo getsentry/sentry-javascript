@@ -101,6 +101,7 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
 export function addExceptionTypeValue(event: SentryEvent, message: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
+  event.exception.values[0] = event.exception.values[0] || {};
   event.exception.values[0].value = event.exception.values[0].value || message;
   event.exception.values[0].type = event.exception.values[0].type || 'Error';
 }

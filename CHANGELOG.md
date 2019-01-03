@@ -10,6 +10,7 @@
   `7` lines pre/post
 - [core]: ref: Change way how transports are initialized
 - [core]: ref: Rename `RequestBuffer` to `PromiseBuffer`, also introduce limit
+- [browser] fix: Prevent empty exception values
 
 ## 4.4.2
 
