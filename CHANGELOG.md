@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [core] fix: Allow Dsn to have empty protocol (e.g.: ://public_key@sentry.io/1)
+
 ## 4.4.2
 
 - [node] Port memory-leak tests from raven-node
