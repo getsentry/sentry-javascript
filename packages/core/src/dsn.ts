@@ -4,7 +4,7 @@ import { assign } from '@sentry/utils/object';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+)?:)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
 /** The Sentry Dsn, identifying a Sentry instance and project. */
 export class Dsn implements DsnComponents {
@@ -59,7 +59,7 @@ export class Dsn implements DsnComponents {
       throw new SentryError('Invalid Dsn');
     }
 
-    const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(1);
+    const [protocol = '', user, pass = '', host, port = '', lastPath] = match.slice(1);
     let path = '';
     let projectId = lastPath;
     const split = projectId.split('/');
@@ -72,7 +72,7 @@ export class Dsn implements DsnComponents {
 
   /** Maps Dsn components into this instance. */
   private fromComponents(components: DsnComponents): void {
-    this.protocol = components.protocol;
+    this.protocol = components.protocol || '';
     this.user = components.user;
     this.pass = components.pass || '';
     this.host = components.host;
@@ -83,13 +83,13 @@ export class Dsn implements DsnComponents {
 
   /** Validates this Dsn and throws on error. */
   private validate(): void {
-    for (const component of ['protocol', 'user', 'host', 'projectId']) {
+    for (const component of ['user', 'host', 'projectId']) {
       if (!this[component as keyof DsnComponents]) {
         throw new SentryError(`Invalid Dsn: Missing ${component}`);
       }
     }
 
-    if (this.protocol !== 'http' && this.protocol !== 'https') {
+    if (this.protocol !== '' && this.protocol !== 'http' && this.protocol !== 'https') {
       throw new SentryError(`Invalid Dsn: Unsupported protocol "${this.protocol}"`);
     }
 

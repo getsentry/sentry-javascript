@@ -1,5 +1,5 @@
 /** Supported Sentry transport protocols in a Dsn. */
-export type DsnProtocol = 'http' | 'https';
+export type DsnProtocol = 'http' | 'https' | '';
 
 /** Primitive components of a Dsn. */
 export interface DsnComponents {

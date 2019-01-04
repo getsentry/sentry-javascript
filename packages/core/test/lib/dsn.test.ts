@@ -61,15 +61,6 @@ describe('Dsn', () => {
           new Dsn({
             host: 'sentry.io',
             projectId: '123',
-            protocol: '' as 'http', // Trick the type checker here
-            user: 'abc',
-          }),
-      ).toThrow(SentryError);
-      expect(
-        () =>
-          new Dsn({
-            host: 'sentry.io',
-            projectId: '123',
             protocol: 'https',
             user: '',
           }),
@@ -133,12 +124,23 @@ describe('Dsn', () => {
       expect(dsn.projectId).toBe('321');
     });
 
+    test('with no protocol', () => {
+      const dsn = new Dsn('://abc@sentry.io/sentry/custom/installation/321');
+      expect(dsn.protocol).toBe('');
+      expect(dsn.user).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('sentry/custom/installation');
+      expect(dsn.projectId).toBe('321');
+    });
+
     test('throws when provided invalid Dsn', () => {
       expect(() => new Dsn('some@random.dsn')).toThrow(SentryError);
     });
 
     test('throws without mandatory fields', () => {
-      expect(() => new Dsn('://abc@sentry.io/123')).toThrow(SentryError);
+      expect(() => new Dsn('://abc@sentry.io/123')).not.toThrow(SentryError);
       expect(() => new Dsn('https://@sentry.io/123')).toThrow(SentryError);
       expect(() => new Dsn('https://abc@123')).toThrow(SentryError);
       expect(() => new Dsn('https://abc@sentry.io/')).toThrow(SentryError);
