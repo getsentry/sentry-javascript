@@ -48,11 +48,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     const dsn = new Dsn(this.options.dsn);
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
+    const transportOptions = this.options.transportOptions || { dsn };
     const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
 
     for (const option of clientOptions) {
-      if (this.options[option]) {
+      if (this.options[option] || transportOptions[option]) {
         transportOptions[option] = transportOptions[option] || this.options[option];
       }
     }

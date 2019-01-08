@@ -2,13 +2,11 @@ import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { readFileAsync } from '@sentry/utils/fs';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
-import * as Limiter from 'async-limiter';
 import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
 import { NodeOptions } from './backend';
 
 // tslint:disable-next-line:no-unsafe-any
-const fsLimiter = new Limiter({ concurrency: 25 });
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string>(100);
 
@@ -93,15 +91,14 @@ async function readSourceFiles(
 
     let content;
     try {
-      content = await readFileAsync(filename, fsLimiter);
+      content = await readFileAsync(filename);
+      if (typeof content === 'string') {
+        sourceFiles[filename] = content;
+        FILE_CONTENT_CACHE.set(filename, content);
+      }
     } catch (_) {
       // unsure what to add here as the file is unreadable
       content = null;
-    }
-
-    if (typeof content === 'string') {
-      sourceFiles[filename] = content;
-      FILE_CONTENT_CACHE.set(filename, content);
     }
   }
 
