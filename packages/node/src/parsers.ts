@@ -10,6 +10,9 @@ import { NodeOptions } from './backend';
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
 const FILE_CONTENT_CACHE = new LRUMap<string, string>(100);
 
+/**
+ * Resets the file cache. Exists for testing purposes.
+ */
 export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
 }

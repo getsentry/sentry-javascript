@@ -56,7 +56,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    */
   public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
     // TODO: Remove with v5
+    // tslint:disable-next-line
     if (this.transport.captureEvent) {
+      // tslint:disable-next-line
       return this.transport.captureEvent(event);
     }
     // --------------------
