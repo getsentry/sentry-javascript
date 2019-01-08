@@ -3,12 +3,18 @@ import { readFileAsync } from '@sentry/utils/fs';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
 import * as Limiter from 'async-limiter';
+import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
 import { NodeOptions } from './backend';
 
 // tslint:disable-next-line:no-unsafe-any
 const fsLimiter = new Limiter({ concurrency: 25 });
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
+const FILE_CONTENT_CACHE = new LRUMap<string, string>(100);
+
+export function resetFileContentCache(): void {
+  FILE_CONTENT_CACHE.clear();
+}
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
@@ -75,20 +81,31 @@ async function readSourceFiles(
     [key: string]: string;
   } = {};
 
-  await Promise.all(
-    filenames.map(async filename => {
-      let content;
-      try {
-        content = await readFileAsync(filename, fsLimiter);
-      } catch (_) {
-        // unsure what to add here as the file is unreadable
-        content = null;
-      }
-      if (typeof content === 'string') {
-        sourceFiles[filename] = content;
-      }
-    }),
-  );
+  // tslint:disable-next-line:prefer-for-of
+  for (let i = 0; i < filenames.length; i++) {
+    const filename = filenames[i];
+    // We have a cache hit
+    const cache = FILE_CONTENT_CACHE.get(filename);
+    if (cache) {
+      sourceFiles[filename] = cache;
+      continue;
+    }
+
+    let content;
+    try {
+      content = await readFileAsync(filename, fsLimiter);
+    } catch (_) {
+      // unsure what to add here as the file is unreadable
+      content = null;
+    }
+
+    if (typeof content === 'string') {
+      sourceFiles[filename] = content;
+      FILE_CONTENT_CACHE.set(filename, content);
+    }
+  }
+
+  // );
 
   return sourceFiles;
 }
