@@ -11,6 +11,7 @@ import {
   Status,
 } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
+import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
@@ -155,7 +156,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   ): Promise<SentryResponse> {
     return this.buffer.add(
       (async () => {
-        const event = await this.getBackend().eventFromMessage(message, level, hint);
+        const event = isPrimitive(message)
+          ? await this.getBackend().eventFromMessage(`${message}`, level, hint)
+          : await this.getBackend().eventFromException(message, hint);
+
         return this.captureEvent(event, hint, scope);
       })(),
     );
