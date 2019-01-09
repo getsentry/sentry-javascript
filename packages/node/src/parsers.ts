@@ -8,7 +8,7 @@ import { NodeOptions } from './backend';
 
 // tslint:disable-next-line:no-unsafe-any
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
-const FILE_CONTENT_CACHE = new LRUMap<string, string>(100);
+const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
 /**
  * Resets the file cache. Exists for testing purposes.
@@ -67,7 +67,12 @@ function getModule(filename: string, base?: string): string {
   return file;
 }
 
-/** JSDoc */
+/**
+ * This function reads file contents and caches them in a global LRU cache.
+ * Returns a Promise filepath => content array for all files that we were able to read.
+ *
+ * @param filenames Array of filepaths to read content from.
+ */
 async function readSourceFiles(
   filenames: string[],
 ): Promise<{
@@ -85,27 +90,34 @@ async function readSourceFiles(
   // tslint:disable-next-line:prefer-for-of
   for (let i = 0; i < filenames.length; i++) {
     const filename = filenames[i];
-    // We have a cache hit
+
     const cache = FILE_CONTENT_CACHE.get(filename);
-    if (cache) {
-      sourceFiles[filename] = cache;
+    // We have a cache hit
+    if (cache !== undefined) {
+      // If it's not null (which means we found a file and have a content)
+      // we set the content and return it later.
+      if (cache !== null) {
+        sourceFiles[filename] = cache;
+      }
+      // In any case we want to skip here then since we have a content already or we couldn't
+      // read the file and don't want to try again.
       continue;
     }
 
-    let content;
+    let content = null;
     try {
       content = await readFileAsync(filename);
       if (typeof content === 'string') {
         sourceFiles[filename] = content;
-        FILE_CONTENT_CACHE.set(filename, content);
       }
     } catch (_) {
       // unsure what to add here as the file is unreadable
-      content = null;
     }
-  }
 
-  // );
+    // We always want to set the cache, even to null which means there was an error reading the file.
+    // We do not want to try to read the file again.
+    FILE_CONTENT_CACHE.set(filename, content);
+  }
 
   return sourceFiles;
 }
