@@ -13,7 +13,6 @@ import {
   TransportOptions,
 } from '@sentry/types';
 import { Dsn } from './dsn';
-import { RequestBuffer } from './requestbuffer';
 
 /** Console logging verbosity for the SDK. */
 export enum LogLevel {
@@ -279,8 +278,10 @@ export interface Backend {
   storeScope(scope: Scope): void;
 
   /**
-   * Returns the internal instance of the request buffer.
-   * Only used internally.
+   * Returns the transport that is used by the backend.
+   * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
+   *
+   * @returns The transport.
    */
-  getBuffer(): RequestBuffer<SentryResponse>;
+  getTransport(): Transport;
 }

@@ -1,6 +1,5 @@
-import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { SentryResponse, Status } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
-import { serialize } from '@sentry/utils/object';
 import { BaseTransport } from './base';
 
 const global = getGlobalObject() as Window;
@@ -10,13 +9,13 @@ export class BeaconTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
-    const data = serialize(event);
+  public async sendEvent(body: string): Promise<SentryResponse> {
+    const result = global.navigator.sendBeacon(this.url, body);
 
-    const result = global.navigator.sendBeacon(this.url, data);
-
-    return {
-      status: result ? Status.Success : Status.Failed,
-    };
+    return this.buffer.add(
+      Promise.resolve({
+        status: result ? Status.Success : Status.Failed,
+      }),
+    );
   }
 }

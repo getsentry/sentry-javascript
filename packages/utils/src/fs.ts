@@ -4,16 +4,15 @@ import { dirname, resolve } from 'path';
 const _0777 = parseInt('0777', 8);
 
 /**
- * Asynchronously creates the given directory.
+ * Asynchronously reads given files content.
  *
- * @param path A relative or absolute path to the directory.
- * @param mode The permission mode.
- * @returns A Promise that resolves when the path has been created.
+ * @param path A relative or absolute path to the file
+ * @returns A Promise that resolves when the file has been read.
  */
-export async function readFileAsync(path: string): Promise<Error | string> {
+export async function readFileAsync(path: string): Promise<string> {
   // We cannot use util.promisify here because that was only introduced in Node
   // 8 and we need to support older Node versions.
-  return new Promise<Error | string>((res, reject) => {
+  return new Promise<string>((res, reject) => {
     readFile(path, 'utf8', (err, data) => {
       if (err) {
         reject(err);

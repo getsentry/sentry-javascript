@@ -12,9 +12,10 @@ export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';
 export { Dsn } from './dsn';
 export { SentryError } from './error';
-export { RequestBuffer } from './requestbuffer';
+export { PromiseBuffer } from './promisebuffer';
 export { Backend, Client, LogLevel, Options } from './interfaces';
 export { initAndBind, ClientClass } from './sdk';
+export { NoopTransport } from './transports/noop';
 
 import * as Integrations from './integrations';
 

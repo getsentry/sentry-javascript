@@ -1,7 +1,6 @@
 import { BaseBackend, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity, Status } from '@sentry/types';
+import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
@@ -44,6 +43,27 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     Error.stackTraceLimit = 50;
 
     return true;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  protected setupTransport(): Transport {
+    if (!this.options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super.setupTransport();
+    }
+
+    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
+
+    if (this.options.transport) {
+      return new this.options.transport(transportOptions);
+    } else if (supportsBeacon()) {
+      return new BeaconTransport(transportOptions);
+    } else if (supportsFetch()) {
+      return new FetchTransport(transportOptions);
+    }
+    return new XHRTransport(transportOptions);
   }
 
   /**
@@ -125,34 +145,5 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     }
 
     return event;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    if (!this.options.dsn) {
-      logger.warn(`Event has been skipped because no Dsn is configured.`);
-      // We do nothing in case there is no DSN
-      return { status: Status.Skipped, reason: `Event has been skipped because no Dsn is configured.` };
-    }
-
-    if (!this.transport) {
-      const transportOptions = this.options.transportOptions
-        ? this.options.transportOptions
-        : { dsn: this.options.dsn };
-
-      if (this.options.transport) {
-        this.transport = new this.options.transport({ dsn: this.options.dsn });
-      } else if (supportsBeacon()) {
-        this.transport = new BeaconTransport(transportOptions);
-      } else if (supportsFetch()) {
-        this.transport = new FetchTransport(transportOptions);
-      } else {
-        this.transport = new XHRTransport(transportOptions);
-      }
-    }
-
-    return this.transport.captureEvent(event);
   }
 }
