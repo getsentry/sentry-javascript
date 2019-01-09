@@ -107,9 +107,7 @@ async function readSourceFiles(
     let content = null;
     try {
       content = await readFileAsync(filename);
-      if (typeof content === 'string') {
-        sourceFiles[filename] = content;
-      }
+      sourceFiles[filename] = content;
     } catch (_) {
       // unsure what to add here as the file is unreadable
     }
