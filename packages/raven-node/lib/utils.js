@@ -18,7 +18,7 @@ var protocolMap = {
 
 var consoleAlerts = new Set();
 
-var fsLimiter = new Limiter({concurrency: 25);
+var fsLimiter = new Limiter({concurrency: 25});
 
 // Default Node.js REPL depth
 var MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
@@ -282,7 +282,7 @@ function readSourceFiles(filenames, cb) {
   var sourceFiles = {};
   var numFilesToRead = filenames.length;
   return filenames.forEach(function(filename) {
-    fsLimiter.push(function (done) {
+    fsLimiter.push(function(done) {
       fs.readFile(filename, function(readErr, file) {
         done();
 

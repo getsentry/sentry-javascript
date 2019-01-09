@@ -1,8 +1,7 @@
 import { expect } from 'chai';
-import { SinonSpy, spy, stub } from 'sinon';
+import { SinonSpy, spy } from 'sinon';
 import {
   addBreadcrumb,
-  BrowserBackend,
   BrowserClient,
   captureEvent,
   captureException,
@@ -13,20 +12,21 @@ import {
   Integrations,
   Scope,
   SentryEvent,
-  Status,
 } from '../src';
+import { SimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 declare var global: any;
 
 describe('SentryBrowser', () => {
-  const beforeSend: SinonSpy = spy();
+  const beforeSend: SinonSpy = spy((event: SentryEvent) => event);
 
   before(() => {
     init({
       beforeSend,
       dsn,
+      transport: SimpleTransport,
     });
   });
 
@@ -69,16 +69,6 @@ describe('SentryBrowser', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: sinon.SinonStub;
-
-    beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
-    });
-
-    afterEach(() => {
-      s.restore();
-    });
-
     it('should record breadcrumbs', async () => {
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
@@ -90,16 +80,6 @@ describe('SentryBrowser', () => {
   });
 
   describe('capture', () => {
-    let s: sinon.SinonStub;
-
-    beforeEach(() => {
-      s = stub(BrowserBackend.prototype, 'sendEvent').returns(Promise.resolve({ status: Status.Success }));
-    });
-
-    afterEach(() => {
-      s.restore();
-    });
-
     it('should capture an exception', async () => {
       try {
         throw new Error('test');

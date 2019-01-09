@@ -6,13 +6,13 @@ const testDsn = 'https://123@sentry.io/42';
 class SimpleTransport extends BaseTransport {}
 
 describe('BaseTransport', () => {
-  it('doesnt provide captureEvent() implementation', async () => {
+  it('doesnt provide sendEvent() implementation', async () => {
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
-      await transport.captureEvent({});
+      await transport.sendEvent('');
     } catch (e) {
-      expect(e.message).equal('Transport Class has to implement `captureEvent` method');
+      expect(e.message).equal('Transport Class has to implement `sendEvent` method');
     }
   });
 

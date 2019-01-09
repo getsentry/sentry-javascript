@@ -1,6 +1,5 @@
-import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { SentryResponse, Status } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
-import { serialize } from '@sentry/utils/object';
 import { supportsReferrerPolicy } from '@sentry/utils/supports';
 import { BaseTransport } from './base';
 
@@ -11,9 +10,9 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent): Promise<SentryResponse> {
+  public async sendEvent(body: string): Promise<SentryResponse> {
     const defaultOptions: RequestInit = {
-      body: serialize(event),
+      body,
       method: 'POST',
       // Despite all stars in the sky saying that Edge supports old draft syntax, aka 'never', 'always', 'origin' and 'default
       // https://caniuse.com/#feat=referrer-policy
@@ -22,10 +21,10 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
-    const response = await global.fetch(this.url, defaultOptions);
-
-    return {
-      status: Status.fromHttpCode(response.status),
-    };
+    return this.buffer.add(
+      global.fetch(this.url, defaultOptions).then(response => ({
+        status: Status.fromHttpCode(response.status),
+      })),
+    );
   }
 }

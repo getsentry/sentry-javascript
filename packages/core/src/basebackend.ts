@@ -1,9 +1,10 @@
 import { Scope } from '@sentry/hub';
 import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
+import { serialize } from '@sentry/utils/object';
 import { SentryError } from './error';
 import { Backend, Options } from './interfaces';
-import { RequestBuffer } from './requestbuffer';
+import { NoopTransport } from './transports/noop';
 
 /** A class object that can instanciate Backend objects. */
 export interface BackendClass<B extends Backend, O extends Options> {
@@ -17,19 +18,24 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /** Options passed to the SDK. */
   protected readonly options: O;
 
+  /** Cached transport used internally. */
+  protected transport: Transport;
+
   /** Creates a new browser backend instance. */
   public constructor(options: O) {
     this.options = options;
     if (!this.options.dsn) {
       logger.warn('No DSN provided, backend will not do anything.');
     }
+    this.transport = this.setupTransport();
   }
 
-  /** Cached transport used internally. */
-  protected transport?: Transport;
-
-  /** A simple buffer holding all requests. */
-  protected readonly buffer: RequestBuffer<SentryResponse> = new RequestBuffer();
+  /**
+   * Sets up the transport so it can be used later to send requests.
+   */
+  protected setupTransport(): Transport {
+    return new NoopTransport();
+  }
 
   /**
    * @inheritDoc
@@ -48,8 +54,15 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_event: SentryEvent): Promise<SentryResponse> {
-    throw new SentryError('Backend has to implement `sendEvent` method');
+  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+    // TODO: Remove with v5
+    // tslint:disable-next-line
+    if (this.transport.captureEvent) {
+      // tslint:disable-next-line
+      return this.transport.captureEvent(event);
+    }
+    // --------------------
+    return this.transport.sendEvent(serialize(event));
   }
 
   /**
@@ -69,7 +82,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public getBuffer(): RequestBuffer<SentryResponse> {
-    return this.buffer;
+  public getTransport(): Transport {
+    return this.transport;
   }
 }

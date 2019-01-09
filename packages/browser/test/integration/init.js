@@ -22,9 +22,9 @@ window.sentryBreadcrumbs = [];
 
 // stub transport so we don't actually transmit any data
 function DummyTransport() {}
-DummyTransport.prototype.captureEvent = function(event) {
+DummyTransport.prototype.sendEvent = function(event) {
   // console.log(JSON.stringify(event, null, 2));
-  sentryData.push(event);
+  sentryData.push(JSON.parse(event));
   done(sentryData);
   return Promise.resolve({
     status: 'success',

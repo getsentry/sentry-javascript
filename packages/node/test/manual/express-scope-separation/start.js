@@ -13,7 +13,7 @@ function assertTags(actual, expected) {
 let remaining = 3;
 
 class DummyTransport {
-  captureEvent(event) {
+  sendEvent(event) {
     --remaining;
 
     if (!remaining) {

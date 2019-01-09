@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- [core] feat: Deprecate `captureEvent`, prefer `sendEvent` for transports. `sendEvent` now takes a string (body)
+  instead of `Event` object.
+- [core] feat: Use correct buffer for requests in transports
+- [node] feat: Add file cache for providing pre/post context in frames
+- [node] feat: New option `frameContextLines`, if set to `0` we do not provide source code pre/post context, default is
+  `7` lines pre/post
+- [core]: ref: Change way how transports are initialized
+- [core]: ref: Rename `RequestBuffer` to `PromiseBuffer`, also introduce limit
+
 ## 4.4.2
 
 - [node] Port memory-leak tests from raven-node
