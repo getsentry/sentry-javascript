@@ -24,7 +24,7 @@ window.sentryBreadcrumbs = [];
 function DummyTransport() {}
 DummyTransport.prototype.sendEvent = function(event) {
   // console.log(JSON.stringify(event, null, 2));
-  sentryData.push(event);
+  sentryData.push(JSON.parse(event));
   done(sentryData);
   return Promise.resolve({
     status: 'success',
