@@ -28,20 +28,22 @@ export class ExtraErrorData implements Integration {
   public setupOnce(): void {
     addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(ExtraErrorData);
-
-      if (!self || !hint || !hint.originalException) {
+      if (!self) {
         return event;
       }
-
-      return this.enhanceEventWithErrorData(event, hint.originalException);
+      return self.enhanceEventWithErrorData(event, hint);
     });
   }
 
   /**
    * Attaches extracted information from the Error object to extra field in the SentryEvent
    */
-  public enhanceEventWithErrorData(event: SentryEvent, error: Error): SentryEvent {
-    const errorData = this.extractErrorData(error);
+  public enhanceEventWithErrorData(event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+    if (!hint || !hint.originalException || !isError(hint.originalException)) {
+      return event;
+    }
+
+    const errorData = this.extractErrorData(hint.originalException);
 
     if (errorData) {
       return {
@@ -64,7 +66,7 @@ export class ExtraErrorData implements Integration {
     try {
       const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
       const name = error.name || error.constructor.name;
-      const errorKeys = Object.keys(error).filter(key => nativeKeys.indexOf(key) === -1);
+      const errorKeys = Object.getOwnPropertyNames(error).filter(key => nativeKeys.indexOf(key) === -1);
 
       if (errorKeys.length) {
         const extraErrorInfo: { [key: string]: unknown } = {};

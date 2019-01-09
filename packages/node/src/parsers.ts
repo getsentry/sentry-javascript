@@ -2,9 +2,20 @@ import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { readFileAsync } from '@sentry/utils/fs';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
+import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
+import { NodeOptions } from './backend';
 
-const LINES_OF_CONTEXT: number = 7;
+// tslint:disable-next-line:no-unsafe-any
+const DEFAULT_LINES_OF_CONTEXT: number = 7;
+const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
+
+/**
+ * Resets the file cache. Exists for testing purposes.
+ */
+export function resetFileContentCache(): void {
+  FILE_CONTENT_CACHE.clear();
+}
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
@@ -56,7 +67,12 @@ function getModule(filename: string, base?: string): string {
   return file;
 }
 
-/** JSDoc */
+/**
+ * This function reads file contents and caches them in a global LRU cache.
+ * Returns a Promise filepath => content array for all files that we were able to read.
+ *
+ * @param filenames Array of filepaths to read content from.
+ */
 async function readSourceFiles(
   filenames: string[],
 ): Promise<{
@@ -71,20 +87,35 @@ async function readSourceFiles(
     [key: string]: string;
   } = {};
 
-  await Promise.all(
-    filenames.map(async filename => {
-      let content;
-      try {
-        content = await readFileAsync(filename);
-      } catch (_) {
-        // unsure what to add here as the file is unreadable
-        content = null;
+  // tslint:disable-next-line:prefer-for-of
+  for (let i = 0; i < filenames.length; i++) {
+    const filename = filenames[i];
+
+    const cache = FILE_CONTENT_CACHE.get(filename);
+    // We have a cache hit
+    if (cache !== undefined) {
+      // If it's not null (which means we found a file and have a content)
+      // we set the content and return it later.
+      if (cache !== null) {
+        sourceFiles[filename] = cache;
       }
-      if (typeof content === 'string') {
-        sourceFiles[filename] = content;
-      }
-    }),
-  );
+      // In any case we want to skip here then since we have a content already or we couldn't
+      // read the file and don't want to try again.
+      continue;
+    }
+
+    let content = null;
+    try {
+      content = await readFileAsync(filename);
+      sourceFiles[filename] = content;
+    } catch (_) {
+      // unsure what to add here as the file is unreadable
+    }
+
+    // We always want to set the cache, even to null which means there was an error reading the file.
+    // We do not want to try to read the file again.
+    FILE_CONTENT_CACHE.set(filename, content);
+  }
 
   return sourceFiles;
 }
@@ -99,8 +130,12 @@ export async function extractStackFromError(error: Error): Promise<stacktrace.St
 }
 
 /** JSDoc */
-export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackFrame[]> {
+export async function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): Promise<StackFrame[]> {
   const filesToRead: string[] = [];
+
+  const linesOfContext =
+    options && options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+
   const frames: StackFrame[] = stack.map(frame => {
     const parsedFrame: StackFrame = {
       colno: frame.getColumnNumber(),
@@ -126,7 +161,7 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
     if (parsedFrame.filename) {
       parsedFrame.module = getModule(parsedFrame.filename);
 
-      if (!isInternal) {
+      if (!isInternal && linesOfContext > 0) {
         filesToRead.push(parsedFrame.filename);
       }
     }
@@ -134,8 +169,13 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
     return parsedFrame;
   });
 
+  // We do an early return if we do not want to fetch context liens
+  if (linesOfContext <= 0) {
+    return frames;
+  }
+
   try {
-    return await addPrePostContext(filesToRead, frames);
+    return await addPrePostContext(filesToRead, frames, linesOfContext);
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
@@ -149,7 +189,11 @@ export async function parseStack(stack: stacktrace.StackFrame[]): Promise<StackF
  * @param filesToRead string[] of filepaths
  * @param frames StackFrame[] containg all frames
  */
-async function addPrePostContext(filesToRead: string[], frames: StackFrame[]): Promise<StackFrame[]> {
+async function addPrePostContext(
+  filesToRead: string[],
+  frames: StackFrame[],
+  linesOfContext: number,
+): Promise<StackFrame[]> {
   const sourceFiles = await readSourceFiles(filesToRead);
   return frames.map(frame => {
     if (frame.filename && sourceFiles[frame.filename]) {
@@ -157,13 +201,13 @@ async function addPrePostContext(filesToRead: string[], frames: StackFrame[]): P
         const lines = sourceFiles[frame.filename].split('\n');
 
         frame.pre_context = lines
-          .slice(Math.max(0, (frame.lineno || 0) - (LINES_OF_CONTEXT + 1)), (frame.lineno || 0) - 1)
+          .slice(Math.max(0, (frame.lineno || 0) - (linesOfContext + 1)), (frame.lineno || 0) - 1)
           .map((line: string) => snipLine(line, 0));
 
         frame.context_line = snipLine(lines[(frame.lineno || 0) - 1], frame.colno || 0);
 
         frame.post_context = lines
-          .slice(frame.lineno || 0, (frame.lineno || 0) + LINES_OF_CONTEXT)
+          .slice(frame.lineno || 0, (frame.lineno || 0) + linesOfContext)
           .map((line: string) => snipLine(line, 0));
       } catch (e) {
         // anomaly, being defensive in case
@@ -175,10 +219,10 @@ async function addPrePostContext(filesToRead: string[], frames: StackFrame[]): P
 }
 
 /** JSDoc */
-export async function getExceptionFromError(error: Error): Promise<SentryException> {
+export async function getExceptionFromError(error: Error, options?: NodeOptions): Promise<SentryException> {
   const name = error.name || error.constructor.name;
   const stack = await extractStackFromError(error);
-  const frames = await parseStack(stack);
+  const frames = await parseStack(stack, options);
 
   return {
     stacktrace: {
@@ -190,9 +234,9 @@ export async function getExceptionFromError(error: Error): Promise<SentryExcepti
 }
 
 /** JSDoc */
-export async function parseError(error: ExtendedError): Promise<SentryEvent> {
+export async function parseError(error: ExtendedError, options?: NodeOptions): Promise<SentryEvent> {
   const name = error.name || error.constructor.name;
-  const exception = await getExceptionFromError(error);
+  const exception = await getExceptionFromError(error, options);
   return {
     exception: {
       values: [exception],

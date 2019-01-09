@@ -1,5 +1,5 @@
-import { BaseBackend, Dsn, getCurrentHub, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, SentryResponse, Severity } from '@sentry/types';
+import { BaseBackend, Dsn, getCurrentHub, Options } from '@sentry/core';
+import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { createHash } from 'crypto';
@@ -30,10 +30,42 @@ export interface NodeOptions extends Options {
 
   /** HTTPS proxy certificates path */
   caCerts?: string;
+
+  /** Sets the number of context lines for each frame when loading a file. */
+  frameContextLines?: number;
 }
 
 /** The Sentry Node SDK Backend. */
 export class NodeBackend extends BaseBackend<NodeOptions> {
+  /**
+   * @inheritdoc
+   */
+  protected setupTransport(): Transport {
+    if (!this.options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super.setupTransport();
+    }
+
+    const dsn = new Dsn(this.options.dsn);
+
+    const transportOptions = this.options.transportOptions || { dsn };
+    const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
+
+    for (const option of clientOptions) {
+      if (this.options[option] || transportOptions[option]) {
+        transportOptions[option] = transportOptions[option] || this.options[option];
+      }
+    }
+
+    if (this.options.transport) {
+      return new this.options.transport(transportOptions);
+    } else if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    } else {
+      return new HTTPSTransport(transportOptions);
+    }
+  }
+
   /**
    * @inheritDoc
    */
@@ -65,7 +97,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       }
     }
 
-    const event: SentryEvent = await parseError(ex as Error);
+    const event: SentryEvent = await parseError(ex as Error, this.options);
 
     return {
       ...event,
@@ -89,44 +121,12 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     if (this.options.attachStacktrace && hint && hint.syntheticException) {
       const stack = hint.syntheticException ? await extractStackFromError(hint.syntheticException) : [];
-      const frames = await parseStack(stack);
+      const frames = await parseStack(stack, this.options);
       event.stacktrace = {
         frames: prepareFramesForEvent(frames),
       };
     }
 
     return event;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
-    let dsn: Dsn;
-
-    if (!this.options.dsn) {
-      throw new SentryError('Cannot sendEvent without a valid DSN');
-    } else {
-      dsn = new Dsn(this.options.dsn);
-    }
-
-    if (!this.transport) {
-      const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn };
-      const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
-
-      for (const option of clientOptions) {
-        if (this.options[option]) {
-          transportOptions[option] = transportOptions[option] || this.options[option];
-        }
-      }
-
-      this.transport = this.options.transport
-        ? new this.options.transport({ dsn })
-        : dsn.protocol === 'http'
-        ? new HTTPTransport(transportOptions)
-        : new HTTPSTransport(transportOptions);
-    }
-
-    return this.transport.captureEvent(event);
   }
 }

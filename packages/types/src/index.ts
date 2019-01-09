@@ -238,9 +238,25 @@ export interface TransportOptions {
   caCerts?: string;
 }
 
-/** JSDoc */
+/** Transport used sending data to Sentry */
 export interface Transport {
-  captureEvent(event: SentryEvent): Promise<SentryResponse>;
+  /**
+   * Sends the body to the Store endpoint in Sentry.
+   *
+   * @param body String body that should be sent to Sentry.
+   */
+  sendEvent(body: string): Promise<SentryResponse>;
+
+  /**
+   * Call this function to wait until all pending requests have been sent.
+   *
+   * @param timeout Number time in ms to wait until the buffer is drained.
+   */
+  close(timeout?: number): Promise<boolean>;
+
+  // TODO: Remove with v5
+  /** @deprecated Implement sendEvent instead */
+  captureEvent?(event: SentryEvent): Promise<SentryResponse>;
 }
 
 /** JSDoc */

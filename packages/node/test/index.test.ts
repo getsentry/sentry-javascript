@@ -127,7 +127,7 @@ describe('SentryNode', () => {
           // for our own captureMessage/captureException calls yet
           expect(event.breadcrumbs!).toHaveLength(2);
           done();
-          return event;
+          return null;
         },
         dsn,
       });
@@ -151,12 +151,43 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(6);
+      expect.assertions(8);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).not.toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].type).toBe('Error');
+            expect(event.exception!.values![0].value).toBe('test');
+            expect(event.exception!.values![0].stacktrace).toBeTruthy();
+            done();
+            return null;
+          },
+          dsn,
+        }),
+      );
+      configureScope((scope: Scope) => {
+        scope.setTag('test', '1');
+      });
+      try {
+        throw new Error('test');
+      } catch (e) {
+        captureException(e);
+      }
+    });
+
+    test('capture an exception no pre/post context', done => {
+      expect.assertions(8);
+      getCurrentHub().bindClient(
+        new NodeClient({
+          beforeSend: (event: SentryEvent) => {
+            expect(event.tags).toEqual({ test: '1' });
+            expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].type).toBe('Error');
             expect(event.exception!.values![0].value).toBe('test');
@@ -165,6 +196,7 @@ describe('SentryNode', () => {
             return event;
           },
           dsn,
+          frameContextLines: 0,
         }),
       );
       configureScope((scope: Scope) => {
@@ -217,7 +249,7 @@ describe('SentryNode', () => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
           done();
-          return event;
+          return null;
         },
         dsn,
       });

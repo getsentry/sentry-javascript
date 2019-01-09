@@ -21,7 +21,9 @@ describe('ExtraErrorData()', () => {
     error.baz = 42;
     error.foo = 'bar';
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, error);
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
 
     expect(enhancedEvent.extra).toEqual({
       TypeError: {
@@ -35,7 +37,9 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar');
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, error);
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
 
     expect(enhancedEvent.extra).toEqual({
       TypeError: {
@@ -53,7 +57,9 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, error);
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
 
     expect(enhancedEvent.extra).toEqual({
       TypeError: {
@@ -61,5 +67,29 @@ describe('ExtraErrorData()', () => {
       },
       foo: 42,
     });
+  });
+
+  it('should return event if originalException is not an Error object', () => {
+    const error = 'error message, not object';
+
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent).toEqual(event);
+  });
+
+  it('should return event if there is no SentryEventHint', () => {
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event);
+
+    expect(enhancedEvent).toEqual(event);
+  });
+
+  it('should return event if there is no originalException', () => {
+    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+      notOriginalException: 'fooled you',
+    });
+
+    expect(enhancedEvent).toEqual(event);
   });
 });

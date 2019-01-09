@@ -1,7 +1,18 @@
+import { SentryError } from './error';
+
 /** A simple queue that holds promises. */
-export class RequestBuffer<T> {
+export class PromiseBuffer<T> {
+  public constructor(protected limit?: number) {}
+
   /** Internal set of queued Promises */
   private readonly buffer: Array<Promise<T>> = [];
+
+  /**
+   * Says if the buffer is ready to take more requests
+   */
+  public isReady(): boolean {
+    return this.limit === undefined || this.length() < this.limit;
+  }
 
   /**
    * Add a promise to the queue.
@@ -10,10 +21,20 @@ export class RequestBuffer<T> {
    * @returns The original promise.
    */
   public async add(task: Promise<T>): Promise<T> {
+    if (!this.isReady()) {
+      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+    }
     if (this.buffer.indexOf(task) === -1) {
       this.buffer.push(task);
     }
-    task.then(async () => this.remove(task)).catch(async () => this.remove(task));
+    task
+      .then(async () => this.remove(task))
+      .catch(async () =>
+        this.remove(task).catch(() => {
+          // We have to add this catch here otherwise we have an unhandledPromiseRejection
+          // because it's a new Promise chain.
+        }),
+      );
     return task;
   }
 

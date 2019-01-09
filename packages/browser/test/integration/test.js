@@ -244,6 +244,25 @@ for (var idx in frames) {
           );
         });
 
+        it('should have exception with type and value', function(done) {
+          var iframe = this.iframe;
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              Sentry.captureException('this is my test exception');
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                var sentryData = sentryData[0];
+                assert.isNotEmpty(sentryData.exception.values[0].value);
+                assert.isNotEmpty(sentryData.exception.values[0].type);
+                done();
+              }
+            }
+          );
+        });
+
         it('should reject duplicate, back-to-back errors from captureException', function(done) {
           var iframe = this.iframe;
           iframeExecute(

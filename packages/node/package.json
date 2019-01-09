@@ -21,13 +21,15 @@
     "@sentry/utils": "4.4.2",
     "@types/stack-trace": "0.0.29",
     "cookie": "0.3.1",
-    "https-proxy-agent": "^2.2.1",
+    "https-proxy-agent": "2.2.1",
+    "lru_map": "0.3.3",
     "lsmod": "1.0.0",
     "stack-trace": "0.0.10",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/cookie": "0.3.1",
+    "@types/lru-cache": "^4.1.1",
     "@types/node": "^10.12.10",
     "express": "^4.16.4",
     "jest": "^22.4.3",
@@ -51,7 +53,7 @@
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "run-s test:jest test:express",
     "test:jest": "jest",
-    "test:watch": "jest --watch --notify",
+    "test:watch": "jest --watch",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
