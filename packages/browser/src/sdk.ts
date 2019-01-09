@@ -8,6 +8,7 @@ export const defaultIntegrations = [
   new CoreIntegrations.Dedupe(),
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.ExtraErrorData(),
   // Native Wrappers
   new TryCatch(),
   new Breadcrumbs(),

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.4.2
+
+- [node] Port memory-leak tests from raven-node
+- [core] feat: ExtraErrorData integration
+- [hub] ref: use safeNormalize on any data we store on Scope
+- [utils] feat: Introduce safeNormalize util method to unify stored data
+- [loader] Support multiple onLoad callbacks
+
 ## 4.4.1
 
 - [core] Bump dependencies to remove flatmap-stream
