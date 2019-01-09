@@ -97,7 +97,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // which is much better than creating new group when any key/value change
       const ex = exception as {};
       event = eventFromPlainObject(ex, hint.syntheticException);
-      addExceptionTypeValue(event, `${ex}`);
+      addExceptionTypeValue(event, 'Custom Object');
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a DOMError/DOMException

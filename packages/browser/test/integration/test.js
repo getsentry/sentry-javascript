@@ -207,8 +207,8 @@ for (var idx in frames) {
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 var sentryData = sentryData[0];
-                assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 1);
-                assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 30);
+                assert.isAtLeast(sentryData.stacktrace.frames.length, 1);
+                assert.isAtMost(sentryData.stacktrace.frames.length, 3);
                 done();
               }
             }
