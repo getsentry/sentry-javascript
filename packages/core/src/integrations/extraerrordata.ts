@@ -39,7 +39,7 @@ export class ExtraErrorData implements Integration {
    * Attaches extracted information from the Error object to extra field in the SentryEvent
    */
   public enhanceEventWithErrorData(event: SentryEvent, hint?: SentryEventHint): SentryEvent {
-    if (!hint || !hint.originalException || !(hint.originalException instanceof Error)) {
+    if (!hint || !hint.originalException || !isError(hint.originalException)) {
       return event;
     }
 
