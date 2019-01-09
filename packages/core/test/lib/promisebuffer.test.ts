@@ -92,4 +92,14 @@ describe('PromiseBuffer', () => {
     });
     jest.runAllTimers();
   });
+
+  test('rejecting', async () => {
+    expect.assertions(1);
+    const q = new PromiseBuffer<void>();
+    const p = new Promise<void>((_, reject) => setTimeout(reject, 1));
+    jest.runAllTimers();
+    return q.add(p).catch(() => {
+      expect(true).toBe(true);
+    });
+  });
 });

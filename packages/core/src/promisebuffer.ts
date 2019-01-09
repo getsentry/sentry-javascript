@@ -27,7 +27,14 @@ export class PromiseBuffer<T> {
     if (this.buffer.indexOf(task) === -1) {
       this.buffer.push(task);
     }
-    task.then(async () => this.remove(task)).catch(async () => this.remove(task));
+    task
+      .then(async () => this.remove(task))
+      .catch(async () =>
+        this.remove(task).catch(() => {
+          // We have to add this catch here otherwise we have an unhandledPromiseRejection
+          // because it's a new Promise chain.
+        }),
+      );
     return task;
   }
 

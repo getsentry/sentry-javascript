@@ -2,7 +2,7 @@ import { BaseBackend, Options, SentryError } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
-import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
+import { addExceptionTypeValue, eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
 
@@ -87,6 +87,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
       event = await this.eventFromMessage(message, undefined, hint);
+      addExceptionTypeValue(event, message);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
@@ -96,6 +97,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // which is much better than creating new group when any key/value change
       const ex = exception as {};
       event = eventFromPlainObject(ex, hint.syntheticException);
+      addExceptionTypeValue(event, 'Custom Object');
     } else {
       // If none of previous checks were valid, then it means that
       // it's not a DOMError/DOMException
@@ -105,6 +107,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // So bail out and capture it as a simple message:
       const ex = exception as string;
       event = await this.eventFromMessage(ex, undefined, hint);
+      addExceptionTypeValue(event, `${ex}`);
     }
 
     event = {

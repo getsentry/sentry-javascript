@@ -127,7 +127,7 @@ describe('SentryNode', () => {
           // for our own captureMessage/captureException calls yet
           expect(event.breadcrumbs!).toHaveLength(2);
           done();
-          return event;
+          return null;
         },
         dsn,
       });
@@ -164,7 +164,7 @@ describe('SentryNode', () => {
             expect(event.exception!.values![0].value).toBe('test');
             expect(event.exception!.values![0].stacktrace).toBeTruthy();
             done();
-            return event;
+            return null;
           },
           dsn,
         }),
@@ -249,7 +249,7 @@ describe('SentryNode', () => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
           done();
-          return event;
+          return null;
         },
         dsn,
       });
