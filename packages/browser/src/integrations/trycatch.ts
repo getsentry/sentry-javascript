@@ -24,7 +24,7 @@ export class TryCatch implements Integration {
       const originalCallback = args[0];
       args[0] = wrap(originalCallback, {
         mechanism: {
-          data: { function: original.name || '<anonymous>' },
+          data: { function: getFunctionName(original) },
           handled: true,
           type: 'instrument',
         },
@@ -41,7 +41,7 @@ export class TryCatch implements Integration {
           mechanism: {
             data: {
               function: 'requestAnimationFrame',
-              handler: (original && original.name) || '<anonymous>',
+              handler: getFunctionName(original),
             },
             handled: true,
             type: 'instrument',
@@ -74,7 +74,7 @@ export class TryCatch implements Integration {
             mechanism: {
               data: {
                 function: 'handleEvent',
-                handler: (fn && ((fn as any) as SentryWrappedFunction).name) || '<anonymous>',
+                handler: getFunctionName(fn),
                 target,
               },
               handled: true,
@@ -129,7 +129,7 @@ export class TryCatch implements Integration {
               mechanism: {
                 data: {
                   function: 'addEventListener',
-                  handler: (fn && ((fn as any) as SentryWrappedFunction).name) || '<anonymous>',
+                  handler: getFunctionName(fn),
                   target,
                 },
                 handled: true,
@@ -207,5 +207,15 @@ export class TryCatch implements Integration {
       'XMLHttpRequestEventTarget',
       'XMLHttpRequestUpload',
     ].forEach(this.wrapEventTarget.bind(this));
+  }
+}
+
+function getFunctionName(fn: any): string {
+  try {
+    return fn && fn.name || '<anonymous>';
+  } catch (e) {
+    // Just accessing custom props in some Selenium environments
+    // can cause a "Permission denied" exception (see raven-js#495).
+    return '<anonymous>';
   }
 }
