@@ -85,6 +85,17 @@ export function isString(wat: any): boolean {
 }
 
 /**
+ * Checks whether given value's is a primitive (undefined, null, number, boolean, string)
+ * {@link isPrimitive}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isPrimitive(wat: any): boolean {
+  return wat === null || (typeof wat !== 'object' && typeof wat !== 'function');
+}
+
+/**
  * Checks whether given value's type is an array
  * {@link isArray}.
  *

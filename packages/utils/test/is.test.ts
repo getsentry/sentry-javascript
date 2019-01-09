@@ -1,4 +1,4 @@
-import { isDOMError, isDOMException, isError, isErrorEvent } from '../src/is';
+import { isDOMError, isDOMException, isError, isErrorEvent, isPrimitive } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 
 class SentryError extends Error {
@@ -56,3 +56,18 @@ if (supportsErrorEvent()) {
     });
   });
 }
+
+describe('isPrimitive()', () => {
+  test('should work as advertised', () => {
+    expect(isPrimitive(undefined)).toEqual(true);
+    expect(isPrimitive(null)).toEqual(true);
+    expect(isPrimitive(true)).toEqual(true);
+    expect(isPrimitive('foo')).toEqual(true);
+    expect(isPrimitive(42)).toEqual(true);
+
+    expect(isPrimitive({})).toEqual(false);
+    expect(isPrimitive([])).toEqual(false);
+    expect(isPrimitive(new Error('foo'))).toEqual(false);
+    expect(isPrimitive(new Date())).toEqual(false);
+  });
+});

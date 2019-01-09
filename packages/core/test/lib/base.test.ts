@@ -191,6 +191,23 @@ describe('BaseClient', () => {
         message: 'test message',
       });
     });
+
+    test.only('should call eventFromException if input to captureMessage is not a primitive', async () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      const spy = jest.spyOn(TestBackend.instance!, 'eventFromException');
+
+      await client.captureMessage('foo', undefined, undefined, scope);
+      await client.captureMessage(null, undefined, undefined, scope);
+      await client.captureMessage(undefined, undefined, undefined, scope);
+      await client.captureMessage(1, undefined, undefined, scope);
+      await client.captureMessage(false, undefined, undefined, scope);
+      expect(spy.mock.calls.length).toEqual(0);
+
+      await client.captureMessage({}, undefined, undefined, scope);
+      await client.captureMessage([], undefined, undefined, scope);
+      expect(spy.mock.calls.length).toEqual(2);
+    });
   });
 
   describe('captureEvent() / prepareEvent()', () => {
