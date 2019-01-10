@@ -1,4 +1,12 @@
-import { clone, deserialize, fill, safeNormalize, serialize, urlEncode } from '../src/object';
+import {
+  clone,
+  deserialize,
+  fill,
+  safeNormalize,
+  serialize,
+  serializeKeysToEventMessage,
+  urlEncode,
+} from '../src/object';
 
 const MATRIX = [
   { name: 'boolean', object: true, serialized: 'true' },
@@ -140,6 +148,34 @@ describe('deserialize()', () => {
       expect(deserialize(entry.serialized)).toEqual(entry.object);
     });
   }
+});
+
+describe('serializeKeysToEventMessage()', () => {
+  test('no keys', () => {
+    expect(serializeKeysToEventMessage([], 10)).toEqual('[object has no keys]');
+  });
+
+  test('one key should be returned as a whole if not over the length limit', () => {
+    expect(serializeKeysToEventMessage(['foo'], 10)).toEqual('foo');
+    expect(serializeKeysToEventMessage(['foobarbazx'], 10)).toEqual('foobarbazx');
+  });
+
+  test('one key should be appended with ... and truncated when over the limit', () => {
+    expect(serializeKeysToEventMessage(['foobarbazqux'], 10)).toEqual('foobarbazq...');
+  });
+
+  test('multiple keys should be joined as a whole if not over the length limit', () => {
+    expect(serializeKeysToEventMessage(['foo', 'bar'], 10)).toEqual('foo, bar');
+  });
+
+  test('multiple keys should include only as much keys as can fit into the limit', () => {
+    expect(serializeKeysToEventMessage(['foo', 'bar', 'baz'], 10)).toEqual('foo, bar');
+    expect(serializeKeysToEventMessage(['foo', 'verylongkey', 'baz'], 10)).toEqual('foo');
+  });
+
+  test('multiple keys should truncate first key if its too long', () => {
+    expect(serializeKeysToEventMessage(['foobarbazqux', 'bar', 'baz'], 10)).toEqual('foobarbazq...');
+  });
 });
 
 describe('fill()', () => {

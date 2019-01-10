@@ -163,7 +163,7 @@ export function serializeKeysToEventMessage(keys: string[], maxLength: number = 
   }
 
   if (keys[0].length >= maxLength) {
-    return keys[0];
+    return truncate(keys[0], maxLength);
   }
 
   for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
@@ -174,7 +174,7 @@ export function serializeKeysToEventMessage(keys: string[], maxLength: number = 
     if (includedKeys === keys.length) {
       return serialized;
     }
-    return `${serialized}\u2026`;
+    return truncate(serialized, maxLength);
   }
 
   return '';
