@@ -1,5 +1,5 @@
 {
   // See http://go.microsoft.com/fwlink/?LinkId=827846
   // for the documentation about the extensions.json format
-  "recommendations": ["esbenp.prettier-vscode", "eg2.tslint", "stkb.rewrap"]
+  "recommendations": ["esbenp.prettier-vscode", "ms-vscode.vscode-typescript-tslint-plugin"]
 }

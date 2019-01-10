@@ -210,9 +210,10 @@ export class TryCatch implements Integration {
   }
 }
 
+/** JSDoc */
 function getFunctionName(fn: any): string {
   try {
-    return fn && fn.name || '<anonymous>';
+    return (fn && fn.name) || '<anonymous>';
   } catch (e) {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
