@@ -462,7 +462,7 @@ TraceKit.report = (function reportModuleWrapper() {
    */
   function uninstallGlobalUnhandledRejectionHandler() {
     if (_onUnhandledRejectionHandlerInstalled) {
-      window.onerror = _oldOnunhandledrejectionHandler;
+      window.onunhandledrejection = _oldOnunhandledrejectionHandler;
       _onUnhandledRejectionHandlerInstalled = false;
     }
   }
