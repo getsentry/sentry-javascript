@@ -17,7 +17,7 @@ cache:
   directories:
     - node_modules
 
-matrix:
+jobs:
   include:
     - name: '@sentry/packages - build + lint + test + codecov + danger [node v8]'
       node_js: '8'
