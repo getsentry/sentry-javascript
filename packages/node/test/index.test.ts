@@ -151,18 +151,15 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(8);
+      expect.assertions(5);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).not.toBeUndefined();
-            expect(event.exception!.values![0].stacktrace!.frames![2].post_context).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
-            expect(event.exception!.values![0].type).toBe('Error');
-            expect(event.exception!.values![0].value).toBe('test');
-            expect(event.exception!.values![0].stacktrace).toBeTruthy();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
             done();
             return null;
           },
@@ -180,20 +177,22 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception no pre/post context', done => {
-      expect.assertions(8);
+      expect.assertions(10);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2].post_context).toBeUndefined();
-            expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].type).toBe('Error');
             expect(event.exception!.values![0].value).toBe('test');
             expect(event.exception!.values![0].stacktrace).toBeTruthy();
             done();
-            return event;
+            return null;
           },
           dsn,
           frameContextLines: 0,
@@ -217,7 +216,7 @@ describe('SentryNode', () => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
             done();
-            return event;
+            return null;
           },
           dsn,
         }),
@@ -233,7 +232,7 @@ describe('SentryNode', () => {
             expect(event.message).toBe('test event');
             expect(event.exception).toBeUndefined();
             done();
-            return event;
+            return null;
           },
           dsn,
         }),
@@ -272,7 +271,7 @@ describe('SentryNode', () => {
               ].function,
             ).toEqual('testy');
             done();
-            return event;
+            return null;
           },
           dsn,
         }),

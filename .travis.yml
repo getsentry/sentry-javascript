@@ -17,7 +17,7 @@ cache:
   directories:
     - node_modules
 
-matrix:
+jobs:
   include:
     - name: '@sentry/packages - build + lint + test + codecov + danger [node v8]'
       node_js: '8'
@@ -38,6 +38,7 @@ matrix:
         firefox: latest
       script: scripts/browser-integration.sh
     - name: '@sentry/browser - saucelabs tests'
+      if: fork = false
       node_js: '8'
       addons:
         sauce_connect: true
