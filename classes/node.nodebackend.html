@@ -104,7 +104,6 @@
 						<section class="tsd-index-section tsd-is-inherited tsd-is-private-protected">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.nodebackend.html#buffer" class="tsd-kind-icon">buffer</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.nodebackend.html#options" class="tsd-kind-icon">options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.nodebackend.html#transport" class="tsd-kind-icon">transport</a></li>
 							</ul>
@@ -114,8 +113,9 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="node.nodebackend.html#eventfromexception" class="tsd-kind-icon">event<wbr>From<wbr>Exception</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="node.nodebackend.html#eventfrommessage" class="tsd-kind-icon">event<wbr>From<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodebackend.html#getbuffer" class="tsd-kind-icon">get<wbr>Buffer</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="node.nodebackend.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodebackend.html#gettransport" class="tsd-kind-icon">get<wbr>Transport</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodebackend.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected"><a href="node.nodebackend.html#setuptransport" class="tsd-kind-icon">setup<wbr>Transport</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodebackend.html#storebreadcrumb" class="tsd-kind-icon">store<wbr>Breadcrumb</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.nodebackend.html#storescope" class="tsd-kind-icon">store<wbr>Scope</a></li>
 							</ul>
@@ -136,7 +136,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L18">core/src/basebackend.ts:18</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L22">core/src/basebackend.ts:22</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -158,29 +158,13 @@
 			<section class="tsd-panel-group tsd-member-group tsd-is-inherited tsd-is-private-protected">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="buffer" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagProtected">Protected</span> buffer</h3>
-					<div class="tsd-signature tsd-kind-icon">buffer<span class="tsd-signature-symbol">:</span> <a href="core.requestbuffer.html" class="tsd-signature-type">RequestBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;new RequestBuffer()</span></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#buffer">buffer</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L32">core/src/basebackend.ts:32</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>A simple buffer holding all requests.</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="options" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagProtected">Protected</span> options</h3>
 					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <a href="../interfaces/node.nodeoptions.html" class="tsd-signature-type">NodeOptions</a></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#options">options</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L18">core/src/basebackend.ts:18</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L19">core/src/basebackend.ts:19</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -191,12 +175,12 @@
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="transport" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagProtected">Protected</span> <span class="tsd-flag ts-flagOptional">Optional</span> transport</h3>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> transport</h3>
 					<div class="tsd-signature tsd-kind-icon">transport<span class="tsd-signature-symbol">:</span> <a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#transport">transport</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L29">core/src/basebackend.ts:29</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L22">core/src/basebackend.ts:22</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -220,7 +204,7 @@
 								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#eventfromexception">eventFromException</a></p>
 								<p>Overrides <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#eventfromexception">eventFromException</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/backend.ts#L40">node/src/backend.ts:40</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/backend.ts#L72">node/src/backend.ts:72</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -252,7 +236,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#eventfrommessage">eventFromMessage</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/backend.ts#L79">node/src/backend.ts:79</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/backend.ts#L111">node/src/backend.ts:111</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -278,43 +262,44 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="getbuffer" class="tsd-anchor"></a>
-					<h3>get<wbr>Buffer</h3>
+					<a name="gettransport" class="tsd-anchor"></a>
+					<h3>get<wbr>Transport</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Buffer<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="core.requestbuffer.html" class="tsd-signature-type">RequestBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Transport<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#getbuffer">getBuffer</a></p>
-								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#getbuffer">getBuffer</a></p>
+								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#gettransport">getTransport</a></p>
+								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#gettransport">getTransport</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L72">core/src/basebackend.ts:72</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L85">core/src/basebackend.ts:85</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>Returns the internal instance of the request buffer.
-									Only used internally.</p>
+									<p>Returns the transport that is used by the backend.
+									Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <a href="core.requestbuffer.html" class="tsd-signature-type">RequestBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></h4>
+							<p>The transport.</p>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="sendevent" class="tsd-anchor"></a>
 					<h3>send<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">send<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#sendevent">sendEvent</a></p>
-								<p>Overrides <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#sendevent">sendEvent</a></p>
+								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#sendevent">sendEvent</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/backend.ts#L104">node/src/backend.ts:104</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L57">core/src/basebackend.ts:57</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -332,6 +317,30 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected">
+					<a name="setuptransport" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> setup<wbr>Transport</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">setup<wbr>Transport<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#setuptransport">setupTransport</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/backend.ts#L43">node/src/backend.ts:43</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<dl class="tsd-comment-tags">
+									<dt>inheritdoc</dt>
+									<dd></dd>
+								</dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.transport.html" class="tsd-signature-type">Transport</a></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="storebreadcrumb" class="tsd-anchor"></a>
 					<h3>store<wbr>Breadcrumb</h3>
@@ -344,7 +353,7 @@
 								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#storebreadcrumb">storeBreadcrumb</a></p>
 								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#storebreadcrumb">storeBreadcrumb</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L58">core/src/basebackend.ts:58</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L71">core/src/basebackend.ts:71</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -380,7 +389,7 @@
 								<p>Implementation of <a href="../interfaces/core.backend.html">Backend</a>.<a href="../interfaces/core.backend.html#storescope">storeScope</a></p>
 								<p>Inherited from <a href="core.basebackend.html">BaseBackend</a>.<a href="core.basebackend.html#storescope">storeScope</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/basebackend.ts#L65">core/src/basebackend.ts:65</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/basebackend.ts#L78">core/src/basebackend.ts:78</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -463,9 +472,6 @@
 								<a href="node.nodebackend.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="node.nodebackend.html#buffer" class="tsd-kind-icon">buffer</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="node.nodebackend.html#options" class="tsd-kind-icon">options</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -478,10 +484,13 @@
 								<a href="node.nodebackend.html#eventfrommessage" class="tsd-kind-icon">event<wbr>From<wbr>Message</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="node.nodebackend.html#getbuffer" class="tsd-kind-icon">get<wbr>Buffer</a>
+								<a href="node.nodebackend.html#gettransport" class="tsd-kind-icon">get<wbr>Transport</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.nodebackend.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-protected">
+								<a href="node.nodebackend.html#setuptransport" class="tsd-kind-icon">setup<wbr>Transport</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.nodebackend.html#storebreadcrumb" class="tsd-kind-icon">store<wbr>Breadcrumb</a>
@@ -555,6 +564,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/node.html#requesthandler" class="tsd-kind-icon">request<wbr>Handler</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/node.html#resetfilecontentcache" class="tsd-kind-icon">reset<wbr>File<wbr>Content<wbr>Cache</a>
 					</li>
 				</ul>
 			</nav>

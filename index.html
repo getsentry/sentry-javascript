@@ -120,6 +120,14 @@ init({
 });
 
 captureMessage(<span class="hljs-string">'Hello, world!'</span>);</code></pre>
+				<p>If you want sentry to be customized for the browsers you want to support use the <code>esm</code> build:</p>
+				<pre><code class="language-javascript"><span class="hljs-keyword">import</span> { init, captureMessage } <span class="hljs-keyword">from</span> <span class="hljs-string">'@sentry/browser/esm'</span>;</code></pre>
+				<p>and add it to your babel/... build, if you want to support older browsers</p>
+				<blockquote>
+					<p>TIP: You can use <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Module_Fallback"><code>&lt;script type=&quot;module&quot; str=&quot;newbrowser.js&quot;&gt;</code> +
+						<code>&lt;script nomodule src=&quot;oldbrowser.js&quot;&gt;</code></a>
+					to provide builds for newer and older browsers</p>
+				</blockquote>
 				<h2 id="other-packages">Other Packages</h2>
 				<p>Besides the high-level SDKs, this repository contains shared packages, helpers and configuration used for SDK
 					development. If you&#39;re thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources

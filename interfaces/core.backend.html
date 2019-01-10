@@ -111,7 +111,7 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#eventfromexception" class="tsd-kind-icon">event<wbr>From<wbr>Exception</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#eventfrommessage" class="tsd-kind-icon">event<wbr>From<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#getbuffer" class="tsd-kind-icon">get<wbr>Buffer</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#gettransport" class="tsd-kind-icon">get<wbr>Transport</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#install" class="tsd-kind-icon">install</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.backend.html#storebreadcrumb" class="tsd-kind-icon">store<wbr>Breadcrumb</a></li>
@@ -133,7 +133,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L248">core/src/interfaces.ts:248</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L247">core/src/interfaces.ts:247</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -164,7 +164,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L251">core/src/interfaces.ts:251</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L250">core/src/interfaces.ts:250</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -189,25 +189,26 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
-					<a name="getbuffer" class="tsd-anchor"></a>
-					<h3>get<wbr>Buffer</h3>
+					<a name="gettransport" class="tsd-anchor"></a>
+					<h3>get<wbr>Transport</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Buffer<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/core.requestbuffer.html" class="tsd-signature-type">RequestBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Transport<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="types.transport.html" class="tsd-signature-type">Transport</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L285">core/src/interfaces.ts:285</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L286">core/src/interfaces.ts:286</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>Returns the internal instance of the request buffer.
-									Only used internally.</p>
+									<p>Returns the transport that is used by the backend.
+									Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/core.requestbuffer.html" class="tsd-signature-type">RequestBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="types.transport.html" class="tsd-signature-type">Transport</a></h4>
+							<p>The transport.</p>
 						</li>
 					</ul>
 				</section>
@@ -221,7 +222,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L245">core/src/interfaces.ts:245</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L244">core/src/interfaces.ts:244</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -243,7 +244,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L254">core/src/interfaces.ts:254</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L253">core/src/interfaces.ts:253</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -271,7 +272,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L269">core/src/interfaces.ts:269</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L268">core/src/interfaces.ts:268</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -308,7 +309,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/core/src/interfaces.ts#L279">core/src/interfaces.ts:279</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/core/src/interfaces.ts#L278">core/src/interfaces.ts:278</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -394,8 +395,11 @@
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
 						<a href="../classes/core.inboundfilters.html" class="tsd-kind-icon">Inbound<wbr>Filters</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/core.nooptransport.html" class="tsd-kind-icon">Noop<wbr>Transport</a>
+					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-has-type-parameter">
-						<a href="../classes/core.requestbuffer.html" class="tsd-kind-icon">Request<wbr>Buffer</a>
+						<a href="../classes/core.promisebuffer.html" class="tsd-kind-icon">Promise<wbr>Buffer</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-external-module">
 						<a href="../classes/core.rewriteframes.html" class="tsd-kind-icon">Rewrite<wbr>Frames</a>
@@ -418,7 +422,7 @@
 								<a href="core.backend.html#eventfrommessage" class="tsd-kind-icon">event<wbr>From<wbr>Message</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
-								<a href="core.backend.html#getbuffer" class="tsd-kind-icon">get<wbr>Buffer</a>
+								<a href="core.backend.html#gettransport" class="tsd-kind-icon">get<wbr>Transport</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="core.backend.html#install" class="tsd-kind-icon">install</a>

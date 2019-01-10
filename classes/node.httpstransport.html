@@ -105,6 +105,7 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httpstransport.html#api" class="tsd-kind-icon">api</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httpstransport.html#buffer" class="tsd-kind-icon">buffer</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="node.httpstransport.html#client" class="tsd-kind-icon">client</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="node.httpstransport.html#module" class="tsd-kind-icon">module</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="node.httpstransport.html#options" class="tsd-kind-icon">options</a></li>
@@ -113,8 +114,9 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="node.httpstransport.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="node.httpstransport.html#close" class="tsd-kind-icon">close</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httpstransport.html#getrequestoptions" class="tsd-kind-icon">get<wbr>Request<wbr>Options</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="node.httpstransport.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="node.httpstransport.html#sendwithmodule" class="tsd-kind-icon">send<wbr>With<wbr>Module</a></li>
 							</ul>
 						</section>
@@ -134,7 +136,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/https.ts#L8">node/src/transports/https.ts:8</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/https.ts#L8">node/src/transports/https.ts:8</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -162,12 +164,28 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#api">api</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/base.ts#L21">node/src/transports/base.ts:21</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L20">node/src/transports/base.ts:20</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
 							<p>API object</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					<a name="buffer" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> buffer</h3>
+					<div class="tsd-signature tsd-kind-icon">buffer<span class="tsd-signature-symbol">:</span> <a href="core.promisebuffer.html" class="tsd-signature-type">PromiseBuffer</a><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;new PromiseBuffer(30)</span></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#buffer">buffer</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L29">node/src/transports/base.ts:29</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>A simple buffer holding all requests.</p>
 						</div>
 					</div>
 				</section>
@@ -178,7 +196,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#client">client</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/base.ts#L27">node/src/transports/base.ts:27</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L26">node/src/transports/base.ts:26</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -194,7 +212,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#module">module</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/base.ts#L24">node/src/transports/base.ts:24</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L23">node/src/transports/base.ts:23</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -210,41 +228,40 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#options">options</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/https.ts#L10">node/src/transports/https.ts:10</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/https.ts#L10">node/src/transports/https.ts:10</a></li>
 						</ul>
 					</aside>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-					<a name="captureevent" class="tsd-anchor"></a>
-					<h3>capture<wbr>Event</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">capture<wbr>Event<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="close" class="tsd-anchor"></a>
+					<h3>close</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span>timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#captureevent">captureEvent</a></p>
-								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#captureevent">captureEvent</a></p>
+								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#close">close</a></p>
+								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#close">close</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/https.ts#L23">node/src/transports/https.ts:23</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L105">node/src/transports/base.ts:105</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
-								<dl class="tsd-comment-tags">
-									<dt>inheritdoc</dt>
-									<dd></dd>
-								</dl>
+								<div class="lead">
+									<p>Call this function to wait until all pending requests have been sent.</p>
+								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -259,7 +276,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#getrequestoptions">getRequestOptions</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/base.ts#L35">node/src/transports/base.ts:35</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L37">node/src/transports/base.ts:37</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -274,18 +291,48 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					<a name="sendevent" class="tsd-anchor"></a>
+					<h3>send<wbr>Event</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Event<span class="tsd-signature-symbol">(</span>body<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.transport.html">Transport</a>.<a href="../interfaces/types.transport.html#sendevent">sendEvent</a></p>
+								<p>Overrides <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#sendevent">sendEvent</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/https.ts#L23">node/src/transports/https.ts:23</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Sends the body to the Store endpoint in Sentry.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>body: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="sendwithmodule" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagProtected">Protected</span> send<wbr>With<wbr>Module</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-						<li class="tsd-signature tsd-kind-icon">send<wbr>With<wbr>Module<span class="tsd-signature-symbol">(</span>httpModule<span class="tsd-signature-symbol">: </span><a href="../interfaces/node.httprequest.html" class="tsd-signature-type">HTTPRequest</a>, event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<wbr>With<wbr>Module<span class="tsd-signature-symbol">(</span>httpModule<span class="tsd-signature-symbol">: </span><a href="../interfaces/node.httprequest.html" class="tsd-signature-type">HTTPRequest</a>, body<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="node.basetransport.html">BaseTransport</a>.<a href="node.basetransport.html#sendwithmodule">sendWithModule</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/128da98b/packages/node/src/transports/base.ts#L62">node/src/transports/base.ts:62</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2362a575/packages/node/src/transports/base.ts#L64">node/src/transports/base.ts:64</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -299,7 +346,7 @@
 									<h5>httpModule: <a href="../interfaces/node.httprequest.html" class="tsd-signature-type">HTTPRequest</a></h5>
 								</li>
 								<li>
-									<h5>event: <a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a></h5>
+									<h5>body: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/types.sentryresponse.html" class="tsd-signature-type">SentryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -356,6 +403,9 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="node.httpstransport.html#api" class="tsd-kind-icon">api</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+								<a href="node.httpstransport.html#buffer" class="tsd-kind-icon">buffer</a>
+							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="node.httpstransport.html#client" class="tsd-kind-icon">client</a>
 							</li>
@@ -365,11 +415,14 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
 								<a href="node.httpstransport.html#options" class="tsd-kind-icon">options</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="node.httpstransport.html#captureevent" class="tsd-kind-icon">capture<wbr>Event</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="node.httpstransport.html#close" class="tsd-kind-icon">close</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="node.httpstransport.html#getrequestoptions" class="tsd-kind-icon">get<wbr>Request<wbr>Options</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+								<a href="node.httpstransport.html#sendevent" class="tsd-kind-icon">send<wbr>Event</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="node.httpstransport.html#sendwithmodule" class="tsd-kind-icon">send<wbr>With<wbr>Module</a>
@@ -455,6 +508,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="../modules/node.html#requesthandler" class="tsd-kind-icon">request<wbr>Handler</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="../modules/node.html#resetfilecontentcache" class="tsd-kind-icon">reset<wbr>File<wbr>Content<wbr>Cache</a>
 					</li>
 				</ul>
 			</nav>
