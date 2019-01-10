@@ -151,12 +151,15 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(8);
+      expect.assertions(11);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
+            expect(event.exception!.values![0]).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+            expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2].pre_context).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2].post_context).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
