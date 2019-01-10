@@ -210,7 +210,9 @@ export class TryCatch implements Integration {
   }
 }
 
-/** JSDoc */
+/**
+ * Safely extract function name from itself
+ */
 function getFunctionName(fn: any): string {
   try {
     return (fn && fn.name) || '<anonymous>';

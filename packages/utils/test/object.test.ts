@@ -22,6 +22,115 @@ describe('serialize()', () => {
       expect(serialize(entry.object)).toEqual(entry.serialized);
     });
   }
+
+  describe('cyclical structures', () => {
+    test('circular objects', () => {
+      const obj = { name: 'Alice' };
+      // @ts-ignore
+      obj.self = obj;
+      expect(serialize(obj)).toEqual(JSON.stringify({ name: 'Alice', self: '[Circular ~]' }));
+    });
+
+    test('circular objects with intermediaries', () => {
+      const obj = { name: 'Alice' };
+      // @ts-ignore
+      obj.identity = { self: obj };
+      expect(serialize(obj)).toEqual(JSON.stringify({ name: 'Alice', identity: { self: '[Circular ~]' } }));
+    });
+
+    test('circular objects deeper', () => {
+      const obj = { name: 'Alice', child: { name: 'Bob' } };
+      // @ts-ignore
+      obj.child.self = obj.child;
+      expect(serialize(obj)).toEqual(
+        JSON.stringify({
+          name: 'Alice',
+          child: { name: 'Bob', self: '[Circular ~.child]' },
+        }),
+      );
+    });
+
+    test('circular objects deeper with intermediaries', () => {
+      const obj = { name: 'Alice', child: { name: 'Bob' } };
+      // @ts-ignore
+      obj.child.identity = { self: obj.child };
+      expect(serialize(obj)).toEqual(
+        JSON.stringify({
+          name: 'Alice',
+          child: { name: 'Bob', identity: { self: '[Circular ~.child]' } },
+        }),
+      );
+    });
+
+    test('circular objects in an array', () => {
+      const obj = { name: 'Alice' };
+      // @ts-ignore
+      obj.self = [obj, obj];
+      expect(serialize(obj)).toEqual(
+        JSON.stringify({
+          name: 'Alice',
+          self: ['[Circular ~]', '[Circular ~]'],
+        }),
+      );
+    });
+
+    test('circular objects deeper in an array', () => {
+      const obj = {
+        name: 'Alice',
+        children: [{ name: 'Bob' }, { name: 'Eve' }],
+      };
+      // @ts-ignore
+      obj.children[0].self = obj.children[0];
+      // @ts-ignore
+      obj.children[1].self = obj.children[1];
+      expect(serialize(obj)).toEqual(
+        JSON.stringify({
+          name: 'Alice',
+          children: [
+            { name: 'Bob', self: '[Circular ~.children.0]' },
+            { name: 'Eve', self: '[Circular ~.children.1]' },
+          ],
+        }),
+      );
+    });
+
+    test('circular arrays', () => {
+      const obj: object[] = [];
+      obj.push(obj);
+      obj.push(obj);
+      expect(serialize(obj)).toEqual(JSON.stringify(['[Circular ~]', '[Circular ~]']));
+    });
+
+    test('circular arrays with intermediaries', () => {
+      const obj: object[] = [];
+      obj.push({ name: 'Alice', self: obj });
+      obj.push({ name: 'Bob', self: obj });
+      expect(serialize(obj)).toEqual(
+        JSON.stringify([{ name: 'Alice', self: '[Circular ~]' }, { name: 'Bob', self: '[Circular ~]' }]),
+      );
+    });
+
+    test('repeated objects in objects', () => {
+      const obj = {};
+      const alice = { name: 'Alice' };
+      // @ts-ignore
+      obj.alice1 = alice;
+      // @ts-ignore
+      obj.alice2 = alice;
+      expect(serialize(obj)).toEqual(
+        JSON.stringify({
+          alice1: { name: 'Alice' },
+          alice2: { name: 'Alice' },
+        }),
+      );
+    });
+
+    test('repeated objects in arrays', () => {
+      const alice = { name: 'Alice' };
+      const obj = [alice, alice];
+      expect(serialize(obj)).toEqual(JSON.stringify([{ name: 'Alice' }, { name: 'Alice' }]));
+    });
+  });
 });
 
 describe('deserialize()', () => {

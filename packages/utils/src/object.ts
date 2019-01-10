@@ -11,17 +11,12 @@ interface ExtendedError extends Error {
 /**
  * Serializes the given object into a string.
  * Like JSON.stringify, but doesn't throw on circular references.
- * Based on a `json-stringify-safe` package and modified to handle Errors serialization.
- *
- * The object must be serializable, i.e.:
- *  - Only primitive types are allowed (object, array, number, string, boolean)
- *  - Its depth should be considerably low for performance reasons
  *
  * @param object A JSON-serializable object.
  * @returns A string containing the serialized object.
  */
 export function serialize<T>(object: T): string {
-  return JSON.stringify(object);
+  return JSON.stringify(object, serializer({ normalize: false }));
 }
 
 /**
@@ -105,34 +100,20 @@ function jsonSize(value: any): number {
 
 /** JSDoc */
 function serializeValue<T>(value: T): T | string {
-  const maxLength = 40;
-
-  if (typeof value === 'string') {
-    return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
-  } else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'undefined') {
-    return value;
-  } else if (isNaN(value)) {
-    // NaN and undefined are not JSON.parseable, but we want to preserve this information
-    return '[NaN]';
-  } else if (isUndefined(value)) {
-    return '[undefined]';
-  }
-
   const type = Object.prototype.toString.call(value);
 
-  // Node.js REPL notation
-  if (type === '[object Object]') {
+  if (typeof value === 'string') {
+    const maxLength = 40;
+    return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
+  } else if (type === '[object Object]') {
+    // Node.js REPL notation
     return '[Object]';
-  }
-  if (type === '[object Array]') {
+  } else if (type === '[object Array]') {
+    // Node.js REPL notation
     return '[Array]';
+  } else {
+    return normalizeValue(value) as T;
   }
-  if (type === '[object Function]') {
-    const name = ((value as any) as (() => void)).name;
-    return name ? `[Function: ${name}]` : '[Function]';
-  }
-
-  return value;
 }
 
 /** JSDoc */
@@ -261,13 +242,15 @@ function objectifyError(error: ExtendedError): object {
 }
 
 /**
- * standardizeValue()
+ * normalizeValue()
  *
- * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
- * serializes Error objects
- * filter global objects
+ * Takes unserializable input and make it serializable friendly
+ *
+ * - translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
+ * - serializes Error objects
+ * - filter global objects
  */
-function standardizeValue(value: any, key: any): any {
+function normalizeValue(value: any, key?: any): any {
   if (key === 'domain' && typeof value === 'object' && (value as { _events: any })._events) {
     return '[Domain]';
   }
@@ -305,25 +288,25 @@ function standardizeValue(value: any, key: any): any {
   }
 
   if (typeof value === 'function') {
-    return `[Function] ${(value as () => void).name || '<unknown-function-name>'}`;
+    return `[Function: ${(value as () => void).name || '<unknown-function-name>'}]`;
   }
 
   return value;
 }
 
 /**
- * standardizer()
+ * serializer()
  *
  * Remove circular references,
  * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
  * and takes care of Error objects serialization
  */
-function standardizer(): (key: string, value: any) => any {
+function serializer(options: { normalize: boolean } = { normalize: true }): (key: string, value: any) => any {
   const stack: any[] = [];
   const keys: string[] = [];
 
   /** recursive */
-  function cycleStandardizer(_key: string, value: any): any {
+  function cycleserializer(_key: string, value: any): any {
     if (stack[0] === value) {
       return '[Circular ~]';
     }
@@ -344,24 +327,24 @@ function standardizer(): (key: string, value: any) => any {
 
       if (stack.indexOf(value) !== -1) {
         // tslint:disable-next-line:no-parameter-reassignment
-        value = cycleStandardizer.call(this, key, value);
+        value = cycleserializer.call(this, key, value);
       }
     } else {
       stack.push(value);
     }
 
-    return standardizeValue(value, key);
+    return options.normalize ? normalizeValue(value, key) : value;
   };
 }
 
 /**
  * safeNormalize()
  *
- * Creates a copy of the input by applying standardizer function on it and parsing it back to unify the data
+ * Creates a copy of the input by applying serializer function on it and parsing it back to unify the data
  */
 export function safeNormalize(input: any): any {
   try {
-    return JSON.parse(JSON.stringify(input, standardizer()));
+    return JSON.parse(JSON.stringify(input, serializer({ normalize: true })));
   } catch (_oO) {
     return '**non-serializable**';
   }
