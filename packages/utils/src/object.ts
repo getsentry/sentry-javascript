@@ -1,5 +1,6 @@
 import { SentryWrappedFunction } from '@sentry/types';
 import { isNaN, isPlainObject, isUndefined } from './is';
+import { truncate } from './string';
 
 /**
  * Just an Error object with arbitrary attributes attached to it.
@@ -103,8 +104,7 @@ function serializeValue<T>(value: T): T | string {
   const type = Object.prototype.toString.call(value);
 
   if (typeof value === 'string') {
-    const maxLength = 40;
-    return value.length <= maxLength ? value : `${value.substr(0, maxLength - 1)}\u2026`;
+    return truncate(value, 40);
   } else if (type === '[object Object]') {
     // Node.js REPL notation
     return '[Object]';
