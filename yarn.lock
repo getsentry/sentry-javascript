@@ -9584,7 +9584,7 @@ typescript-tslint-plugin@^0.2.1:
     mock-require "^3.0.2"
     vscode-languageserver "^5.1.0"
 
-typescript@3.1.x, typescript@^3.0.1:
+typescript@3.1.x:
   version "3.1.6"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.1.6.tgz#b6543a83cfc8c2befb3f4c8fba6896f5b0c9be68"
 
