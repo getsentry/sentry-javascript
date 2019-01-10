@@ -28,3 +28,6 @@ lerna-debug.log
 
 docs
 lint-results.json
+
+# legacy
+!/packages/raven-js/dist
