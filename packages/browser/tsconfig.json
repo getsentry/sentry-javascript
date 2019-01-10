@@ -4,7 +4,6 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "mocha", "chai", "sinon"],
-    "plugins": [{ "name": "tslint-language-service" }]
+    "types": ["node", "mocha", "chai", "sinon"]
   }
 }

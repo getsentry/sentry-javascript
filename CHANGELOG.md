@@ -2,15 +2,18 @@
 
 ## Unreleased
 
+## 4.5.0
+
 - [core] feat: Deprecate `captureEvent`, prefer `sendEvent` for transports. `sendEvent` now takes a string (body)
   instead of `Event` object.
 - [core] feat: Use correct buffer for requests in transports
-- [core]: ref: Change way how transports are initialized
-- [core]: ref: Rename `RequestBuffer` to `PromiseBuffer`, also introduce limit
-- [core]: ref: Make sure that captureMessage input is a primitive
-- [core]: fix: Check if value is error object in extraErrorData integration
+- [core] feat: (beta) provide esm build
+- [core] ref: Change way how transports are initialized
+- [core] ref: Rename `RequestBuffer` to `PromiseBuffer`, also introduce limit
+- [core] ref: Make sure that captureMessage input is a primitive
+- [core] fix: Check if value is error object in extraErrorData integration
 - [browser] fix: Prevent empty exception values
-- [browser]: fix: Permission denied to access property name
+- [browser] fix: Permission denied to access property name
 - [node] feat: Add file cache for providing pre/post context in frames
 - [node] feat: New option `frameContextLines`, if set to `0` we do not provide source code pre/post context, default is
   `7` lines pre/post
@@ -82,9 +85,9 @@
 
 ## 4.2.1
 
-- [core]: Invert logger logic the explicitly enable it.
-- [hub]: Require `domain` in `getCurrentHub` in try/catch - Fixed #1670
-- [hub]: Removed exposed getter on the Scope.
+- [core] Invert logger logic the explicitly enable it.
+- [hub] Require `domain` in `getCurrentHub` in try/catch - Fixed #1670
+- [hub] Removed exposed getter on the Scope.
 
 ## 4.2.0
 
