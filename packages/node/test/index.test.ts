@@ -151,7 +151,7 @@ describe('SentryNode', () => {
     });
 
     test('capture an exception', done => {
-      expect.assertions(10);
+      expect.assertions(5);
       getCurrentHub().bindClient(
         new NodeClient({
           beforeSend: (event: SentryEvent) => {
@@ -160,12 +160,6 @@ describe('SentryNode', () => {
             expect(event.exception!.values![0]).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
             expect(event.exception!.values![0].stacktrace!.frames![2]).not.toBeUndefined();
-            const frame = event.exception!.values![0].stacktrace!.frames![2];
-            expect(frame).toHaveProperty('pre_context');
-            expect(frame).toHaveProperty('post_context');
-            expect(event.exception!.values![0].type).toBe('Error');
-            expect(event.exception!.values![0].value).toBe('test');
-            expect(event.exception!.values![0].stacktrace).toBeTruthy();
             done();
             return null;
           },
