@@ -2,8 +2,8 @@
   "name": "@sentry/types",
   "version": "4.4.2",
   "description": "Types for all Sentry JavaScript SDKs",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/types",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/types",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -22,7 +22,11 @@
     "typescript": "^3.2.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "run-p build:es5 build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
+    "build:esm:transpile": "tsc -p tsconfig.esm.json",
+    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
@@ -32,5 +36,6 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p ."
   },
-  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d"
+  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d",
+  "sideEffects": false
 }

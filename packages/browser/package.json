@@ -2,8 +2,8 @@
   "name": "@sentry/browser",
   "version": "4.4.2",
   "description": "Offical Sentry SDK for browsers",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/browser",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -52,7 +52,11 @@
     "webpack": "^4.26.0"
   },
   "scripts": {
-    "build": "rollup --config",
+    "build": "run-p build:esm build:es5",
+    "build:es5": "rollup --config",
+    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
+    "build:esm:transpile": "tsc -p tsconfig.esm.json",
+    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
     "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build",
     "lint": "run-s lint:prettier lint:tslint",
@@ -71,5 +75,6 @@
     "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
-  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d"
+  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d",
+  "sideEffects": false
 }

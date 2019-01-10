@@ -57,10 +57,10 @@ export function setupIntegration(integration: Integration, options: Options): vo
   } catch (_Oo) {
     /** @deprecated */
     // TODO: Remove in v5
-    logger.warn(`Integration ${getIntegrationName(integration)}: The install method is deprecated. Use "setupOnce".`);
 
     // tslint:disable:deprecation
     if (integration.install) {
+      logger.warn(`Integration ${getIntegrationName(integration)}: The install method is deprecated. Use "setupOnce".`);
       integration.install(options);
     }
     // tslint:enable:deprecation

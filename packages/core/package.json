@@ -2,8 +2,8 @@
   "name": "@sentry/core",
   "version": "4.4.2",
   "description": "Base implementation for all Sentry JavaScript SDKs",
-  "repository": "git://github.com/getsentry/raven-js.git",
-  "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/core",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
@@ -31,7 +31,11 @@
     "typescript": "^3.2.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "run-p build:es5 build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
+    "build:esm:transpile": "tsc -p tsconfig.esm.json",
+    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage",
     "lint": "run-s lint:prettier lint:tslint",
@@ -64,5 +68,6 @@
       }
     }
   },
-  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d"
+  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d",
+  "sideEffects": false
 }

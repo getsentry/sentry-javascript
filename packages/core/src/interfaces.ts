@@ -50,7 +50,7 @@ export interface Options {
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
    */
-  defaultIntegrations?: boolean | Integration[];
+  defaultIntegrations?: false | Integration[];
 
   /**
    * List of integrations that should be installed after SDK was initialized.
