@@ -7,6 +7,7 @@ module.exports = {
     '**/test/**/*',
     '**/*.js',
     '**/dist/**/*',
+    '**/esm/**/*',
     '**/packages/typescript/**/*',
     '**/packages/raven-js/**/*',
     '**/packages/raven/**/*',
