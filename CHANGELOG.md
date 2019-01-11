@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [utils] fix: Don't npm ignore esm for utils
+
 ## 4.5.0
 
 - [core] feat: Deprecate `captureEvent`, prefer `sendEvent` for transports. `sendEvent` now takes a string (body)
