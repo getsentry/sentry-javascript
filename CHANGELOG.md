@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.5.1
+
 - [utils] fix: Don't npm ignore esm for utils
 
 ## 4.5.0
