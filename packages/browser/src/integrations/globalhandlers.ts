@@ -116,6 +116,7 @@ export class GlobalHandlers implements Integration {
     }
 
     let value = '';
+    // stacktrace.original contains the string if it's an unhandledPromiseRejection with just a string
     if (stacktrace.original) {
       value = `${stacktrace.original}`;
     }
