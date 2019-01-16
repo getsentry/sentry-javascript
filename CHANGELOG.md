@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.5.2
+
+- [utils] fix: Decycling for objects to no produce an endless loop
+
 ## 4.5.1
 
 - [utils] fix: Don't npm ignore esm for utils
