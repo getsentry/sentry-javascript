@@ -280,8 +280,8 @@ function normalizeValue(value: any, key?: any): any {
     return objectifyError(value);
   }
 
-  if (value instanceof Event) {
-    return value.constructor.name || 'Event';
+  if (typeof Event !== 'undefined' && value instanceof Event) {
+    return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
   }
 
   if (isNaN(value)) {
