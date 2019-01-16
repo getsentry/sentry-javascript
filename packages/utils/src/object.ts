@@ -1,5 +1,5 @@
 import { SentryWrappedFunction } from '@sentry/types';
-import { isNaN, isPlainObject, isUndefined } from './is';
+import { isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
 
@@ -302,15 +302,7 @@ function normalizeValue(value: any, key?: any): any {
  * @param memo Optional Memo class handling decycling
  */
 function decycle(obj: any, memo: Memo = new Memo()): any {
-  if (
-    typeof obj === 'object' &&
-    obj !== null &&
-    !(obj instanceof Boolean) &&
-    !(obj instanceof Date) &&
-    !(obj instanceof Number) &&
-    !(obj instanceof RegExp) &&
-    !(obj instanceof String)
-  ) {
+  if (!isPrimitive(obj)) {
     if (memo.memoize(obj)) {
       return '[Circular ~]';
     }
