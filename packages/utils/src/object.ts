@@ -1,5 +1,6 @@
 import { SentryWrappedFunction } from '@sentry/types';
 import { isNaN, isPlainObject, isUndefined } from './is';
+import { Memo } from './memo';
 import { truncate } from './string';
 
 /**
@@ -295,6 +296,39 @@ function normalizeValue(value: any, key?: any): any {
 }
 
 /**
+ * Decycles an object to make it safe for json serialization.
+ *
+ * @param obj Object to be decycled
+ * @param memo Optional Memo class handling decycling
+ */
+function decycle(obj: any, memo?: Memo): any {
+  if (memo === undefined) {
+    // tslint:disable-next-line:no-parameter-reassignment
+    memo = new Memo();
+  }
+  if (
+    typeof obj === 'object' &&
+    obj !== null &&
+    !(obj instanceof Boolean) &&
+    !(obj instanceof Date) &&
+    !(obj instanceof Number) &&
+    !(obj instanceof RegExp) &&
+    !(obj instanceof String)
+  ) {
+    if (memo.memoize(obj)) {
+      return '[Circular ~]';
+    }
+    // tslint:disable-next-line
+    for (const key in obj) {
+      // tslint:disable-next-line
+      obj[key] = decycle(obj[key], memo);
+    }
+    memo.unmemoize(obj);
+  }
+  return obj;
+}
+
+/**
  * serializer()
  *
  * Remove circular references,
@@ -302,39 +336,8 @@ function normalizeValue(value: any, key?: any): any {
  * and takes care of Error objects serialization
  */
 function serializer(options: { normalize: boolean } = { normalize: true }): (key: string, value: any) => any {
-  const stack: any[] = [];
-  const keys: string[] = [];
-
-  /** recursive */
-  function cycleserializer(_key: string, value: any): any {
-    if (stack[0] === value) {
-      return '[Circular ~]';
-    }
-    return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`;
-  }
-
-  return function(this: any, key: string, value: any): any {
-    if (stack.length > 0) {
-      const thisPos = stack.indexOf(this);
-
-      if (thisPos === -1) {
-        stack.push(this);
-        keys.push(key);
-      } else {
-        stack.splice(thisPos + 1);
-        keys.splice(thisPos, Infinity, key);
-      }
-
-      if (stack.indexOf(value) !== -1) {
-        // tslint:disable-next-line:no-parameter-reassignment
-        value = cycleserializer.call(this, key, value);
-      }
-    } else {
-      stack.push(value);
-    }
-
-    return options.normalize ? normalizeValue(value, key) : value;
-  };
+  // tslint:disable-next-line
+  return (key: string, value: object) => (options.normalize ? normalizeValue(decycle(value), key) : decycle(value));
 }
 
 /**
