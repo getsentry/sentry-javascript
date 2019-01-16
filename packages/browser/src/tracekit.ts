@@ -23,6 +23,7 @@ export interface StackTrace {
   url: string;
   stack: StackFrame[];
   useragent: string;
+  original?: string;
 }
 
 interface ComputeStackTrace {
@@ -1468,6 +1469,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     }
 
     return {
+      original: ex,
       name: ex.name,
       message: ex.message,
       mode: 'failed',

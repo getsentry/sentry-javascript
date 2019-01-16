@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
-import { eventFromStacktrace } from '../parsers';
+import { addExceptionTypeValue, eventFromStacktrace } from '../parsers';
 import {
   installGlobalHandler,
   installGlobalUnhandledRejectionHandler,
@@ -78,21 +78,44 @@ export class GlobalHandlers implements Integration {
     }
   }
 
-  /** JSDoc */
+  /**
+   * This function creates an SentryEvent from an TraceKitStackTrace.
+   *
+   * @param stacktrace TraceKitStackTrace to be converted to an SentryEvent.
+   */
   private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): SentryEvent {
     const event = eventFromStacktrace(stacktrace);
-    return {
+
+    const data: { [key: string]: string } = {
+      mode: stacktrace.mode,
+    };
+
+    if (stacktrace.message) {
+      data.message = stacktrace.message;
+    }
+
+    if (stacktrace.name) {
+      data.name = stacktrace.name;
+    }
+
+    const newEvent: SentryEvent = {
       ...event,
       exception: {
         ...event.exception,
         mechanism: {
-          data: {
-            mode: stacktrace.mode,
-          },
+          data,
           handled: false,
           type: stacktrace.mechanism,
         },
       },
     };
+
+    const fallbackValue = typeof stacktrace.original !== 'undefined' ? `${stacktrace.original}` : '';
+    const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
+
+    // This makes sure we have type/value in every exception
+    addExceptionTypeValue(newEvent, fallbackValue, fallbackType);
+
+    return newEvent;
   }
 }
