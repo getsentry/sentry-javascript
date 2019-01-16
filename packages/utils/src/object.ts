@@ -17,7 +17,7 @@ interface ExtendedError extends Error {
  * @returns A string containing the serialized object.
  */
 export function serialize<T>(object: T): string {
-  return JSON.stringify(decycle(object), serializer({ normalize: false }));
+  return JSON.stringify(object, serializer({ normalize: false }));
 }
 
 /**
@@ -294,64 +294,6 @@ function normalizeValue(value: any, key?: any): any {
   return value;
 }
 
-/** JSDoc */
-function decycle(object: any) {
-  const objects = new WeakMap(); // object to path mappings
-
-  return (function derez(value: any, path: string) {
-    // The derez function recurses through the object, producing the deep copy.
-
-    let oldPath; // The path of an earlier occurance of value
-    let nu: any; // The new object or array
-
-    // If a replacer function was provided, then call it to get a replacement value.
-
-    // if (replacer !== undefined) {
-    //   value = normalize(value);
-    // }
-
-    // typeof null === "object", so go on if this value is really an object but not
-    // one of the weird builtin objects.
-    if (
-      typeof value === 'object' &&
-      value !== null &&
-      !(value instanceof Boolean) &&
-      !(value instanceof Date) &&
-      !(value instanceof Number) &&
-      !(value instanceof RegExp) &&
-      !(value instanceof String)
-    ) {
-      // If the value is an object or array, look to see if we have already
-      // encountered it. If so, return a {"$ref":PATH} object. This uses an
-      // ES6 WeakMap.
-      oldPath = objects.get(value);
-      if (oldPath !== undefined) {
-        return { $ref: oldPath };
-      }
-
-      // Otherwise, accumulate the unique value and its path.
-      objects.set(value, path);
-
-      if (Array.isArray(value)) {
-        // If it is an array, replicate the array.
-        nu = [];
-        value.forEach((element: unknown, i: number) => {
-          nu[i] = derez(element, `${path}.${i}`);
-        });
-      } else {
-        // If it is an object, replicate the object.
-        nu = {};
-        Object.keys(value).forEach((name: string) => {
-          nu[name] = derez(value[name], `${path}.${name}`);
-        });
-      }
-      return nu;
-    }
-
-    return value;
-  })(object, '$');
-}
-
 /**
  * serializer()
  *
@@ -360,45 +302,39 @@ function decycle(object: any) {
  * and takes care of Error objects serialization
  */
 function serializer(options: { normalize: boolean } = { normalize: true }): (key: string, value: any) => any {
-  // const stack: any[] = [];
-  // const keys: string[] = [];
+  const stack: any[] = [];
+  const keys: string[] = [];
 
-  // /** recursive */
-  // function cycleserializer(_key: string, value: any): any {
-  //   if (stack[0] === value) {
-  //     return '[Circular ~]';
-  //   }
-  //   return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`;
-  // }
-  // const getCircularReplacer = () => {
-  // const seen = new WeakSet();
+  /** recursive */
+  function cycleserializer(_key: string, value: any): any {
+    if (stack[0] === value) {
+      return '[Circular ~]';
+    }
+    return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`;
+  }
 
-  return (key: string, value: object) => (options.normalize ? normalizeValue(value, key) : value);
-  // };
+  return function(this: any, key: string, value: any): any {
+    if (stack.length > 0) {
+      const thisPos = stack.indexOf(this);
 
-  // return function(this: any, key: string, value: any): any {
-  // if (stack.length > 0) {
-  //   const thisPos = stack.indexOf(this);
+      if (thisPos === -1) {
+        stack.push(this);
+        keys.push(key);
+      } else {
+        stack.splice(thisPos + 1);
+        keys.splice(thisPos, Infinity, key);
+      }
 
-  //   if (thisPos === -1) {
-  //     stack.push(this);
-  //     keys.push(key);
-  //   } else {
-  //     stack.splice(thisPos + 1);
-  //     keys.splice(thisPos, Infinity, key);
-  //   }
+      if (stack.indexOf(value) !== -1) {
+        // tslint:disable-next-line:no-parameter-reassignment
+        value = cycleserializer.call(this, key, value);
+      }
+    } else {
+      stack.push(value);
+    }
 
-  //   if (stack.indexOf(value) !== -1) {
-  //     // tslint:disable-next-line:no-parameter-reassignment
-  //     value = cycleserializer.call(this, key, value);
-  //   }
-  // } else {
-  //   stack.push(value);
-  // }
-
-  // const newValue = getCircularReplacer.call(this, key, value);
-  // return ;
-  // };
+    return options.normalize ? normalizeValue(value, key) : value;
+  };
 }
 
 /**
@@ -408,7 +344,7 @@ function serializer(options: { normalize: boolean } = { normalize: true }): (key
  */
 export function safeNormalize(input: any): any {
   try {
-    return JSON.parse(JSON.stringify(decycle(input), serializer({ normalize: true })));
+    return JSON.parse(JSON.stringify(input, serializer({ normalize: true })));
   } catch (_oO) {
     return '**non-serializable**';
   }
