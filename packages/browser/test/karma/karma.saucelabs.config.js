@@ -103,6 +103,7 @@ module.exports = function(config) {
       recordVideo: false,
       testName: '@sentry/browser' + (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
       public: 'public',
+      extendedDebugging: true,
     },
   });
 };

@@ -280,6 +280,11 @@ function normalizeValue(value: any, key?: any): any {
     return objectifyError(value);
   }
 
+  // tslint:disable-next-line:strict-type-predicates
+  if (typeof Event !== 'undefined' && value instanceof Event) {
+    return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
+  }
+
   if (isNaN(value)) {
     return '[NaN]';
   }
