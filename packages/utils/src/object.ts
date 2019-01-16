@@ -280,6 +280,10 @@ function normalizeValue(value: any, key?: any): any {
     return objectifyError(value);
   }
 
+  if (value instanceof Event) {
+    return value.constructor.name || 'Event';
+  }
+
   if (isNaN(value)) {
     return '[NaN]';
   }

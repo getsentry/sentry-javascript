@@ -535,7 +535,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 1000);
+              setTimeout(done, 10);
               try {
                 foo();
               } catch (e) {
@@ -596,7 +596,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 1000);
+              setTimeout(done, 10);
 
               var div = document.createElement('div');
               document.body.appendChild(div);
@@ -760,6 +760,7 @@ for (var idx in frames) {
                 // replace onreadystatechange with no-op so exception doesn't
                 // fire more than once as XHR changes loading state
                 xhr.onreadystatechange = function() {};
+                setTimeout(done, 10);
                 foo();
               };
               xhr.send();
@@ -966,7 +967,7 @@ for (var idx in frames) {
               // I hate to do a time-based "done" trigger, but unfortunately we can't
               // set an onload/onreadystatechange handler on XHR to verify that it finished
               // - that's the whole point of this test! :(
-              setTimeout(done, 1000);
+              setTimeout(done, 10);
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'example.json');
               xhr.setRequestHeader('Content-type', 'application/json');
@@ -999,7 +1000,7 @@ for (var idx in frames) {
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'https://example.com/api/1/store/');
               xhr.send('{"message":"someMessage","level":"warning"}');
-              setTimeout(done);
+              setTimeout(done, 10);
             },
             function() {
               if (IS_ASYNC_LOADER) {
@@ -1345,7 +1346,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 1000);
+              setTimeout(done, 10);
               // some browsers trigger onpopstate for load / reset breadcrumb state
 
               // keypress <input/>
@@ -1432,7 +1433,7 @@ for (var idx in frames) {
               div.dispatchEvent(keypress2);
               setTimeout(function() {
                 Sentry.captureMessage('test');
-                setTimeout(done, 1000);
+                setTimeout(done, 10);
               });
             },
             function(sentryData) {
@@ -1468,7 +1469,7 @@ for (var idx in frames) {
               // (e.g. document running mocha) ... instead just "emulate" a back button
               // press by calling replaceState
               history.replaceState({}, '', '/bar?a=1#fragment');
-              setTimeout(done);
+              setTimeout(done, 10);
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
