@@ -624,9 +624,13 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(function() {
-                return Promise.reject(new Error('test2'));
-              });
+              if (isChrome()) {
+                setTimeout(function() {
+                  return Promise.reject(new Error('test2'));
+                });
+              } else {
+                done();
+              }
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
@@ -635,6 +639,9 @@ for (var idx in frames) {
                 assert.isAtLeast(sentryData[0].exception.values[0].stacktrace.frames.length, 1);
                 assert.equal(sentryData[0].exception.mechanism.handled, false);
                 assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              } else {
+                console.log('Skipping this test in non chrome');
                 done();
               }
             }
@@ -648,9 +655,13 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(function() {
-                return Promise.reject('test');
-              });
+              if (isChrome()) {
+                setTimeout(function() {
+                  return Promise.reject('test');
+                });
+              } else {
+                done();
+              }
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
@@ -659,6 +670,9 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.mechanism.handled, false);
                 assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              } else {
+                console.log('Skipping this test in non chrome');
                 done();
               }
             }
