@@ -110,18 +110,11 @@ export class GlobalHandlers implements Integration {
       },
     };
 
-    let type = 'Error';
-    if (stacktrace.mechanism === 'onunhandledrejection') {
-      type = 'Unhandled Promise Rejection';
-    }
+    const fallbackValue = typeof stacktrace.original !== 'undefined' ? `${stacktrace.original}` : '';
+    const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
 
-    let value = '';
-    // stacktrace.original contains the string if it's an unhandledPromiseRejection with just a string
-    if (stacktrace.original) {
-      value = `${stacktrace.original}`;
-    }
     // This makes sure we have type/value in every exception
-    addExceptionTypeValue(newEvent, value, type);
+    addExceptionTypeValue(newEvent, fallbackValue, fallbackType);
 
     return newEvent;
   }

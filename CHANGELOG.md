@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 4.5.2
+
+- [browser] fix: <unlabeled> event for unhandledRejection
+- [loader] fix: Handle unhandledRejection the same way as it would be thrown
+
 ## 4.5.1
 
 - [utils] fix: Don't npm ignore esm for utils

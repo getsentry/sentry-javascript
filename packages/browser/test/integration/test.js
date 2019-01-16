@@ -655,7 +655,7 @@ for (var idx in frames) {
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 assert.equal(sentryData[0].exception.values[0].value, 'test');
-                assert.equal(sentryData[0].exception.values[0].type, 'Unhandled Promise Rejection');
+                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.mechanism.handled, false);
                 assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
