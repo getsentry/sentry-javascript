@@ -192,17 +192,17 @@ Sentry.captureEvent({
 					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>NAME<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"sentry.javascript.browser"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;sentry.javascript.browser&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/version.ts#L1">browser/src/version.ts:1</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/version.ts#L1">browser/src/version.ts:1</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-external-module">
 					<a name="sdk_version" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagConst">Const</span> SDK_<wbr>VERSION</h3>
-					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"4.5.1"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;4.5.1&quot;</span></div>
+					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"4.5.2"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;4.5.2&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/version.ts#L2">browser/src/version.ts:2</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/version.ts#L2">browser/src/version.ts:2</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -212,7 +212,7 @@ Sentry.captureEvent({
 					<div class="tsd-signature tsd-kind-icon">default<wbr>Integrations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><a href="../classes/core.dedupe.html" class="tsd-signature-type">Dedupe</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.functiontostring.html" class="tsd-signature-type">FunctionToString</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.inboundfilters.html" class="tsd-signature-type">InboundFilters</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.extraerrordata.html" class="tsd-signature-type">ExtraErrorData</a><span class="tsd-signature-symbol"> | </span><a href="../classes/browser.globalhandlers.html" class="tsd-signature-type">GlobalHandlers</a><span class="tsd-signature-symbol"> | </span><a href="../classes/browser.trycatch.html" class="tsd-signature-type">TryCatch</a><span class="tsd-signature-symbol"> | </span><a href="../classes/browser.breadcrumbs.html" class="tsd-signature-type">Breadcrumbs</a><span class="tsd-signature-symbol"> | </span><a href="../classes/browser.linkederrors.html" class="tsd-signature-type">LinkedErrors</a><span class="tsd-signature-symbol"> | </span><a href="../classes/browser.useragent.html" class="tsd-signature-type">UserAgent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[// Commonnew CoreIntegrations.Dedupe(),new CoreIntegrations.InboundFilters(),new CoreIntegrations.FunctionToString(),new CoreIntegrations.ExtraErrorData(),// Native Wrappersnew TryCatch(),new Breadcrumbs(),// Global Handlersnew GlobalHandlers(),// Miscnew LinkedErrors(),new UserAgent(),]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L6">browser/src/sdk.ts:6</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L6">browser/src/sdk.ts:6</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -223,13 +223,13 @@ Sentry.captureEvent({
 					<a name="addexceptiontypevalue" class="tsd-anchor"></a>
 					<h3>add<wbr>Exception<wbr>Type<wbr>Value</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Exception<wbr>Type<wbr>Value<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Exception<wbr>Type<wbr>Value<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.sentryevent.html" class="tsd-signature-type">SentryEvent</a>, value<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/parsers.ts#L101">browser/src/parsers.ts:101</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/parsers.ts#L108">browser/src/parsers.ts:108</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -246,9 +246,15 @@ Sentry.captureEvent({
 									</div>
 								</li>
 								<li>
-									<h5>message: <span class="tsd-signature-type">string</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> value: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
 									<div class="tsd-comment tsd-typography">
-										<p>Message to be added.</p>
+										<p>Value of the exception.</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> type: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Type of the exception.</p>
 									</div>
 								</li>
 							</ul>
@@ -266,7 +272,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/integrations/helpers.ts#L132">browser/src/integrations/helpers.ts:132</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/integrations/helpers.ts#L132">browser/src/integrations/helpers.ts:132</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -316,7 +322,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/parsers.ts#L28">browser/src/parsers.ts:28</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/parsers.ts#L34">browser/src/parsers.ts:34</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -347,7 +353,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/parsers.ts#L50">browser/src/parsers.ts:50</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/parsers.ts#L56">browser/src/parsers.ts:56</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -375,18 +381,21 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/parsers.ts#L10">browser/src/parsers.ts:10</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/parsers.ts#L13">browser/src/parsers.ts:13</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>JSDoc</p>
+									<p>This function creates an exception from an TraceKitStackTrace</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>stacktrace: <span class="tsd-signature-type">TraceKitStackTrace</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>TraceKitStackTrace that will be converted to an exception</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.sentryexception.html" class="tsd-signature-type">SentryException</a></h4>
@@ -403,7 +412,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L96">browser/src/sdk.ts:96</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L96">browser/src/sdk.ts:96</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -425,7 +434,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/integrations/helpers.ts#L17">browser/src/integrations/helpers.ts:17</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/integrations/helpers.ts#L17">browser/src/integrations/helpers.ts:17</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -447,7 +456,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L65">browser/src/sdk.ts:65</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L65">browser/src/sdk.ts:65</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -516,7 +525,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/integrations/helpers.ts#L176">browser/src/integrations/helpers.ts:176</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/integrations/helpers.ts#L176">browser/src/integrations/helpers.ts:176</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -557,7 +566,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L89">browser/src/sdk.ts:89</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L89">browser/src/sdk.ts:89</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -583,7 +592,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L103">browser/src/sdk.ts:103</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L103">browser/src/sdk.ts:103</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -623,7 +632,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/parsers.ts#L61">browser/src/parsers.ts:61</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/parsers.ts#L67">browser/src/parsers.ts:67</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -651,7 +660,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/integrations/helpers.ts#L13">browser/src/integrations/helpers.ts:13</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/integrations/helpers.ts#L13">browser/src/integrations/helpers.ts:13</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -673,7 +682,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/sdk.ts#L77">browser/src/sdk.ts:77</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/sdk.ts#L77">browser/src/sdk.ts:77</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -704,7 +713,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/6a390acf/packages/browser/src/integrations/helpers.ts#L32">browser/src/integrations/helpers.ts:32</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/72926e1a/packages/browser/src/integrations/helpers.ts#L32">browser/src/integrations/helpers.ts:32</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
