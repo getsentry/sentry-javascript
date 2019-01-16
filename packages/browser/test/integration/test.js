@@ -535,7 +535,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 10);
+              setTimeout(done, 100);
               try {
                 foo();
               } catch (e) {
@@ -596,7 +596,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 10);
+              setTimeout(done, 100);
 
               var div = document.createElement('div');
               document.body.appendChild(div);
@@ -625,9 +625,7 @@ for (var idx in frames) {
             done,
             function() {
               if (isChrome()) {
-                setTimeout(function() {
-                  return Promise.reject(new Error('test2'));
-                });
+                Promise.reject(new Error('test2'));
               } else {
                 done();
               }
@@ -656,9 +654,7 @@ for (var idx in frames) {
             done,
             function() {
               if (isChrome()) {
-                setTimeout(function() {
-                  return Promise.reject('test');
-                });
+                Promise.reject('test');
               } else {
                 done();
               }
@@ -757,10 +753,10 @@ for (var idx in frames) {
 
               xhr.open('GET', 'example.json');
               xhr.onreadystatechange = function() {
+                setTimeout(done, 100);
                 // replace onreadystatechange with no-op so exception doesn't
                 // fire more than once as XHR changes loading state
                 xhr.onreadystatechange = function() {};
-                setTimeout(done, 10);
                 foo();
               };
               xhr.send();
@@ -967,7 +963,7 @@ for (var idx in frames) {
               // I hate to do a time-based "done" trigger, but unfortunately we can't
               // set an onload/onreadystatechange handler on XHR to verify that it finished
               // - that's the whole point of this test! :(
-              setTimeout(done, 10);
+              setTimeout(done, 100);
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'example.json');
               xhr.setRequestHeader('Content-type', 'application/json');
@@ -997,10 +993,10 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(done, 100);
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'https://example.com/api/1/store/');
               xhr.send('{"message":"someMessage","level":"warning"}');
-              setTimeout(done, 10);
             },
             function() {
               if (IS_ASYNC_LOADER) {
@@ -1160,6 +1156,10 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
               // add an event listener to the input. we want to make sure that
               // our breadcrumbs still work even if the page has an event listener
               // on an element that cancels event bubbling
@@ -1172,9 +1172,6 @@ for (var idx in frames) {
               // click <input/>
               var click = new MouseEvent('click');
               input.dispatchEvent(click);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1200,13 +1197,14 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
               // click <input/>
               var click = new MouseEvent('click');
               var input = document.getElementsByTagName('input')[0];
               input.dispatchEvent(click);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1232,9 +1230,11 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              var clickHandler = function(evt) {
-                //evt.stopPropagation();
-              };
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
+              var clickHandler = function() {};
 
               // mousemove event shouldnt clobber subsequent "breadcrumbed" events (see #724)
               document.querySelector('.a').addEventListener('mousemove', clickHandler);
@@ -1247,9 +1247,6 @@ for (var idx in frames) {
               var click = new MouseEvent('click');
               var input = document.querySelector('.a'); // leaf node
               input.dispatchEvent(click);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1276,6 +1273,10 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
               // click <input/>
               var click = new MouseEvent('click');
               function kaboom() {
@@ -1286,9 +1287,6 @@ for (var idx in frames) {
 
               var input = document.querySelector('.a'); // leaf node
               input.dispatchEvent(click);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1312,6 +1310,10 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
               // keypress <input/> twice
               var keypress1 = new KeyboardEvent('keypress');
               var keypress2 = new KeyboardEvent('keypress');
@@ -1319,9 +1321,6 @@ for (var idx in frames) {
               var input = document.getElementsByTagName('input')[0];
               input.dispatchEvent(keypress1);
               input.dispatchEvent(keypress2);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1346,7 +1345,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 10);
+              setTimeout(done, 100);
               // some browsers trigger onpopstate for load / reset breadcrumb state
 
               // keypress <input/>
@@ -1379,6 +1378,10 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 100);
+
               // 1st keypress <input/>
               var keypress1 = new KeyboardEvent('keypress');
               // click <input/>
@@ -1390,9 +1393,6 @@ for (var idx in frames) {
               input.dispatchEvent(keypress1);
               input.dispatchEvent(click);
               input.dispatchEvent(keypress2);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1424,6 +1424,11 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(function() {
+                setTimeout(done, 100);
+                Sentry.captureMessage('test');
+              }, 100);
+
               // keypress <input/> twice
               var keypress1 = new KeyboardEvent('keypress');
               var keypress2 = new KeyboardEvent('keypress');
@@ -1431,10 +1436,6 @@ for (var idx in frames) {
               var div = document.querySelector('[contenteditable]');
               div.dispatchEvent(keypress1);
               div.dispatchEvent(keypress2);
-              setTimeout(function() {
-                Sentry.captureMessage('test');
-                setTimeout(done, 10);
-              });
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
@@ -1460,16 +1461,16 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
+              setTimeout(done, 100);
+
               history.pushState({}, '', '/foo');
               history.pushState({}, '', '/bar?a=1#fragment');
               history.pushState({}, '', {}); // pushState calls toString on non-string args
               history.pushState({}, '', null); // does nothing / no-op
-
               // can't call history.back() because it will change url of parent document
               // (e.g. document running mocha) ... instead just "emulate" a back button
               // press by calling replaceState
               history.replaceState({}, '', '/bar?a=1#fragment');
-              setTimeout(done, 10);
             },
             function(sentryData) {
               if (IS_ASYNC_LOADER) {
