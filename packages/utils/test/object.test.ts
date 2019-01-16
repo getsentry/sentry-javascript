@@ -224,7 +224,7 @@ describe('urlEncode()', () => {
 });
 
 describe('safeNormalize()', () => {
-  test.only('return same value for simple input', () => {
+  test('return same value for simple input', () => {
     expect(safeNormalize('foo')).toEqual('foo');
     expect(safeNormalize(42)).toEqual(42);
     expect(safeNormalize(true)).toEqual(true);

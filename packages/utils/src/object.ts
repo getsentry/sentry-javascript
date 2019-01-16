@@ -301,11 +301,7 @@ function normalizeValue(value: any, key?: any): any {
  * @param obj Object to be decycled
  * @param memo Optional Memo class handling decycling
  */
-function decycle(obj: any, memo?: Memo): any {
-  if (memo === undefined) {
-    // tslint:disable-next-line:no-parameter-reassignment
-    memo = new Memo();
-  }
+function decycle(obj: any, memo: Memo = new Memo()): any {
   if (
     typeof obj === 'object' &&
     obj !== null &&

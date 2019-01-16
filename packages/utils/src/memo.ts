@@ -44,13 +44,12 @@ export class Memo {
     if (this.hasWeakSet) {
       this.inner.delete(obj);
     } else {
-      this.inner.forEach((value: any, idx: number) => {
-        if (value === obj) {
-          this.inner.splice(idx, 1);
-          return false;
+      for (let i = 0; i < this.inner.length; i++) {
+        if (this.inner[i] === obj) {
+          this.inner.splice(i, 1);
+          break;
         }
-        return true;
-      });
+      }
     }
   }
 }
