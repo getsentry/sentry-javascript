@@ -535,7 +535,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
               try {
                 foo();
               } catch (e) {
@@ -596,7 +596,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
 
               var div = document.createElement('div');
               document.body.appendChild(div);
@@ -753,7 +753,7 @@ for (var idx in frames) {
 
               xhr.open('GET', 'example.json');
               xhr.onreadystatechange = function() {
-                setTimeout(done, 100);
+                setTimeout(done, 1000);
                 // replace onreadystatechange with no-op so exception doesn't
                 // fire more than once as XHR changes loading state
                 xhr.onreadystatechange = function() {};
@@ -963,7 +963,7 @@ for (var idx in frames) {
               // I hate to do a time-based "done" trigger, but unfortunately we can't
               // set an onload/onreadystatechange handler on XHR to verify that it finished
               // - that's the whole point of this test! :(
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'example.json');
               xhr.setRequestHeader('Content-type', 'application/json');
@@ -993,7 +993,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
               var xhr = new XMLHttpRequest();
               xhr.open('GET', 'https://example.com/api/1/store/');
               xhr.send('{"message":"someMessage","level":"warning"}');
@@ -1158,7 +1158,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // add an event listener to the input. we want to make sure that
               // our breadcrumbs still work even if the page has an event listener
@@ -1199,7 +1199,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // click <input/>
               var click = new MouseEvent('click');
@@ -1232,7 +1232,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               var clickHandler = function() {};
 
@@ -1275,7 +1275,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // click <input/>
               var click = new MouseEvent('click');
@@ -1312,7 +1312,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // keypress <input/> twice
               var keypress1 = new KeyboardEvent('keypress');
@@ -1345,7 +1345,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
               // some browsers trigger onpopstate for load / reset breadcrumb state
 
               // keypress <input/>
@@ -1380,7 +1380,7 @@ for (var idx in frames) {
             function() {
               setTimeout(function() {
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // 1st keypress <input/>
               var keypress1 = new KeyboardEvent('keypress');
@@ -1425,9 +1425,9 @@ for (var idx in frames) {
             done,
             function() {
               setTimeout(function() {
-                setTimeout(done, 100);
+                setTimeout(done, 1000);
                 Sentry.captureMessage('test');
-              }, 100);
+              }, 1000);
 
               // keypress <input/> twice
               var keypress1 = new KeyboardEvent('keypress');
@@ -1461,7 +1461,7 @@ for (var idx in frames) {
             iframe,
             done,
             function() {
-              setTimeout(done, 100);
+              setTimeout(done, 1000);
 
               history.pushState({}, '', '/foo');
               history.pushState({}, '', '/bar?a=1#fragment');
