@@ -466,7 +466,7 @@ for (var idx in frames) {
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 var sentryData = sentryData[0];
-                assert.equal(sentryData.exception.values[0].type, undefined);
+                assert.equal(sentryData.exception.values[0].type, 'Error');
 
                 // #<Object> is covering default Android 4.4 and 5.1 browser
                 assert.match(sentryData.exception.values[0].value, /^(\[object Object\]|#<Object>)$/);
@@ -613,6 +613,54 @@ for (var idx in frames) {
               var sentryData = iframe.contentWindow.sentryData[0];
               assert.equal(sentryData, null); // should never trigger error
               done();
+            }
+          );
+        });
+
+        it('should capture unhandledrejection with error', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                return Promise.reject(new Error('test2'));
+              });
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                assert.equal(sentryData[0].exception.values[0].value, 'test2');
+                assert.equal(sentryData[0].exception.values[0].type, 'Error');
+                assert.isAtLeast(sentryData[0].exception.values[0].stacktrace.frames.length, 1);
+                assert.equal(sentryData[0].exception.mechanism.handled, false);
+                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              }
+            }
+          );
+        });
+
+        it('should capture unhandledrejection as string', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                return Promise.reject('test');
+              });
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                assert.equal(sentryData[0].exception.values[0].value, 'test');
+                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
+                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
+                assert.equal(sentryData[0].exception.mechanism.handled, false);
+                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              }
             }
           );
         });
