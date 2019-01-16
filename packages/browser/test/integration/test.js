@@ -642,7 +642,6 @@ for (var idx in frames) {
                 done();
               } else {
                 console.log('Skipping this test in non chrome');
-                assert.equal(true, true);
                 done();
               }
             }
@@ -674,7 +673,6 @@ for (var idx in frames) {
                 done();
               } else {
                 console.log('Skipping this test in non chrome');
-                assert.equal(true, true);
                 done();
               }
             }
