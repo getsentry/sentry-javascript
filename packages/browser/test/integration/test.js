@@ -399,7 +399,7 @@ for (var idx in frames) {
                 var sentryData = sentryData[0];
                 // ¯\_(ツ)_/¯
                 if (isBelowIE11()) {
-                  assert.equal(sentryData.exception.values[0].type, undefined);
+                  assert.equal(sentryData.exception.values[0].type, 'Error');
                 } else {
                   assert.match(sentryData.exception.values[0].type, /SyntaxError/);
                 }
