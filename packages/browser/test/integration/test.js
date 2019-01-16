@@ -641,7 +641,7 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
                 done();
               } else {
-                console.log('Skipping this test in non chrome');
+                // This test will be skipped if it's not Chrome Desktop
                 done();
               }
             }
@@ -672,7 +672,7 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
                 done();
               } else {
-                console.log('Skipping this test in non chrome');
+                // This test will be skipped if it's not Chrome Desktop
                 done();
               }
             }
