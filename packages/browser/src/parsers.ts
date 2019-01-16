@@ -6,15 +6,21 @@ import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as Trac
 
 const STACKTRACE_LIMIT = 50;
 
-/** JSDoc */
+/**
+ * This function creates an exception from an TraceKitStackTrace
+ * @param stacktrace TraceKitStackTrace that will be converted to an exception
+ */
 export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryException {
   const frames = prepareFramesForEvent(stacktrace.stack);
 
-  const exception = {
-    stacktrace: { frames },
+  const exception: SentryException = {
     type: stacktrace.name,
     value: stacktrace.message,
   };
+
+  if (frames && frames.length) {
+    exception.stacktrace = { frames };
+  }
 
   // tslint:disable-next-line:strict-type-predicates
   if (exception.type === undefined && exception.value === '') {
@@ -96,12 +102,13 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
 /**
  * Adds exception values, type and value to an synthetic Exception.
  * @param event The event to modify.
- * @param message Message to be added.
+ * @param value Value of the exception.
+ * @param type Type of the exception.
  */
-export function addExceptionTypeValue(event: SentryEvent, message: string): void {
+export function addExceptionTypeValue(event: SentryEvent, value?: string, type?: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
   event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].value = event.exception.values[0].value || message;
-  event.exception.values[0].type = event.exception.values[0].type || 'Error';
+  event.exception.values[0].value = event.exception.values[0].value || value || '';
+  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
 }
