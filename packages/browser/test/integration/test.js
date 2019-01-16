@@ -617,69 +617,69 @@ for (var idx in frames) {
           );
         });
 
-        it('should capture unhandledrejection with error', function(done) {
-          var iframe = this.iframe;
+        // it('should capture unhandledrejection with error', function(done) {
+        //   var iframe = this.iframe;
 
-          iframeExecute(
-            iframe,
-            done,
-            function() {
-              if (isChrome()) {
-                setTimeout(function() {
-                  return Promise.reject(new Error('test2'));
-                });
-              } else {
-                done();
-              }
-            },
-            function(sentryData) {
-              if (debounceAssertEventCount(sentryData, 1, done)) {
-                assert.equal(sentryData[0].exception.values[0].value, 'test2');
-                assert.equal(sentryData[0].exception.values[0].type, 'Error');
-                assert.isAtLeast(sentryData[0].exception.values[0].stacktrace.frames.length, 1);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
-                done();
-              } else {
-                console.log('Skipping this test in non chrome');
-                assert.equal(true, true);
-                done();
-              }
-            }
-          );
-        });
+        //   iframeExecute(
+        //     iframe,
+        //     done,
+        //     function() {
+        //       if (isChrome()) {
+        //         setTimeout(function() {
+        //           return Promise.reject(new Error('test2'));
+        //         });
+        //       } else {
+        //         done();
+        //       }
+        //     },
+        //     function(sentryData) {
+        //       if (debounceAssertEventCount(sentryData, 1, done)) {
+        //         assert.equal(sentryData[0].exception.values[0].value, 'test2');
+        //         assert.equal(sentryData[0].exception.values[0].type, 'Error');
+        //         assert.isAtLeast(sentryData[0].exception.values[0].stacktrace.frames.length, 1);
+        //         assert.equal(sentryData[0].exception.mechanism.handled, false);
+        //         assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+        //         done();
+        //       } else {
+        //         console.log('Skipping this test in non chrome');
+        //         assert.equal(true, true);
+        //         done();
+        //       }
+        //     }
+        //   );
+        // });
 
-        it('should capture unhandledrejection as string', function(done) {
-          var iframe = this.iframe;
+        // it('should capture unhandledrejection as string', function(done) {
+        //   var iframe = this.iframe;
 
-          iframeExecute(
-            iframe,
-            done,
-            function() {
-              if (isChrome()) {
-                setTimeout(function() {
-                  return Promise.reject('test');
-                });
-              } else {
-                done();
-              }
-            },
-            function(sentryData) {
-              if (debounceAssertEventCount(sentryData, 1, done)) {
-                assert.equal(sentryData[0].exception.values[0].value, 'test');
-                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
-                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
-                done();
-              } else {
-                console.log('Skipping this test in non chrome');
-                assert.equal(true, true);
-                done();
-              }
-            }
-          );
-        });
+        //   iframeExecute(
+        //     iframe,
+        //     done,
+        //     function() {
+        //       if (isChrome()) {
+        //         setTimeout(function() {
+        //           return Promise.reject('test');
+        //         });
+        //       } else {
+        //         done();
+        //       }
+        //     },
+        //     function(sentryData) {
+        //       if (debounceAssertEventCount(sentryData, 1, done)) {
+        //         assert.equal(sentryData[0].exception.values[0].value, 'test');
+        //         assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
+        //         assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
+        //         assert.equal(sentryData[0].exception.mechanism.handled, false);
+        //         assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+        //         done();
+        //       } else {
+        //         console.log('Skipping this test in non chrome');
+        //         assert.equal(true, true);
+        //         done();
+        //       }
+        //     }
+        //   );
+        // });
 
         it('should capture exceptions inside setTimeout', function(done) {
           var iframe = this.iframe;
