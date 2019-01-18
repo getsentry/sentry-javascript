@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, SentryEventHint } from '@sentry/types';
-import { isError } from '@sentry/utils/is';
+import { isError, isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { safeNormalize } from '@sentry/utils/object';
 
@@ -47,18 +47,19 @@ export class ExtraErrorData implements Integration {
     const errorData = this.extractErrorData(hint.originalException);
 
     if (errorData) {
-      let normalizedErrorData = {};
-      try {
-        normalizedErrorData = safeNormalize(errorData);
-      } catch (_) {
-        // We got something in errorData that we are not allowed to assign
+      let extra = {
+        ...event.extra,
+      };
+      const normalizedErrorData = safeNormalize(errorData);
+      if (!isString(normalizedErrorData)) {
+        extra = {
+          ...event.extra,
+          ...normalizedErrorData,
+        };
       }
       return {
         ...event,
-        extra: {
-          ...event.extra,
-          errorData: normalizedErrorData,
-        },
+        extra,
       };
     }
 

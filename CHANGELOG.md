@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object property.
+
 ## 4.5.2
 
 - [utils] fix: Decycling for objects to no produce an endless loop
