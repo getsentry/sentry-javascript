@@ -19,6 +19,7 @@
     "@sentry/minimal": "4.5.2",
     "@sentry/types": "4.5.0",
     "@sentry/utils": "4.5.2",
+    "karma-detect-browsers": "^2.3.3",
     "tslib": "^1.9.3"
   },
   "devDependencies": {

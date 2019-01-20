@@ -5,11 +5,27 @@ module.exports = config => {
     autoWatch: false,
     basePath: process.cwd(),
     files: ['test/**/*.ts', 'src/**/*.+(js|ts)'],
-    frameworks: ['mocha', 'chai', 'sinon', 'karma-typescript'],
-    browsers: ['ChromeHeadless'],
+    frameworks: ['detectBrowsers', 'mocha', 'chai', 'sinon', 'karma-typescript'],
+    browsers: [],
     reporters: ['mocha', 'karma-typescript'],
     preprocessors: {
       '**/*.+(js|ts)': ['karma-typescript'],
+    },
+    detectBrowsers: {
+      usePhantomJS: false,
+      preferHeadless: true,
+      postDetection(availableBrowsers) {
+        const browserWhitelist = ['FirefoxHeadless', 'ChromiumHeadless', 'ChromeHeadless'];
+        for (const browser of browserWhitelist) {
+          if (availableBrowsers.includes(browser)) {
+            return [browser];
+          }
+        }
+
+        // No suitable browser found, listing options to the user
+        const listStr = browserWhitelist.map(v => v.replace(/Headless/g, '')).join(', ');
+        throw new Error(`No suitable browser found: Please install one of: ${listStr}`);
+      },
     },
     karmaTypescriptConfig: {
       tsconfig: 'tsconfig.json',
