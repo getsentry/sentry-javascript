@@ -75,6 +75,5 @@
     "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
-  "gitHead": "a91da22f8bd3bddb38fab7f868326e376da82d4d",
   "sideEffects": false
 }
