@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.5.3
+
+- [hub]: feat: Support non async event processors
+
 ## 4.5.2
 
 - [utils] fix: Decycling for objects to no produce an endless loop
