@@ -49,7 +49,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SentryEvent | null {
     event.platform = event.platform || 'javascript';
     event.sdk = {
       ...event.sdk,

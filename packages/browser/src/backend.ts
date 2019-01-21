@@ -70,7 +70,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
+  public eventFromException(exception: any, hint?: SentryEventHint): SentryEvent {
     let event;
 
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -87,7 +87,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      event = await this.eventFromMessage(message, undefined, hint);
+      event = this.eventFromMessage(message, undefined, hint);
       addExceptionTypeValue(event, message);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
@@ -107,7 +107,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // it's not an Error
       // So bail out and capture it as a simple message:
       const ex = exception as string;
-      event = await this.eventFromMessage(ex, undefined, hint);
+      event = this.eventFromMessage(ex, undefined, hint);
       addExceptionTypeValue(event, `${ex}`);
     }
 
@@ -129,11 +129,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(
-    message: string,
-    level: Severity = Severity.Info,
-    hint?: SentryEventHint,
-  ): Promise<SentryEvent> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: SentryEventHint): SentryEvent {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
       level,

@@ -6,15 +6,11 @@ import {
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
-  SentryResponse,
   Severity,
-  Status,
 } from '@sentry/types';
-import { forget } from '@sentry/utils/async';
 import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
-import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -96,9 +92,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   private readonly integrations: IntegrationIndex;
 
-  /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer();
-
   /**
    * Initializes this client instance.
    *
@@ -136,46 +129,27 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    return this.buffer.add(
-      (async () => {
-        const event = await this.getBackend().eventFromException(exception, hint);
-        return this.captureEvent(event, hint, scope);
-      })(),
-    );
+  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): void {
+    const event = this.getBackend().eventFromException(exception, hint);
+    this.captureEvent(event, hint, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(
-    message: string,
-    level?: Severity,
-    hint?: SentryEventHint,
-    scope?: Scope,
-  ): Promise<SentryResponse> {
-    return this.buffer.add(
-      (async () => {
-        const event = isPrimitive(message)
-          ? await this.getBackend().eventFromMessage(`${message}`, level, hint)
-          : await this.getBackend().eventFromException(message, hint);
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): void {
+    const event = isPrimitive(message)
+      ? this.getBackend().eventFromMessage(`${message}`, level, hint)
+      : this.getBackend().eventFromException(message, hint);
 
-        return this.captureEvent(event, hint, scope);
-      })(),
-    );
+    this.captureEvent(event, hint, scope);
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    // Adding this here is technically not correct since if you call captureMessage/captureException it's already
-    // buffered. But since we not really need the count and we only need to know if the buffer is full or not,
-    // This is fine...
-    return this.buffer.add(
-      (async () =>
-        this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope))(),
-    );
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): void {
+    this.processEvent(event, hint, scope);
   }
 
   /**
@@ -241,7 +215,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SentryEvent | null {
     const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, dist } = this.getOptions();
 
     const prepared = { ...event };
@@ -301,16 +275,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param hint May contain additional informartion about the original exception.
    * @returns A Promise that resolves with the event status.
    */
-  protected async processEvent(
-    event: SentryEvent,
-    send: (finalEvent: SentryEvent) => Promise<SentryResponse>,
-    hint?: SentryEventHint,
-    scope?: Scope,
-  ): Promise<SentryResponse> {
+  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): void {
     if (!this.isEnabled()) {
-      return {
-        status: Status.Skipped,
-      };
+      logger.log('SDK not enabled, will not send event.');
+      return;
     }
 
     const { beforeSend, sampleRate } = this.getOptions();
@@ -318,16 +286,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      return {
-        status: Status.Skipped,
-      };
+      logger.log('This event has been sampled, will not send event.');
+      return;
     }
 
-    const prepared = await this.prepareEvent(event, scope, hint);
+    const prepared = this.prepareEvent(event, scope, hint);
     if (prepared === null) {
-      return {
-        status: Status.Skipped,
-      };
+      logger.log('An event processor returned null, will not send event.');
+      return;
     }
 
     let finalEvent: SentryEvent | null = prepared;
@@ -335,51 +301,33 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     try {
       const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
       if (!isInternalException && beforeSend) {
-        finalEvent = await beforeSend(prepared, hint);
+        finalEvent = beforeSend(prepared, hint);
         if ((typeof finalEvent as any) === 'undefined') {
-          logger.error('`beforeSend` method has to return `null` or a valid event');
+          logger.error('`beforeSend` method has to return `null` or a valid event.');
         }
       }
     } catch (exception) {
-      forget(
-        this.captureException(exception, {
-          data: {
-            __sentry__: true,
-          },
-          originalException: exception as Error,
-        }),
-      );
-
-      return {
-        reason: 'Event processing in beforeSend method threw an exception',
-        status: Status.Invalid,
-      };
+      this.captureException(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception as Error,
+      });
+      logger.error('`beforeSend` throw an error, will not send event.');
+      return;
     }
 
     if (finalEvent === null) {
-      return {
-        reason: 'Event dropped due to being discarded by beforeSend method',
-        status: Status.Skipped,
-      };
+      logger.log('`beforeSend` returned `null`, will not send event.');
+      return;
     }
 
     try {
-      const response = await send(finalEvent);
-      response.event = finalEvent;
-
-      if (response.status === Status.RateLimit) {
-        // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-        // implementors to override this method and handle it themselves.
-      }
-      return response;
+      this.getBackend().sendEvent(finalEvent);
     } catch (error) {
       // We have a catch here since the transport can reject the request internally.
       // If we do not catch this here, we will run into an endless loop.
       logger.error(`${error}`);
-      return {
-        reason: `${error}`,
-        status: Status.Failed,
-      };
     }
   }
 
@@ -387,12 +335,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return (await Promise.all([
-      this.getBackend()
-        .getTransport()
-        .close(timeout),
-      this.buffer.drain(timeout),
-    ])).reduce((prev, current) => prev && current);
+    return this.getBackend()
+      .getTransport()
+      .close(timeout);
   }
 
   /**

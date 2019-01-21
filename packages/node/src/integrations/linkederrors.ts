@@ -45,7 +45,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
         return self.handler(event, hint);
@@ -57,11 +57,11 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public async handler(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  public handler(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return event;
     }
-    const linkedErrors = await this.walkErrorTree(hint.originalException, this.key);
+    const linkedErrors = this.walkErrorTree(hint.originalException, this.key);
     event.exception.values = [...linkedErrors, ...event.exception.values];
     return event;
   }
@@ -69,15 +69,11 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public async walkErrorTree(
-    error: ExtendedError,
-    key: string,
-    stack: SentryException[] = [],
-  ): Promise<SentryException[]> {
+  public walkErrorTree(error: ExtendedError, key: string, stack: SentryException[] = []): SentryException[] {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
       return stack;
     }
-    const exception = await getExceptionFromError(error[key]);
+    const exception = getExceptionFromError(error[key]);
     return this.walkErrorTree(error[key], key, [exception, ...stack]);
   }
 }

@@ -24,7 +24,7 @@ export class Dedupe implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (currentEvent: SentryEvent) => {
+    addGlobalEventProcessor((currentEvent: SentryEvent) => {
       const self = getCurrentHub().getIntegration(Dedupe);
       if (self) {
         // Juuust in case something goes wrong

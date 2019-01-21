@@ -21,7 +21,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SentryEvent | null {
     event.platform = event.platform || 'node';
     event.sdk = {
       ...event.sdk,

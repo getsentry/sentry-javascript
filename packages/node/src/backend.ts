@@ -69,7 +69,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
+  public eventFromException(exception: any, hint?: SentryEventHint): SentryEvent {
     let ex: any = exception;
 
     if (!isError(exception)) {
@@ -97,7 +97,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       }
     }
 
-    const event: SentryEvent = await parseError(ex as Error, this.options);
+    const event: SentryEvent = parseError(ex as Error, this.options);
 
     return {
       ...event,
@@ -108,11 +108,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(
-    message: string,
-    level: Severity = Severity.Info,
-    hint?: SentryEventHint,
-  ): Promise<SentryEvent> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: SentryEventHint): SentryEvent {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
       level,
@@ -120,8 +116,8 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     };
 
     if (this.options.attachStacktrace && hint && hint.syntheticException) {
-      const stack = hint.syntheticException ? await extractStackFromError(hint.syntheticException) : [];
-      const frames = await parseStack(stack, this.options);
+      const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
+      const frames = parseStack(stack, this.options);
       event.stacktrace = {
         frames: prepareFramesForEvent(frames),
       };

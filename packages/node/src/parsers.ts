@@ -1,7 +1,7 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
-import { readFileAsync } from '@sentry/utils/fs';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
+import { readFileSync } from 'fs';
 import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
 import { NodeOptions } from './backend';
@@ -73,11 +73,11 @@ function getModule(filename: string, base?: string): string {
  *
  * @param filenames Array of filepaths to read content from.
  */
-async function readSourceFiles(
+function readSourceFiles(
   filenames: string[],
-): Promise<{
+): {
   [key: string]: string;
-}> {
+} {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
     return {};
@@ -106,7 +106,7 @@ async function readSourceFiles(
 
     let content = null;
     try {
-      content = await readFileAsync(filename);
+      content = readFileSync(filename, 'utf8');
       sourceFiles[filename] = content;
     } catch (_) {
       // unsure what to add here as the file is unreadable
@@ -121,7 +121,7 @@ async function readSourceFiles(
 }
 
 /** JSDoc */
-export async function extractStackFromError(error: Error): Promise<stacktrace.StackFrame[]> {
+export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
   const stack = stacktrace.parse(error);
   if (!stack) {
     return [];
@@ -130,7 +130,7 @@ export async function extractStackFromError(error: Error): Promise<stacktrace.St
 }
 
 /** JSDoc */
-export async function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): Promise<StackFrame[]> {
+export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): StackFrame[] {
   const filesToRead: string[] = [];
 
   const linesOfContext =
@@ -175,7 +175,7 @@ export async function parseStack(stack: stacktrace.StackFrame[], options?: NodeO
   }
 
   try {
-    return await addPrePostContext(filesToRead, frames, linesOfContext);
+    return addPrePostContext(filesToRead, frames, linesOfContext);
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
@@ -189,12 +189,8 @@ export async function parseStack(stack: stacktrace.StackFrame[], options?: NodeO
  * @param filesToRead string[] of filepaths
  * @param frames StackFrame[] containg all frames
  */
-async function addPrePostContext(
-  filesToRead: string[],
-  frames: StackFrame[],
-  linesOfContext: number,
-): Promise<StackFrame[]> {
-  const sourceFiles = await readSourceFiles(filesToRead);
+function addPrePostContext(filesToRead: string[], frames: StackFrame[], linesOfContext: number): StackFrame[] {
+  const sourceFiles = readSourceFiles(filesToRead);
   return frames.map(frame => {
     if (frame.filename && sourceFiles[frame.filename]) {
       try {
@@ -219,10 +215,10 @@ async function addPrePostContext(
 }
 
 /** JSDoc */
-export async function getExceptionFromError(error: Error, options?: NodeOptions): Promise<SentryException> {
+export function getExceptionFromError(error: Error, options?: NodeOptions): SentryException {
   const name = error.name || error.constructor.name;
-  const stack = await extractStackFromError(error);
-  const frames = await parseStack(stack, options);
+  const stack = extractStackFromError(error);
+  const frames = parseStack(stack, options);
 
   return {
     stacktrace: {
@@ -234,9 +230,9 @@ export async function getExceptionFromError(error: Error, options?: NodeOptions)
 }
 
 /** JSDoc */
-export async function parseError(error: ExtendedError, options?: NodeOptions): Promise<SentryEvent> {
+export function parseError(error: ExtendedError, options?: NodeOptions): SentryEvent {
   const name = error.name || error.constructor.name;
-  const exception = await getExceptionFromError(error, options);
+  const exception = getExceptionFromError(error, options);
   return {
     exception: {
       values: [exception],

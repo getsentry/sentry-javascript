@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
+import { Breadcrumb, SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
@@ -40,29 +40,31 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public async eventFromException(_exception: any, _hint?: SentryEventHint): Promise<SentryEvent> {
+  public eventFromException(_exception: any, _hint?: SentryEventHint): SentryEvent {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): Promise<SentryEvent> {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): SentryEvent {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
   /**
    * @inheritDoc
    */
-  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+  public sendEvent(event: SentryEvent): void {
+    // TODO: Floating promise
     // TODO: Remove with v5
     // tslint:disable-next-line
     if (this.transport.captureEvent) {
       // tslint:disable-next-line
-      return this.transport.captureEvent(event);
+      this.transport.captureEvent(event);
     }
     // --------------------
-    return this.transport.sendEvent(serialize(event));
+    // tslint:disable-next-line
+    this.transport.sendEvent(serialize(event));
   }
 
   /**

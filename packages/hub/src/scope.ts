@@ -2,10 +2,7 @@ import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentr
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
 
-export type EventProcessor = (
-  event: SentryEvent,
-  hint?: SentryEventHint,
-) => Promise<SentryEvent | null> | SentryEvent | null;
+export type EventProcessor = (event: SentryEvent, hint?: SentryEventHint) => SentryEvent | null;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -68,11 +65,11 @@ export class Scope {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected async notifyEventProcessors(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected notifyEventProcessors(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null {
     let processedEvent: SentryEvent | null = event;
     for (const processor of [...getGlobalEventProcessors(), ...this.eventProcessors]) {
       try {
-        processedEvent = await processor({ ...processedEvent }, hint);
+        processedEvent = processor({ ...processedEvent }, hint);
         if (processedEvent === null) {
           return null;
         }
@@ -209,11 +206,7 @@ export class Scope {
    * @param hint May contain additional informartion about the original exception.
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
-  public async applyToEvent(
-    event: SentryEvent,
-    hint?: SentryEventHint,
-    maxBreadcrumbs?: number,
-  ): Promise<SentryEvent | null> {
+  public applyToEvent(event: SentryEvent, hint?: SentryEventHint, maxBreadcrumbs?: number): SentryEvent | null {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
