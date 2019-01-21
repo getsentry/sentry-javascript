@@ -646,7 +646,7 @@ for (var idx in frames) {
           );
         });
 
-        it('should capture unhandledrejection as string', function(done) {
+        it('should capture unhandledrejection with a string', function(done) {
           var iframe = this.iframe;
 
           iframeExecute(
@@ -661,7 +661,101 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
-                assert.equal(sentryData[0].exception.values[0].value, 'test');
+                assert.equal(sentryData[0].exception.values[0].value, '"test"');
+                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
+                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
+                assert.equal(sentryData[0].exception.mechanism.handled, false);
+                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              } else {
+                // This test will be skipped if it's not Chrome Desktop
+                done();
+              }
+            }
+          );
+        });
+
+        it('should capture unhandledrejection with a monster string', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              if (isChrome()) {
+                Promise.reject('test'.repeat(100));
+              } else {
+                done();
+              }
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
+                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
+                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
+                assert.equal(sentryData[0].exception.mechanism.handled, false);
+                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              } else {
+                // This test will be skipped if it's not Chrome Desktop
+                done();
+              }
+            }
+          );
+        });
+
+        it('should capture unhandledrejection with an object', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              if (isChrome()) {
+                Promise.reject({ a: 'b' });
+              } else {
+                done();
+              }
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                assert.equal(sentryData[0].exception.values[0].value, '{"a":"b"}');
+                assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
+                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
+                assert.equal(sentryData[0].exception.mechanism.handled, false);
+                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                done();
+              } else {
+                // This test will be skipped if it's not Chrome Desktop
+                done();
+              }
+            }
+          );
+        });
+
+        it('should capture unhandledrejection with an monster object', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              if (isChrome()) {
+                var a = {
+                  a: '1'.repeat('100'),
+                  b: '2'.repeat('100'),
+                  c: '3'.repeat('100'),
+                };
+                a.d = a.a;
+                a.e = a;
+                Promise.reject(a);
+              } else {
+                done();
+              }
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.mechanism.handled, false);
