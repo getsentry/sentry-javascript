@@ -230,7 +230,7 @@ export function requestHandler(options?: {
     local.on('error', next);
     local.run(() => {
       getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options)),
+        scope.addEventProcessor((event: SentryEvent) => parseRequest(event, req, options)),
       );
       next();
     });

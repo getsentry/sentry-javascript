@@ -1,5 +1,6 @@
-import { API, BaseClient, Scope, SentryError } from '@sentry/core';
+import { API, BaseClient, Scope } from '@sentry/core';
 import { DsnLike, SentryEvent, SentryEventHint } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';

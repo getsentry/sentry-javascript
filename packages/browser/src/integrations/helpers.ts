@@ -79,8 +79,8 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      withScope(async scope => {
-        scope.addEventProcessor(async (event: SentryEvent) => {
+      withScope(scope => {
+        scope.addEventProcessor((event: SentryEvent) => {
           const processedEvent = { ...event };
 
           if (options.mechanism) {

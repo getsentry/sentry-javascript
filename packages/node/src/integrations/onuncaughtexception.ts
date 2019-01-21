@@ -58,7 +58,7 @@ export function makeErrorHandler(
       caughtFirstError = true;
 
       if (hub.getIntegration(OnUncaughtException)) {
-        hub.withScope(async (scope: Scope) => {
+        hub.withScope((scope: Scope) => {
           scope.setLevel(Severity.Fatal);
           hub.captureException(error, { originalException: error });
           if (!calledFatalError) {

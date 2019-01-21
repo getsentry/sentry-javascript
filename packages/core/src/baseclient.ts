@@ -14,12 +14,12 @@ import { forget } from '@sentry/utils/async';
 import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
+import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { Backend, Client, Options } from './interfaces';
-import { PromiseBuffer } from './promisebuffer';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

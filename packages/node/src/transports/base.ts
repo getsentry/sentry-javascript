@@ -1,5 +1,7 @@
-import { API, PromiseBuffer, SentryError } from '@sentry/core';
+import { API } from '@sentry/core';
 import { SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
+import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
