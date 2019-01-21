@@ -2,7 +2,10 @@ import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentr
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
 
-export type EventProcessor = (event: SentryEvent, hint?: SentryEventHint) => Promise<SentryEvent | null>;
+export type EventProcessor = (
+  event: SentryEvent,
+  hint?: SentryEventHint,
+) => Promise<SentryEvent | null> | SentryEvent | null;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -58,7 +61,7 @@ export class Scope {
           callback(this);
         });
         this.notifyingListeners = false;
-      }, 0);
+      });
     }
   }
 
