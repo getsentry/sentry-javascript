@@ -2,7 +2,12 @@
 
 ## Unreleased
 
+## 4.5.3
+
+- [browser]: fix: Fix UnhandledPromise: [object Object]
 - [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object property.
+- [hub]: feat: Support non async event processors
+
 
 ## 4.5.2
 
