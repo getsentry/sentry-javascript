@@ -62,9 +62,28 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   }
   const original = source[name] as () => any;
   const wrapped = replacement(original) as SentryWrappedFunction;
-  wrapped.__sentry__ = true;
-  wrapped.__sentry_original__ = original;
-  wrapped.__sentry_wrapped__ = wrapped;
+
+  // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
+  // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
+  // tslint:disable-next-line:strict-type-predicates
+  if (typeof wrapped === 'function') {
+    wrapped.prototype = {};
+    Object.defineProperties(wrapped, {
+      __sentry__: {
+        enumerable: false,
+        value: true,
+      },
+      __sentry_original__: {
+        enumerable: false,
+        value: original,
+      },
+      __sentry_wrapped__: {
+        enumerable: false,
+        value: wrapped,
+      },
+    });
+  }
+
   source[name] = wrapped;
 }
 
