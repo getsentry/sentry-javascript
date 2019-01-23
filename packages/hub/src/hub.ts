@@ -67,22 +67,6 @@ export class Hub {
   }
 
   /**
-   * Internal helper function to call an async method on the top client if it
-   * exists.
-   *
-   * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/frontend.
-   */
-  private invokeClientAsync(method: string, ...args: any[]): void {
-    const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope).catch((err: any) => {
-        logger.error(err);
-      });
-    }
-  }
-
-  /**
    * Checks if this hub's version is older than the given version.
    *
    * @param version A version number to compare to.
@@ -196,7 +180,7 @@ export class Hub {
    */
   public captureException(exception: any, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureException', exception, {
+    this.invokeClient('captureException', exception, {
       ...hint,
       event_id: eventId,
     });
@@ -213,7 +197,7 @@ export class Hub {
    */
   public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureMessage', message, level, {
+    this.invokeClient('captureMessage', message, level, {
       ...hint,
       event_id: eventId,
     });
@@ -228,7 +212,7 @@ export class Hub {
    */
   public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureEvent', event, {
+    this.invokeClient('captureEvent', event, {
       ...hint,
       event_id: eventId,
     });
