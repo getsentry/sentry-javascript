@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- [utils] ref: Update wrap method to hide internal sentry flags
+- [utils] fix: Make internal Sentry flags non-enumerable in fill util
+
 ## 4.5.3
 
 - [browser]: fix: Fix UnhandledPromise: [object Object]

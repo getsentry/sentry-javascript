@@ -179,4 +179,21 @@ describe('wrap()', () => {
       expect(error.message).equal('boom');
     }
   });
+
+  it('internal flags shouldnt be enumerable', () => {
+    const fn = (() => 1337) as SentryWrappedFunction;
+    const wrapped = wrap(fn);
+
+    // Shouldn't show up in iteration
+    expect(Object.keys(fn)).to.not.include('__sentry__');
+    expect(Object.keys(fn)).to.not.include('__sentry_original__');
+    expect(Object.keys(fn)).to.not.include('__sentry_wrapped__');
+    expect(Object.keys(wrapped)).to.not.include('__sentry__');
+    expect(Object.keys(wrapped)).to.not.include('__sentry_original__');
+    expect(Object.keys(wrapped)).to.not.include('__sentry_wrapped__');
+    // But should be accessible directly
+    expect(wrapped.__sentry__).to.equal(true);
+    expect(wrapped.__sentry_original__).to.equal(fn);
+    expect(fn.__sentry_wrapped__).to.equal(wrapped);
+  });
 });
