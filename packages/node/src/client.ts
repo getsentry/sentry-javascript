@@ -1,5 +1,6 @@
 import { BaseClient, Scope } from '@sentry/core';
 import { SentryEvent, SentryEventHint } from '@sentry/types';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { NodeBackend, NodeOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
 
@@ -21,7 +22,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SentryEvent | null {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): QuickPromise<SentryEvent | null> {
     event.platform = event.platform || 'node';
     event.sdk = {
       ...event.sdk,

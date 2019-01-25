@@ -11,6 +11,7 @@ import {
   TransportClass,
   TransportOptions,
 } from '@sentry/types';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { Dsn } from './dsn';
 
 /** Console logging verbosity for the SDK. */
@@ -161,9 +162,9 @@ export interface Client<O extends Options = Options> {
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): void;
+  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -172,9 +173,9 @@ export interface Client<O extends Options = Options> {
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): void;
+  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -182,9 +183,9 @@ export interface Client<O extends Options = Options> {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): void;
+  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -243,10 +244,10 @@ export interface Backend {
   install?(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any, hint?: SentryEventHint): SentryEvent;
+  eventFromException(exception: any, hint?: SentryEventHint): QuickPromise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): SentryEvent;
+  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): QuickPromise<SentryEvent>;
 
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): void;

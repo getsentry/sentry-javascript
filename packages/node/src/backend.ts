@@ -2,6 +2,7 @@ import { BaseBackend, Dsn, getCurrentHub, Options } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
@@ -69,7 +70,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: SentryEventHint): SentryEvent {
+  public eventFromException(exception: any, hint?: SentryEventHint): QuickPromise<SentryEvent> {
     let ex: any = exception;
 
     if (!isError(exception)) {
@@ -97,32 +98,42 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       }
     }
 
-    const event: SentryEvent = parseError(ex as Error, this.options);
-
-    return {
-      ...event,
-      event_id: hint && hint.event_id,
-    };
+    return new QuickPromise<SentryEvent>(resolve =>
+      parseError(ex as Error, this.options).then(event => {
+        resolve({
+          ...event,
+          event_id: hint && hint.event_id,
+        });
+      }),
+    );
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: SentryEventHint): SentryEvent {
+  public eventFromMessage(
+    message: string,
+    level: Severity = Severity.Info,
+    hint?: SentryEventHint,
+  ): QuickPromise<SentryEvent> {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
       level,
       message,
     };
 
-    if (this.options.attachStacktrace && hint && hint.syntheticException) {
-      const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-      const frames = parseStack(stack, this.options);
-      event.stacktrace = {
-        frames: prepareFramesForEvent(frames),
-      };
-    }
-
-    return event;
+    return new QuickPromise<SentryEvent>(resolve => {
+      if (this.options.attachStacktrace && hint && hint.syntheticException) {
+        const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
+        parseStack(stack, this.options).then(frames => {
+          event.stacktrace = {
+            frames: prepareFramesForEvent(frames),
+          };
+          resolve(event);
+        });
+      } else {
+        resolve(event);
+      }
+    });
   }
 }

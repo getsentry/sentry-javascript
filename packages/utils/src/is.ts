@@ -138,3 +138,11 @@ export function isRegExp(wat: any): boolean {
 export function isNaN(wat: any): boolean {
   return wat !== wat;
 }
+
+/**
+ * Checks wheter given value is a Promise.
+ * @param wat A value to be checked.
+ */
+export function isPromise(wat: any): boolean {
+  return Boolean(wat && typeof wat.then === 'function');
+}

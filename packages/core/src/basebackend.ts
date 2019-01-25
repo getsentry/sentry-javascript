@@ -3,6 +3,7 @@ import { Breadcrumb, SentryEvent, SentryEventHint, Severity, Transport } from '@
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { Backend, Options } from './interfaces';
 import { NoopTransport } from './transports/noop';
 
@@ -40,14 +41,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromException(_exception: any, _hint?: SentryEventHint): SentryEvent {
+  public eventFromException(_exception: any, _hint?: SentryEventHint): QuickPromise<SentryEvent> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): SentryEvent {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): QuickPromise<SentryEvent> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
@@ -55,15 +56,6 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: SentryEvent): void {
-    // TODO: Floating promise
-    // TODO: Remove with v5
-    // tslint:disable-next-line
-    if (this.transport.captureEvent) {
-      // tslint:disable-next-line
-      this.transport.captureEvent(event);
-    }
-    // --------------------
-    // tslint:disable-next-line
     this.transport.sendEvent(serialize(event));
   }
 

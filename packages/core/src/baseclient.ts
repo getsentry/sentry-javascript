@@ -11,6 +11,7 @@ import {
 import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -129,27 +130,35 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): void {
-    const event = this.getBackend().eventFromException(exception, hint);
-    this.captureEvent(event, hint, scope);
+  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string {
+    const promisedEvent = this.getBackend().eventFromException(exception, hint);
+    promisedEvent.then(event => {
+      this.captureEvent(event, hint, scope);
+    });
+    return (hint && hint.event_id) || '';
   }
 
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): void {
-    const event = isPrimitive(message)
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string {
+    const promisedEvent = isPrimitive(message)
       ? this.getBackend().eventFromMessage(`${message}`, level, hint)
       : this.getBackend().eventFromException(message, hint);
 
-    this.captureEvent(event, hint, scope);
+    promisedEvent.then(event => {
+      this.captureEvent(event, hint, scope);
+    });
+
+    return (hint && hint.event_id) || '';
   }
 
   /**
    * @inheritDoc
    */
-  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): void {
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string {
     this.processEvent(event, hint, scope);
+    return (hint && hint.event_id) || '';
   }
 
   /**
@@ -215,7 +224,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SentryEvent | null {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): QuickPromise<SentryEvent | null> {
     const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, dist } = this.getOptions();
 
     const prepared = { ...event };
@@ -254,7 +263,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
-    return prepared;
+    return QuickPromise.resolve(prepared);
   }
 
   /**
@@ -290,45 +299,46 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return;
     }
 
-    const prepared = this.prepareEvent(event, scope, hint);
-    if (prepared === null) {
-      logger.log('An event processor returned null, will not send event.');
-      return;
-    }
-
-    let finalEvent: SentryEvent | null = prepared;
-
-    try {
-      const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-      if (!isInternalException && beforeSend) {
-        finalEvent = beforeSend(prepared, hint);
-        if ((typeof finalEvent as any) === 'undefined') {
-          logger.error('`beforeSend` method has to return `null` or a valid event.');
-        }
+    this.prepareEvent(event, scope, hint).then(prepared => {
+      if (prepared === null) {
+        logger.log('An event processor returned null, will not send event.');
+        return;
       }
-    } catch (exception) {
-      this.captureException(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception as Error,
-      });
-      logger.error('`beforeSend` throw an error, will not send event.');
-      return;
-    }
 
-    if (finalEvent === null) {
-      logger.log('`beforeSend` returned `null`, will not send event.');
-      return;
-    }
+      let finalEvent: SentryEvent | null = prepared;
 
-    try {
-      this.getBackend().sendEvent(finalEvent);
-    } catch (error) {
-      // We have a catch here since the transport can reject the request internally.
-      // If we do not catch this here, we will run into an endless loop.
-      logger.error(`${error}`);
-    }
+      try {
+        const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+        if (!isInternalException && beforeSend) {
+          finalEvent = beforeSend(prepared, hint);
+          if ((typeof finalEvent as any) === 'undefined') {
+            logger.error('`beforeSend` method has to return `null` or a valid event.');
+          }
+        }
+      } catch (exception) {
+        this.captureException(exception, {
+          data: {
+            __sentry__: true,
+          },
+          originalException: exception as Error,
+        });
+        logger.error('`beforeSend` throw an error, will not send event.');
+        return;
+      }
+
+      if (finalEvent === null) {
+        logger.log('`beforeSend` returned `null`, will not send event.');
+        return;
+      }
+
+      try {
+        this.getBackend().sendEvent(finalEvent);
+      } catch (error) {
+        // We have a catch here since the transport can reject the request internally.
+        // If we do not catch this here, we will run into an endless loop.
+        logger.error(`${error}`);
+      }
+    });
   }
 
   /**

@@ -1,5 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
@@ -48,7 +49,7 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return self.handler(event, hint);
+        return (self.handler(event, hint) as unknown) as Promise<SentryEvent | null>;
       }
       return event;
     });
@@ -57,23 +58,36 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null {
+  public handler(event: SentryEvent, hint?: SentryEventHint): QuickPromise<SentryEvent | null> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
-      return event;
+      return QuickPromise.resolve(event);
     }
-    const linkedErrors = this.walkErrorTree(hint.originalException, this.key);
-    event.exception.values = [...linkedErrors, ...event.exception.values];
-    return event;
+
+    return new QuickPromise<SentryEvent | null>(resolve => {
+      this.walkErrorTree(hint.originalException as ExtendedError, this.key).then((linkedErrors: SentryException[]) => {
+        if (event && event.exception) {
+          event.exception.values = [...linkedErrors, ...event.exception.values];
+        }
+        resolve(event);
+      });
+    });
   }
 
   /**
    * @inheritDoc
    */
-  public walkErrorTree(error: ExtendedError, key: string, stack: SentryException[] = []): SentryException[] {
+  public walkErrorTree(
+    error: ExtendedError,
+    key: string,
+    stack: SentryException[] = [],
+  ): QuickPromise<SentryException[]> {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
-      return stack;
+      return QuickPromise.resolve(stack);
     }
-    const exception = getExceptionFromError(error[key]);
-    return this.walkErrorTree(error[key], key, [exception, ...stack]);
+    return new QuickPromise<SentryException[]>(resolve => {
+      getExceptionFromError(error[key]).then((exception: SentryException) => {
+        this.walkErrorTree(error[key], key, [exception, ...stack]).then(resolve);
+      });
+    });
   }
 }

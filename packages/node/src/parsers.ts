@@ -1,7 +1,8 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { basename, dirname } from '@sentry/utils/path';
+import { QuickPromise } from '@sentry/utils/quickpromise';
 import { snipLine } from '@sentry/utils/string';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
 import { NodeOptions } from './backend';
@@ -73,51 +74,55 @@ function getModule(filename: string, base?: string): string {
  *
  * @param filenames Array of filepaths to read content from.
  */
-function readSourceFiles(
-  filenames: string[],
-): {
-  [key: string]: string;
-} {
+function readSourceFiles(filenames: string[]): QuickPromise<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
-    return {};
+    return QuickPromise.resolve({});
   }
 
-  const sourceFiles: {
-    [key: string]: string;
-  } = {};
+  return new QuickPromise<{
+    [key: string]: string | null;
+  }>(resolve => {
+    const sourceFiles: {
+      [key: string]: string | null;
+    } = {};
 
-  // tslint:disable-next-line:prefer-for-of
-  for (let i = 0; i < filenames.length; i++) {
-    const filename = filenames[i];
+    let count = 0;
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < filenames.length; i++) {
+      const filename = filenames[i];
 
-    const cache = FILE_CONTENT_CACHE.get(filename);
-    // We have a cache hit
-    if (cache !== undefined) {
-      // If it's not null (which means we found a file and have a content)
-      // we set the content and return it later.
-      if (cache !== null) {
-        sourceFiles[filename] = cache;
+      const cache = FILE_CONTENT_CACHE.get(filename);
+      // We have a cache hit
+      if (cache !== undefined) {
+        // If it's not null (which means we found a file and have a content)
+        // we set the content and return it later.
+        if (cache !== null) {
+          sourceFiles[filename] = cache;
+        }
+        count++;
+        // In any case we want to skip here then since we have a content already or we couldn't
+        // read the file and don't want to try again.
+        if (count === filenames.length) {
+          resolve(sourceFiles);
+        }
+        continue;
       }
-      // In any case we want to skip here then since we have a content already or we couldn't
-      // read the file and don't want to try again.
-      continue;
+
+      readFile(filename, (err: Error, data: Buffer) => {
+        const content = err ? null : data.toString();
+        sourceFiles[filename] = content;
+
+        // We always want to set the cache, even to null which means there was an error reading the file.
+        // We do not want to try to read the file again.
+        FILE_CONTENT_CACHE.set(filename, content);
+        count++;
+        if (count === filenames.length) {
+          resolve(sourceFiles);
+        }
+      });
     }
-
-    let content = null;
-    try {
-      content = readFileSync(filename, 'utf8');
-      sourceFiles[filename] = content;
-    } catch (_) {
-      // unsure what to add here as the file is unreadable
-    }
-
-    // We always want to set the cache, even to null which means there was an error reading the file.
-    // We do not want to try to read the file again.
-    FILE_CONTENT_CACHE.set(filename, content);
-  }
-
-  return sourceFiles;
+  });
 }
 
 /** JSDoc */
@@ -130,7 +135,7 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
 }
 
 /** JSDoc */
-export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): StackFrame[] {
+export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): QuickPromise<StackFrame[]> {
   const filesToRead: string[] = [];
 
   const linesOfContext =
@@ -171,7 +176,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
 
   // We do an early return if we do not want to fetch context liens
   if (linesOfContext <= 0) {
-    return frames;
+    return QuickPromise.resolve(frames);
   }
 
   try {
@@ -179,7 +184,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
-    return frames;
+    return QuickPromise.resolve(frames);
   }
 }
 
@@ -189,56 +194,72 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
  * @param filesToRead string[] of filepaths
  * @param frames StackFrame[] containg all frames
  */
-function addPrePostContext(filesToRead: string[], frames: StackFrame[], linesOfContext: number): StackFrame[] {
-  const sourceFiles = readSourceFiles(filesToRead);
-  return frames.map(frame => {
-    if (frame.filename && sourceFiles[frame.filename]) {
-      try {
-        const lines = sourceFiles[frame.filename].split('\n');
+function addPrePostContext(
+  filesToRead: string[],
+  frames: StackFrame[],
+  linesOfContext: number,
+): QuickPromise<StackFrame[]> {
+  return new QuickPromise<StackFrame[]>(resolve =>
+    readSourceFiles(filesToRead).then(sourceFiles => {
+      const result = frames.map(frame => {
+        if (frame.filename && sourceFiles[frame.filename]) {
+          try {
+            const lines = (sourceFiles[frame.filename] as string).split('\n');
 
-        frame.pre_context = lines
-          .slice(Math.max(0, (frame.lineno || 0) - (linesOfContext + 1)), (frame.lineno || 0) - 1)
-          .map((line: string) => snipLine(line, 0));
+            frame.pre_context = lines
+              .slice(Math.max(0, (frame.lineno || 0) - (linesOfContext + 1)), (frame.lineno || 0) - 1)
+              .map((line: string) => snipLine(line, 0));
 
-        frame.context_line = snipLine(lines[(frame.lineno || 0) - 1], frame.colno || 0);
+            frame.context_line = snipLine(lines[(frame.lineno || 0) - 1], frame.colno || 0);
 
-        frame.post_context = lines
-          .slice(frame.lineno || 0, (frame.lineno || 0) + linesOfContext)
-          .map((line: string) => snipLine(line, 0));
-      } catch (e) {
-        // anomaly, being defensive in case
-        // unlikely to ever happen in practice but can definitely happen in theory
-      }
-    }
-    return frame;
-  });
+            frame.post_context = lines
+              .slice(frame.lineno || 0, (frame.lineno || 0) + linesOfContext)
+              .map((line: string) => snipLine(line, 0));
+          } catch (e) {
+            // anomaly, being defensive in case
+            // unlikely to ever happen in practice but can definitely happen in theory
+          }
+        }
+        return frame;
+      });
+
+      resolve(result);
+    }),
+  );
 }
 
 /** JSDoc */
-export function getExceptionFromError(error: Error, options?: NodeOptions): SentryException {
+export function getExceptionFromError(error: Error, options?: NodeOptions): QuickPromise<SentryException> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  const frames = parseStack(stack, options);
-
-  return {
-    stacktrace: {
-      frames: prepareFramesForEvent(frames),
-    },
-    type: name,
-    value: error.message,
-  };
+  return new QuickPromise<SentryException>(resolve =>
+    parseStack(stack, options).then(frames => {
+      const result = {
+        stacktrace: {
+          frames: prepareFramesForEvent(frames),
+        },
+        type: name,
+        value: error.message,
+      };
+      resolve(result);
+    }),
+  );
 }
 
 /** JSDoc */
-export function parseError(error: ExtendedError, options?: NodeOptions): SentryEvent {
+export function parseError(error: ExtendedError, options?: NodeOptions): QuickPromise<SentryEvent> {
   const name = error.name || error.constructor.name;
-  const exception = getExceptionFromError(error, options);
-  return {
-    exception: {
-      values: [exception],
-    },
-    message: `${name}: ${error.message || '<no message>'}`,
-  };
+  return new QuickPromise<SentryEvent>(resolve =>
+    getExceptionFromError(error, options).then((exception: SentryException) => {
+      const result = {
+        exception: {
+          values: [exception],
+        },
+        message: `${name}: ${error.message || '<no message>'}`,
+      };
+      resolve(result);
+    }),
+  );
 }
 
 /** JSDoc */
