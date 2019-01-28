@@ -18,7 +18,7 @@ describe('BrowserBackend', () => {
       backend = new BrowserBackend({ dsn });
 
       try {
-        await backend.sendEvent(testEvent);
+        backend.sendEvent(testEvent);
       } catch (e) {
         expect(e.message).equal('Cannot sendEvent without a valid Dsn');
       }

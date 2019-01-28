@@ -45,6 +45,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
 
   public sendEvent(event: SentryEvent): void {
     this.event = event;
+    // tslint:disable-next-line
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
   }
 }

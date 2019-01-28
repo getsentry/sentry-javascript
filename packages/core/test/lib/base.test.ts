@@ -383,7 +383,9 @@ describe('BaseClient', () => {
       const beforeSend = jest.fn(
         async event =>
           new Promise<SentryEvent>(resolve => {
-            setTimeout(() => resolve(event), 1);
+            setTimeout(() => {
+              resolve(event);
+            }, 1);
           }),
       );
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
@@ -402,9 +404,11 @@ describe('BaseClient', () => {
       jest.useFakeTimers();
       expect.assertions(1);
       const beforeSend = jest.fn(
-        () =>
+        async () =>
           new Promise<SentryEvent>(resolve => {
-            setTimeout(() => resolve({ message: 'changed2' }), 1);
+            setTimeout(() => {
+              resolve({ message: 'changed2' });
+            }, 1);
           }),
       );
 
@@ -424,9 +428,11 @@ describe('BaseClient', () => {
       jest.useFakeTimers();
       expect.assertions(1);
       const beforeSend = jest.fn(
-        () =>
+        async () =>
           new Promise<null>(resolve => {
-            setTimeout(() => resolve(null));
+            setTimeout(() => {
+              resolve(null);
+            });
           }),
       );
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });

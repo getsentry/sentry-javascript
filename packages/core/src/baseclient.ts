@@ -329,19 +329,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             if ((typeof beforeSendResult as any) === 'undefined') {
               logger.error('`beforeSend` method has to return `null` or a valid event.');
             } else if (isThenable(beforeSendResult)) {
-              (beforeSendResult as Promise<SentryEvent | null>).then(processedEvent => {
-                finalEvent = processedEvent;
+              (beforeSendResult as Promise<SentryEvent | null>)
+                .then(processedEvent => {
+                  finalEvent = processedEvent;
 
-                if (finalEvent === null) {
-                  logger.log('`beforeSend` returned `null`, will not send event.');
-                  resolve(null);
-                  return;
-                }
+                  if (finalEvent === null) {
+                    logger.log('`beforeSend` returned `null`, will not send event.');
+                    resolve(null);
+                    return;
+                  }
 
-                // From here on we are really async
-                this.getBackend().sendEvent(finalEvent);
-                resolve(finalEvent);
-              });
+                  // From here on we are really async
+                  this.getBackend().sendEvent(finalEvent);
+                  resolve(finalEvent);
+                })
+                .catch(e => {
+                  logger.error(`beforeSend rejected with ${e}`);
+                });
             } else {
               finalEvent = beforeSendResult as SentryEvent | null;
 

@@ -4,7 +4,9 @@ describe('SyncPromise', () => {
   test('simple', () => {
     expect.assertions(1);
 
-    return new SyncPromise<number>(resolve => resolve(42)).then(val => {
+    return new SyncPromise<number>(resolve => {
+      resolve(42);
+    }).then(val => {
       expect(val).toBe(42);
     });
   });
@@ -25,7 +27,11 @@ describe('SyncPromise', () => {
       new Promise<number>(resolve => {
         expect(true).toBe(true);
         resolve(41);
-      }).then(done);
+      })
+        .then(done)
+        .catch(_ => {
+          //
+        });
     }).then(val => {
       expect(val).toEqual(41);
     });
@@ -36,7 +42,9 @@ describe('SyncPromise', () => {
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
-      setTimeout(() => resolve(12), 10);
+      setTimeout(() => {
+        resolve(12);
+      }, 10);
       jest.runAllTimers();
     }).then(val => {
       expect(val).toEqual(12);
@@ -59,7 +67,11 @@ describe('SyncPromise', () => {
     jest.useFakeTimers();
     expect.assertions(4);
 
-    const qp = new SyncPromise<number>(resolve => setTimeout(() => resolve(2)));
+    const qp = new SyncPromise<number>(resolve =>
+      setTimeout(() => {
+        resolve(2);
+      }),
+    );
     qp.then(value => {
       expect(value).toEqual(2);
     });
@@ -74,7 +86,9 @@ describe('SyncPromise', () => {
   test('multiple then returning undefined', () => {
     expect.assertions(3);
 
-    return new SyncPromise<number>(resolve => resolve(2))
+    return new SyncPromise<number>(resolve => {
+      resolve(2);
+    })
       .then(result => {
         expect(result).toEqual(2);
       })
@@ -89,7 +103,9 @@ describe('SyncPromise', () => {
   test('multiple then returning different values', () => {
     expect.assertions(3);
 
-    return new SyncPromise<number>(resolve => resolve(2))
+    return new SyncPromise<number>(resolve => {
+      resolve(2);
+    })
       .then(result => {
         expect(result).toEqual(2);
         return 3;
@@ -106,10 +122,14 @@ describe('SyncPromise', () => {
   test('multiple then returning different SyncPromise', () => {
     expect.assertions(2);
 
-    return new SyncPromise<number>(resolve => resolve(2))
+    return new SyncPromise<number>(resolve => {
+      resolve(2);
+    })
       .then(result => {
         expect(result).toEqual(2);
-        return new SyncPromise<string>(resolve2 => resolve2('yo'));
+        return new SyncPromise<string>(resolve2 => {
+          resolve2('yo');
+        });
       })
       .then(result => {
         expect(result).toEqual('yo');
@@ -119,7 +139,9 @@ describe('SyncPromise', () => {
   test('reject immediatly and do not call then', () => {
     expect.assertions(1);
 
-    return new SyncPromise<number>((_, reject) => reject('test'))
+    return new SyncPromise<number>((_, reject) => {
+      reject('test');
+    })
       .then(_ => {
         expect(true).toBeFalsy();
       })
@@ -131,7 +153,9 @@ describe('SyncPromise', () => {
   test('reject', () => {
     expect.assertions(1);
 
-    return new SyncPromise<number>((_, reject) => reject('test')).catch(reason => {
+    return new SyncPromise<number>((_, reject) => {
+      reject('test');
+    }).catch(reason => {
       expect(reason).toBe('test');
     });
   });
@@ -139,7 +163,9 @@ describe('SyncPromise', () => {
   test('rejecting after first then', () => {
     expect.assertions(2);
 
-    return new SyncPromise<number>(resolve => resolve(2))
+    return new SyncPromise<number>(resolve => {
+      resolve(2);
+    })
       .then(value => {
         expect(value).toEqual(2);
         return SyncPromise.reject('wat');
