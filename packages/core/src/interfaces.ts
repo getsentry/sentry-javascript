@@ -112,7 +112,7 @@ export interface Options {
    * @param hint May contain additional information about the original exception.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null;
+  beforeSend?(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> | SentryEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
@@ -164,7 +164,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string;
+  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -175,7 +175,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string;
+  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -185,7 +185,7 @@ export interface Client<O extends Options = Options> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string;
+  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Records a new breadcrumb which will be attached to future events.

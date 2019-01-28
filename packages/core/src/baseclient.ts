@@ -8,7 +8,7 @@ import {
   SentryEventHint,
   Severity,
 } from '@sentry/types';
-import { isPrimitive } from '@sentry/utils/is';
+import { isPrimitive, isThenable } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
@@ -130,35 +130,48 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string {
-    const promisedEvent = this.getBackend().eventFromException(exception, hint);
-    promisedEvent.then(event => {
-      this.captureEvent(event, hint, scope);
-    });
-    return (hint && hint.event_id) || '';
+  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
+
+    this.getBackend()
+      .eventFromException(exception, hint)
+      .then(event => {
+        this.processEvent(event, hint, scope).then(finalEvent => {
+          eventId = (finalEvent && finalEvent.event_id) || undefined;
+        });
+      });
+
+    return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string {
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
+
     const promisedEvent = isPrimitive(message)
       ? this.getBackend().eventFromMessage(`${message}`, level, hint)
       : this.getBackend().eventFromException(message, hint);
 
     promisedEvent.then(event => {
-      this.captureEvent(event, hint, scope);
+      this.processEvent(event, hint, scope).then(finalEvent => {
+        eventId = (finalEvent && finalEvent.event_id) || undefined;
+      });
     });
 
-    return (hint && hint.event_id) || '';
+    return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string {
-    this.processEvent(event, hint, scope);
-    return (hint && hint.event_id) || '';
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
+    this.processEvent(event, hint, scope).then(finalEvent => {
+      eventId = (finalEvent && finalEvent.event_id) || undefined;
+    });
+    return eventId;
   }
 
   /**
@@ -282,57 +295,82 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param send A function to actually send the event.
    * @param scope A scope containing event metadata.
    * @param hint May contain additional informartion about the original exception.
-   * @returns A Promise that resolves with the event status.
+   * @returns A SyncPromise that resolves with the event.
    */
-  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): void {
+  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): SyncPromise<SentryEvent | null> {
+    const { beforeSend, sampleRate } = this.getOptions();
+
     if (!this.isEnabled()) {
       logger.log('SDK not enabled, will not send event.');
-      return;
+      return SyncPromise.resolve();
     }
-
-    const { beforeSend, sampleRate } = this.getOptions();
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
       logger.log('This event has been sampled, will not send event.');
-      return;
+      return SyncPromise.resolve();
     }
 
-    this.prepareEvent(event, scope, hint).then(prepared => {
-      if (prepared === null) {
-        logger.log('An event processor returned null, will not send event.');
-        return;
-      }
-
-      let finalEvent: SentryEvent | null = prepared;
-
-      try {
-        const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-        if (!isInternalException && beforeSend) {
-          finalEvent = beforeSend(prepared, hint);
-          if ((typeof finalEvent as any) === 'undefined') {
-            logger.error('`beforeSend` method has to return `null` or a valid event.');
-          }
+    return new SyncPromise(resolve => {
+      this.prepareEvent(event, scope, hint).then(prepared => {
+        if (prepared === null) {
+          logger.log('An event processor returned null, will not send event.');
+          resolve(null);
+          return;
         }
-      } catch (exception) {
-        this.captureException(exception, {
-          data: {
-            __sentry__: true,
-          },
-          originalException: exception as Error,
-        });
-        logger.error('`beforeSend` throw an error, will not send event.');
-        return;
-      }
 
-      if (finalEvent === null) {
-        logger.log('`beforeSend` returned `null`, will not send event.');
-        return;
-      }
+        let finalEvent: SentryEvent | null = prepared;
 
-      // From here on we are really async
-      this.getBackend().sendEvent(finalEvent);
+        try {
+          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+          if (!isInternalException && beforeSend) {
+            const beforeSendResult = beforeSend(prepared, hint);
+            if ((typeof beforeSendResult as any) === 'undefined') {
+              logger.error('`beforeSend` method has to return `null` or a valid event.');
+            } else if (isThenable(beforeSendResult)) {
+              (beforeSendResult as Promise<SentryEvent | null>).then(processedEvent => {
+                finalEvent = processedEvent;
+
+                if (finalEvent === null) {
+                  logger.log('`beforeSend` returned `null`, will not send event.');
+                  resolve(null);
+                  return;
+                }
+
+                // From here on we are really async
+                this.getBackend().sendEvent(finalEvent);
+                resolve(finalEvent);
+              });
+            } else {
+              finalEvent = beforeSendResult as SentryEvent | null;
+
+              if (finalEvent === null) {
+                logger.log('`beforeSend` returned `null`, will not send event.');
+                resolve(null);
+                return;
+              }
+
+              // From here on we are really async
+              this.getBackend().sendEvent(finalEvent);
+              resolve(finalEvent);
+            }
+          } else {
+            this.getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
+          }
+        } catch (exception) {
+          this.captureException(exception, {
+            data: {
+              __sentry__: true,
+            },
+            originalException: exception as Error,
+          });
+          logger.error('`beforeSend` throw an error, will not send event.');
+          resolve(null);
+          return;
+        }
+      });
     });
   }
 

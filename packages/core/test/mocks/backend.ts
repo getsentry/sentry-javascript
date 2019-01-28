@@ -1,4 +1,5 @@
-import { SentryEvent, SentryResponse, Status } from '@sentry/types';
+import { SentryEvent } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { BaseBackend } from '../../src/basebackend';
 import { Options } from '../../src/interfaces';
 
@@ -24,8 +25,8 @@ export class TestBackend extends BaseBackend<TestOptions> {
     return !this.options.mockInstallFailure;
   }
 
-  public async eventFromException(exception: any): Promise<SentryEvent> {
-    return {
+  public eventFromException(exception: any): SyncPromise<SentryEvent> {
+    return SyncPromise.resolve({
       exception: {
         values: [
           {
@@ -34,15 +35,14 @@ export class TestBackend extends BaseBackend<TestOptions> {
           },
         ],
       },
-    };
+    });
   }
 
-  public async eventFromMessage(message: string): Promise<SentryEvent> {
-    return { message };
+  public eventFromMessage(message: string): SyncPromise<SentryEvent> {
+    return SyncPromise.resolve({ message });
   }
 
-  public async sendEvent(event: SentryEvent): Promise<SentryResponse> {
+  public sendEvent(event: SentryEvent): void {
     this.event = event;
-    return { status: Status.Success };
   }
 }
