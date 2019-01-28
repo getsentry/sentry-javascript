@@ -11,8 +11,8 @@ import {
 import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
-import { SyncPromise } from '@sentry/utils/syncpromise';
 import { truncate } from '@sentry/utils/string';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
@@ -263,7 +263,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
-    return SyncPromise.resolve(prepared);
+    return SyncPromise.resolve(prepared as SentryEvent | null);
   }
 
   /**

@@ -57,22 +57,18 @@ export class SyncPromise<T> {
 
   /** JSDoc */
   private readonly setResult = (value: T | any, state: States) => {
-    const set = () => {
-      if (this.state !== States.PENDING) {
-        return null;
-      }
+    if (this.state !== States.PENDING) {
+      return null;
+    }
 
-      if (isThenable(value)) {
-        return (value as Thenable<T>).then(this.resolve, this.reject);
-      }
+    if (isThenable(value)) {
+      return (value as Thenable<T>).then(this.resolve, this.reject);
+    }
 
-      this.value = value;
-      this.state = state;
+    this.value = value;
+    this.state = state;
 
-      return this.executeHandlers();
-    };
-
-    set();
+    return this.executeHandlers();
   };
 
   /** JSDoc */
@@ -96,8 +92,7 @@ export class SyncPromise<T> {
 
   /** JSDoc */
   private readonly attachHandler = (handler: Handler<T, any>) => {
-    this.handlers = [...this.handlers, handler];
-
+    this.handlers = this.handlers.concat(handler);
     this.executeHandlers();
   };
 

@@ -9,6 +9,15 @@ describe('SyncPromise', () => {
     });
   });
 
+  test('simple static', () => {
+    expect.assertions(1);
+
+    const p = SyncPromise.resolve(10);
+    return p.then(val => {
+      expect(val).toBe(10);
+    });
+  });
+
   test('using new Promise internally', () => {
     expect.assertions(2);
 

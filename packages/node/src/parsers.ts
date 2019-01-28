@@ -1,7 +1,7 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { basename, dirname } from '@sentry/utils/path';
-import { SyncPromise } from '@sentry/utils/syncpromise';
 import { snipLine } from '@sentry/utils/string';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
