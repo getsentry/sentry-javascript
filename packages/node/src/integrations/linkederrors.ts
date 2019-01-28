@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
@@ -58,12 +58,12 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: SentryEvent, hint?: SentryEventHint): QuickPromise<SentryEvent | null> {
+  public handler(event: SentryEvent, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
-      return QuickPromise.resolve(event);
+      return SyncPromise.resolve(event);
     }
 
-    return new QuickPromise<SentryEvent | null>(resolve => {
+    return new SyncPromise<SentryEvent | null>(resolve => {
       this.walkErrorTree(hint.originalException as ExtendedError, this.key).then((linkedErrors: SentryException[]) => {
         if (event && event.exception) {
           event.exception.values = [...linkedErrors, ...event.exception.values];
@@ -80,11 +80,11 @@ export class LinkedErrors implements Integration {
     error: ExtendedError,
     key: string,
     stack: SentryException[] = [],
-  ): QuickPromise<SentryException[]> {
+  ): SyncPromise<SentryException[]> {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
-      return QuickPromise.resolve(stack);
+      return SyncPromise.resolve(stack);
     }
-    return new QuickPromise<SentryException[]>(resolve => {
+    return new SyncPromise<SentryException[]>(resolve => {
       getExceptionFromError(error[key]).then((exception: SentryException) => {
         this.walkErrorTree(error[key], key, [exception, ...stack]).then(resolve);
       });

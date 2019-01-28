@@ -11,7 +11,7 @@ import {
   TransportClass,
   TransportOptions,
 } from '@sentry/types';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { Dsn } from './dsn';
 
 /** Console logging verbosity for the SDK. */
@@ -244,10 +244,10 @@ export interface Backend {
   install?(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any, hint?: SentryEventHint): QuickPromise<SentryEvent>;
+  eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): QuickPromise<SentryEvent>;
+  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): SyncPromise<SentryEvent>;
 
   /** Submits the event to Sentry */
   sendEvent(event: SentryEvent): void;

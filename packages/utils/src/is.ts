@@ -140,9 +140,11 @@ export function isNaN(wat: any): boolean {
 }
 
 /**
- * Checks wheter given value is a Promise.
+ * Checks whether given value has a then function.
  * @param wat A value to be checked.
  */
-export function isPromise(wat: any): boolean {
-  return Boolean(wat && typeof wat.then === 'function');
+export function isThenable(wat: any): boolean {
+  // tslint:disable:no-unsafe-any
+  return Boolean(wat && wat.then && isFunction(wat.then));
+  // tslint:enable:no-unsafe-any
 }

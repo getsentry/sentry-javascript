@@ -11,7 +11,7 @@ import {
 import { isPrimitive } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -224,7 +224,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): QuickPromise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
     const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, dist } = this.getOptions();
 
     const prepared = { ...event };
@@ -263,7 +263,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
-    return QuickPromise.resolve(prepared);
+    return SyncPromise.resolve(prepared);
   }
 
   /**
@@ -331,13 +331,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         return;
       }
 
-      try {
-        this.getBackend().sendEvent(finalEvent);
-      } catch (error) {
-        // We have a catch here since the transport can reject the request internally.
-        // If we do not catch this here, we will run into an endless loop.
-        logger.error(`${error}`);
-      }
+      // From here on we are really async
+      this.getBackend().sendEvent(finalEvent);
     });
   }
 

@@ -3,7 +3,7 @@ import { Breadcrumb, SentryEvent, SentryEventHint, Severity, Transport } from '@
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { Backend, Options } from './interfaces';
 import { NoopTransport } from './transports/noop';
 
@@ -41,14 +41,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromException(_exception: any, _hint?: SentryEventHint): QuickPromise<SentryEvent> {
+  public eventFromException(_exception: any, _hint?: SentryEventHint): SyncPromise<SentryEvent> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): QuickPromise<SentryEvent> {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): SyncPromise<SentryEvent> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
@@ -56,7 +56,9 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: SentryEvent): void {
-    this.transport.sendEvent(serialize(event));
+    this.transport.sendEvent(serialize(event)).catch(reason => {
+      logger.error(`Error while sending event: ${reason}`);
+    });
   }
 
   /**

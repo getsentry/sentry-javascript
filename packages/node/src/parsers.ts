@@ -1,6 +1,6 @@
 import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
 import { basename, dirname } from '@sentry/utils/path';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { snipLine } from '@sentry/utils/string';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
@@ -74,13 +74,13 @@ function getModule(filename: string, base?: string): string {
  *
  * @param filenames Array of filepaths to read content from.
  */
-function readSourceFiles(filenames: string[]): QuickPromise<{ [key: string]: string | null }> {
+function readSourceFiles(filenames: string[]): SyncPromise<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
-    return QuickPromise.resolve({});
+    return SyncPromise.resolve({});
   }
 
-  return new QuickPromise<{
+  return new SyncPromise<{
     [key: string]: string | null;
   }>(resolve => {
     const sourceFiles: {
@@ -135,7 +135,7 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
 }
 
 /** JSDoc */
-export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): QuickPromise<StackFrame[]> {
+export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): SyncPromise<StackFrame[]> {
   const filesToRead: string[] = [];
 
   const linesOfContext =
@@ -176,7 +176,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
 
   // We do an early return if we do not want to fetch context liens
   if (linesOfContext <= 0) {
-    return QuickPromise.resolve(frames);
+    return SyncPromise.resolve(frames);
   }
 
   try {
@@ -184,7 +184,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
   } catch (_) {
     // This happens in electron for example where we are not able to read files from asar.
     // So it's fine, we recover be just returning all frames without pre/post context.
-    return QuickPromise.resolve(frames);
+    return SyncPromise.resolve(frames);
   }
 }
 
@@ -198,8 +198,8 @@ function addPrePostContext(
   filesToRead: string[],
   frames: StackFrame[],
   linesOfContext: number,
-): QuickPromise<StackFrame[]> {
-  return new QuickPromise<StackFrame[]>(resolve =>
+): SyncPromise<StackFrame[]> {
+  return new SyncPromise<StackFrame[]>(resolve =>
     readSourceFiles(filesToRead).then(sourceFiles => {
       const result = frames.map(frame => {
         if (frame.filename && sourceFiles[frame.filename]) {
@@ -229,10 +229,10 @@ function addPrePostContext(
 }
 
 /** JSDoc */
-export function getExceptionFromError(error: Error, options?: NodeOptions): QuickPromise<SentryException> {
+export function getExceptionFromError(error: Error, options?: NodeOptions): SyncPromise<SentryException> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  return new QuickPromise<SentryException>(resolve =>
+  return new SyncPromise<SentryException>(resolve =>
     parseStack(stack, options).then(frames => {
       const result = {
         stacktrace: {
@@ -247,9 +247,9 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Quic
 }
 
 /** JSDoc */
-export function parseError(error: ExtendedError, options?: NodeOptions): QuickPromise<SentryEvent> {
+export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<SentryEvent> {
   const name = error.name || error.constructor.name;
-  return new QuickPromise<SentryEvent>(resolve =>
+  return new SyncPromise<SentryEvent>(resolve =>
     getExceptionFromError(error, options).then((exception: SentryException) => {
       const result = {
         exception: {

@@ -1,8 +1,8 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
-import { isPromise } from '@sentry/utils/is';
+import { isFunction, isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
-import { QuickPromise } from '@sentry/utils/quickpromise';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 
 export type EventProcessor = (
   event: SentryEvent,
@@ -75,28 +75,29 @@ export class Scope {
     event: SentryEvent | null,
     hint?: SentryEventHint,
     index: number = 0,
-    callback?: (result: SentryEvent | null) => void,
-  ): QuickPromise<SentryEvent | null> {
-    return new QuickPromise<SentryEvent | null>(resolve => {
-      if (event === null) {
-        resolve(null);
+  ): SyncPromise<SentryEvent | null> {
+    return new SyncPromise<SentryEvent | null>((resolve, reject) => {
+      const processor = processors[index];
+      if (event === null || !isFunction(processor)) {
+        resolve(event);
       } else {
-        const processor = processors[index];
-        if (isPromise(processor)) {
-          (processor({ ...event }, hint) as Promise<SentryEvent | null>).then((processedEvent: SentryEvent | null) => {
-            if (index === processors.length - 1 && callback) {
-              callback(processedEvent);
-            } else {
-              this.notifyEventProcessors(processors, processedEvent, hint, index + 1, resolve);
-            }
-          });
-        } else {
-          const processedEvent = processor({ ...event }, hint) as SentryEvent | null;
-          if (index === processors.length - 1 && callback) {
-            callback(processedEvent);
+        try {
+          const result = processor({ ...event }, hint) as SentryEvent | null;
+          if (isThenable(result)) {
+            (result as Promise<SentryEvent | null>)
+              .then((final: SentryEvent | null) => {
+                this.notifyEventProcessors(processors, final, hint, index + 1)
+                  .then(resolve)
+                  .catch(reject);
+              })
+              .catch(reject);
           } else {
-            this.notifyEventProcessors(processors, processedEvent, hint, index + 1, resolve);
+            this.notifyEventProcessors(processors, result, hint, index + 1)
+              .then(resolve)
+              .catch(reject);
           }
+        } catch (e) {
+          reject(e);
         }
       }
     });
@@ -232,7 +233,7 @@ export class Scope {
     event: SentryEvent,
     hint?: SentryEventHint,
     maxBreadcrumbs?: number,
-  ): QuickPromise<SentryEvent | null> {
+  ): SyncPromise<SentryEvent | null> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }

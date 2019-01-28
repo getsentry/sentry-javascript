@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { SentryEvent, Status } from '@sentry/types';
-import { SentryError } from '../../src/error';
+import { SentryError } from '@sentry/utils/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
