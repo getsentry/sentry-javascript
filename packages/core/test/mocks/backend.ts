@@ -10,6 +10,7 @@ export interface TestOptions extends Options {
 
 export class TestBackend extends BaseBackend<TestOptions> {
   public static instance?: TestBackend;
+  public static sendEventCalled?: (event: SentryEvent) => void;
 
   public installed: number;
   public event?: SentryEvent;
@@ -44,5 +45,6 @@ export class TestBackend extends BaseBackend<TestOptions> {
 
   public sendEvent(event: SentryEvent): void {
     this.event = event;
+    TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
   }
 }

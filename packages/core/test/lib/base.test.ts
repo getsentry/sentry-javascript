@@ -38,6 +38,11 @@ jest.mock('@sentry/utils/string', () => ({
 }));
 
 describe('BaseClient', () => {
+  beforeEach(() => {
+    TestBackend.sendEventCalled = undefined;
+    TestBackend.instance = undefined;
+  });
+
   describe('constructor() / getDsn()', () => {
     test('returns the Dsn', () => {
       expect.assertions(1);
@@ -372,32 +377,47 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toBeUndefined();
     });
 
-    test('calls async beforeSend and uses original event without any changes', () => {
+    test('calls async beforeSend and uses original event without any changes', done => {
+      jest.useFakeTimers();
       expect.assertions(1);
       const beforeSend = jest.fn(
         async event =>
           new Promise<SentryEvent>(resolve => {
-            resolve(event);
+            setTimeout(() => resolve(event), 1);
           }),
       );
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' });
-      expect(TestBackend.instance!.event!.message).toBe('hello');
+      jest.runOnlyPendingTimers();
+      TestBackend.sendEventCalled = (event: SentryEvent) => {
+        expect(event.message).toBe('hello');
+      };
+      setTimeout(() => {
+        done();
+      }, 5);
+      jest.runOnlyPendingTimers();
     });
 
-    test('calls async beforeSend and uses the new one', () => {
+    test('calls async beforeSend and uses the new one', done => {
       jest.useFakeTimers();
       expect.assertions(1);
       const beforeSend = jest.fn(
         () =>
           new Promise<SentryEvent>(resolve => {
-            setTimeout(() => resolve({ message: 'changed2' }));
+            setTimeout(() => resolve({ message: 'changed2' }), 1);
           }),
       );
+
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' });
-      jest.runAllTimers();
-      expect(TestBackend.instance!.event!.message).toBe('changed2');
+      jest.runOnlyPendingTimers();
+      TestBackend.sendEventCalled = (event: SentryEvent) => {
+        expect(event.message).toBe('changed2');
+      };
+      setTimeout(() => {
+        done();
+      }, 5);
+      jest.runOnlyPendingTimers();
     });
 
     test('calls async beforeSend and discards the event', () => {
@@ -419,8 +439,7 @@ describe('BaseClient', () => {
       expect.assertions(2);
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
-      const scope = new Scope();
-      client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' }, scope);
+      client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
       expect(TestBackend.instance!.event!.message).toBe('hello');
       expect(TestBackend.instance!.event!.data).toBe('someRandomThing');
     });
