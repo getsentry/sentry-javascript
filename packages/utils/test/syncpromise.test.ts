@@ -11,6 +11,20 @@ describe('SyncPromise', () => {
     });
   });
 
+  test('simple chaining', () => {
+    expect.assertions(1);
+
+    return new SyncPromise<number>(resolve => {
+      resolve(42);
+    })
+      .then(_ => SyncPromise.resolve('a'))
+      .then(_ => SyncPromise.resolve(0.1))
+      .then(_ => SyncPromise.resolve(false))
+      .then(val => {
+        expect(val).toBe(false);
+      });
+  });
+
   test('simple static', () => {
     expect.assertions(1);
 
