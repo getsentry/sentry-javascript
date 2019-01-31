@@ -235,13 +235,11 @@ export async function getExceptionFromError(error: Error, options?: NodeOptions)
 
 /** JSDoc */
 export async function parseError(error: ExtendedError, options?: NodeOptions): Promise<SentryEvent> {
-  const name = error.name || error.constructor.name;
   const exception = await getExceptionFromError(error, options);
   return {
     exception: {
       values: [exception],
     },
-    message: `${name}: ${error.message || '<no message>'}`,
   };
 }
 
