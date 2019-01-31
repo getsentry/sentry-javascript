@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 5.0.0
+
+- [node] fix: Events created from exception shouldnt have top-level message attribute
+
 ## 4.5.3
 
 - [browser]: fix: Fix UnhandledPromise: [object Object]
