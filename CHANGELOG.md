@@ -2,16 +2,26 @@
 
 ## Unreleased
 
-- **breaking** [node] fix: Events created from exception shouldnt have top-level message attribute
+### Migration from v4
+
+This major bump brings a lot of internal improvements. If you were using the SDK without any special abilities,
+basically the way we described it in the docs, you should be fine by just updating it. This is a **breaking** release
+since we removed some public API surface and removed some classes from the default export.
+
+- **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
 - [utils] ref: Update wrap method to hide internal sentry flags
 - [utils] fix: Make internal Sentry flags non-enumerable in fill util
+- [utils] ref: Move `SentryError` + `PromiseBuffer` to utils
+- **breaking** [core] ref: Use `SyncPromise` internally, this reduces memory pressure by a lot.
+- **breaking** [browser] ref: Removed `BrowserBackend` from default export.
+- **breaking** [node] ref: Removed `BrowserBackend` from default export.
 
 ## 4.5.3
 
 - [browser]: fix: Fix UnhandledPromise: [object Object]
-- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object property.
+- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object
+  property.
 - [hub]: feat: Support non async event processors
-
 
 ## 4.5.2
 
