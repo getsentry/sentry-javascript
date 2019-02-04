@@ -207,6 +207,25 @@ describe('fill()', () => {
     expect(replacement).toBeCalled();
     expect.assertions(3);
   });
+
+  test('internal flags shouldnt be enumerable', () => {
+    const source = {
+      foo: (): number => 42,
+    };
+    const name = 'foo';
+    const replacement = cb => cb;
+
+    fill(source, name, replacement);
+
+    // Shouldn't show up in iteration
+    expect(Object.keys(replacement)).not.toContain('__sentry__');
+    expect(Object.keys(replacement)).not.toContain('__sentry_original__');
+    expect(Object.keys(replacement)).not.toContain('__sentry_wrapped__');
+    // But should be accessible directly
+    expect(source.foo.__sentry__).toBe(true);
+    expect(source.foo.__sentry_original__).toBe(source.foo);
+    expect(source.foo.__sentry_wrapped__).toBe(source.foo);
+  });
 });
 
 describe('urlEncode()', () => {

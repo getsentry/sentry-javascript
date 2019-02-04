@@ -250,15 +250,12 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Sync
 export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<SentryEvent> {
   const name = error.name || error.constructor.name;
   return new SyncPromise<SentryEvent>(resolve =>
-    getExceptionFromError(error, options).then((exception: SentryException) => {
-      const result = {
+    getExceptionFromError(error, options).then((exception: SentryException) => resolve({
         exception: {
           values: [exception],
         },
-        message: `${name}: ${error.message || '<no message>'}`,
-      };
-      resolve(result);
-    }),
+      }),
+    ),
   );
 }
 
