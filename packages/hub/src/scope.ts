@@ -4,6 +4,12 @@ import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 
+/**
+ * Event processors are used to change the event before it will be send.
+ * We strongly advise to make this function sync.
+ * Returning a Promise<SentryEvent | null> works just fine, just be sure what you are doing.
+ * Eventprosccing will be stopped until your Promise is resolved.
+ */
 export type EventProcessor = (
   event: SentryEvent,
   hint?: SentryEventHint,
@@ -228,6 +234,7 @@ export class Scope {
    * @param event SentryEvent
    * @param hint May contain additional informartion about the original exception.
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
+   * @hidden
    */
   public applyToEvent(
     event: SentryEvent,

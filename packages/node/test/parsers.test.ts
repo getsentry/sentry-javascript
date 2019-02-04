@@ -1,7 +1,7 @@
 // import { StackFrame } from '@sentry/types';
 import * as fs from 'fs';
 import * as stacktrace from 'stack-trace';
-import { Parsers } from '../src';
+import * as Parsers from '../src/parsers';
 import { getError } from './helper/error';
 
 describe('parsers.ts', () => {

@@ -4,17 +4,13 @@ import { BrowserClient, ReportDialogOptions } from './client';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
-  // Common
   new CoreIntegrations.Dedupe(),
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
   new CoreIntegrations.ExtraErrorData(),
-  // Native Wrappers
   new TryCatch(),
   new Breadcrumbs(),
-  // Global Handlers
   new GlobalHandlers(),
-  // Misc
   new LinkedErrors(),
   new UserAgent(),
 ];
@@ -27,29 +23,42 @@ export const defaultIntegrations = [
  * the provided methods.
  *
  * @example
+ *
+ * ```
+ *
  * import { init } from '@sentry/browser';
  *
  * init({
  *   dsn: '__DSN__',
  *   // ...
  * });
+ * ```
  *
  * @example
+ * ```
+ *
  * import { configureScope } from '@sentry/browser';
  * configureScope((scope: Scope) => {
  *   scope.setExtra({ battery: 0.7 });
  *   scope.setTag({ user_mode: 'admin' });
  *   scope.setUser({ id: '4711' });
  * });
+ * ```
  *
  * @example
+ * ```
+ *
  * import { addBreadcrumb } from '@sentry/browser';
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
  * });
+ * ```
  *
  * @example
+ *
+ * ```
+ *
  * import * as Sentry from '@sentry/browser';
  * Sentry.captureMessage('Hello, world!');
  * Sentry.captureException(new Error('Good bye'));
@@ -59,8 +68,9 @@ export const defaultIntegrations = [
  *     // ...
  *   ],
  * });
+ * ```
  *
- * @see BrowserOptions for documentation on configuration options.
+ * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
@@ -91,14 +101,16 @@ export function lastEventId(): string | undefined {
 }
 
 /**
- * This function is here to be API compatible with the loader
+ * This function is here to be API compatible with the loader.
+ * @hidden
  */
 export function forceLoad(): void {
   // Noop
 }
 
 /**
- * This function is here to be API compatible with the loader
+ * This function is here to be API compatible with the loader.
+ * @hidden
  */
 export function onLoad(callback: () => void): void {
   callback();

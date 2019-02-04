@@ -1,4 +1,5 @@
-import { NodeBackend, SentryEvent } from '../../src';
+import { SentryEvent } from '../../src';
+import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
 let linkedErrors: LinkedErrors;

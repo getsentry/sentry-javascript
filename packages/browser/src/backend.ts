@@ -28,7 +28,10 @@ export interface BrowserOptions extends Options {
   whitelistUrls?: Array<string | RegExp>;
 }
 
-/** The Sentry Browser SDK Backend. */
+/**
+ * The Sentry Browser SDK Backend.
+ * @hidden
+ */
 export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc

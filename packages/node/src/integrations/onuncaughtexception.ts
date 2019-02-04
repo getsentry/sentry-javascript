@@ -37,7 +37,9 @@ export class OnUncaughtException implements Integration {
   }
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function makeErrorHandler(
   onFatalError: (firstError: Error, secondError?: Error) => void = defaultOnFatalError,
 ): (error: Error) => void {

@@ -8,7 +8,10 @@ import * as https from 'https';
 import * as url from 'url';
 import { SDK_NAME, SDK_VERSION } from '../version';
 
-/** Internal used interface for typescript */
+/**
+ * Internal used interface for typescript.
+ * @hidden
+ */
 export interface HTTPRequest {
   request(
     options: http.RequestOptions | https.RequestOptions | string | url.URL,

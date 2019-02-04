@@ -27,6 +27,8 @@ declare module 'domain' {
  *
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
+ *
+ * @hidden
  */
 export const API_VERSION = 3;
 
@@ -71,6 +73,8 @@ export class Hub {
    *
    * @param version A version number to compare to.
    * @return True if the given version is newer; otherwise false.
+   *
+   * @hidden
    */
   public isOlderThan(version: number): boolean {
     return this.version < version;
@@ -347,7 +351,7 @@ export function getCurrentHub(): Hub {
  * This will tell whether a carrier has a hub on it or not
  * @param carrier object
  */
-export function hasHubOnCarrier(carrier: any): boolean {
+function hasHubOnCarrier(carrier: any): boolean {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return true;
   } else {
@@ -359,6 +363,7 @@ export function hasHubOnCarrier(carrier: any): boolean {
  * This will create a new {@link Hub} and add to the passed object on
  * __SENTRY__.hub.
  * @param carrier object
+ * @hidden
  */
 export function getHubFromCarrier(carrier: any): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {

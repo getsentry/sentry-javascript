@@ -36,7 +36,10 @@ export interface NodeOptions extends Options {
   frameContextLines?: number;
 }
 
-/** The Sentry Node SDK Backend. */
+/**
+ * The Sentry Node SDK Backend.
+ * @hidden
+ */
 export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritdoc

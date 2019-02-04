@@ -12,7 +12,9 @@ import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 const global = getGlobalObject() as Window;
 let lastHref: string | undefined;
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   [key: string]: any;
   __sentry_xhr__?: {

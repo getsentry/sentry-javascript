@@ -13,6 +13,7 @@ const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 
 /**
  * Resets the file cache. Exists for testing purposes.
+ * @hidden
  */
 export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
@@ -125,7 +126,9 @@ function readSourceFiles(filenames: string[]): SyncPromise<{ [key: string]: stri
   });
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
   const stack = stacktrace.parse(error);
   if (!stack) {
@@ -134,7 +137,9 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
   return stack;
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): SyncPromise<StackFrame[]> {
   const filesToRead: string[] = [];
 
@@ -228,7 +233,9 @@ function addPrePostContext(
   );
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function getExceptionFromError(error: Error, options?: NodeOptions): SyncPromise<SentryException> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
@@ -246,20 +253,24 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Sync
   );
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<SentryEvent> {
-  const name = error.name || error.constructor.name;
   return new SyncPromise<SentryEvent>(resolve =>
-    getExceptionFromError(error, options).then((exception: SentryException) => resolve({
+    getExceptionFromError(error, options).then((exception: SentryException) => {
+      resolve({
         exception: {
           values: [exception],
         },
-      }),
-    ),
+      });
+    }),
   );
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
   if (!stack || !stack.length) {
     return [];

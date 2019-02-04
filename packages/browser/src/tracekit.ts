@@ -3,6 +3,9 @@
 import { isUndefined, isError, isErrorEvent } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 
+/**
+ * @hidden
+ */
 export interface StackFrame {
   url: string;
   func: string;
@@ -12,6 +15,9 @@ export interface StackFrame {
   context: string[];
 }
 
+/**
+ * @hidden
+ */
 export interface StackTrace {
   /**
    * Known modes: callers, failed, multiline, onerror, stack, stacktrace
