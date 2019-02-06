@@ -86,7 +86,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
       const message = ex.message ? `${name}: ${ex.message}` : name;
 
-      event = await this.eventFromMessage(message, undefined, hint);
+      event = await this.eventFromMessage(message, Severity.Error, hint);
       addExceptionTypeValue(event, message);
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [browser] fix: DOMError and DOMException should be error level events
 - [utils] ref: Update wrap method to hide internal sentry flags
 - [utils] fix: Make internal Sentry flags non-enumerable in fill util
 
