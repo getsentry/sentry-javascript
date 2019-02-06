@@ -135,10 +135,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     this.getBackend()
       .eventFromException(exception, hint)
-      .then(event => {
-        this.processEvent(event, hint, scope).then(finalEvent => {
-          eventId = (finalEvent && finalEvent.event_id) || undefined;
-        });
+      .then(event => this.processEvent(event, hint, scope))
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
       });
 
     return eventId;
@@ -154,11 +156,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       ? this.getBackend().eventFromMessage(`${message}`, level, hint)
       : this.getBackend().eventFromException(message, hint);
 
-    promisedEvent.then(event => {
-      this.processEvent(event, hint, scope).then(finalEvent => {
-        eventId = (finalEvent && finalEvent.event_id) || undefined;
+    promisedEvent
+      .then(event => this.processEvent(event, hint, scope))
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
       });
-    });
 
     return eventId;
   }
@@ -168,9 +173,13 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this.processEvent(event, hint, scope).then(finalEvent => {
-      eventId = (finalEvent && finalEvent.event_id) || undefined;
-    });
+    this.processEvent(event, hint, scope)
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
+      });
     return eventId;
   }
 
@@ -270,13 +279,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       prepared.event_id = uuid4();
     }
 
+    // We prepare the result here with a resolved SentryEvent.
+    let result = SyncPromise.resolve<SentryEvent | null>(prepared);
+
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      // In case we have a hub we reassign it.
+      result = scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
-    return SyncPromise.resolve(prepared as SentryEvent | null);
+    return result;
   }
 
   /**
@@ -286,37 +299,29 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * platform specific meta data (such as the User's IP address) must be added
    * by the SDK implementor.
    *
-   * The returned event status offers clues to whether the event was sent to
-   * Sentry and accepted there. If the {@link Options.shouldSend} hook returns
-   * `false`, the status will be {@link SendStatus.Skipped}. If the rate limit
-   * was exceeded, the status will be {@link SendStatus.RateLimit}.
    *
    * @param event The event to send to Sentry.
-   * @param send A function to actually send the event.
-   * @param scope A scope containing event metadata.
    * @param hint May contain additional informartion about the original exception.
-   * @returns A SyncPromise that resolves with the event.
+   * @param scope A scope containing event metadata.
+   * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): SyncPromise<SentryEvent | null> {
+  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): SyncPromise<SentryEvent> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this.isEnabled()) {
-      logger.log('SDK not enabled, will not send event.');
-      return SyncPromise.resolve();
+      return SyncPromise.reject('SDK not enabled, will not send event.');
     }
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      logger.log('This event has been sampled, will not send event.');
-      return SyncPromise.resolve();
+      return SyncPromise.reject('This event has been sampled, will not send event.');
     }
 
-    return new SyncPromise(resolve => {
+    return new SyncPromise((resolve, reject) => {
       this.prepareEvent(event, scope, hint).then(prepared => {
         if (prepared === null) {
-          logger.log('An event processor returned null, will not send event.');
-          resolve(null);
+          reject('An event processor returned null, will not send event.');
           return;
         }
 
@@ -324,42 +329,27 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
         try {
           const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-          if (!isInternalException && beforeSend) {
-            const beforeSendResult = beforeSend(prepared, hint);
-            if ((typeof beforeSendResult as any) === 'undefined') {
-              logger.error('`beforeSend` method has to return `null` or a valid event.');
-            } else if (isThenable(beforeSendResult)) {
-              (beforeSendResult as Promise<SentryEvent | null>)
-                .then(processedEvent => {
-                  finalEvent = processedEvent;
+          if (isInternalException || !beforeSend) {
+            this.getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
+            return;
+          }
 
-                  if (finalEvent === null) {
-                    logger.log('`beforeSend` returned `null`, will not send event.');
-                    resolve(null);
-                    return;
-                  }
-
-                  // From here on we are really async
-                  this.getBackend().sendEvent(finalEvent);
-                  resolve(finalEvent);
-                })
-                .catch(e => {
-                  logger.error(`beforeSend rejected with ${e}`);
-                });
-            } else {
-              finalEvent = beforeSendResult as SentryEvent | null;
-
-              if (finalEvent === null) {
-                logger.log('`beforeSend` returned `null`, will not send event.');
-                resolve(null);
-                return;
-              }
-
-              // From here on we are really async
-              this.getBackend().sendEvent(finalEvent);
-              resolve(finalEvent);
-            }
+          const beforeSendResult = beforeSend(prepared, hint);
+          if ((typeof beforeSendResult as any) === 'undefined') {
+            logger.error('`beforeSend` method has to return `null` or a valid event.');
+          } else if (isThenable(beforeSendResult)) {
+            this.handleAsyncBeforeSend(beforeSendResult as Promise<SentryEvent | null>, resolve, reject);
           } else {
+            finalEvent = beforeSendResult as SentryEvent | null;
+
+            if (finalEvent === null) {
+              logger.log('`beforeSend` returned `null`, will not send event.');
+              resolve(null);
+              return;
+            }
+
+            // From here on we are really async
             this.getBackend().sendEvent(finalEvent);
             resolve(finalEvent);
           }
@@ -370,12 +360,33 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             },
             originalException: exception as Error,
           });
-          logger.error('`beforeSend` throw an error, will not send event.');
-          resolve(null);
-          return;
+          reject('`beforeSend` throw an error, will not send event.');
         }
       });
     });
+  }
+
+  /**
+   * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
+   */
+  private handleAsyncBeforeSend(
+    beforeSend: Promise<SentryEvent | null>,
+    resolve: (event: SentryEvent) => void,
+    reject: (reason: string) => void,
+  ): void {
+    beforeSend
+      .then(processedEvent => {
+        if (processedEvent === null) {
+          reject('`beforeSend` returned `null`, will not send event.');
+          return;
+        }
+        // From here on we are really async
+        this.getBackend().sendEvent(processedEvent);
+        resolve(processedEvent);
+      })
+      .catch(e => {
+        reject(`beforeSend rejected with ${e}`);
+      });
   }
 
   /**

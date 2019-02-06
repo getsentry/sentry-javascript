@@ -190,7 +190,7 @@ describe('Scope', () => {
     });
   });
 
-  test('addEventProcessor async', () => {
+  test('addEventProcessor async', async () => {
     jest.useFakeTimers();
     expect.assertions(6);
     const event: SentryEvent = {
@@ -227,6 +227,39 @@ describe('Scope', () => {
       expect(callCounter.mock.calls[2][0]).toBe(3);
       expect(callCounter.mock.calls[3][0]).toBe(4);
       expect(processedEvent!.dist).toEqual('1');
+    });
+  });
+
+  test('addEventProcessor async with reject', async () => {
+    jest.useFakeTimers();
+    expect.assertions(2);
+    const event: SentryEvent = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+    const callCounter = jest.fn();
+    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+      callCounter(1);
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
+    });
+    localScope.addEventProcessor(
+      async (_processedEvent: SentryEvent) =>
+        new Promise<SentryEvent>((_, reject) => {
+          setTimeout(() => {
+            reject('bla');
+          }, 1);
+          jest.runAllTimers();
+        }),
+    );
+    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+      callCounter(4);
+      return processedEvent;
+    });
+
+    return localScope.applyToEvent(event).catch(reason => {
+      expect(reason).toEqual('bla');
     });
   });
 

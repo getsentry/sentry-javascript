@@ -25,6 +25,65 @@ describe('SyncPromise', () => {
       });
   });
 
+  test('compare to regular promise', async () => {
+    expect.assertions(2);
+
+    const ap = new Promise<string>(resolve => {
+      resolve('1');
+    });
+
+    const bp = new Promise<string>(resolve => {
+      resolve('2');
+    });
+
+    const cp = new Promise<string>(resolve => {
+      resolve('3');
+    });
+
+    const fp = async (s: Promise<string>, prepend: string) =>
+      new Promise<string>(resolve => {
+        s.then(val => {
+          resolve(prepend + val);
+        }).catch(_ => {
+          // bla
+        });
+      });
+
+    const res = await cp
+      .then(async val => fp(Promise.resolve('x'), val))
+      .then(async val => fp(bp, val))
+      .then(async val => fp(ap, val));
+
+    expect(res).toBe('3x21');
+
+    const a = new SyncPromise<string>(resolve => {
+      resolve('1');
+    });
+
+    const b = new SyncPromise<string>(resolve => {
+      resolve('2');
+    });
+
+    const c = new SyncPromise<string>(resolve => {
+      resolve('3');
+    });
+
+    const f = (s: SyncPromise<string>, prepend: string) =>
+      new SyncPromise<string>(resolve => {
+        s.then(val => {
+          resolve(prepend + val);
+        });
+      });
+
+    return c
+      .then(val => f(SyncPromise.resolve('x'), val))
+      .then(val => f(b, val))
+      .then(val => f(a, val))
+      .then(val => {
+        expect(val).toBe(res);
+      });
+  });
+
   test('simple static', () => {
     expect.assertions(1);
 

@@ -87,23 +87,15 @@ export class Scope {
       if (event === null || !isFunction(processor)) {
         resolve(event);
       } else {
-        try {
-          const result = processor({ ...event }, hint) as SentryEvent | null;
-          if (isThenable(result)) {
-            (result as Promise<SentryEvent | null>)
-              .then((final: SentryEvent | null) => {
-                this.notifyEventProcessors(processors, final, hint, index + 1)
-                  .then(resolve)
-                  .catch(reject);
-              })
-              .catch(reject);
-          } else {
-            this.notifyEventProcessors(processors, result, hint, index + 1)
-              .then(resolve)
-              .catch(reject);
-          }
-        } catch (e) {
-          reject(e);
+        const result = processor({ ...event }, hint) as SentryEvent | null;
+        if (isThenable(result)) {
+          (result as Promise<SentryEvent | null>)
+            .then(final => this.notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
+            .catch(reject);
+        } else {
+          this.notifyEventProcessors(processors, result, hint, index + 1)
+            .then(resolve)
+            .catch(reject);
         }
       }
     });
