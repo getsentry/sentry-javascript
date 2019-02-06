@@ -121,11 +121,11 @@ describe('decycle()', () => {
     circular.bar = circular;
     Object.defineProperty(circular, 'baz', {
       enumerable: true,
-      value: circular
+      value: circular,
     });
     Object.defineProperty(circular, 'qux', {
       enumerable: false,
-      value: circular
+      value: circular,
     });
 
     const decycled = decycle(circular);

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] fix: `DOMError` and `DOMException` should be error level events
+- [browser] ref: Log error if Ember/Vue instances are not provided
 - [utils] fix: Dont mutate original input in `decycle` util function
 - [utils] fix: Skip non-enumerable properties in `decycle` util function
 - [utils] ref: Update `wrap` method to hide internal Sentry flags
