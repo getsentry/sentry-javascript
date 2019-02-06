@@ -1,5 +1,6 @@
 import {
   clone,
+  decycle,
   deserialize,
   fill,
   safeNormalize,
@@ -22,6 +23,93 @@ describe('clone()', () => {
       expect(clone(entry.object)).toEqual(entry.object);
     });
   }
+});
+
+describe('decycle()', () => {
+  test('decycles circular objects', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      foo: 1,
+      bar: '[Circular ~]',
+    });
+  });
+
+  test('decycles complex circular objects', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = [
+      {
+        baz: circular,
+      },
+      circular,
+    ];
+    circular.qux = circular.bar[0].baz;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: [
+        {
+          baz: '[Circular ~]',
+        },
+        '[Circular ~]',
+      ],
+      foo: 1,
+      qux: '[Circular ~]',
+    });
+  });
+
+  test('dont mutate original object', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      foo: 1,
+      bar: '[Circular ~]',
+    });
+    expect(circular.bar).toEqual(circular);
+  });
+
+  test('dont mutate original complex object', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = [
+      {
+        baz: circular,
+      },
+      circular,
+    ];
+    circular.qux = circular.bar[0].baz;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: [
+        {
+          baz: '[Circular ~]',
+        },
+        '[Circular ~]',
+      ],
+      foo: 1,
+      qux: '[Circular ~]',
+    });
+
+    expect(circular.bar[0].baz).toEqual(circular);
+    expect(circular.bar[1]).toEqual(circular);
+    expect(circular.qux).toEqual(circular.bar[0].baz);
+  });
 });
 
 describe('serialize()', () => {
