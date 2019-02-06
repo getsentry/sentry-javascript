@@ -5,8 +5,8 @@
 ### Migration from v4
 
 This major bump brings a lot of internal improvements. If you were using the SDK without any special abilities,
-basically the way we described it in the docs, you should be fine by just updating it. This is a **breaking** release
-since we removed some public API surface and removed some classes from the default export.
+basically, the way we describe it in the docs, you should be fine by just updating it. This is a **breaking** release
+since we removed some methods from the public API and removed some classes from the default export.
 
 - **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
 - [utils] ref: Update wrap method to hide internal sentry flags
