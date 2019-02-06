@@ -96,12 +96,6 @@
 
   function sdkLoaded(callbacks, SDK) {
     try {
-      for (var i = 0; i < callbacks.length; i++) {
-        if (typeof callbacks[i] === 'function') {
-          callbacks[i]();
-        }
-      }
-
       var data = queue.data;
 
       // We want to replay all calls to Sentry first to make sure init is called before
@@ -125,6 +119,14 @@
         // Sentry has never been called but we need Sentry.init() so call it
         SDK.init();
       }
+
+      // After init and all calls have been replayed, we call all the registered callbacks
+      for (var i = 0; i < callbacks.length; i++) {
+        if (typeof callbacks[i] === 'function') {
+          callbacks[i]();
+        }
+      }
+
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
