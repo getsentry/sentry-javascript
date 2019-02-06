@@ -1,6 +1,7 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Integration, SentryEvent } from '@sentry/types';
 import { isPlainObject, isUndefined } from '@sentry/utils/is';
+import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 /** JSDoc */
@@ -57,6 +58,7 @@ export class Vue implements Integration {
    */
   public setupOnce(): void {
     if (!this.Vue || !this.Vue.config) {
+      logger.error('VueIntegration is missing a Vue instance');
       return;
     }
 
