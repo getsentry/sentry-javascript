@@ -92,7 +92,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;
 
-      return this.eventFromMessage(message, undefined, hint).then(messageEvent => {
+      return this.eventFromMessage(message, Severity.Error, hint).then(messageEvent => {
         addExceptionTypeValue(messageEvent, message);
         return SyncPromise.resolve(this.buildEvent(messageEvent));
       });
