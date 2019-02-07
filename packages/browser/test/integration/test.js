@@ -1659,7 +1659,7 @@ for (var idx in frames) {
         });
       });
 
-      // LOADER SPECIFIC TESTS ---------------------------------------------------------------------------------------
+      // LOADER SPECIFIC TESTS -----------------------------------------------------------------------------------------
       if (IS_ASYNC_LOADER) {
         describe('Loader Specific Tests', function() {
           it('should add breadcrumb from onLoad Callback to undefined error', function(done) {
@@ -1670,6 +1670,35 @@ for (var idx in frames) {
               done,
               function() {
                 Sentry.onLoad(function() {
+                  Sentry.addBreadcrumb({
+                    category: 'auth',
+                    message: 'testing loader',
+                    level: 'error',
+                  });
+                });
+                undefinedMethod(); //trigger error
+              },
+              function(sentryData) {
+                if (debounceAssertEventCount(sentryData, 1, done)) {
+                  var sentryData = iframe.contentWindow.sentryData[0];
+                  assert.ok(sentryData.breadcrumbs);
+                  assert.lengthOf(sentryData.breadcrumbs, 1);
+                  assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                  done();
+                }
+              }
+            );
+          });
+
+          it('should add breadcrumb from onLoad Callback to undefined error with custom init()', function(done) {
+            var iframe = this.iframe;
+
+            iframeExecute(
+              iframe,
+              done,
+              function() {
+                Sentry.onLoad(function() {
+                  Sentry.init({ debug: true });
                   Sentry.addBreadcrumb({
                     category: 'auth',
                     message: 'testing loader',
