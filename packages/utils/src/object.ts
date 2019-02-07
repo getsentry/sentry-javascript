@@ -335,6 +335,10 @@ export function decycle(obj: any, memo: Memo = new Memo()): any {
     }
     // tslint:disable-next-line
     for (const key in obj) {
+      // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+      if (!obj.hasOwnProperty(key)) {
+        continue;
+      }
       // tslint:disable-next-line
       copy[key] = decycle(obj[key], memo);
     }
