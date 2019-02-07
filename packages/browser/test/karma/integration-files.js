@@ -10,6 +10,8 @@ module.exports = [
   { pattern: 'test/integration/frame.html', included: false },
   { pattern: 'test/integration/loader.html', included: false },
   { pattern: 'test/integration/loader-lazy-no.html', included: false },
+  { pattern: 'test/integration/loader-with-no-global-init.html', included: false },
+  { pattern: 'test/integration/loader-with-no-global-init-lazy-no.html', included: false },
   { pattern: 'test/integration/common.js', included: false },
   { pattern: 'src/loader.js', included: false },
   { pattern: 'test/integration/init.js', included: false },

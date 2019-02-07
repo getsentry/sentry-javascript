@@ -98,33 +98,37 @@
     try {
       var data = queue.data;
 
-      // We want to replay all calls to Sentry first to make sure init is called before
-      // we call all our internal error handlers
+      // We have to make sure to call all callbacks first
+      for (var i = 0; i < callbacks.length; i++) {
+        if (typeof callbacks[i] === 'function') {
+          callbacks[i]();
+        }
+      }
+
       var firstInitCall = false;
+      // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+      if (!(typeof _window['__SENTRY__'] === 'undefined')) {
+        firstInitCall = true;
+      }
+
+      // We want to replay all calls to Sentry and also make sure init is called before if it wasn't called already
+      // We replay all calls to `Sentry.*` now
       var calledSentry = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
           calledSentry = true;
           var call = data[i];
           if (firstInitCall === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user
-            // so call to init is optional
+            // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
           }
           firstInitCall = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
-      if (calledSentry === false) {
+      if (firstInitCall === false && calledSentry === false) {
         // Sentry has never been called but we need Sentry.init() so call it
         SDK.init();
-      }
-
-      // After init and all calls have been replayed, we call all the registered callbacks
-      for (var i = 0; i < callbacks.length; i++) {
-        if (typeof callbacks[i] === 'function') {
-          callbacks[i]();
-        }
       }
 
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,

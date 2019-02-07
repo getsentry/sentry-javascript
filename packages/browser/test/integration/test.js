@@ -67,7 +67,7 @@ for (var idx in frames) {
     var filename = frames[idx];
     var IS_ASYNC_LOADER = !!filename.match(/^loader/);
 
-    describe('integration ' + filename + '.html', function() {
+    describe(filename + '.html', function() {
       this.timeout(30000);
 
       beforeEach(function(done) {
@@ -1662,7 +1662,7 @@ for (var idx in frames) {
       // LOADER SPECIFIC TESTS -----------------------------------------------------------------------------------------
       if (IS_ASYNC_LOADER) {
         describe('Loader Specific Tests', function() {
-          it('should add breadcrumb from onLoad Callback to undefined error', function(done) {
+          it('should add breadcrumb from onLoad callback from undefined error', function(done) {
             var iframe = this.iframe;
 
             iframeExecute(
@@ -1690,7 +1690,7 @@ for (var idx in frames) {
             );
           });
 
-          it('should add breadcrumb from onLoad Callback to undefined error with custom init()', function(done) {
+          it('should add breadcrumb from onLoad callback from undefined error with custom init()', function(done) {
             var iframe = this.iframe;
 
             iframeExecute(
@@ -1721,6 +1721,57 @@ for (var idx in frames) {
         });
       }
       // -------------------------------------------------------------------------------------------------------------
+    });
+  })();
+}
+
+var loaderSpecific = ['loader-with-no-global-init', 'loader-with-no-global-init-lazy-no'];
+
+for (var idx in loaderSpecific) {
+  (function() {
+    var filename = loaderSpecific[idx];
+
+    describe(filename + '.html', function() {
+      this.timeout(30000);
+
+      beforeEach(function(done) {
+        this.iframe = createIframe(done, filename);
+      });
+
+      afterEach(function() {
+        document.body.removeChild(this.iframe);
+      });
+
+      describe('Loader Specific Tests - With no Global init() call', function() {
+        it('should add breadcrumb from onLoad callback from undefined error', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              Sentry.onLoad(function() {
+                initSDK();
+                Sentry.addBreadcrumb({
+                  category: 'auth',
+                  message: 'testing loader',
+                  level: 'error',
+                });
+              });
+              undefinedMethod(); //trigger error
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                var sentryData = iframe.contentWindow.sentryData[0];
+                assert.ok(sentryData.breadcrumbs);
+                assert.lengthOf(sentryData.breadcrumbs, 1);
+                assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                done();
+              }
+            }
+          );
+        });
+      });
     });
   })();
 }
