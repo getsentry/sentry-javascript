@@ -1,5 +1,6 @@
 import { BaseBackend, Options } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { SyncPromise } from '@sentry/utils/syncpromise';
