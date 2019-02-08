@@ -58,7 +58,6 @@
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    var _currentScriptTag = _document.getElementsByTagName(_script)[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossorigin = 'anonymous';
@@ -91,7 +90,9 @@
       }
     });
 
-    _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+    // We are append the script to body. Reason for this is if you use a onload callback it could happen that
+    // the onLoad of the already injected SDK will be called which beaks the setup cycle.
+    document.body.appendChild(_newScriptTag);
   }
 
   function sdkLoaded(callbacks, SDK) {
@@ -105,10 +106,10 @@
         }
       }
 
-      var firstInitCall = false;
+      var initAlreadyCalled = false;
       // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
       if (!(typeof _window['__SENTRY__'] === 'undefined')) {
-        firstInitCall = true;
+        initAlreadyCalled = true;
       }
 
       // We want to replay all calls to Sentry and also make sure init is called before if it wasn't called already
@@ -118,15 +119,15 @@
         if (data[i].f) {
           calledSentry = true;
           var call = data[i];
-          if (firstInitCall === false && call.f !== 'init') {
+          if (initAlreadyCalled === false && call.f !== 'init') {
             // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
           }
-          firstInitCall = true;
+          initAlreadyCalled = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
-      if (firstInitCall === false && calledSentry === false) {
+      if (initAlreadyCalled === false && calledSentry === false) {
         // Sentry has never been called but we need Sentry.init() so call it
         SDK.init();
       }
@@ -206,7 +207,7 @@
   };
 
   if (!lazy) {
-    setTimeout(function() {
+    setTimeout(function () {
       injectSdk(onLoadCallbacks);
     });
   }

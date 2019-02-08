@@ -65,7 +65,8 @@ var frames = ['frame', 'loader', 'loader-lazy-no'];
 for (var idx in frames) {
   (function() {
     var filename = frames[idx];
-    var IS_ASYNC_LOADER = !!filename.match(/^loader/);
+    var IS_ASYNC_LOADER = !!filename.match(/^loader$/);
+    var IS_SYNC_LOADER = !!filename.match(/^loader-lazy-no$/);
 
     describe(filename + '.html', function() {
       this.timeout(30000);
@@ -1660,7 +1661,7 @@ for (var idx in frames) {
       });
 
       // LOADER SPECIFIC TESTS -----------------------------------------------------------------------------------------
-      if (IS_ASYNC_LOADER) {
+      if (IS_ASYNC_LOADER || IS_SYNC_LOADER) {
         describe('Loader Specific Tests', function() {
           it('should add breadcrumb from onLoad callback from undefined error', function(done) {
             var iframe = this.iframe;
@@ -1681,9 +1682,13 @@ for (var idx in frames) {
               function(sentryData) {
                 if (debounceAssertEventCount(sentryData, 1, done)) {
                   var sentryData = iframe.contentWindow.sentryData[0];
-                  assert.ok(sentryData.breadcrumbs);
-                  assert.lengthOf(sentryData.breadcrumbs, 1);
-                  assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                  if (IS_ASYNC_LOADER) {
+                    assert.notOk(sentryData.breadcrumbs);
+                  } else {
+                    assert.ok(sentryData.breadcrumbs);
+                    assert.lengthOf(sentryData.breadcrumbs, 1);
+                    assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                  }
                   done();
                 }
               }

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [loader] fix: Init and replay all calls to `Sentry.*` first before invoking all registered callbacks
+- [core] ref: Multiple init calls have been changed to "latest wins" instead of "ignore all after first"
 - [browser] fix: DOMError and DOMException should be error level events
 - [utils] ref: Update wrap method to hide internal sentry flags
 - [utils] fix: Make internal Sentry flags non-enumerable in fill util
@@ -10,9 +11,9 @@
 ## 4.5.3
 
 - [browser]: fix: Fix UnhandledPromise: [object Object]
-- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object property.
+- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object
+  property.
 - [hub]: feat: Support non async event processors
-
 
 ## 4.5.2
 
