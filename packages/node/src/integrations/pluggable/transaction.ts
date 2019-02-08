@@ -16,7 +16,7 @@ export class Transaction implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async event => {
+    addGlobalEventProcessor(event => {
       const self = getCurrentHub().getIntegration(Transaction);
       if (self) {
         return self.process(event);
@@ -28,7 +28,7 @@ export class Transaction implements Integration {
   /**
    * @inheritDoc
    */
-  public async process(event: SentryEvent): Promise<SentryEvent> {
+  public process(event: SentryEvent): SentryEvent {
     const frames = this.getFramesFromEvent(event);
 
     // use for loop so we don't have to reverse whole frames array

@@ -47,25 +47,11 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
 }
 
 /** Setup given integration */
-export function setupIntegration(integration: Integration, options: Options): void {
+export function setupIntegration(integration: Integration): void {
   if (installedIntegrations.indexOf(getIntegrationName(integration)) !== -1) {
     return;
   }
-
-  try {
-    integration.setupOnce();
-  } catch (_Oo) {
-    /** @deprecated */
-    // TODO: Remove in v5
-
-    // tslint:disable:deprecation
-    if (integration.install) {
-      logger.warn(`Integration ${getIntegrationName(integration)}: The install method is deprecated. Use "setupOnce".`);
-      integration.install(options);
-    }
-    // tslint:enable:deprecation
-  }
-
+  integration.setupOnce();
   installedIntegrations.push(getIntegrationName(integration));
   logger.log(`Integration installed: ${getIntegrationName(integration)}`);
 }
@@ -80,7 +66,7 @@ export function setupIntegrations<O extends Options>(options: O): IntegrationInd
   const integrations: IntegrationIndex = {};
   getIntegrationsToSetup(options).forEach(integration => {
     integrations[getIntegrationName(integration)] = integration;
-    setupIntegration(integration, options);
+    setupIntegration(integration);
   });
   return integrations;
 }

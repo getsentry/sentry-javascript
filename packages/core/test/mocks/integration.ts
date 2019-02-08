@@ -8,7 +8,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     configureScope(scope => {
-      scope.addEventProcessor(async (event: SentryEvent) => {
+      scope.addEventProcessor((event: SentryEvent) => {
         if (!getCurrentHub().getIntegration(TestIntegration)) {
           return event;
         }

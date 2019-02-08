@@ -3,7 +3,6 @@ import { logger } from '@sentry/utils/logger';
 import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn = jest.fn();
-const asyncClientFn = async () => Promise.reject('error');
 const scope = new Scope();
 
 describe('Hub', () => {
@@ -19,7 +18,6 @@ describe('Hub', () => {
 
   test('pass in filled layer', () => {
     const hub = new Hub({
-      asyncClientFn,
       clientFn,
     });
     expect(hub.getStack()).toHaveLength(1);
@@ -28,7 +26,6 @@ describe('Hub', () => {
   test('invoke client sync', () => {
     const hub = new Hub(
       {
-        asyncClientFn,
         clientFn,
       },
       scope,
@@ -42,26 +39,11 @@ describe('Hub', () => {
 
   test("don't invoke client sync with wrong func", () => {
     const hub = new Hub({
-      asyncClientFn,
       clientFn,
     });
     // @ts-ignore
     hub.invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
-  });
-
-  test('invoke client async catch error in case', done => {
-    jest.spyOn(logger, 'error');
-    const hub = new Hub({
-      asyncClientFn,
-      clientFn,
-    });
-    (hub as any).invokeClientAsync('asyncClientFn', true);
-    setTimeout(() => {
-      // tslint:disable-next-line
-      expect(logger.error).toHaveBeenCalled();
-      done();
-    });
   });
 
   test('isOlderThan', () => {
@@ -190,7 +172,7 @@ describe('Hub', () => {
 
   test('captureException', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureException('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureException');
@@ -199,7 +181,7 @@ describe('Hub', () => {
 
   test('captureMessage', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureMessage('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureMessage');
@@ -211,7 +193,7 @@ describe('Hub', () => {
       extra: { b: 3 },
     };
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureEvent(event);
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureEvent');
@@ -245,37 +227,38 @@ describe('Hub', () => {
     });
   });
 
-  test('pushScope inherit processors', async () => {
+  test('pushScope inherit processors', () => {
+    expect.assertions(1);
     const event: SentryEvent = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' }, localScope);
-    const callCounter = jest.fn();
+
     localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
-      callCounter(1);
       processedEvent.dist = '1';
       return processedEvent;
     });
+
     hub.pushScope();
     const pushedScope = hub.getStackTop().scope;
-    if (pushedScope) {
-      const final = await pushedScope.applyToEvent(event);
+
+    return pushedScope!.applyToEvent(event).then(final => {
       expect(final!.dist).toEqual('1');
-    }
+    });
   });
 
   test('captureException should set event_id in hint', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureException('a');
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });
 
   test('captureMessage should set event_id in hint', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureMessage('a');
     expect(spy.mock.calls[0][3].event_id).toBeTruthy();
   });
@@ -285,7 +268,7 @@ describe('Hub', () => {
       extra: { b: 3 },
     };
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClientAsync');
+    const spy = jest.spyOn(hub as any, 'invokeClient');
     hub.captureEvent(event);
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });

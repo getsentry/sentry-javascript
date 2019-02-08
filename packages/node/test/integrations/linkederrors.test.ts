@@ -1,4 +1,5 @@
-import { NodeBackend } from '../../src';
+import { SentryEvent } from '../../src';
+import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
 let linkedErrors: LinkedErrors;
@@ -14,26 +15,37 @@ describe('LinkedErrors', () => {
 
   describe('handler', () => {
     it('should bail out if event doesnt contain exception', async () => {
+      expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, 'walkErrorTree');
       const event = {
         message: 'foo',
       };
-      const result = await linkedErrors.handler(event);
-      expect(spy.mock.calls.length).toEqual(0);
-      expect(result).toEqual(event);
+      return linkedErrors.handler(event).then(result => {
+        expect(spy.mock.calls.length).toEqual(0);
+        expect(result).toEqual(event);
+      });
     });
 
     it('should bail out if event contains exception, but no hint', async () => {
+      expect.assertions(2);
       const spy = jest.spyOn(linkedErrors, 'walkErrorTree');
       const one = new Error('originalException');
       const backend = new NodeBackend({});
-      const event = await backend.eventFromException(one);
-      const result = await linkedErrors.handler(event);
-      expect(spy.mock.calls.length).toEqual(0);
-      expect(result).toEqual(event);
+      let event: SentryEvent | undefined;
+      return backend
+        .eventFromException(one)
+        .then(eventFromException => {
+          event = eventFromException;
+          return linkedErrors.handler(eventFromException);
+        })
+        .then(result => {
+          expect(spy.mock.calls.length).toEqual(0);
+          expect(result).toEqual(event);
+        });
     });
 
     it('should call walkErrorTree if event contains exception and hint with originalException', async () => {
+      expect.assertions(1);
       const spy = jest.spyOn(linkedErrors, 'walkErrorTree').mockImplementation(
         async () =>
           new Promise<[]>(resolve => {
@@ -42,14 +54,19 @@ describe('LinkedErrors', () => {
       );
       const one = new Error('originalException');
       const backend = new NodeBackend({});
-      const event = await backend.eventFromException(one);
-      await linkedErrors.handler(event, {
-        originalException: one,
-      });
-      expect(spy.mock.calls.length).toEqual(1);
+      return backend.eventFromException(one).then(event =>
+        linkedErrors
+          .handler(event, {
+            originalException: one,
+          })
+          .then(_ => {
+            expect(spy.mock.calls.length).toEqual(1);
+          }),
+      );
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
+      expect.assertions(10);
       const one: ExtendedError = new Error('one');
       const two: ExtendedError = new TypeError('two');
       const three: ExtendedError = new SyntaxError('three');
@@ -57,24 +74,28 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new NodeBackend({});
-      const event = await backend.eventFromException(one);
-      const result = await linkedErrors.handler(event, {
-        originalException: one,
-      });
-
-      expect(result!.exception!.values!.length).toEqual(3);
-      expect(result!.exception!.values![0].type).toEqual('SyntaxError');
-      expect(result!.exception!.values![0].value).toEqual('three');
-      expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-      expect(result!.exception!.values![1].type).toEqual('TypeError');
-      expect(result!.exception!.values![1].value).toEqual('two');
-      expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
-      expect(result!.exception!.values![2].type).toEqual('Error');
-      expect(result!.exception!.values![2].value).toEqual('one');
-      expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+      return backend.eventFromException(one).then(event =>
+        linkedErrors
+          .handler(event, {
+            originalException: one,
+          })
+          .then(result => {
+            expect(result!.exception!.values!.length).toEqual(3);
+            expect(result!.exception!.values![0].type).toEqual('SyntaxError');
+            expect(result!.exception!.values![0].value).toEqual('three');
+            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
+            expect(result!.exception!.values![1].type).toEqual('TypeError');
+            expect(result!.exception!.values![1].value).toEqual('two');
+            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
+            expect(result!.exception!.values![2].type).toEqual('Error');
+            expect(result!.exception!.values![2].value).toEqual('one');
+            expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+          }),
+      );
     });
 
     it('should allow to change walk key', async () => {
+      expect.assertions(10);
       linkedErrors = new LinkedErrors({
         key: 'reason',
       });
@@ -86,24 +107,28 @@ describe('LinkedErrors', () => {
       two.reason = three;
 
       const backend = new NodeBackend({});
-      const event = await backend.eventFromException(one);
-      const result = await linkedErrors.handler(event, {
-        originalException: one,
-      });
-
-      expect(result!.exception!.values!.length).toEqual(3);
-      expect(result!.exception!.values![0].type).toEqual('SyntaxError');
-      expect(result!.exception!.values![0].value).toEqual('three');
-      expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-      expect(result!.exception!.values![1].type).toEqual('TypeError');
-      expect(result!.exception!.values![1].value).toEqual('two');
-      expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
-      expect(result!.exception!.values![2].type).toEqual('Error');
-      expect(result!.exception!.values![2].value).toEqual('one');
-      expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+      return backend.eventFromException(one).then(event =>
+        linkedErrors
+          .handler(event, {
+            originalException: one,
+          })
+          .then(result => {
+            expect(result!.exception!.values!.length).toEqual(3);
+            expect(result!.exception!.values![0].type).toEqual('SyntaxError');
+            expect(result!.exception!.values![0].value).toEqual('three');
+            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
+            expect(result!.exception!.values![1].type).toEqual('TypeError');
+            expect(result!.exception!.values![1].value).toEqual('two');
+            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
+            expect(result!.exception!.values![2].type).toEqual('Error');
+            expect(result!.exception!.values![2].value).toEqual('one');
+            expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+          }),
+      );
     });
 
     it('should allow to change stack size limit', async () => {
+      expect.assertions(7);
       linkedErrors = new LinkedErrors({
         limit: 2,
       });
@@ -115,18 +140,21 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new NodeBackend({});
-      const event = await backend.eventFromException(one);
-      const result = await linkedErrors.handler(event, {
-        originalException: one,
-      });
-
-      expect(result!.exception!.values!.length).toEqual(2);
-      expect(result!.exception!.values![0].type).toEqual('TypeError');
-      expect(result!.exception!.values![0].value).toEqual('two');
-      expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-      expect(result!.exception!.values![1].type).toEqual('Error');
-      expect(result!.exception!.values![1].value).toEqual('one');
-      expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
+      return backend.eventFromException(one).then(event =>
+        linkedErrors
+          .handler(event, {
+            originalException: one,
+          })
+          .then(result => {
+            expect(result!.exception!.values.length).toEqual(2);
+            expect(result!.exception!.values![0].type).toEqual('TypeError');
+            expect(result!.exception!.values![0].value).toEqual('two');
+            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
+            expect(result!.exception!.values![1].type).toEqual('Error');
+            expect(result!.exception!.values![1].value).toEqual('one');
+            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
+          }),
+      );
     });
   });
 });

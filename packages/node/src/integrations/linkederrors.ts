@@ -1,5 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
@@ -45,10 +46,10 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return self.handler(event, hint);
+        return (self.handler(event, hint) as unknown) as Promise<SentryEvent | null>;
       }
       return event;
     });
@@ -57,27 +58,36 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public async handler(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  public handler(event: SentryEvent, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
-      return event;
+      return SyncPromise.resolve(event);
     }
-    const linkedErrors = await this.walkErrorTree(hint.originalException, this.key);
-    event.exception.values = [...linkedErrors, ...event.exception.values];
-    return event;
+
+    return new SyncPromise<SentryEvent | null>(resolve => {
+      this.walkErrorTree(hint.originalException as ExtendedError, this.key).then((linkedErrors: SentryException[]) => {
+        if (event && event.exception) {
+          event.exception.values = [...linkedErrors, ...event.exception.values];
+        }
+        resolve(event);
+      });
+    });
   }
 
   /**
    * @inheritDoc
    */
-  public async walkErrorTree(
+  public walkErrorTree(
     error: ExtendedError,
     key: string,
     stack: SentryException[] = [],
-  ): Promise<SentryException[]> {
+  ): SyncPromise<SentryException[]> {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
-      return stack;
+      return SyncPromise.resolve(stack);
     }
-    const exception = await getExceptionFromError(error[key]);
-    return this.walkErrorTree(error[key], key, [exception, ...stack]);
+    return new SyncPromise<SentryException[]>(resolve => {
+      getExceptionFromError(error[key]).then((exception: SentryException) => {
+        this.walkErrorTree(error[key], key, [exception, ...stack]).then(resolve);
+      });
+    });
   }
 }

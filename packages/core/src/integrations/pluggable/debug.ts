@@ -37,7 +37,7 @@ export class Debug implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(Debug);
       if (self) {
         // tslint:disable:no-console

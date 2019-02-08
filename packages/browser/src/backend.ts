@@ -1,7 +1,9 @@
-import { BaseBackend, Options, SentryError } from '@sentry/core';
+import { BaseBackend, Options } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { addExceptionTypeValue, eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
@@ -26,7 +28,10 @@ export interface BrowserOptions extends Options {
   whitelistUrls?: Array<string | RegExp>;
 }
 
-/** The Sentry Browser SDK Backend. */
+/**
+ * The Sentry Browser SDK Backend.
+ * @hidden
+ */
 export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
@@ -69,48 +74,60 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public async eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent> {
-    let event;
+  public eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent> {
+    let event: SentryEvent;
 
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
-      const ex = exception as ErrorEvent;
-      exception = ex.error; // tslint:disable-line:no-parameter-reassignment
+      const errorEvent = exception as ErrorEvent;
+      exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
       event = eventFromStacktrace(computeStackTrace(exception as Error));
+      return SyncPromise.resolve(this.buildEvent(event));
     } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
       // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
       // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
-      const ex = exception as DOMException;
-      const name = ex.name || (isDOMError(ex) ? 'DOMError' : 'DOMException');
-      const message = ex.message ? `${name}: ${ex.message}` : name;
+      const domException = exception as DOMException;
+      const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
+      const message = domException.message ? `${name}: ${domException.message}` : name;
 
-      event = await this.eventFromMessage(message, Severity.Error, hint);
-      addExceptionTypeValue(event, message);
+      return this.eventFromMessage(message, Severity.Error, hint).then(messageEvent => {
+        addExceptionTypeValue(messageEvent, message);
+        return SyncPromise.resolve(this.buildEvent(messageEvent));
+      });
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
+      return SyncPromise.resolve(this.buildEvent(event));
     } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
-      const ex = exception as {};
-      event = eventFromPlainObject(ex, hint.syntheticException);
+      const objectException = exception as {};
+      event = eventFromPlainObject(objectException, hint.syntheticException);
       addExceptionTypeValue(event, 'Custom Object');
-    } else {
-      // If none of previous checks were valid, then it means that
-      // it's not a DOMError/DOMException
-      // it's not a plain Object
-      // it's not a valid ErrorEvent (one with an error property)
-      // it's not an Error
-      // So bail out and capture it as a simple message:
-      const ex = exception as string;
-      event = await this.eventFromMessage(ex, undefined, hint);
-      addExceptionTypeValue(event, `${ex}`);
+      return SyncPromise.resolve(this.buildEvent(event));
     }
 
-    event = {
+    // If none of previous checks were valid, then it means that
+    // it's not a DOMError/DOMException
+    // it's not a plain Object
+    // it's not a valid ErrorEvent (one with an error property)
+    // it's not an Error
+    // So bail out and capture it as a simple message:
+    const stringException = exception as string;
+    return this.eventFromMessage(stringException, undefined, hint).then(messageEvent => {
+      addExceptionTypeValue(messageEvent, `${stringException}`);
+      return SyncPromise.resolve(this.buildEvent(messageEvent));
+    });
+  }
+
+  /**
+   * This is an internal helper function that creates an event.
+   */
+  private buildEvent(event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+    return {
       ...event,
       event_id: hint && hint.event_id,
       exception: {
@@ -121,18 +138,16 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
         },
       },
     };
-
-    return event;
   }
 
   /**
    * @inheritDoc
    */
-  public async eventFromMessage(
+  public eventFromMessage(
     message: string,
     level: Severity = Severity.Info,
     hint?: SentryEventHint,
-  ): Promise<SentryEvent> {
+  ): SyncPromise<SentryEvent> {
     const event: SentryEvent = {
       event_id: hint && hint.event_id,
       level,
@@ -147,6 +162,6 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       };
     }
 
-    return event;
+    return SyncPromise.resolve(event);
   }
 }
