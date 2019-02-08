@@ -35,7 +35,7 @@ export class InboundFilters implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent) => {
+    addGlobalEventProcessor((event: SentryEvent) => {
       const hub = getCurrentHub();
       if (!hub) {
         return event;

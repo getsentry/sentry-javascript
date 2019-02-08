@@ -39,7 +39,10 @@ function runTests() {
   const bundlePath = path.join(__dirname, 'tmp.js');
   const { window } = new JSDOM(``, { runScripts: 'dangerously' });
 
-  window.onerror = function() {
+  window.onerror = function(error) {
+    console.error('ERROR thrown in manual test:');
+    console.error(error);
+    console.error('------------------');
     process.exit(1);
   };
 

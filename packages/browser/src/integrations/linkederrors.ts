@@ -47,7 +47,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
         return self.handler(event, hint);

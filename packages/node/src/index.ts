@@ -27,7 +27,7 @@ export {
   withScope,
 } from '@sentry/core';
 
-export { NodeBackend, NodeOptions } from './backend';
+export { NodeOptions } from './backend';
 export { NodeClient } from './client';
 export { defaultIntegrations, init, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
@@ -35,7 +35,6 @@ export { SDK_NAME, SDK_VERSION } from './version';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
-import * as Parsers from './parsers';
 import * as Transports from './transports';
 
 const INTEGRATIONS = {
@@ -43,4 +42,4 @@ const INTEGRATIONS = {
   ...NodeIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Transports, Parsers, Handlers };
+export { INTEGRATIONS as Integrations, Transports, Handlers };

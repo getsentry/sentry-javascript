@@ -37,7 +37,9 @@ export class OnUncaughtException implements Integration {
   }
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function makeErrorHandler(
   onFatalError: (firstError: Error, secondError?: Error) => void = defaultOnFatalError,
 ): (error: Error) => void {
@@ -58,7 +60,7 @@ export function makeErrorHandler(
       caughtFirstError = true;
 
       if (hub.getIntegration(OnUncaughtException)) {
-        hub.withScope(async (scope: Scope) => {
+        hub.withScope((scope: Scope) => {
           scope.setLevel(Severity.Fatal);
           hub.captureException(error, { originalException: error });
           if (!calledFatalError) {
