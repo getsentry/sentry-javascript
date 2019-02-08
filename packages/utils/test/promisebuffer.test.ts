@@ -1,4 +1,4 @@
-import { PromiseBuffer } from '../../src/promisebuffer';
+import { PromiseBuffer } from '../src/promisebuffer';
 
 // tslint:disable:no-floating-promises
 

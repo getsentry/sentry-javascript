@@ -6,20 +6,17 @@ import {
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
-  SentryResponse,
   Severity,
-  Status,
 } from '@sentry/types';
-import { forget } from '@sentry/utils/async';
-import { isPrimitive } from '@sentry/utils/is';
+import { isPrimitive, isThenable } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { Backend, Client, Options } from './interfaces';
-import { PromiseBuffer } from './promisebuffer';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -96,9 +93,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Array of used integrations. */
   private readonly integrations: IntegrationIndex;
 
-  /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer();
-
   /**
    * Initializes this client instance.
    *
@@ -136,46 +130,57 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    return this.buffer.add(
-      (async () => {
-        const event = await this.getBackend().eventFromException(exception, hint);
-        return this.captureEvent(event, hint, scope);
-      })(),
-    );
+  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
+
+    this.getBackend()
+      .eventFromException(exception, hint)
+      .then(event => this.processEvent(event, hint, scope))
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
+      });
+
+    return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public async captureMessage(
-    message: string,
-    level?: Severity,
-    hint?: SentryEventHint,
-    scope?: Scope,
-  ): Promise<SentryResponse> {
-    return this.buffer.add(
-      (async () => {
-        const event = isPrimitive(message)
-          ? await this.getBackend().eventFromMessage(`${message}`, level, hint)
-          : await this.getBackend().eventFromException(message, hint);
+  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
 
-        return this.captureEvent(event, hint, scope);
-      })(),
-    );
+    const promisedEvent = isPrimitive(message)
+      ? this.getBackend().eventFromMessage(`${message}`, level, hint)
+      : this.getBackend().eventFromException(message, hint);
+
+    promisedEvent
+      .then(event => this.processEvent(event, hint, scope))
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
+      });
+
+    return eventId;
   }
 
   /**
    * @inheritDoc
    */
-  public async captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse> {
-    // Adding this here is technically not correct since if you call captureMessage/captureException it's already
-    // buffered. But since we not really need the count and we only need to know if the buffer is full or not,
-    // This is fine...
-    return this.buffer.add(
-      (async () =>
-        this.processEvent(event, async finalEvent => this.getBackend().sendEvent(finalEvent), hint, scope))(),
-    );
+  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined {
+    let eventId: string | undefined = hint && hint.event_id;
+    this.processEvent(event, hint, scope)
+      .then(finalEvent => {
+        eventId = finalEvent.event_id;
+      })
+      .catch(reason => {
+        logger.log(reason);
+      });
+    return eventId;
   }
 
   /**
@@ -241,7 +246,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
     const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, dist } = this.getOptions();
 
     const prepared = { ...event };
@@ -274,13 +279,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       prepared.event_id = uuid4();
     }
 
+    // We prepare the result here with a resolved SentryEvent.
+    let result = SyncPromise.resolve<SentryEvent | null>(prepared);
+
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
-      return scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      // In case we have a hub we reassign it.
+      result = scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
     }
 
-    return prepared;
+    return result;
   }
 
   /**
@@ -290,109 +299,103 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * platform specific meta data (such as the User's IP address) must be added
    * by the SDK implementor.
    *
-   * The returned event status offers clues to whether the event was sent to
-   * Sentry and accepted there. If the {@link Options.shouldSend} hook returns
-   * `false`, the status will be {@link SendStatus.Skipped}. If the rate limit
-   * was exceeded, the status will be {@link SendStatus.RateLimit}.
    *
    * @param event The event to send to Sentry.
-   * @param send A function to actually send the event.
-   * @param scope A scope containing event metadata.
    * @param hint May contain additional informartion about the original exception.
-   * @returns A Promise that resolves with the event status.
+   * @param scope A scope containing event metadata.
+   * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected async processEvent(
-    event: SentryEvent,
-    send: (finalEvent: SentryEvent) => Promise<SentryResponse>,
-    hint?: SentryEventHint,
-    scope?: Scope,
-  ): Promise<SentryResponse> {
-    if (!this.isEnabled()) {
-      return {
-        status: Status.Skipped,
-      };
-    }
-
+  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): SyncPromise<SentryEvent> {
     const { beforeSend, sampleRate } = this.getOptions();
+
+    if (!this.isEnabled()) {
+      return SyncPromise.reject('SDK not enabled, will not send event.');
+    }
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
-      return {
-        status: Status.Skipped,
-      };
+      return SyncPromise.reject('This event has been sampled, will not send event.');
     }
 
-    const prepared = await this.prepareEvent(event, scope, hint);
-    if (prepared === null) {
-      return {
-        status: Status.Skipped,
-      };
-    }
-
-    let finalEvent: SentryEvent | null = prepared;
-
-    try {
-      const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-      if (!isInternalException && beforeSend) {
-        finalEvent = await beforeSend(prepared, hint);
-        if ((typeof finalEvent as any) === 'undefined') {
-          logger.error('`beforeSend` method has to return `null` or a valid event');
+    return new SyncPromise((resolve, reject) => {
+      this.prepareEvent(event, scope, hint).then(prepared => {
+        if (prepared === null) {
+          reject('An event processor returned null, will not send event.');
+          return;
         }
-      }
-    } catch (exception) {
-      forget(
-        this.captureException(exception, {
-          data: {
-            __sentry__: true,
-          },
-          originalException: exception as Error,
-        }),
-      );
 
-      return {
-        reason: 'Event processing in beforeSend method threw an exception',
-        status: Status.Invalid,
-      };
-    }
+        let finalEvent: SentryEvent | null = prepared;
 
-    if (finalEvent === null) {
-      return {
-        reason: 'Event dropped due to being discarded by beforeSend method',
-        status: Status.Skipped,
-      };
-    }
+        try {
+          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+          if (isInternalException || !beforeSend) {
+            this.getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
+            return;
+          }
 
-    try {
-      const response = await send(finalEvent);
-      response.event = finalEvent;
+          const beforeSendResult = beforeSend(prepared, hint);
+          if ((typeof beforeSendResult as any) === 'undefined') {
+            logger.error('`beforeSend` method has to return `null` or a valid event.');
+          } else if (isThenable(beforeSendResult)) {
+            this.handleAsyncBeforeSend(beforeSendResult as Promise<SentryEvent | null>, resolve, reject);
+          } else {
+            finalEvent = beforeSendResult as SentryEvent | null;
 
-      if (response.status === Status.RateLimit) {
-        // TODO: Handle rate limits and maintain a queue. For now, we require SDK
-        // implementors to override this method and handle it themselves.
-      }
-      return response;
-    } catch (error) {
-      // We have a catch here since the transport can reject the request internally.
-      // If we do not catch this here, we will run into an endless loop.
-      logger.error(`${error}`);
-      return {
-        reason: `${error}`,
-        status: Status.Failed,
-      };
-    }
+            if (finalEvent === null) {
+              logger.log('`beforeSend` returned `null`, will not send event.');
+              resolve(null);
+              return;
+            }
+
+            // From here on we are really async
+            this.getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
+          }
+        } catch (exception) {
+          this.captureException(exception, {
+            data: {
+              __sentry__: true,
+            },
+            originalException: exception as Error,
+          });
+          reject('`beforeSend` throw an error, will not send event.');
+        }
+      });
+    });
+  }
+
+  /**
+   * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
+   */
+  private handleAsyncBeforeSend(
+    beforeSend: Promise<SentryEvent | null>,
+    resolve: (event: SentryEvent) => void,
+    reject: (reason: string) => void,
+  ): void {
+    beforeSend
+      .then(processedEvent => {
+        if (processedEvent === null) {
+          reject('`beforeSend` returned `null`, will not send event.');
+          return;
+        }
+        // From here on we are really async
+        this.getBackend().sendEvent(processedEvent);
+        resolve(processedEvent);
+      })
+      .catch(e => {
+        reject(`beforeSend rejected with ${e}`);
+      });
   }
 
   /**
    * @inheritDoc
    */
   public async flush(timeout?: number): Promise<boolean> {
-    return (await Promise.all([
-      this.getBackend()
-        .getTransport()
-        .close(timeout),
-      this.buffer.drain(timeout),
-    ])).reduce((prev, current) => prev && current);
+    return this.getBackend()
+      .getTransport()
+      .close(timeout);
   }
 
   /**

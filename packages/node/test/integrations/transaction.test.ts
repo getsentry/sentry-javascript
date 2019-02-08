@@ -4,8 +4,8 @@ const transaction: Transaction = new Transaction();
 
 describe('Transaction', () => {
   describe('extracts info from module/function of the first `in_app` frame', () => {
-    it('using module only', async () => {
-      const event = await transaction.process({
+    it('using module only', () => {
+      const event = transaction.process({
         exception: {
           values: [
             {
@@ -30,8 +30,8 @@ describe('Transaction', () => {
       expect(event.transaction).toEqual('Qux/?');
     });
 
-    it('using function only', async () => {
-      const event = await transaction.process({
+    it('using function only', () => {
+      const event = transaction.process({
         exception: {
           values: [
             {
@@ -56,8 +56,8 @@ describe('Transaction', () => {
       expect(event.transaction).toEqual('?/Baz');
     });
 
-    it('using module and function', async () => {
-      const event = await transaction.process({
+    it('using module and function', () => {
+      const event = transaction.process({
         exception: {
           values: [
             {
@@ -84,8 +84,8 @@ describe('Transaction', () => {
       expect(event.transaction).toEqual('Foo/Bar');
     });
 
-    it('using default', async () => {
-      const event = await transaction.process({
+    it('using default', () => {
+      const event = transaction.process({
         exception: {
           values: [
             {
@@ -108,8 +108,8 @@ describe('Transaction', () => {
       expect(event.transaction).toEqual('<unknown>');
     });
 
-    it('no value with no `in_app` frame', async () => {
-      const event = await transaction.process({
+    it('no value with no `in_app` frame', () => {
+      const event = transaction.process({
         exception: {
           values: [
             {

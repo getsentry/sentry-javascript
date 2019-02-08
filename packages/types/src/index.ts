@@ -199,12 +199,9 @@ export interface Integration {
    * Returns {@link IntegrationClass.id}
    */
   name: string;
-  // TODO: Remove with v5
-  /** @deprecated */
-  install?(options?: object): void;
 
   // This takes no options on purpose, options should be passed in the constructor
-  setupOnce(): void; // TODO: make not optional
+  setupOnce(): void;
 }
 
 /** Integration Class Interface */
@@ -253,10 +250,6 @@ export interface Transport {
    * @param timeout Number time in ms to wait until the buffer is drained.
    */
   close(timeout?: number): Promise<boolean>;
-
-  // TODO: Remove with v5
-  /** @deprecated Implement sendEvent instead */
-  captureEvent?(event: SentryEvent): Promise<SentryResponse>;
 }
 
 /** JSDoc */

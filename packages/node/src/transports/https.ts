@@ -1,5 +1,5 @@
-import { SentryError } from '@sentry/core';
 import { SentryResponse, TransportOptions } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 import { BaseTransport } from './base';
