@@ -78,7 +78,9 @@ describe('decycle()', () => {
       foo: 1,
       bar: '[Circular ~]',
     });
-    expect(circular.bar).toEqual(circular);
+
+    expect(circular.bar).toBe(circular);
+    expect(decycled).not.toBe(circular);
   });
 
   test('dont mutate original complex object', () => {
@@ -106,9 +108,10 @@ describe('decycle()', () => {
       qux: '[Circular ~]',
     });
 
-    expect(circular.bar[0].baz).toEqual(circular);
-    expect(circular.bar[1]).toEqual(circular);
-    expect(circular.qux).toEqual(circular.bar[0].baz);
+    expect(circular.bar[0].baz).toBe(circular);
+    expect(circular.bar[1]).toBe(circular);
+    expect(circular.qux).toBe(circular.bar[0].baz);
+    expect(decycled).not.toBe(circular);
   });
 });
 
