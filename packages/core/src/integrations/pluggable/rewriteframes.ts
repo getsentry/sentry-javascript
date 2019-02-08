@@ -2,7 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, SentryEvent, StackFrame } from '@sentry/types';
 import { basename, relative } from '@sentry/utils/path';
 
-type StackFrameIteratee = (frame: StackFrame) => Promise<StackFrame>;
+type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 
 /** Rewrite event frames paths */
 export class RewriteFrames implements Integration {
@@ -24,7 +24,7 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly iteratee: StackFrameIteratee = async (frame: StackFrame) => {
+  private readonly iteratee: StackFrameIteratee = (frame: StackFrame) => {
     if (frame.filename && frame.filename.startsWith('/')) {
       const base = this.root ? relative(this.root, frame.filename) : basename(frame.filename);
       frame.filename = `app:///${base}`;
@@ -48,7 +48,7 @@ export class RewriteFrames implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async event => {
+    addGlobalEventProcessor(event => {
       const self = getCurrentHub().getIntegration(RewriteFrames);
       if (self) {
         return self.process(event);
@@ -58,12 +58,12 @@ export class RewriteFrames implements Integration {
   }
 
   /** JSDoc */
-  public async process(event: SentryEvent): Promise<SentryEvent> {
+  public process(event: SentryEvent): SentryEvent {
     const frames = this.getFramesFromEvent(event);
     if (frames) {
       for (const i in frames) {
         // tslint:disable-next-line
-        frames[i] = await this.iteratee(frames[i]);
+        frames[i] = this.iteratee(frames[i]);
       }
     }
     return event;

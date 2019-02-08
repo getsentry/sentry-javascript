@@ -29,30 +29,40 @@ export const defaultIntegrations = [
  * provided methods.
  *
  * @example
+ * ```
+ *
  * const { init } = require('@sentry/node');
  *
  * init({
  *   dsn: '__DSN__',
  *   // ...
  * });
- *
+ * ```
  *
  * @example
+ * ```
+ *
  * const { configureScope } = require('@sentry/node');
  * configureScope((scope: Scope) => {
  *   scope.setExtra({ battery: 0.7 });
  *   scope.setTag({ user_mode: 'admin' });
  *   scope.setUser({ id: '4711' });
  * });
+ * ```
  *
  * @example
+ * ```
+ *
  * const { addBreadcrumb } = require('@sentry/node');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
  * });
+ * ```
  *
  * @example
+ * ```
+ *
  * const Sentry = require('@sentry/node');
  * Sentry.captureMessage('Hello, world!');
  * Sentry.captureException(new Error('Good bye'));
@@ -62,8 +72,9 @@ export const defaultIntegrations = [
  *     // ...
  *   ],
  * });
+ * ```
  *
- * @see NodeOptions for documentation on configuration options.
+ * @see {@link NodeOptions} for documentation on configuration options.
  */
 export function init(options: NodeOptions = {}): void {
   if (options.defaultIntegrations === undefined) {

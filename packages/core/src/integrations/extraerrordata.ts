@@ -27,7 +27,7 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
       const self = getCurrentHub().getIntegration(ExtraErrorData);
       if (!self) {
         return event;

@@ -138,3 +138,13 @@ export function isRegExp(wat: any): boolean {
 export function isNaN(wat: any): boolean {
   return wat !== wat;
 }
+
+/**
+ * Checks whether given value has a then function.
+ * @param wat A value to be checked.
+ */
+export function isThenable(wat: any): boolean {
+  // tslint:disable:no-unsafe-any
+  return Boolean(wat && wat.then && isFunction(wat.then));
+  // tslint:enable:no-unsafe-any
+}

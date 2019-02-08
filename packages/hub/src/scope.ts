@@ -1,7 +1,15 @@
 import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
+import { isFunction, isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 
+/**
+ * Event processors are used to change the event before it will be send.
+ * We strongly advise to make this function sync.
+ * Returning a Promise<SentryEvent | null> will work just fine, but better be sure that you know what you are doing.
+ * Event processing will be deferred until your Promise is resolved.
+ */
 export type EventProcessor = (
   event: SentryEvent,
   hint?: SentryEventHint,
@@ -68,19 +76,29 @@ export class Scope {
   /**
    * This will be called after {@link applyToEvent} is finished.
    */
-  protected async notifyEventProcessors(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> {
-    let processedEvent: SentryEvent | null = event;
-    for (const processor of [...getGlobalEventProcessors(), ...this.eventProcessors]) {
-      try {
-        processedEvent = await processor({ ...processedEvent }, hint);
-        if (processedEvent === null) {
-          return null;
+  protected notifyEventProcessors(
+    processors: EventProcessor[],
+    event: SentryEvent | null,
+    hint?: SentryEventHint,
+    index: number = 0,
+  ): SyncPromise<SentryEvent | null> {
+    return new SyncPromise<SentryEvent | null>((resolve, reject) => {
+      const processor = processors[index];
+      if (event === null || !isFunction(processor)) {
+        resolve(event);
+      } else {
+        const result = processor({ ...event }, hint) as SentryEvent | null;
+        if (isThenable(result)) {
+          (result as Promise<SentryEvent | null>)
+            .then(final => this.notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
+            .catch(reject);
+        } else {
+          this.notifyEventProcessors(processors, result, hint, index + 1)
+            .then(resolve)
+            .catch(reject);
         }
-      } catch (e) {
-        continue;
       }
-    }
-    return processedEvent;
+    });
   }
 
   /**
@@ -208,12 +226,13 @@ export class Scope {
    * @param event SentryEvent
    * @param hint May contain additional informartion about the original exception.
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
+   * @hidden
    */
-  public async applyToEvent(
+  public applyToEvent(
     event: SentryEvent,
     hint?: SentryEventHint,
     maxBreadcrumbs?: number,
-  ): Promise<SentryEvent | null> {
+  ): SyncPromise<SentryEvent | null> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -237,7 +256,7 @@ export class Scope {
           : this.breadcrumbs;
     }
 
-    return this.notifyEventProcessors(event, hint);
+    return this.notifyEventProcessors([...getGlobalEventProcessors(), ...this.eventProcessors], event, hint);
   }
 }
 

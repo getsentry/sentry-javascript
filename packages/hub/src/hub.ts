@@ -27,6 +27,8 @@ declare module 'domain' {
  *
  * WARNING: This number should only be incresed when the global interface
  * changes a and new methods are introduced.
+ *
+ * @hidden
  */
 export const API_VERSION = 3;
 
@@ -67,26 +69,12 @@ export class Hub {
   }
 
   /**
-   * Internal helper function to call an async method on the top client if it
-   * exists.
-   *
-   * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/frontend.
-   */
-  private invokeClientAsync(method: string, ...args: any[]): void {
-    const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope).catch((err: any) => {
-        logger.error(err);
-      });
-    }
-  }
-
-  /**
    * Checks if this hub's version is older than the given version.
    *
    * @param version A version number to compare to.
    * @return True if the given version is newer; otherwise false.
+   *
+   * @hidden
    */
   public isOlderThan(version: number): boolean {
     return this.version < version;
@@ -196,7 +184,7 @@ export class Hub {
    */
   public captureException(exception: any, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureException', exception, {
+    this.invokeClient('captureException', exception, {
       ...hint,
       event_id: eventId,
     });
@@ -213,7 +201,7 @@ export class Hub {
    */
   public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureMessage', message, level, {
+    this.invokeClient('captureMessage', message, level, {
       ...hint,
       event_id: eventId,
     });
@@ -228,7 +216,7 @@ export class Hub {
    */
   public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClientAsync('captureEvent', event, {
+    this.invokeClient('captureEvent', event, {
       ...hint,
       event_id: eventId,
     });
@@ -363,7 +351,7 @@ export function getCurrentHub(): Hub {
  * This will tell whether a carrier has a hub on it or not
  * @param carrier object
  */
-export function hasHubOnCarrier(carrier: any): boolean {
+function hasHubOnCarrier(carrier: any): boolean {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return true;
   } else {
@@ -375,6 +363,7 @@ export function hasHubOnCarrier(carrier: any): boolean {
  * This will create a new {@link Hub} and add to the passed object on
  * __SENTRY__.hub.
  * @param carrier object
+ * @hidden
  */
 export function getHubFromCarrier(carrier: any): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {

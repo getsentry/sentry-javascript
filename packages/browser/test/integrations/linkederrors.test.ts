@@ -64,22 +64,23 @@ describe('LinkedErrors', () => {
 
       const originalException = one;
       const backend = new BrowserBackend({});
-      const event = await backend.eventFromException(originalException);
-      const result = linkedErrors.handler(event, {
-        originalException,
-      });
+      return backend.eventFromException(originalException).then(event => {
+        const result = linkedErrors.handler(event, {
+          originalException,
+        });
 
-      // It shouldn't include root exception, as it's already processed in the event by the main error handler
-      expect(result!.exception!.values!.length).equal(3);
-      expect(result!.exception!.values![0].type).equal('SyntaxError');
-      expect(result!.exception!.values![0].value).equal('three');
-      expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![1].type).equal('TypeError');
-      expect(result!.exception!.values![1].value).equal('two');
-      expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![2].type).equal('Error');
-      expect(result!.exception!.values![2].value).equal('one');
-      expect(result!.exception!.values![2].stacktrace).to.have.property('frames');
+        // It shouldn't include root exception, as it's already processed in the event by the main error handler
+        expect(result!.exception!.values!.length).equal(3);
+        expect(result!.exception!.values![0].type).equal('SyntaxError');
+        expect(result!.exception!.values![0].value).equal('three');
+        expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values![1].type).equal('TypeError');
+        expect(result!.exception!.values![1].value).equal('two');
+        expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values![2].type).equal('Error');
+        expect(result!.exception!.values![2].value).equal('one');
+        expect(result!.exception!.values![2].stacktrace).to.have.property('frames');
+      });
     });
 
     it('should allow to change walk key', async () => {
@@ -97,21 +98,22 @@ describe('LinkedErrors', () => {
 
       const originalException = one;
       const backend = new BrowserBackend({});
-      const event = await backend.eventFromException(originalException);
-      const result = linkedErrors.handler(event, {
-        originalException,
-      });
+      return backend.eventFromException(originalException).then(event => {
+        const result = linkedErrors.handler(event, {
+          originalException,
+        });
 
-      expect(result!.exception!.values!.length).equal(3);
-      expect(result!.exception!.values![0].type).equal('SyntaxError');
-      expect(result!.exception!.values![0].value).equal('three');
-      expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![1].type).equal('TypeError');
-      expect(result!.exception!.values![1].value).equal('two');
-      expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![2].type).equal('Error');
-      expect(result!.exception!.values![2].value).equal('one');
-      expect(result!.exception!.values![2].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values!.length).equal(3);
+        expect(result!.exception!.values![0].type).equal('SyntaxError');
+        expect(result!.exception!.values![0].value).equal('three');
+        expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values![1].type).equal('TypeError');
+        expect(result!.exception!.values![1].value).equal('two');
+        expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values![2].type).equal('Error');
+        expect(result!.exception!.values![2].value).equal('one');
+        expect(result!.exception!.values![2].stacktrace).to.have.property('frames');
+      });
     });
 
     it('should allow to change stack size limit', async () => {
@@ -126,18 +128,19 @@ describe('LinkedErrors', () => {
       two.cause = three;
 
       const backend = new BrowserBackend({});
-      const event = await backend.eventFromException(one);
-      const result = linkedErrors.handler(event, {
-        originalException: one,
-      });
+      return backend.eventFromException(one).then(event => {
+        const result = linkedErrors.handler(event, {
+          originalException: one,
+        });
 
-      expect(result!.exception!.values!.length).equal(2);
-      expect(result!.exception!.values![0].type).equal('TypeError');
-      expect(result!.exception!.values![0].value).equal('two');
-      expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
-      expect(result!.exception!.values![1].type).equal('Error');
-      expect(result!.exception!.values![1].value).equal('one');
-      expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values!.length).equal(2);
+        expect(result!.exception!.values![0].type).equal('TypeError');
+        expect(result!.exception!.values![0].value).equal('two');
+        expect(result!.exception!.values![0].stacktrace).to.have.property('frames');
+        expect(result!.exception!.values![1].type).equal('Error');
+        expect(result!.exception!.values![1].value).equal('one');
+        expect(result!.exception!.values![1].stacktrace).to.have.property('frames');
+      });
     });
   });
 });
