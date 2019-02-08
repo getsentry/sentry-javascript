@@ -113,6 +113,29 @@ describe('decycle()', () => {
     expect(circular.qux).toBe(circular.bar[0].baz);
     expect(decycled).not.toBe(circular);
   });
+
+  test('skip non-enumerable properties', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+    Object.defineProperty(circular, 'baz', {
+      enumerable: true,
+      value: circular
+    });
+    Object.defineProperty(circular, 'qux', {
+      enumerable: false,
+      value: circular
+    });
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: '[Circular ~]',
+      baz: '[Circular ~]',
+      foo: 1,
+    });
+  });
 });
 
 describe('serialize()', () => {
