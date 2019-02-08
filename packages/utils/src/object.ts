@@ -1,5 +1,5 @@
 import { SentryWrappedFunction } from '@sentry/types';
-import { isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
+import { isArray, isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
 
@@ -153,7 +153,7 @@ export function serializeObject<T>(value: T, depth: number): T | string | {} {
     });
 
     return serialized;
-  } else if (Array.isArray(value)) {
+  } else if (isArray(value)) {
     const val = (value as any) as T[];
     return val.map(v => serializeObject(v, depth - 1));
   }
@@ -325,19 +325,27 @@ function normalizeValue(value: any, key?: any): any {
  * @param obj Object to be decycled
  * @param memo Optional Memo class handling decycling
  */
-function decycle(obj: any, memo: Memo = new Memo()): any {
+export function decycle(obj: any, memo: Memo = new Memo()): any {
+  // tslint:disable-next-line:no-unsafe-any
+  const copy = isArray(obj) ? [...obj] : isPlainObject(obj) ? { ...obj } : obj;
+
   if (!isPrimitive(obj)) {
     if (memo.memoize(obj)) {
       return '[Circular ~]';
     }
     // tslint:disable-next-line
     for (const key in obj) {
+      // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+        continue;
+      }
       // tslint:disable-next-line
-      obj[key] = decycle(obj[key], memo);
+      copy[key] = decycle(obj[key], memo);
     }
     memo.unmemoize(obj);
   }
-  return obj;
+
+  return copy;
 }
 
 /**

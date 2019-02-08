@@ -1,5 +1,6 @@
 import {
   clone,
+  decycle,
   deserialize,
   fill,
   safeNormalize,
@@ -22,6 +23,119 @@ describe('clone()', () => {
       expect(clone(entry.object)).toEqual(entry.object);
     });
   }
+});
+
+describe('decycle()', () => {
+  test('decycles circular objects', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      foo: 1,
+      bar: '[Circular ~]',
+    });
+  });
+
+  test('decycles complex circular objects', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = [
+      {
+        baz: circular,
+      },
+      circular,
+    ];
+    circular.qux = circular.bar[0].baz;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: [
+        {
+          baz: '[Circular ~]',
+        },
+        '[Circular ~]',
+      ],
+      foo: 1,
+      qux: '[Circular ~]',
+    });
+  });
+
+  test('dont mutate original object', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      foo: 1,
+      bar: '[Circular ~]',
+    });
+
+    expect(circular.bar).toBe(circular);
+    expect(decycled).not.toBe(circular);
+  });
+
+  test('dont mutate original complex object', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = [
+      {
+        baz: circular,
+      },
+      circular,
+    ];
+    circular.qux = circular.bar[0].baz;
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: [
+        {
+          baz: '[Circular ~]',
+        },
+        '[Circular ~]',
+      ],
+      foo: 1,
+      qux: '[Circular ~]',
+    });
+
+    expect(circular.bar[0].baz).toBe(circular);
+    expect(circular.bar[1]).toBe(circular);
+    expect(circular.qux).toBe(circular.bar[0].baz);
+    expect(decycled).not.toBe(circular);
+  });
+
+  test('skip non-enumerable properties', () => {
+    const circular = {
+      foo: 1,
+    };
+    circular.bar = circular;
+    Object.defineProperty(circular, 'baz', {
+      enumerable: true,
+      value: circular,
+    });
+    Object.defineProperty(circular, 'qux', {
+      enumerable: false,
+      value: circular,
+    });
+
+    const decycled = decycle(circular);
+
+    expect(decycled).toEqual({
+      bar: '[Circular ~]',
+      baz: '[Circular ~]',
+      foo: 1,
+    });
+  });
 });
 
 describe('serialize()', () => {

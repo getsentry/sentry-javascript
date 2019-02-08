@@ -4,9 +4,12 @@
 
 - [loader] fix: Init and replay all calls to `Sentry.*` first before invoking all registered callbacks
 - [core] ref: Multiple init calls have been changed to "latest wins" instead of "ignore all after first"
-- [browser] fix: DOMError and DOMException should be error level events
-- [utils] ref: Update wrap method to hide internal sentry flags
-- [utils] fix: Make internal Sentry flags non-enumerable in fill util
+- [browser] fix: `DOMError` and `DOMException` should be error level events
+- [browser] ref: Log error if Ember/Vue instances are not provided
+- [utils] fix: Dont mutate original input in `decycle` util function
+- [utils] fix: Skip non-enumerable properties in `decycle` util function
+- [utils] ref: Update `wrap` method to hide internal Sentry flags
+- [utils] fix: Make internal Sentry flags non-enumerable in `fill` util
 
 ## 4.5.3
 
