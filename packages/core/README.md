@@ -21,3 +21,5 @@
 
 This package contains interface definitions, base classes and utilities for building Sentry JavaScript SDKs, like
 `@sentry/node` or `@sentry/browser`.
+
+Please consider all classes and exported functions and interfaces `internal`.

@@ -9,11 +9,16 @@ let keypressTimeout: number | undefined;
 let lastCapturedEvent: Event | undefined;
 let ignoreOnError: number = 0;
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function shouldIgnoreOnError(): boolean {
   return ignoreOnError > 0;
 }
-/** JSDoc */
+
+/**
+ * @hidden
+ */
 export function ignoreNextOnError(): void {
   // onerror should trigger before setTimeout
   ignoreOnError += 1;
@@ -28,6 +33,7 @@ export function ignoreNextOnError(): void {
  *
  * @param fn A function to wrap.
  * @returns The wrapped function.
+ * @hidden
  */
 export function wrap(
   fn: SentryWrappedFunction,
@@ -79,8 +85,8 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      withScope(async scope => {
-        scope.addEventProcessor(async (event: SentryEvent) => {
+      withScope(scope => {
+        scope.addEventProcessor((event: SentryEvent) => {
           const processedEvent = { ...event };
 
           if (options.mechanism) {
@@ -141,6 +147,7 @@ export function wrap(
  * Wraps addEventListener to capture UI breadcrumbs
  * @param eventName the event name (e.g. "click")
  * @returns wrapped breadcrumb events handler
+ * @hidden
  */
 export function breadcrumbEventHandler(eventName: string): (event: Event) => void {
   return (event: Event) => {
@@ -185,6 +192,7 @@ export function breadcrumbEventHandler(eventName: string): (event: Event) => voi
 /**
  * Wraps addEventListener to capture keypress UI events
  * @returns wrapped keypress events handler
+ * @hidden
  */
 export function keypressEventHandler(): (event: Event) => void {
   // TODO: if somehow user switches keypress target before

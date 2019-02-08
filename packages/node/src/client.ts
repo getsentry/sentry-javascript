@@ -1,5 +1,6 @@
 import { BaseClient, Scope } from '@sentry/core';
 import { SentryEvent, SentryEventHint } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { NodeBackend, NodeOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
 
@@ -21,7 +22,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected async prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): Promise<SentryEvent | null> {
+  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
     event.platform = event.platform || 'node';
     event.sdk = {
       ...event.sdk,

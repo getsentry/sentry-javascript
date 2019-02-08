@@ -150,3 +150,12 @@ export function isSyntheticEvent(wat: any): boolean {
   // tslint:disable-next-line:no-unsafe-any
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
 }
+
+/**
+ * Checks whether given value has a then function.
+ * @param wat A value to be checked.
+ */
+export function isThenable(wat: any): boolean {
+  // tslint:disable-next-line:no-unsafe-any
+  return Boolean(wat && wat.then && isFunction(wat.then));
+}

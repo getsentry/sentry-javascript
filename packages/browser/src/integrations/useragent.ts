@@ -20,7 +20,7 @@ export class UserAgent implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async (event: SentryEvent) => {
+    addGlobalEventProcessor((event: SentryEvent) => {
       if (getCurrentHub().getIntegration(UserAgent)) {
         if (!global.navigator || !global.location) {
           return event;
