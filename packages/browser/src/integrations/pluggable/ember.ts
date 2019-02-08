@@ -81,7 +81,7 @@ export class Ember implements Integration {
    * @param scope The scope currently used.
    */
   private addIntegrationToSdkInfo(scope: Scope): void {
-    scope.addEventProcessor(async (event: SentryEvent) => {
+    scope.addEventProcessor((event: SentryEvent) => {
       if (event.sdk) {
         const integrations = event.sdk.integrations || [];
         event.sdk = {

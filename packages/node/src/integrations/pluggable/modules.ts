@@ -19,7 +19,7 @@ export class Modules implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor(async event => {
+    addGlobalEventProcessor(event => {
       if (!getCurrentHub().getIntegration(Modules)) {
         return event;
       }

@@ -9,6 +9,7 @@ const STACKTRACE_LIMIT = 50;
 /**
  * This function creates an exception from an TraceKitStackTrace
  * @param stacktrace TraceKitStackTrace that will be converted to an exception
+ * @hidden
  */
 export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryException {
   const frames = prepareFramesForEvent(stacktrace.stack);
@@ -30,7 +31,9 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryE
   return exception;
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromPlainObject(exception: {}, syntheticException: Error | null): SentryEvent {
   const exceptionKeys = Object.keys(exception).sort();
   const event: SentryEvent = {
@@ -52,7 +55,9 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
   return event;
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
   const exception = exceptionFromStacktrace(stacktrace);
 
@@ -63,7 +68,9 @@ export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent
   };
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[] {
   if (!stack || !stack.length) {
     return [];
@@ -104,6 +111,7 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
  * @param event The event to modify.
  * @param value Value of the exception.
  * @param type Type of the exception.
+ * @hidden
  */
 export function addExceptionTypeValue(event: SentryEvent, value?: string, type?: string): void {
   event.exception = event.exception || {};

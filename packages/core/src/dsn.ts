@@ -1,7 +1,7 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import { SentryError } from '@sentry/utils/error';
 import { isNaN } from '@sentry/utils/is';
 import { assign } from '@sentry/utils/object';
-import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;

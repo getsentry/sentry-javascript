@@ -92,7 +92,7 @@ export class Vue implements Integration {
             scope.setExtra(key, metadata[key]);
           });
 
-          scope.addEventProcessor(async (event: SentryEvent) => {
+          scope.addEventProcessor((event: SentryEvent) => {
             if (event.sdk) {
               const integrations = event.sdk.integrations || [];
               event.sdk = {

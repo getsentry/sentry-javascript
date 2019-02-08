@@ -152,6 +152,7 @@ function extractUserData(req: { [key: string]: any }, keys: boolean | string[]):
  * @param event Will be mutated and enriched with req data
  * @param req Request object
  * @param options object containing flags to enable functionality
+ * @hidden
  */
 export function parseRequest(
   event: SentryEvent,
@@ -211,7 +212,10 @@ export function parseRequest(
   return event;
 }
 
-/** JSDoc */
+/**
+ * Express compatible request handler.
+ * @see Exposed as `Handlers.requestHandler`
+ */
 export function requestHandler(options?: {
   request?: boolean;
   serverName?: boolean;
@@ -230,7 +234,7 @@ export function requestHandler(options?: {
     local.on('error', next);
     local.run(() => {
       getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor(async (event: SentryEvent) => parseRequest(event, req, options)),
+        scope.addEventProcessor((event: SentryEvent) => parseRequest(event, req, options)),
       );
       next();
     });
@@ -253,7 +257,10 @@ function getStatusCodeFromResponse(error: MiddlewareError): number {
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
-/** JSDoc */
+/**
+ * Express compatible error handler.
+ * @see Exposed as `Handlers.errorHandler`
+ */
 export function errorHandler(): (
   error: MiddlewareError,
   req: http.IncomingMessage,
@@ -277,7 +284,9 @@ export function errorHandler(): (
   };
 }
 
-/** JSDoc */
+/**
+ * @hidden
+ */
 export function defaultOnFatalError(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
   const options = (getCurrentHub().getClient() as NodeClient).getOptions();

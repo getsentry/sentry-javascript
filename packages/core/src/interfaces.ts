@@ -6,12 +6,12 @@ import {
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
-  SentryResponse,
   Severity,
   Transport,
   TransportClass,
   TransportOptions,
 } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils/syncpromise';
 import { Dsn } from './dsn';
 
 /** Console logging verbosity for the SDK. */
@@ -112,7 +112,7 @@ export interface Options {
    * @param hint May contain additional information about the original exception.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null | Promise<SentryEvent | null>;
+  beforeSend?(event: SentryEvent, hint?: SentryEventHint): Promise<SentryEvent | null> | SentryEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
@@ -162,9 +162,9 @@ export interface Client<O extends Options = Options> {
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
+  captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -173,9 +173,9 @@ export interface Client<O extends Options = Options> {
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
+  captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -183,9 +183,9 @@ export interface Client<O extends Options = Options> {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    * @param scope An optional scope containing event metadata.
-   * @returns SentryResponse status and event
+   * @returns The event id
    */
-  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): Promise<SentryResponse>;
+  captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -252,13 +252,13 @@ export interface Backend {
   install?(): boolean;
 
   /** Creates a {@link SentryEvent} from an exception. */
-  eventFromException(exception: any, hint?: SentryEventHint): Promise<SentryEvent>;
+  eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent>;
 
   /** Creates a {@link SentryEvent} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): Promise<SentryEvent>;
+  eventFromMessage(message: string, level?: Severity, hint?: SentryEventHint): SyncPromise<SentryEvent>;
 
   /** Submits the event to Sentry */
-  sendEvent(event: SentryEvent): Promise<SentryResponse>;
+  sendEvent(event: SentryEvent): void;
 
   /**
    * Receives a breadcrumb and stores it in a platform-dependent way.

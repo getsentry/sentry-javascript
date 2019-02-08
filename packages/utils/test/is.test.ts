@@ -1,5 +1,6 @@
-import { isDOMError, isDOMException, isError, isErrorEvent, isPrimitive } from '../src/is';
+import { isDOMError, isDOMException, isError, isErrorEvent, isPrimitive, isThenable } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
+import { SyncPromise } from '../src/syncpromise';
 
 class SentryError extends Error {
   public name: string;
@@ -69,5 +70,22 @@ describe('isPrimitive()', () => {
     expect(isPrimitive([])).toEqual(false);
     expect(isPrimitive(new Error('foo'))).toEqual(false);
     expect(isPrimitive(new Date())).toEqual(false);
+  });
+});
+
+describe('isThenable()', () => {
+  test('should work as advertised', () => {
+    expect(isThenable(Promise.resolve(true))).toEqual(true);
+    expect(isThenable(SyncPromise.resolve(true))).toEqual(true);
+
+    expect(isThenable(undefined)).toEqual(false);
+    expect(isThenable(null)).toEqual(false);
+    expect(isThenable(true)).toEqual(false);
+    expect(isThenable('foo')).toEqual(false);
+    expect(isThenable(42)).toEqual(false);
+    expect(isThenable({})).toEqual(false);
+    expect(isThenable([])).toEqual(false);
+    expect(isThenable(new Error('foo'))).toEqual(false);
+    expect(isThenable(new Date())).toEqual(false);
   });
 });
