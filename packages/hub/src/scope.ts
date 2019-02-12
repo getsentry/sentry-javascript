@@ -85,7 +85,7 @@ export class Scope {
 
   /**
    * Updates user context information for future events.
-   * @param user User context object to merge into current context.
+   * @param user User context object to be set in the current context.
    */
   public setUser(user: User): Scope {
     this.user = safeNormalize(user);
