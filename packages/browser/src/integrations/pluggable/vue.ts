@@ -33,12 +33,18 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { Vue?: any } = {}) {
+  private readonly hideProps: boolean;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options: { Vue?: any; hideProps?: boolean } = {}) {
     this.Vue =
       options.Vue ||
       (getGlobalObject() as {
         Vue: any;
       }).Vue;
+    this.hideProps = options.hideProps || false;
   }
 
   /** JSDoc */
@@ -69,7 +75,10 @@ export class Vue implements Integration {
 
       if (isPlainObject(vm)) {
         metadata.componentName = this.formatComponentName(vm);
-        metadata.propsData = vm.$options.propsData;
+
+        if (!this.hideProps) {
+          metadata.propsData = vm.$options.propsData;
+        }
       }
 
       if (!isUndefined(info)) {
