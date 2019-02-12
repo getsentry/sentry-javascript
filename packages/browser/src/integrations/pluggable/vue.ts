@@ -31,21 +31,21 @@ export class Vue implements Integration {
   private readonly Vue: any; // tslint:disable-line:variable-name
 
   /**
-   * When set to true, Sentry will suppress reporting all props data
+   * When set to false, Sentry will suppress reporting all props data
    * from your Vue components for privacy concerns.
    */
-  private readonly hideProps: boolean;
+  private readonly attachProps: boolean;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: { Vue?: any; hideProps?: boolean } = {}) {
+  public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
     this.Vue =
       options.Vue ||
       (getGlobalObject() as {
         Vue: any;
       }).Vue;
-    this.hideProps = options.hideProps || false;
+    this.attachProps = options.attachProps || true;
   }
 
   /** JSDoc */
@@ -77,7 +77,7 @@ export class Vue implements Integration {
       if (isPlainObject(vm)) {
         metadata.componentName = this.formatComponentName(vm);
 
-        if (!this.hideProps) {
+        if (this.attachProps) {
           metadata.propsData = vm.$options.propsData;
         }
       }
