@@ -31,7 +31,8 @@ export class Vue implements Integration {
   private readonly Vue: any; // tslint:disable-line:variable-name
 
   /**
-   * @inheritDoc
+   * When set to true, Sentry will suppress reporting all props data
+   * from your Vue components for privacy concerns.
    */
   private readonly hideProps: boolean;
 
