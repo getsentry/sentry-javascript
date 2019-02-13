@@ -22,7 +22,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /** Cached transport used internally. */
   protected transport: Transport;
 
-  /** Creates a new browser backend instance. */
+  /** Creates a new backend instance. */
   public constructor(options: O) {
     this.options = options;
     if (!this.options.dsn) {
