@@ -62,44 +62,6 @@ describe('BaseClient', () => {
     });
   });
 
-  describe('install()', () => {
-    test('calls install() on Backend', () => {
-      expect.assertions(1);
-      const client = new TestClient({ dsn: PUBLIC_DSN });
-      client.install();
-      expect(TestBackend.instance!.installed).toBe(1);
-    });
-
-    test('calls install() only once', () => {
-      expect.assertions(1);
-      const client = new TestClient({ dsn: PUBLIC_DSN });
-      client.install();
-      client.install();
-      expect(TestBackend.instance!.installed).toBe(1);
-    });
-
-    test('resolves the result of install()', () => {
-      expect.assertions(1);
-      const client = new TestClient({ mockInstallFailure: true });
-      const installed = client.install();
-      expect(installed).toBeFalsy();
-    });
-
-    test('does not install() when disabled', () => {
-      expect.assertions(1);
-      const client = new TestClient({ enabled: false, dsn: PUBLIC_DSN });
-      client.install();
-      expect(TestBackend.instance!.installed).toBe(0);
-    });
-
-    test('does not install() without Dsn', () => {
-      expect.assertions(1);
-      const client = new TestClient({});
-      client.install();
-      expect(TestBackend.instance!.installed).toBe(0);
-    });
-  });
-
   describe('getOptions()', () => {
     test('returns the options', () => {
       expect.assertions(1);
