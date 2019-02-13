@@ -146,17 +146,6 @@ export interface Options {
  */
 export interface Client<O extends Options = Options> {
   /**
-   * Installs the SDK if it hasn't been installed already.
-   *
-   * Since this performs modifications in the environment, such as instrumenting
-   * library functionality or adding signal handlers, this method will only
-   * execute once and cache its result.
-   *
-   * @returns If the installation was the successful or not.
-   */
-  install(): boolean;
-
-  /**
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.
@@ -248,9 +237,6 @@ export interface Client<O extends Options = Options> {
  * these any time and they should not be cached.
  */
 export interface Backend {
-  /** Installs the SDK into the environment. */
-  install?(): boolean;
-
   /** Creates a {@link SentryEvent} from an exception. */
   eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent>;
 

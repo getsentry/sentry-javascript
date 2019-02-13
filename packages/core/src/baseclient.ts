@@ -84,12 +84,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   private readonly dsn?: Dsn;
 
-  /**
-   * Stores whether installation has been performed and was successful. Before
-   * installing, this is undefined. Then it contains the success state.
-   */
-  private installed?: boolean;
-
   /** Array of used integrations. */
   private readonly integrations: IntegrationIndex;
 
@@ -106,25 +100,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     if (options.dsn) {
       this.dsn = new Dsn(options.dsn);
     }
-    // We have to setup the integrations in the constructor since we do not want
-    // that anyone needs to call client.install();
+
     this.integrations = setupIntegrations(this.options);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public install(): boolean {
-    if (!this.isEnabled()) {
-      return (this.installed = false);
-    }
-
-    const backend = this.getBackend();
-    if (!this.installed && backend.install) {
-      backend.install();
-    }
-
-    return (this.installed = true);
   }
 
   /**
