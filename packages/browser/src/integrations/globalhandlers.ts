@@ -45,6 +45,8 @@ export class GlobalHandlers implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
+    Error.stackTraceLimit = 50;
+
     subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
       // TODO: use stack.context to get a valuable information from TraceKit, eg.
       // [

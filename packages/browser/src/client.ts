@@ -43,7 +43,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    *
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: BrowserOptions) {
+  public constructor(options: BrowserOptions = {}) {
     super(BrowserBackend, options);
   }
 

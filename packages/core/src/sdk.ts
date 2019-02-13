@@ -26,5 +26,4 @@ export function initAndBind<F extends Client, O extends Options>(clientClass: Cl
 
   const client = new clientClass(options);
   getCurrentHub().bindClient(client);
-  client.install();
 }
