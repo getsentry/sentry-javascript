@@ -1,10 +1,10 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { Breadcrumb, Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
-import { Backend, Options } from './interfaces';
+import { Backend } from './interfaces';
 import { NoopTransport } from './transports/noop';
 
 /** A class object that can instanciate Backend objects. */
@@ -41,21 +41,21 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromException(_exception: any, _hint?: SentryEventHint): SyncPromise<SentryEvent> {
+  public eventFromException(_exception: any, _hint?: EventHint): SyncPromise<Event> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: SentryEventHint): SyncPromise<SentryEvent> {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): SyncPromise<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
   /**
    * @inheritDoc
    */
-  public sendEvent(event: SentryEvent): void {
+  public sendEvent(event: Event): void {
     this.transport.sendEvent(serialize(event)).catch(reason => {
       logger.error(`Error while sending event: ${reason}`);
     });

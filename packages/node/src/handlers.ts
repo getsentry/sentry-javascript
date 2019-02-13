@@ -1,5 +1,5 @@
 import { captureException, getCurrentHub } from '@sentry/core';
-import { SentryEvent } from '@sentry/types';
+import { Event } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
@@ -155,7 +155,7 @@ function extractUserData(req: { [key: string]: any }, keys: boolean | string[]):
  * @hidden
  */
 export function parseRequest(
-  event: SentryEvent,
+  event: Event,
   req: {
     [key: string]: any;
   },
@@ -166,7 +166,7 @@ export function parseRequest(
     user?: boolean | string[];
     version?: boolean;
   },
-): SentryEvent {
+): Event {
   // tslint:disable-next-line:no-parameter-reassignment
   options = {
     request: true,
@@ -234,7 +234,7 @@ export function requestHandler(options?: {
     local.on('error', next);
     local.run(() => {
       getCurrentHub().configureScope(scope =>
-        scope.addEventProcessor((event: SentryEvent) => parseRequest(event, req, options)),
+        scope.addEventProcessor((event: Event) => parseRequest(event, req, options)),
       );
       next();
     });

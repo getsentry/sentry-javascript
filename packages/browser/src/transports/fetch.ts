@@ -1,4 +1,4 @@
-import { SentryResponse, Status } from '@sentry/types';
+import { Response, Status } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { supportsReferrerPolicy } from '@sentry/utils/supports';
 import { BaseTransport } from './base';
@@ -10,7 +10,7 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(body: string): Promise<SentryResponse> {
+  public async sendEvent(body: string): Promise<Response> {
     const defaultOptions: RequestInit = {
       body,
       method: 'POST',

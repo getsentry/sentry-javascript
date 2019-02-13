@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent, SentryEventHint } from '@sentry/types';
+import { Event, EventHint, Integration } from '@sentry/types';
 import { isError, isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { safeNormalize } from '@sentry/utils/object';
@@ -27,7 +27,7 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(ExtraErrorData);
       if (!self) {
         return event;
@@ -37,9 +37,9 @@ export class ExtraErrorData implements Integration {
   }
 
   /**
-   * Attaches extracted information from the Error object to extra field in the SentryEvent
+   * Attaches extracted information from the Error object to extra field in the Event
    */
-  public enhanceEventWithErrorData(event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+  public enhanceEventWithErrorData(event: Event, hint?: EventHint): Event {
     if (!hint || !hint.originalException || !isError(hint.originalException)) {
       return event;
     }
