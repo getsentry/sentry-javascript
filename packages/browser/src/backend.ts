@@ -1,6 +1,5 @@
 import { BaseBackend, Options } from '@sentry/core';
 import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
-import { SentryError } from '@sentry/utils/error';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -33,23 +32,6 @@ export interface BrowserOptions extends Options {
  * @hidden
  */
 export class BrowserBackend extends BaseBackend<BrowserOptions> {
-  /**
-   * @inheritDoc
-   */
-  public install(): boolean {
-    // We are only called by the client if the SDK is enabled and a valid Dsn
-    // has been configured. If no Dsn is present, this indicates a programming
-    // error.
-    const dsn = this.options.dsn;
-    if (!dsn) {
-      throw new SentryError('Invariant exception: install() must not be called when disabled');
-    }
-
-    Error.stackTraceLimit = 50;
-
-    return true;
-  }
-
   /**
    * @inheritdoc
    */
