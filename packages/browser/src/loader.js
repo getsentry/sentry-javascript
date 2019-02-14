@@ -90,8 +90,8 @@
       }
     });
 
-    // We are append the script to body. Reason for this is if you use a onload callback it could happen that
-    // the onLoad of the already injected SDK will be called which beaks the setup cycle.
+    // We append the script to the body because if you use an `onload` callback it could happen that
+    // the `onLoad` of the already injected SDK will be called, which breaks the setup flow.
     document.body.appendChild(_newScriptTag);
   }
 
@@ -112,7 +112,7 @@
         initAlreadyCalled = true;
       }
 
-      // We want to replay all calls to Sentry and also make sure init is called before if it wasn't called already
+      // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
       // We replay all calls to `Sentry.*` now
       var calledSentry = false;
       for (var i = 0; i < data.length; i++) {
