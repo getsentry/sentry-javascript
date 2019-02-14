@@ -207,12 +207,20 @@ export interface Client<O extends Options = Options> {
   getOptions(): O;
 
   /**
-   * A promise that resolves whenever the request buffer is empty.
-   * If you provide a timeout and the buffer takes longer to drain the promise returns false.
+   * A promise that resolves when all current events have been sent.
+   * If you provide a timeout and the queue takes longer to drain the promise returns false.
    *
    * @param timeout Maximum time in ms the client should wait.
    */
   close(timeout?: number): Promise<boolean>;
+
+  /**
+   * A promise that resolves when all current events have been sent.
+   * If you provide a timeout and the queue takes longer to drain the promise returns false.
+   *
+   * @param timeout Maximum time in ms the client should wait.
+   */
+  flush(timeout?: number): Promise<boolean>;
 
   /** Returns an array of installed integrations on the client. */
   getIntegration<T extends Integration>(integartion: IntegrationClass<T>): T | null;

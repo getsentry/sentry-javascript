@@ -386,13 +386,20 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async close(timeout?: number): Promise<boolean> {
+  public async flush(timeout?: number): Promise<boolean> {
     return (await Promise.all([
       this.getBackend()
         .getTransport()
         .close(timeout),
       this.buffer.drain(timeout),
     ])).reduce((prev, current) => prev && current);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async close(timeout?: number): Promise<boolean> {
+    return this.flush(timeout);
   }
 
   /**

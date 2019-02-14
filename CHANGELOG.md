@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- [node] feat: If `options.dsn` is undefined when calling `init` we try to load it from `process.env.SENTRY_DSN`
+- [node] feat: Expose `flush` and `close` on `Sentry.*`
+- [node] feat: Add `sentry` to express error handler response which contains the `event_id` of the error
+- [core] feat: Introduce `flush` method which currently is an alias for `close`
+
 ## 4.5.4
 
 - [browser] fix: `DOMError` and `DOMException` should be error level events
@@ -14,9 +19,9 @@
 ## 4.5.3
 
 - [browser]: fix: Fix UnhandledPromise: [object Object]
-- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object property.
+- [core]: fix: Error in extraErrorData integration where event would not be send in case of non assignable object
+  property.
 - [hub]: feat: Support non async event processors
-
 
 ## 4.5.2
 
