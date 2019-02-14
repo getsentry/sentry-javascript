@@ -2,8 +2,12 @@
 
 ## Unreleased
 
-- [loader] fix: Detect if init has been called in an onload callback
-- [core] ref: Multiple init calls have been changed to "latest wins" instead of "ignore all after first"
+- [loader] fix: Detect if `init` has been called in an onload callback
+- [core] ref: Multiple `init` calls have been changed to "latest wins" instead of "ignore all after first"
+- [node] feat: If `options.dsn` is undefined when calling `init` we try to load it from `process.env.SENTRY_DSN`
+- [node] feat: Expose `flush` and `close` on `Sentry.*`
+- [node] feat: Add `sentry` to express error handler response which contains the `event_id` of the error
+- [core] feat: Introduce `flush` method which currently is an alias for `close`
 
 ## 4.5.4
 

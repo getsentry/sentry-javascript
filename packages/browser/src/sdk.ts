@@ -103,3 +103,23 @@ export function forceLoad(): void {
 export function onLoad(callback: () => void): void {
   callback();
 }
+
+/**
+ * A promise that resolves when all current events have been sent.
+ * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ *
+ * @param timeout Maximum time in ms the client should wait.
+ */
+export async function flush(timeout?: number): Promise<boolean> {
+  return (getCurrentHub().getClient() as BrowserClient).flush(timeout);
+}
+
+/**
+ * A promise that resolves when all current events have been sent.
+ * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ *
+ * @param timeout Maximum time in ms the client should wait.
+ */
+export async function close(timeout?: number): Promise<boolean> {
+  return (getCurrentHub().getClient() as BrowserClient).close(timeout);
+}
