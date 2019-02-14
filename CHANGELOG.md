@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.6.1
+
+- [utils] fix: Patch `tslib_1__default` regression and add additional tests around it
+
 ## 4.6.0
 
 - [loader] fix: Detect if `init` has been called in an onload callback
