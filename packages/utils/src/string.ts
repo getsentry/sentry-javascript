@@ -69,7 +69,7 @@ export function safeJoin(input: any[], delimiter?: string): string {
   }
 
   const output = [];
-  // tslint:disable-next-line
+  // tslint:disable-next-line:prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     try {

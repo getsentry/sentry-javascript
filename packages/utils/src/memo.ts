@@ -26,6 +26,7 @@ export class Memo {
       this.inner.add(obj);
       return false;
     } else {
+      // tslint:disable-next-line:prefer-for-of
       for (let i = 0; i < this.inner.length; i++) {
         const value = this.inner[i];
         if (value === obj) {

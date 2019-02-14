@@ -211,7 +211,7 @@ export function assign(target: any, ...args: any[]): object {
     [key: string]: any;
   };
 
-  // tslint:disable-next-line
+  // tslint:disable-next-line:prefer-for-of
   for (let i = 0; i < args.length; i++) {
     const source = args[i];
     if (source !== null) {
