@@ -121,6 +121,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#captureexception" class="tsd-kind-icon">capture<wbr>Exception</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#capturemessage" class="tsd-kind-icon">capture<wbr>Message</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#close" class="tsd-kind-icon">close</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#flush" class="tsd-kind-icon">flush</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface tsd-has-type-parameter"><a href="core.client.html#getintegration" class="tsd-kind-icon">get<wbr>Integration</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="core.client.html#getoptions" class="tsd-kind-icon">get<wbr>Options</a></li>
@@ -142,7 +143,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L201">core/src/interfaces.ts:201</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L201">core/src/interfaces.ts:201</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -188,7 +189,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L188">core/src/interfaces.ts:188</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L188">core/src/interfaces.ts:188</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -232,7 +233,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L167">core/src/interfaces.ts:167</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L167">core/src/interfaces.ts:167</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -276,7 +277,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L178">core/src/interfaces.ts:178</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L178">core/src/interfaces.ts:178</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -326,13 +327,45 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L215">core/src/interfaces.ts:215</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L215">core/src/interfaces.ts:215</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>A promise that resolves whenever the request buffer is empty.
-									If you provide a timeout and the buffer takes longer to drain the promise returns false.</p>
+									<p>A promise that resolves when all current events have been sent.
+									If you provide a timeout and the queue takes longer to drain the promise returns false.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Maximum time in ms the client should wait.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="flush" class="tsd-anchor"></a>
+					<h3>flush</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">flush<span class="tsd-signature-symbol">(</span>timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L223">core/src/interfaces.ts:223</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A promise that resolves when all current events have been sent.
+									If you provide a timeout and the queue takes longer to drain the promise returns false.</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -358,7 +391,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L204">core/src/interfaces.ts:204</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L204">core/src/interfaces.ts:204</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -383,7 +416,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L218">core/src/interfaces.ts:218</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L226">core/src/interfaces.ts:226</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -420,7 +453,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L207">core/src/interfaces.ts:207</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L207">core/src/interfaces.ts:207</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -442,7 +475,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/core/src/interfaces.ts#L157">core/src/interfaces.ts:157</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/core/src/interfaces.ts#L157">core/src/interfaces.ts:157</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -561,6 +594,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="core.client.html#close" class="tsd-kind-icon">close</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="core.client.html#flush" class="tsd-kind-icon">flush</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="core.client.html#getdsn" class="tsd-kind-icon">get<wbr>Dsn</a>

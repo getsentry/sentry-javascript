@@ -159,9 +159,11 @@
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#close" class="tsd-kind-icon">close</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#defaultonfatalerror" class="tsd-kind-icon">default<wbr>OnFatal<wbr>Error</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#errorhandler" class="tsd-kind-icon">error<wbr>Handler</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#extractstackfromerror" class="tsd-kind-icon">extract<wbr>Stack<wbr>From<wbr>Error</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#flush" class="tsd-kind-icon">flush</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#getexceptionfromerror" class="tsd-kind-icon">get<wbr>Exception<wbr>From<wbr>Error</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="node.html#lasteventid" class="tsd-kind-icon">last<wbr>Event<wbr>Id</a></li>
@@ -185,17 +187,17 @@
 					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>NAME<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"sentry.javascript.node"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;sentry.javascript.node&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/version.ts#L1">node/src/version.ts:1</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/version.ts#L1">node/src/version.ts:1</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-external-module">
 					<a name="sdk_version" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagConst">Const</span> SDK_<wbr>VERSION</h3>
-					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"4.5.4"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;4.5.4&quot;</span></div>
+					<div class="tsd-signature tsd-kind-icon">SDK_<wbr>VERSION<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"4.6.1"</span><span class="tsd-signature-symbol"> =&nbsp;&quot;4.6.1&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/version.ts#L2">node/src/version.ts:2</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/version.ts#L2">node/src/version.ts:2</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -205,13 +207,45 @@
 					<div class="tsd-signature tsd-kind-icon">default<wbr>Integrations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><a href="../classes/core.dedupe.html" class="tsd-signature-type">Dedupe</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.functiontostring.html" class="tsd-signature-type">FunctionToString</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.inboundfilters.html" class="tsd-signature-type">InboundFilters</a><span class="tsd-signature-symbol"> | </span><a href="../classes/core.extraerrordata.html" class="tsd-signature-type">ExtraErrorData</a><span class="tsd-signature-symbol"> | </span><a href="../classes/node.console.html" class="tsd-signature-type">Console</a><span class="tsd-signature-symbol"> | </span><a href="../classes/node.http.html" class="tsd-signature-type">Http</a><span class="tsd-signature-symbol"> | </span><a href="../classes/node.onuncaughtexception.html" class="tsd-signature-type">OnUncaughtException</a><span class="tsd-signature-symbol"> | </span><a href="../classes/node.onunhandledrejection.html" class="tsd-signature-type">OnUnhandledRejection</a><span class="tsd-signature-symbol"> | </span><a href="../classes/node.linkederrors.html" class="tsd-signature-type">LinkedErrors</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[// Commonnew CoreIntegrations.Dedupe(),new CoreIntegrations.InboundFilters(),new CoreIntegrations.FunctionToString(),new CoreIntegrations.ExtraErrorData(),// Native Wrappersnew Console(),new Http(),// Global Handlersnew OnUncaughtException(),new OnUnhandledRejection(),// Miscnew LinkedErrors(),]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/sdk.ts#L8">node/src/sdk.ts:8</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/sdk.ts#L8">node/src/sdk.ts:8</a></li>
 						</ul>
 					</aside>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="close" class="tsd-anchor"></a>
+					<h3>close</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span>timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/sdk.ts#L109">node/src/sdk.ts:109</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A promise that resolves when all current events have been sent.
+									If you provide a timeout and the queue takes longer to drain the promise returns false.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Maximum time in ms the client should wait.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="defaultonfatalerror" class="tsd-anchor"></a>
 					<h3>default<wbr>OnFatal<wbr>Error</h3>
@@ -222,7 +256,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/handlers.ts#L280">node/src/handlers.ts:280</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/handlers.ts#L281">node/src/handlers.ts:281</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -250,7 +284,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/handlers.ts#L257">node/src/handlers.ts:257</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/handlers.ts#L257">node/src/handlers.ts:257</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -317,7 +351,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L124">node/src/parsers.ts:124</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L124">node/src/parsers.ts:124</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -336,6 +370,38 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="flush" class="tsd-anchor"></a>
+					<h3>flush</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">flush<span class="tsd-signature-symbol">(</span>timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/sdk.ts#L99">node/src/sdk.ts:99</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A promise that resolves when all current events have been sent.
+									If you provide a timeout and the queue takes longer to drain the promise returns false.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>Maximum time in ms the client should wait.</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="getexceptionfromerror" class="tsd-anchor"></a>
 					<h3>get<wbr>Exception<wbr>From<wbr>Error</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -345,7 +411,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L222">node/src/parsers.ts:222</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L222">node/src/parsers.ts:222</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -376,7 +442,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/sdk.ts#L68">node/src/sdk.ts:68</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/sdk.ts#L68">node/src/sdk.ts:68</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -445,7 +511,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/sdk.ts#L85">node/src/sdk.ts:85</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/sdk.ts#L89">node/src/sdk.ts:89</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -471,7 +537,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/integrations/onuncaughtexception.ts#L41">node/src/integrations/onuncaughtexception.ts:41</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/integrations/onuncaughtexception.ts#L41">node/src/integrations/onuncaughtexception.ts:41</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -538,7 +604,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L237">node/src/parsers.ts:237</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L237">node/src/parsers.ts:237</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -569,7 +635,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/handlers.ts#L156">node/src/handlers.ts:156</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/handlers.ts#L156">node/src/handlers.ts:156</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -617,7 +683,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L133">node/src/parsers.ts:133</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L133">node/src/parsers.ts:133</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -648,7 +714,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L249">node/src/parsers.ts:249</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L249">node/src/parsers.ts:249</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -676,7 +742,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/handlers.ts#L215">node/src/handlers.ts:215</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/handlers.ts#L215">node/src/handlers.ts:215</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -746,7 +812,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/bb75ee79/packages/node/src/parsers.ts#L16">node/src/parsers.ts:16</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/1f201102/packages/node/src/parsers.ts#L16">node/src/parsers.ts:16</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -843,6 +909,9 @@
 						<a href="node.html#defaultintegrations" class="tsd-kind-icon">default<wbr>Integrations</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="node.html#close" class="tsd-kind-icon">close</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="node.html#defaultonfatalerror" class="tsd-kind-icon">default<wbr>OnFatal<wbr>Error</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
@@ -850,6 +919,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="node.html#extractstackfromerror" class="tsd-kind-icon">extract<wbr>Stack<wbr>From<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module">
+						<a href="node.html#flush" class="tsd-kind-icon">flush</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-external-module">
 						<a href="node.html#getexceptionfromerror" class="tsd-kind-icon">get<wbr>Exception<wbr>From<wbr>Error</a>
