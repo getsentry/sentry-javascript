@@ -271,7 +271,8 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    captureException(error);
+    const eventId = captureException(error);
+    _res.sentry = eventId;
     next(error);
   };
 }
