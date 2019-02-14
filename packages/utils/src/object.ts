@@ -327,7 +327,7 @@ function normalizeValue(value: any, key?: any): any {
  */
 export function decycle(obj: any, memo: Memo = new Memo()): any {
   // tslint:disable-next-line:no-unsafe-any
-  const copy = isArray(obj) ? [...obj] : isPlainObject(obj) ? { ...obj } : obj;
+  const copy = isArray(obj) ? obj.slice() : isPlainObject(obj) ? assign({}, obj) : obj;
 
   if (!isPrimitive(obj)) {
     if (memo.memoize(obj)) {

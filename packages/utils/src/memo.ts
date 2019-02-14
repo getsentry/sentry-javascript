@@ -26,7 +26,8 @@ export class Memo {
       this.inner.add(obj);
       return false;
     } else {
-      for (const value of this.inner) {
+      for (let i = 0; i < this.inner.length; i++) {
+        const value = this.inner[i];
         if (value === obj) {
           return true;
         }
