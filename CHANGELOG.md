@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- [loader] fix: Init and replay all calls to `Sentry.*` first before invoking all registered callbacks
+- [loader] fix: Detect if init has been called in an onload callback
 - [core] ref: Multiple init calls have been changed to "latest wins" instead of "ignore all after first"
 
 ## 4.5.4
