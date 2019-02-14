@@ -70,6 +70,10 @@ export function init(options: NodeOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
 
+  if (options.dsn === undefined && process.env.SENTRY_DSN) {
+    options.dsn = process.env.SENTRY_DSN;
+  }
+
   if (domain.active) {
     setHubOnCarrier(getMainCarrier(), getCurrentHub());
   }
@@ -84,4 +88,24 @@ export function init(options: NodeOptions = {}): void {
  */
 export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
+}
+
+/**
+ * A promise that resolves when all current events have been sent.
+ * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ *
+ * @param timeout Maximum time in ms the client should wait.
+ */
+export async function flush(timeout?: number): Promise<boolean> {
+  return (getCurrentHub().getClient() as NodeClient).flush(timeout);
+}
+
+/**
+ * A promise that resolves when all current events have been sent.
+ * If you provide a timeout and the queue takes longer to drain the promise returns false.
+ *
+ * @param timeout Maximum time in ms the client should wait.
+ */
+export async function close(timeout?: number): Promise<boolean> {
+  return (getCurrentHub().getClient() as NodeClient).close(timeout);
 }
