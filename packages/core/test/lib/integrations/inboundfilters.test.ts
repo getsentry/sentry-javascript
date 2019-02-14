@@ -255,10 +255,12 @@ describe('InboundFilters', () => {
     const messageEvent = {
       message: 'wat',
       stacktrace: {
+        // Frames are always in the reverse order, as this is how Sentry expect them to come.
+        // Frame that crashed is the last one, the one from awesome-analytics
         frames: [
-          {
-            filename: 'https://awesome-analytics.io/some/file.js',
-          },
+          { filename: 'https://our-side.com/js/bundle.js' },
+          { filename: 'https://our-side.com/js/bundle.js' },
+          { filename: 'https://awesome-analytics.io/some/file.js' },
         ],
       },
     };
@@ -266,7 +268,15 @@ describe('InboundFilters', () => {
       exception: {
         values: [
           {
-            stacktrace: { frames: [{ filename: 'https://awesome-analytics.io/some/file.js' }] },
+            stacktrace: {
+              // Frames are always in the reverse order, as this is how Sentry expect them to come.
+              // Frame that crashed is the last one, the one from awesome-analytics
+              frames: [
+                { filename: 'https://our-side.com/js/bundle.js' },
+                { filename: 'https://our-side.com/js/bundle.js' },
+                { filename: 'https://awesome-analytics.io/some/file.js' },
+              ],
+            },
           },
         ],
       },

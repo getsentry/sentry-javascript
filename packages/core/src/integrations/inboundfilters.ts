@@ -178,10 +178,12 @@ export class InboundFilters implements Integration {
     try {
       if (event.stacktrace) {
         // tslint:disable-next-line:no-unsafe-any
-        return (event as any).stacktrace.frames[0].filename;
+        const frames = (event as any).stacktrace.frames;
+        return frames[frames.length - 1].filename;
       } else if (event.exception) {
         // tslint:disable-next-line:no-unsafe-any
-        return (event as any).exception.values[0].stacktrace.frames[0].filename;
+        const frames = (event as any).exception.values[0].stacktrace.frames;
+        return frames[frames.length - 1].filename;
       } else {
         return null;
       }
