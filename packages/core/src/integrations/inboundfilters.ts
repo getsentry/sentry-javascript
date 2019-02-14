@@ -177,11 +177,11 @@ export class InboundFilters implements Integration {
   private getEventFilterUrl(event: SentryEvent): string | null {
     try {
       if (event.stacktrace) {
-        // tslint:disable-next-line:no-unsafe-any
+        // tslint:disable:no-unsafe-any
         const frames = (event as any).stacktrace.frames;
         return frames[frames.length - 1].filename;
       } else if (event.exception) {
-        // tslint:disable-next-line:no-unsafe-any
+        // tslint:disable:no-unsafe-any
         const frames = (event as any).exception.values[0].stacktrace.frames;
         return frames[frames.length - 1].filename;
       } else {

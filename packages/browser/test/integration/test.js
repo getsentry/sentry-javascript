@@ -127,9 +127,9 @@ for (var idx in frames) {
               var urlWithBlacklistedUrl = new Error('filter');
               urlWithBlacklistedUrl.stack =
                 'Error: bar\n' +
-                ' at baz(http://localhost:5000/baz.js:2:9)\n' +
+                ' at http://localhost:5000/foo.js:7:19\n' +
                 ' at bar(http://localhost:5000/bar.js:2:3)\n' +
-                ' at http://localhost:5000/foo.js:7:19';
+                ' at baz(http://localhost:5000/baz.js:2:9)\n';
 
               /**
                * > foo-pass.js file called a function in bar-pass.js
@@ -141,9 +141,9 @@ for (var idx in frames) {
               var urlWithoutBlacklistedUrl = new Error('pass');
               urlWithoutBlacklistedUrl.stack =
                 'Error: bar\n' +
-                ' at baz(http://localhost:5000/baz-pass.js:2:9)\n' +
+                ' at http://localhost:5000/foo-pass.js:7:19\n' +
                 ' at bar(http://localhost:5000/bar-pass.js:2:3)\n' +
-                ' at http://localhost:5000/foo-pass.js:7:19';
+                ' at baz(http://localhost:5000/baz-pass.js:2:9)\n';
 
               Sentry.captureException(urlWithBlacklistedUrl);
               Sentry.captureException(urlWithoutBlacklistedUrl);
