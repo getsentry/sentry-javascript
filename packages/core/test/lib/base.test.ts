@@ -414,7 +414,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
       expect(TestBackend.instance!.event!.message).toBe('hello');
-      expect(TestBackend.instance!.event!.data).toBe('someRandomThing');
+      expect((TestBackend.instance!.event! as any).data).toBe('someRandomThing');
     });
   });
 

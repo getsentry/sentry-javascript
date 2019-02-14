@@ -1,5 +1,4 @@
-import { Scope } from '@sentry/hub';
-import { Breadcrumb, Event, EventHint, Options, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
@@ -59,20 +58,6 @@ export abstract class BaseBackend<O extends Options> implements Backend {
     this.transport.sendEvent(serialize(event)).catch(reason => {
       logger.error(`Error while sending event: ${reason}`);
     });
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeBreadcrumb(_: Breadcrumb): boolean {
-    return true;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public storeScope(_: Scope): void {
-    // Noop
   }
 
   /**

@@ -109,7 +109,7 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.Mock<(event: Event) => Promise<Response>>;
+    let s: jest.Mock<(event: Event) => void>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -138,7 +138,7 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.Mock<(event: Event) => Promise<Response>>;
+    let s: jest.Mock<(event: Event) => void>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));

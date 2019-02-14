@@ -146,7 +146,7 @@ describe('LinkedErrors', () => {
             originalException: one,
           })
           .then(result => {
-            expect(result!.exception!.values.length).toEqual(2);
+            expect(result!.exception!.values!.length).toEqual(2);
             expect(result!.exception!.values![0].type).toEqual('TypeError');
             expect(result!.exception!.values![0].value).toEqual('two');
             expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
