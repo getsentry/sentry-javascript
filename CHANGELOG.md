@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.6.0
+
 - [loader] fix: Detect if `init` has been called in an onload callback
 - [core] fix: Use correct frame for `inboundFilter` methods
 - [core] ref: Multiple `init` calls have been changed to "latest wins" instead of "ignore all after first"
