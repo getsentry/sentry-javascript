@@ -60,14 +60,20 @@ function debounceAssertEventCount(sentryData, count, done) {
   return true;
 }
 
+function _alt(title, condition) {
+  return condition ? '⚠️   Skipped: ' + title : title;
+}
+
 var frames = ['frame', 'loader', 'loader-lazy-no'];
 
 for (var idx in frames) {
   (function() {
     var filename = frames[idx];
-    var IS_ASYNC_LOADER = !!filename.match(/^loader/);
+    var IS_LOADER = !!filename.match(/^loader/);
+    var IS_ASYNC_LOADER = !!filename.match(/^loader$/);
+    var IS_SYNC_LOADER = !!filename.match(/^loader-lazy-no$/);
 
-    describe('integration ' + filename + '.html', function() {
+    describe(filename + '.html', function() {
       this.timeout(30000);
 
       beforeEach(function(done) {
@@ -366,7 +372,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               var eventCount = 5;
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // On the async loader since we replay all messages from the same location
                 // we actually only receive 4 events
                 eventCount = 4;
@@ -376,7 +382,7 @@ for (var idx in frames) {
                 assert.match(sentryData[1].message, /Message no \d+/);
                 assert.equal(sentryData[2].message, 'same message, same stacktrace');
                 assert.equal(sentryData[3].message, 'same message, different stacktrace');
-                !IS_ASYNC_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
+                !IS_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
                 done();
               }
             }
@@ -864,7 +870,7 @@ for (var idx in frames) {
           );
         });
 
-        it("should capture built-in's mechanism type as instrument", function(done) {
+        it(_alt("should capture built-in's mechanism type as instrument", IS_LOADER), function(done) {
           var iframe = this.iframe;
 
           iframeExecute(
@@ -879,7 +885,7 @@ for (var idx in frames) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 var sentryData = sentryData[0];
 
-                if (IS_ASYNC_LOADER) {
+                if (IS_LOADER) {
                   // The async loader doesn't wrap setTimeout
                   // so we don't receive the full mechanism
                   assert.ok(sentryData.exception.mechanism);
@@ -929,7 +935,7 @@ for (var idx in frames) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 var sentryData = sentryData[0];
 
-                if (IS_ASYNC_LOADER) {
+                if (IS_LOADER) {
                   // The async loader doesn't wrap addEventListener
                   // so we don't receive the full mechanism
                   assert.ok(sentryData.exception.mechanism);
@@ -986,7 +992,7 @@ for (var idx in frames) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
                 var sentryData = sentryData[0];
 
-                if (IS_ASYNC_LOADER) {
+                if (IS_LOADER) {
                   // The async loader doesn't wrap
                   assert.ok(sentryData.exception.mechanism);
                   return done();
@@ -1013,7 +1019,7 @@ for (var idx in frames) {
       });
 
       describe('breadcrumbs', function() {
-        it('should record an XMLHttpRequest with a handler', function(done) {
+        it(_alt('should record an XMLHttpRequest with a handler', IS_LOADER), function(done) {
           var iframe = this.iframe;
 
           iframeExecute(
@@ -1031,7 +1037,7 @@ for (var idx in frames) {
               xhr.send();
             },
             function() {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap XHR
                 return done();
               }
@@ -1047,7 +1053,7 @@ for (var idx in frames) {
           );
         });
 
-        it('should record an XMLHttpRequest without any handlers set', function(done) {
+        it(_alt('should record an XMLHttpRequest without any handlers set', IS_LOADER), function(done) {
           var iframe = this.iframe;
 
           iframeExecute(
@@ -1064,7 +1070,7 @@ for (var idx in frames) {
               xhr.send();
             },
             function() {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // Since we do a xhr as soon as the page loads
                 // the async loader is not able to pick this
                 return done();
@@ -1081,32 +1087,35 @@ for (var idx in frames) {
           );
         });
 
-        it('should transform XMLHttpRequests to the Sentry store endpoint as sentry type breadcrumb', function(done) {
-          var iframe = this.iframe;
-          iframeExecute(
-            iframe,
-            done,
-            function() {
-              setTimeout(done, 1000);
-              var xhr = new XMLHttpRequest();
-              xhr.open('GET', 'https://example.com/api/1/store/');
-              xhr.send('{"message":"someMessage","level":"warning"}');
-            },
-            function() {
-              if (IS_ASYNC_LOADER) {
-                // Since we do a xhr as soon as the page loads
-                // the async loader is not able to pick this
-                return done();
+        it(
+          _alt('should transform XMLHttpRequests to the Sentry store endpoint as sentry type breadcrumb', IS_LOADER),
+          function(done) {
+            var iframe = this.iframe;
+            iframeExecute(
+              iframe,
+              done,
+              function() {
+                setTimeout(done, 1000);
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'https://example.com/api/1/store/');
+                xhr.send('{"message":"someMessage","level":"warning"}');
+              },
+              function() {
+                if (IS_LOADER) {
+                  // Since we do a xhr as soon as the page loads
+                  // the async loader is not able to pick this
+                  return done();
+                }
+                var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+                assert.equal(breadcrumbs.length, 1);
+                assert.equal(breadcrumbs[0].category, 'sentry');
+                assert.equal(breadcrumbs[0].level, 'warning');
+                assert.equal(breadcrumbs[0].message, 'someMessage');
+                done();
               }
-              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
-              assert.equal(breadcrumbs.length, 1);
-              assert.equal(breadcrumbs[0].category, 'sentry');
-              assert.equal(breadcrumbs[0].level, 'warning');
-              assert.equal(breadcrumbs[0].message, 'someMessage');
-              done();
-            }
-          );
-        });
+            );
+          }
+        );
 
         it('should record a fetch request', function(done) {
           var iframe = this.iframe;
@@ -1125,7 +1134,7 @@ for (var idx in frames) {
               );
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1170,7 +1179,7 @@ for (var idx in frames) {
               );
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1215,7 +1224,7 @@ for (var idx in frames) {
               );
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1268,7 +1277,7 @@ for (var idx in frames) {
               input.dispatchEvent(click);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1301,7 +1310,7 @@ for (var idx in frames) {
               input.dispatchEvent(click);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1343,7 +1352,7 @@ for (var idx in frames) {
               input.dispatchEvent(click);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1383,7 +1392,7 @@ for (var idx in frames) {
               input.dispatchEvent(click);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1417,7 +1426,7 @@ for (var idx in frames) {
               input.dispatchEvent(keypress2);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1433,7 +1442,7 @@ for (var idx in frames) {
           );
         });
 
-        it('should flush keypress breadcrumbs when an error is thrown', function(done) {
+        it(_alt('should flush keypress breadcrumbs when an error is thrown', IS_LOADER), function(done) {
           var iframe = this.iframe;
           iframeExecute(
             iframe,
@@ -1451,7 +1460,7 @@ for (var idx in frames) {
               foo(); // throw exception
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 return done();
               }
               // TODO: don't really understand what's going on here
@@ -1489,7 +1498,7 @@ for (var idx in frames) {
               input.dispatchEvent(keypress2);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1532,7 +1541,7 @@ for (var idx in frames) {
               div.dispatchEvent(keypress2);
             },
             function(sentryData) {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
@@ -1548,55 +1557,58 @@ for (var idx in frames) {
           );
         });
 
-        it('should record history.[pushState|replaceState] changes as navigation breadcrumbs', function(done) {
-          var iframe = this.iframe;
+        it(
+          _alt('should record history.[pushState|replaceState] changes as navigation breadcrumbs', IS_LOADER),
+          function(done) {
+            var iframe = this.iframe;
 
-          iframeExecute(
-            iframe,
-            done,
-            function() {
-              setTimeout(done, 1000);
+            iframeExecute(
+              iframe,
+              done,
+              function() {
+                setTimeout(done, 1000);
 
-              history.pushState({}, '', '/foo');
-              history.pushState({}, '', '/bar?a=1#fragment');
-              history.pushState({}, '', {}); // pushState calls toString on non-string args
-              history.pushState({}, '', null); // does nothing / no-op
-              // can't call history.back() because it will change url of parent document
-              // (e.g. document running mocha) ... instead just "emulate" a back button
-              // press by calling replaceState
-              history.replaceState({}, '', '/bar?a=1#fragment');
-            },
-            function(sentryData) {
-              if (IS_ASYNC_LOADER) {
-                // The async loader doesn't wrap history
-                return done();
+                history.pushState({}, '', '/foo');
+                history.pushState({}, '', '/bar?a=1#fragment');
+                history.pushState({}, '', {}); // pushState calls toString on non-string args
+                history.pushState({}, '', null); // does nothing / no-op
+                // can't call history.back() because it will change url of parent document
+                // (e.g. document running mocha) ... instead just "emulate" a back button
+                // press by calling replaceState
+                history.replaceState({}, '', '/bar?a=1#fragment');
+              },
+              function(sentryData) {
+                if (IS_LOADER) {
+                  // The async loader doesn't wrap history
+                  return done();
+                }
+                var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
+                assert.equal(breadcrumbs.length, 4);
+                assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
+                assert.equal(breadcrumbs[1].category, 'navigation'); // foo => bar?a=1#fragment
+                assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
+                assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
+
+                assert.ok(/\/test\/integration\/.*\.html$/.test(breadcrumbs[0].data.from), "'from' url is incorrect");
+                assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), "'to' url is incorrect");
+
+                assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), "'from' url is incorrect");
+                assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[1].data.to), "'to' url is incorrect");
+
+                assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[2].data.from), "'from' url is incorrect");
+                assert.ok(/\[object Object\]$/.test(breadcrumbs[2].data.to), "'to' url is incorrect");
+
+                assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), "'from' url is incorrect");
+                assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
+
+                done();
               }
-              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+            );
+          }
+        );
 
-              assert.equal(breadcrumbs.length, 4);
-              assert.equal(breadcrumbs[0].category, 'navigation'); // (start) => foo
-              assert.equal(breadcrumbs[1].category, 'navigation'); // foo => bar?a=1#fragment
-              assert.equal(breadcrumbs[2].category, 'navigation'); // bar?a=1#fragment => [object%20Object]
-              assert.equal(breadcrumbs[3].category, 'navigation'); // [object%20Object] => bar?a=1#fragment (back button)
-
-              assert.ok(/\/test\/integration\/.*\.html$/.test(breadcrumbs[0].data.from), "'from' url is incorrect");
-              assert.ok(/\/foo$/.test(breadcrumbs[0].data.to), "'to' url is incorrect");
-
-              assert.ok(/\/foo$/.test(breadcrumbs[1].data.from), "'from' url is incorrect");
-              assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[1].data.to), "'to' url is incorrect");
-
-              assert.ok(/\/bar\?a=1#fragment$/.test(breadcrumbs[2].data.from), "'from' url is incorrect");
-              assert.ok(/\[object Object\]$/.test(breadcrumbs[2].data.to), "'to' url is incorrect");
-
-              assert.ok(/\[object Object\]$/.test(breadcrumbs[3].data.from), "'from' url is incorrect");
-              assert.ok(/\/bar\?a=1#fragment/.test(breadcrumbs[3].data.to), "'to' url is incorrect");
-
-              done();
-            }
-          );
-        });
-
-        it('should preserve native code detection compatibility', function(done) {
+        it(_alt('should preserve native code detection compatibility', IS_LOADER), function(done) {
           var iframe = this.iframe;
 
           iframeExecute(
@@ -1606,7 +1618,7 @@ for (var idx in frames) {
               done();
             },
             function() {
-              if (IS_ASYNC_LOADER) {
+              if (IS_LOADER) {
                 // The async loader doesn't wrap anything
                 return done();
               }
@@ -1640,7 +1652,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
-                if (IS_ASYNC_LOADER) {
+                if (IS_LOADER) {
                   // The async loader doesn't capture breadcrumbs, but we should receive the event without them
                   assert.lengthOf(sentryData, 1);
                   return done();
@@ -1652,6 +1664,129 @@ for (var idx in frames) {
                 assert.deepEqual(sentryData.breadcrumbs[0].data.extra.arguments, ['One']);
                 assert.deepEqual(sentryData.breadcrumbs[1].data.extra.arguments, ['Two', { a: 1 }]);
                 assert.deepEqual(sentryData.breadcrumbs[2].data.extra.arguments, ['Error 2', { b: '[Object]' }]);
+                done();
+              }
+            }
+          );
+        });
+      });
+
+      // LOADER SPECIFIC TESTS -----------------------------------------------------------------------------------------
+      if (IS_LOADER) {
+        describe('Loader Specific Tests', function() {
+          it('should add breadcrumb from onLoad callback from undefined error', function(done) {
+            var iframe = this.iframe;
+
+            iframeExecute(
+              iframe,
+              done,
+              function() {
+                Sentry.onLoad(function() {
+                  Sentry.addBreadcrumb({
+                    category: 'auth',
+                    message: 'testing loader',
+                    level: 'error',
+                  });
+                });
+                undefinedMethod(); //trigger error
+              },
+              function(sentryData) {
+                if (debounceAssertEventCount(sentryData, 1, done)) {
+                  var sentryData = iframe.contentWindow.sentryData[0];
+                  if (IS_ASYNC_LOADER) {
+                    assert.notOk(sentryData.breadcrumbs);
+                  } else {
+                    if (sentryData.breadcrumbs) {
+                      assert.ok(sentryData.breadcrumbs);
+                      assert.lengthOf(sentryData.breadcrumbs, 1);
+                      assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                    } else {
+                      // This seems to be happening only in chrome
+                      assert.notOk(sentryData.breadcrumbs);
+                    }
+                  }
+                  done();
+                }
+              }
+            );
+          });
+
+          it('should add breadcrumb from onLoad callback from undefined error with custom init()', function(done) {
+            var iframe = this.iframe;
+
+            iframeExecute(
+              iframe,
+              done,
+              function() {
+                Sentry.onLoad(function() {
+                  Sentry.init({ debug: true });
+                  Sentry.addBreadcrumb({
+                    category: 'auth',
+                    message: 'testing loader',
+                    level: 'error',
+                  });
+                });
+                undefinedMethod(); //trigger error
+              },
+              function(sentryData) {
+                if (debounceAssertEventCount(sentryData, 1, done)) {
+                  var sentryData = iframe.contentWindow.sentryData[0];
+                  assert.ok(sentryData.breadcrumbs);
+                  assert.lengthOf(sentryData.breadcrumbs, 1);
+                  assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
+                  done();
+                }
+              }
+            );
+          });
+        });
+      }
+      // -------------------------------------------------------------------------------------------------------------
+    });
+  })();
+}
+
+var loaderSpecific = ['loader-with-no-global-init', 'loader-with-no-global-init-lazy-no'];
+
+for (var idx in loaderSpecific) {
+  (function() {
+    var filename = loaderSpecific[idx];
+
+    describe(filename + '.html', function() {
+      this.timeout(30000);
+
+      beforeEach(function(done) {
+        this.iframe = createIframe(done, filename);
+      });
+
+      afterEach(function() {
+        document.body.removeChild(this.iframe);
+      });
+
+      describe('Loader Specific Tests - With no Global init() call', function() {
+        it('should add breadcrumb from onLoad callback from undefined error', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              Sentry.onLoad(function() {
+                initSDK();
+                Sentry.addBreadcrumb({
+                  category: 'auth',
+                  message: 'testing loader',
+                  level: 'error',
+                });
+              });
+              undefinedMethod(); //trigger error
+            },
+            function(sentryData) {
+              if (debounceAssertEventCount(sentryData, 1, done)) {
+                var sentryData = iframe.contentWindow.sentryData[0];
+                assert.ok(sentryData.breadcrumbs);
+                assert.lengthOf(sentryData.breadcrumbs, 1);
+                assert.equal(sentryData.breadcrumbs[0].message, 'testing loader');
                 done();
               }
             }

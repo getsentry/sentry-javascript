@@ -58,7 +58,6 @@
     // come out in the wrong order. Because of that we don't need async=1 as GA does.
     // it was probably(?) a legacy behavior that they left to not modify few years old snippet
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
-    var _currentScriptTag = _document.getElementsByTagName(_script)[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
     _newScriptTag.crossorigin = 'anonymous';
@@ -91,40 +90,48 @@
       }
     });
 
-    _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
+    // We append the script to the body because if you use an `onload` callback it could happen that
+    // the `onLoad` of the already injected SDK will be called, which breaks the setup flow.
+    document.body.appendChild(_newScriptTag);
   }
 
   function sdkLoaded(callbacks, SDK) {
     try {
+      var data = queue.data;
+
+      // We have to make sure to call all callbacks first
       for (var i = 0; i < callbacks.length; i++) {
         if (typeof callbacks[i] === 'function') {
           callbacks[i]();
         }
       }
 
-      var data = queue.data;
+      var initAlreadyCalled = false;
+      // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
+      if (!(typeof _window['__SENTRY__'] === 'undefined')) {
+        initAlreadyCalled = true;
+      }
 
-      // We want to replay all calls to Sentry first to make sure init is called before
-      // we call all our internal error handlers
-      var firstInitCall = false;
+      // We want to replay all calls to Sentry and also make sure that `init` is called if it wasn't already
+      // We replay all calls to `Sentry.*` now
       var calledSentry = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
           calledSentry = true;
           var call = data[i];
-          if (firstInitCall === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user
-            // so call to init is optional
+          if (initAlreadyCalled === false && call.f !== 'init') {
+            // First call always has to be init, this is a conveniece for the user so call to init is optional
             SDK.init();
           }
-          firstInitCall = true;
+          initAlreadyCalled = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
-      if (calledSentry === false) {
+      if (initAlreadyCalled === false && calledSentry === false) {
         // Sentry has never been called but we need Sentry.init() so call it
         SDK.init();
       }
+
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
@@ -200,7 +207,7 @@
   };
 
   if (!lazy) {
-    setTimeout(function() {
+    setTimeout(function () {
       injectSdk(onLoadCallbacks);
     });
   }
