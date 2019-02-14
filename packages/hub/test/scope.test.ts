@@ -1,4 +1,4 @@
-import { SentryEvent, SentryEventHint, Severity } from '@sentry/types';
+import { Event, EventHint, Severity } from '@sentry/types';
 import { Scope } from '../src';
 
 describe('Scope', () => {
@@ -95,7 +95,7 @@ describe('Scope', () => {
     scope.setFingerprint(['abcd']);
     scope.setLevel(Severity.Warning);
     scope.addBreadcrumb({ message: 'test' }, 100);
-    const event: SentryEvent = {};
+    const event: Event = {};
     return scope.applyToEvent(event).then(processedEvent => {
       expect(processedEvent!.extra).toEqual({ a: 2 });
       expect(processedEvent!.tags).toEqual({ a: 'b' });
@@ -114,7 +114,7 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
-    const event: SentryEvent = {
+    const event: Event = {
       breadcrumbs: [{ message: 'test2' }],
       extra: { b: 3 },
       fingerprint: ['efgh'],
@@ -133,7 +133,7 @@ describe('Scope', () => {
   test('applyToEvent message fingerprint', async () => {
     expect.assertions(1);
     const scope = new Scope();
-    const event: SentryEvent = {
+    const event: Event = {
       fingerprint: ['bar'],
       message: 'foo',
     };
@@ -146,7 +146,7 @@ describe('Scope', () => {
     expect.assertions(1);
     const scope = new Scope();
     scope.setLevel(Severity.Warning);
-    const event: SentryEvent = {};
+    const event: Event = {};
     event.level = Severity.Critical;
     return scope.applyToEvent(event).then(processedEvent => {
       expect(processedEvent!.level).toEqual('warning');
@@ -167,20 +167,20 @@ describe('Scope', () => {
 
   test('addEventProcessor', () => {
     expect.assertions(3);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
       return processedEvent;
     });
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       processedEvent.dist = '1';
       return processedEvent;
     });
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       expect(processedEvent.dist).toEqual('1');
       return processedEvent;
     });
@@ -193,20 +193,20 @@ describe('Scope', () => {
   test('addEventProcessor async', async () => {
     jest.useFakeTimers();
     expect.assertions(6);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
     const callCounter = jest.fn();
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       callCounter(1);
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
       return processedEvent;
     });
     localScope.addEventProcessor(
-      async (processedEvent: SentryEvent) =>
-        new Promise<SentryEvent>(resolve => {
+      async (processedEvent: Event) =>
+        new Promise<Event>(resolve => {
           callCounter(2);
           setTimeout(() => {
             callCounter(3);
@@ -216,7 +216,7 @@ describe('Scope', () => {
           jest.runAllTimers();
         }),
     );
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       callCounter(4);
       return processedEvent;
     });
@@ -233,27 +233,27 @@ describe('Scope', () => {
   test('addEventProcessor async with reject', async () => {
     jest.useFakeTimers();
     expect.assertions(2);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
     const callCounter = jest.fn();
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       callCounter(1);
       expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
       return processedEvent;
     });
     localScope.addEventProcessor(
-      async (_processedEvent: SentryEvent) =>
-        new Promise<SentryEvent>((_, reject) => {
+      async (_processedEvent: Event) =>
+        new Promise<Event>((_, reject) => {
           setTimeout(() => {
             reject('bla');
           }, 1);
           jest.runAllTimers();
         }),
     );
-    localScope.addEventProcessor((processedEvent: SentryEvent) => {
+    localScope.addEventProcessor((processedEvent: Event) => {
       callCounter(4);
       return processedEvent;
     });
@@ -265,12 +265,12 @@ describe('Scope', () => {
 
   test('addEventProcessor return null', () => {
     expect.assertions(1);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    localScope.addEventProcessor(async (_: SentryEvent) => null);
+    localScope.addEventProcessor(async (_: Event) => null);
     return localScope.applyToEvent(event).then(processedEvent => {
       expect(processedEvent).toBeNull();
     });
@@ -278,12 +278,12 @@ describe('Scope', () => {
 
   test('addEventProcessor pass along hint', () => {
     expect.assertions(3);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    localScope.addEventProcessor(async (internalEvent: SentryEvent, hint?: SentryEventHint) => {
+    localScope.addEventProcessor(async (internalEvent: Event, hint?: EventHint) => {
       expect(hint).toBeTruthy();
       expect(hint!.syntheticException).toBeTruthy();
       return internalEvent;

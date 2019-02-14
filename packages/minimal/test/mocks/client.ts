@@ -15,5 +15,5 @@ export class TestClient {
 export class TestClient2 {}
 
 export function init(options: object): void {
-  getCurrentHub().bindClient(new TestClient(options));
+  getCurrentHub().bindClient(new TestClient(options) as any);
 }

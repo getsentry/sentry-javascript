@@ -71,12 +71,12 @@ export class Hub {
   /**
    * Internal helper function to call a method on the top client if it exists.
    *
-   * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/frontend.
+   * @param method The method to call on the client.
+   * @param args Arguments to pass to the client function.
    */
-  private invokeClient(method: string, ...args: any[]): void {
+  private invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
     const top = this.getStackTop();
-    if (top && top.client && (top.client as any)[method]) {
+    if (top && top.client && top.client[method]) {
       (top.client as any)[method](...args, top.scope);
     }
   }
@@ -97,20 +97,9 @@ export class Hub {
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
    */
-  public bindClient(client?: any): void {
+  public bindClient(client?: Client): void {
     const top = this.getStackTop();
     top.client = client;
-    if (top && top.scope && client) {
-      top.scope.addScopeListener((s: Scope) => {
-        if (client.getBackend) {
-          try {
-            client.getBackend().storeScope(s);
-          } catch {
-            // Do nothing
-          }
-        }
-      });
-    }
   }
 
   /**

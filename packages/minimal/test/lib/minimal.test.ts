@@ -140,19 +140,6 @@ describe('Minimal', () => {
     });
   });
 
-  test('Add Breadcrumb', () => {
-    const client = {
-      addBreadcrumb: jest.fn(),
-    };
-    getCurrentHub().pushScope();
-    getCurrentHub().bindClient(client);
-    addBreadcrumb({ message: 'world' });
-    expect(client.addBreadcrumb.mock.calls[0][0]).toEqual({
-      message: 'world',
-    });
-    getCurrentHub().popScope();
-  });
-
   test('returns undefined before binding a client', () => {
     expect(getCurrentHub().getClient()).toBeUndefined();
   });

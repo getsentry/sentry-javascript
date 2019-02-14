@@ -1,4 +1,4 @@
-import { SentryWrappedFunction } from '@sentry/types';
+import { WrappedFunction } from '@sentry/types';
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
 import { wrap } from '../../src/integrations/helpers';
@@ -23,7 +23,7 @@ describe('wrap()', () => {
   });
 
   it('bail out with the original if accessing custom props go bad', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     fn.__sentry__ = false;
     Object.defineProperty(fn, '__sentry_wrapped__', {
       get(): void {
@@ -44,14 +44,14 @@ describe('wrap()', () => {
   });
 
   it('returns wrapped function if original was already wrapped', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     const wrapped = wrap(fn);
 
     expect(wrap(fn)).equal(wrapped);
   });
 
   it('returns same wrapped function if trying to wrap it again', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
 
     const wrapped = wrap(fn);
 
@@ -59,7 +59,7 @@ describe('wrap()', () => {
   });
 
   it('calls "before" function when invoking wrapped function', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     const before = spy();
 
     const wrapped = wrap(fn, {}, before);
@@ -69,7 +69,7 @@ describe('wrap()', () => {
   });
 
   it('attaches metadata to original and wrapped functions', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
 
     const wrapped = wrap(fn);
 
@@ -84,7 +84,7 @@ describe('wrap()', () => {
   });
 
   it('copies over original functions properties', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     fn.some = 1337;
     fn.property = 'Rick';
 
@@ -97,7 +97,7 @@ describe('wrap()', () => {
   });
 
   it('doesnt break when accessing original functions properties blows up', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     Object.defineProperty(fn, 'some', {
       get(): void {
         throw new Error('boom');
@@ -110,7 +110,7 @@ describe('wrap()', () => {
   });
 
   it('recrusively wraps arguments that are functions', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     const fnArgA = () => 1337;
     const fnArgB = () => 1337;
 
@@ -181,7 +181,7 @@ describe('wrap()', () => {
   });
 
   it('internal flags shouldnt be enumerable', () => {
-    const fn = (() => 1337) as SentryWrappedFunction;
+    const fn = (() => 1337) as WrappedFunction;
     const wrapped = wrap(fn);
 
     // Shouldn't show up in iteration

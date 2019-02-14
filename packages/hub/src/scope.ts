@@ -138,7 +138,8 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * Inherit values from the parent scope.
+   * @param scope to clone.
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();

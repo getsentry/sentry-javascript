@@ -1,4 +1,4 @@
-import { SentryEvent } from '../../src';
+import { Event } from '../../src';
 import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
@@ -31,7 +31,7 @@ describe('LinkedErrors', () => {
       const spy = jest.spyOn(linkedErrors, 'walkErrorTree');
       const one = new Error('originalException');
       const backend = new NodeBackend({});
-      let event: SentryEvent | undefined;
+      let event: Event | undefined;
       return backend
         .eventFromException(one)
         .then(eventFromException => {
