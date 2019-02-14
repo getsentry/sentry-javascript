@@ -75,17 +75,6 @@ describe('Scope', () => {
     expect((scope as any).extra).toEqual({ a: 2 });
   });
 
-  test('listeners', () => {
-    jest.useFakeTimers();
-    const scope = new Scope();
-    const listener = jest.fn();
-    scope.addScopeListener(listener);
-    scope.setExtra('a', 2);
-    jest.runAllTimers();
-    expect(listener).toHaveBeenCalled();
-    expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
-  });
-
   test('applyToEvent', () => {
     expect.assertions(6);
     const scope = new Scope();

@@ -50,21 +50,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * This will be called on every set call.
-   */
-  protected notifyScopeListeners(): void {
-    if (!this.notifyingListeners) {
-      this.notifyingListeners = true;
-      setTimeout(() => {
-        this.scopeListeners.forEach(callback => {
-          callback(this);
-        });
-        this.notifyingListeners = false;
-      });
-    }
-  }
-
-  /**
    * This will be called after {@link applyToEvent} is finished.
    */
   protected notifyEventProcessors(
@@ -97,7 +82,6 @@ export class Scope implements ScopeInterface {
    */
   public setUser(user: User): Scope {
     this.user = safeNormalize(user);
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -106,7 +90,6 @@ export class Scope implements ScopeInterface {
    */
   public setTag(key: string, value: string): Scope {
     this.tags = { ...this.tags, [key]: safeNormalize(value) };
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -115,7 +98,6 @@ export class Scope implements ScopeInterface {
    */
   public setExtra(key: string, extra: any): Scope {
     this.extra = { ...this.extra, [key]: safeNormalize(extra) };
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -124,7 +106,6 @@ export class Scope implements ScopeInterface {
    */
   public setFingerprint(fingerprint: string[]): Scope {
     this.fingerprint = safeNormalize(fingerprint);
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -133,7 +114,6 @@ export class Scope implements ScopeInterface {
    */
   public setLevel(level: Severity): Scope {
     this.level = safeNormalize(level);
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -165,7 +145,6 @@ export class Scope implements ScopeInterface {
     this.user = {};
     this.level = undefined;
     this.fingerprint = undefined;
-    this.notifyScopeListeners();
   }
 
   /**
@@ -176,7 +155,6 @@ export class Scope implements ScopeInterface {
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this.breadcrumbs, safeNormalize(breadcrumb)].slice(-maxBreadcrumbs)
         : [...this.breadcrumbs, safeNormalize(breadcrumb)];
-    this.notifyScopeListeners();
   }
 
   /**
