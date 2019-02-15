@@ -131,7 +131,6 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      client.install();
       getCurrentHub().bindClient(client);
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
