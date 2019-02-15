@@ -66,7 +66,7 @@ export default [
       interop: false,
       sourcemap: true,
     },
-    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal'],
+    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal', 'tslib'],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
