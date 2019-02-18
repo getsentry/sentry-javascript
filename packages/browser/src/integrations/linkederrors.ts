@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Integration, SentryEvent, SentryEventHint, SentryException } from '@sentry/types';
+import { Event, EventHint, Exception, Integration } from '@sentry/types';
 import { exceptionFromStacktrace } from '../parsers';
 import { computeStackTrace } from '../tracekit';
 
@@ -47,7 +47,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
         return self.handler(event, hint);
@@ -59,7 +59,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: SentryEvent, hint?: SentryEventHint): SentryEvent | null {
+  public handler(event: Event, hint?: EventHint): Event | null {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return event;
     }
@@ -71,7 +71,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public walkErrorTree(error: ExtendedError, key: string, stack: SentryException[] = []): SentryException[] {
+  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
       return stack;
     }

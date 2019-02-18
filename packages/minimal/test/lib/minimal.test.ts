@@ -1,14 +1,6 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import { Severity } from '@sentry/types';
-import {
-  _callOnClient,
-  addBreadcrumb,
-  captureEvent,
-  captureException,
-  captureMessage,
-  configureScope,
-  withScope,
-} from '../../src';
+import { _callOnClient, captureEvent, captureException, captureMessage, configureScope, withScope } from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
@@ -22,7 +14,7 @@ describe('Minimal', () => {
 
   describe('Capture', () => {
     test('Return an event_id', () => {
-      const client = {
+      const client: any = {
         captureException: jest.fn(async () => Promise.resolve()),
       };
       getCurrentHub().withScope(() => {
@@ -34,7 +26,7 @@ describe('Minimal', () => {
     });
 
     test('Exception', () => {
-      const client = {
+      const client: any = {
         captureException: jest.fn(async () => Promise.resolve()),
       };
       getCurrentHub().withScope(() => {
@@ -46,7 +38,7 @@ describe('Minimal', () => {
     });
 
     test('Message', () => {
-      const client = { captureMessage: jest.fn(async () => Promise.resolve()) };
+      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
       getCurrentHub().withScope(() => {
         getCurrentHub().bindClient(client);
         const message = 'yo';
@@ -56,7 +48,7 @@ describe('Minimal', () => {
     });
 
     test('Event', () => {
-      const client = { captureEvent: jest.fn(async () => Promise.resolve()) };
+      const client: any = { captureEvent: jest.fn(async () => Promise.resolve()) };
       getCurrentHub().withScope(() => {
         getCurrentHub().bindClient(client);
         const e = { message: 'test' };
@@ -68,7 +60,7 @@ describe('Minimal', () => {
 
   describe('configureScope', () => {
     test('User Context', () => {
-      const client = new TestClient({});
+      const client: any = new TestClient({});
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       configureScope((scope: Scope) => {
@@ -81,7 +73,7 @@ describe('Minimal', () => {
     });
 
     test('Extra Context', () => {
-      const client = new TestClient({});
+      const client: any = new TestClient({});
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       configureScope((scope: Scope) => {
@@ -104,7 +96,7 @@ describe('Minimal', () => {
     });
 
     test('Fingerprint', () => {
-      const client = new TestClient({});
+      const client: any = new TestClient({});
       getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       configureScope((scope: Scope) => {
@@ -114,7 +106,7 @@ describe('Minimal', () => {
     });
 
     test('Level', () => {
-      const client = new TestClient({});
+      const client: any = new TestClient({});
       const scope = getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       scope.setLevel(Severity.Warning);
@@ -123,7 +115,7 @@ describe('Minimal', () => {
   });
 
   test('Clear Scope', () => {
-    const client = new TestClient({});
+    const client: any = new TestClient({});
     getCurrentHub().withScope(() => {
       getCurrentHub().bindClient(client);
       expect(global.__SENTRY__.hub.stack.length).toBe(2);
@@ -140,19 +132,6 @@ describe('Minimal', () => {
     });
   });
 
-  test('Add Breadcrumb', () => {
-    const client = {
-      addBreadcrumb: jest.fn(),
-    };
-    getCurrentHub().pushScope();
-    getCurrentHub().bindClient(client);
-    addBreadcrumb({ message: 'world' });
-    expect(client.addBreadcrumb.mock.calls[0][0]).toEqual({
-      message: 'world',
-    });
-    getCurrentHub().popScope();
-  });
-
   test('returns undefined before binding a client', () => {
     expect(getCurrentHub().getClient()).toBeUndefined();
   });
@@ -165,7 +144,7 @@ describe('Minimal', () => {
   test('Calls function on the client', done => {
     const s = jest.spyOn(TestClient.prototype, 'mySecretPublicMethod');
     getCurrentHub().withScope(() => {
-      getCurrentHub().bindClient(new TestClient({}));
+      getCurrentHub().bindClient(new TestClient({}) as any);
       _callOnClient('mySecretPublicMethod', 'test');
       expect(s.mock.calls[0][0]).toBe('test');
       s.mockRestore();
@@ -177,7 +156,7 @@ describe('Minimal', () => {
     init({});
     expect(() => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(new TestClient2());
+        getCurrentHub().bindClient(new TestClient2() as any);
       });
     }).not.toThrow();
   });
@@ -186,7 +165,7 @@ describe('Minimal', () => {
     init({});
     expect(() => {
       getCurrentHub().withScope(() => {
-        getCurrentHub().bindClient(new TestClient({}));
+        getCurrentHub().bindClient(new TestClient({}) as any);
       });
     }).not.toThrow();
   });
@@ -197,11 +176,11 @@ describe('Minimal', () => {
     };
     const hub = getHubFromCarrier(iAmSomeGlobalVarTheUserHasToManage.state);
     hub.pushScope();
-    hub.bindClient(new TestClient({}));
+    hub.bindClient(new TestClient({}) as any);
     hub.configureScope((scope: Scope) => {
       scope.setUser({ id: '1234' });
     });
-    expect(((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1] as any).scope.user).toEqual({
+    expect((iAmSomeGlobalVarTheUserHasToManage.state as any).__SENTRY__.hub.stack[1].scope.user).toEqual({
       id: '1234',
     });
     hub.popScope();

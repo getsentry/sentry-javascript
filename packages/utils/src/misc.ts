@@ -1,4 +1,4 @@
-import { SentryEvent, SentryWrappedFunction } from '@sentry/types';
+import { Event, WrappedFunction } from '@sentry/types';
 import { isString } from './is';
 
 /**
@@ -206,7 +206,7 @@ export function parseUrl(
  * Extracts either message or type+value from an event that can be used for user-facing logs
  * @returns event's description
  */
-export function getEventDescription(event: SentryEvent): string {
+export function getEventDescription(event: Event): string {
   if (event.message) {
     return event.message;
   } else if (event.exception && event.exception.values && event.exception.values[0]) {
@@ -241,9 +241,9 @@ export function consoleSandbox(callback: () => any): any {
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as SentryWrappedFunction).__sentry__) {
-      wrappedLevels[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_wrapped__;
-      originalConsole[level] = (originalConsole[level] as SentryWrappedFunction).__sentry_original__;
+    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry__) {
+      wrappedLevels[level] = (originalConsole[level] as WrappedFunction).__sentry_wrapped__;
+      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
     }
   });
 

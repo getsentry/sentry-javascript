@@ -1,5 +1,5 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { isPlainObject, isUndefined } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
@@ -92,7 +92,7 @@ export class Vue implements Integration {
             scope.setExtra(key, metadata[key]);
           });
 
-          scope.addEventProcessor((event: SentryEvent) => {
+          scope.addEventProcessor((event: Event) => {
             if (event.sdk) {
               const integrations = event.sdk.integrations || [];
               event.sdk = {

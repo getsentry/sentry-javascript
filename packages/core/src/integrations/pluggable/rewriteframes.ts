@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent, StackFrame } from '@sentry/types';
+import { Event, Integration, StackFrame } from '@sentry/types';
 import { basename, relative } from '@sentry/utils/path';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -58,7 +58,7 @@ export class RewriteFrames implements Integration {
   }
 
   /** JSDoc */
-  public process(event: SentryEvent): SentryEvent {
+  public process(event: Event): Event {
     const frames = this.getFramesFromEvent(event);
     if (frames) {
       for (const i in frames) {
@@ -70,7 +70,7 @@ export class RewriteFrames implements Integration {
   }
 
   /** JSDoc */
-  private getFramesFromEvent(event: SentryEvent): StackFrame[] | undefined {
+  private getFramesFromEvent(event: Event): StackFrame[] | undefined {
     const exception = event.exception;
 
     if (exception) {

@@ -1,4 +1,4 @@
-import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
+import { Event, Exception, StackFrame } from '@sentry/types';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -236,10 +236,10 @@ function addPrePostContext(
 /**
  * @hidden
  */
-export function getExceptionFromError(error: Error, options?: NodeOptions): SyncPromise<SentryException> {
+export function getExceptionFromError(error: Error, options?: NodeOptions): SyncPromise<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
-  return new SyncPromise<SentryException>(resolve =>
+  return new SyncPromise<Exception>(resolve =>
     parseStack(stack, options).then(frames => {
       const result = {
         stacktrace: {
@@ -256,9 +256,9 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Sync
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<SentryEvent> {
-  return new SyncPromise<SentryEvent>(resolve =>
-    getExceptionFromError(error, options).then((exception: SentryException) => {
+export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<Event> {
+  return new SyncPromise<Event>(resolve =>
+    getExceptionFromError(error, options).then((exception: Exception) => {
       resolve({
         exception: {
           values: [exception],

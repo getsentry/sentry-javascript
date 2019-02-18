@@ -1,14 +1,15 @@
 import {
   Breadcrumb,
+  BreadcrumbHint,
+  Client,
+  Event,
+  EventHint,
   Integration,
   IntegrationClass,
-  SentryBreadcrumbHint,
-  SentryEvent,
-  SentryEventHint,
   Severity,
 } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
-import { dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { consoleSandbox, dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -33,6 +34,18 @@ declare module 'domain' {
 export const API_VERSION = 3;
 
 /**
+ * Default maximum number of breadcrumbs added to an event. Can be overwritten
+ * with {@link Options.maxBreadcrumbs}.
+ */
+const DEFAULT_BREADCRUMBS = 30;
+
+/**
+ * Absolute maximum number of breadcrumbs added to an event. The
+ * `maxBreadcrumbs` option cannot be higher than this value.
+ */
+const MAX_BREADCRUMBS = 100;
+
+/**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
@@ -51,20 +64,20 @@ export class Hub {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: any, scope: Scope = new Scope(), private readonly version: number = API_VERSION) {
+  public constructor(client?: Client, scope: Scope = new Scope(), private readonly version: number = API_VERSION) {
     this.stack.push({ client, scope });
   }
 
   /**
    * Internal helper function to call a method on the top client if it exists.
    *
-   * @param method The method to call on the client/client.
-   * @param args Arguments to pass to the client/frontend.
+   * @param method The method to call on the client.
+   * @param args Arguments to pass to the client function.
    */
-  private invokeClient(method: string, ...args: any[]): void {
+  private invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope);
+      (top.client as any)[method](...args, top.scope);
     }
   }
 
@@ -84,20 +97,9 @@ export class Hub {
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
    */
-  public bindClient(client?: any): void {
+  public bindClient(client?: Client): void {
     const top = this.getStackTop();
     top.client = client;
-    if (top && top.scope && client) {
-      top.scope.addScopeListener((s: Scope) => {
-        if (client.getBackend) {
-          try {
-            client.getBackend().storeScope(s);
-          } catch {
-            // Do nothing
-          }
-        }
-      });
-    }
   }
 
   /**
@@ -182,7 +184,7 @@ export class Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  public captureException(exception: any, hint?: SentryEventHint): string {
+  public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     this.invokeClient('captureException', exception, {
       ...hint,
@@ -199,7 +201,7 @@ export class Hub {
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint): string {
+  public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     this.invokeClient('captureMessage', message, level, {
       ...hint,
@@ -214,7 +216,7 @@ export class Hub {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    */
-  public captureEvent(event: SentryEvent, hint?: SentryEventHint): string {
+  public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
     this.invokeClient('captureEvent', event, {
       ...hint,
@@ -241,8 +243,30 @@ export class Hub {
    * @param breadcrumb The breadcrumb to record.
    * @param hint May contain additional information about the original breadcrumb.
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
-    this.invokeClient('addBreadcrumb', breadcrumb, { ...hint });
+  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
+    const top = this.getStackTop();
+
+    if (!top.scope || !top.client) {
+      return;
+    }
+
+    const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = top.client.getOptions();
+
+    if (maxBreadcrumbs <= 0) {
+      return;
+    }
+
+    const timestamp = new Date().getTime() / 1000;
+    const mergedBreadcrumb = { timestamp, ...breadcrumb };
+    const finalBreadcrumb = beforeBreadcrumb
+      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
+      : mergedBreadcrumb;
+
+    if (finalBreadcrumb === null) {
+      return;
+    }
+
+    top.scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
   }
 
   /**

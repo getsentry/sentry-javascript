@@ -1,9 +1,7 @@
-import { SentryEvent } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
+import { Event } from '@sentry/types';
 import { getCurrentHub, Hub, Scope } from '../src';
 
-const clientFn = jest.fn();
-const scope = new Scope();
+const clientFn: any = jest.fn();
 
 describe('Hub', () => {
   afterEach(() => {
@@ -17,30 +15,12 @@ describe('Hub', () => {
   });
 
   test('pass in filled layer', () => {
-    const hub = new Hub({
-      clientFn,
-    });
+    const hub = new Hub(clientFn);
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test('invoke client sync', () => {
-    const hub = new Hub(
-      {
-        clientFn,
-      },
-      scope,
-    );
-    // @ts-ignore
-    hub.invokeClient('clientFn', true);
-    expect(clientFn).toHaveBeenCalled();
-    expect(clientFn.mock.calls[0][0]).toBe(true);
-    expect(clientFn.mock.calls[0][1]).toBe(scope);
-  });
-
   test("don't invoke client sync with wrong func", () => {
-    const hub = new Hub({
-      clientFn,
-    });
+    const hub = new Hub(clientFn);
     // @ts-ignore
     hub.invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
@@ -62,7 +42,7 @@ describe('Hub', () => {
   });
 
   test('pushScope inherit client', () => {
-    const testClient = { bla: 'a' };
+    const testClient: any = { bla: 'a' };
     const hub = new Hub(testClient);
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
@@ -70,9 +50,9 @@ describe('Hub', () => {
   });
 
   test('pushScope bindClient', () => {
-    const testClient = { bla: 'a' };
+    const testClient: any = { bla: 'a' };
     const hub = new Hub(testClient);
-    const ndClient = { foo: 'bar' };
+    const ndClient: any = { foo: 'bar' };
     hub.pushScope();
     hub.bindClient(ndClient);
     expect(hub.getStack()).toHaveLength(2);
@@ -98,71 +78,29 @@ describe('Hub', () => {
 
   test('withScope bindClient', () => {
     const hub = new Hub();
-    const testClient = { bla: 'a' };
+    const testClient: any = { bla: 'a' };
     hub.withScope(() => {
       hub.bindClient(testClient);
       expect(hub.getStack()).toHaveLength(2);
       expect(hub.getStack()[1].client).toBe(testClient);
-    });
-    expect(hub.getStack()).toHaveLength(1);
-  });
-
-  test('withScope bindClient scope changes', () => {
-    jest.useFakeTimers();
-    const hub = new Hub();
-    const storeScope = jest.fn();
-    const testClient = {
-      bla: 'a',
-      getBackend: () => ({ storeScope }),
-    };
-    hub.withScope(() => {
-      hub.bindClient(testClient);
-      hub.configureScope(localScope => {
-        localScope.setExtra('a', 'b');
-      });
-      jest.runAllTimers();
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
-      expect(storeScope.mock.calls).toHaveLength(1);
-      expect(storeScope.mock.calls[0][0].extra).toEqual({ a: 'b' });
-    });
-    expect(hub.getStack()).toHaveLength(1);
-  });
-
-  test('withScope bindClient scope changes without configureScope', () => {
-    jest.useFakeTimers();
-    const hub = new Hub();
-    const storeScope = jest.fn();
-    const testClient = {
-      bla: 'a',
-      getBackend: () => ({ storeScope }),
-    };
-    hub.withScope(localScope => {
-      hub.bindClient(testClient);
-      localScope.setExtra('a', 'b');
-      jest.runAllTimers();
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
-      expect(storeScope.mock.calls).toHaveLength(1);
-      expect(storeScope.mock.calls[0][0].extra).toEqual({ a: 'b' });
     });
     expect(hub.getStack()).toHaveLength(1);
   });
 
   test('getCurrentClient', () => {
-    const testClient = { bla: 'a' };
+    const testClient: any = { bla: 'a' };
     const hub = new Hub(testClient);
     expect(hub.getClient()).toBe(testClient);
   });
 
   test('getStack', () => {
-    const client = { a: 'b' };
+    const client: any = { a: 'b' };
     const hub = new Hub(client);
     expect(hub.getStack()[0].client).toBe(client);
   });
 
   test('getStackTop', () => {
-    const testClient = { bla: 'a' };
+    const testClient: any = { bla: 'a' };
     const hub = new Hub();
     hub.pushScope();
     hub.pushScope();
@@ -189,7 +127,7 @@ describe('Hub', () => {
   });
 
   test('captureEvent', () => {
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const hub = new Hub();
@@ -198,15 +136,6 @@ describe('Hub', () => {
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureEvent');
     expect(spy.mock.calls[0][1]).toBe(event);
-  });
-
-  test('addBreadcrumb', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
-    hub.addBreadcrumb({ message: 'test' });
-    expect(spy).toHaveBeenCalled();
-    expect(spy.mock.calls[0][0]).toBe('addBreadcrumb');
-    expect(spy.mock.calls[0][1]).toEqual({ message: 'test' });
   });
 
   test('configureScope', () => {
@@ -221,7 +150,7 @@ describe('Hub', () => {
     expect.assertions(1);
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' }, localScope);
+    const hub = new Hub({ a: 'b' } as any, localScope);
     hub.configureScope(confScope => {
       expect((confScope as any).extra).toEqual({ a: 'b' });
     });
@@ -229,14 +158,14 @@ describe('Hub', () => {
 
   test('pushScope inherit processors', () => {
     expect.assertions(1);
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const localScope = new Scope();
     localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' }, localScope);
+    const hub = new Hub({ a: 'b' } as any, localScope);
 
-    localScope.addEventProcessor(async (processedEvent: SentryEvent) => {
+    localScope.addEventProcessor(async (processedEvent: Event) => {
       processedEvent.dist = '1';
       return processedEvent;
     });
@@ -264,7 +193,7 @@ describe('Hub', () => {
   });
 
   test('captureEvent should set event_id in hint', () => {
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const hub = new Hub();
@@ -274,7 +203,7 @@ describe('Hub', () => {
   });
 
   test('lastEventId should be the same as last created', () => {
-    const event: SentryEvent = {
+    const event: Event = {
       extra: { b: 3 },
     };
     const hub = new Hub();
@@ -285,7 +214,7 @@ describe('Hub', () => {
   test('run', () => {
     const currentHub = getCurrentHub();
     const myScope = new Scope();
-    const myClient = { a: 'b' };
+    const myClient: any = { a: 'b' };
     myScope.setExtra('a', 'b');
     const myHub = new Hub(myClient, myScope);
     myHub.run(hub => {

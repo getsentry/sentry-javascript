@@ -1,5 +1,5 @@
 import { API, getCurrentHub } from '@sentry/core';
-import { Breadcrumb, Integration, SentryBreadcrumbHint, Severity } from '@sentry/types';
+import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
 import { isFunction, isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
@@ -454,9 +454,9 @@ export class Breadcrumbs implements Integration {
   /**
    * Helper that checks if integration is enabled on the client.
    * @param breadcrumb Breadcrumb
-   * @param hint SentryBreadcrumbHint
+   * @param hint BreadcrumbHint
    */
-  public static addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint): void {
+  public static addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     if (getCurrentHub().getIntegration(Breadcrumbs)) {
       getCurrentHub().addBreadcrumb(breadcrumb, hint);
     }

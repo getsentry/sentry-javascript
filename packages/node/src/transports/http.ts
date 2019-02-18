@@ -1,4 +1,4 @@
-import { SentryResponse, TransportOptions } from '@sentry/types';
+import { Response, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import * as http from 'http';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -20,7 +20,7 @@ export class HTTPTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(body: string): Promise<SentryResponse> {
+  public async sendEvent(body: string): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available in HTTPTransport');
     }
