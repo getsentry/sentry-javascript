@@ -97,7 +97,7 @@ export function configureScope(callback: (scope: Scope) => void): void {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: ((scope: Scope) => void)): void {
+export function withScope(callback: (scope: Scope) => void): void {
   callOnHub<void>('withScope', callback);
 }
 

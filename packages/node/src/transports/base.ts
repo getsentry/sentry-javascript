@@ -13,6 +13,11 @@ import { SDK_NAME, SDK_VERSION } from '../version';
  * @hidden
  */
 export interface HTTPRequest {
+  /**
+   * Request wrapper
+   * @param options These are {@see TransportOptions}
+   * @param callback Callback when request is finished
+   */
   request(
     options: http.RequestOptions | https.RequestOptions | string | url.URL,
     callback?: (res: http.IncomingMessage) => void,
