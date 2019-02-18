@@ -1,34 +1,13 @@
 import { Scope } from '@sentry/hub';
-import {
-  Breadcrumb,
-  Integration,
-  IntegrationClass,
-  SentryBreadcrumbHint,
-  SentryEvent,
-  SentryEventHint,
-  Severity,
-} from '@sentry/types';
+import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
 import { isPrimitive, isThenable } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
-import { consoleSandbox, uuid4 } from '@sentry/utils/misc';
+import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
-import { BackendClass } from './basebackend';
+import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
-import { Backend, Client, Options } from './interfaces';
-
-/**
- * Default maximum number of breadcrumbs added to an event. Can be overwritten
- * with {@link Options.maxBreadcrumbs}.
- */
-const DEFAULT_BREADCRUMBS = 30;
-
-/**
- * Absolute maximum number of breadcrumbs added to an event. The
- * `maxBreadcrumbs` option cannot be higher than this value.
- */
-const MAX_BREADCRUMBS = 100;
 
 /**
  * By default, truncates URL values to 250 chars
@@ -107,7 +86,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureException(exception: any, hint?: SentryEventHint, scope?: Scope): string | undefined {
+  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
     this.getBackend()
@@ -126,7 +105,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureMessage(message: string, level?: Severity, hint?: SentryEventHint, scope?: Scope): string | undefined {
+  public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
@@ -148,7 +127,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public captureEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
     this.processEvent(event, hint, scope)
       .then(finalEvent => {
@@ -158,31 +137,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         logger.log(reason);
       });
     return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public addBreadcrumb(breadcrumb: Breadcrumb, hint?: SentryBreadcrumbHint, scope?: Scope): void {
-    const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = this.getOptions();
-
-    if (maxBreadcrumbs <= 0) {
-      return;
-    }
-
-    const timestamp = new Date().getTime() / 1000;
-    const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb
-      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
-      : mergedBreadcrumb;
-
-    if (finalBreadcrumb === null) {
-      return;
-    }
-
-    if (this.getBackend().storeBreadcrumb(finalBreadcrumb) && scope) {
-      scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
-    }
   }
 
   /**
@@ -223,10 +177,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
-    const { environment, maxBreadcrumbs = DEFAULT_BREADCRUMBS, release, dist } = this.getOptions();
+  protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+    const { environment, release, dist } = this.getOptions();
 
-    const prepared = { ...event };
+    const prepared: Event = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
       prepared.environment = environment;
     }
@@ -256,14 +210,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       prepared.event_id = uuid4();
     }
 
-    // We prepare the result here with a resolved SentryEvent.
-    let result = SyncPromise.resolve<SentryEvent | null>(prepared);
+    // We prepare the result here with a resolved Event.
+    let result = SyncPromise.resolve<Event | null>(prepared);
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
       // In case we have a hub we reassign it.
-      result = scope.applyToEvent(prepared, hint, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      result = scope.applyToEvent(prepared, hint);
     }
 
     return result;
@@ -282,7 +236,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected processEvent(event: SentryEvent, hint?: SentryEventHint, scope?: Scope): SyncPromise<SentryEvent> {
+  protected processEvent(event: Event, hint?: EventHint, scope?: Scope): SyncPromise<Event> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this.isEnabled()) {
@@ -302,7 +256,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           return;
         }
 
-        let finalEvent: SentryEvent | null = prepared;
+        let finalEvent: Event | null = prepared;
 
         try {
           const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
@@ -316,9 +270,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           if ((typeof beforeSendResult as any) === 'undefined') {
             logger.error('`beforeSend` method has to return `null` or a valid event.');
           } else if (isThenable(beforeSendResult)) {
-            this.handleAsyncBeforeSend(beforeSendResult as Promise<SentryEvent | null>, resolve, reject);
+            this.handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
           } else {
-            finalEvent = beforeSendResult as SentryEvent | null;
+            finalEvent = beforeSendResult as Event | null;
 
             if (finalEvent === null) {
               logger.log('`beforeSend` returned `null`, will not send event.');
@@ -347,8 +301,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
    */
   private handleAsyncBeforeSend(
-    beforeSend: Promise<SentryEvent | null>,
-    resolve: (event: SentryEvent) => void,
+    beforeSend: Promise<Event | null>,
+    resolve: (event: Event) => void,
     reject: (reason: string) => void,
   ): void {
     beforeSend

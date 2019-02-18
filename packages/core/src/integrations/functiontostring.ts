@@ -1,4 +1,4 @@
-import { Integration, SentryWrappedFunction } from '@sentry/types';
+import { Integration, WrappedFunction } from '@sentry/types';
 
 let originalFunctionToString: () => void;
 
@@ -20,7 +20,7 @@ export class FunctionToString implements Integration {
   public setupOnce(): void {
     originalFunctionToString = Function.prototype.toString;
 
-    Function.prototype.toString = function(this: SentryWrappedFunction, ...args: any[]): string {
+    Function.prototype.toString = function(this: WrappedFunction, ...args: any[]): string {
       const context = this.__sentry__ ? this.__sentry_original__ : this;
       // tslint:disable-next-line:no-unsafe-any
       return originalFunctionToString.apply(context, args);

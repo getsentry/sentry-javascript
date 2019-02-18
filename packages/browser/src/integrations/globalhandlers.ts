@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { safeNormalize, serialize } from '@sentry/utils/object';
 import { truncate } from '@sentry/utils/string';
@@ -83,11 +83,11 @@ export class GlobalHandlers implements Integration {
   }
 
   /**
-   * This function creates an SentryEvent from an TraceKitStackTrace.
+   * This function creates an Event from an TraceKitStackTrace.
    *
-   * @param stacktrace TraceKitStackTrace to be converted to an SentryEvent.
+   * @param stacktrace TraceKitStackTrace to be converted to an Event.
    */
-  private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): SentryEvent {
+  private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): Event {
     const event = eventFromStacktrace(stacktrace);
 
     const data: { [key: string]: string } = {
@@ -102,7 +102,7 @@ export class GlobalHandlers implements Integration {
       data.name = stacktrace.name;
     }
 
-    const newEvent: SentryEvent = {
+    const newEvent: Event = {
       ...event,
       exception: {
         ...event.exception,

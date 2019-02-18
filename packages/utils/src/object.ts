@@ -1,4 +1,4 @@
-import { SentryWrappedFunction } from '@sentry/types';
+import { WrappedFunction } from '@sentry/types';
 import { isArray, isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
@@ -57,11 +57,11 @@ export function clone<T>(object: T): T {
  */
 
 export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
-  if (!(name in source) || (source[name] as SentryWrappedFunction).__sentry__) {
+  if (!(name in source) || (source[name] as WrappedFunction).__sentry__) {
     return;
   }
   const original = source[name] as () => any;
-  const wrapped = replacement(original) as SentryWrappedFunction;
+  const wrapped = replacement(original) as WrappedFunction;
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"

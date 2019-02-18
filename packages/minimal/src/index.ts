@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, Severity } from '@sentry/types';
+import { Breadcrumb, Event, Severity } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -60,7 +60,7 @@ export function captureMessage(message: string, level?: Severity): string {
  * @param event The event to send to Sentry.
  * @returns The generated eventId.
  */
-export function captureEvent(event: SentryEvent): string {
+export function captureEvent(event: Event): string {
   return callOnHub('captureEvent', event);
 }
 

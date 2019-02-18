@@ -1,4 +1,4 @@
-import { SentryEvent, SentryException, StackFrame } from '@sentry/types';
+import { Event, Exception, StackFrame } from '@sentry/types';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { includes } from '@sentry/utils/string';
 import { md5 } from './md5';
@@ -11,10 +11,10 @@ const STACKTRACE_LIMIT = 50;
  * @param stacktrace TraceKitStackTrace that will be converted to an exception
  * @hidden
  */
-export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryException {
+export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Exception {
   const frames = prepareFramesForEvent(stacktrace.stack);
 
-  const exception: SentryException = {
+  const exception: Exception = {
     type: stacktrace.name,
     value: stacktrace.message,
   };
@@ -34,9 +34,9 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): SentryE
 /**
  * @hidden
  */
-export function eventFromPlainObject(exception: {}, syntheticException: Error | null): SentryEvent {
+export function eventFromPlainObject(exception: {}, syntheticException: Error | null): Event {
   const exceptionKeys = Object.keys(exception).sort();
-  const event: SentryEvent = {
+  const event: Event = {
     extra: {
       __serialized__: limitObjectDepthToSize(exception),
     },
@@ -58,7 +58,7 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
 /**
  * @hidden
  */
-export function eventFromStacktrace(stacktrace: TraceKitStackTrace): SentryEvent {
+export function eventFromStacktrace(stacktrace: TraceKitStackTrace): Event {
   const exception = exceptionFromStacktrace(stacktrace);
 
   return {
@@ -113,7 +113,7 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
  * @param type Type of the exception.
  * @hidden
  */
-export function addExceptionTypeValue(event: SentryEvent, value?: string, type?: string): void {
+export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
   event.exception.values[0] = event.exception.values[0] || {};

@@ -5,6 +5,7 @@
     "max-classes-per-file": false,
     "no-non-null-assertion": false,
     "no-implicit-dependencies": [true, "dev"],
-    "no-unused-expression": false
+    "no-unused-expression": false,
+    "no-unsafe-any": false
   }
 }

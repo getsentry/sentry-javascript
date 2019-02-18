@@ -1,5 +1,5 @@
 import { captureException, captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -81,7 +81,7 @@ export class Ember implements Integration {
    * @param scope The scope currently used.
    */
   private addIntegrationToSdkInfo(scope: Scope): void {
-    scope.addEventProcessor((event: SentryEvent) => {
+    scope.addEventProcessor((event: Event) => {
       if (event.sdk) {
         const integrations = event.sdk.integrations || [];
         event.sdk = {

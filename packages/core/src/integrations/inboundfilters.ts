@@ -1,10 +1,9 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Client, Event, Integration } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 import { includes } from '@sentry/utils/string';
-import { Client } from '../interfaces';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -35,7 +34,7 @@ export class InboundFilters implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((event: SentryEvent) => {
+    addGlobalEventProcessor((event: Event) => {
       const hub = getCurrentHub();
       if (!hub) {
         return event;
@@ -54,7 +53,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public shouldDropEvent(event: SentryEvent, options: InboundFiltersOptions): boolean {
+  public shouldDropEvent(event: Event, options: InboundFiltersOptions): boolean {
     if (this.isSentryError(event, options)) {
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
       return true;
@@ -85,7 +84,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isSentryError(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+  public isSentryError(event: Event, options: InboundFiltersOptions = {}): boolean {
     if (!options.ignoreInternal) {
       return false;
     }
@@ -99,7 +98,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isIgnoredError(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+  public isIgnoredError(event: Event, options: InboundFiltersOptions = {}): boolean {
     if (!options.ignoreErrors || !options.ignoreErrors.length) {
       return false;
     }
@@ -111,7 +110,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isBlacklistedUrl(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+  public isBlacklistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
     if (!options.blacklistUrls || !options.blacklistUrls.length) {
       return false;
@@ -121,7 +120,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isWhitelistedUrl(event: SentryEvent, options: InboundFiltersOptions = {}): boolean {
+  public isWhitelistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
     if (!options.whitelistUrls || !options.whitelistUrls.length) {
       return true;
@@ -156,7 +155,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private getPossibleEventMessages(event: SentryEvent): string[] {
+  private getPossibleEventMessages(event: Event): string[] {
     if (event.message) {
       return [event.message];
     } else if (event.exception) {
@@ -174,7 +173,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private getEventFilterUrl(event: SentryEvent): string | null {
+  private getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
         // tslint:disable:no-unsafe-any

@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent, SentryEventHint } from '@sentry/types';
+import { Event, EventHint, Integration } from '@sentry/types';
 
 /** JSDoc */
 interface DebugOptions {
@@ -37,7 +37,7 @@ export class Debug implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((event: SentryEvent, hint?: SentryEventHint) => {
+    addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(Debug);
       if (self) {
         // tslint:disable:no-console

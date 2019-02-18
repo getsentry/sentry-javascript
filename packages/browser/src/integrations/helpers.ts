@@ -1,5 +1,5 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
+import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
 import { serializeObject } from '@sentry/utils/object';
@@ -36,11 +36,11 @@ export function ignoreNextOnError(): void {
  * @hidden
  */
 export function wrap(
-  fn: SentryWrappedFunction,
+  fn: WrappedFunction,
   options: {
     mechanism?: Mechanism;
   } = {},
-  before?: SentryWrappedFunction,
+  before?: WrappedFunction,
 ): any {
   if (!isFunction(fn)) {
     return fn;
@@ -63,7 +63,7 @@ export function wrap(
     return fn;
   }
 
-  const sentryWrapped: SentryWrappedFunction = function(this: any): void {
+  const sentryWrapped: WrappedFunction = function(this: any): void {
     if (before && isFunction(before)) {
       before.apply(this, arguments);
     }
