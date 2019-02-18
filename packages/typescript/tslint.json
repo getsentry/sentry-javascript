@@ -15,6 +15,8 @@
     "prefer-function-over-method": [false],
     "strict-boolean-expressions": false,
     "no-inferrable-types": false,
+    "ban-ts-ignore": false,
+    "increment-decrement": false,
     // These are too strict in tslint:all
     "comment-format": [true, "check-space"],
     "completed-docs": [
@@ -26,7 +28,7 @@
         "functions": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
         "interfaces": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
         "methods": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "properties": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } }
+        "properties": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] }, "locations": "instance" }
       }
     ],
     "interface-name": [true, "never-prefix"],

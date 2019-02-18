@@ -19,9 +19,7 @@ export interface Transport {
 }
 
 /** JSDoc */
-export interface TransportClass<T extends Transport> {
-  new (options: TransportOptions): T;
-}
+export type TransportClass<T extends Transport> = new (options: TransportOptions) => T;
 
 /** JSDoc */
 export interface TransportOptions {

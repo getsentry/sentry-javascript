@@ -1,5 +1,5 @@
 import commonjs from 'rollup-plugin-commonjs';
-import uglify from 'rollup-plugin-uglify';
+import { uglify } from 'rollup-plugin-uglify';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
@@ -32,6 +32,7 @@ const bundleConfig = {
       tsconfigOverride: {
         compilerOptions: {
           declaration: false,
+          module: 'ES2015',
           paths: {
             '@sentry/utils/*': ['../utils/src/*'],
             '@sentry/core': ['../core/src'],
@@ -72,6 +73,7 @@ export default [
         tsconfig: 'tsconfig.build.json',
         tsconfigOverride: {
           compilerOptions: {
+            module: 'ES2015',
             rootDir: 'src',
           },
         },
