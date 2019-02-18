@@ -21,6 +21,7 @@ type HandlerOnFail<U = any> = (reason: any) => U | Thenable<U>;
 
 /** JSDoc */
 interface Thenable<T> {
+  /** JSDoc */
   then<U>(onSuccess?: HandlerOnSuccess<T, U>, onFail?: HandlerOnFail<U> | ((reason: any) => void)): Thenable<U>;
 }
 

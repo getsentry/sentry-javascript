@@ -3,9 +3,7 @@ import { Client, Options } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 
 /** A class object that can instanciate Client objects. */
-export interface ClientClass<F extends Client, O extends Options> {
-  new (options: O): F;
-}
+export type ClientClass<F extends Client, O extends Options> = new (options: O) => F;
 
 /**
  * Internal function to create a new SDK client instance. The client is

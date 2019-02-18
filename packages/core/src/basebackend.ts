@@ -48,9 +48,7 @@ export interface Backend {
  * A class object that can instanciate Backend objects.
  * @hidden
  */
-export interface BackendClass<B extends Backend, O extends Options> {
-  new (options: O): B;
-}
+export type BackendClass<B extends Backend, O extends Options> = new (options: O) => B;
 
 /**
  * This is the base implemention of a Backend.
