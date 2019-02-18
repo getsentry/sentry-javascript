@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent, SentryException, StackFrame } from '@sentry/types';
+import { Event, Exception, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 
@@ -8,7 +8,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  private previousEvent?: SentryEvent;
+  private previousEvent?: Event;
 
   /**
    * @inheritDoc
@@ -24,7 +24,7 @@ export class Dedupe implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((currentEvent: SentryEvent) => {
+    addGlobalEventProcessor((currentEvent: Event) => {
       const self = getCurrentHub().getIntegration(Dedupe);
       if (self) {
         // Juuust in case something goes wrong
@@ -43,7 +43,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  public shouldDropEvent(currentEvent: SentryEvent, previousEvent?: SentryEvent): boolean {
+  public shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
     if (!previousEvent) {
       return false;
     }
@@ -70,7 +70,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameMessageEvent(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameMessageEvent(currentEvent: Event, previousEvent: Event): boolean {
     const currentMessage = currentEvent.message;
     const previousMessage = previousEvent.message;
 
@@ -100,7 +100,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private getFramesFromEvent(event: SentryEvent): StackFrame[] | undefined {
+  private getFramesFromEvent(event: Event): StackFrame[] | undefined {
     const exception = event.exception;
 
     if (exception) {
@@ -118,7 +118,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameStacktrace(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
     let currentFrames = this.getFramesFromEvent(currentEvent);
     let previousFrames = this.getFramesFromEvent(previousEvent);
 
@@ -159,12 +159,12 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private getExceptionFromEvent(event: SentryEvent): SentryException | undefined {
+  private getExceptionFromEvent(event: Event): Exception | undefined {
     return event.exception && event.exception.values && event.exception.values[0];
   }
 
   /** JSDoc */
-  private isSameExceptionEvent(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boolean {
     const previousException = this.getExceptionFromEvent(previousEvent);
     const currentException = this.getExceptionFromEvent(currentEvent);
 
@@ -188,7 +188,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameFingerprint(currentEvent: SentryEvent, previousEvent: SentryEvent): boolean {
+  private isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean {
     let currentFingerprint = currentEvent.fingerprint;
     let previousFingerprint = previousEvent.fingerprint;
 

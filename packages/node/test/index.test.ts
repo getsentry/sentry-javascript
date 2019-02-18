@@ -1,17 +1,16 @@
 import * as domain from 'domain';
-
 import {
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
   configureScope,
+  Event,
   getCurrentHub,
   init,
   NodeClient,
+  Response,
   Scope,
-  SentryEvent,
-  SentryResponse,
 } from '../src';
 import { NodeBackend } from '../src/backend';
 import { SetTimeoutTransport } from './helper/settimeouttransport';
@@ -110,7 +109,7 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.Mock<(event: SentryEvent) => Promise<SentryResponse>>;
+    let s: jest.Mock<(event: Event) => void>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -122,7 +121,7 @@ describe('SentryNode', () => {
 
     test('record auto breadcrumbs', done => {
       const client = new NodeClient({
-        beforeSend: (event: SentryEvent) => {
+        beforeSend: (event: Event) => {
           // TODO: It should be 3, but we don't capture a breadcrumb
           // for our own captureMessage/captureException calls yet
           expect(event.breadcrumbs!).toHaveLength(2);
@@ -139,7 +138,7 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.Mock<(event: SentryEvent) => Promise<SentryResponse>>;
+    let s: jest.Mock<(event: Event) => void>;
 
     beforeEach(() => {
       s = jest.spyOn(NodeBackend.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
@@ -153,7 +152,7 @@ describe('SentryNode', () => {
       expect.assertions(5);
       getCurrentHub().bindClient(
         new NodeClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
@@ -179,7 +178,7 @@ describe('SentryNode', () => {
       expect.assertions(10);
       getCurrentHub().bindClient(
         new NodeClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.tags).toEqual({ test: '1' });
             expect(event.exception).not.toBeUndefined();
             expect(event.exception!.values![0]).not.toBeUndefined();
@@ -211,7 +210,7 @@ describe('SentryNode', () => {
       expect.assertions(2);
       getCurrentHub().bindClient(
         new NodeClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
             done();
@@ -227,7 +226,7 @@ describe('SentryNode', () => {
       expect.assertions(2);
       getCurrentHub().bindClient(
         new NodeClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.message).toBe('test event');
             expect(event.exception).toBeUndefined();
             done();
@@ -243,7 +242,7 @@ describe('SentryNode', () => {
       const d = domain.create();
 
       const client = new NodeClient({
-        beforeSend: (event: SentryEvent) => {
+        beforeSend: (event: Event) => {
           expect(event.message).toBe('test domain');
           expect(event.exception).toBeUndefined();
           done();
@@ -263,7 +262,7 @@ describe('SentryNode', () => {
       expect.assertions(1);
       getCurrentHub().bindClient(
         new NodeClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(
               event.exception!.values![0].stacktrace!.frames![
                 event.exception!.values![0].stacktrace!.frames!.length - 1

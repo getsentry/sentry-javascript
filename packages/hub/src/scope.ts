@@ -1,25 +1,14 @@
-import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
+import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
 import { isFunction, isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 
 /**
- * Event processors are used to change the event before it will be send.
- * We strongly advise to make this function sync.
- * Returning a Promise<SentryEvent | null> will work just fine, but better be sure that you know what you are doing.
- * Event processing will be deferred until your Promise is resolved.
- */
-export type EventProcessor = (
-  event: SentryEvent,
-  hint?: SentryEventHint,
-) => Promise<SentryEvent | null> | SentryEvent | null;
-
-/**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
  */
-export class Scope {
+export class Scope implements ScopeInterface {
   /** Flag if notifiying is happening. */
   protected notifyingListeners: boolean = false;
 
@@ -52,25 +41,12 @@ export class Scope {
     this.scopeListeners.push(callback);
   }
 
-  /** Add new event processor that will be called after {@link applyToEvent}. */
+  /**
+   * @inheritdoc
+   */
   public addEventProcessor(callback: EventProcessor): Scope {
     this.eventProcessors.push(callback);
     return this;
-  }
-
-  /**
-   * This will be called on every set call.
-   */
-  protected notifyScopeListeners(): void {
-    if (!this.notifyingListeners) {
-      this.notifyingListeners = true;
-      setTimeout(() => {
-        this.scopeListeners.forEach(callback => {
-          callback(this);
-        });
-        this.notifyingListeners = false;
-      });
-    }
   }
 
   /**
@@ -78,18 +54,18 @@ export class Scope {
    */
   protected notifyEventProcessors(
     processors: EventProcessor[],
-    event: SentryEvent | null,
-    hint?: SentryEventHint,
+    event: Event | null,
+    hint?: EventHint,
     index: number = 0,
-  ): SyncPromise<SentryEvent | null> {
-    return new SyncPromise<SentryEvent | null>((resolve, reject) => {
+  ): SyncPromise<Event | null> {
+    return new SyncPromise<Event | null>((resolve, reject) => {
       const processor = processors[index];
       if (event === null || !isFunction(processor)) {
         resolve(event);
       } else {
-        const result = processor({ ...event }, hint) as SentryEvent | null;
+        const result = processor({ ...event }, hint) as Event | null;
         if (isThenable(result)) {
-          (result as Promise<SentryEvent | null>)
+          (result as Promise<Event | null>)
             .then(final => this.notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
             .catch(reject);
         } else {
@@ -102,52 +78,42 @@ export class Scope {
   }
 
   /**
-   * Updates user context information for future events.
-   * @param user User context object to be set in the current context.
+   * @inheritdoc
    */
   public setUser(user: User): Scope {
     this.user = safeNormalize(user);
-    this.notifyScopeListeners();
     return this;
   }
 
   /**
-   * Updates tags context information for future events.
-   * @param tags Tags context object to merge into current context.
+   * @inheritdoc
    */
   public setTag(key: string, value: string): Scope {
     this.tags = { ...this.tags, [key]: safeNormalize(value) };
-    this.notifyScopeListeners();
     return this;
   }
 
   /**
-   * Updates extra context information for future events.
-   * @param extra context object to merge into current context.
+   * @inheritdoc
    */
   public setExtra(key: string, extra: any): Scope {
     this.extra = { ...this.extra, [key]: safeNormalize(extra) };
-    this.notifyScopeListeners();
     return this;
   }
 
   /**
-   * Sets the fingerprint on the scope to send with the events.
-   * @param fingerprint string[] to group events in Sentry.
+   * @inheritdoc
    */
   public setFingerprint(fingerprint: string[]): Scope {
     this.fingerprint = safeNormalize(fingerprint);
-    this.notifyScopeListeners();
     return this;
   }
 
   /**
-   * Sets the level on the scope for future events.
-   * @param level string {@link Severity}
+   * @inheritdoc
    */
   public setLevel(level: Severity): Scope {
     this.level = safeNormalize(level);
-    this.notifyScopeListeners();
     return this;
   }
 
@@ -169,7 +135,9 @@ export class Scope {
     return newScope;
   }
 
-  /** Clears the current scope and resets its properties. */
+  /**
+   * @inheritdoc
+   */
   public clear(): void {
     this.breadcrumbs = [];
     this.tags = {};
@@ -177,27 +145,23 @@ export class Scope {
     this.user = {};
     this.level = undefined;
     this.fingerprint = undefined;
-    this.notifyScopeListeners();
   }
 
   /**
-   * Sets the breadcrumbs in the scope
-   * @param breadcrumbs Breadcrumb
-   * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
+   * @inheritdoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
     this.breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this.breadcrumbs, safeNormalize(breadcrumb)].slice(-maxBreadcrumbs)
         : [...this.breadcrumbs, safeNormalize(breadcrumb)];
-    this.notifyScopeListeners();
   }
 
   /**
    * Applies fingerprint from the scope to the event if there's one,
    * uses message if there's one instead or get rid of empty fingerprint
    */
-  private applyFingerprint(event: SentryEvent): void {
+  private applyFingerprint(event: Event): void {
     // Make sure it's an array first and we actually have something in place
     event.fingerprint = event.fingerprint
       ? Array.isArray(event.fingerprint)
@@ -223,16 +187,12 @@ export class Scope {
    * Applies the current context and fingerprint to the event.
    * Note that breadcrumbs will be added by the client.
    * Also if the event has already breadcrumbs on it, we do not merge them.
-   * @param event SentryEvent
+   * @param event Event
    * @param hint May contain additional informartion about the original exception.
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    * @hidden
    */
-  public applyToEvent(
-    event: SentryEvent,
-    hint?: SentryEventHint,
-    maxBreadcrumbs?: number,
-  ): SyncPromise<SentryEvent | null> {
+  public applyToEvent(event: Event, hint?: EventHint): SyncPromise<Event | null> {
     if (this.extra && Object.keys(this.extra).length) {
       event.extra = { ...this.extra, ...event.extra };
     }
@@ -250,10 +210,7 @@ export class Scope {
 
     const hasNoBreadcrumbs = !event.breadcrumbs || event.breadcrumbs.length === 0;
     if (hasNoBreadcrumbs && this.breadcrumbs.length > 0) {
-      event.breadcrumbs =
-        maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-          ? this.breadcrumbs.slice(-maxBreadcrumbs)
-          : this.breadcrumbs;
+      event.breadcrumbs = this.breadcrumbs;
     }
 
     return this.notifyEventProcessors([...getGlobalEventProcessors(), ...this.eventProcessors], event, hint);

@@ -1,7 +1,6 @@
-import { SentryEvent } from '@sentry/types';
+import { Event, Options } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 import { BaseBackend } from '../../src/basebackend';
-import { Options } from '../../src/interfaces';
 
 export interface TestOptions extends Options {
   test?: boolean;
@@ -10,23 +9,16 @@ export interface TestOptions extends Options {
 
 export class TestBackend extends BaseBackend<TestOptions> {
   public static instance?: TestBackend;
-  public static sendEventCalled?: (event: SentryEvent) => void;
+  public static sendEventCalled?: (event: Event) => void;
 
-  public installed: number;
-  public event?: SentryEvent;
+  public event?: Event;
 
   public constructor(protected readonly options: TestOptions) {
     super(options);
     TestBackend.instance = this;
-    this.installed = 0;
   }
 
-  public install(): boolean {
-    this.installed += 1;
-    return !this.options.mockInstallFailure;
-  }
-
-  public eventFromException(exception: any): SyncPromise<SentryEvent> {
+  public eventFromException(exception: any): SyncPromise<Event> {
     return SyncPromise.resolve({
       exception: {
         values: [
@@ -39,11 +31,11 @@ export class TestBackend extends BaseBackend<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string): SyncPromise<SentryEvent> {
+  public eventFromMessage(message: string): SyncPromise<Event> {
     return SyncPromise.resolve({ message });
   }
 
-  public sendEvent(event: SentryEvent): void {
+  public sendEvent(event: Event): void {
     this.event = event;
     // tslint:disable-next-line
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);

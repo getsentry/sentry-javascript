@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 const global = getGlobalObject() as Window;
@@ -20,7 +20,7 @@ export class UserAgent implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addGlobalEventProcessor((event: SentryEvent) => {
+    addGlobalEventProcessor((event: Event) => {
       if (getCurrentHub().getIntegration(UserAgent)) {
         if (!global.navigator || !global.location) {
           return event;
