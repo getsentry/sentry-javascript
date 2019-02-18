@@ -146,7 +146,7 @@ export function serializeObject<T>(value: T, depth: number): T | string | {} {
     });
 
     return serialized;
-  } else if (isArray(value)) {
+  } else if (Array.isArray(value)) {
     const val = (value as any) as T[];
     return val.map(v => serializeObject(v, depth - 1));
   }
@@ -267,7 +267,7 @@ function normalizeValue(value: any, key?: any): any {
     return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
   }
 
-  if (isNaN(value)) {
+  if (Number.isNaN(value as number)) {
     return '[NaN]';
   }
 
