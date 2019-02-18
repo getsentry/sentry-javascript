@@ -148,7 +148,7 @@ export class Hub {
    *
    * @param callback that will be enclosed into push/popScope.
    */
-  public withScope(callback: ((scope: Scope) => void)): void {
+  public withScope(callback: (scope: Scope) => void): void {
     const scope = this.pushScope();
     try {
       callback(scope);
@@ -287,7 +287,7 @@ export class Hub {
    * This function is useful if you want to run your own client and hook into an already initialized one
    * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
    */
-  public run(callback: ((hub: Hub) => void)): void {
+  public run(callback: (hub: Hub) => void): void {
     const oldHub = makeMain(this);
     try {
       callback(this);

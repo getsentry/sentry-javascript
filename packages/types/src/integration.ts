@@ -14,6 +14,9 @@ export interface Integration {
    */
   name: string;
 
-  // This takes no options on purpose, options should be passed in the constructor
+  /**
+   * Sets the integration up only once.
+   * This takes no options on purpose, options should be passed in the constructor
+   */
   setupOnce(): void;
 }
