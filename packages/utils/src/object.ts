@@ -1,5 +1,5 @@
 import { SentryWrappedFunction } from '@sentry/types';
-import { isArray, isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
+import { isArray, isNaN, isPlainObject, isPrimitive, isSyntheticEvent, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
 
@@ -291,10 +291,6 @@ function normalizeValue(value: any, key?: any): any {
     return '[Document]';
   }
 
-  if (value instanceof Date) {
-    return `[Date] ${value}`;
-  }
-
   if (value instanceof Error) {
     return objectifyError(value);
   }
@@ -302,6 +298,11 @@ function normalizeValue(value: any, key?: any): any {
   // tslint:disable-next-line:strict-type-predicates
   if (typeof Event !== 'undefined' && value instanceof Event) {
     return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
+  }
+
+  // React's SyntheticEvent thingy
+  if (isSyntheticEvent(value)) {
+    return '[SyntheticEvent]';
   }
 
   if (isNaN(value)) {
@@ -328,6 +329,12 @@ function normalizeValue(value: any, key?: any): any {
 export function decycle(obj: any, memo: Memo = new Memo()): any {
   // tslint:disable-next-line:no-unsafe-any
   const copy = isArray(obj) ? obj.slice() : isPlainObject(obj) ? assign({}, obj) : obj;
+  const normalized = normalizeValue(obj);
+
+  // If an object was normalized to its string form, we should just bail out as theres no point in going down that branch
+  if (typeof normalized === 'string') {
+    return normalized;
+  }
 
   if (!isPrimitive(obj)) {
     if (memo.memoize(obj)) {

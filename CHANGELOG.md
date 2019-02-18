@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.6.3
+
+- [utils] fix: Normalize value before recursively walking down the tree
+
 ## 4.6.2
 
 - [utils] fix: Preserve function prototype when filling

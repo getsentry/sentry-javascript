@@ -138,3 +138,15 @@ export function isRegExp(wat: any): boolean {
 export function isNaN(wat: any): boolean {
   return wat !== wat;
 }
+
+/**
+ * Checks whether given value's type is a SyntheticEvent
+ * {@link isSyntheticEvent}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isSyntheticEvent(wat: any): boolean {
+  // tslint:disable-next-line:no-unsafe-any
+  return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
+}
