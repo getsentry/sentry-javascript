@@ -4,7 +4,6 @@ import { isError, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { safeNormalize } from '@sentry/utils/object';
 
-
 /** Patch toString calls to return proper name for wrapped functions */
 export class ExtraErrorData implements Integration {
   /**
@@ -44,13 +43,15 @@ export class ExtraErrorData implements Integration {
       let extra = {
         ...event.extra,
       };
+
       const normalizedErrorData = safeNormalize(errorData);
-      if (!isString(normalizedErrorData)) {
+      if (isPlainObject(normalizedErrorData)) {
         extra = {
           ...event.extra,
           ...normalizedErrorData,
         };
       }
+
       return {
         ...event,
         extra,

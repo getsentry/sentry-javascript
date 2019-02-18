@@ -193,36 +193,6 @@ export function serializeKeysToEventMessage(keys: string[], maxLength: number = 
   return '';
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-/** JSDoc */
-export function assign(target: any, ...args: any[]): object {
-  if (target === null || target === undefined) {
-    throw new TypeError('Cannot convert undefined or null to object');
-  }
-
-  const to = Object(target) as {
-    [key: string]: any;
-  };
-
-  // tslint:disable-next-line:prefer-for-of
-  for (let i = 0; i < args.length; i++) {
-    const source = args[i];
-    if (source !== null) {
-      for (const nextKey in source as {
-        [key: string]: any;
-      }) {
-        if (Object.prototype.hasOwnProperty.call(source, nextKey)) {
-          to[nextKey] = (source as {
-            [key: string]: any;
-          })[nextKey];
-        }
-      }
-    }
-  }
-
-  return to;
-}
-
 /**
  * Transforms Error object into an object literal with all it's attributes
  * attached to it.

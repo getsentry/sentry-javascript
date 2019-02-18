@@ -1,7 +1,7 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
 import { isFunction, isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
-import { assign, safeNormalize } from '@sentry/utils/object';
+import { safesafeNormalize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 
 /**
@@ -123,12 +123,12 @@ export class Scope implements ScopeInterface {
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();
-    assign(newScope, scope, {
+    Object.assign(newScope, scope, {
       scopeListeners: [],
     });
     if (scope) {
-      newScope.extra = assign(scope.extra);
-      newScope.tags = assign(scope.tags) as any;
+      newScope.extra = { ...scope.extra };
+      newScope.tags = { ...scope.tags };
       newScope.breadcrumbs = [...scope.breadcrumbs];
       newScope.eventProcessors = [...scope.eventProcessors];
     }
