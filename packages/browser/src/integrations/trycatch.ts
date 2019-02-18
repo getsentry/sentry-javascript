@@ -1,4 +1,4 @@
-import { Integration, SentryWrappedFunction } from '@sentry/types';
+import { Integration, WrappedFunction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { fill } from '@sentry/utils/object';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
@@ -124,7 +124,7 @@ export class TryCatch implements Integration {
           this,
           eventName,
           wrap(
-            (fn as any) as SentryWrappedFunction,
+            (fn as any) as WrappedFunction,
             {
               mechanism: {
                 data: {
@@ -152,7 +152,7 @@ export class TryCatch implements Integration {
         fn: EventListenerObject,
         options?: boolean | EventListenerOptions,
       ): () => void {
-        let callback = (fn as any) as SentryWrappedFunction;
+        let callback = (fn as any) as WrappedFunction;
         try {
           callback = callback && (callback.__sentry_wrapped__ || callback);
         } catch (e) {

@@ -1,5 +1,5 @@
-import { BaseBackend, Options } from '@sentry/core';
-import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { BaseBackend } from '@sentry/core';
+import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -56,8 +56,8 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent> {
-    let event: SentryEvent;
+  public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
+    let event: Event;
 
     if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
@@ -108,7 +108,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * This is an internal helper function that creates an event.
    */
-  private buildEvent(event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+  private buildEvent(event: Event, hint?: EventHint): Event {
     return {
       ...event,
       event_id: hint && hint.event_id,
@@ -125,12 +125,8 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(
-    message: string,
-    level: Severity = Severity.Info,
-    hint?: SentryEventHint,
-  ): SyncPromise<SentryEvent> {
-    const event: SentryEvent = {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): SyncPromise<Event> {
+    const event: Event = {
       event_id: hint && hint.event_id,
       level,
       message,

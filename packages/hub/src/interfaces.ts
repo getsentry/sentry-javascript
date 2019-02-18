@@ -1,3 +1,4 @@
+import { Client } from '@sentry/types';
 import { Hub } from './hub';
 import { Scope } from './scope';
 
@@ -6,7 +7,7 @@ import { Scope } from './scope';
  * @hidden
  */
 export interface Layer {
-  client?: any;
+  client?: Client;
   scope?: Scope;
 }
 

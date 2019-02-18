@@ -1,5 +1,5 @@
 import { API, BaseClient, Scope } from '@sentry/core';
-import { DsnLike, SentryEvent, SentryEventHint } from '@sentry/types';
+import { DsnLike, Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -50,7 +50,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected prepareEvent(event: SentryEvent, scope?: Scope, hint?: SentryEventHint): SyncPromise<SentryEvent | null> {
+  protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
     event.platform = event.platform || 'javascript';
     event.sdk = {
       ...event.sdk,

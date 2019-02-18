@@ -1,4 +1,4 @@
-import { SentryResponse, Status } from '@sentry/types';
+import { Response, Status } from '@sentry/types';
 import { BaseTransport } from './base';
 
 /** `XHR` based transport */
@@ -6,9 +6,9 @@ export class XHRTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(body: string): Promise<SentryResponse> {
+  public async sendEvent(body: string): Promise<Response> {
     return this.buffer.add(
-      new Promise<SentryResponse>((resolve, reject) => {
+      new Promise<Response>((resolve, reject) => {
         const request = new XMLHttpRequest();
 
         request.onreadystatechange = () => {

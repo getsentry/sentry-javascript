@@ -1,6 +1,5 @@
-import { Integration } from '@sentry/types';
+import { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
-import { Options } from './interfaces';
 
 export const installedIntegrations: string[] = [];
 

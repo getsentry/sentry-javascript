@@ -1,5 +1,5 @@
-import { Scope } from '@sentry/hub';
-import { SentryEvent } from '@sentry/types';
+import { Hub, Scope } from '@sentry/hub';
+import { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -76,8 +76,9 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const client = new TestClient({});
       const scope = new Scope();
+      const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      hub.addBreadcrumb({ message: 'world' });
       expect((scope as any).breadcrumbs[1].message).toBe('world');
     });
 
@@ -85,8 +86,9 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const client = new TestClient({});
       const scope = new Scope();
+      const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      hub.addBreadcrumb({ message: 'world' });
       expect((scope as any).breadcrumbs[1].timestamp).toBeGreaterThan(1);
     });
 
@@ -94,8 +96,9 @@ describe('BaseClient', () => {
       expect.assertions(2);
       const client = new TestClient({ maxBreadcrumbs: 1 });
       const scope = new Scope();
+      const hub = new Hub(client, scope);
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      hub.addBreadcrumb({ message: 'world' });
       expect((scope as any).breadcrumbs.length).toBe(1);
       expect((scope as any).breadcrumbs[0].message).toBe('world');
     });
@@ -104,8 +107,9 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const client = new TestClient({});
       const scope = new Scope();
-      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
-      client.addBreadcrumb({ message: 'world' }, undefined, scope);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' });
+      hub.addBreadcrumb({ message: 'world' });
       expect((scope as any).breadcrumbs).toHaveLength(2);
     });
 
@@ -114,7 +118,8 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any).breadcrumbs[0].message).toBe('hello');
     });
 
@@ -123,7 +128,8 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any).breadcrumbs[0].message).toBe('changed');
     });
 
@@ -132,7 +138,8 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn(() => null);
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      client.addBreadcrumb({ message: 'hello' }, undefined, scope);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' });
       expect((scope as any).breadcrumbs.length).toBe(0);
     });
 
@@ -141,7 +148,8 @@ describe('BaseClient', () => {
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const client = new TestClient({ beforeBreadcrumb });
       const scope = new Scope();
-      client.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' }, scope);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
       expect((scope as any).breadcrumbs[0].message).toBe('hello');
       expect((scope as any).breadcrumbs[0].data).toBe('someRandomThing');
     });
@@ -270,18 +278,15 @@ describe('BaseClient', () => {
     });
 
     test('limits previously saved breadcrumbs', () => {
-      expect.assertions(1);
+      expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
       const scope = new Scope();
-      scope.addBreadcrumb({ message: '1' }, 100);
-      scope.addBreadcrumb({ message: '2' }, 200);
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: '1' });
+      hub.addBreadcrumb({ message: '2' });
       client.captureEvent({ message: 'message' }, undefined, scope);
-      expect(TestBackend.instance!.event!).toEqual({
-        breadcrumbs: [{ message: '2' }],
-        event_id: '42',
-        fingerprint: ['message'],
-        message: 'message',
-      });
+      expect(TestBackend.instance!.event!.breadcrumbs).toHaveLength(1);
+      expect(TestBackend.instance!.event!.breadcrumbs![0].message).toEqual('2');
     });
 
     test('adds context data', () => {
@@ -344,7 +349,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const beforeSend = jest.fn(
         async event =>
-          new Promise<SentryEvent>(resolve => {
+          new Promise<Event>(resolve => {
             setTimeout(() => {
               resolve(event);
             }, 1);
@@ -353,7 +358,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' });
       jest.runOnlyPendingTimers();
-      TestBackend.sendEventCalled = (event: SentryEvent) => {
+      TestBackend.sendEventCalled = (event: Event) => {
         expect(event.message).toBe('hello');
       };
       setTimeout(() => {
@@ -367,7 +372,7 @@ describe('BaseClient', () => {
       expect.assertions(1);
       const beforeSend = jest.fn(
         async () =>
-          new Promise<SentryEvent>(resolve => {
+          new Promise<Event>(resolve => {
             setTimeout(() => {
               resolve({ message: 'changed2' });
             }, 1);
@@ -377,7 +382,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' });
       jest.runOnlyPendingTimers();
-      TestBackend.sendEventCalled = (event: SentryEvent) => {
+      TestBackend.sendEventCalled = (event: Event) => {
         expect(event.message).toBe('changed2');
       };
       setTimeout(() => {
@@ -409,7 +414,7 @@ describe('BaseClient', () => {
       const client = new TestClient({ dsn: PUBLIC_DSN, beforeSend });
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
       expect(TestBackend.instance!.event!.message).toBe('hello');
-      expect(TestBackend.instance!.event!.data).toBe('someRandomThing');
+      expect((TestBackend.instance!.event! as any).data).toBe('someRandomThing');
     });
   });
 
