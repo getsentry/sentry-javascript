@@ -26,6 +26,11 @@ export class OnUncaughtException implements Integration {
    */
   public constructor(
     private readonly options: {
+      /**
+       * Default onFatalError handler
+       * @param firstError Error that has been thrown
+       * @param secondError If this was called multiple times this will be set
+       */
       onFatalError?(firstError: Error, secondError?: Error): void;
     } = {},
   ) {}

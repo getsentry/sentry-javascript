@@ -22,13 +22,14 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "jest": "^22.4.3",
+    "jest": "^24.1.0",
     "npm-run-all": "^4.1.2",
-    "prettier": "^1.14.0",
+    "prettier": "^1.16.4",
     "prettier-check": "^2.0.0",
-    "rimraf": "^2.6.2",
-    "tslint": "^5.11.0",
-    "typescript": "^3.2.0"
+    "rimraf": "^2.6.3",
+    "ts-jest": "^23.10.5",
+    "tslint": "^5.12.1",
+    "typescript": "^3.3.3"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",
