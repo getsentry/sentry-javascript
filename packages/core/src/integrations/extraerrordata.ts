@@ -1,15 +1,9 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Integration } from '@sentry/types';
-import { isError, isString } from '@sentry/utils/is';
+import { Event, EventHint, ExtendedError, Integration } from '@sentry/types';
+import { isError, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { safeNormalize } from '@sentry/utils/object';
 
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: unknown;
-}
 
 /** Patch toString calls to return proper name for wrapped functions */
 export class ExtraErrorData implements Integration {

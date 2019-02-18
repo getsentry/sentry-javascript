@@ -1,14 +1,7 @@
-import { WrappedFunction } from '@sentry/types';
+import { WrappedFunction, ExtendedError } from '@sentry/types';
 import { isArray, isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: any;
-}
 
 /**
  * Serializes the given object into a string.
