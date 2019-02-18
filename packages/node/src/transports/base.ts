@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { SentryResponse, Status, Transport, TransportOptions } from '@sentry/types';
+import { Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 import * as fs from 'fs';
@@ -31,7 +31,7 @@ export abstract class BaseTransport implements Transport {
   public client?: http.Agent | https.Agent;
 
   /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
+  protected readonly buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
@@ -66,9 +66,9 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async sendWithModule(httpModule: HTTPRequest, body: string): Promise<SentryResponse> {
+  protected async sendWithModule(httpModule: HTTPRequest, body: string): Promise<Response> {
     return this.buffer.add(
-      new Promise<SentryResponse>((resolve, reject) => {
+      new Promise<Response>((resolve, reject) => {
         const req = httpModule.request(this.getRequestOptions(), (res: http.IncomingMessage) => {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
@@ -100,7 +100,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: string): Promise<SentryResponse> {
+  public async sendEvent(_: string): Promise<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method.');
   }
 

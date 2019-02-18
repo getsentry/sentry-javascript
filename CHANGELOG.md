@@ -10,7 +10,7 @@ since we removed some methods from the public API and removed some classes from 
 
 - **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
 - [utils] ref: Update wrap method to hide internal sentry flags
-- [utils] fix: Make internal Sentry flags non-enumerable in fill util
+- [utils] fix: Make internal Sentry flags non-enumerable in fill utils
 - [utils] ref: Move `SentryError` + `PromiseBuffer` to utils
 - **breaking** [core] ref: Use `SyncPromise` internally, this reduces memory pressure by a lot.
 - **breaking** [browser] ref: Removed `BrowserBackend` from default export.

@@ -7,11 +7,11 @@ import {
   captureException,
   captureMessage,
   configureScope,
+  Event,
   getCurrentHub,
   init,
   Integrations,
   Scope,
-  SentryEvent,
 } from '../src';
 import { SimpleTransport } from './mocks/simpletransport';
 
@@ -20,7 +20,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 declare var global: any;
 
 describe('SentryBrowser', () => {
-  const beforeSend: SinonSpy = spy((event: SentryEvent) => event);
+  const beforeSend: SinonSpy = spy((event: Event) => event);
 
   before(() => {
     init({
@@ -100,7 +100,7 @@ describe('SentryBrowser', () => {
     it('should capture a message', done => {
       getCurrentHub().bindClient(
         new BrowserClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.message).to.equal('test');
             expect(event.exception).to.be.undefined;
             done();
@@ -115,7 +115,7 @@ describe('SentryBrowser', () => {
     it('should capture an event', done => {
       getCurrentHub().bindClient(
         new BrowserClient({
-          beforeSend: (event: SentryEvent) => {
+          beforeSend: (event: Event) => {
             expect(event.message).to.equal('event');
             expect(event.exception).to.be.undefined;
             done();

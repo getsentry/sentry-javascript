@@ -1,5 +1,5 @@
-import { BaseBackend, Dsn, getCurrentHub, Options } from '@sentry/core';
-import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
+import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -73,7 +73,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: SentryEventHint): SyncPromise<SentryEvent> {
+  public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
     let ex: any = exception;
 
     if (!isError(exception)) {
@@ -101,7 +101,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       }
     }
 
-    return new SyncPromise<SentryEvent>(resolve =>
+    return new SyncPromise<Event>(resolve =>
       parseError(ex as Error, this.options).then(event => {
         resolve({
           ...event,
@@ -114,18 +114,14 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(
-    message: string,
-    level: Severity = Severity.Info,
-    hint?: SentryEventHint,
-  ): SyncPromise<SentryEvent> {
-    const event: SentryEvent = {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): SyncPromise<Event> {
+    const event: Event = {
       event_id: hint && hint.event_id,
       level,
       message,
     };
 
-    return new SyncPromise<SentryEvent>(resolve => {
+    return new SyncPromise<Event>(resolve => {
       if (this.options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
         parseStack(stack, this.options).then(frames => {

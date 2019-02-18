@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { SentryResponse, Transport, TransportOptions } from '@sentry/types';
+import { Response, Transport, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 
@@ -11,7 +11,7 @@ export abstract class BaseTransport implements Transport {
   public url: string;
 
   /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
+  protected readonly buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
   public constructor(public options: TransportOptions) {
     this.url = new API(this.options.dsn).getStoreEndpointWithUrlEncodedAuth();
@@ -20,7 +20,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: string): Promise<SentryResponse> {
+  public async sendEvent(_: string): Promise<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method');
   }
 

@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/hub';
 import { configureScope } from '@sentry/minimal';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 
 export class TestIntegration implements Integration {
   public name: string = 'TestIntegration';
@@ -8,7 +8,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     configureScope(scope => {
-      scope.addEventProcessor((event: SentryEvent) => {
+      scope.addEventProcessor((event: Event) => {
         if (!getCurrentHub().getIntegration(TestIntegration)) {
           return event;
         }
