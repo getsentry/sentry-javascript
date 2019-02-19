@@ -1,10 +1,10 @@
 import { API, getCurrentHub } from '@sentry/core';
 import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
-import { isFunction, isString } from '@sentry/utils/is';
+import { isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { deserialize, fill, safeNormalize } from '@sentry/utils/object';
-import { includes, safeJoin } from '@sentry/utils/string';
+import { fill, normalize } from '@sentry/utils/object';
+import { safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
 import { BrowserClient } from '../client';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
@@ -87,7 +87,7 @@ export class Breadcrumbs implements Integration {
           const filterUrl = new API(dsn).getStoreEndpoint();
           // if Sentry key appears in URL, don't capture it as a request
           // but rather as our own 'sentry' type breadcrumb
-          if (filterUrl && includes(url, filterUrl)) {
+          if (filterUrl && url.includes(filterUrl)) {
             addSentryBreadcrumb(data);
             return result;
           }
@@ -132,7 +132,7 @@ export class Breadcrumbs implements Integration {
             category: 'console',
             data: {
               extra: {
-                arguments: safeNormalize(args, 3),
+                arguments: normalize(args, 3),
               },
               logger: 'console',
             },
@@ -143,7 +143,7 @@ export class Breadcrumbs implements Integration {
           if (level === 'assert') {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-              breadcrumbData.data.extra.arguments = safeNormalize(args.slice(1), 3);
+              breadcrumbData.data.extra.arguments = normalize(args.slice(1), 3);
             }
           }
 
@@ -205,7 +205,7 @@ export class Breadcrumbs implements Integration {
           const filterUrl = new API(dsn).getStoreEndpoint();
           // if Sentry key appears in URL, don't capture it as a request
           // but rather as our own 'sentry' type breadcrumb
-          if (filterUrl && includes(url, filterUrl)) {
+          if (filterUrl && url.includes(filterUrl)) {
             if (method === 'POST' && args[1] && args[1].body) {
               addSentryBreadcrumb(args[1].body);
             }
@@ -338,7 +338,7 @@ export class Breadcrumbs implements Integration {
     /** JSDoc */
     function wrapProp(prop: string, xhr: XMLHttpRequest): void {
       // TODO: Fix XHR types
-      if (prop in xhr && isFunction((xhr as { [key: string]: any })[prop])) {
+      if (prop in xhr && typeof (xhr as { [key: string]: any })[prop] === 'function') {
         fill(xhr, prop, original =>
           wrap(original, {
             mechanism: {
@@ -372,7 +372,7 @@ export class Breadcrumbs implements Integration {
             const filterUrl = new API(dsn).getStoreEndpoint();
             // if Sentry key appears in URL, don't capture it as a request
             // but rather as our own 'sentry' type breadcrumb
-            if (isString(url) && (filterUrl && includes(url, filterUrl))) {
+            if (isString(url) && (filterUrl && url.includes(filterUrl))) {
               this.__sentry_own_request__ = true;
             }
           }
@@ -424,7 +424,7 @@ export class Breadcrumbs implements Integration {
             wrapProp(prop, xhr);
           });
 
-          if ('onreadystatechange' in xhr && isFunction(xhr.onreadystatechange)) {
+          if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
             fill(xhr, 'onreadystatechange', function(original: () => void): void {
               return wrap(
                 original,
@@ -496,7 +496,7 @@ export class Breadcrumbs implements Integration {
 function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
   try {
-    const event: { [key: string]: any } = deserialize(serializedData);
+    const event: { [key: string]: any } = JSON.parse(serializedData);
     Breadcrumbs.addBreadcrumb(
       {
         category: 'sentry',

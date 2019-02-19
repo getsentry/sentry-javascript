@@ -1,17 +1,10 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Exception, Integration } from '@sentry/types';
+import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: any;
-}
 
 /** Adds SDK info to an event. */
 export class LinkedErrors implements Integration {

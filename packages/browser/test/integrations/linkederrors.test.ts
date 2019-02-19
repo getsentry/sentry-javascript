@@ -1,13 +1,10 @@
+import { ExtendedError } from '@sentry/types';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import { BrowserBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
 let linkedErrors: LinkedErrors;
-
-interface ExtendedError extends Error {
-  [key: string]: any;
-}
 
 describe('LinkedErrors', () => {
   beforeEach(() => {

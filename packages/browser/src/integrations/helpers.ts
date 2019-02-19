@@ -1,8 +1,7 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
-import { safeNormalize } from '@sentry/utils/object';
+import { normalize } from '@sentry/utils/object';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -42,7 +41,8 @@ export function wrap(
   } = {},
   before?: WrappedFunction,
 ): any {
-  if (!isFunction(fn)) {
+  // tslint:disable-next-line:strict-type-predicates
+  if (typeof fn !== 'function') {
     return fn;
   }
 
@@ -64,7 +64,8 @@ export function wrap(
   }
 
   const sentryWrapped: WrappedFunction = function(this: any): void {
-    if (before && isFunction(before)) {
+    // tslint:disable-next-line:strict-type-predicates
+    if (before && typeof before === 'function') {
       before.apply(this, arguments);
     }
 
@@ -96,7 +97,7 @@ export function wrap(
 
           processedEvent.extra = {
             ...processedEvent.extra,
-            arguments: safeNormalize(args, 3),
+            arguments: normalize(args, 3),
           };
 
           return processedEvent;

@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { Response, Transport, TransportOptions } from '@sentry/types';
+import { Event, Response, Transport, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 
@@ -20,7 +20,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: string): Promise<Response> {
+  public async sendEvent(_: Event): Promise<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method');
   }
 
