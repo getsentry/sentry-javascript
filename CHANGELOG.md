@@ -15,6 +15,7 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [core] ref: Use `SyncPromise` internally, this reduces memory pressure by a lot.
 - **breaking** [browser] ref: Removed `BrowserBackend` from default export.
 - **breaking** [node] ref: Removed `BrowserBackend` from default export.
+- **breaking** [core] feat: Disable client once flushed using `close` method
 
 ## 4.6.1
 
