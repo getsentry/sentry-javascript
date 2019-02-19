@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## 4.6.2
+
 - [utils] fix: Preserve function prototype when filling
+- [utils] fix: use a static object as fallback of the global object
 - [node] feat: Read from `SENTRY_RELEASE` and `SENTRY_ENVIRONMENT` if present
 
 ## 4.6.1
