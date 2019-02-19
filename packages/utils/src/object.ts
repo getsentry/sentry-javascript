@@ -67,7 +67,7 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
   // tslint:disable-next-line:strict-type-predicates
   if (typeof wrapped === 'function') {
-    wrapped.prototype = {};
+    wrapped.prototype = wrapped.prototype || {};
     Object.defineProperties(wrapped, {
       __sentry__: {
         enumerable: false,
