@@ -340,6 +340,21 @@ describe('fill()', () => {
     expect(source.foo.__sentry_original__).toBe(source.foo);
     expect(source.foo.__sentry_wrapped__).toBe(source.foo);
   });
+
+  test('should preserve functions prototype if one exists', () => {
+    const source = {
+      foo: (): number => 42,
+    };
+    const bar = {};
+    source.foo.prototype = bar;
+    const name = 'foo';
+    const replacement = cb => cb;
+
+    fill(source, name, replacement);
+
+    // But should be accessible directly
+    expect(source.foo.prototype).toBe(bar);
+  });
 });
 
 describe('urlEncode()', () => {
