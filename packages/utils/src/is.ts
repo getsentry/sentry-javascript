@@ -52,28 +52,6 @@ export function isDOMException(wat: any): boolean {
 }
 
 /**
- * Checks whether given value's type is an undefined
- * {@link isUndefined}.
- *
- * @param wat A value to be checked.
- * @returns A boolean representing the result.
- */
-export function isUndefined(wat: any): boolean {
-  return wat === void 0;
-}
-
-/**
- * Checks whether given value's type is a function
- * {@link isFunction}.
- *
- * @param wat A value to be checked.
- * @returns A boolean representing the result.
- */
-export function isFunction(wat: any): boolean {
-  return typeof wat === 'function';
-}
-
-/**
  * Checks whether given value's type is a string
  * {@link isString}.
  *
@@ -123,6 +101,18 @@ export function isRegExp(wat: any): boolean {
  */
 export function isThenable(wat: any): boolean {
   // tslint:disable:no-unsafe-any
-  return Boolean(wat && wat.then && isFunction(wat.then));
+  return Boolean(wat && wat.then && typeof wat.then === 'function');
   // tslint:enable:no-unsafe-any
+}
+
+/**
+ * Checks whether given value's type is a SyntheticEvent
+ * {@link isSyntheticEvent}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isSyntheticEvent(wat: any): boolean {
+  // tslint:disable-next-line:no-unsafe-any
+  return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
 }

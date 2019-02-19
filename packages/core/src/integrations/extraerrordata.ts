@@ -2,7 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Event, EventHint, ExtendedError, Integration } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
-import { safeNormalize } from '@sentry/utils/object';
+import { normalize } from '@sentry/utils/object';
 
 /** Patch toString calls to return proper name for wrapped functions */
 export class ExtraErrorData implements Integration {
@@ -44,7 +44,7 @@ export class ExtraErrorData implements Integration {
         ...event.extra,
       };
 
-      const normalizedErrorData = safeNormalize(errorData);
+      const normalizedErrorData = normalize(errorData);
       if (isPlainObject(normalizedErrorData)) {
         extra = {
           ...event.extra,
@@ -79,6 +79,7 @@ export class ExtraErrorData implements Integration {
           if (isError(value)) {
             value = (value as Error).name || (value as Error).constructor.name;
           }
+          // tslint:disable:no-unsafe-any
           extraErrorInfo[key] = value;
         }
         result = {

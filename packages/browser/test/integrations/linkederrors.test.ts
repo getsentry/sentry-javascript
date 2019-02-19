@@ -1,8 +1,8 @@
+import { ExtendedError } from '@sentry/types';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import { BrowserBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
-import { ExtendedError } from '@sentry/types';
 
 let linkedErrors: LinkedErrors;
 
