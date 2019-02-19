@@ -1,0 +1,71 @@
+{
+  "name": "@sentry/opentracing",
+  "version": "4.6.1",
+  "description": "Sentry OpenTracing API implementation",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal",
+  "author": "Sentry",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/hub": "4.6.1",
+    "@sentry/utils": "4.6.1",
+    "@sentry/types": "4.5.3",
+    "opentracing": "0.14.3"
+  },
+  "devDependencies": {
+    "jest": "^24.1.0",
+    "npm-run-all": "^4.1.2",
+    "prettier": "^1.16.4",
+    "prettier-check": "^2.0.0",
+    "rimraf": "^2.6.3",
+    "tslint": "^5.12.1",
+    "typescript": "^3.3.3"
+  },
+  "scripts": {
+    "build": "run-p build:es5 build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
+    "build:esm:transpile": "tsc -p tsconfig.esm.json",
+    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
+    "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "clean": "rimraf dist coverage",
+    "lint": "run-s lint:prettier lint:tslint",
+    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:tslint": "tslint -t stylish -p .",
+    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
+    "fix": "run-s fix:tslint fix:prettier",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix:tslint": "tslint --fix -t stylish -p .",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "./tsconfig.json",
+        "diagnostics": false
+      }
+    }
+  },
+  "sideEffects": false
+}

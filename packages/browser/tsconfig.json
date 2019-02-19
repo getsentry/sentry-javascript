@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "test/**/*", "../opentracing/src/sessiontracking.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
