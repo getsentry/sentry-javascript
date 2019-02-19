@@ -78,6 +78,8 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
+    // tslint:disable:no-unsafe-any
+
     if (!supportsReportingObserver()) {
       return;
     }

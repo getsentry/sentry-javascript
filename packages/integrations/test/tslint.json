@@ -1,0 +1,7 @@
+{
+  "extends": ["../tslint.json"],
+  "rules": {
+    "no-non-null-assertion": false,
+    "no-unsafe-any": false
+  }
+}

@@ -1,36 +1,27 @@
 {
-  "name": "@sentry/node",
-  "version": "4.6.4",
-  "description": "Offical Sentry SDK for Node.js",
+  "name": "@sentry/integrations",
+  "version": "4.6.1",
+  "description": "Pluggable integrations that can be used to enchance JS SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "4.6.4",
-    "@sentry/hub": "4.6.4",
+    "@sentry/core": "4.6.1",
+    "@sentry/hub": "4.6.1",
     "@sentry/types": "4.5.3",
-    "@sentry/utils": "4.6.4",
-    "@types/stack-trace": "0.0.29",
-    "cookie": "0.3.1",
-    "https-proxy-agent": "2.2.1",
-    "lru_map": "0.3.3",
-    "stack-trace": "0.0.10",
+    "@sentry/utils": "4.6.1",
+    "lsmod": "1.0.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@types/cookie": "0.3.2",
-    "@types/lru-cache": "^4.1.1",
-    "@types/node": "^11.9.4",
-    "express": "^4.16.4",
+    "chai": "^4.1.2",
     "jest": "^24.1.0",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.16.4",
@@ -40,9 +31,13 @@
     "typescript": "^3.3.3"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "run-s clean && run-p build:es5 build:esm",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
+    "build:esm:transpile": "tsc -p tsconfig.esm.json",
+    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
-    "clean": "rimraf dist coverage",
+    "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",
@@ -50,11 +45,8 @@
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "run-s test:jest test:express",
-    "test:jest": "jest",
-    "test:watch": "jest --watch",
-    "test:express": "node test/manual/express-scope-separation/start.js",
-    "version": "node ../../scripts/versionbump.js src/version.ts"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "jest": {
     "collectCoverage": true,
@@ -75,5 +67,6 @@
         "diagnostics": false
       }
     }
-  }
+  },
+  "sideEffects": false
 }
