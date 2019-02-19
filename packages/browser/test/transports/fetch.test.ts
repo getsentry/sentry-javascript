@@ -35,7 +35,7 @@ describe('FetchTransport', () => {
 
       fetch.returns(Promise.resolve(response));
 
-      return transport.sendEvent(JSON.stringify(payload)).then(res => {
+      return transport.sendEvent(payload).then(res => {
         expect(res.status).equal(Status.Success);
         expect(fetch.calledOnce).equal(true);
         expect(
@@ -53,7 +53,7 @@ describe('FetchTransport', () => {
 
       fetch.returns(Promise.reject(response));
 
-      return transport.sendEvent(JSON.stringify(payload)).catch(res => {
+      return transport.sendEvent(payload).catch(res => {
         expect(res.status).equal(403);
         expect(fetch.calledOnce).equal(true);
         expect(

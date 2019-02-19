@@ -44,11 +44,9 @@ describe('HTTPTransport', () => {
 
   test('send 200', async () => {
     const transport = createTransport({ dsn });
-    await transport.sendEvent(
-      JSON.stringify({
-        message: 'test',
-      }),
-    );
+    await transport.sendEvent({
+      message: 'test',
+    });
 
     const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
     assertBasicOptions(requestOptions);
@@ -60,11 +58,9 @@ describe('HTTPTransport', () => {
     const transport = createTransport({ dsn });
 
     try {
-      await transport.sendEvent(
-        JSON.stringify({
-          message: 'test',
-        }),
-      );
+      await transport.sendEvent({
+        message: 'test',
+      });
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions);
@@ -80,11 +76,9 @@ describe('HTTPTransport', () => {
     const transport = createTransport({ dsn });
 
     try {
-      await transport.sendEvent(
-        JSON.stringify({
-          message: 'test',
-        }),
-      );
+      await transport.sendEvent({
+        message: 'test',
+      });
     } catch (e) {
       const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
       assertBasicOptions(requestOptions);
@@ -100,11 +94,9 @@ describe('HTTPTransport', () => {
         a: 'b',
       },
     });
-    await transport.sendEvent(
-      JSON.stringify({
-        message: 'test',
-      }),
-    );
+    await transport.sendEvent({
+      message: 'test',
+    });
 
     const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
     assertBasicOptions(requestOptions);
@@ -117,11 +109,9 @@ describe('HTTPTransport', () => {
       dsn,
       httpProxy: 'http://example.com:8080',
     });
-    await transport.sendEvent(
-      JSON.stringify({
-        message: 'test',
-      }),
-    );
+    await transport.sendEvent({
+      message: 'test',
+    });
 
     const requestOptions = (transport.module!.request as jest.Mock).mock.calls[0][0];
     assertBasicOptions(requestOptions);

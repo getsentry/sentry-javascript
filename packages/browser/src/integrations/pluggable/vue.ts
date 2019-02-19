@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
-import { isPlainObject, isUndefined } from '@sentry/utils/is';
+import { isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 
@@ -82,7 +82,7 @@ export class Vue implements Integration {
         }
       }
 
-      if (!isUndefined(info)) {
+      if (info !== void 0) {
         metadata.lifecycleHook = info;
       }
 

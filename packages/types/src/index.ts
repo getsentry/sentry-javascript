@@ -1,6 +1,7 @@
 export { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export { Client } from './client';
 export { Dsn, DsnComponents, DsnLike, DsnProtocol } from './dsn';
+export { ExtendedError } from './error';
 export { Event, EventHint } from './event';
 export { EventProcessor } from './eventprocessor';
 export { Exception } from './exception';

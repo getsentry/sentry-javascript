@@ -1,4 +1,4 @@
-import { Event, Exception, StackFrame } from '@sentry/types';
+import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
 import { basename, dirname } from '@sentry/utils/path';
 import { snipLine } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -17,13 +17,6 @@ const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
  */
 export function resetFileContentCache(): void {
   FILE_CONTENT_CACHE.clear();
-}
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: any;
 }
 
 /** JSDoc */

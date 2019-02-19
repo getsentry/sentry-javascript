@@ -10,7 +10,7 @@ describe('BaseTransport', () => {
     const transport = new SimpleTransport({ dsn: testDsn });
 
     try {
-      await transport.sendEvent('');
+      await transport.sendEvent({});
     } catch (e) {
       expect(e.message).equal('Transport Class has to implement `sendEvent` method');
     }
