@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- [utils] fix: Preserve function prototype when filling
+- [node] feat: Read from `SENTRY_RELEASE` and `SENTRY_ENVIRONMENT` if present
+
 ## 4.6.1
 
 - [utils] fix: Patch `tslib_1__default` regression and add additional tests around it

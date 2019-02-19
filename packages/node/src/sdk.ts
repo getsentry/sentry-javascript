@@ -74,6 +74,14 @@ export function init(options: NodeOptions = {}): void {
     options.dsn = process.env.SENTRY_DSN;
   }
 
+  if (options.release === undefined && process.env.SENTRY_RELEASE) {
+    options.release = process.env.SENTRY_RELEASE;
+  }
+
+  if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
+    options.environment = process.env.SENTRY_ENVIRONMENT;
+  }
+
   if (domain.active) {
     setHubOnCarrier(getMainCarrier(), getCurrentHub());
   }
