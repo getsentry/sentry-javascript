@@ -1,6 +1,6 @@
 // tslint:disable
 
-import { isUndefined, isError, isErrorEvent } from '@sentry/utils/is';
+import { isError, isErrorEvent } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 /**
@@ -712,7 +712,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     for (var i = 0; i < maxLines; ++i) {
       line = source[lineNo - i] + line;
 
-      if (!isUndefined(line)) {
+      if (line !== void 0) {
         if ((m = reGuessFunction.exec(line))) {
           return m[1];
         } else if ((m = reFunctionArgNames.exec(line))) {
@@ -751,7 +751,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     line -= 1; // convert to 0-based index
 
     for (var i = start; i < end; ++i) {
-      if (!isUndefined(source[i])) {
+      if (source[i] !== void 0) {
         context.push(source[i]);
       }
     }
@@ -845,7 +845,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * @memberof TraceKit.computeStackTrace
    */
   function findSourceByFunctionBody(func: any) {
-    if (isUndefined(window && window.document)) {
+    if (window && window.document === void 0) {
       return;
     }
 
@@ -1005,7 +1005,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
           // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
           // parts[4] = submatch[2];
           // parts[5] = null; // no column when eval
-        } else if (i === 0 && !parts[5] && !isUndefined(ex.columnNumber)) {
+        } else if (i === 0 && !parts[5] && ex.columnNumber !== void 0) {
           // FireFox uses this awesome columnNumber property for its top frame
           // Also note, Firefox's column number is 0-based and everything else expects 1-based,
           // so adding 1

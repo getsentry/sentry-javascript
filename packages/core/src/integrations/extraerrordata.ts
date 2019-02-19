@@ -1,15 +1,8 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, Integration } from '@sentry/types';
-import { isError, isString } from '@sentry/utils/is';
+import { Event, EventHint, ExtendedError, Integration } from '@sentry/types';
+import { isError, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
-import { safeNormalize } from '@sentry/utils/object';
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: unknown;
-}
+import { normalize } from '@sentry/utils/object';
 
 /** JSDoc */
 interface ExtraErrorDataOptions {
@@ -60,13 +53,15 @@ export class ExtraErrorData implements Integration {
       let extra = {
         ...event.extra,
       };
-      const normalizedErrorData = safeNormalize(errorData, this.options.depth);
-      if (!isString(normalizedErrorData)) {
+
+      const normalizedErrorData = normalize(errorData, this.options.depth);
+      if (isPlainObject(normalizedErrorData)) {
         extra = {
           ...event.extra,
           ...normalizedErrorData,
         };
       }
+
       return {
         ...event,
         extra,
@@ -94,6 +89,7 @@ export class ExtraErrorData implements Integration {
           if (isError(value)) {
             value = (value as Error).name || (value as Error).constructor.name;
           }
+          // tslint:disable:no-unsafe-any
           extraErrorInfo[key] = value;
         }
         result = {

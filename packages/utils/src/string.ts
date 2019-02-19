@@ -1,5 +1,3 @@
-import { isString } from './is';
-
 /**
  * Truncates given string to the maximum characters count
  *
@@ -8,7 +6,7 @@ import { isString } from './is';
  * @returns string Encoded
  */
 export function truncate(str: string, max: number = 0): string {
-  if (max === 0 || !isString(str)) {
+  if (max === 0) {
     return str;
   }
   return str.length <= max ? str : `${str.substr(0, max)}...`;
@@ -82,17 +80,26 @@ export function safeJoin(input: any[], delimiter?: string): string {
   return output.join(delimiter);
 }
 
-/**
- * Checks if given value is included in the target
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/includes#Polyfill
- * @param target source string
- * @param search string to be looked for
- * @returns An answer
- */
-export function includes(target: string, search: string): boolean {
-  if (search.length > target.length) {
-    return false;
-  } else {
-    return target.indexOf(search) !== -1;
+/** Merges provided array of keys into */
+export function keysToEventMessage(keys: string[], maxLength: number = 40): string {
+  if (!keys.length) {
+    return '[object has no keys]';
   }
+
+  if (keys[0].length >= maxLength) {
+    return truncate(keys[0], maxLength);
+  }
+
+  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
+    const serialized = keys.slice(0, includedKeys).join(', ');
+    if (serialized.length > maxLength) {
+      continue;
+    }
+    if (includedKeys === keys.length) {
+      return serialized;
+    }
+    return truncate(serialized, maxLength);
+  }
+
+  return '';
 }
