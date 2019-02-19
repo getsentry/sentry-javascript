@@ -1,8 +1,9 @@
 import { captureException, getCurrentHub } from '@sentry/core';
 import { Event } from '@sentry/types';
 import { forget } from '@sentry/utils/async';
+import { isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
-import { serialize } from '@sentry/utils/object';
+import { normalize } from '@sentry/utils/object';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -94,9 +95,9 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
       data = '<unavailable>';
     }
   }
-  if (data && typeof data !== 'string' && {}.toString.call(data) !== '[object String]') {
+  if (data && !isString(data)) {
     // Make sure the request body is a string
-    data = serialize(data);
+    data = JSON.stringify(normalize(data));
   }
 
   // request interface
