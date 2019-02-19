@@ -1,5 +1,5 @@
 import { Span as SpanInterface } from '@sentry/types';
-import { Span as otSpan } from 'opentracing/lib/span';
+import * as opentracing from 'opentracing';
 import { SpanContext } from './spancontext';
 import { Tracer } from './tracer';
 
@@ -10,7 +10,7 @@ interface Log {
 }
 
 /** JSDoc */
-export class Span extends otSpan implements SpanInterface {
+export class Span extends opentracing.Span implements SpanInterface {
   private finishTime: number = 0;
 
   private readonly logs: Log[] = [];
@@ -27,6 +27,7 @@ export class Span extends otSpan implements SpanInterface {
     private readonly usedTracer: Tracer,
     private operation: string,
     private readonly spanContext: SpanContext,
+    private readonly references?: opentracing.Reference[],
     private readonly startTime: number = Date.now(),
   ) {
     super();
@@ -107,9 +108,15 @@ export class Span extends otSpan implements SpanInterface {
   /**
    * @inheritdoc
    */
-  public toJSON(): any {
-    // TODO
-    console.log('ajajajajaj');
-    return 'ababab';
+  public toJSON(): object {
+    return {
+      finishTime: this.finishTime || undefined,
+      logs: this.logs,
+      references: this.references,
+      span_id: this.spanContext.spanId,
+      startTime: this.startTime,
+      tags: this.tags,
+      trace_id: this.spanContext.traceId,
+    };
   }
 }

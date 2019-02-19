@@ -4,8 +4,8 @@ import { uuid4 } from '@sentry/utils/misc';
  */
 export class SpanContext {
   public constructor(
-    private readonly traceId: string,
-    private readonly spanId: string = uuid4(), // private readonly parentId: string,
+    public readonly traceId?: string,
+    public readonly spanId: string = uuid4(), // private readonly parentId: string,
   ) {}
 
   /**
