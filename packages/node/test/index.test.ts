@@ -32,7 +32,7 @@ describe('SentryNode', () => {
     getCurrentHub().popScope();
   });
 
-  test('close() with to short timeout', done => {
+  test('flush() with to short timeout', done => {
     expect.assertions(1);
     jest.useFakeTimers();
     const client = new NodeClient({
@@ -44,7 +44,7 @@ describe('SentryNode', () => {
     captureMessage('test');
     captureMessage('test');
     client
-      .close(50)
+      .flush(50)
       .then(result => {
         expect(result).toBeFalsy();
         done();
@@ -55,7 +55,7 @@ describe('SentryNode', () => {
     jest.runAllTimers();
   });
 
-  test('close() with timeout', done => {
+  test('flush() with timeout', done => {
     expect.assertions(1);
     jest.useFakeTimers();
     const client = new NodeClient({
@@ -68,7 +68,7 @@ describe('SentryNode', () => {
     captureMessage('test');
     jest.runAllTimers();
     client
-      .close(50)
+      .flush(50)
       .then(result => {
         expect(result).toBeFalsy();
         done();
