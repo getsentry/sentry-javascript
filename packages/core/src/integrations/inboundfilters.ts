@@ -3,7 +3,6 @@ import { Client, Event, Integration } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
-import { includes } from '@sentry/utils/string';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -148,7 +147,7 @@ export class InboundFilters implements Integration {
     if (isRegExp(pattern)) {
       return (pattern as RegExp).test(value);
     } else if (typeof pattern === 'string') {
-      return includes(value, pattern);
+      return value.includes(pattern);
     } else {
       return false;
     }

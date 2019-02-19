@@ -16,6 +16,20 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [browser] ref: Removed `BrowserBackend` from default export.
 - **breaking** [node] ref: Removed `BrowserBackend` from default export.
 - **breaking** [core] feat: Disable client once flushed using `close` method
+- ref: Move internal `ExtendedError` to a types package
+- **breaking** [core] ref: Pass `Event` to `sendEvent` instead of already stringified data
+- [utils] feat: Introduce `isSyntheticEvent` util
+- **breaking** [utils] ref: remove `isArray` util in favor of `Array.isArray`
+- **breaking** [utils] ref: Remove `isNaN` util in favor of `Number.isNaN`
+- **breaking** [utils] ref: Remove `isFunction` util in favor of `typeof === 'function'`
+- **breaking** [utils] ref: Remove `isUndefined` util in favor of `=== void 0`
+- **breaking** [utils] ref: Remove `assign` util in favor of `Object.assign`
+- **breaking** [utils] ref: Remove `includes` util in favor of native `includes`
+- **breaking** [utils] ref: Rename `serializeKeysToEventMessage` to `keysToEventMessage`
+- **breaking** [utils] ref: Rename `limitObjectDepthToSize` to `normalizeToSize` and rewrite its internals
+- **breaking** [utils] ref: Rename `safeNormalize` to `normalize` and rewrite its internals
+- **breaking** [utils] ref: Remove `serialize`, `deserialize`, `clone` and `serializeObject` functions
+- **breaking** [utils] ref: Rewrite normalization functions by removing most of them and leaving just `normalize` and `normalizeToSize`
 
 ## 4.6.1
 

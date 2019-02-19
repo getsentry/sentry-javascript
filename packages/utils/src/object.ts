@@ -1,51 +1,6 @@
-import { WrappedFunction } from '@sentry/types';
-import { isArray, isNaN, isPlainObject, isPrimitive, isUndefined } from './is';
+import { ExtendedError, WrappedFunction } from '@sentry/types';
+import { isError, isPlainObject, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
-import { truncate } from './string';
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: any;
-}
-
-/**
- * Serializes the given object into a string.
- * Like JSON.stringify, but doesn't throw on circular references.
- *
- * @param object A JSON-serializable object.
- * @returns A string containing the serialized object.
- */
-export function serialize<T>(object: T): string {
-  return JSON.stringify(object, serializer({ normalize: false }));
-}
-
-/**
- * Deserializes an object from a string previously serialized with
- * {@link serialize}.
- *
- * @param str A serialized object.
- * @returns The deserialized object.
- */
-export function deserialize<T>(str: string): T {
-  return JSON.parse(str) as T;
-}
-
-/**
- * Creates a deep copy of the given object.
- *
- * The object must be serializable, i.e.:
- *  - It must not contain any cycles
- *  - Only primitive types are allowed (object, array, number, string, boolean)
- *  - Its depth should be considerably low for performance reasons
- *
- * @param object A JSON-serializable object.
- * @returns The object clone.
- */
-export function clone<T>(object: T): T {
-  return deserialize(serialize(object));
-}
 
 /**
  * Wrap a given object method with a higher-order function
@@ -102,134 +57,6 @@ export function urlEncode(object: { [key: string]: any }): string {
     .join('&');
 }
 
-// Default Node.js REPL depth
-const MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
-// 100kB, as 200kB is max payload size, so half sounds reasonable
-const MAX_SERIALIZE_EXCEPTION_SIZE = 100 * 1024;
-const MAX_SERIALIZE_KEYS_LENGTH = 40;
-
-/** JSDoc */
-function utf8Length(value: string): number {
-  // tslint:disable-next-line:no-bitwise
-  return ~-encodeURI(value).split(/%..|./).length;
-}
-
-/** JSDoc */
-function jsonSize(value: any): number {
-  return utf8Length(JSON.stringify(value));
-}
-
-/** JSDoc */
-function serializeValue<T>(value: T): T | string {
-  const type = Object.prototype.toString.call(value);
-
-  if (typeof value === 'string') {
-    return truncate(value, 40);
-  } else if (type === '[object Object]') {
-    // Node.js REPL notation
-    return '[Object]';
-  } else if (type === '[object Array]') {
-    // Node.js REPL notation
-    return '[Array]';
-  } else {
-    return normalizeValue(value) as T;
-  }
-}
-
-/** JSDoc */
-export function serializeObject<T>(value: T, depth: number): T | string | {} {
-  if (depth === 0) {
-    return serializeValue(value);
-  }
-
-  if (isPlainObject(value)) {
-    const serialized: { [key: string]: any } = {};
-    const val = value as {
-      [key: string]: any;
-    };
-
-    Object.keys(val).forEach((key: string) => {
-      serialized[key] = serializeObject(val[key], depth - 1);
-    });
-
-    return serialized;
-  } else if (isArray(value)) {
-    const val = (value as any) as T[];
-    return val.map(v => serializeObject(v, depth - 1));
-  }
-
-  return serializeValue(value);
-}
-
-/** JSDoc */
-export function limitObjectDepthToSize<T>(
-  object: { [key: string]: any },
-  depth: number = MAX_SERIALIZE_EXCEPTION_DEPTH,
-  maxSize: number = MAX_SERIALIZE_EXCEPTION_SIZE,
-): T {
-  const serialized = serializeObject(object, depth);
-
-  if (jsonSize(serialize(serialized)) > maxSize) {
-    return limitObjectDepthToSize(object, depth - 1);
-  }
-
-  return serialized as T;
-}
-
-/** JSDoc */
-export function serializeKeysToEventMessage(keys: string[], maxLength: number = MAX_SERIALIZE_KEYS_LENGTH): string {
-  if (!keys.length) {
-    return '[object has no keys]';
-  }
-
-  if (keys[0].length >= maxLength) {
-    return truncate(keys[0], maxLength);
-  }
-
-  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
-    const serialized = keys.slice(0, includedKeys).join(', ');
-    if (serialized.length > maxLength) {
-      continue;
-    }
-    if (includedKeys === keys.length) {
-      return serialized;
-    }
-    return truncate(serialized, maxLength);
-  }
-
-  return '';
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-/** JSDoc */
-export function assign(target: any, ...args: any[]): object {
-  if (target === null || target === undefined) {
-    throw new TypeError('Cannot convert undefined or null to object');
-  }
-
-  const to = Object(target) as {
-    [key: string]: any;
-  };
-
-  // tslint:disable-next-line:prefer-for-of
-  for (let i = 0; i < args.length; i++) {
-    const source = args[i];
-    if (source !== null) {
-      for (const nextKey in source as {
-        [key: string]: any;
-      }) {
-        if (Object.prototype.hasOwnProperty.call(source, nextKey)) {
-          to[nextKey] = (source as {
-            [key: string]: any;
-          })[nextKey];
-        }
-      }
-    }
-  }
-
-  return to;
-}
-
 /**
  * Transforms Error object into an object literal with all it's attributes
  * attached to it.
@@ -261,6 +88,50 @@ function objectifyError(error: ExtendedError): object {
   return err;
 }
 
+/** Calculates bytes size of input string */
+function utf8Length(value: string): number {
+  // tslint:disable-next-line:no-bitwise
+  return ~-encodeURI(value).split(/%..|./).length;
+}
+
+/** Calculates bytes size of input object */
+function jsonSize(value: any): number {
+  return utf8Length(JSON.stringify(value));
+}
+
+/** JSDoc */
+export function normalizeToSize<T>(
+  object: { [key: string]: any },
+  // Default Node.js REPL depth
+  depth: number = 3,
+  // 100kB, as 200kB is max payload size, so half sounds reasonable
+  maxSize: number = 100 * 1024,
+): T {
+  const serialized = normalize(object, depth);
+
+  if (jsonSize(serialized) > maxSize) {
+    return normalizeToSize(object, depth - 1, maxSize);
+  }
+
+  return serialized as T;
+}
+
+/** Transforms any input value into a string form, either primitive value or a type of the input */
+function stringifyValue<T>(value: T): T | string {
+  // Node.js REPL notation
+  const type = Object.prototype.toString.call(value) as string;
+
+  if (isPrimitive(value)) {
+    return value;
+  } else if (type === '[object Object]') {
+    return '[Object]';
+  } else if (type === '[object Array]') {
+    return '[Array]';
+  } else {
+    return type;
+  }
+}
+
 /**
  * normalizeValue()
  *
@@ -271,12 +142,9 @@ function objectifyError(error: ExtendedError): object {
  * - filter global objects
  */
 function normalizeValue(value: any, key?: any): any {
-  if (key === 'domain' && typeof value === 'object' && (value as { _events: any })._events) {
-    return '[Domain]';
-  }
-
-  if (key === 'domainEmitter') {
-    return '[DomainEmitter]';
+  if (isError(value)) {
+    // tslint:disable-next-line:no-unsafe-any
+    return objectifyError(value);
   }
 
   if (typeof (global as any) !== 'undefined' && value === global) {
@@ -291,12 +159,17 @@ function normalizeValue(value: any, key?: any): any {
     return '[Document]';
   }
 
-  if (value instanceof Date) {
-    return `[Date] ${value}`;
+  if (key === 'domain' && typeof value === 'object' && (value as { _events: any })._events) {
+    return '[Domain]';
   }
 
-  if (value instanceof Error) {
-    return objectifyError(value);
+  if (key === 'domainEmitter') {
+    return '[DomainEmitter]';
+  }
+
+  // React's SyntheticEvent thingy
+  if (isSyntheticEvent(value)) {
+    return '[SyntheticEvent]';
   }
 
   // tslint:disable-next-line:strict-type-predicates
@@ -304,11 +177,11 @@ function normalizeValue(value: any, key?: any): any {
     return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
   }
 
-  if (isNaN(value)) {
+  if (Number.isNaN(value as number)) {
     return '[NaN]';
   }
 
-  if (isUndefined(value)) {
+  if (value === void 0) {
     return '[undefined]';
   }
 
@@ -320,54 +193,68 @@ function normalizeValue(value: any, key?: any): any {
 }
 
 /**
- * Decycles an object to make it safe for json serialization.
+ * Walks an object to perform a normalization on it
  *
- * @param obj Object to be decycled
+ * @param key of object that's walked in current iteration
+ * @param value object to be walked
+ * @param depth Optional number indicating how deep should walking be performed
  * @param memo Optional Memo class handling decycling
  */
-export function decycle(obj: any, memo: Memo = new Memo()): any {
-  // tslint:disable-next-line:no-unsafe-any
-  const copy = isArray(obj) ? obj.slice() : isPlainObject(obj) ? assign({}, obj) : obj;
+export function walk(key: string, value: any, depth: number, memo: Memo = new Memo()): any {
+  // tslint:disable:no-unsafe-any
 
-  if (!isPrimitive(obj)) {
-    if (memo.memoize(obj)) {
-      return '[Circular ~]';
-    }
-    // tslint:disable-next-line
-    for (const key in obj) {
-      // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
-      if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-        continue;
-      }
-      // tslint:disable-next-line
-      copy[key] = decycle(obj[key], memo);
-    }
-    memo.unmemoize(obj);
+  // If we reach the maximum depth, stringify whatever left out of it
+  if (depth === 0) {
+    return stringifyValue(value);
   }
+
+  // If value implements `toJSON` method, call it and return early
+  if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
+    return value.toJSON();
+  }
+
+  const normalized = normalizeValue(value, key);
+  // If its a primitive, there are no branches left to walk, so we can just bail out as theres no point in going down that branch any further
+  if (isPrimitive(normalized)) {
+    return normalized;
+  }
+
+  // Make a copy of the value to prevent any mutations
+  const copy = Array.isArray(normalized) ? [...normalized] : isPlainObject(normalized) ? { ...normalized } : normalized;
+
+  // If we already walked that branch, bail out
+  if (memo.memoize(value)) {
+    return '[Circular ~]';
+  }
+
+  for (const innerKey in normalized) {
+    // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+    if (!Object.prototype.hasOwnProperty.call(normalized, innerKey)) {
+      continue;
+    }
+    copy[innerKey] = walk(innerKey, normalized[innerKey], depth - 1, memo);
+  }
+
+  memo.unmemoize(value);
 
   return copy;
 }
 
 /**
- * serializer()
+ * normalize()
  *
- * Remove circular references,
- * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
- * and takes care of Error objects serialization
+ * - Creates a copy to prevent original input mutation
+ * - Skip non-enumerablers
+ * - Calls `toJSON` if implemented
+ * - Removes circular references
+ * - Translates non-serializeable values (undefined/NaN/Functions) to serializable format
+ * - Translates known global objects/Classes to a string representations
+ * - Takes care of Error objects serialization
+ * - Optionally limit depth of final output
  */
-function serializer(options: { normalize: boolean } = { normalize: true }): (key: string, value: any) => any {
-  // tslint:disable-next-line
-  return (key: string, value: object) => (options.normalize ? normalizeValue(decycle(value), key) : decycle(value));
-}
-
-/**
- * safeNormalize()
- *
- * Creates a copy of the input by applying serializer function on it and parsing it back to unify the data
- */
-export function safeNormalize(input: any): any {
+export function normalize(input: any, depth: number = +Infinity): any {
   try {
-    return JSON.parse(JSON.stringify(input, serializer({ normalize: true })));
+    return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
   } catch (_oO) {
     return '**non-serializable**';
   }
