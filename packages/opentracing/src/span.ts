@@ -11,6 +11,7 @@ interface Log {
 
 /** JSDoc */
 export class Span extends opentracing.Span implements SpanInterface {
+  private flushed: boolean = false;
   private finishTime: number = 0;
 
   private readonly logs: Log[] = [];
@@ -103,6 +104,28 @@ export class Span extends opentracing.Span implements SpanInterface {
    */
   public duration(): number {
     return this.finishTime - this.startTime;
+  }
+
+  /**
+   * Returns wether the span has been finished.
+   */
+  public isFinished(): boolean {
+    return this.finishTime > 0;
+  }
+
+  /**
+   * Marks the span as flushed.
+   */
+  public flush(): this {
+    this.flushed = true;
+    return this;
+  }
+
+  /**
+   * Returns wether the span has already be flushed.
+   */
+  public isFlushed(): boolean {
+    return this.flushed;
   }
 
   /**

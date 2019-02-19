@@ -8,7 +8,7 @@ import { SpanContext } from './spancontext';
  */
 export class Tracer extends opentracing.Tracer {
   private traceId?: string = undefined;
-  private spans: Span[] = [];
+  private readonly spans: Span[] = [];
 
   /**
    * Called by public method startSpan
@@ -41,7 +41,9 @@ export class Tracer extends opentracing.Tracer {
    * Flushes all spans and sends an event
    */
   public flush(): void {
-    getCurrentHub().captureEvent({ spans: [...this.spans] });
-    this.spans = [];
+    const finishedSpans = this.spans.filter((span: Span) => span.isFinished() && !span.isFlushed());
+    if (finishedSpans.length) {
+      getCurrentHub().captureEvent({ spans: finishedSpans.map((span: Span) => span.flush()) });
+    }
   }
 }
