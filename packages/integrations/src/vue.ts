@@ -50,6 +50,8 @@ export class Vue implements Integration {
 
   /** JSDoc */
   private formatComponentName(vm: any): string {
+    // tslint:disable:no-unsafe-any
+
     if (vm.$root === vm) {
       return 'root instance';
     }
@@ -64,6 +66,8 @@ export class Vue implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
+    // tslint:disable:no-unsafe-any
+
     if (!this.Vue || !this.Vue.config) {
       logger.error('VueIntegration is missing a Vue instance');
       return;

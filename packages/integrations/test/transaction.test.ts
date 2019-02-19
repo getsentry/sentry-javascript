@@ -1,4 +1,4 @@
-import { Transaction } from '../../src/integrations/pluggable/transaction';
+import { Transaction } from '../src/transaction';
 
 const transaction: Transaction = new Transaction();
 

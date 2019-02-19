@@ -16,6 +16,7 @@
     "packages/browser",
     "packages/core",
     "packages/hub",
+    "packages/integrations",
     "packages/minimal",
     "packages/node",
     "packages/types",

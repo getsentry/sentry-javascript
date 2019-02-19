@@ -30,6 +30,8 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [utils] ref: Rename `safeNormalize` to `normalize` and rewrite its internals
 - **breaking** [utils] ref: Remove `serialize`, `deserialize`, `clone` and `serializeObject` functions
 - **breaking** [utils] ref: Rewrite normalization functions by removing most of them and leaving just `normalize` and `normalizeToSize`
+- **breaking** [core] ref: Extract all pluggable integrations into a separate `@sentry/integrations` package
+- **breaking** [core] ref: Move `extraErrorData` integration to `@sentry/integrations` package
 - [core] feat: Add `maxValueLength` option to adjust max string length for values, default is 250.
 
 ## 4.6.4
