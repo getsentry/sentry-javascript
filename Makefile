@@ -13,6 +13,7 @@ publish-npm:
 	cd packages/browser; npm publish
 	cd packages/core; npm publish
 	cd packages/hub; npm publish
+	cd packages/integrations; npm publish
 	cd packages/minimal; npm publish
 	cd packages/node; npm publish
 	# cd packages/types; npm publish

@@ -34,6 +34,8 @@ export class Ember implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
+    // tslint:disable:no-unsafe-any
+
     if (!this.Ember) {
       logger.error('EmberIntegration is missing an Ember instance');
       return;
