@@ -333,7 +333,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.flush(timeout);
+    return this.flush(timeout).finally(() => {
+      this.getOptions().enabled = false;
+    });
   }
 
   /**
