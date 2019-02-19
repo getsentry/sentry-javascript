@@ -20,6 +20,8 @@ export function isNodeEnv(): boolean {
   return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 }
 
+const fallbackGlobalObject = {};
+
 /**
  * Safely get global scope object
  *
@@ -27,7 +29,13 @@ export function isNodeEnv(): boolean {
  */
 // tslint:disable:strict-type-predicates
 export function getGlobalObject(): Window | NodeJS.Global | {} {
-  return isNodeEnv() ? global : typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : {};
+  return isNodeEnv()
+    ? global
+    : typeof window !== 'undefined'
+    ? window
+    : typeof self !== 'undefined'
+    ? self
+    : fallbackGlobalObject;
 }
 // tslint:enable:strict-type-predicates
 
