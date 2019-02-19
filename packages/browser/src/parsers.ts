@@ -1,6 +1,6 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
-import { includes } from '@sentry/utils/string';
+import { normalizeToSize } from '@sentry/utils/object';
+import { keysToEventMessage } from '@sentry/utils/string';
 import { md5 } from './md5';
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
@@ -38,10 +38,10 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
   const exceptionKeys = Object.keys(exception).sort();
   const event: Event = {
     extra: {
-      __serialized__: limitObjectDepthToSize(exception),
+      __serialized__: normalizeToSize(exception),
     },
     fingerprint: [md5(exceptionKeys.join(''))],
-    message: `Non-Error exception captured with keys: ${serializeKeysToEventMessage(exceptionKeys)}`,
+    message: `Non-Error exception captured with keys: ${keysToEventMessage(exceptionKeys)}`,
   };
 
   if (syntheticException) {
@@ -82,12 +82,12 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   const lastFrameFunction = localStack[localStack.length - 1].func || '';
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (includes(firstFrameFunction, 'captureMessage') || includes(firstFrameFunction, 'captureException')) {
+  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
     localStack = localStack.slice(1);
   }
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (includes(lastFrameFunction, 'sentryWrapped')) {
+  if (lastFrameFunction.includes('sentryWrapped')) {
     localStack = localStack.slice(0, -1);
   }
 

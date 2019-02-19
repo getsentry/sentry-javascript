@@ -1,7 +1,6 @@
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
-import { serialize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 import { NoopTransport } from './transports/noop';
 
@@ -95,7 +94,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    this.transport.sendEvent(serialize(event)).catch(reason => {
+    this.transport.sendEvent(event).catch(reason => {
       logger.error(`Error while sending event: ${reason}`);
     });
   }

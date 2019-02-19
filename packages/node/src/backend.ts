@@ -1,7 +1,8 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
-import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
+import { normalizeToSize } from '@sentry/utils/object';
+import { keysToEventMessage } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
@@ -81,10 +82,10 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // This will allow us to group events based on top-level keys
         // which is much better than creating new group when any key/value change
         const keys = Object.keys(exception as {}).sort();
-        const message = `Non-Error exception captured with keys: ${serializeKeysToEventMessage(keys)}`;
+        const message = `Non-Error exception captured with keys: ${keysToEventMessage(keys)}`;
 
         getCurrentHub().configureScope(scope => {
-          scope.setExtra('__serialized__', limitObjectDepthToSize(exception as {}));
+          scope.setExtra('__serialized__', normalizeToSize(exception as {}));
           scope.setFingerprint([
             createHash('md5')
               .update(keys.join(''))

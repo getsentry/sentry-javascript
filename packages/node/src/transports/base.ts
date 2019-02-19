@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { Response, Status, Transport, TransportOptions } from '@sentry/types';
+import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { PromiseBuffer } from '@sentry/utils/promisebuffer';
 import * as fs from 'fs';
@@ -71,7 +71,7 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async sendWithModule(httpModule: HTTPRequest, body: string): Promise<Response> {
+  protected async sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
     return this.buffer.add(
       new Promise<Response>((resolve, reject) => {
         const req = httpModule.request(this.getRequestOptions(), (res: http.IncomingMessage) => {
@@ -97,7 +97,7 @@ export abstract class BaseTransport implements Transport {
           });
         });
         req.on('error', reject);
-        req.end(body);
+        req.end(JSON.stringify(event));
       }),
     );
   }
@@ -105,7 +105,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: string): Promise<Response> {
+  public async sendEvent(_: Event): Promise<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method.');
   }
 

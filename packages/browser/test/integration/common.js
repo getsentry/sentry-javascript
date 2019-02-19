@@ -107,7 +107,7 @@ function initSDK() {
   // stub transport so we don't actually transmit any data
   function DummyTransport() {}
   DummyTransport.prototype.sendEvent = function(event) {
-    sentryData.push(JSON.parse(event));
+    sentryData.push(event);
     done(sentryData);
     return Promise.resolve({
       status: 'success',

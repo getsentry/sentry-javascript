@@ -1,12 +1,5 @@
-import { SentryEvent } from '@sentry/types';
+import { ExtendedError, SentryEvent } from '@sentry/types';
 import { ExtraErrorData } from '../../../src/integrations/extraerrordata';
-
-/**
- * Just an Error object with arbitrary attributes attached to it.
- */
-interface ExtendedError extends Error {
-  [key: string]: any;
-}
 
 const extraErrorData = new ExtraErrorData();
 let event: SentryEvent;
