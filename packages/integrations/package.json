@@ -21,6 +21,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@types/angular": "^1.6.54",
     "chai": "^4.1.2",
     "jest": "^24.1.0",
     "npm-run-all": "^4.1.2",
