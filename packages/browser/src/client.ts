@@ -1,5 +1,6 @@
-import { API, BaseClient, Scope, SentryError } from '@sentry/core';
+import { API, BaseClient, Scope } from '@sentry/core';
 import { DsnLike, SentryEvent, SentryEventHint } from '@sentry/types';
+import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { BrowserBackend, BrowserOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
@@ -78,14 +79,21 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       return;
     }
 
+    if (!this.isEnabled()) {
+      logger.error('Trying to call showReportDialog with Sentry Client is disabled');
+      return;
+    }
+
     const dsn = options.dsn || this.getDsn();
 
     if (!options.eventId) {
-      throw new SentryError('Missing `eventId` option in showReportDialog call');
+      logger.error('Missing `eventId` option in showReportDialog call');
+      return;
     }
 
     if (!dsn) {
-      throw new SentryError('Missing `Dsn` option in showReportDialog call');
+      logger.error('Missing `Dsn` option in showReportDialog call');
+      return;
     }
 
     const script = document.createElement('script');
