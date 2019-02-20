@@ -5,6 +5,7 @@
 ## 4.6.3
 
 - [utils] fix: Normalize value before recursively walking down the tree
+- [browser] ref: Check whether client is enabled for reportDialog and log instead of throw
 
 ## 4.6.2
 
