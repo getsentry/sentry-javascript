@@ -15,8 +15,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "4.6.1",
-    "@sentry/utils": "4.6.1",
+    "@sentry/hub": "4.6.2",
+    "@sentry/utils": "4.6.2",
     "@sentry/types": "4.5.3",
     "opentracing": "0.14.3"
   },

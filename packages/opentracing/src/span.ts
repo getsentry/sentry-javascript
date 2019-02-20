@@ -5,7 +5,7 @@ import { Tracer } from './tracer';
 
 /** JSDoc */
 interface Log {
-  keyValuePairs: { [key: string]: any };
+  data: { [key: string]: any };
   timestamp?: number;
 }
 
@@ -78,9 +78,9 @@ export class Span extends opentracing.Span implements SpanInterface {
   /**
    * Store log entry.
    */
-  protected _log(keyValuePairs: { [key: string]: any }, timestamp?: number): void {
+  protected _log(data: { [key: string]: any }, timestamp?: number): void {
     this.logs.push({
-      keyValuePairs,
+      data,
       timestamp,
     });
   }
@@ -133,12 +133,13 @@ export class Span extends opentracing.Span implements SpanInterface {
    */
   public toJSON(): object {
     return {
-      finishTime: this.finishTime || undefined,
-      logs: this.logs,
-      references: this.references,
+      finishTime: (this.finishTime && this.finishTime / 1000) || undefined,
+      logs: this.logs.length === 0 ? undefined : this.logs,
+      operation: this.operation,
+      references: this.references && this.references,
       span_id: this.spanContext.spanId,
-      startTime: this.startTime,
-      tags: this.tags,
+      startTime: this.startTime / 1000,
+      tags: Object.keys(this.tags).length === 0 ? undefined : this.tags,
       trace_id: this.spanContext.traceId,
     };
   }
