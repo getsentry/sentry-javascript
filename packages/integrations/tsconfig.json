@@ -4,6 +4,6 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "angular"]
   }
 }
