@@ -62,7 +62,9 @@ export const defaultIntegrations = [
  *
  * @see BrowserOptions for documentation on configuration options.
  */
-export function init(options: BrowserOptions = {}): void {
+export function init(browserOptions: BrowserOptions = {}): void {
+  const options = { ...browserOptions };
+
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
