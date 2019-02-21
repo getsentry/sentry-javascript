@@ -1688,6 +1688,10 @@ for (var idx in frames) {
                     level: 'error',
                   });
                 });
+                setTimeout(function() {
+                  setTimeout(done, 1000);
+                  Sentry.captureMessage('test');
+                }, 1000);
                 undefinedMethod(); //trigger error
               },
               function(sentryData) {
@@ -1726,6 +1730,10 @@ for (var idx in frames) {
                     level: 'error',
                   });
                 });
+                setTimeout(function() {
+                  setTimeout(done, 1000);
+                  Sentry.captureMessage('test');
+                }, 1000);
                 undefinedMethod(); //trigger error
               },
               function(sentryData) {
@@ -1779,6 +1787,10 @@ for (var idx in loaderSpecific) {
                   level: 'error',
                 });
               });
+              setTimeout(function() {
+                setTimeout(done, 1000);
+                Sentry.captureMessage('test');
+              }, 1000);
               undefinedMethod(); //trigger error
             },
             function(sentryData) {
