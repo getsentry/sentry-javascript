@@ -495,7 +495,7 @@ describe('normalize()', () => {
         /*no-empty*/
       },
     };
-    const result = safeNormalize(obj);
+    const result = normalize(obj);
     expect(result).toEqual({
       foo: '[SyntheticEvent]',
       baz: '[NaN]',

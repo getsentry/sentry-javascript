@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
+import { normalize } from '@sentry/utils/object';
 import { truncate } from '@sentry/utils/string';
 import { addExceptionTypeValue, eventFromStacktrace } from '../parsers';
 import {
@@ -113,7 +114,7 @@ export class GlobalHandlers implements Integration {
       },
     };
 
-    const fallbackValue = stacktrace.original ? truncate(JSON.stringify(stacktrace.original), 300) : '';
+    const fallbackValue = stacktrace.original ? truncate(JSON.stringify(normalize(stacktrace.original)), 300) : '';
     const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
 
     // This makes sure we have type/value in every exception
