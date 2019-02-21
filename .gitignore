@@ -1,5 +1,6 @@
 # dependencies
 node_modules/
+packages/*/package-lock.json
 
 # build and test
 build/
