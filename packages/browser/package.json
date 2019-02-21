@@ -59,6 +59,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build esm",
+    "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",

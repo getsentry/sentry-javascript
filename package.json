@@ -7,6 +7,7 @@
     "build:watch": "lerna run build:watch --stream --no-sort --concurrency 9999",
     "clean": "lerna run --stream clean",
     "fix": "lerna run --stream --concurrency 1 fix",
+    "link:yarn": "lerna run --stream --concurrency 1 link:yarn",
     "lint": "lerna run --stream --concurrency 1 lint",
     "lint:json": "lerna run --stream --concurrency 1 lint:tslint:json",
     "test": "lerna run --stream --concurrency 1 --sort test",
