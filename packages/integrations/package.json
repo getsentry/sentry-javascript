@@ -32,11 +32,7 @@
     "typescript": "^3.3.3"
   },
   "scripts": {
-    "build": "run-s clean && run-p build:es5 build:esm",
-    "build:es5": "tsc -p tsconfig.build.json",
-    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
-    "build:esm:transpile": "tsc -p tsconfig.esm.json",
-    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
+    "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",

@@ -64,14 +64,14 @@ export class Angular implements Integration {
    * Angular's exceptionHandler for Sentry integration
    */
   private $exceptionHandlerDecorator($delegate: ng.IExceptionHandlerService): ng.IExceptionHandlerService {
-    return (exception, cause) => {
+    return (exception: Error, cause?: string) => {
       if (getCurrentHub().getIntegration(Angular)) {
         withScope(scope => {
           if (cause) {
             scope.setExtra('cause', cause);
           }
 
-          scope.addEventProcessor(event => {
+          scope.addEventProcessor((event: Event) => {
             const ex = event.exception && event.exception.values && event.exception.values[0];
 
             if (ex) {
