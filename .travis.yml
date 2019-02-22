@@ -38,7 +38,7 @@ jobs:
         chrome: stable
         firefox: latest
       script: scripts/browser-integration.sh
-    - name: '@sentry/browser - saucelabs tests'
+    - name: '@sentry/browser - SauceLabs tests'
       if: fork = false
       node_js: '8'
       addons:
