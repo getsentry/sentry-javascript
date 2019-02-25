@@ -1,5 +1,5 @@
 import { SentryWrappedFunction } from '@sentry/types';
-import { isArray, isNaN, isPlainObject, isPrimitive, isSyntheticEvent, isUndefined } from './is';
+import { isArray, isError, isNaN, isPlainObject, isPrimitive, isSyntheticEvent, isUndefined } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
 
@@ -120,19 +120,19 @@ function jsonSize(value: any): number {
 }
 
 /** JSDoc */
-function serializeValue<T>(value: T): T | string {
+function serializeValue(value: any): string {
   const type = Object.prototype.toString.call(value);
 
+  // Node.js REPL notation
   if (typeof value === 'string') {
     return truncate(value, 40);
   } else if (type === '[object Object]') {
-    // Node.js REPL notation
     return '[Object]';
   } else if (type === '[object Array]') {
-    // Node.js REPL notation
     return '[Array]';
   } else {
-    return normalizeValue(value) as T;
+    const normalized = normalizeValue(value);
+    return isPrimitive(normalized) ? `${normalized}` : (type as string);
   }
 }
 
@@ -270,8 +270,8 @@ function objectifyError(error: ExtendedError): object {
  * - serializes Error objects
  * - filter global objects
  */
-function normalizeValue(value: any, key?: any): any {
-  if (key === 'domain' && typeof value === 'object' && (value as { _events: any })._events) {
+function normalizeValue<T>(value: T, key?: any): T | string {
+  if (key === 'domain' && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
     return '[Domain]';
   }
 
@@ -279,20 +279,16 @@ function normalizeValue(value: any, key?: any): any {
     return '[DomainEmitter]';
   }
 
-  if (typeof (global as any) !== 'undefined' && value === global) {
+  if (typeof (global as any) !== 'undefined' && (value as unknown) === global) {
     return '[Global]';
   }
 
-  if (typeof (window as any) !== 'undefined' && value === window) {
+  if (typeof (window as any) !== 'undefined' && (value as unknown) === window) {
     return '[Window]';
   }
 
-  if (typeof (document as any) !== 'undefined' && value === document) {
+  if (typeof (document as any) !== 'undefined' && (value as unknown) === document) {
     return '[Document]';
-  }
-
-  if (value instanceof Error) {
-    return objectifyError(value);
   }
 
   // tslint:disable-next-line:strict-type-predicates
@@ -314,7 +310,7 @@ function normalizeValue(value: any, key?: any): any {
   }
 
   if (typeof value === 'function') {
-    return `[Function: ${(value as () => void).name || '<unknown-function-name>'}]`;
+    return `[Function: ${value.name || '<unknown-function-name>'}]`;
   }
 
   return value;
@@ -326,31 +322,34 @@ function normalizeValue(value: any, key?: any): any {
  * @param obj Object to be decycled
  * @param memo Optional Memo class handling decycling
  */
-export function decycle(obj: any, memo: Memo = new Memo()): any {
-  // tslint:disable-next-line:no-unsafe-any
-  const copy = isArray(obj) ? obj.slice() : isPlainObject(obj) ? assign({}, obj) : obj;
-  const normalized = normalizeValue(obj);
+export function decycle(obj: any, depth: number = +Infinity, memo: Memo = new Memo()): any {
+  if (depth === 0) {
+    return serializeValue(obj);
+  }
 
   // If an object was normalized to its string form, we should just bail out as theres no point in going down that branch
-  if (typeof normalized === 'string') {
+  const normalized = normalizeValue(obj);
+  if (isPrimitive(normalized)) {
     return normalized;
   }
 
-  if (!isPrimitive(obj)) {
-    if (memo.memoize(obj)) {
-      return '[Circular ~]';
-    }
-    // tslint:disable-next-line
-    for (const key in obj) {
-      // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
-      if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-        continue;
-      }
-      // tslint:disable-next-line
-      copy[key] = decycle(obj[key], memo);
-    }
-    memo.unmemoize(obj);
+  // tslint:disable-next-line:no-unsafe-any
+  const source = (isError(obj) ? objectifyError(obj) : obj) as {
+    [key: string]: any;
+  };
+  const copy = isArray(obj) ? [] : {};
+
+  if (memo.memoize(obj)) {
+    return '[Circular ~]';
   }
+  for (const key in source) {
+    // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+    if (!Object.prototype.hasOwnProperty.call(source, key)) {
+      continue;
+    }
+    (copy as { [key: string]: any })[key] = decycle(source[key], depth - 1, memo);
+  }
+  memo.unmemoize(obj);
 
   return copy;
 }
@@ -362,9 +361,12 @@ export function decycle(obj: any, memo: Memo = new Memo()): any {
  * translates undefined/NaN values to "[undefined]"/"[NaN]" respectively,
  * and takes care of Error objects serialization
  */
-function serializer(options: { normalize: boolean } = { normalize: true }): (key: string, value: any) => any {
-  // tslint:disable-next-line
-  return (key: string, value: object) => (options.normalize ? normalizeValue(decycle(value), key) : decycle(value));
+function serializer(
+  options: { normalize?: boolean; depth?: number } = { normalize: true },
+): (key: string, value: any) => any {
+  return (key: string, value: object) =>
+    // tslint:disable-next-line
+    options.normalize ? normalizeValue(decycle(value, options.depth), key) : decycle(value, options.depth);
 }
 
 /**
@@ -372,9 +374,9 @@ function serializer(options: { normalize: boolean } = { normalize: true }): (key
  *
  * Creates a copy of the input by applying serializer function on it and parsing it back to unify the data
  */
-export function safeNormalize(input: any): any {
+export function safeNormalize(input: any, depth?: number): any {
   try {
-    return JSON.parse(JSON.stringify(input, serializer({ normalize: true })));
+    return JSON.parse(JSON.stringify(input, serializer({ normalize: true, depth })));
   } catch (_oO) {
     return '**non-serializable**';
   }
