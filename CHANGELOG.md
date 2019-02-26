@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 4.6.4
+
+- [utils] fix: Prevent decycling from referencing original objects
+- [utils] fix: Preserve correct name when wrapping
+- [raven-node] test: Update raven-node tests for new node version
+
 ## 4.6.3
 
 - [utils] fix: Normalize value before recursively walking down the tree
