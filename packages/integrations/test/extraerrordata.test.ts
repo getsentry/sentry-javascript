@@ -1,5 +1,5 @@
 import { ExtendedError, SentryEvent } from '@sentry/types';
-import { ExtraErrorData } from '../../../src/integrations/extraerrordata';
+import { ExtraErrorData } from '../src/extraerrordata';
 
 const extraErrorData = new ExtraErrorData();
 let event: SentryEvent;

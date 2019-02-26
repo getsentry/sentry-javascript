@@ -4,6 +4,11 @@ import { isError, isPlainObject } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { normalize } from '@sentry/utils/object';
 
+/** JSDoc */
+interface ExtraErrorDataOptions {
+  depth?: number;
+}
+
 /** Patch toString calls to return proper name for wrapped functions */
 export class ExtraErrorData implements Integration {
   /**
@@ -15,6 +20,11 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public static id: string = 'ExtraErrorData';
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(private readonly options: ExtraErrorDataOptions = { depth: 3 }) {}
 
   /**
    * @inheritDoc
@@ -44,7 +54,7 @@ export class ExtraErrorData implements Integration {
         ...event.extra,
       };
 
-      const normalizedErrorData = normalize(errorData);
+      const normalizedErrorData = normalize(errorData, this.options.depth);
       if (isPlainObject(normalizedErrorData)) {
         extra = {
           ...event.extra,
