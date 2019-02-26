@@ -132,12 +132,18 @@ export function wrap(
       enumerable: false,
       value: fn,
     },
-    name: {
+  });
+
+  // Restore original function name (not all browsers allow that)
+  try {
+    Object.defineProperty(sentryWrapped, 'name', {
       get(): string {
         return fn.name;
       },
-    },
-  });
+    });
+  } catch (_oO) {
+    /*no-empty*/
+  }
 
   return sentryWrapped;
 }
