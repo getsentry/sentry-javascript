@@ -238,11 +238,11 @@ describe('raven.utils', function() {
       var callback = function(frames) {
         var frame1 = frames.pop();
         frame1.in_app.should.be.false;
-        frame1.filename.should.equal('querystring.js');
+        frame1.filename.should.be.oneOf('querystring.js', 'internal/querystring.js');
 
         var frame2 = frames.pop();
         frame2.in_app.should.be.false;
-        frame2.filename.should.equal('querystring.js');
+        frame2.filename.should.be.oneOf('querystring.js', 'internal/querystring.js');
 
         done();
       };

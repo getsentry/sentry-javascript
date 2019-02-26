@@ -11,6 +11,11 @@ interface ExtendedError extends Error {
   [key: string]: unknown;
 }
 
+/** JSDoc */
+interface ExtraErrorDataOptions {
+  depth?: number;
+}
+
 /** Patch toString calls to return proper name for wrapped functions */
 export class ExtraErrorData implements Integration {
   /**
@@ -22,6 +27,11 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public static id: string = 'ExtraErrorData';
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(private readonly options: ExtraErrorDataOptions = { depth: 3 }) {}
 
   /**
    * @inheritDoc
@@ -50,7 +60,7 @@ export class ExtraErrorData implements Integration {
       let extra = {
         ...event.extra,
       };
-      const normalizedErrorData = safeNormalize(errorData);
+      const normalizedErrorData = safeNormalize(errorData, this.options.depth);
       if (!isString(normalizedErrorData)) {
         extra = {
           ...event.extra,

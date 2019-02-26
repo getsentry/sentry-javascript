@@ -2,7 +2,7 @@ import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Mechanism, SentryEvent, SentryWrappedFunction } from '@sentry/types';
 import { isFunction } from '@sentry/utils/is';
 import { htmlTreeAsString } from '@sentry/utils/misc';
-import { serializeObject } from '@sentry/utils/object';
+import { safeNormalize } from '@sentry/utils/object';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -90,7 +90,7 @@ export function wrap(
 
           processedEvent.extra = {
             ...processedEvent.extra,
-            arguments: serializeObject(args, 2),
+            arguments: safeNormalize(args, 3),
           };
 
           return processedEvent;
@@ -133,6 +133,17 @@ export function wrap(
       value: fn,
     },
   });
+
+  // Restore original function name (not all browsers allow that)
+  try {
+    Object.defineProperty(sentryWrapped, 'name', {
+      get(): string {
+        return fn.name;
+      },
+    });
+  } catch (_oO) {
+    /*no-empty*/
+  }
 
   return sentryWrapped;
 }

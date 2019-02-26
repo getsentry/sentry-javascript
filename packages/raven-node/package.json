@@ -1,7 +1,14 @@
 {
   "name": "raven",
   "description": "A standalone (Node.js) client for Sentry",
-  "keywords": ["debugging", "errors", "exceptions", "logging", "raven", "sentry"],
+  "keywords": [
+    "debugging",
+    "errors",
+    "exceptions",
+    "logging",
+    "raven",
+    "sentry"
+  ],
   "version": "2.6.4",
   "repository": "git://github.com/getsentry/raven-js.git",
   "license": "BSD-2-Clause",
@@ -13,8 +20,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "test":
-      "NODE_ENV=test istanbul cover _mocha  -- --reporter dot && NODE_ENV=test coffee ./test/run.coffee",
+    "test": "NODE_ENV=test istanbul cover _mocha  -- --reporter dot && NODE_ENV=test coffee ./test/run.coffee",
     "test-mocha": "NODE_ENV=test mocha",
     "test-full": "npm run test && cd test/instrumentation && ./run.sh"
   },

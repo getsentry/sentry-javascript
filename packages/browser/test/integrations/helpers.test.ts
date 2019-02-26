@@ -22,6 +22,13 @@ describe('wrap()', () => {
     expect(wrap(num)).equal(num);
   });
 
+  it('should preserve correct function name when accessed', () => {
+    const namedFunction = () => 1337;
+    expect(wrap(namedFunction)).not.equal(namedFunction);
+    expect(namedFunction.name).equal('namedFunction');
+    expect(wrap(namedFunction).name).equal('namedFunction');
+  });
+
   it('bail out with the original if accessing custom props go bad', () => {
     const fn = (() => 1337) as SentryWrappedFunction;
     fn.__sentry__ = false;
