@@ -132,6 +132,11 @@ export function wrap(
       enumerable: false,
       value: fn,
     },
+    name: {
+      get(): string {
+        return fn.name;
+      },
+    },
   });
 
   return sentryWrapped;

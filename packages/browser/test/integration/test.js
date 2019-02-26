@@ -1663,7 +1663,7 @@ for (var idx in frames) {
                 assert.lengthOf(sentryData.breadcrumbs, 3);
                 assert.deepEqual(sentryData.breadcrumbs[0].data.extra.arguments, ['One']);
                 assert.deepEqual(sentryData.breadcrumbs[1].data.extra.arguments, ['Two', { a: 1 }]);
-                assert.deepEqual(sentryData.breadcrumbs[2].data.extra.arguments, ['Error 2', { b: '[Object]' }]);
+                assert.deepEqual(sentryData.breadcrumbs[2].data.extra.arguments, ['Error 2', { b: { c: '[Array]' } }]);
                 done();
               }
             }
