@@ -15,7 +15,7 @@
   "dependencies": {
     "@sentry/core": "4.6.3",
     "@sentry/hub": "4.6.3",
-    "@sentry/types": "4.5.3",
+    "@sentry/types": "4.6.3",
     "@sentry/utils": "4.6.3",
     "tslib": "^1.9.3"
   },
@@ -49,14 +49,9 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "ts"],
     "testEnvironment": "node",
-    "testMatch": [
-      "**/*.test.ts"
-    ],
+    "testMatch": ["**/*.test.ts"],
     "globals": {
       "ts-jest": {
         "tsConfig": "./tsconfig.json",
