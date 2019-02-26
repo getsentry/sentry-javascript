@@ -138,30 +138,31 @@ function emitWrapper(origEmit: EventListener): (event: string, response: http.Se
       return origEmit.apply(this, arguments);
     }
 
-    const dsn = getCurrentHub()
-      .getClient()
-      .getDsn();
+    const client = getCurrentHub().getClient();
+    if (client) {
+      const dsn = client.getDsn();
 
-    const isInterestingEvent = event === 'response' || event === 'error';
-    const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(dsn.host);
+      const isInterestingEvent = event === 'response' || event === 'error';
+      const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(dsn.host);
 
-    if (isInterestingEvent && isNotSentryRequest && getCurrentHub().getIntegration(Http)) {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: 'http',
-          data: {
-            method: this.method,
-            status_code: response.statusCode,
-            url: this.__ravenBreadcrumbUrl,
+      if (isInterestingEvent && isNotSentryRequest && getCurrentHub().getIntegration(Http)) {
+        getCurrentHub().addBreadcrumb(
+          {
+            category: 'http',
+            data: {
+              method: this.method,
+              status_code: response.statusCode,
+              url: this.__ravenBreadcrumbUrl,
+            },
+            type: 'http',
           },
-          type: 'http',
-        },
-        {
-          event,
-          request: this,
-          response,
-        },
-      );
+          {
+            event,
+            request: this,
+            response,
+          },
+        );
+      }
     }
 
     return origEmit.apply(this, arguments);

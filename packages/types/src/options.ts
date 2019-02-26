@@ -78,6 +78,9 @@ export interface Options {
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
+  /** Maxium number of chars a single value can have before it will be truncated. */
+  maxValueLength?: number;
+
   /**
    * A callback invoked during event submission, allowing to optionally modify
    * the event before it is sent to Sentry.
