@@ -23,7 +23,7 @@ export interface DsnComponents {
 export type DsnLike = string | DsnComponents;
 
 /** The Sentry Dsn, identifying a Sentry instance and project. */
-export interface Dsn {
+export interface Dsn extends DsnComponents {
   /**
    * Renders the string representation of this Dsn.
    *

@@ -158,7 +158,7 @@ export class Hub {
   }
 
   /** Returns the client of the top stack. */
-  public getClient(): any | undefined {
+  public getClient(): Client | undefined {
     return this.getStackTop().client;
   }
 
@@ -298,8 +298,12 @@ export class Hub {
 
   /** Returns the integration if installed on the current client. */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    const client = this.getClient();
+    if (!client) {
+      return null;
+    }
     try {
-      return this.getClient().getIntegration(integration);
+      return client.getIntegration(integration);
     } catch (_oO) {
       logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;

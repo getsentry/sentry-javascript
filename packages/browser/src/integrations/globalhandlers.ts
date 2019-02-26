@@ -114,7 +114,12 @@ export class GlobalHandlers implements Integration {
       },
     };
 
-    const fallbackValue = stacktrace.original ? truncate(JSON.stringify(normalize(stacktrace.original)), 300) : '';
+    const client = getCurrentHub().getClient();
+    const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
+
+    const fallbackValue = stacktrace.original
+      ? truncate(JSON.stringify(normalize(stacktrace.original)), maxValueLength)
+      : '';
     const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
 
     // This makes sure we have type/value in every exception
