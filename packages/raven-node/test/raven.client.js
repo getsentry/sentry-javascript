@@ -1411,7 +1411,12 @@ describe('raven.Client', function() {
         var y = Object.create(null);
         y.c = 'd';
         console.log(x, y);
-        client.getContext().breadcrumbs[0].message.should.equal("{ a: 'b' } { c: 'd' }");
+        client
+          .getContext()
+          .breadcrumbs[0].message.should.be.oneOf(
+            "{ a: 'b' } { c: 'd' }",
+            "[Object: null prototype] { a: 'b' } [Object: null prototype] { c: 'd' }"
+          );
         done();
       });
     });
