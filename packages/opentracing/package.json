@@ -1,7 +1,7 @@
 {
   "name": "@sentry/opentracing",
-  "version": "4.6.1",
-  "description": "Sentry OpenTracing API implementation",
+  "version": "5.0.0-beta0",
+  "description": "Sentry OpenTracing SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal",
   "author": "Sentry",
@@ -10,14 +10,15 @@
     "node": ">=6"
   },
   "main": "dist/index.js",
+  "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "4.6.2",
-    "@sentry/utils": "4.6.2",
-    "@sentry/types": "4.5.3",
+    "@sentry/hub": "5.0.0-beta0",
+    "@sentry/utils": "5.0.0-beta0",
+    "@sentry/types": "5.0.0-beta0",
     "opentracing": "0.14.3"
   },
   "devDependencies": {
@@ -32,9 +33,7 @@
   "scripts": {
     "build": "run-p build:es5 build:esm",
     "build:es5": "tsc -p tsconfig.build.json",
-    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
-    "build:esm:transpile": "tsc -p tsconfig.esm.json",
-    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
+    "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist coverage",
     "link:yarn": "yarn link",
