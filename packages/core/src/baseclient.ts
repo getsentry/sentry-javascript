@@ -10,11 +10,6 @@ import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
 
 /**
- * By default, truncates URL values to 250 chars
- */
-const MAX_URL_LENGTH = 250;
-
-/**
  * Base implementation for all JavaScript SDK clients.
  *
  * Call the constructor with the corresponding backend constructor and options
@@ -178,7 +173,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
-    const { environment, release, dist } = this.getOptions();
+    const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
 
     const prepared: Event = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
@@ -193,17 +188,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     if (prepared.message) {
-      prepared.message = truncate(prepared.message, MAX_URL_LENGTH);
+      prepared.message = truncate(prepared.message, maxValueLength);
     }
 
     const exception = prepared.exception && prepared.exception.values && prepared.exception.values[0];
     if (exception && exception.value) {
-      exception.value = truncate(exception.value, MAX_URL_LENGTH);
+      exception.value = truncate(exception.value, maxValueLength);
     }
 
     const request = prepared.request;
     if (request && request.url) {
-      request.url = truncate(request.url, MAX_URL_LENGTH);
+      request.url = truncate(request.url, maxValueLength);
     }
 
     if (prepared.event_id === undefined) {
