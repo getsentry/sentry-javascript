@@ -10,6 +10,7 @@
     "node": ">=6"
   },
   "main": "dist/index.js",
+  "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
@@ -55,9 +56,7 @@
   "scripts": {
     "build": "run-p build:esm build:es5",
     "build:es5": "rollup --config",
-    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
-    "build:esm:transpile": "tsc -p tsconfig.esm.json",
-    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
+    "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build",
     "lint": "run-s lint:prettier lint:tslint",

@@ -27,13 +27,10 @@
     "typescript": "^3.3.3"
   },
   "scripts": {
-    "build": "run-s clean && run-p build:es5 build:esm",
+    "build": "run-s clean && run-p build:es5",
     "build:es5": "tsc -p tsconfig.build.json",
-    "build:esm": "run-s build:esm:transpile build:esm:rewrite",
-    "build:esm:transpile": "tsc -p tsconfig.esm.json",
-    "build:esm:rewrite": "node ../../scripts/esm-rewrite.js",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
-    "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
+    "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",

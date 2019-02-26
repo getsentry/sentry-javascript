@@ -5,7 +5,7 @@ packages/*/package-lock.json
 # build and test
 build/
 packages/*/dist/
-/packages/*/esm
+packages/*/esm/
 coverage/
 scratch/
 *.pyc
