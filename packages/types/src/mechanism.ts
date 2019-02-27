@@ -5,4 +5,5 @@ export interface Mechanism {
   data?: {
     [key: string]: string;
   };
+  synthetic?: boolean;
 }
