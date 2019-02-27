@@ -109,17 +109,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     return new SyncPromise<Event>(resolve =>
       parseError(ex as Error, this.options).then(event => {
-        const newEvent = event;
-        addExceptionTypeValue(
-          {
-            ...newEvent,
-            event_id: hint && hint.event_id,
-          },
-          undefined,
-          undefined,
-          mechanism,
-        );
-        resolve(newEvent);
+        addExceptionTypeValue(event, undefined, undefined, mechanism);
+        resolve({
+          ...event,
+          event_id: hint && hint.event_id,
+        });
       }),
     );
   }
