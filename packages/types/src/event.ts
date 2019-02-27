@@ -1,6 +1,5 @@
 import { Breadcrumb } from './breadcrumb';
 import { Exception } from './exception';
-import { Mechanism } from './mechanism';
 import { Request } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
@@ -26,7 +25,6 @@ export interface Event {
   fingerprint?: string[];
   exception?: {
     values?: Exception[];
-    mechanism?: Mechanism;
   };
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];

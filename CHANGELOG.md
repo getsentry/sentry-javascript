@@ -35,6 +35,7 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [core] ref: Move `extraErrorData` integration to `@sentry/integrations` package
 - [core] feat: Add `maxValueLength` option to adjust max string length for values, default is 250.
 - **breaking** [all] ref: Expose `module` in `package.json` as entry point for esm builds.
+- [browser/node] feat: Add `synthetic` to `mechanism` in exception.
 
 ## 4.6.4
 
