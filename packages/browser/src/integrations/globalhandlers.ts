@@ -103,10 +103,6 @@ export class GlobalHandlers implements Integration {
       data.name = stacktrace.name;
     }
 
-    const newEvent: Event = {
-      ...event,
-    };
-
     const client = getCurrentHub().getClient();
     const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
 
@@ -116,12 +112,12 @@ export class GlobalHandlers implements Integration {
     const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
 
     // This makes sure we have type/value in every exception
-    addExceptionTypeValue(newEvent, fallbackValue, fallbackType, {
+    addExceptionTypeValue(event, fallbackValue, fallbackType, {
       data,
       handled: false,
       type: stacktrace.mechanism,
     });
 
-    return newEvent;
+    return event;
   }
 }
