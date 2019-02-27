@@ -15,10 +15,10 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
   let integrations: Integration[] = [];
   if (Array.isArray(userIntegrations)) {
     const userIntegrationsNames = userIntegrations.map(i => i.name);
-    const pickedIntegrationsNames = [];
+    const pickedIntegrationsNames: string[] = [];
 
     // Leave only unique default integrations, that were not overridden with provided user integrations
-    for (const defaultIntegration of defaultIntegrations) {
+    defaultIntegrations.forEach(defaultIntegration => {
       if (
         userIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1 &&
         pickedIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1
@@ -26,15 +26,15 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
         integrations.push(defaultIntegration);
         pickedIntegrationsNames.push(getIntegrationName(defaultIntegration));
       }
-    }
+    });
 
     // Don't add same user integration twice
-    for (const userIntegration of userIntegrations) {
+    userIntegrations.forEach(userIntegration => {
       if (pickedIntegrationsNames.indexOf(getIntegrationName(userIntegration)) === -1) {
         integrations.push(userIntegration);
         pickedIntegrationsNames.push(getIntegrationName(userIntegration));
       }
-    }
+    });
   } else if (typeof userIntegrations === 'function') {
     integrations = userIntegrations(defaultIntegrations);
     integrations = Array.isArray(integrations) ? integrations : [integrations];
