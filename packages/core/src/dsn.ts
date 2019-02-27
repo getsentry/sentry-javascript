@@ -4,6 +4,9 @@ import { SentryError } from '@sentry/utils/error';
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;
 
+/** Error message */
+const ERROR_MESSAGE = 'Invalid Dsn';
+
 /** The Sentry Dsn, identifying a Sentry instance and project. */
 export class Dsn implements DsnComponents {
   /** Protocol used to connect to Sentry. */
@@ -54,7 +57,7 @@ export class Dsn implements DsnComponents {
   private fromString(str: string): void {
     const match = DSN_REGEX.exec(str);
     if (!match) {
-      throw new SentryError('Invalid Dsn');
+      throw new SentryError(ERROR_MESSAGE);
     }
 
     const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -81,18 +84,18 @@ export class Dsn implements DsnComponents {
 
   /** Validates this Dsn and throws on error. */
   private validate(): void {
-    for (const component of ['protocol', 'user', 'host', 'projectId']) {
+    ['protocol', 'user', 'host', 'projectId'].forEach(component => {
       if (!this[component as keyof DsnComponents]) {
-        throw new SentryError(`Invalid Dsn: Missing ${component}`);
+        throw new SentryError(ERROR_MESSAGE);
       }
-    }
+    });
 
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(`Invalid Dsn: Unsupported protocol "${this.protocol}"`);
+      throw new SentryError(ERROR_MESSAGE);
     }
 
     if (this.port && Number.isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(`Invalid Dsn: Invalid port number "${this.port}"`);
+      throw new SentryError(ERROR_MESSAGE);
     }
   }
 }
