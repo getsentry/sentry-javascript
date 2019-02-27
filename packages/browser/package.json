@@ -47,7 +47,7 @@
     "rollup-plugin-node-resolve": "^4.0.0",
     "rollup-plugin-npm": "^2.0.0",
     "rollup-plugin-typescript2": "^0.19.2",
-    "rollup-plugin-uglify": "^6.0.2",
+    "rollup-plugin-terser": "^4.0.4",
     "sinon": "^7.2.3",
     "tslint": "^5.12.1",
     "typescript": "^3.3.3",
