@@ -1,9 +1,10 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
+import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { SyncPromise } from '@sentry/utils/syncpromise';
-import { addExceptionTypeValue, eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
+import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
 
@@ -88,8 +89,12 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // which is much better than creating new group when any key/value change
       const objectException = exception as {};
       event = eventFromPlainObject(objectException, hint.syntheticException);
-      addExceptionTypeValue(event, 'Custom Object');
-      return SyncPromise.resolve(this.buildEvent(event, hint, true));
+      addExceptionTypeValue(event, 'Custom Object', undefined, {
+        handled: true,
+        synthetic: true,
+        type: 'generic',
+      });
+      return SyncPromise.resolve(this.buildEvent(event, hint));
     }
 
     // If none of previous checks were valid, then it means that
@@ -100,26 +105,22 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     // So bail out and capture it as a simple message:
     const stringException = exception as string;
     return this.eventFromMessage(stringException, undefined, hint).then(messageEvent => {
-      addExceptionTypeValue(messageEvent, `${stringException}`);
-      return SyncPromise.resolve(this.buildEvent(messageEvent, hint, true));
+      addExceptionTypeValue(messageEvent, `${stringException}`, undefined, {
+        handled: true,
+        synthetic: true,
+        type: 'generic',
+      });
+      return SyncPromise.resolve(this.buildEvent(messageEvent, hint));
     });
   }
 
   /**
    * This is an internal helper function that creates an event.
    */
-  private buildEvent(event: Event, hint?: EventHint, isSynthetic?: boolean): Event {
+  private buildEvent(event: Event, hint?: EventHint): Event {
     return {
       ...event,
       event_id: hint && hint.event_id,
-      exception: {
-        ...event.exception,
-        mechanism: {
-          handled: true,
-          synthetic: isSynthetic,
-          type: 'generic',
-        },
-      },
     };
   }
 

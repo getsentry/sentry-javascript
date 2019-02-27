@@ -1,6 +1,7 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Options, Mechanism, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
+import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -108,14 +109,17 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     return new SyncPromise<Event>(resolve =>
       parseError(ex as Error, this.options).then(event => {
-        resolve({
-          ...event,
-          event_id: hint && hint.event_id,
-          exception: {
-            ...event.exception,
-            mechanism,
+        const newEvent = event;
+        addExceptionTypeValue(
+          {
+            ...newEvent,
+            event_id: hint && hint.event_id,
           },
-        });
+          undefined,
+          undefined,
+          mechanism,
+        );
+        resolve(newEvent);
       }),
     );
   }
