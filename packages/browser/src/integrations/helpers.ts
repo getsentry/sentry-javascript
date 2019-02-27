@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { htmlTreeAsString } from '@sentry/utils/misc';
+import { addExceptionTypeValue, htmlTreeAsString } from '@sentry/utils/misc';
 import { normalize } from '@sentry/utils/object';
 
 const debounceDuration: number = 1000;
@@ -91,11 +91,7 @@ export function wrap(
           const processedEvent = { ...event };
 
           if (options.mechanism) {
-            processedEvent.exception = processedEvent.exception || {};
-            processedEvent.exception.values = processedEvent.exception.values || [];
-            processedEvent.exception.values[0] = processedEvent.exception.values[0] || {};
-            processedEvent.exception.values[0].mechanism =
-              processedEvent.exception.values[0].mechanism || options.mechanism;
+            addExceptionTypeValue(processedEvent, undefined, undefined, options.mechanism);
           }
 
           processedEvent.extra = {
