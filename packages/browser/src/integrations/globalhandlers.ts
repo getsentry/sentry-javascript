@@ -1,9 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
+import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalize } from '@sentry/utils/object';
 import { truncate } from '@sentry/utils/string';
-import { addExceptionTypeValue, eventFromStacktrace } from '../parsers';
+import { eventFromStacktrace } from '../parsers';
 import {
   installGlobalHandler,
   installGlobalUnhandledRejectionHandler,
@@ -104,14 +105,6 @@ export class GlobalHandlers implements Integration {
 
     const newEvent: Event = {
       ...event,
-      exception: {
-        ...event.exception,
-        mechanism: {
-          data,
-          handled: false,
-          type: stacktrace.mechanism,
-        },
-      },
     };
 
     const client = getCurrentHub().getClient();
@@ -123,7 +116,11 @@ export class GlobalHandlers implements Integration {
     const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
 
     // This makes sure we have type/value in every exception
-    addExceptionTypeValue(newEvent, fallbackValue, fallbackType);
+    addExceptionTypeValue(newEvent, fallbackValue, fallbackType, {
+      data,
+      handled: false,
+      type: stacktrace.mechanism,
+    });
 
     return newEvent;
   }
