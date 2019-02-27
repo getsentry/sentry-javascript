@@ -3,6 +3,9 @@ import { consoleSandbox, getGlobalObject } from './misc';
 // TODO: Implement different loggers for different environments
 const global = getGlobalObject() as Window;
 
+/** Prefix for logging strings */
+const PREFIX = 'Sentry Logger ';
+
 /** JSDoc */
 class Logger {
   /** JSDoc */
@@ -29,7 +32,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.log(`Sentry Logger [Log]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.log(`${PREFIX}[Log]: ${args.join(' ')}`); // tslint:disable-line:no-console
     });
   }
 
@@ -39,7 +42,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.warn(`Sentry Logger [Warn]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.warn(`${PREFIX}[Warn]: ${args.join(' ')}`); // tslint:disable-line:no-console
     });
   }
 
@@ -49,7 +52,7 @@ class Logger {
       return;
     }
     consoleSandbox(() => {
-      global.console.error(`Sentry Logger [Error]: ${args.join(' ')}`); // tslint:disable-line:no-console
+      global.console.error(`${PREFIX}[Error]: ${args.join(' ')}`); // tslint:disable-line:no-console
     });
   }
 }
