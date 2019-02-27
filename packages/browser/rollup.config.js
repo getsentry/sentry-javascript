@@ -1,5 +1,5 @@
 import commonjs from 'rollup-plugin-commonjs';
-import { uglify } from 'rollup-plugin-uglify';
+import { terser } from 'rollup-plugin-terser';
 import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
@@ -8,7 +8,7 @@ const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
   .trim();
 
-const uglifyInstance = uglify({
+const terserInstance = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
     // as mangler doesn't touch user-facing thing, however sentryWrapepd is not, and it would be mangled into a minified version.
@@ -98,7 +98,7 @@ export default [
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
       .slice(0, -1)
-      .concat(uglifyInstance)
+      .concat(terserInstance)
       .concat(bundleConfig.plugins.slice(-1)),
   }),
 ];
