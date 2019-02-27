@@ -1,4 +1,4 @@
-import { Event, WrappedFunction } from '@sentry/types';
+import { Event, Mechanism, WrappedFunction } from '@sentry/types';
 import { isString } from './is';
 
 /**
@@ -256,4 +256,29 @@ export function consoleSandbox(callback: () => any): any {
   });
 
   return result;
+}
+
+/**
+ * Adds exception values, type and value to an synthetic Exception.
+ * @param event The event to modify.
+ * @param value Value of the exception.
+ * @param type Type of the exception.
+ * @param mechanism Mechanism of the exception.
+ * @hidden
+ */
+export function addExceptionTypeValue(
+  event: Event,
+  value?: string,
+  type?: string,
+  mechanism: Mechanism = {
+    handled: true,
+    type: 'generic',
+  },
+): void {
+  event.exception = event.exception || {};
+  event.exception.values = event.exception.values || [];
+  event.exception.values[0] = event.exception.values[0] || {};
+  event.exception.values[0].value = event.exception.values[0].value || value || '';
+  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
+  event.exception.values[0].mechanism = event.exception.values[0].mechanism || mechanism;
 }

@@ -37,6 +37,7 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [all] ref: Expose `module` in `package.json` as entry point for esm builds.
 - [hub] feat: Introduce `setExtra`, `setTags`, `clearBreadcrumbs` additionally some `set` on the Scope now accept no
   argument which makes it possible to unset the value.
+- [browser/node] feat: Add `synthetic` to `mechanism` in exception.
 
 ## 4.6.4
 

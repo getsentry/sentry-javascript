@@ -1,7 +1,6 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
-import { md5 } from './md5';
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;
@@ -40,7 +39,6 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
     extra: {
       __serialized__: normalizeToSize(exception),
     },
-    fingerprint: [md5(exceptionKeys.join(''))],
     message: `Non-Error exception captured with keys: ${keysToEventMessage(exceptionKeys)}`,
   };
 
@@ -104,19 +102,4 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
     )
     .slice(0, STACKTRACE_LIMIT)
     .reverse();
-}
-
-/**
- * Adds exception values, type and value to an synthetic Exception.
- * @param event The event to modify.
- * @param value Value of the exception.
- * @param type Type of the exception.
- * @hidden
- */
-export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
-  event.exception = event.exception || {};
-  event.exception.values = event.exception.values || [];
-  event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].value = event.exception.values[0].value || value || '';
-  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
 }
