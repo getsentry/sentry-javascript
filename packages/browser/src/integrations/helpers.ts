@@ -92,7 +92,10 @@ export function wrap(
 
           if (options.mechanism) {
             processedEvent.exception = processedEvent.exception || {};
-            processedEvent.exception.mechanism = options.mechanism;
+            processedEvent.exception.values = processedEvent.exception.values || [];
+            processedEvent.exception.values[0] = processedEvent.exception.values[0] || {};
+            processedEvent.exception.values[0].mechanism =
+              processedEvent.exception.values[0].mechanism || options.mechanism;
           }
 
           processedEvent.extra = {
