@@ -131,7 +131,7 @@ export function supportsReferrerPolicy(): boolean {
 
   try {
     // tslint:disable:no-unused-expression
-    new Request('pickleRick', {
+    new Request('_', {
       referrerPolicy: 'origin' as ReferrerPolicy,
     });
     return true;
