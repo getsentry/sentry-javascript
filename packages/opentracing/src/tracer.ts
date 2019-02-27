@@ -43,7 +43,10 @@ export class Tracer extends opentracing.Tracer {
   public flush(): void {
     const finishedSpans = this.spans.filter((span: Span) => span.isFinished() && !span.isFlushed());
     if (finishedSpans.length) {
-      getCurrentHub().captureEvent({ spans: finishedSpans.map((span: Span) => span.flush()) });
+      getCurrentHub().captureEvent({
+        spans: finishedSpans.map((span: Span) => span.flush()),
+        type: 'none',
+      });
     }
   }
 }
