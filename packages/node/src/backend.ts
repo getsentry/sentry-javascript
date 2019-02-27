@@ -1,5 +1,5 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Options, Mechanism, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Mechanism, Options, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalizeToSize } from '@sentry/utils/object';
