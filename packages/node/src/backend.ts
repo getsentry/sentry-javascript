@@ -1,5 +1,5 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Options, Mechanism, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
@@ -76,7 +76,10 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
    */
   public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
     let ex: any = exception;
-
+    const mechanism: Mechanism = {
+      handled: true,
+      type: 'generic',
+    };
     if (!isError(exception)) {
       if (isPlainObject(exception)) {
         // This will allow us to group events based on top-level keys
@@ -100,6 +103,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = (hint && hint.syntheticException) || new Error(exception as string);
       }
+      mechanism.synthetic = true;
     }
 
     return new SyncPromise<Event>(resolve =>
@@ -107,6 +111,10 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         resolve({
           ...event,
           event_id: hint && hint.event_id,
+          exception: {
+            ...event.exception,
+            mechanism,
+          },
         });
       }),
     );

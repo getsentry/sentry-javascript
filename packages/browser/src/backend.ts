@@ -64,7 +64,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const errorEvent = exception as ErrorEvent;
       exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-      return SyncPromise.resolve(this.buildEvent(event));
+      return SyncPromise.resolve(this.buildEvent(event, hint));
     } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
@@ -76,12 +76,12 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
 
       return this.eventFromMessage(message, Severity.Error, hint).then(messageEvent => {
         addExceptionTypeValue(messageEvent, message);
-        return SyncPromise.resolve(this.buildEvent(messageEvent));
+        return SyncPromise.resolve(this.buildEvent(messageEvent, hint));
       });
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-      return SyncPromise.resolve(this.buildEvent(event));
+      return SyncPromise.resolve(this.buildEvent(event, hint));
     } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
@@ -89,7 +89,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const objectException = exception as {};
       event = eventFromPlainObject(objectException, hint.syntheticException);
       addExceptionTypeValue(event, 'Custom Object');
-      return SyncPromise.resolve(this.buildEvent(event));
+      return SyncPromise.resolve(this.buildEvent(event, hint, true));
     }
 
     // If none of previous checks were valid, then it means that
@@ -101,14 +101,14 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     const stringException = exception as string;
     return this.eventFromMessage(stringException, undefined, hint).then(messageEvent => {
       addExceptionTypeValue(messageEvent, `${stringException}`);
-      return SyncPromise.resolve(this.buildEvent(messageEvent));
+      return SyncPromise.resolve(this.buildEvent(messageEvent, hint, true));
     });
   }
 
   /**
    * This is an internal helper function that creates an event.
    */
-  private buildEvent(event: Event, hint?: EventHint): Event {
+  private buildEvent(event: Event, hint?: EventHint, isSynthetic?: boolean): Event {
     return {
       ...event,
       event_id: hint && hint.event_id,
@@ -116,6 +116,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
         ...event.exception,
         mechanism: {
           handled: true,
+          synthetic: isSynthetic,
           type: 'generic',
         },
       },
