@@ -11,7 +11,7 @@ var raven = require('../'),
   zlib = require('zlib'),
   child_process = require('child_process');
 
-var dsn = 'https://public:private@app.getsentry.com/269';
+var dsn = 'https://public:private _@app.getsentry.com/269';
 
 var _oldConsoleWarn = console.warn;
 
@@ -53,7 +53,7 @@ describe('raven.Client', function() {
     var expected = {
       protocol: 'https',
       public_key: 'public',
-      private_key: 'private',
+      private __key: 'private _',
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
@@ -70,7 +70,7 @@ describe('raven.Client', function() {
     var expected = {
       protocol: 'https',
       public_key: 'abc',
-      private_key: '123',
+      private __key: '123',
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
@@ -86,7 +86,7 @@ describe('raven.Client', function() {
     var expected = {
       protocol: 'https',
       public_key: 'abc',
-      private_key: '123',
+      private __key: '123',
       host: 'app.getsentry.com',
       path: '/',
       project_id: '1',
@@ -208,7 +208,7 @@ describe('raven.Client', function() {
     });
 
     it('should allow for attaching stacktrace', function(done) {
-      var dsn = 'https://public:private@app.getsentry.com:8443/269';
+      var dsn = 'https://public:private _@app.getsentry.com:8443/269';
       var client = new raven.Client(dsn, {
         stacktrace: true
       });
@@ -317,7 +317,7 @@ describe('raven.Client', function() {
         .post('/api/269/store/', '*')
         .reply(200, 'OK');
 
-      var dsn = 'https://public:private@app.getsentry.com:8443/269';
+      var dsn = 'https://public:private _@app.getsentry.com:8443/269';
       var client = new raven.Client(dsn);
       client.on('logged', function() {
         scope.done();
@@ -364,7 +364,7 @@ describe('raven.Client', function() {
           return 'OK';
         });
 
-      var dsn = 'https://public:private@app.getsentry.com:8443/269';
+      var dsn = 'https://public:private _@app.getsentry.com:8443/269';
       var client = new raven.Client(dsn);
       client.on('logged', function() {
         scope.done();
@@ -998,13 +998,13 @@ describe('raven.Client', function() {
     var expected = {
       protocol: 'https',
       public_key: 'public',
-      private_key: 'private',
+      private __key: 'private _',
       host: 'app.getsentry.com',
       path: '/',
       project_id: '269',
       port: 443
     };
-    var dsn = 'heka+https://public:private@app.getsentry.com/269';
+    var dsn = 'heka+https://public:private _@app.getsentry.com/269';
     var client = new raven.Client(dsn, {
       transport: 'some_heka_instance'
     });
@@ -1013,7 +1013,7 @@ describe('raven.Client', function() {
   });
 
   it('should use a DSN subpath when sending requests', function(done) {
-    var dsn = 'https://public:private@app.getsentry.com/some/path/269';
+    var dsn = 'https://public:private _@app.getsentry.com/some/path/269';
     var client = new raven.Client(dsn);
 
     var scope = nock('https://app.getsentry.com')

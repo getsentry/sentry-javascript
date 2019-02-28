@@ -188,7 +188,7 @@ module.exports.parseDSN = function parseDSN(dsn) {
       };
 
     if (parsed.auth.split(':')[1]) {
-      response.private_key = parsed.auth.split(':')[1];
+      response.private __key = parsed.auth.split(':')[1];
     }
 
     if (~response.protocol.indexOf('+')) {

@@ -5,7 +5,7 @@ console.log = function () {};
 
 var Raven = require('../../');
 
-var sentryDsn = 'https://public:private@app.getsentry.com/269';
+var sentryDsn = 'https://public:private _@app.getsentry.com/269';
 Raven.config(sentryDsn, {
   autoBreadcrumbs: true
 }).install();

@@ -9,13 +9,13 @@ import { mkdirpSync } from './fs';
  */
 export class Store<T> {
   /** Internal path for JSON file. */
-  private readonly path: string;
+  private readonly _path: string;
   /** Value used to initialize data for the first time. */
-  private readonly initial: T;
+  private readonly _initial: T;
   /** Current state of the data. */
-  private data?: T;
+  private _data?: T;
   /** State whether a flush to disk has been requested in this cycle. */
-  private flushing: boolean;
+  private _flushing: boolean;
 
   /**
    * Creates a new store.
@@ -25,9 +25,9 @@ export class Store<T> {
    * @param initial An initial value to initialize data with.
    */
   public constructor(path: string, id: string, initial: T) {
-    this.path = join(path, `${id}.json`);
-    this.initial = initial;
-    this.flushing = false;
+    this._path = join(path, `${id}.json`);
+    this._initial = initial;
+    this._flushing = false;
   }
 
   /**
@@ -35,12 +35,12 @@ export class Store<T> {
    * @param next New data to replace the previous one.
    */
   public set(next: T): void {
-    this.data = next;
+    this._data = next;
 
-    if (!this.flushing) {
-      this.flushing = true;
+    if (!this._flushing) {
+      this._flushing = true;
       setImmediate(() => {
-        this.flush();
+        this._flush();
       });
     }
   }
@@ -61,33 +61,33 @@ export class Store<T> {
    * constructor is used.
    */
   public get(): T {
-    if (this.data === undefined) {
+    if (this._data === undefined) {
       try {
-        this.data = existsSync(this.path) ? (JSON.parse(readFileSync(this.path, 'utf8')) as T) : this.initial;
+        this._data = existsSync(this._path) ? (JSON.parse(readFileSync(this._path, 'utf8')) as T) : this._initial;
       } catch (e) {
-        this.data = this.initial;
+        this._data = this._initial;
       }
     }
 
-    return this.data;
+    return this._data;
   }
 
   /** Returns store to its initial state */
   public clear(): void {
-    this.set(this.initial);
+    this.set(this._initial);
   }
 
   /** Serializes the current data into the JSON file. */
-  private flush(): void {
+  private _flush(): void {
     try {
-      mkdirpSync(dirname(this.path));
-      writeFileSync(this.path, JSON.stringify(this.data));
+      mkdirpSync(dirname(this._path));
+      writeFileSync(this._path, JSON.stringify(this._data));
     } catch (e) {
       // This usually fails due to anti virus scanners, issues in the file
       // system, or problems with network drives. We cannot fix or handle this
       // issue and must resume gracefully. Thus, we have to ignore this error.
     } finally {
-      this.flushing = false;
+      this._flushing = false;
     }
   }
 }

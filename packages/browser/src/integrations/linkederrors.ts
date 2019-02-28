@@ -21,19 +21,19 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly key: string;
+  private readonly _key: string;
 
   /**
    * @inheritDoc
    */
-  private readonly limit: number;
+  private readonly _limit: number;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { key?: string; limit?: number } = {}) {
-    this.key = options.key || DEFAULT_KEY;
-    this.limit = options.limit || DEFAULT_LIMIT;
+    this._key = options.key || DEFAULT_KEY;
+    this._limit = options.limit || DEFAULT_LIMIT;
   }
 
   /**
@@ -56,7 +56,7 @@ export class LinkedErrors implements Integration {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return event;
     }
-    const linkedErrors = this.walkErrorTree(hint.originalException, this.key);
+    const linkedErrors = this.walkErrorTree(hint.originalException, this._key);
     event.exception.values = [...linkedErrors, ...event.exception.values];
     return event;
   }
@@ -65,7 +65,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
-    if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
+    if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
       return stack;
     }
     const stacktrace = computeStackTrace(error[key]);

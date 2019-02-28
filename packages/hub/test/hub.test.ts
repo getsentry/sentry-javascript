@@ -22,7 +22,7 @@ describe('Hub', () => {
   test("don't invoke client sync with wrong func", () => {
     const hub = new Hub(clientFn);
     // @ts-ignore
-    hub.invokeClient('funca', true);
+    hub._invokeClient('funca', true);
     expect(clientFn).not.toHaveBeenCalled();
   });
 
@@ -38,7 +38,7 @@ describe('Hub', () => {
     hub.pushScope();
     expect(hub.getStack()).toHaveLength(2);
     expect(hub.getStack()[1].scope).not.toBe(localScope);
-    expect(((hub.getStack()[1].scope as Scope) as any).extra).toEqual({ a: 'b' });
+    expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
   });
 
   test('pushScope inherit client', () => {
@@ -110,7 +110,7 @@ describe('Hub', () => {
 
   test('captureException', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureException('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureException');
@@ -119,7 +119,7 @@ describe('Hub', () => {
 
   test('captureMessage', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureMessage('a');
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureMessage');
@@ -131,7 +131,7 @@ describe('Hub', () => {
       extra: { b: 3 },
     };
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureEvent(event);
     expect(spy).toHaveBeenCalled();
     expect(spy.mock.calls[0][0]).toBe('captureEvent');
@@ -152,7 +152,7 @@ describe('Hub', () => {
     localScope.setExtra('a', 'b');
     const hub = new Hub({ a: 'b' } as any, localScope);
     hub.configureScope(confScope => {
-      expect((confScope as any).extra).toEqual({ a: 'b' });
+      expect((confScope as any)._extra).toEqual({ a: 'b' });
     });
   });
 
@@ -180,14 +180,14 @@ describe('Hub', () => {
 
   test('captureException should set event_id in hint', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureException('a');
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });
 
   test('captureMessage should set event_id in hint', () => {
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureMessage('a');
     expect(spy.mock.calls[0][3].event_id).toBeTruthy();
   });
@@ -197,7 +197,7 @@ describe('Hub', () => {
       extra: { b: 3 },
     };
     const hub = new Hub();
-    const spy = jest.spyOn(hub as any, 'invokeClient');
+    const spy = jest.spyOn(hub as any, '_invokeClient');
     hub.captureEvent(event);
     expect(spy.mock.calls[0][2].event_id).toBeTruthy();
   });

@@ -47,19 +47,19 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * will correspond to the client. When composing SDKs, however, the Backend
    * from the root SDK will be used.
    */
-  private readonly backend: B;
+  protected readonly _backend: B;
 
   /** Options passed to the SDK. */
-  private readonly options: O;
+  protected readonly _options: O;
 
   /**
    * The client Dsn, if specified in options. Without this Dsn, the SDK will be
    * disabled.
    */
-  private readonly dsn?: Dsn;
+  protected readonly _dsn?: Dsn;
 
   /** Array of used integrations. */
-  private readonly integrations: IntegrationIndex;
+  protected readonly _integrations: IntegrationIndex;
 
   /**
    * Initializes this client instance.
@@ -68,14 +68,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param options Options for the client.
    */
   protected constructor(backendClass: BackendClass<B, O>, options: O) {
-    this.backend = new backendClass(options);
-    this.options = options;
+    this._backend = new backendClass(options);
+    this._options = options;
 
     if (options.dsn) {
-      this.dsn = new Dsn(options.dsn);
+      this._dsn = new Dsn(options.dsn);
     }
 
-    this.integrations = setupIntegrations(this.options);
+    this._integrations = setupIntegrations(this._options);
   }
 
   /**
@@ -84,9 +84,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
-    this.getBackend()
+    this._getBackend()
       .eventFromException(exception, hint)
-      .then(event => this.processEvent(event, hint, scope))
+      .then(event => this._processEvent(event, hint, scope))
       .then(finalEvent => {
         eventId = finalEvent.event_id;
       })
@@ -104,11 +104,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
-      ? this.getBackend().eventFromMessage(`${message}`, level, hint)
-      : this.getBackend().eventFromException(message, hint);
+      ? this._getBackend().eventFromMessage(`${message}`, level, hint)
+      : this._getBackend().eventFromException(message, hint);
 
     promisedEvent
-      .then(event => this.processEvent(event, hint, scope))
+      .then(event => this._processEvent(event, hint, scope))
       .then(finalEvent => {
         eventId = finalEvent.event_id;
       })
@@ -124,7 +124,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-    this.processEvent(event, hint, scope)
+    this._processEvent(event, hint, scope)
       .then(finalEvent => {
         eventId = finalEvent.event_id;
       })
@@ -138,24 +138,24 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getDsn(): Dsn | undefined {
-    return this.dsn;
+    return this._dsn;
   }
 
   /**
    * @inheritDoc
    */
   public getOptions(): O {
-    return this.options;
+    return this._options;
   }
 
   /** Returns the current backend. */
-  protected getBackend(): B {
-    return this.backend;
+  protected _getBackend(): B {
+    return this._backend;
   }
 
   /** Determines whether this SDK is enabled and a valid Dsn is present. */
-  protected isEnabled(): boolean {
-    return this.getOptions().enabled !== false && this.dsn !== undefined;
+  protected _isEnabled(): boolean {
+    return this.getOptions().enabled !== false && this._dsn !== undefined;
   }
 
   /**
@@ -172,7 +172,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
     const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
 
     const prepared: Event = { ...event };
@@ -231,10 +231,10 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected processEvent(event: Event, hint?: EventHint, scope?: Scope): SyncPromise<Event> {
+  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): SyncPromise<Event> {
     const { beforeSend, sampleRate } = this.getOptions();
 
-    if (!this.isEnabled()) {
+    if (!this._isEnabled()) {
       return SyncPromise.reject('SDK not enabled, will not send event.');
     }
 
@@ -245,7 +245,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     return new SyncPromise((resolve, reject) => {
-      this.prepareEvent(event, scope, hint).then(prepared => {
+      this._prepareEvent(event, scope, hint).then(prepared => {
         if (prepared === null) {
           reject('An event processor returned null, will not send event.');
           return;
@@ -256,7 +256,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         try {
           const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
           if (isInternalException || !beforeSend) {
-            this.getBackend().sendEvent(finalEvent);
+            this._getBackend().sendEvent(finalEvent);
             resolve(finalEvent);
             return;
           }
@@ -265,7 +265,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           if ((typeof beforeSendResult as any) === 'undefined') {
             logger.error('`beforeSend` method has to return `null` or a valid event.');
           } else if (isThenable(beforeSendResult)) {
-            this.handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
+            this._handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
           } else {
             finalEvent = beforeSendResult as Event | null;
 
@@ -276,7 +276,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             }
 
             // From here on we are really async
-            this.getBackend().sendEvent(finalEvent);
+            this._getBackend().sendEvent(finalEvent);
             resolve(finalEvent);
           }
         } catch (exception) {
@@ -295,7 +295,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
    */
-  private handleAsyncBeforeSend(
+  private _handleAsyncBeforeSend(
     beforeSend: Promise<Event | null>,
     resolve: (event: Event) => void,
     reject: (reason: string) => void,
@@ -307,7 +307,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           return;
         }
         // From here on we are really async
-        this.getBackend().sendEvent(processedEvent);
+        this._getBackend().sendEvent(processedEvent);
         resolve(processedEvent);
       })
       .catch(e => {
@@ -319,7 +319,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async flush(timeout?: number): Promise<boolean> {
-    return this.getBackend()
+    return this._getBackend()
       .getTransport()
       .close(timeout);
   }
@@ -337,7 +337,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public getIntegrations(): IntegrationIndex {
-    return this.integrations || {};
+    return this._integrations || {};
   }
 
   /**
@@ -345,7 +345,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     try {
-      return (this.integrations[integration.id] as T) || null;
+      return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
       logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;

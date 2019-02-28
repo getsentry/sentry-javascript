@@ -7,25 +7,25 @@ const SENTRY_API_VERSION = '7';
 /** Helper class to provide urls to different Sentry endpoints. */
 export class API {
   /** The internally used Dsn object. */
-  private readonly dsnObject: Dsn;
+  private readonly _dsnObject: Dsn;
   /** Create a new instance of API */
   public constructor(public dsn: DsnLike) {
-    this.dsnObject = new Dsn(dsn);
+    this._dsnObject = new Dsn(dsn);
   }
 
   /** Returns the Dsn object. */
   public getDsn(): Dsn {
-    return this.dsnObject;
+    return this._dsnObject;
   }
 
   /** Returns a string with auth headers in the url to the store endpoint. */
   public getStoreEndpoint(): string {
-    return `${this.getBaseUrl()}${this.getStoreEndpointPath()}`;
+    return `${this._getBaseUrl()}${this.getStoreEndpointPath()}`;
   }
 
   /** Returns the store endpoint with auth added in url encoded. */
   public getStoreEndpointWithUrlEncodedAuth(): string {
-    const dsn = this.dsnObject;
+    const dsn = this._dsnObject;
     const auth = {
       sentry_key: dsn.user,
       sentry_version: SENTRY_API_VERSION,
@@ -36,8 +36,8 @@ export class API {
   }
 
   /** Returns the base path of the url including the port. */
-  private getBaseUrl(): string {
-    const dsn = this.dsnObject;
+  private _getBaseUrl(): string {
+    const dsn = this._dsnObject;
     const protocol = dsn.protocol ? `${dsn.protocol}:` : '';
     const port = dsn.port ? `:${dsn.port}` : '';
     return `${protocol}//${dsn.host}${port}`;
@@ -45,13 +45,13 @@ export class API {
 
   /** Returns only the path component for the store endpoint. */
   public getStoreEndpointPath(): string {
-    const dsn = this.dsnObject;
+    const dsn = this._dsnObject;
     return `${dsn.path ? `/${dsn.path}` : ''}/api/${dsn.projectId}/store/`;
   }
 
   /** Returns an object that can be used in request headers. */
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
-    const dsn = this.dsnObject;
+    const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
     header.push(`sentry_timestamp=${new Date().getTime()}`);
     header.push(`sentry_client=${clientName}/${clientVersion}`);
@@ -72,8 +72,8 @@ export class API {
       user?: { name?: string; email?: string };
     } = {},
   ): string {
-    const dsn = this.dsnObject;
-    const endpoint = `${this.getBaseUrl()}${dsn.path ? `/${dsn.path}` : ''}/api/embed/error-page/`;
+    const dsn = this._dsnObject;
+    const endpoint = `${this._getBaseUrl()}${dsn.path ? `/${dsn.path}` : ''}/api/embed/error-page/`;
 
     const encodedOptions = [];
     encodedOptions.push(`dsn=${dsn.toString()}`);

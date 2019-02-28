@@ -1,7 +1,7 @@
 'use strict';
 var Raven = require('../../');
 var assert = require('assert');
-var dsn = 'https://public:private@app.getsentry.com/269';
+var dsn = 'https://public:private _@app.getsentry.com/269';
 
 Raven.config(dsn).install(function(err, sendErr) {
   assert.ok(err instanceof Error);

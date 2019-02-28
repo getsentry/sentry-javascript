@@ -1,6 +1,6 @@
 'use strict';
 var Raven = require('../../');
-Raven.config('https://public:private@app.getsentry.com/12345').install();
+Raven.config('https://public:private _@app.getsentry.com/12345').install();
 
 // We create a bunch of contexts, capture some breadcrumb data in all of them,
 // then watch memory usage. It'll go up to ~40 megs then after 10 or 20 seconds

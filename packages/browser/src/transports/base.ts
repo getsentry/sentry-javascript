@@ -11,7 +11,7 @@ export abstract class BaseTransport implements Transport {
   public url: string;
 
   /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
   public constructor(public options: TransportOptions) {
     this.url = new API(this.options.dsn).getStoreEndpointWithUrlEncodedAuth();
@@ -28,6 +28,6 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.buffer.drain(timeout);
+    return this._buffer.drain(timeout);
   }
 }

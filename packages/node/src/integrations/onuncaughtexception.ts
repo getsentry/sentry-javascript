@@ -19,13 +19,13 @@ export class OnUncaughtException implements Integration {
    */
   public readonly handler: (error: Error) => void = makeErrorHandler(
     // tslint:disable-next-line
-    this.options.onFatalError,
+    this._options.onFatalError,
   );
   /**
    * @inheritDoc
    */
   public constructor(
-    private readonly options: {
+    private readonly _options: {
       /**
        * Default onFatalError handler
        * @param firstError Error that has been thrown

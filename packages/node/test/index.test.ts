@@ -9,7 +9,6 @@ import {
   getCurrentHub,
   init,
   NodeClient,
-  Response,
   Scope,
 } from '../src';
 import { NodeBackend } from '../src/backend';
@@ -84,7 +83,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
@@ -93,7 +92,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
@@ -102,7 +101,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
     });
