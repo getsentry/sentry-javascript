@@ -11,7 +11,8 @@
     "access": "public"
   },
   "dependencies": {
-    "tslint-config-prettier": "^1.18.0"
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-consistent-codestyle": "^1.15.0"
   },
   "peerDependencies": {
     "tslint": "^5.11.0",
