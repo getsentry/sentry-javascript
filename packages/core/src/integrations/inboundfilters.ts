@@ -42,8 +42,8 @@ export class InboundFilters implements Integration {
       if (self) {
         const client = hub.getClient() as Client;
         const clientOptions = client ? client.getOptions() : {};
-        const options = self.mergeOptions(clientOptions);
-        if (self.shouldDropEvent(event, options)) {
+        const options = self._mergeOptions(clientOptions);
+        if (self._shouldDropEvent(event, options)) {
           return null;
         }
       }
@@ -52,18 +52,18 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public shouldDropEvent(event: Event, options: InboundFiltersOptions): boolean {
-    if (this.isSentryError(event, options)) {
+  private _shouldDropEvent(event: Event, options: InboundFiltersOptions): boolean {
+    if (this._isSentryError(event, options)) {
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
       return true;
     }
-    if (this.isIgnoredError(event, options)) {
+    if (this._isIgnoredError(event, options)) {
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
       return true;
     }
-    if (this.isBlacklistedUrl(event, options)) {
+    if (this._isBlacklistedUrl(event, options)) {
       logger.warn(
         `Event dropped due to being matched by \`blacklistUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -71,7 +71,7 @@ export class InboundFilters implements Integration {
       );
       return true;
     }
-    if (!this.isWhitelistedUrl(event, options)) {
+    if (!this._isWhitelistedUrl(event, options)) {
       logger.warn(
         `Event dropped due to not being matched by \`whitelistUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -83,7 +83,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isSentryError(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isSentryError(event: Event, options: InboundFiltersOptions = {}): boolean {
     if (!options.ignoreInternal) {
       return false;
     }
@@ -97,7 +97,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isIgnoredError(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isIgnoredError(event: Event, options: InboundFiltersOptions = {}): boolean {
     if (!options.ignoreErrors || !options.ignoreErrors.length) {
       return false;
     }
@@ -109,7 +109,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isBlacklistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isBlacklistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
     if (!options.blacklistUrls || !options.blacklistUrls.length) {
       return false;
@@ -119,7 +119,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public isWhitelistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isWhitelistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
     if (!options.whitelistUrls || !options.whitelistUrls.length) {
       return true;
@@ -129,7 +129,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  public mergeOptions(clientOptions: InboundFiltersOptions = {}): InboundFiltersOptions {
+  private _mergeOptions(clientOptions: InboundFiltersOptions = {}): InboundFiltersOptions {
     return {
       blacklistUrls: [...(this._options.blacklistUrls || []), ...(clientOptions.blacklistUrls || [])],
       ignoreErrors: [

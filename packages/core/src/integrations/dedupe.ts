@@ -29,7 +29,7 @@ export class Dedupe implements Integration {
       if (self) {
         // Juuust in case something goes wrong
         try {
-          if (self.shouldDropEvent(currentEvent, self._previousEvent)) {
+          if (self._shouldDropEvent(currentEvent, self._previousEvent)) {
             return null;
           }
         } catch (_oO) {
@@ -43,7 +43,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  public shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
+  private _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
     if (!previousEvent) {
       return false;
     }
