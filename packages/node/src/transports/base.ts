@@ -27,7 +27,7 @@ export interface HTTPRequest {
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /** API object */
-  protected api: API;
+  protected _api: API;
 
   /** The Agent used for corresponding transport */
   public module?: HTTPRequest;
@@ -36,20 +36,20 @@ export abstract class BaseTransport implements Transport {
   public client?: http.Agent | https.Agent;
 
   /** A simple buffer holding all requests. */
-  protected readonly buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
-    this.api = new API(options.dsn);
+    this._api = new API(options.dsn);
   }
 
   /** Returns a build request option object used by request */
-  protected getRequestOptions(): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(): http.RequestOptions | https.RequestOptions {
     const headers = {
-      ...this.api.getRequestHeaders(SDK_NAME, SDK_VERSION),
+      ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const dsn = this.api.getDsn();
+    const dsn = this._api.getDsn();
 
     const options: {
       [key: string]: any;
@@ -58,7 +58,7 @@ export abstract class BaseTransport implements Transport {
       headers,
       hostname: dsn.host,
       method: 'POST',
-      path: this.api.getStoreEndpointPath(),
+      path: this._api.getStoreEndpointPath(),
       port: dsn.port,
       protocol: `${dsn.protocol}:`,
     };
@@ -71,10 +71,10 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** JSDoc */
-  protected async sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
-    return this.buffer.add(
+  protected async _sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
+    return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const req = httpModule.request(this.getRequestOptions(), (res: http.IncomingMessage) => {
+        const req = httpModule.request(this._getRequestOptions(), (res: http.IncomingMessage) => {
           res.setEncoding('utf8');
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve({
@@ -113,6 +113,6 @@ export abstract class BaseTransport implements Transport {
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.buffer.drain(timeout);
+    return this._buffer.drain(timeout);
   }
 }

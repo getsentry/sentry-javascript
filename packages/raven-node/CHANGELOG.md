@@ -31,7 +31,7 @@
 - fix: Remove a redundant try-catch block (#445)
 - fix: Do not override context when capturing non-error exceptions (#444)
 - fix: Update stack-trace to handle spaces in paths (#437)
-- docs: Remove private DSNs from the docs (#447)
+- docs: Remove private _DSNs from the docs (#447)
 - docs: Update Usage docs to include Domains in Promise support (#438)
 
 ## 2.4.2 - 2018-02-27

@@ -111,5 +111,5 @@ export function withScope(callback: (scope: Scope) => void): void {
  * @param args Arguments to pass to the client/fontend.
  */
 export function _callOnClient(method: string, ...args: any[]): void {
-  callOnHub<void>('invokeClient', method, ...args);
+  callOnHub<void>('_invokeClient', method, ...args);
 }

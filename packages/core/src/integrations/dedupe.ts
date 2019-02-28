@@ -8,7 +8,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  private previousEvent?: Event;
+  private _previousEvent?: Event;
 
   /**
    * @inheritDoc
@@ -29,14 +29,14 @@ export class Dedupe implements Integration {
       if (self) {
         // Juuust in case something goes wrong
         try {
-          if (self.shouldDropEvent(currentEvent, self.previousEvent)) {
+          if (self.shouldDropEvent(currentEvent, self._previousEvent)) {
             return null;
           }
         } catch (_oO) {
-          return (self.previousEvent = currentEvent);
+          return (self._previousEvent = currentEvent);
         }
 
-        return (self.previousEvent = currentEvent);
+        return (self._previousEvent = currentEvent);
       }
       return currentEvent;
     });
@@ -48,7 +48,7 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    if (this.isSameMessageEvent(currentEvent, previousEvent)) {
+    if (this._isSameMessageEvent(currentEvent, previousEvent)) {
       logger.warn(
         `Event dropped due to being a duplicate of previous event (same message).\nEvent: ${getEventDescription(
           currentEvent,
@@ -57,7 +57,7 @@ export class Dedupe implements Integration {
       return true;
     }
 
-    if (this.isSameExceptionEvent(currentEvent, previousEvent)) {
+    if (this._isSameExceptionEvent(currentEvent, previousEvent)) {
       logger.warn(
         `Event dropped due to being a duplicate of previous event (same exception).\nEvent: ${getEventDescription(
           currentEvent,
@@ -70,7 +70,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameMessageEvent(currentEvent: Event, previousEvent: Event): boolean {
+  private _isSameMessageEvent(currentEvent: Event, previousEvent: Event): boolean {
     const currentMessage = currentEvent.message;
     const previousMessage = previousEvent.message;
 
@@ -88,11 +88,11 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    if (!this.isSameFingerprint(currentEvent, previousEvent)) {
+    if (!this._isSameFingerprint(currentEvent, previousEvent)) {
       return false;
     }
 
-    if (!this.isSameStacktrace(currentEvent, previousEvent)) {
+    if (!this._isSameStacktrace(currentEvent, previousEvent)) {
       return false;
     }
 
@@ -100,7 +100,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private getFramesFromEvent(event: Event): StackFrame[] | undefined {
+  private _getFramesFromEvent(event: Event): StackFrame[] | undefined {
     const exception = event.exception;
 
     if (exception) {
@@ -118,9 +118,9 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
-    let currentFrames = this.getFramesFromEvent(currentEvent);
-    let previousFrames = this.getFramesFromEvent(previousEvent);
+  private _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
+    let currentFrames = this._getFramesFromEvent(currentEvent);
+    let previousFrames = this._getFramesFromEvent(previousEvent);
 
     // If no event has a fingerprint, they are assumed to be the same
     if (!currentFrames && !previousFrames) {
@@ -159,14 +159,14 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private getExceptionFromEvent(event: Event): Exception | undefined {
+  private _getExceptionFromEvent(event: Event): Exception | undefined {
     return event.exception && event.exception.values && event.exception.values[0];
   }
 
   /** JSDoc */
-  private isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boolean {
-    const previousException = this.getExceptionFromEvent(previousEvent);
-    const currentException = this.getExceptionFromEvent(currentEvent);
+  private _isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boolean {
+    const previousException = this._getExceptionFromEvent(previousEvent);
+    const currentException = this._getExceptionFromEvent(currentEvent);
 
     if (!previousException || !currentException) {
       return false;
@@ -176,11 +176,11 @@ export class Dedupe implements Integration {
       return false;
     }
 
-    if (!this.isSameFingerprint(currentEvent, previousEvent)) {
+    if (!this._isSameFingerprint(currentEvent, previousEvent)) {
       return false;
     }
 
-    if (!this.isSameStacktrace(currentEvent, previousEvent)) {
+    if (!this._isSameStacktrace(currentEvent, previousEvent)) {
       return false;
     }
 
@@ -188,7 +188,7 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean {
+  private _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean {
     let currentFingerprint = currentEvent.fingerprint;
     let previousFingerprint = previousEvent.fingerprint;
 

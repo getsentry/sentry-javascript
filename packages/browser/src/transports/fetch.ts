@@ -21,7 +21,7 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
-    return this.buffer.add(
+    return this._buffer.add(
       global.fetch(this.url, defaultOptions).then(response => ({
         status: Status.fromHttpCode(response.status),
       })),

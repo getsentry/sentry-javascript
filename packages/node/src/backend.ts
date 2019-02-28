@@ -46,25 +46,25 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritdoc
    */
-  protected setupTransport(): Transport {
-    if (!this.options.dsn) {
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
-      return super.setupTransport();
+      return super._setupTransport();
     }
 
-    const dsn = new Dsn(this.options.dsn);
+    const dsn = new Dsn(this._options.dsn);
 
-    const transportOptions = this.options.transportOptions || { dsn };
+    const transportOptions = this._options.transportOptions || { dsn };
     const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
 
     for (const option of clientOptions) {
-      if (this.options[option] || transportOptions[option]) {
-        transportOptions[option] = transportOptions[option] || this.options[option];
+      if (this._options[option] || transportOptions[option]) {
+        transportOptions[option] = transportOptions[option] || this._options[option];
       }
     }
 
-    if (this.options.transport) {
-      return new this.options.transport(transportOptions);
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
     } else if (dsn.protocol === 'http') {
       return new HTTPTransport(transportOptions);
     } else {
@@ -108,7 +108,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     }
 
     return new SyncPromise<Event>(resolve =>
-      parseError(ex as Error, this.options).then(event => {
+      parseError(ex as Error, this._options).then(event => {
         addExceptionTypeValue(event, undefined, undefined, mechanism);
         resolve({
           ...event,
@@ -129,9 +129,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     };
 
     return new SyncPromise<Event>(resolve => {
-      if (this.options.attachStacktrace && hint && hint.syntheticException) {
+      if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-        parseStack(stack, this.options).then(frames => {
+        parseStack(stack, this._options).then(frames => {
           event.stacktrace = {
             frames: prepareFramesForEvent(frames),
           };

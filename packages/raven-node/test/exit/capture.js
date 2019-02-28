@@ -1,6 +1,6 @@
 'use strict';
 var Raven = require('../../');
-var dsn = 'https://public:private@app.getsentry.com/269';
+var dsn = 'https://public:private _@app.getsentry.com/269';
 
 var nock = require('nock');
 var scope = nock('https://app.getsentry.com')

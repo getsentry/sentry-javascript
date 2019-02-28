@@ -32,11 +32,11 @@ export class GlobalHandlers implements Integration {
   public static id: string = 'GlobalHandlers';
 
   /** JSDoc */
-  private readonly options: GlobalHandlersIntegrations;
+  private readonly _options: GlobalHandlersIntegrations;
 
   /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {
-    this.options = {
+    this._options = {
       onerror: true,
       onunhandledrejection: true,
       ...options,
@@ -68,16 +68,19 @@ export class GlobalHandlers implements Integration {
       }
       const self = getCurrentHub().getIntegration(GlobalHandlers);
       if (self) {
-        getCurrentHub().captureEvent(self.eventFromGlobalHandler(stack), { originalException: error, data: { stack } });
+        getCurrentHub().captureEvent(self._eventFromGlobalHandler(stack), {
+          data: { stack },
+          originalException: error,
+        });
       }
     });
 
-    if (this.options.onerror) {
+    if (this._options.onerror) {
       logger.log('Global Handler attached: onerror');
       installGlobalHandler();
     }
 
-    if (this.options.onunhandledrejection) {
+    if (this._options.onunhandledrejection) {
       logger.log('Global Handler attached: onunhandledrejection');
       installGlobalUnhandledRejectionHandler();
     }
@@ -88,7 +91,7 @@ export class GlobalHandlers implements Integration {
    *
    * @param stacktrace TraceKitStackTrace to be converted to an Event.
    */
-  private eventFromGlobalHandler(stacktrace: TraceKitStackTrace): Event {
+  private _eventFromGlobalHandler(stacktrace: TraceKitStackTrace): Event {
     const event = eventFromStacktrace(stacktrace);
 
     const data: { [key: string]: string } = {

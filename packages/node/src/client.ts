@@ -22,7 +22,7 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
   /**
    * @inheritDoc
    */
-  protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
     event.platform = event.platform || 'node';
     event.sdk = {
       ...event.sdk,
@@ -41,6 +41,6 @@ export class NodeClient extends BaseClient<NodeBackend, NodeOptions> {
       event.server_name = this.getOptions().serverName;
     }
 
-    return super.prepareEvent(event, scope, hint);
+    return super._prepareEvent(event, scope, hint);
   }
 }

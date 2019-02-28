@@ -30,13 +30,13 @@ export class Angular implements Integration {
   /**
    * Angular's instance
    */
-  private readonly angular: ng.IAngularStatic;
+  private readonly _angular: ng.IAngularStatic;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { angular?: ng.IAngularStatic } = {}) {
-    this.angular =
+    this._angular =
       options.angular ||
       (getGlobalObject() as {
         angular: ng.IAngularStatic;
@@ -47,15 +47,15 @@ export class Angular implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    if (!this.angular) {
+    if (!this._angular) {
       logger.error('AngularIntegration is missing an Angular instance');
       return;
     }
 
-    this.angular.module(Angular.moduleName, []).config([
+    this._angular.module(Angular.moduleName, []).config([
       '$provide',
       ($provide: ng.auto.IProvideService) => {
-        $provide.decorator('$exceptionHandler', ['$delegate', this.$exceptionHandlerDecorator.bind(this)]);
+        $provide.decorator('$exceptionHandler', ['$delegate', this._$exceptionHandlerDecorator.bind(this)]);
       },
     ]);
   }
@@ -63,7 +63,7 @@ export class Angular implements Integration {
   /**
    * Angular's exceptionHandler for Sentry integration
    */
-  private $exceptionHandlerDecorator($delegate: ng.IExceptionHandlerService): ng.IExceptionHandlerService {
+  private _$exceptionHandlerDecorator($delegate: ng.IExceptionHandlerService): ng.IExceptionHandlerService {
     return (exception: Error, cause?: string) => {
       if (getCurrentHub().getIntegration(Angular)) {
         withScope(scope => {

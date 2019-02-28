@@ -2,7 +2,7 @@ import { Event, Mechanism, WrappedFunction } from '@sentry/types';
 import { isString } from './is';
 
 /**
- * Requires a module which is protected against bundler minification.
+ * Requires a module which is protected _against bundler minification.
  *
  * @param request The module path to resolve
  */

@@ -31,69 +31,69 @@ type Reject = (value?: any) => void;
 /** JSDoc */
 export class SyncPromise<T> implements PromiseLike<T> {
   /** JSDoc */
-  private state: States = States.PENDING;
+  private _state: States = States.PENDING;
   /** JSDoc */
-  private handlers: Array<Handler<T, any>> = [];
+  private _handlers: Array<Handler<T, any>> = [];
   /** JSDoc */
-  private value: T | any;
+  private _value: T | any;
 
   public constructor(callback: (resolve: Resolve<T>, reject: Reject) => void) {
     try {
-      callback(this.resolve, this.reject);
+      callback(this._resolve, this._reject);
     } catch (e) {
-      this.reject(e);
+      this._reject(e);
     }
   }
 
   /** JSDoc */
-  private readonly resolve = (value: T) => {
-    this.setResult(value, States.RESOLVED);
+  private readonly _resolve = (value: T) => {
+    this._setResult(value, States.RESOLVED);
   };
 
   /** JSDoc */
-  private readonly reject = (reason: any) => {
-    this.setResult(reason, States.REJECTED);
+  private readonly _reject = (reason: any) => {
+    this._setResult(reason, States.REJECTED);
   };
 
   /** JSDoc */
-  private readonly setResult = (value: T | any, state: States) => {
-    if (this.state !== States.PENDING) {
+  private readonly _setResult = (value: T | any, state: States) => {
+    if (this._state !== States.PENDING) {
       return;
     }
 
     if (isThenable(value)) {
-      (value as Thenable<T>).then(this.resolve, this.reject);
+      (value as Thenable<T>).then(this._resolve, this._reject);
       return;
     }
 
-    this.value = value;
-    this.state = state;
+    this._value = value;
+    this._state = state;
 
-    this.executeHandlers();
+    this._executeHandlers();
   };
 
   /** JSDoc */
-  private readonly executeHandlers = () => {
-    if (this.state === States.PENDING) {
+  private readonly _executeHandlers = () => {
+    if (this._state === States.PENDING) {
       return;
     }
 
-    if (this.state === States.REJECTED) {
+    if (this._state === States.REJECTED) {
       // tslint:disable-next-line:no-unsafe-any
-      this.handlers.forEach(h => h.onFail && h.onFail(this.value));
+      this._handlers.forEach(h => h.onFail && h.onFail(this._value));
     } else {
       // tslint:disable-next-line:no-unsafe-any
-      this.handlers.forEach(h => h.onSuccess && h.onSuccess(this.value));
+      this._handlers.forEach(h => h.onSuccess && h.onSuccess(this._value));
     }
 
-    this.handlers = [];
+    this._handlers = [];
     return;
   };
 
   /** JSDoc */
-  private readonly attachHandler = (handler: Handler<T, any>) => {
-    this.handlers = this.handlers.concat(handler);
-    this.executeHandlers();
+  private readonly _attachHandler = (handler: Handler<T, any>) => {
+    this._handlers = this._handlers.concat(handler);
+    this._executeHandlers();
   };
 
   /** JSDoc */
@@ -103,7 +103,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
   ): SyncPromise<TResult1 | TResult2> {
     // public then<U>(onSuccess?: HandlerOnSuccess<T, U>, onFail?: HandlerOnFail<U>): SyncPromise<T | U> {
     return new SyncPromise<TResult1 | TResult2>((resolve, reject) => {
-      this.attachHandler({
+      this._attachHandler({
         onFail: reason => {
           if (!onrejected) {
             reject(reason);

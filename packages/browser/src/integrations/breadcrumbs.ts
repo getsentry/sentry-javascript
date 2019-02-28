@@ -48,13 +48,13 @@ export class Breadcrumbs implements Integration {
   public static id: string = 'Breadcrumbs';
 
   /** JSDoc */
-  private readonly options: BreadcrumbIntegrations;
+  private readonly _options: BreadcrumbIntegrations;
 
   /**
    * @inheritDoc
    */
   public constructor(options?: BreadcrumbIntegrations) {
-    this.options = {
+    this._options = {
       beacon: true,
       console: true,
       dom: true,
@@ -67,7 +67,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentBeacon(): void {
+  private _instrumentBeacon(): void {
     if (!supportsBeacon()) {
       return;
     }
@@ -117,7 +117,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentConsole(): void {
+  private _instrumentConsole(): void {
     if (!('console' in global)) {
       return;
     }
@@ -162,7 +162,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentDOM(): void {
+  private _instrumentDOM(): void {
     if (!('document' in global)) {
       return;
     }
@@ -173,7 +173,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentFetch(): void {
+  private _instrumentFetch(): void {
     if (!supportsNativeFetch()) {
       return;
     }
@@ -260,7 +260,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentHistory(): void {
+  private _instrumentHistory(): void {
     if (!supportsHistory()) {
       return;
     }
@@ -330,7 +330,7 @@ export class Breadcrumbs implements Integration {
   }
 
   /** JSDoc */
-  private instrumentXHR(): void {
+  private _instrumentXHR(): void {
     if (!('XMLHttpRequest' in global)) {
       return;
     }
@@ -471,23 +471,23 @@ export class Breadcrumbs implements Integration {
    *  - History API
    */
   public setupOnce(): void {
-    if (this.options.console) {
-      this.instrumentConsole();
+    if (this._options.console) {
+      this._instrumentConsole();
     }
-    if (this.options.dom) {
-      this.instrumentDOM();
+    if (this._options.dom) {
+      this._instrumentDOM();
     }
-    if (this.options.xhr) {
-      this.instrumentXHR();
+    if (this._options.xhr) {
+      this._instrumentXHR();
     }
-    if (this.options.fetch) {
-      this.instrumentFetch();
+    if (this._options.fetch) {
+      this._instrumentFetch();
     }
-    if (this.options.beacon) {
-      this.instrumentBeacon();
+    if (this._options.beacon) {
+      this._instrumentBeacon();
     }
-    if (this.options.history) {
-      this.instrumentHistory();
+    if (this._options.history) {
+      this._instrumentHistory();
     }
   }
 }
