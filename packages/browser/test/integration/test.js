@@ -641,8 +641,8 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.values[0].value, 'test2');
                 assert.equal(sentryData[0].exception.values[0].type, 'Error');
                 assert.isAtLeast(sentryData[0].exception.values[0].stacktrace.frames.length, 1);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
+                assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
               } else {
                 // This test will be skipped if it's not Chrome Desktop
@@ -670,8 +670,8 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.values[0].value, '"test"');
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
+                assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
               } else {
                 // This test will be skipped if it's not Chrome Desktop
@@ -699,8 +699,8 @@ for (var idx in frames) {
                 assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
+                assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
               } else {
                 // This test will be skipped if it's not Chrome Desktop
@@ -728,8 +728,8 @@ for (var idx in frames) {
                 assert.equal(sentryData[0].exception.values[0].value, '{"a":"b"}');
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
+                assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
               } else {
                 // This test will be skipped if it's not Chrome Desktop
@@ -764,8 +764,8 @@ for (var idx in frames) {
                 assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
                 assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
-                assert.equal(sentryData[0].exception.mechanism.handled, false);
-                assert.equal(sentryData[0].exception.mechanism.type, 'onunhandledrejection');
+                assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
+                assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
               } else {
                 // This test will be skipped if it's not Chrome Desktop
@@ -888,12 +888,12 @@ for (var idx in frames) {
                 if (IS_LOADER) {
                   // The async loader doesn't wrap setTimeout
                   // so we don't receive the full mechanism
-                  assert.ok(sentryData.exception.mechanism);
+                  assert.ok(sentryData.exception.values[0].mechanism);
                   return done();
                 }
 
-                var fn = sentryData.exception.mechanism.data.function;
-                delete sentryData.exception.mechanism.data;
+                var fn = sentryData.exception.values[0].mechanism.data.function;
+                delete sentryData.exception.values[0].mechanism.data;
 
                 if (canReadFunctionName()) {
                   assert.equal(fn, 'setTimeout');
@@ -901,7 +901,7 @@ for (var idx in frames) {
                   assert.equal(fn, '<anonymous>');
                 }
 
-                assert.deepEqual(sentryData.exception.mechanism, {
+                assert.deepEqual(sentryData.exception.values[0].mechanism, {
                   type: 'instrument',
                   handled: true,
                 });
@@ -938,14 +938,14 @@ for (var idx in frames) {
                 if (IS_LOADER) {
                   // The async loader doesn't wrap addEventListener
                   // so we don't receive the full mechanism
-                  assert.ok(sentryData.exception.mechanism);
+                  assert.ok(sentryData.exception.values[0].mechanism);
                   return done();
                 }
 
-                var handler = sentryData.exception.mechanism.data.handler;
-                delete sentryData.exception.mechanism.data.handler;
-                var target = sentryData.exception.mechanism.data.target;
-                delete sentryData.exception.mechanism.data.target;
+                var handler = sentryData.exception.values[0].mechanism.data.handler;
+                delete sentryData.exception.values[0].mechanism.data.handler;
+                var target = sentryData.exception.values[0].mechanism.data.target;
+                delete sentryData.exception.values[0].mechanism.data.target;
 
                 if (canReadFunctionName()) {
                   assert.equal(handler, 'namedFunction');
@@ -955,7 +955,7 @@ for (var idx in frames) {
 
                 // IE vs. Rest of the world
                 assert.oneOf(target, ['Node', 'EventTarget']);
-                assert.deepEqual(sentryData.exception.mechanism, {
+                assert.deepEqual(sentryData.exception.values[0].mechanism, {
                   type: 'instrument',
                   handled: true,
                   data: {
@@ -994,16 +994,16 @@ for (var idx in frames) {
 
                 if (IS_LOADER) {
                   // The async loader doesn't wrap
-                  assert.ok(sentryData.exception.mechanism);
+                  assert.ok(sentryData.exception.values[0].mechanism);
                   return done();
                 }
 
-                var target = sentryData.exception.mechanism.data.target;
-                delete sentryData.exception.mechanism.data.target;
+                var target = sentryData.exception.values[0].mechanism.data.target;
+                delete sentryData.exception.values[0].mechanism.data.target;
 
                 // IE vs. Rest of the world
                 assert.oneOf(target, ['Node', 'EventTarget']);
-                assert.deepEqual(sentryData.exception.mechanism, {
+                assert.deepEqual(sentryData.exception.values[0].mechanism, {
                   type: 'instrument',
                   handled: true,
                   data: {
