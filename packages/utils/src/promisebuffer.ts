@@ -2,16 +2,16 @@ import { SentryError } from './error';
 
 /** A simple queue that holds promises. */
 export class PromiseBuffer<T> {
-  public constructor(protected limit?: number) {}
+  public constructor(protected _limit?: number) {}
 
   /** Internal set of queued Promises */
-  private readonly buffer: Array<Promise<T>> = [];
+  private readonly _buffer: Array<Promise<T>> = [];
 
   /**
    * Says if the buffer is ready to take more requests
    */
   public isReady(): boolean {
-    return this.limit === undefined || this.length() < this.limit;
+    return this._limit === undefined || this.length() < this._limit;
   }
 
   /**
@@ -24,8 +24,8 @@ export class PromiseBuffer<T> {
     if (!this.isReady()) {
       return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
-    if (this.buffer.indexOf(task) === -1) {
-      this.buffer.push(task);
+    if (this._buffer.indexOf(task) === -1) {
+      this._buffer.push(task);
     }
     task
       .then(async () => this.remove(task))
@@ -45,7 +45,7 @@ export class PromiseBuffer<T> {
    * @returns Removed promise.
    */
   public async remove(task: Promise<T>): Promise<T> {
-    const removedTask = this.buffer.splice(this.buffer.indexOf(task), 1)[0];
+    const removedTask = this._buffer.splice(this._buffer.indexOf(task), 1)[0];
     return removedTask;
   }
 
@@ -53,7 +53,7 @@ export class PromiseBuffer<T> {
    * This function returns the number of unresolved promises in the queue.
    */
   public length(): number {
-    return this.buffer.length;
+    return this._buffer.length;
   }
 
   /**
@@ -69,7 +69,7 @@ export class PromiseBuffer<T> {
           resolve(false);
         }
       }, timeout);
-      Promise.all(this.buffer)
+      Promise.all(this._buffer)
         .then(() => {
           clearTimeout(capturedSetTimeout);
           resolve(true);

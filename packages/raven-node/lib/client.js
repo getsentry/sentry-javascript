@@ -341,7 +341,7 @@ extend(Raven.prototype, {
             'X-Sentry-Auth': utils.getAuthHeader(
               timestamp,
               self.dsn.public_key,
-              self.dsn.private_key
+              self.dsn.private __key
             ),
             'Content-Type': 'application/octet-stream',
             'Content-Length': message.length

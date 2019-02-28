@@ -12,7 +12,7 @@ export class BeaconTransport extends BaseTransport {
   public async sendEvent(event: Event): Promise<Response> {
     const result = global.navigator.sendBeacon(this.url, JSON.stringify(event));
 
-    return this.buffer.add(
+    return this._buffer.add(
       Promise.resolve({
         status: result ? Status.Success : Status.Failed,
       }),

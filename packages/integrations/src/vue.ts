@@ -28,28 +28,28 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly Vue: any; // tslint:disable-line:variable-name
+  private readonly _Vue: any; // tslint:disable-line:variable-name
 
   /**
    * When set to false, Sentry will suppress reporting all props data
    * from your Vue components for privacy concerns.
    */
-  private readonly attachProps: boolean;
+  private readonly _attachProps: boolean;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
-    this.Vue =
+    this._Vue =
       options.Vue ||
       (getGlobalObject() as {
         Vue: any;
       }).Vue;
-    this.attachProps = options.attachProps || true;
+    this._attachProps = options.attachProps || true;
   }
 
   /** JSDoc */
-  private formatComponentName(vm: any): string {
+  private _formatComponentName(vm: any): string {
     // tslint:disable:no-unsafe-any
 
     if (vm.$root === vm) {
@@ -68,20 +68,20 @@ export class Vue implements Integration {
   public setupOnce(): void {
     // tslint:disable:no-unsafe-any
 
-    if (!this.Vue || !this.Vue.config) {
+    if (!this._Vue || !this._Vue.config) {
       logger.error('VueIntegration is missing a Vue instance');
       return;
     }
 
-    const oldOnError = this.Vue.config.errorHandler;
+    const oldOnError = this._Vue.config.errorHandler;
 
-    this.Vue.config.errorHandler = (error: Error, vm: { [key: string]: any }, info: string): void => {
+    this._Vue.config.errorHandler = (error: Error, vm: { [key: string]: any }, info: string): void => {
       const metadata: Metadata = {};
 
       if (isPlainObject(vm)) {
-        metadata.componentName = this.formatComponentName(vm);
+        metadata.componentName = this._formatComponentName(vm);
 
-        if (this.attachProps) {
+        if (this._attachProps) {
           metadata.propsData = vm.$options.propsData;
         }
       }
@@ -112,7 +112,7 @@ export class Vue implements Integration {
       }
 
       if (typeof oldOnError === 'function') {
-        oldOnError.call(this.Vue, error, vm, info);
+        oldOnError.call(this._Vue, error, vm, info);
       }
     };
   }

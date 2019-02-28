@@ -20,13 +20,13 @@ export class Debug implements Integration {
   public static id: string = 'Debug';
 
   /** JSDoc */
-  private readonly options: DebugOptions;
+  private readonly _options: DebugOptions;
 
   /**
    * @inheritDoc
    */
   public constructor(options?: DebugOptions) {
-    this.options = {
+    this._options = {
       debugger: false,
       stringify: false,
       ...options,
@@ -42,11 +42,11 @@ export class Debug implements Integration {
       if (self) {
         // tslint:disable:no-console
         // tslint:disable:no-debugger
-        if (self.options.debugger) {
+        if (self._options.debugger) {
           debugger;
         }
 
-        if (self.options.stringify) {
+        if (self._options.stringify) {
           console.log(JSON.stringify(event, null, 2));
           if (hint) {
             console.log(JSON.stringify(hint, null, 2));

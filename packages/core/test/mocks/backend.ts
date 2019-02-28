@@ -13,8 +13,8 @@ export class TestBackend extends BaseBackend<TestOptions> {
 
   public event?: Event;
 
-  public constructor(protected readonly options: TestOptions) {
-    super(options);
+  public constructor(protected readonly _options: TestOptions) {
+    super(_options);
     TestBackend.instance = this;
   }
 

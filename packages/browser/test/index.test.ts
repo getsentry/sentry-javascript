@@ -45,7 +45,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.extra).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._extra).to.deep.equal({
         abc: { def: [1] },
       });
     });
@@ -54,7 +54,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.tags).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._tags).to.deep.equal({
         abc: 'def',
       });
     });
@@ -63,7 +63,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect(global.__SENTRY__.hub.stack[1].scope.user).to.deep.equal({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).to.deep.equal({
         id: 'def',
       });
     });

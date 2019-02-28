@@ -51,7 +51,7 @@ const MAX_BREADCRUMBS = 100;
  */
 export class Hub {
   /** Is a {@link Layer}[] containing the client and scope */
-  private readonly stack: Layer[] = [];
+  private readonly _stack: Layer[] = [];
 
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
@@ -64,8 +64,8 @@ export class Hub {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), private readonly version: number = API_VERSION) {
-    this.stack.push({ client, scope });
+  public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
+    this._stack.push({ client, scope });
   }
 
   /**
@@ -74,7 +74,7 @@ export class Hub {
    * @param method The method to call on the client.
    * @param args Arguments to pass to the client function.
    */
-  private invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
+  private _invokeClient<M extends keyof Client>(method: M, ...args: any[]): void {
     const top = this.getStackTop();
     if (top && top.client && top.client[method]) {
       (top.client as any)[method](...args, top.scope);
@@ -90,7 +90,7 @@ export class Hub {
    * @hidden
    */
   public isOlderThan(version: number): boolean {
-    return this.version < version;
+    return this._version < version;
   }
 
   /**
@@ -169,12 +169,12 @@ export class Hub {
 
   /** Returns the scope stack for domains or the process. */
   public getStack(): Layer[] {
-    return this.stack;
+    return this._stack;
   }
 
   /** Returns the topmost scope layer in the order domain > local > process. */
   public getStackTop(): Layer {
-    return this.stack[this.stack.length - 1];
+    return this._stack[this._stack.length - 1];
   }
 
   /**
@@ -186,7 +186,7 @@ export class Hub {
    */
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClient('captureException', exception, {
+    this._invokeClient('captureException', exception, {
       ...hint,
       event_id: eventId,
     });
@@ -203,7 +203,7 @@ export class Hub {
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClient('captureMessage', message, level, {
+    this._invokeClient('captureMessage', message, level, {
       ...hint,
       event_id: eventId,
     });
@@ -218,7 +218,7 @@ export class Hub {
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
-    this.invokeClient('captureEvent', event, {
+    this._invokeClient('captureEvent', event, {
       ...hint,
       event_id: eventId,
     });

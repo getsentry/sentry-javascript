@@ -9,26 +9,26 @@ const PREFIX = 'Sentry Logger ';
 /** JSDoc */
 class Logger {
   /** JSDoc */
-  private enabled: boolean;
+  private _enabled: boolean;
 
   /** JSDoc */
   public constructor() {
-    this.enabled = false;
+    this._enabled = false;
   }
 
   /** JSDoc */
   public disable(): void {
-    this.enabled = false;
+    this._enabled = false;
   }
 
   /** JSDoc */
   public enable(): void {
-    this.enabled = true;
+    this._enabled = true;
   }
 
   /** JSDoc */
   public log(...args: any[]): void {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return;
     }
     consoleSandbox(() => {
@@ -38,7 +38,7 @@ class Logger {
 
   /** JSDoc */
   public warn(...args: any[]): void {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return;
     }
     consoleSandbox(() => {
@@ -48,7 +48,7 @@ class Logger {
 
   /** JSDoc */
   public error(...args: any[]): void {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return;
     }
     consoleSandbox(() => {

@@ -24,7 +24,7 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(private readonly options: ExtraErrorDataOptions = { depth: 3 }) {}
+  public constructor(private readonly _options: ExtraErrorDataOptions = { depth: 3 }) {}
 
   /**
    * @inheritDoc
@@ -47,14 +47,14 @@ export class ExtraErrorData implements Integration {
       return event;
     }
 
-    const errorData = this.extractErrorData(hint.originalException);
+    const errorData = this._extractErrorData(hint.originalException);
 
     if (errorData) {
       let extra = {
         ...event.extra,
       };
 
-      const normalizedErrorData = normalize(errorData, this.options.depth);
+      const normalizedErrorData = normalize(errorData, this._options.depth);
       if (isPlainObject(normalizedErrorData)) {
         extra = {
           ...event.extra,
@@ -74,7 +74,7 @@ export class ExtraErrorData implements Integration {
   /**
    * Extract extra information from the Error object
    */
-  private extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
+  private _extractErrorData(error: ExtendedError): { [key: string]: unknown } | null {
     let result = null;
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {

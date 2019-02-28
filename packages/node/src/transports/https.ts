@@ -24,6 +24,6 @@ export class HTTPSTransport extends BaseTransport {
     if (!this.module) {
       throw new SentryError('No module available in HTTPSTransport');
     }
-    return this.sendWithModule(this.module, event);
+    return this._sendWithModule(this.module, event);
   }
 }

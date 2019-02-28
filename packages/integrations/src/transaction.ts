@@ -29,14 +29,14 @@ export class Transaction implements Integration {
    * @inheritDoc
    */
   public process(event: Event): Event {
-    const frames = this.getFramesFromEvent(event);
+    const frames = this._getFramesFromEvent(event);
 
     // use for loop so we don't have to reverse whole frames array
     for (let i = frames.length - 1; i >= 0; i--) {
       const frame = frames[i];
 
       if (frame.in_app === true) {
-        event.transaction = this.getTransaction(frame);
+        event.transaction = this._getTransaction(frame);
         break;
       }
     }
@@ -45,13 +45,13 @@ export class Transaction implements Integration {
   }
 
   /** JSDoc */
-  private getFramesFromEvent(event: Event): StackFrame[] {
+  private _getFramesFromEvent(event: Event): StackFrame[] {
     const exception = event.exception && event.exception.values && event.exception.values[0];
     return (exception && exception.stacktrace && exception.stacktrace.frames) || [];
   }
 
   /** JSDoc */
-  private getTransaction(frame: StackFrame): string {
+  private _getTransaction(frame: StackFrame): string {
     return frame.module || frame.function ? `${frame.module || '?'}/${frame.function || '?'}` : '<unknown>';
   }
 }

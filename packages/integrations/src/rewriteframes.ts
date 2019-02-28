@@ -19,14 +19,14 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly root?: string;
+  private readonly _root?: string;
 
   /**
    * @inheritDoc
    */
-  private readonly iteratee: StackFrameIteratee = (frame: StackFrame) => {
+  private readonly _iteratee: StackFrameIteratee = (frame: StackFrame) => {
     if (frame.filename && frame.filename.startsWith('/')) {
-      const base = this.root ? relative(this.root, frame.filename) : basename(frame.filename);
+      const base = this._root ? relative(this._root, frame.filename) : basename(frame.filename);
       frame.filename = `app:///${base}`;
     }
     return frame;
@@ -37,10 +37,10 @@ export class RewriteFrames implements Integration {
    */
   public constructor(options: { root?: string; iteratee?: StackFrameIteratee } = {}) {
     if (options.root) {
-      this.root = options.root;
+      this._root = options.root;
     }
     if (options.iteratee) {
-      this.iteratee = options.iteratee;
+      this._iteratee = options.iteratee;
     }
   }
 
@@ -59,18 +59,18 @@ export class RewriteFrames implements Integration {
 
   /** JSDoc */
   public process(event: Event): Event {
-    const frames = this.getFramesFromEvent(event);
+    const frames = this._getFramesFromEvent(event);
     if (frames) {
       for (const i in frames) {
         // tslint:disable-next-line
-        frames[i] = this.iteratee(frames[i]);
+        frames[i] = this._iteratee(frames[i]);
       }
     }
     return event;
   }
 
   /** JSDoc */
-  private getFramesFromEvent(event: Event): StackFrame[] | undefined {
+  private _getFramesFromEvent(event: Event): StackFrame[] | undefined {
     const exception = event.exception;
 
     if (exception) {
