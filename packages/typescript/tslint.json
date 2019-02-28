@@ -1,5 +1,5 @@
 {
-  "extends": ["tslint:all", "tslint-config-prettier"],
+  "extends": ["tslint:all", "tslint-config-prettier", "tslint-consistent-codestyle"],
   "rules": {
     // This rule has side effects and must be disabled
     "no-unused-variable": false,
@@ -36,6 +36,12 @@
     "no-console": [true, "log"],
     "only-arrow-functions": [true, "allow-named-functions"],
     "typedef": [true, "call-signature", "parameter", "property-declaration", "member-variable-declaration"],
-    "variable-name": [true, "check-format", "allow-leading-underscore", "ban-keywords"]
+    "variable-name": [true, "check-format", "allow-leading-underscore", "ban-keywords"],
+    "naming-convention": [
+      true,
+      // this config will apply to properties AND methods, if you only need it for properties, use "property" instead of "member"
+      { "type": "member", "modifiers": "protected", "leadingUnderscore": "require" },
+      { "type": "member", "modifiers": "private", "leadingUnderscore": "require" }
+    ]
   }
 }
