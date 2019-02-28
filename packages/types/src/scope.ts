@@ -13,12 +13,15 @@ export interface Scope {
 
   /**
    * Updates user context information for future events.
-   * @param user User context object to be set in the current context. If null or undefined user will be unset.
+   * If passed any falsy value, value will be unset.
+   *
+   * @param user User context object to be set in the current context.
    */
   setUser(user?: User): this;
 
   /**
    * Set an object that will be sent as tags data with the event.
+   * If passed any falsy value, value will be unset.
    * @param tags Tags context object to merge into current context.
    */
   setTags(tags?: { [key: string]: string }): this;
@@ -32,6 +35,7 @@ export interface Scope {
 
   /**
    * Set an object that will be sent as extra data with the event.
+   * If passed any falsy value, value will be unset.
    * @param extra context object to merge into current context.
    */
   setExtras(extra?: { [key: string]: any }): this;
@@ -44,14 +48,15 @@ export interface Scope {
   setExtra(key: string, extra: any): this;
 
   /**
-   * Sets the fingerprint on the scope to send with the events. Calling this function without a fingerprint unset it.
+   * Sets the fingerprint on the scope to send with the events.
+   * If passed any falsy value, value will be unset.
    * @param fingerprint string[] to group events in Sentry.
    */
   setFingerprint(fingerprint?: string[]): this;
 
   /**
    * Sets the level on the scope for future events.
-   * Calling this function without a level unset it.
+   * If passed any falsy value, value will be unset.
    * @param level string {@link Severity}
    */
   setLevel(level?: Severity): this;
