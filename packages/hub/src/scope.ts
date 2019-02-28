@@ -1,5 +1,5 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
-import { isThenable } from '@sentry/utils/is';
+import { isPlainObject, isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { normalize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -36,7 +36,10 @@ export class Scope implements ScopeInterface {
   /** Severity */
   protected level?: Severity;
 
-  /** Add internal on change listener. */
+  /**
+   * Add internal on change listener. Used for sub SDKs that need to store the scope.
+   * @hidden
+   */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this.scopeListeners.push(callback);
   }
@@ -44,9 +47,24 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public addEventProcessor(callback: EventProcessor): Scope {
+  public addEventProcessor(callback: EventProcessor): this {
     this.eventProcessors.push(callback);
     return this;
+  }
+
+  /**
+   * This will be called on every set call.
+   */
+  protected notifyScopeListeners(): void {
+    if (!this.notifyingListeners) {
+      this.notifyingListeners = true;
+      setTimeout(() => {
+        this.scopeListeners.forEach(callback => {
+          callback(this);
+        });
+        this.notifyingListeners = false;
+      });
+    }
   }
 
   /**
@@ -81,40 +99,75 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setUser(user: User): Scope {
-    this.user = normalize(user);
+  public setUser(user?: User): this {
+    this.user = user ? normalize(user) : {};
+    this.notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritdoc
    */
-  public setTag(key: string, value: string): Scope {
+  public setTags(tags?: { [key: string]: string }): this {
+    this.tags =
+      tags && isPlainObject(tags)
+        ? {
+            ...this.tags,
+            ...normalize(tags),
+          }
+        : {};
+    this.notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public setTag(key: string, value: string): this {
     this.tags = { ...this.tags, [key]: normalize(value) };
+    this.notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritdoc
    */
-  public setExtra(key: string, extra: any): Scope {
+  public setExtras(extra?: { [key: string]: any }): this {
+    this.extra =
+      extra && isPlainObject(extra)
+        ? {
+            ...this.extra,
+            ...normalize(extra),
+          }
+        : {};
+    this.notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public setExtra(key: string, extra: any): this {
     this.extra = { ...this.extra, [key]: normalize(extra) };
+    this.notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritdoc
    */
-  public setFingerprint(fingerprint: string[]): Scope {
-    this.fingerprint = normalize(fingerprint);
+  public setFingerprint(fingerprint?: string[]): this {
+    this.fingerprint = fingerprint ? normalize(fingerprint) : undefined;
+    this.notifyScopeListeners();
     return this;
   }
 
   /**
    * @inheritdoc
    */
-  public setLevel(level: Severity): Scope {
-    this.level = normalize(level);
+  public setLevel(level?: Severity): this {
+    this.level = level ? normalize(level) : undefined;
+    this.notifyScopeListeners();
     return this;
   }
 
@@ -139,23 +192,36 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public clear(): void {
+  public clear(): this {
     this.breadcrumbs = [];
     this.tags = {};
     this.extra = {};
     this.user = {};
     this.level = undefined;
     this.fingerprint = undefined;
+    this.notifyScopeListeners();
+    return this;
   }
 
   /**
    * @inheritdoc
    */
-  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void {
+  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     this.breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this.breadcrumbs, normalize(breadcrumb)].slice(-maxBreadcrumbs)
         : [...this.breadcrumbs, normalize(breadcrumb)];
+    this.notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public clearBreadcrumbs(): this {
+    this.breadcrumbs = [];
+    this.notifyScopeListeners();
+    return this;
   }
 
   /**
