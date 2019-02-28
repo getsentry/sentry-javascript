@@ -9,45 +9,70 @@ import { User } from './user';
  */
 export interface Scope {
   /** Add new event processor that will be called after {@link applyToEvent}. */
-  addEventProcessor(callback: EventProcessor): Scope;
+  addEventProcessor(callback: EventProcessor): this;
 
   /**
    * Updates user context information for future events.
+   * If passed any falsy value, value will be unset.
+   *
    * @param user User context object to be set in the current context.
    */
-  setUser(user: User): Scope;
+  setUser(user?: User): this;
 
   /**
-   * Updates tags context information for future events.
+   * Set an object that will be sent as tags data with the event.
+   * If passed any falsy value, value will be unset.
    * @param tags Tags context object to merge into current context.
    */
-  setTag(key: string, value: string): Scope;
+  setTags(tags?: { [key: string]: string }): this;
 
   /**
-   * Updates extra context information for future events.
+   * Set key:value that will be sent as tags data with the event.
+   * @param key String key of tag
+   * @param value String value of tag
+   */
+  setTag(key: string, value: string): this;
+
+  /**
+   * Set an object that will be sent as extra data with the event.
+   * If passed any falsy value, value will be unset.
    * @param extra context object to merge into current context.
    */
-  setExtra(key: string, extra: any): Scope;
+  setExtras(extra?: { [key: string]: any }): this;
+
+  /**
+   * Set key:value that will be sent as extra data with the event.
+   * @param key String of extra
+   * @param extra Any kind of data. This data will be normailzed.
+   */
+  setExtra(key: string, extra: any): this;
 
   /**
    * Sets the fingerprint on the scope to send with the events.
+   * If passed any falsy value, value will be unset.
    * @param fingerprint string[] to group events in Sentry.
    */
-  setFingerprint(fingerprint: string[]): Scope;
+  setFingerprint(fingerprint?: string[]): this;
 
   /**
    * Sets the level on the scope for future events.
+   * If passed any falsy value, value will be unset.
    * @param level string {@link Severity}
    */
-  setLevel(level: Severity): Scope;
+  setLevel(level?: Severity): this;
 
   /** Clears the current scope and resets its properties. */
-  clear(): void;
+  clear(): this;
 
   /**
    * Sets the breadcrumbs in the scope
    * @param breadcrumbs Breadcrumb
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
-  addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void;
+  addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this;
+
+  /**
+   * Clears all currently set Breadcrumbs.
+   */
+  clearBreadcrumbs(): this;
 }

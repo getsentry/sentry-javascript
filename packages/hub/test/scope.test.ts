@@ -7,40 +7,105 @@ describe('Scope', () => {
     jest.useRealTimers();
   });
 
-  test('fingerprint', () => {
-    const scope = new Scope();
-    scope.setFingerprint(['abcd']);
-    expect((scope as any).fingerprint).toEqual(['abcd']);
+  describe('fingerprint', () => {
+    test('set', () => {
+      const scope = new Scope();
+      scope.setFingerprint(['abcd']);
+      expect((scope as any).fingerprint).toEqual(['abcd']);
+    });
+
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setFingerprint(['abcd']);
+      scope.setFingerprint();
+      expect((scope as any).fingerprint).toEqual(undefined);
+    });
   });
 
-  test('extra', () => {
-    const scope = new Scope();
-    scope.setExtra('a', 1);
-    expect((scope as any).extra).toEqual({ a: 1 });
+  describe('extra', () => {
+    test('set key value', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      expect((scope as any).extra).toEqual({ a: 1 });
+    });
+
+    test('set object', () => {
+      const scope = new Scope();
+      scope.setExtras({ a: 1 });
+      expect((scope as any).extra).toEqual({ a: 1 });
+    });
+
+    test('set undefined', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      scope.setExtras();
+      expect((scope as any).extra).toEqual({});
+    });
   });
 
-  test('tags', () => {
-    const scope = new Scope();
-    scope.setTag('a', 'b');
-    expect((scope as any).tags).toEqual({ a: 'b' });
+  describe('tags', () => {
+    test('set key value', () => {
+      const scope = new Scope();
+      scope.setTag('a', 'b');
+      expect((scope as any).tags).toEqual({ a: 'b' });
+    });
+
+    test('set object', () => {
+      const scope = new Scope();
+      scope.setTags({ a: 'b' });
+      expect((scope as any).tags).toEqual({ a: 'b' });
+    });
+
+    test('set undefined', () => {
+      const scope = new Scope();
+      scope.setTags({ a: 'b' });
+      scope.setTags();
+      expect((scope as any).tags).toEqual({});
+    });
   });
 
-  test('user', () => {
-    const scope = new Scope();
-    scope.setUser({ id: '1' });
-    expect((scope as any).user).toEqual({ id: '1' });
+  describe('user', () => {
+    test('set', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      expect((scope as any).user).toEqual({ id: '1' });
+    });
+
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      scope.setUser();
+      expect((scope as any).user).toEqual({});
+    });
   });
 
-  test('breadcrumbs', () => {
-    const scope = new Scope();
-    scope.addBreadcrumb({ message: 'test' }, 100);
-    expect((scope as any).breadcrumbs).toEqual([{ message: 'test' }]);
+  describe('level', () => {
+    test('add', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'test' }, 100);
+      expect((scope as any).breadcrumbs).toEqual([{ message: 'test' }]);
+    });
+
+    test('clear', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'test' }, 100);
+      scope.clearBreadcrumbs();
+      expect((scope as any).breadcrumbs).toEqual([]);
+    });
   });
 
-  test('level', () => {
-    const scope = new Scope();
-    scope.setLevel(Severity.Critical);
-    expect((scope as any).level).toEqual(Severity.Critical);
+  describe('level', () => {
+    test('set', () => {
+      const scope = new Scope();
+      scope.setLevel(Severity.Critical);
+      expect((scope as any).level).toEqual(Severity.Critical);
+    });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setLevel(Severity.Critical);
+      scope.setLevel();
+      expect((scope as any).level).toEqual(undefined);
+    });
   });
 
   test('chaining', () => {
@@ -280,5 +345,16 @@ describe('Scope', () => {
     return localScope.applyToEvent(event, { syntheticException: new Error('what') }).then(processedEvent => {
       expect(processedEvent).toEqual(event);
     });
+  });
+
+  test('listeners', () => {
+    jest.useFakeTimers();
+    const scope = new Scope();
+    const listener = jest.fn();
+    scope.addScopeListener(listener);
+    scope.setExtra('a', 2);
+    jest.runAllTimers();
+    expect(listener).toHaveBeenCalled();
+    expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
   });
 });
