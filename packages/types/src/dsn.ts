@@ -7,7 +7,7 @@ export interface DsnComponents {
   protocol: DsnProtocol;
   /** Public authorization key. */
   user: string;
-  /** Private authorization key (deprecated, optional). */
+  /** private _authorization key (deprecated, optional). */
   pass?: string;
   /** Hostname of the Sentry instance. */
   host: string;
@@ -28,7 +28,7 @@ export interface Dsn extends DsnComponents {
    * Renders the string representation of this Dsn.
    *
    * By default, this will render the public representation without the password
-   * component. To get the deprecated private representation, set `withPassword`
+   * component. To get the deprecated private _representation, set `withPassword`
    * to true.
    *
    * @param withPassword When set to true, the password will be included.

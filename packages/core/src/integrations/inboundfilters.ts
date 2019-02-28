@@ -27,7 +27,7 @@ export class InboundFilters implements Integration {
    */
   public static id: string = 'InboundFilters';
 
-  public constructor(private readonly options: InboundFiltersOptions = {}) {}
+  public constructor(private readonly _options: InboundFiltersOptions = {}) {}
 
   /**
    * @inheritDoc
@@ -67,7 +67,7 @@ export class InboundFilters implements Integration {
       logger.warn(
         `Event dropped due to being matched by \`blacklistUrls\` option.\nEvent: ${getEventDescription(
           event,
-        )}.\nUrl: ${this.getEventFilterUrl(event)}`,
+        )}.\nUrl: ${this._getEventFilterUrl(event)}`,
       );
       return true;
     }
@@ -75,7 +75,7 @@ export class InboundFilters implements Integration {
       logger.warn(
         `Event dropped due to not being matched by \`whitelistUrls\` option.\nEvent: ${getEventDescription(
           event,
-        )}.\nUrl: ${this.getEventFilterUrl(event)}`,
+        )}.\nUrl: ${this._getEventFilterUrl(event)}`,
       );
       return true;
     }
@@ -102,9 +102,9 @@ export class InboundFilters implements Integration {
       return false;
     }
 
-    return this.getPossibleEventMessages(event).some(message =>
+    return this._getPossibleEventMessages(event).some(message =>
       // Not sure why TypeScript complains here...
-      (options.ignoreErrors as Array<RegExp | string>).some(pattern => this.isMatchingPattern(message, pattern)),
+      (options.ignoreErrors as Array<RegExp | string>).some(pattern => this._isMatchingPattern(message, pattern)),
     );
   }
 
@@ -114,8 +114,8 @@ export class InboundFilters implements Integration {
     if (!options.blacklistUrls || !options.blacklistUrls.length) {
       return false;
     }
-    const url = this.getEventFilterUrl(event);
-    return !url ? false : options.blacklistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    const url = this._getEventFilterUrl(event);
+    return !url ? false : options.blacklistUrls.some(pattern => this._isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
@@ -124,26 +124,26 @@ export class InboundFilters implements Integration {
     if (!options.whitelistUrls || !options.whitelistUrls.length) {
       return true;
     }
-    const url = this.getEventFilterUrl(event);
-    return !url ? true : options.whitelistUrls.some(pattern => this.isMatchingPattern(url, pattern));
+    const url = this._getEventFilterUrl(event);
+    return !url ? true : options.whitelistUrls.some(pattern => this._isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
   public mergeOptions(clientOptions: InboundFiltersOptions = {}): InboundFiltersOptions {
     return {
-      blacklistUrls: [...(this.options.blacklistUrls || []), ...(clientOptions.blacklistUrls || [])],
+      blacklistUrls: [...(this._options.blacklistUrls || []), ...(clientOptions.blacklistUrls || [])],
       ignoreErrors: [
-        ...(this.options.ignoreErrors || []),
+        ...(this._options.ignoreErrors || []),
         ...(clientOptions.ignoreErrors || []),
         ...DEFAULT_IGNORE_ERRORS,
       ],
-      ignoreInternal: typeof this.options.ignoreInternal !== 'undefined' ? this.options.ignoreInternal : true,
-      whitelistUrls: [...(this.options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
+      ignoreInternal: typeof this._options.ignoreInternal !== 'undefined' ? this._options.ignoreInternal : true,
+      whitelistUrls: [...(this._options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
     };
   }
 
   /** JSDoc */
-  private isMatchingPattern(value: string, pattern: RegExp | string): boolean {
+  private _isMatchingPattern(value: string, pattern: RegExp | string): boolean {
     if (isRegExp(pattern)) {
       return (pattern as RegExp).test(value);
     } else if (typeof pattern === 'string') {
@@ -154,7 +154,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private getPossibleEventMessages(event: Event): string[] {
+  private _getPossibleEventMessages(event: Event): string[] {
     if (event.message) {
       return [event.message];
     } else if (event.exception) {
@@ -172,7 +172,7 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private getEventFilterUrl(event: Event): string | null {
+  private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
         // tslint:disable:no-unsafe-any

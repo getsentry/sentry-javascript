@@ -13,7 +13,7 @@ export class Dsn implements DsnComponents {
   public protocol!: DsnProtocol;
   /** Public authorization key. */
   public user!: string;
-  /** Private authorization key (deprecated, optional). */
+  /** private _authorization key (deprecated, optional). */
   public pass!: string;
   /** Hostname of the Sentry instance. */
   public host!: string;
@@ -27,19 +27,19 @@ export class Dsn implements DsnComponents {
   /** Creates a new Dsn component */
   public constructor(from: DsnLike) {
     if (typeof from === 'string') {
-      this.fromString(from);
+      this._fromString(from);
     } else {
-      this.fromComponents(from);
+      this._fromComponents(from);
     }
 
-    this.validate();
+    this._validate();
   }
 
   /**
    * Renders the string representation of this Dsn.
    *
    * By default, this will render the public representation without the password
-   * component. To get the deprecated private representation, set `withPassword`
+   * component. To get the deprecated private _representation, set `withPassword`
    * to true.
    *
    * @param withPassword When set to true, the password will be included.
@@ -54,7 +54,7 @@ export class Dsn implements DsnComponents {
   }
 
   /** Parses a string into this Dsn. */
-  private fromString(str: string): void {
+  private _fromString(str: string): void {
     const match = DSN_REGEX.exec(str);
     if (!match) {
       throw new SentryError(ERROR_MESSAGE);
@@ -72,7 +72,7 @@ export class Dsn implements DsnComponents {
   }
 
   /** Maps Dsn components into this instance. */
-  private fromComponents(components: DsnComponents): void {
+  private _fromComponents(components: DsnComponents): void {
     this.protocol = components.protocol;
     this.user = components.user;
     this.pass = components.pass || '';
@@ -83,7 +83,7 @@ export class Dsn implements DsnComponents {
   }
 
   /** Validates this Dsn and throws on error. */
-  private validate(): void {
+  private _validate(): void {
     ['protocol', 'user', 'host', 'projectId'].forEach(component => {
       if (!this[component as keyof DsnComponents]) {
         throw new SentryError(ERROR_MESSAGE);

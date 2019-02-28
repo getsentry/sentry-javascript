@@ -50,7 +50,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
     event.platform = event.platform || 'javascript';
     event.sdk = {
       ...event.sdk,
@@ -65,7 +65,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       version: SDK_VERSION,
     };
 
-    return super.prepareEvent(event, scope, hint);
+    return super._prepareEvent(event, scope, hint);
   }
 
   /**
@@ -80,7 +80,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
       return;
     }
 
-    if (!this.isEnabled()) {
+    if (!this._isEnabled()) {
       logger.error('Trying to call showReportDialog with Sentry Client is disabled');
       return;
     }

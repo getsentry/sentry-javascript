@@ -20,19 +20,19 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly key: string;
+  private readonly _key: string;
 
   /**
    * @inheritDoc
    */
-  private readonly limit: number;
+  private readonly _limit: number;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { key?: string; limit?: number } = {}) {
-    this.key = options.key || DEFAULT_KEY;
-    this.limit = options.limit || DEFAULT_LIMIT;
+    this._key = options.key || DEFAULT_KEY;
+    this._limit = options.limit || DEFAULT_LIMIT;
   }
 
   /**
@@ -57,7 +57,7 @@ export class LinkedErrors implements Integration {
     }
 
     return new SyncPromise<Event | null>(resolve => {
-      this.walkErrorTree(hint.originalException as ExtendedError, this.key).then((linkedErrors: Exception[]) => {
+      this.walkErrorTree(hint.originalException as ExtendedError, this._key).then((linkedErrors: Exception[]) => {
         if (event && event.exception) {
           event.exception.values = [...linkedErrors, ...event.exception.values];
         }
@@ -70,7 +70,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): SyncPromise<Exception[]> {
-    if (!(error[key] instanceof Error) || stack.length + 1 >= this.limit) {
+    if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
       return SyncPromise.resolve(stack);
     }
     return new SyncPromise<Exception[]>(resolve => {

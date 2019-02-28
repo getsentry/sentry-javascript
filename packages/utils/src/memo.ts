@@ -4,14 +4,14 @@
  */
 export class Memo {
   /** Determines if WeakSet is available */
-  private readonly hasWeakSet: boolean;
+  private readonly _hasWeakSet: boolean;
   /** Either WeakSet or Array */
-  private readonly inner: any;
+  private readonly _inner: any;
 
   public constructor() {
     // tslint:disable-next-line
-    this.hasWeakSet = typeof WeakSet === 'function';
-    this.inner = this.hasWeakSet ? new WeakSet() : [];
+    this._hasWeakSet = typeof WeakSet === 'function';
+    this._inner = this._hasWeakSet ? new WeakSet() : [];
   }
 
   /**
@@ -19,21 +19,21 @@ export class Memo {
    * @param obj Object to remember
    */
   public memoize(obj: any): boolean {
-    if (this.hasWeakSet) {
-      if (this.inner.has(obj)) {
+    if (this._hasWeakSet) {
+      if (this._inner.has(obj)) {
         return true;
       }
-      this.inner.add(obj);
+      this._inner.add(obj);
       return false;
     } else {
       // tslint:disable-next-line:prefer-for-of
-      for (let i = 0; i < this.inner.length; i++) {
-        const value = this.inner[i];
+      for (let i = 0; i < this._inner.length; i++) {
+        const value = this._inner[i];
         if (value === obj) {
           return true;
         }
       }
-      this.inner.push(obj);
+      this._inner.push(obj);
       return false;
     }
   }
@@ -43,12 +43,12 @@ export class Memo {
    * @param obj Object to forget
    */
   public unmemoize(obj: any): void {
-    if (this.hasWeakSet) {
-      this.inner.delete(obj);
+    if (this._hasWeakSet) {
+      this._inner.delete(obj);
     } else {
-      for (let i = 0; i < this.inner.length; i++) {
-        if (this.inner[i] === obj) {
-          this.inner.splice(i, 1);
+      for (let i = 0; i < this._inner.length; i++) {
+        if (this._inner[i] === obj) {
+          this._inner.splice(i, 1);
           break;
         }
       }

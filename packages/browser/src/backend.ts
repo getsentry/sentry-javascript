@@ -36,16 +36,18 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
    * @inheritdoc
    */
-  protected setupTransport(): Transport {
-    if (!this.options.dsn) {
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
       // We return the noop transport here in case there is no Dsn.
-      return super.setupTransport();
+      return super._setupTransport();
     }
 
-    const transportOptions = this.options.transportOptions ? this.options.transportOptions : { dsn: this.options.dsn };
+    const transportOptions = this._options.transportOptions
+      ? this._options.transportOptions
+      : { dsn: this._options.dsn };
 
-    if (this.options.transport) {
-      return new this.options.transport(transportOptions);
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
     } else if (supportsBeacon()) {
       return new BeaconTransport(transportOptions);
     } else if (supportsFetch()) {
@@ -65,7 +67,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       const errorEvent = exception as ErrorEvent;
       exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-      return SyncPromise.resolve(this.buildEvent(event, hint));
+      return SyncPromise.resolve(this._buildEvent(event, hint));
     } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
@@ -77,12 +79,12 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
 
       return this.eventFromMessage(message, Severity.Error, hint).then(messageEvent => {
         addExceptionTypeValue(messageEvent, message);
-        return SyncPromise.resolve(this.buildEvent(messageEvent, hint));
+        return SyncPromise.resolve(this._buildEvent(messageEvent, hint));
       });
     } else if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
-      return SyncPromise.resolve(this.buildEvent(event, hint));
+      return SyncPromise.resolve(this._buildEvent(event, hint));
     } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
@@ -94,7 +96,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
         synthetic: true,
         type: 'generic',
       });
-      return SyncPromise.resolve(this.buildEvent(event, hint));
+      return SyncPromise.resolve(this._buildEvent(event, hint));
     }
 
     // If none of previous checks were valid, then it means that
@@ -110,14 +112,14 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
         synthetic: true,
         type: 'generic',
       });
-      return SyncPromise.resolve(this.buildEvent(messageEvent, hint));
+      return SyncPromise.resolve(this._buildEvent(messageEvent, hint));
     });
   }
 
   /**
    * This is an internal helper function that creates an event.
    */
-  private buildEvent(event: Event, hint?: EventHint): Event {
+  private _buildEvent(event: Event, hint?: EventHint): Event {
     return {
       ...event,
       event_id: hint && hint.event_id,
@@ -134,7 +136,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       message,
     };
 
-    if (this.options.attachStacktrace && hint && hint.syntheticException) {
+    if (this._options.attachStacktrace && hint && hint.syntheticException) {
       const stacktrace = computeStackTrace(hint.syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
       event.stacktrace = {

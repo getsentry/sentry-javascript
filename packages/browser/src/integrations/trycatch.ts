@@ -6,7 +6,7 @@ import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
   /** JSDoc */
-  private ignoreOnError: number = 0;
+  private _ignoreOnError: number = 0;
 
   /**
    * @inheritDoc
@@ -19,7 +19,7 @@ export class TryCatch implements Integration {
   public static id: string = 'TryCatch';
 
   /** JSDoc */
-  private wrapTimeFunction(original: () => void): () => number {
+  private _wrapTimeFunction(original: () => void): () => number {
     return function(this: any, ...args: any[]): number {
       const originalCallback = args[0];
       args[0] = wrap(originalCallback, {
@@ -34,7 +34,7 @@ export class TryCatch implements Integration {
   }
 
   /** JSDoc */
-  private wrapRAF(original: any): (callback: () => void) => any {
+  private _wrapRAF(original: any): (callback: () => void) => any {
     return function(this: any, callback: () => void): () => void {
       return original(
         wrap(callback, {
@@ -52,7 +52,7 @@ export class TryCatch implements Integration {
   }
 
   /** JSDoc */
-  private wrapEventTarget(target: string): void {
+  private _wrapEventTarget(target: string): void {
     const global = getGlobalObject() as { [key: string]: any };
     const proto = global[target] && global[target].prototype;
 
@@ -168,13 +168,13 @@ export class TryCatch implements Integration {
    * and provide better metadata.
    */
   public setupOnce(): void {
-    this.ignoreOnError = this.ignoreOnError;
+    this._ignoreOnError = this._ignoreOnError;
 
     const global = getGlobalObject();
 
-    fill(global, 'setTimeout', this.wrapTimeFunction.bind(this));
-    fill(global, 'setInterval', this.wrapTimeFunction.bind(this));
-    fill(global, 'requestAnimationFrame', this.wrapRAF.bind(this));
+    fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
+    fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
+    fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
 
     [
       'EventTarget',
@@ -206,7 +206,7 @@ export class TryCatch implements Integration {
       'XMLHttpRequest',
       'XMLHttpRequestEventTarget',
       'XMLHttpRequestUpload',
-    ].forEach(this.wrapEventTarget.bind(this));
+    ].forEach(this._wrapEventTarget.bind(this));
   }
 }
 

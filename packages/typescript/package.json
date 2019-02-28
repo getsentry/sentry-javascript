@@ -6,7 +6,7 @@
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/typescript",
   "author": "Sentry",
   "license": "BSD-3-Clause",
-  "private": false,
+  "private _": false,
   "publishConfig": {
     "access": "public"
   },
