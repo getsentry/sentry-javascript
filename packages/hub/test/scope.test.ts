@@ -355,6 +355,6 @@ describe('Scope', () => {
     scope.setExtra('a', 2);
     jest.runAllTimers();
     expect(listener).toHaveBeenCalled();
-    expect(listener.mock.calls[0][0].extra).toEqual({ a: 2 });
+    expect(listener.mock.calls[0][0]._extra).toEqual({ a: 2 });
   });
 });
