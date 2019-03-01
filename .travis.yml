@@ -5,6 +5,8 @@ branches:
   only:
     - master
     - /^release\/.+$/
+    - /^major\/.+$/
+    - 4.x
 
 install: true
 sudo: required
