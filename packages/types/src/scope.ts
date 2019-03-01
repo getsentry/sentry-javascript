@@ -13,18 +13,16 @@ export interface Scope {
 
   /**
    * Updates user context information for future events.
-   * If passed any falsy value, value will be unset.
    *
    * @param user User context object to be set in the current context.
    */
-  setUser(user?: User): this;
+  setUser(user: User): this;
 
   /**
-   * Set an object that will be sent as tags data with the event.
-   * If passed any falsy value, value will be unset.
+   * Set an object that will be merged sent as tags data with the event.
    * @param tags Tags context object to merge into current context.
    */
-  setTags(tags?: { [key: string]: string }): this;
+  setTags(tags: { [key: string]: string }): this;
 
   /**
    * Set key:value that will be sent as tags data with the event.
@@ -34,11 +32,10 @@ export interface Scope {
   setTag(key: string, value: string): this;
 
   /**
-   * Set an object that will be sent as extra data with the event.
-   * If passed any falsy value, value will be unset.
-   * @param extra context object to merge into current context.
+   * Set an object that will be merged sent as extra data with the event.
+   * @param extras Extras object to merge into current context.
    */
-  setExtras(extra?: { [key: string]: any }): this;
+  setExtras(extras: { [key: string]: any }): this;
 
   /**
    * Set key:value that will be sent as extra data with the event.
@@ -49,17 +46,15 @@ export interface Scope {
 
   /**
    * Sets the fingerprint on the scope to send with the events.
-   * If passed any falsy value, value will be unset.
    * @param fingerprint string[] to group events in Sentry.
    */
-  setFingerprint(fingerprint?: string[]): this;
+  setFingerprint(fingerprint: string[]): this;
 
   /**
    * Sets the level on the scope for future events.
-   * If passed any falsy value, value will be unset.
    * @param level string {@link Severity}
    */
-  setLevel(level?: Severity): this;
+  setLevel(level: Severity): this;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

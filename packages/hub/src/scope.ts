@@ -1,5 +1,5 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
-import { isPlainObject, isThenable } from '@sentry/utils/is';
+import { isThenable } from '@sentry/utils/is';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { normalize } from '@sentry/utils/object';
 import { SyncPromise } from '@sentry/utils/syncpromise';
@@ -99,8 +99,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setUser(user?: User): this {
-    this._user = user ? normalize(user) : {};
+  public setUser(user: User): this {
+    this._user = normalize(user);
     this.notifyScopeListeners();
     return this;
   }
@@ -108,14 +108,11 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setTags(tags?: { [key: string]: string }): this {
-    this._tags =
-      tags && isPlainObject(tags)
-        ? {
-            ...this._tags,
-            ...normalize(tags),
-          }
-        : {};
+  public setTags(tags: { [key: string]: string }): this {
+    this._tags = {
+      ...this._tags,
+      ...normalize(tags),
+    };
     this.notifyScopeListeners();
     return this;
   }
@@ -132,14 +129,11 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setExtras(extra?: { [key: string]: any }): this {
-    this._extra =
-      extra && isPlainObject(extra)
-        ? {
-            ...this._extra,
-            ...normalize(extra),
-          }
-        : {};
+  public setExtras(extra: { [key: string]: any }): this {
+    this._extra = {
+      ...this._extra,
+      ...normalize(extra),
+    };
     this.notifyScopeListeners();
     return this;
   }
@@ -156,8 +150,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setFingerprint(fingerprint?: string[]): this {
-    this._fingerprint = fingerprint ? normalize(fingerprint) : undefined;
+  public setFingerprint(fingerprint: string[]): this {
+    this._fingerprint = normalize(fingerprint);
     this.notifyScopeListeners();
     return this;
   }
@@ -166,7 +160,7 @@ export class Scope implements ScopeInterface {
    * @inheritdoc
    */
   public setLevel(level?: Severity): this {
-    this._level = level ? normalize(level) : undefined;
+    this._level = normalize(level);
     this.notifyScopeListeners();
     return this;
   }
@@ -181,9 +175,12 @@ export class Scope implements ScopeInterface {
       _scopeListeners: [],
     });
     if (scope) {
-      newScope._extra = { ...scope._extra };
-      newScope._tags = { ...scope._tags };
       newScope._breadcrumbs = [...scope._breadcrumbs];
+      newScope._tags = { ...scope._tags };
+      newScope._extra = { ...scope._extra };
+      newScope._user = scope._user;
+      newScope._level = scope._level;
+      newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
     }
     return newScope;
