@@ -93,7 +93,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       event = eventFromPlainObject(objectException, hint.syntheticException);
       addExceptionTypeValue(event, 'Custom Object', undefined, {
         handled: true,
-        synthetic: true,
+        synthetic: false, // TODO: Make true
         type: 'generic',
       });
       return SyncPromise.resolve(this._buildEvent(event, hint));
@@ -109,7 +109,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     return this.eventFromMessage(stringException, undefined, hint).then(messageEvent => {
       addExceptionTypeValue(messageEvent, `${stringException}`, undefined, {
         handled: true,
-        synthetic: true,
+        synthetic: false, // TODO: Make true
         type: 'generic',
       });
       return SyncPromise.resolve(this._buildEvent(messageEvent, hint));

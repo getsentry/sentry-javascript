@@ -104,7 +104,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = (hint && hint.syntheticException) || new Error(exception as string);
       }
-      mechanism.synthetic = true;
+      mechanism.synthetic = false; // TODO: Make true
     }
 
     return new SyncPromise<Event>(resolve =>

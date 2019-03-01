@@ -13,13 +13,6 @@ describe('Scope', () => {
       scope.setFingerprint(['abcd']);
       expect((scope as any)._fingerprint).toEqual(['abcd']);
     });
-
-    test('unset', () => {
-      const scope = new Scope();
-      scope.setFingerprint(['abcd']);
-      scope.setFingerprint();
-      expect((scope as any)._fingerprint).toEqual(undefined);
-    });
   });
 
   describe('extra', () => {
@@ -38,8 +31,8 @@ describe('Scope', () => {
     test('set undefined', () => {
       const scope = new Scope();
       scope.setExtra('a', 1);
-      scope.setExtras();
-      expect((scope as any)._extra).toEqual({});
+      scope.setExtras({ a: undefined });
+      expect((scope as any)._extra).toEqual({ a: '[undefined]' });
     });
   });
 
@@ -55,13 +48,6 @@ describe('Scope', () => {
       scope.setTags({ a: 'b' });
       expect((scope as any)._tags).toEqual({ a: 'b' });
     });
-
-    test('set undefined', () => {
-      const scope = new Scope();
-      scope.setTags({ a: 'b' });
-      scope.setTags();
-      expect((scope as any)._tags).toEqual({});
-    });
   });
 
   describe('user', () => {
@@ -69,13 +55,6 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setUser({ id: '1' });
       expect((scope as any)._user).toEqual({ id: '1' });
-    });
-
-    test('unset', () => {
-      const scope = new Scope();
-      scope.setUser({ id: '1' });
-      scope.setUser();
-      expect((scope as any)._user).toEqual({});
     });
   });
 
@@ -85,13 +64,6 @@ describe('Scope', () => {
       scope.addBreadcrumb({ message: 'test' }, 100);
       expect((scope as any)._breadcrumbs).toEqual([{ message: 'test' }]);
     });
-
-    test('clear', () => {
-      const scope = new Scope();
-      scope.addBreadcrumb({ message: 'test' }, 100);
-      scope.clearBreadcrumbs();
-      expect((scope as any)._breadcrumbs).toEqual([]);
-    });
   });
 
   describe('level', () => {
@@ -99,12 +71,6 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setLevel(Severity.Critical);
       expect((scope as any)._level).toEqual(Severity.Critical);
-    });
-    test('unset', () => {
-      const scope = new Scope();
-      scope.setLevel(Severity.Critical);
-      scope.setLevel();
-      expect((scope as any)._level).toEqual(undefined);
     });
   });
 
