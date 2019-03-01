@@ -1,6 +1,4 @@
-import commonjs from 'rollup-plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
-import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
 
@@ -35,7 +33,6 @@ const bundleConfig = {
       tsconfigOverride: {
         compilerOptions: {
           declaration: false,
-          module: 'ES2015',
           paths: {
             '@sentry/utils/*': ['../utils/src/*'],
             '@sentry/core': ['../core/src'],
@@ -47,12 +44,6 @@ const bundleConfig = {
       },
       include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
     }),
-    resolve({
-      jsnext: true,
-      main: true,
-      browser: true,
-    }),
-    commonjs(),
     license({
       sourcemap: true,
       banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
@@ -70,23 +61,31 @@ export default [
       interop: false,
       sourcemap: true,
     },
-    external: ['@sentry/core', '@sentry/hub', '@sentry/minimal', 'tslib'],
+    external: [
+      '@sentry/core',
+      '@sentry/hub',
+      '@sentry/minimal',
+      '@sentry/types',
+      '@sentry/utils/logger',
+      '@sentry/utils/misc',
+      '@sentry/utils/is',
+      '@sentry/utils/supports',
+      '@sentry/utils/syncpromise',
+      '@sentry/utils/object',
+      '@sentry/utils/string',
+      '@sentry/utils/error',
+      '@sentry/utils/promisebuffer',
+      'tslib',
+    ],
     plugins: [
       typescript({
         tsconfig: 'tsconfig.build.json',
         tsconfigOverride: {
           compilerOptions: {
-            module: 'ES2015',
             rootDir: 'src',
           },
         },
       }),
-      resolve({
-        jsnext: true,
-        main: true,
-        browser: true,
-      }),
-      commonjs(),
     ],
   },
   Object.assign({}, bundleConfig, {
