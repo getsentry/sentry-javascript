@@ -55,7 +55,7 @@ export class Scope implements ScopeInterface {
   /**
    * This will be called on every set call.
    */
-  protected notifyScopeListeners(): void {
+  protected _notifyScopeListeners(): void {
     if (!this._notifyingListeners) {
       this._notifyingListeners = true;
       setTimeout(() => {
@@ -101,7 +101,7 @@ export class Scope implements ScopeInterface {
    */
   public setUser(user: User): this {
     this._user = normalize(user);
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -113,7 +113,7 @@ export class Scope implements ScopeInterface {
       ...this._tags,
       ...normalize(tags),
     };
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -122,7 +122,7 @@ export class Scope implements ScopeInterface {
    */
   public setTag(key: string, value: string): this {
     this._tags = { ...this._tags, [key]: normalize(value) };
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -134,7 +134,7 @@ export class Scope implements ScopeInterface {
       ...this._extra,
       ...normalize(extra),
     };
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -143,7 +143,7 @@ export class Scope implements ScopeInterface {
    */
   public setExtra(key: string, extra: any): this {
     this._extra = { ...this._extra, [key]: normalize(extra) };
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -152,7 +152,7 @@ export class Scope implements ScopeInterface {
    */
   public setFingerprint(fingerprint: string[]): this {
     this._fingerprint = normalize(fingerprint);
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -161,7 +161,7 @@ export class Scope implements ScopeInterface {
    */
   public setLevel(level?: Severity): this {
     this._level = normalize(level);
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -196,7 +196,7 @@ export class Scope implements ScopeInterface {
     this._user = {};
     this._level = undefined;
     this._fingerprint = undefined;
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -208,7 +208,7 @@ export class Scope implements ScopeInterface {
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
         ? [...this._breadcrumbs, normalize(breadcrumb)].slice(-maxBreadcrumbs)
         : [...this._breadcrumbs, normalize(breadcrumb)];
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -217,7 +217,7 @@ export class Scope implements ScopeInterface {
    */
   public clearBreadcrumbs(): this {
     this._breadcrumbs = [];
-    this.notifyScopeListeners();
+    this._notifyScopeListeners();
     return this;
   }
 
