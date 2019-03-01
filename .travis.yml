@@ -6,6 +6,7 @@ branches:
     - master
     - /^release\/.+$/
     - /^major\/.+$/
+    - 4.x
 
 install: true
 sudo: required
@@ -45,21 +46,26 @@ jobs:
         sauce_connect: true
       script: scripts/browser-saucelabs.sh
     - name: 'raven-js - unit and integration tests'
+      if: branch = 4.x
       node_js: '8'
       addons:
         chrome: stable
         firefox: latest
       script: scripts/raven-js.sh
     - name: 'raven-node [node v4]'
+      if: branch = 4.x
       node_js: '4'
       script: scripts/raven-node.sh
     - name: 'raven-node [node v6]'
+      if: branch = 4.x
       node_js: '6'
       script: scripts/raven-node.sh
     - name: 'raven-node [node v8]'
+      if: branch = 4.x
       node_js: '8'
       script: scripts/raven-node.sh
     - name: 'raven-node [node v10]'
+      if: branch = 4.x
       node_js: '10'
       script: scripts/raven-node.sh
 
