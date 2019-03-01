@@ -5,8 +5,6 @@ branches:
   only:
     - master
     - /^release\/.+$/
-    - /^major\/.+$/
-    - 4.x
 
 install: true
 sudo: required
@@ -21,12 +19,10 @@ cache:
 
 jobs:
   include:
+    - stage: Test
     - name: '@sentry/packages - build + lint + test + codecov + danger [node v8]'
       node_js: '8'
       script: scripts/danger.sh
-    - name: '@sentry/packages - pack and zeus upload'
-      node_js: '8'
-      script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
     - name: '@sentry/packages - build and test [node v6]'
       node_js: '6'
       script: scripts/test.sh
@@ -39,19 +35,6 @@ jobs:
         chrome: stable
         firefox: latest
       script: scripts/browser-integration.sh
-    - name: '@sentry/browser - SauceLabs tests'
-      if: fork = false
-      node_js: '8'
-      addons:
-        sauce_connect: true
-      script: scripts/browser-saucelabs.sh
-    - name: 'raven-js - unit and integration tests'
-      if: branch = 4.x
-      node_js: '8'
-      addons:
-        chrome: stable
-        firefox: latest
-      script: scripts/raven-js.sh
     - name: 'raven-node [node v4]'
       if: branch = 4.x
       node_js: '4'
@@ -68,6 +51,24 @@ jobs:
       if: branch = 4.x
       node_js: '10'
       script: scripts/raven-node.sh
+    - name: 'raven-js - unit and integration tests'
+      if: branch = 4.x
+      node_js: '8'
+      addons:
+        chrome: stable
+        firefox: latest
+      script: scripts/raven-js.sh
+    - stage: Saucelabs
+    - name: '@sentry/browser - SauceLabs tests'
+      if: fork = false
+      node_js: '8'
+      addons:
+        sauce_connect: true
+      script: scripts/browser-saucelabs.sh
+    - stage: Deploy
+    - name: '@sentry/packages - pack and zeus upload'
+      node_js: '8'
+      script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
 
 notifications:
   webhooks:
