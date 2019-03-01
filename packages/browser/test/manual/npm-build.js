@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const { JSDOM } = require('jsdom');
-
+// runTests();
 webpack(
   {
     entry: path.join(__dirname, 'test-code.js'),
@@ -10,7 +10,7 @@ webpack(
       path: __dirname,
       filename: 'tmp.js',
     },
-    mode: 'production',
+    mode: 'development',
   },
   (err, stats) => {
     if (err) {
@@ -39,9 +39,9 @@ function runTests() {
   const bundlePath = path.join(__dirname, 'tmp.js');
   const { window } = new JSDOM(``, { runScripts: 'dangerously' });
 
-  window.onerror = function(error) {
+  window.onerror = function() {
     console.error('ERROR thrown in manual test:');
-    console.error(error);
+    console.error(arguments);
     console.error('------------------');
     process.exit(1);
   };

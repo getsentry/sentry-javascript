@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist"
+    "outDir": "dist",
+    "target": "es6",
+    "module": "es6"
   },
   "include": ["src/**/*"]
 }
