@@ -34,10 +34,17 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [core] ref: Extract all pluggable integrations into a separate `@sentry/integrations` package
 - **breaking** [core] ref: Move `extraErrorData` integration to `@sentry/integrations` package
 - [core] feat: Add `maxValueLength` option to adjust max string length for values, default is 250.
-- **breaking** [all] ref: Expose `module` in `package.json` as entry point for esm builds.
 - [hub] feat: Introduce `setExtra`, `setTags`, `clearBreadcrumbs` additionally some `set` on the Scope now accept no
   argument which makes it possible to unset the value.
-- [browser/node] feat: Add `synthetic` to `mechanism` in exception.
+- **breaking** [all] feat: Move `Mechanism` to `Exception`
+- [browser/node] feat: Add `synthetic` to `Mechanism` in exception.
+- [browser/node] fix: Use `addExceptionTypeValue` in helpers
+- [browser] ref: Remove unused TraceKit code
+- **breaking** [all] build: Expose `module` in `package.json` as entry point for esm builds.
+- **breaking** [all] build: Use `es6` target instead of esnext for ESM builds
+- [all] feat: Prefix all private methods with `_`
+- [all] build: Use terser instead of uglify
+>>>>>>> misc: Bundle size reduction changelog
 
 ## 4.6.4
 
