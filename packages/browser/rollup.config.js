@@ -1,6 +1,8 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
+import resolve from 'rollup-plugin-node-resolve';
+import commonjs from 'rollup-plugin-commonjs';
 
 const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
@@ -19,6 +21,32 @@ const terserInstance = terser({
   },
 });
 
+const plugins = [
+  typescript({
+    tsconfig: 'tsconfig.build.json',
+    tsconfigOverride: {
+      compilerOptions: {
+        declaration: false,
+        module: 'ES2015',
+        paths: {
+          '@sentry/utils/*': ['../utils/src/*'],
+          '@sentry/core': ['../core/src'],
+          '@sentry/hub': ['../hub/src'],
+          '@sentry/types': ['../types/src'],
+          '@sentry/minimal': ['../minimal/src'],
+        },
+      },
+    },
+    include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+  }),
+  resolve({
+    browser: true,
+    module: false,
+    modulesOnly: true,
+  }),
+  commonjs(),
+];
+
 const bundleConfig = {
   input: 'src/index.ts',
   output: {
@@ -28,22 +56,7 @@ const bundleConfig = {
   },
   context: 'window',
   plugins: [
-    typescript({
-      tsconfig: 'tsconfig.build.json',
-      tsconfigOverride: {
-        compilerOptions: {
-          declaration: false,
-          paths: {
-            '@sentry/utils/*': ['../utils/src/*'],
-            '@sentry/core': ['../core/src'],
-            '@sentry/hub': ['../hub/src'],
-            '@sentry/types': ['../types/src'],
-            '@sentry/minimal': ['../minimal/src'],
-          },
-        },
-      },
-      include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-    }),
+    ...plugins,
     license({
       sourcemap: true,
       banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
@@ -61,32 +74,8 @@ export default [
       interop: false,
       sourcemap: true,
     },
-    external: [
-      '@sentry/core',
-      '@sentry/hub',
-      '@sentry/minimal',
-      '@sentry/types',
-      '@sentry/utils/logger',
-      '@sentry/utils/misc',
-      '@sentry/utils/is',
-      '@sentry/utils/supports',
-      '@sentry/utils/syncpromise',
-      '@sentry/utils/object',
-      '@sentry/utils/string',
-      '@sentry/utils/error',
-      '@sentry/utils/promisebuffer',
-      'tslib',
-    ],
-    plugins: [
-      typescript({
-        tsconfig: 'tsconfig.build.json',
-        tsconfigOverride: {
-          compilerOptions: {
-            rootDir: 'src',
-          },
-        },
-      }),
-    ],
+    external: ['tslib'],
+    plugins,
   },
   Object.assign({}, bundleConfig, {
     output: Object.assign({}, bundleConfig.output, {
