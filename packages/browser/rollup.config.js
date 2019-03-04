@@ -77,19 +77,83 @@ export default [
     external: ['tslib'],
     plugins,
   },
-  Object.assign({}, bundleConfig, {
-    output: Object.assign({}, bundleConfig.output, {
+  {
+    ...bundleConfig,
+    output: {
+      ...bundleConfig.output,
       file: 'build/bundle.js',
-    }),
-  }),
-  Object.assign({}, bundleConfig, {
-    output: Object.assign({}, bundleConfig.output, {
+    },
+  },
+  {
+    ...bundleConfig,
+    output: {
+      ...bundleConfig.output,
       file: 'build/bundle.min.js',
-    }),
+    },
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
       .slice(0, -1)
       .concat(terserInstance)
       .concat(bundleConfig.plugins.slice(-1)),
-  }),
+  },
+  {
+    ...bundleConfig,
+    output: {
+      ...bundleConfig.output,
+      file: 'build/bundle.es6.js',
+    },
+    plugins: [
+      typescript({
+        tsconfig: 'tsconfig.build.json',
+        tsconfigOverride: {
+          compilerOptions: {
+            declaration: false,
+            module: 'ES2015',
+            paths: {
+              '@sentry/utils/*': ['../utils/src/*'],
+              '@sentry/core': ['../core/src'],
+              '@sentry/hub': ['../hub/src'],
+              '@sentry/types': ['../types/src'],
+              '@sentry/minimal': ['../minimal/src'],
+            },
+            target: 'es6',
+          },
+        },
+        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+      }),
+      ...plugins.slice(1),
+    ],
+  },
+  {
+    ...bundleConfig,
+    output: {
+      ...bundleConfig.output,
+      file: 'build/bundle.es6.min.js',
+    },
+    plugins: [
+      typescript({
+        tsconfig: 'tsconfig.build.json',
+        tsconfigOverride: {
+          compilerOptions: {
+            declaration: false,
+            module: 'ES2015',
+            paths: {
+              '@sentry/utils/*': ['../utils/src/*'],
+              '@sentry/core': ['../core/src'],
+              '@sentry/hub': ['../hub/src'],
+              '@sentry/types': ['../types/src'],
+              '@sentry/minimal': ['../minimal/src'],
+            },
+            target: 'es6',
+          },
+        },
+        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
+      }),
+      ...plugins
+        .slice(1)
+        .slice(0, -1)
+        .concat(terserInstance)
+        .concat(bundleConfig.plugins.slice(-1)),
+    ],
+  },
 ];
