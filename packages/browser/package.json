@@ -54,8 +54,8 @@
     "webpack": "^4.29.5"
   },
   "scripts": {
-    "build": "run-s build:esm build:es5",
-    "build:es5": "rollup --config",
+    "build": "run-s build:esm build:bundle",
+    "build:bundle": "rollup --config",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build esm",
@@ -72,7 +72,9 @@
     "test:integration:watch": "karma start test/karma/karma.integration.config.js --auto-watch --no-single-run",
     "test:saucelabs": "karma start test/karma/karma.saucelabs.config.js",
     "test:manual": "node test/manual/npm-build.js && rm test/manual/tmp.js",
-    "size:check": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print $1,\"kB\";}'",
+    "size:check": "run-p size:check:es5 size:check:es6",
+    "size:check:es5": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
+    "size:check:es6": "cat build/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
   "sideEffects": false
