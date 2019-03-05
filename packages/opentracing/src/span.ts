@@ -133,14 +133,14 @@ export class Span extends opentracing.Span implements SpanInterface {
    */
   public toJSON(): object {
     return {
-      finishTime: (this.finishTime && this.finishTime / 1000) || undefined,
+      finish_time: (this.finishTime && this.finishTime / 1000) || undefined,
       logs: this.logs.length === 0 ? undefined : this.logs,
       operation: this.operation,
       references: this.references && this.references,
-      spanId: this.spanContext.spanId,
-      startTime: this.startTime / 1000,
+      span_id: this.spanContext.spanId,
+      start_time: this.startTime / 1000,
       tags: Object.keys(this.tags).length === 0 ? undefined : this.tags,
-      traceId: this.spanContext.traceId,
+      trace_id: this.spanContext.traceId,
     };
   }
 }
