@@ -3,18 +3,25 @@ import * as opentracing from 'opentracing';
 import { SpanContext } from './spancontext';
 import { Tracer } from './tracer';
 
-/** JSDoc */
+/**
+ * Interface for log entries.
+ */
 interface Log {
   data: { [key: string]: any };
   timestamp?: number;
 }
 
-/** JSDoc */
+/**
+ * Span represents a logical unit of work as part of a broader Trace. Examples
+ * of span might include remote procedure calls or a in-process function calls
+ * to sub-components. A Trace has a single, top-level "root" Span that in turn
+ * may have zero or more child Spans, which in turn may have children.
+ */
 export class Span extends opentracing.Span implements SpanInterface {
-  private flushed: boolean = false;
-  private finishTime: number = 0;
+  private _flushed: boolean = false;
+  private _finishTime: number = 0;
 
-  private readonly logs: Log[] = [];
+  private readonly _logs: Log[] = [];
 
   public tags: {
     [key: string]: string;
@@ -25,11 +32,11 @@ export class Span extends opentracing.Span implements SpanInterface {
   } = {};
 
   public constructor(
-    private readonly usedTracer: Tracer,
-    private operation: string,
-    private readonly spanContext: SpanContext,
-    private readonly references?: opentracing.Reference[],
-    private readonly startTime: number = Date.now(),
+    private readonly _usedTracer: Tracer,
+    private _operation: string,
+    private readonly _spanContext: SpanContext,
+    private readonly _references?: opentracing.Reference[],
+    private readonly _startTime: number = Date.now(),
   ) {
     super();
   }
@@ -38,29 +45,33 @@ export class Span extends opentracing.Span implements SpanInterface {
    * Returns the context.
    */
   protected _context(): SpanContext {
-    return this.spanContext;
+    return this._spanContext;
   }
 
   /**
    * Returns the tracer passed to the span.
    */
   protected _tracer(): Tracer {
-    return this.usedTracer;
+    return this._usedTracer;
   }
 
   /**
    * Sets the operation name.
    */
   protected _setOperationName(name: string): void {
-    this.operation = name;
+    this._operation = name;
   }
 
-  /** JSDoc */
+  /**
+   * Implementation for {@link setBaggageItem}
+   */
   protected _setBaggageItem(key: string, value: string): void {
     this.baggage[key] = value;
   }
 
-  /** JSDoc */
+  /**
+   * Implementation for {@link getBaggageItem}
+   */
   protected _getBaggageItem(key: string): string | undefined {
     return this.baggage[key];
   }
@@ -78,46 +89,46 @@ export class Span extends opentracing.Span implements SpanInterface {
   /**
    * Store log entry.
    */
-  protected _log(data: { [key: string]: any }, timestamp?: number): void {
-    this.logs.push({
+  protected _log(data: { [key: string]: any }, timestamp: number = Date.now() / 1000): void {
+    this._logs.push({
       data,
       timestamp,
     });
   }
 
   /**
-   * JSDoc
+   * Implementation for {@link finish}
    */
-  protected _finish(finishTime?: number): void {
-    this.finishTime = finishTime || Date.now();
+  protected _finish(finishTime: number = Date.now()): void {
+    this._finishTime = finishTime;
   }
 
   /**
    * Returns the operationName.
    */
   public getOperationName(): string {
-    return this.operation;
+    return this._operation;
   }
 
   /**
    * Returns the duration of the span.
    */
   public duration(): number {
-    return this.finishTime - this.startTime;
+    return this._finishTime - this._startTime;
   }
 
   /**
    * Returns wether the span has been finished.
    */
   public isFinished(): boolean {
-    return this.finishTime > 0;
+    return this._finishTime > 0;
   }
 
   /**
    * Marks the span as flushed.
    */
   public flush(): this {
-    this.flushed = true;
+    this._flushed = true;
     return this;
   }
 
@@ -125,7 +136,7 @@ export class Span extends opentracing.Span implements SpanInterface {
    * Returns wether the span has already be flushed.
    */
   public isFlushed(): boolean {
-    return this.flushed;
+    return this._flushed;
   }
 
   /**
@@ -133,14 +144,14 @@ export class Span extends opentracing.Span implements SpanInterface {
    */
   public toJSON(): object {
     return {
-      finish_time: (this.finishTime && this.finishTime / 1000) || undefined,
-      logs: this.logs.length === 0 ? undefined : this.logs,
-      operation: this.operation,
-      references: this.references && this.references,
-      span_id: this.spanContext.spanId,
-      start_time: this.startTime / 1000,
+      finish_time: (this._finishTime && this._finishTime / 1000) || undefined,
+      logs: this._logs.length === 0 ? undefined : this._logs,
+      operation: this._operation,
+      references: this._references && this._references,
+      span_id: this._spanContext.spanId,
+      start_time: this._startTime / 1000,
       tags: Object.keys(this.tags).length === 0 ? undefined : this.tags,
-      trace_id: this.spanContext.traceId,
+      trace_id: this._spanContext.traceId,
     };
   }
 }
