@@ -15,6 +15,7 @@ export { Response } from './response';
 export { Scope } from './scope';
 export { SdkInfo } from './sdkinfo';
 export { Severity } from './severity';
+export { Span } from './span';
 export { StackFrame } from './stackframe';
 export { Stacktrace } from './stacktrace';
 export { Status } from './status';

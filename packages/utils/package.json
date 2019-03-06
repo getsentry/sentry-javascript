@@ -31,6 +31,7 @@
     "build:es5": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "clean": "rimraf dist esm coverage *.js *.js.map *.d.ts",
+    "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",

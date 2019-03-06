@@ -27,6 +27,7 @@
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",
