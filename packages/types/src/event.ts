@@ -3,6 +3,7 @@ import { Exception } from './exception';
 import { Request } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
+import { Span } from './span';
 import { Stacktrace } from './stacktrace';
 import { User } from './user';
 
@@ -32,7 +33,12 @@ export interface Event {
   tags?: { [key: string]: string };
   extra?: { [key: string]: any };
   user?: User;
+  spans?: Span[];
+  type?: EventType;
 }
+
+/** JSDoc */
+export type EventType = 'none';
 
 /** JSDoc */
 export interface EventHint {

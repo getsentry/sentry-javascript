@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/minimal",
+  "name": "@sentry/opentracing",
   "version": "5.0.0-beta0",
-  "description": "Sentry minimal library that can be used in other packages",
+  "description": "Sentry OpenTracing SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal",
   "author": "Sentry",
@@ -17,8 +17,9 @@
   },
   "dependencies": {
     "@sentry/hub": "5.0.0-beta0",
+    "@sentry/utils": "5.0.0-beta0",
     "@sentry/types": "5.0.0-beta0",
-    "tslib": "^1.9.3"
+    "opentracing": "0.14.3"
   },
   "devDependencies": {
     "jest": "^24.1.0",
@@ -43,8 +44,8 @@
     "fix": "run-s fix:tslint fix:prettier",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p .",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests"
   },
   "jest": {
     "collectCoverage": true,

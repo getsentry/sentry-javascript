@@ -43,6 +43,7 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [all] build: Use `es6` target instead of esnext for ESM builds
 - [all] feat: Prefix all private methods with `_`
 - [all] build: Use terser instead of uglify
+- [opentracing] feat: Introduce `@sentry/opentracing` providing functions to attach opentracing data to Sentry Events
 
 ## 4.6.4
 
