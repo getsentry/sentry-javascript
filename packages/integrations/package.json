@@ -13,11 +13,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "5.0.0-beta0",
-    "@sentry/hub": "5.0.0-beta0",
     "@sentry/types": "5.0.0-beta0",
-    "@sentry/utils": "5.0.0-beta0",
-    "tslib": "^1.9.3"
+    "@sentry/utils": "5.0.0-beta0"
   },
   "devDependencies": {
     "@types/angular": "^1.6.54",
@@ -27,12 +24,19 @@
     "prettier": "^1.16.4",
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.3",
+    "rollup": "^1.4.0",
+    "rollup-plugin-commonjs": "^9.2.1",
+    "rollup-plugin-node-resolve": "^4.0.1",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-typescript2": "^0.19.2",
     "tslint": "^5.12.1",
     "typescript": "^3.3.3"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "run-p build:es5 build:bundle",
+    "build:es5": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:bundle": "rollup --config",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
@@ -49,9 +53,14 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
-    "moduleFileExtensions": ["js", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
     "testEnvironment": "node",
-    "testMatch": ["**/*.test.ts"],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
     "globals": {
       "ts-jest": {
         "tsConfig": "./tsconfig.json",

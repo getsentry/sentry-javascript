@@ -1,5 +1,4 @@
-import { captureMessage, getCurrentHub, withScope } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { supportsReportingObserver } from '@sentry/utils/supports';
 
@@ -64,6 +63,11 @@ export class ReportingObserver implements Integration {
   public static id: string = 'ReportingObserver';
 
   /**
+   * Returns current hub.
+   */
+  private _getCurrentHub?: () => Hub;
+
+  /**
    * @inheritDoc
    */
   public constructor(
@@ -77,12 +81,14 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     // tslint:disable:no-unsafe-any
 
     if (!supportsReportingObserver()) {
       return;
     }
+
+    this._getCurrentHub = getCurrentHub;
 
     const observer = new (getGlobalObject() as {
       ReportingObserver: any;
@@ -98,11 +104,12 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public handler(reports: Report[]): void {
-    if (!getCurrentHub().getIntegration(ReportingObserver)) {
+    const hub = this._getCurrentHub && this._getCurrentHub();
+    if (!hub || !hub.getIntegration(ReportingObserver)) {
       return;
     }
     for (const report of reports) {
-      withScope(scope => {
+      hub.withScope(scope => {
         scope.setExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
@@ -131,7 +138,7 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        captureMessage(`${label}: ${details}`);
+        hub.captureMessage(`${label}: ${details}`);
       });
     }
   }

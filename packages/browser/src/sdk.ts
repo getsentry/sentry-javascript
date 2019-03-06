@@ -4,7 +4,6 @@ import { BrowserClient, ReportDialogOptions } from './client';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
-  new CoreIntegrations.Dedupe(),
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
   new TryCatch(),

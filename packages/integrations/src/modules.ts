@@ -1,5 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 
@@ -70,7 +69,7 @@ export class Modules implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor(event => {
       if (!getCurrentHub().getIntegration(Modules)) {
         return event;

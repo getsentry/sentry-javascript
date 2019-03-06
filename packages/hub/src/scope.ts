@@ -159,7 +159,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritdoc
    */
-  public setLevel(level?: Severity): this {
+  public setLevel(level: Severity): this {
     this._level = normalize(level);
     this._notifyScopeListeners();
     return this;

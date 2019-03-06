@@ -17,5 +17,7 @@ module.exports = [
   { pattern: 'test/integration/init.js', included: false },
   { pattern: 'build/bundle.js', included: false },
   { pattern: 'build/bundle.js.map', included: false },
+  { pattern: 'test/integration/dedupe.js', included: false },
+  { pattern: 'test/integration/dedupe.js.map', included: false },
   'test/integration/test.js',
 ];

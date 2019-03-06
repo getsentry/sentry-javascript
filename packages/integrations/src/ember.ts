@@ -1,6 +1,4 @@
-import { captureException, captureMessage, getCurrentHub, Scope, withScope } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
+import { Event, EventProcessor, Hub, Integration, Scope } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 /** JSDoc */
@@ -33,11 +31,11 @@ export class Ember implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     // tslint:disable:no-unsafe-any
 
     if (!this._Ember) {
-      logger.error('EmberIntegration is missing an Ember instance');
+      console.error('EmberIntegration is missing an Ember instance');
       return;
     }
 
@@ -45,9 +43,9 @@ export class Ember implements Integration {
 
     this._Ember.onerror = (error: Error): void => {
       if (getCurrentHub().getIntegration(Ember)) {
-        withScope(scope => {
+        getCurrentHub().withScope(scope => {
           this._addIntegrationToSdkInfo(scope);
-          captureException(error);
+          getCurrentHub().captureException(error);
         });
       }
 
@@ -62,15 +60,15 @@ export class Ember implements Integration {
       'error',
       (reason: any): void => {
         if (getCurrentHub().getIntegration(Ember)) {
-          withScope(scope => {
+          getCurrentHub().withScope(scope => {
             if (reason instanceof Error) {
               scope.setExtra('context', 'Unhandled Promise error detected');
               this._addIntegrationToSdkInfo(scope);
-              captureException(reason);
+              getCurrentHub().captureException(reason);
             } else {
               scope.setExtra('reason', reason);
               this._addIntegrationToSdkInfo(scope);
-              captureMessage('Unhandled Promise error detected');
+              getCurrentHub().captureMessage('Unhandled Promise error detected');
             }
           });
         }

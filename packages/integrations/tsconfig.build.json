@@ -2,10 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": ".",
-    "rootDir": "src",
-    "types": ["angular"]
+    "outDir": "dist",
+    "types": ["node", "angular"]
   },
-  "exclude": [],
   "include": ["src/**/*.ts"]
 }
