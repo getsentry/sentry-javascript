@@ -1,7 +1,5 @@
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { isPlainObject } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 /** JSDoc */
@@ -65,11 +63,11 @@ export class Vue implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     // tslint:disable:no-unsafe-any
 
     if (!this._Vue || !this._Vue.config) {
-      logger.error('VueIntegration is missing a Vue instance');
+      console.error('VueIntegration is missing a Vue instance');
       return;
     }
 
@@ -91,7 +89,7 @@ export class Vue implements Integration {
       }
 
       if (getCurrentHub().getIntegration(Vue)) {
-        withScope(scope => {
+        getCurrentHub().withScope(scope => {
           Object.keys(metadata).forEach(key => {
             scope.setExtra(key, metadata[key]);
           });
@@ -107,7 +105,7 @@ export class Vue implements Integration {
             return event;
           });
 
-          captureException(error);
+          getCurrentHub().captureException(error);
         });
       }
 

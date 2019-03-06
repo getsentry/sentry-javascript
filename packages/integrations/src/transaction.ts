@@ -1,5 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Event, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 
 /** Add node transaction to the event */
 export class Transaction implements Integration {
@@ -15,7 +14,7 @@ export class Transaction implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor(event => {
       const self = getCurrentHub().getIntegration(Transaction);
       if (self) {

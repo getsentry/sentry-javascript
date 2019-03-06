@@ -1,7 +1,4 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, Exception, Integration, StackFrame } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
-import { getEventDescription } from '@sentry/utils/misc';
+import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
 
 /** Deduplication filter */
 export class Dedupe implements Integration {
@@ -23,7 +20,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((currentEvent: Event) => {
       const self = getCurrentHub().getIntegration(Dedupe);
       if (self) {
@@ -49,20 +46,10 @@ export class Dedupe implements Integration {
     }
 
     if (this._isSameMessageEvent(currentEvent, previousEvent)) {
-      logger.warn(
-        `Event dropped due to being a duplicate of previous event (same message).\nEvent: ${getEventDescription(
-          currentEvent,
-        )}`,
-      );
       return true;
     }
 
     if (this._isSameExceptionEvent(currentEvent, previousEvent)) {
-      logger.warn(
-        `Event dropped due to being a duplicate of previous event (same exception).\nEvent: ${getEventDescription(
-          currentEvent,
-        )}`,
-      );
       return true;
     }
 

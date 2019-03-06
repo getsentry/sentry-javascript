@@ -128,15 +128,6 @@ describe('SentryBrowser', () => {
       captureEvent({ message: 'event' });
     });
 
-    it('should dedupe an event', async () => {
-      captureMessage('event222');
-      captureMessage('event222');
-
-      await flush(2000);
-
-      expect(beforeSend.calledOnce).to.be.true;
-    });
-
     it('should not dedupe an event on bound client', async () => {
       const localBeforeSend = spy();
       getCurrentHub().bindClient(

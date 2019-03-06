@@ -1,3 +1,4 @@
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 
@@ -50,7 +51,7 @@ export function setupIntegration(integration: Integration): void {
   if (installedIntegrations.indexOf(getIntegrationName(integration)) !== -1) {
     return;
   }
-  integration.setupOnce();
+  integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
   installedIntegrations.push(getIntegrationName(integration));
   logger.log(`Integration installed: ${getIntegrationName(integration)}`);
 }

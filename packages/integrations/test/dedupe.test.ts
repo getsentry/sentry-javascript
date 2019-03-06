@@ -1,4 +1,4 @@
-import { Dedupe } from '../../../src/integrations/dedupe';
+import { Dedupe } from '../src/dedupe';
 
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));

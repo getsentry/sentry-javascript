@@ -1,7 +1,5 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Event, EventHint, ExtendedError, Integration } from '@sentry/types';
+import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
 import { normalize } from '@sentry/utils/object';
 
 /** JSDoc */
@@ -29,7 +27,7 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(ExtraErrorData);
       if (!self) {
@@ -97,7 +95,7 @@ export class ExtraErrorData implements Integration {
         };
       }
     } catch (oO) {
-      logger.error('Unable to extract extra data from the Error object:', oO);
+      console.error('Unable to extract extra data from the Error object:', oO);
     }
 
     return result;

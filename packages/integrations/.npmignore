@@ -1,6 +1,4 @@
 *
-!*.js.map
-!*.d.ts
-!*.js
+!/dist/**/*
+!/build/**/*
 !/esm/**/*
-jest.config.js

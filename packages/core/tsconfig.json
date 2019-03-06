@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "../integrations/test/dedupe.test.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",

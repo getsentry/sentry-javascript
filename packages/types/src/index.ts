@@ -5,6 +5,7 @@ export { ExtendedError } from './error';
 export { Event, EventHint } from './event';
 export { EventProcessor } from './eventprocessor';
 export { Exception } from './exception';
+export { Hub } from './hub';
 export { Integration, IntegrationClass } from './integration';
 export { LogLevel } from './loglevel';
 export { Mechanism } from './mechanism';

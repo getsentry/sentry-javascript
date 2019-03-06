@@ -4,6 +4,7 @@ import {
   Client,
   Event,
   EventHint,
+  Hub as HubInterface,
   Integration,
   IntegrationClass,
   Severity,
@@ -49,7 +50,7 @@ const MAX_BREADCRUMBS = 100;
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
  */
-export class Hub {
+export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[] = [];
 
@@ -82,20 +83,14 @@ export class Hub {
   }
 
   /**
-   * Checks if this hub's version is older than the given version.
-   *
-   * @param version A version number to compare to.
-   * @return True if the given version is newer; otherwise false.
-   *
-   * @hidden
+   * @inheritdoc
    */
   public isOlderThan(version: number): boolean {
     return this._version < version;
   }
 
   /**
-   * This binds the given client to the current scope.
-   * @param client An SDK client (client) instance.
+   * @inheritdoc
    */
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
@@ -103,14 +98,7 @@ export class Hub {
   }
 
   /**
-   * Create a new scope to store context information.
-   *
-   * The scope will be layered on top of the current one. It is isolated, i.e. all
-   * breadcrumbs and context information added to this scope will be removed once
-   * the scope ends. Be sure to always remove this scope with {@link this.popScope}
-   * when the operation finishes or throws.
-   *
-   * @returns Scope, the new cloned scope
+   * @inheritdoc
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
@@ -125,28 +113,14 @@ export class Hub {
   }
 
   /**
-   * Removes a previously pushed scope from the stack.
-   *
-   * This restores the state before the scope was pushed. All breadcrumbs and
-   * context information added since the last call to {@link this.pushScope} are
-   * discarded.
+   * @inheritdoc
    */
   public popScope(): boolean {
     return this.getStack().pop() !== undefined;
   }
 
   /**
-   * Creates a new scope with and executes the given operation within.
-   * The scope is automatically removed once the operation
-   * finishes or throws.
-   *
-   * This is essentially a convenience function for:
-   *
-   *     pushScope();
-   *     callback();
-   *     popScope();
-   *
-   * @param callback that will be enclosed into push/popScope.
+   * @inheritdoc
    */
   public withScope(callback: (scope: Scope) => void): void {
     const scope = this.pushScope();
@@ -157,7 +131,9 @@ export class Hub {
     }
   }
 
-  /** Returns the client of the top stack. */
+  /**
+   * @inheritdoc
+   */
   public getClient(): Client | undefined {
     return this.getStackTop().client;
   }
@@ -178,11 +154,7 @@ export class Hub {
   }
 
   /**
-   * Captures an exception event and sends it to Sentry.
-   *
-   * @param exception An exception-like object.
-   * @param hint May contain additional information about the original exception.
-   * @returns The generated eventId.
+   * @inheritdoc
    */
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -194,12 +166,7 @@ export class Hub {
   }
 
   /**
-   * Captures a message event and sends it to Sentry.
-   *
-   * @param message The message to send to Sentry.
-   * @param level Define the level of the message.
-   * @param hint May contain additional information about the original exception.
-   * @returns The generated eventId.
+   * @inheritdoc
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -211,10 +178,7 @@ export class Hub {
   }
 
   /**
-   * Captures a manually created event and sends it to Sentry.
-   *
-   * @param event The event to send to Sentry.
-   * @param hint May contain additional information about the original exception.
+   * @inheritdoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -226,22 +190,14 @@ export class Hub {
   }
 
   /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
+   * @inheritdoc
    */
   public lastEventId(): string | undefined {
     return this._lastEventId;
   }
 
   /**
-   * Records a new breadcrumb which will be attached to future events.
-   *
-   * Breadcrumbs will be added to subsequent events to provide more context on
-   * user's actions prior to an error or crash.
-   *
-   * @param breadcrumb The breadcrumb to record.
-   * @param hint May contain additional information about the original breadcrumb.
+   * @inheritdoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     const top = this.getStackTop();
@@ -270,9 +226,7 @@ export class Hub {
   }
 
   /**
-   * Callback to set context information onto the scope.
-   *
-   * @param callback Callback function that receives Scope.
+   * @inheritdoc
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const top = this.getStackTop();
@@ -283,9 +237,7 @@ export class Hub {
   }
 
   /**
-   * For the duraction of the callback, this hub will be set as the global current Hub.
-   * This function is useful if you want to run your own client and hook into an already initialized one
-   * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
+   * @inheritdoc
    */
   public run(callback: (hub: Hub) => void): void {
     const oldHub = makeMain(this);
@@ -296,7 +248,9 @@ export class Hub {
     }
   }
 
-  /** Returns the integration if installed on the current client. */
+  /**
+   * @inheritdoc
+   */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     const client = this.getClient();
     if (!client) {

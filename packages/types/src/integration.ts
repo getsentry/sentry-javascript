@@ -1,3 +1,6 @@
+import { EventProcessor } from './eventprocessor';
+import { Hub } from './hub';
+
 /** Integration Class Interface */
 export interface IntegrationClass<T> {
   new (): T;
@@ -18,5 +21,5 @@ export interface Integration {
    * Sets the integration up only once.
    * This takes no options on purpose, options should be passed in the constructor
    */
-  setupOnce(): void;
+  setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 }

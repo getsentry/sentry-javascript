@@ -1,6 +1,4 @@
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
+import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
@@ -33,6 +31,11 @@ export class Angular implements Integration {
   private readonly _angular: ng.IAngularStatic;
 
   /**
+   * Returns current hub.
+   */
+  private _getCurrentHub?: () => Hub;
+
+  /**
    * @inheritDoc
    */
   public constructor(options: { angular?: ng.IAngularStatic } = {}) {
@@ -46,11 +49,13 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._angular) {
-      logger.error('AngularIntegration is missing an Angular instance');
+      console.error('AngularIntegration is missing an Angular instance');
       return;
     }
+
+    this._getCurrentHub = getCurrentHub;
 
     this._angular.module(Angular.moduleName, []).config([
       '$provide',
@@ -65,8 +70,10 @@ export class Angular implements Integration {
    */
   private _$exceptionHandlerDecorator($delegate: ng.IExceptionHandlerService): ng.IExceptionHandlerService {
     return (exception: Error, cause?: string) => {
-      if (getCurrentHub().getIntegration(Angular)) {
-        withScope(scope => {
+      const hub = this._getCurrentHub && this._getCurrentHub();
+
+      if (hub && hub.getIntegration(Angular)) {
+        hub.withScope(scope => {
           if (cause) {
             scope.setExtra('cause', cause);
           }
@@ -93,7 +100,7 @@ export class Angular implements Integration {
             return event;
           });
 
-          captureException(exception);
+          hub.captureException(exception);
         });
       }
       $delegate(exception, cause);
