@@ -3,7 +3,7 @@ import { Client } from './client';
 import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
-import { Severity } from './Severity';
+import { Severity } from './severity';
 
 export interface Hub {
   /**
