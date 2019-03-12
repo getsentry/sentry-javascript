@@ -5,7 +5,6 @@ import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
-import { createHash } from 'crypto';
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
 
@@ -90,11 +89,6 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
         getCurrentHub().configureScope(scope => {
           scope.setExtra('__serialized__', normalizeToSize(exception as {}));
-          scope.setFingerprint([
-            createHash('md5')
-              .update(keys.join(''))
-              .digest('hex'),
-          ]);
         });
 
         ex = (hint && hint.syntheticException) || new Error(message);
@@ -104,7 +98,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
         // We use synthesized Error here so we can extract a (rough) stack trace.
         ex = (hint && hint.syntheticException) || new Error(exception as string);
       }
-      mechanism.synthetic = false; // TODO: Make true
+      mechanism.synthetic = true;
     }
 
     return new SyncPromise<Event>(resolve =>
