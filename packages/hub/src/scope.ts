@@ -236,9 +236,6 @@ export class Scope implements ScopeInterface {
     // If we have something on the scope, then merge it with event
     if (this._fingerprint) {
       event.fingerprint = event.fingerprint.concat(this._fingerprint);
-    } else if (event.message) {
-      // If not, but we have message, use it instead
-      event.fingerprint = event.fingerprint.concat(event.message);
     }
 
     // If we have no data at all, remove empty array default
