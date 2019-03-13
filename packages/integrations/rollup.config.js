@@ -53,12 +53,27 @@ function toPascalCase(string) {
 }
 
 function mergeIntoSentry(name) {
-  return `window.SentryIntegration = window.SentryIntegration || {}; \n
-  window.SentryIntegration.${name} = exports.${name};`;
+  return `
+  if (window.Sentry && window.Sentry.Integrations) {
+    window.Sentry.Integrations['${name}'] = exports.${name};
+  } else {
+    if ((typeof __SENTRY_INTEGRATIONS_LOG === 'undefined')) {
+      console.warn('Sentry.Integrations is not defined, make sure you included this script after the SDK.');
+      console.warn('In case you were using the loader, we added the Integration is now available under SentryIntegrations.${name}');
+      console.warn('To disable these warning set __SENTRY_INTEGRATIONS_LOG = true; somewhere before loading this script.');
+    }
+    window.SentryIntegrations = window.SentryIntegrations || {};
+    window.SentryIntegrations['${name}'] = exports.${name};
+  }
+  `;
+}
+
+function allIntegrations() {
+  return fs.readdirSync('./src').filter(file => file != 'modules.ts');
 }
 
 function loadAllIntegrations() {
-  return fs.readdirSync('./src').map(file => ({
+  return allIntegrations().map(file => ({
     input: `src/${file}`,
     output: {
       banner: '(function (window) {',

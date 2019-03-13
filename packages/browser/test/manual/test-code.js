@@ -1,8 +1,10 @@
 const Sentry = require('../../dist/index.js');
+const Integrations = require('../../../integrations/dist/dedupe.js');
 
 // Init
 Sentry.init({
   dsn: 'https://completelyrandom@dsn.asdf/42',
+  integrations: [new Integrations.Dedupe()],
   beforeSend(event) {
     console.log('Got an event');
     return null;
