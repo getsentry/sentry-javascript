@@ -79,7 +79,7 @@ import { init, captureMessage } from '@sentry/browser/esm';
 
 and add it to your babel/... build, if you want to support older browsers
 
-> TIP: You can use [`<script type="module" str="newbrowser.js">` + 
+> TIP: You can use [`<script type="module" src="newbrowser.js">` + 
   `<script nomodule src="oldbrowser.js">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Module_Fallback)
   to provide builds for newer and older browsers
 
