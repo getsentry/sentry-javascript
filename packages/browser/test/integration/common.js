@@ -117,7 +117,10 @@ function initSDK() {
   Sentry.init({
     dsn: 'https://public@example.com/1',
     // debug: true,
-    integrations: [new SentryIntegration.Dedupe()],
+    integrations: [
+      (Sentry.Integrations && Sentry.Integrations.Dedupe && new Sentry.Integrations.Dedupe()) ||
+        (SentryIntegrations && new SentryIntegrations.Dedupe()),
+    ],
     attachStacktrace: true,
     transport: DummyTransport,
     ignoreErrors: ['ignoreErrorTest'],
