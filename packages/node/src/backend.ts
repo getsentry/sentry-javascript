@@ -5,6 +5,7 @@ import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';
 
@@ -43,7 +44,7 @@ export interface NodeOptions extends Options {
  */
 export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   protected _setupTransport(): Transport {
     if (!this._options.dsn) {
@@ -64,11 +65,11 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     if (this._options.transport) {
       return new this._options.transport(transportOptions);
-    } else if (dsn.protocol === 'http') {
-      return new HTTPTransport(transportOptions);
-    } else {
-      return new HTTPSTransport(transportOptions);
     }
+    if (dsn.protocol === 'http') {
+      return new HTTPTransport(transportOptions);
+    }
+    return new HTTPSTransport(transportOptions);
   }
 
   /**

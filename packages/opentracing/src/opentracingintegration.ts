@@ -1,4 +1,5 @@
 import { Integration } from '@sentry/types';
+
 import { Tracer } from './tracer';
 
 /**

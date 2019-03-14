@@ -6,7 +6,9 @@ import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/mi
 import { fill, normalize } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
 import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
+
 import { BrowserClient } from '../client';
+
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 const global = getGlobalObject() as Window;
@@ -66,13 +68,17 @@ export class Breadcrumbs implements Integration {
     };
   }
 
-  /** JSDoc */
+  /**
+   * @hidden
+   */
   private _instrumentBeacon(): void {
     if (!supportsBeacon()) {
       return;
     }
 
-    /** JSDoc */
+    /**
+     * @hidden
+     */
     function beaconReplacementFunction(originalBeaconFunction: () => void): () => void {
       return function(this: History, ...args: any[]): void {
         const url = args[0];
@@ -310,7 +316,9 @@ export class Breadcrumbs implements Integration {
       }
     };
 
-    /** JSDoc */
+    /**
+     * @hidden
+     */
     function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
       // note history.pushState.length is 0; intentionally not declaring
       // params to preserve 0 arity
@@ -335,7 +343,9 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
-    /** JSDoc */
+    /**
+     * @hidden
+     */
     function wrapProp(prop: string, xhr: XMLHttpRequest): void {
       // TODO: Fix XHR types
       if (prop in xhr && typeof (xhr as { [key: string]: any })[prop] === 'function') {
@@ -392,7 +402,9 @@ export class Breadcrumbs implements Integration {
             addSentryBreadcrumb(args[0]);
           }
 
-          /** JSDoc */
+          /**
+           * @hidden
+           */
           function onreadystatechangeHandler(): void {
             if (xhr.readyState === 4) {
               if (xhr.__sentry_own_request__) {

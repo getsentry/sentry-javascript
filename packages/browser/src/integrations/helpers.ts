@@ -80,9 +80,8 @@ export function wrap(
 
       if (fn.handleEvent) {
         return fn.handleEvent.apply(this, wrappedArguments);
-      } else {
-        return fn.apply(this, wrappedArguments);
       }
+      return fn.apply(this, wrappedArguments);
     } catch (ex) {
       ignoreNextOnError();
 

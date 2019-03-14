@@ -9,6 +9,7 @@ import * as domain from 'domain';
 import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
+
 import { NodeClient } from './client';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;

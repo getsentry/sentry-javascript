@@ -42,14 +42,13 @@ export async function mkdirp(path: string): Promise<void> {
     if (error && error.code === 'ENOENT') {
       await mkdirp(dirname(realPath));
       return mkdirAsync(realPath, mode);
-    } else {
-      try {
-        if (!statSync(realPath).isDirectory()) {
-          throw err;
-        }
-      } catch (_) {
+    }
+    try {
+      if (!statSync(realPath).isDirectory()) {
         throw err;
       }
+    } catch (_) {
+      throw err;
     }
   }
 }

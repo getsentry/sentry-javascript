@@ -15,7 +15,7 @@ export enum Severity {
   /** JSDoc */
   Critical = 'critical',
 }
-
+// tslint:disable:completed-docs
 // tslint:disable:no-unnecessary-qualifier no-namespace
 export namespace Severity {
   /**

@@ -5,6 +5,7 @@ import { SyncPromise } from '@sentry/utils/syncpromise';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 import * as stacktrace from 'stack-trace';
+
 import { NodeOptions } from './backend';
 
 // tslint:disable-next-line:no-unsafe-any

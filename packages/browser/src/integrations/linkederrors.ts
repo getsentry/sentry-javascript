@@ -1,5 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
+
 import { exceptionFromStacktrace } from '../parsers';
 import { computeStackTrace } from '../tracekit';
 

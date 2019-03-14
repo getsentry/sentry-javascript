@@ -1,4 +1,5 @@
 import { Event, Mechanism, WrappedFunction } from '@sentry/types';
+
 import { isString } from './is';
 
 /**
@@ -78,16 +79,15 @@ export function uuid4(): string {
     return (
       pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) + pad(arr[5]) + pad(arr[6]) + pad(arr[7])
     );
-  } else {
-    // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-    return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      // tslint:disable-next-line:no-bitwise
-      const r = (Math.random() * 16) | 0;
-      // tslint:disable-next-line:no-bitwise
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
   }
+  // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+  return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    // tslint:disable-next-line:no-bitwise
+    const r = (Math.random() * 16) | 0;
+    // tslint:disable-next-line:no-bitwise
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /**
@@ -209,17 +209,16 @@ export function parseUrl(
 export function getEventDescription(event: Event): string {
   if (event.message) {
     return event.message;
-  } else if (event.exception && event.exception.values && event.exception.values[0]) {
+  }
+  if (event.exception && event.exception.values && event.exception.values[0]) {
     const exception = event.exception.values[0];
 
     if (exception.type && exception.value) {
       return `${exception.type}: ${exception.value}`;
-    } else {
-      return exception.type || exception.value || event.event_id || '<unknown>';
     }
-  } else {
-    return event.event_id || '<unknown>';
+    return exception.type || exception.value || event.event_id || '<unknown>';
   }
+  return event.event_id || '<unknown>';
 }
 
 /** JSDoc */

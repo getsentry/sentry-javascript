@@ -5,6 +5,7 @@ import { logger } from '@sentry/utils/logger';
 import { uuid4 } from '@sentry/utils/misc';
 import { truncate } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';

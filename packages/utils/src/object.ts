@@ -1,4 +1,5 @@
 import { ExtendedError, WrappedFunction } from '@sentry/types';
+
 import { isError, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
 import { truncate } from './string';
@@ -124,14 +125,16 @@ function serializeValue(value: any): any {
   // Node.js REPL notation
   if (typeof value === 'string') {
     return truncate(value, 40);
-  } else if (type === '[object Object]') {
-    return '[Object]';
-  } else if (type === '[object Array]') {
-    return '[Array]';
-  } else {
-    const normalized = normalizeValue(value);
-    return isPrimitive(normalized) ? normalized : type;
   }
+  if (type === '[object Object]') {
+    return '[Object]';
+  }
+  if (type === '[object Array]') {
+    return '[Array]';
+  }
+
+  const normalized = normalizeValue(value);
+  return isPrimitive(normalized) ? normalized : type;
 }
 
 /**

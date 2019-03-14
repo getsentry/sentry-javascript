@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
+
 import { Status, Transports } from '../../src';
 
 const testDsn = 'https://123@sentry.io/42';
@@ -17,6 +18,7 @@ let transport: Transports.BaseTransport;
 
 describe('BeaconTransport', () => {
   beforeEach(() => {
+    // @ts-ignore
     sendBeacon = stub(window.navigator, 'sendBeacon');
     transport = new Transports.BeaconTransport({ dsn: testDsn });
   });

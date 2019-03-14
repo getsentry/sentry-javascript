@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { fakeServer, SinonFakeServer } from 'sinon';
+
 import { Status, Transports } from '../../src';
 
 const testDsn = 'https://123@sentry.io/42';

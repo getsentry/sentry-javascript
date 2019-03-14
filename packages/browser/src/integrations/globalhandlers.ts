@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils/logger';
 import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { normalize } from '@sentry/utils/object';
 import { truncate } from '@sentry/utils/string';
+
 import { eventFromStacktrace } from '../parsers';
 import {
   installGlobalHandler,
@@ -11,6 +12,7 @@ import {
   StackTrace as TraceKitStackTrace,
   subscribe,
 } from '../tracekit';
+
 import { shouldIgnoreOnError } from './helpers';
 
 /** JSDoc */

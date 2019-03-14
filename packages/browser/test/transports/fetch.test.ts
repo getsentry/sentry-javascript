@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
+
 import { Status, Transports } from '../../src';
 
 const testDsn = 'https://123@sentry.io/42';
@@ -17,6 +18,7 @@ let transport: Transports.BaseTransport;
 
 describe('FetchTransport', () => {
   beforeEach(() => {
+    // @ts-ignore
     fetch = stub(window, 'fetch');
     transport = new Transports.FetchTransport({ dsn: testDsn });
   });

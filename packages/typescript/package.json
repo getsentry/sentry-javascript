@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "tslint-config-prettier": "^1.18.0",
-    "tslint-consistent-codestyle": "^1.15.0"
+    "tslint-consistent-codestyle": "^1.15.1"
   },
   "peerDependencies": {
     "tslint": "^5.11.0",

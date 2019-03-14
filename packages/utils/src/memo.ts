@@ -25,17 +25,16 @@ export class Memo {
       }
       this._inner.add(obj);
       return false;
-    } else {
-      // tslint:disable-next-line:prefer-for-of
-      for (let i = 0; i < this._inner.length; i++) {
-        const value = this._inner[i];
-        if (value === obj) {
-          return true;
-        }
-      }
-      this._inner.push(obj);
-      return false;
     }
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < this._inner.length; i++) {
+      const value = this._inner[i];
+      if (value === obj) {
+        return true;
+      }
+    }
+    this._inner.push(obj);
+    return false;
   }
 
   /**

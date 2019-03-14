@@ -1,6 +1,7 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { getExceptionFromError } from '../parsers';
 
 const DEFAULT_KEY = 'cause';

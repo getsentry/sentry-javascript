@@ -33,6 +33,7 @@ export { defaultIntegrations, init, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
 import * as Transports from './transports';

@@ -1,6 +1,7 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
 import { normalizeToSize } from '@sentry/utils/object';
 import { keysToEventMessage } from '@sentry/utils/string';
+
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;

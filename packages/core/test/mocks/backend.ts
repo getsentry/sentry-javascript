@@ -1,5 +1,6 @@
 import { Event, Options } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { BaseBackend } from '../../src/basebackend';
 
 export interface TestOptions extends Options {

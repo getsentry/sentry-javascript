@@ -2,6 +2,7 @@ import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import { logger } from '@sentry/utils/logger';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { NoopTransport } from './transports/noop';
 
 /**

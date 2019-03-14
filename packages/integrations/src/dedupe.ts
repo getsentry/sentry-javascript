@@ -99,9 +99,8 @@ export class Dedupe implements Integration {
       }
     } else if (event.stacktrace) {
       return event.stacktrace.frames;
-    } else {
-      return undefined;
     }
+    return undefined;
   }
 
   /** JSDoc */
