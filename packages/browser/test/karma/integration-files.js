@@ -1,3 +1,7 @@
+const fs = require('fs');
+fs.copyFileSync('../integrations/build/dedupe.js', './test/integration/dedupe.js');
+fs.copyFileSync('../integrations/build/dedupe.js.map', './test/integration/dedupe.js.map');
+
 module.exports = [
   { pattern: 'test/integration/polyfills/es6-promise-4.2.5.auto.js', included: false },
   { pattern: 'test/integration/polyfills/whatwg-fetch-3.0.0.js', included: false },
