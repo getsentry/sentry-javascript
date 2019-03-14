@@ -45,6 +45,7 @@ since we removed some methods from the public API and removed some classes from 
 - [all] build: Use terser instead of uglify
 - [opentracing] feat: Introduce `@sentry/opentracing` providing functions to attach opentracing data to Sentry Events
 - **breaking** [core] ref: `Dedupe` Integration is now optional, it is no longer enabled by default.
+- **breaking** [core] ref: Removed default client fingerprinting for messages
 
 ## 4.6.4
 
