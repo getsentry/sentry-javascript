@@ -1,4 +1,5 @@
 import { SentryError } from '@sentry/utils/error';
+
 import { Dsn } from '../../src/dsn';
 
 describe('Dsn', () => {

@@ -146,18 +146,19 @@ export class InboundFilters implements Integration {
   private _isMatchingPattern(value: string, pattern: RegExp | string): boolean {
     if (isRegExp(pattern)) {
       return (pattern as RegExp).test(value);
-    } else if (typeof pattern === 'string') {
-      return value.includes(pattern);
-    } else {
-      return false;
     }
+    if (typeof pattern === 'string') {
+      return value.includes(pattern);
+    }
+    return false;
   }
 
   /** JSDoc */
   private _getPossibleEventMessages(event: Event): string[] {
     if (event.message) {
       return [event.message];
-    } else if (event.exception) {
+    }
+    if (event.exception) {
       try {
         // tslint:disable-next-line:no-unsafe-any
         const { type, value } = (event as any).exception.values[0];
@@ -166,9 +167,8 @@ export class InboundFilters implements Integration {
         logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
         return [];
       }
-    } else {
-      return [];
     }
+    return [];
   }
 
   /** JSDoc */
@@ -178,13 +178,13 @@ export class InboundFilters implements Integration {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).stacktrace.frames;
         return frames[frames.length - 1].filename;
-      } else if (event.exception) {
+      }
+      if (event.exception) {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).exception.values[0].stacktrace.frames;
         return frames[frames.length - 1].filename;
-      } else {
-        return null;
       }
+      return null;
     } catch (oO) {
       logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
       return null;

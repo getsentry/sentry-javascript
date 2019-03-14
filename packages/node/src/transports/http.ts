@@ -2,6 +2,7 @@ import { Event, Response, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import * as http from 'http';
 import * as HttpsProxyAgent from 'https-proxy-agent';
+
 import { BaseTransport } from './base';
 
 /** Node http module transport */

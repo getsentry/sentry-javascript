@@ -52,14 +52,13 @@ function createBreadcrumbUrl(options: string | http.ClientRequestArgs): string {
   // maintain the guarantee that after calling origClientRequest, those fields will be populated
   if (typeof options === 'string') {
     return options;
-  } else {
-    const protocol = options.protocol || '';
-    const hostname = options.hostname || options.host || '';
-    // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-    const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
-    const path = options.path || '/';
-    return `${protocol}//${hostname}${port}${path}`;
   }
+  const protocol = options.protocol || '';
+  const hostname = options.hostname || options.host || '';
+  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
+  const port = !options.port || options.port === 80 || options.port === 443 ? '' : `:${options.port}`;
+  const path = options.path || '/';
+  return `${protocol}//${hostname}${port}${path}`;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
+
 import {
   addBreadcrumb,
   BrowserClient,
@@ -14,6 +15,7 @@ import {
   Integrations,
   Scope,
 } from '../src';
+
 import { SimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
@@ -21,7 +23,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 declare var global: any;
 
 describe('SentryBrowser', () => {
-  const beforeSend: SinonSpy = spy((event: Event) => event);
+  const beforeSend: SinonSpy<[Event], Event> = spy((event: Event) => event);
 
   before(() => {
     init({
@@ -92,10 +94,10 @@ describe('SentryBrowser', () => {
 
       const event = beforeSend.args[0][0];
       expect(event.exception).to.not.be.undefined;
-      expect(event.exception.values[0]).to.not.be.undefined;
-      expect(event.exception.values[0].type).to.equal('Error');
-      expect(event.exception.values[0].value).to.equal('test');
-      expect(event.exception.values[0].stacktrace).to.not.be.empty;
+      expect(event.exception!.values![0]).to.not.be.undefined;
+      expect(event.exception!.values![0].type).to.equal('Error');
+      expect(event.exception!.values![0].value).to.equal('test');
+      expect(event.exception!.values![0].stacktrace).to.not.be.empty;
     });
 
     it('should capture a message', done => {

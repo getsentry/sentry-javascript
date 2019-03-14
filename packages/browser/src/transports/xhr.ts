@@ -1,4 +1,5 @@
 import { Event, Response, Status } from '@sentry/types';
+
 import { BaseTransport } from './base';
 
 /** `XHR` based transport */

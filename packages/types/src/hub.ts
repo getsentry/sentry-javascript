@@ -5,6 +5,10 @@ import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
 
+/**
+ * Internal class used to make sure we always have the latest internal functions
+ * working in case we have a version conflict.
+ */
 export interface Hub {
   /**
    * Checks if this hub's version is older than the given version.

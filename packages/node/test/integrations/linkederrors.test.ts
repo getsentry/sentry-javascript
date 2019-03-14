@@ -1,4 +1,5 @@
 import { ExtendedError } from '@sentry/types';
+
 import { Event } from '../../src';
 import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';

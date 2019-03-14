@@ -1,5 +1,6 @@
 // tslint:disable:deprecation
 import { Integration } from '@sentry/types';
+
 import { getIntegrationsToSetup } from '../../src/integration';
 
 /** JSDoc */

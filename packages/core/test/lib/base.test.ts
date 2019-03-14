@@ -1,6 +1,7 @@
 import { Hub, Scope } from '@sentry/hub';
 import { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
+
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
@@ -226,7 +227,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!.message).toBe('message');
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
-        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -242,7 +242,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         environment: 'env',
         event_id: '42',
-        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -257,7 +256,6 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'message' }, undefined, scope);
       expect(TestBackend.instance!.event!).toEqual({
         event_id: '42',
-        fingerprint: ['message'],
         message: 'message',
         release: 'v1.0.0',
       });
@@ -272,7 +270,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [{ message: 'breadcrumb' }],
         event_id: '42',
-        fingerprint: ['message'],
         message: 'message',
       });
     });
@@ -300,7 +297,6 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         event_id: '42',
         extra: { b: 'b' },
-        fingerprint: ['message'],
         message: 'message',
         tags: { a: 'a' },
         user: { id: 'user' },

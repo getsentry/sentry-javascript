@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
+
 import { mkdirpSync } from './fs';
 
 /**

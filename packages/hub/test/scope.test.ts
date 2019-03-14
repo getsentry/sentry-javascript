@@ -1,4 +1,5 @@
 import { Event, EventHint, Severity } from '@sentry/types';
+
 import { Scope } from '../src';
 
 describe('Scope', () => {
@@ -158,7 +159,7 @@ describe('Scope', () => {
       message: 'foo',
     };
     return scope.applyToEvent(event).then(processedEvent => {
-      expect(processedEvent!.fingerprint).toEqual(['bar', 'foo']);
+      expect(processedEvent!.fingerprint).toEqual(['bar']);
     });
   });
 

@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+
 import { prepareFramesForEvent } from '../src/parsers';
 
 describe('Parsers', () => {

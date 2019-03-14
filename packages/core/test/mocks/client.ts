@@ -1,5 +1,6 @@
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
+
 import { TestBackend, TestOptions } from './backend';
 
 export class TestClient extends BaseClient<TestBackend, TestOptions> {

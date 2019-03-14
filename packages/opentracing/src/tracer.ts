@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/hub';
 import * as opentracing from 'opentracing';
+
 import { Span } from './span';
 import { SpanContext } from './spancontext';
 
@@ -30,7 +31,7 @@ export class Tracer extends opentracing.Tracer {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public startSpan(name: string, options: opentracing.SpanOptions = {}): Span {
     return (super.startSpan(name, options) as unknown) as Span;

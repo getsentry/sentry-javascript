@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
+
 import { SDK_NAME, SDK_VERSION } from '../version';
 
 /**

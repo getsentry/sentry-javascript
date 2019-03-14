@@ -33,6 +33,7 @@ export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDi
 export { SDK_NAME, SDK_VERSION } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+
 import * as BrowserIntegrations from './integrations';
 import * as Transports from './transports';
 

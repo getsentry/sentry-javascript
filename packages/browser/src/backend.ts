@@ -4,6 +4,7 @@ import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from
 import { addExceptionTypeValue } from '@sentry/utils/misc';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';
 import { BeaconTransport, FetchTransport, XHRTransport } from './transports';
@@ -34,7 +35,7 @@ export interface BrowserOptions extends Options {
  */
 export class BrowserBackend extends BaseBackend<BrowserOptions> {
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   protected _setupTransport(): Transport {
     if (!this._options.dsn) {
@@ -48,9 +49,11 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
 
     if (this._options.transport) {
       return new this._options.transport(transportOptions);
-    } else if (supportsBeacon()) {
+    }
+    if (supportsBeacon()) {
       return new BeaconTransport(transportOptions);
-    } else if (supportsFetch()) {
+    }
+    if (supportsFetch()) {
       return new FetchTransport(transportOptions);
     }
     return new XHRTransport(transportOptions);
@@ -68,7 +71,8 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
       event = eventFromStacktrace(computeStackTrace(exception as Error));
       return SyncPromise.resolve(this._buildEvent(event, hint));
-    } else if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
+    }
+    if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
       // If it is a DOMError or DOMException (which are legacy APIs, but still supported in some browsers)
       // then we just extract the name and message, as they don't provide anything else
       // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
@@ -81,11 +85,13 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
         addExceptionTypeValue(messageEvent, message);
         return SyncPromise.resolve(this._buildEvent(messageEvent, hint));
       });
-    } else if (isError(exception as Error)) {
+    }
+    if (isError(exception as Error)) {
       // we have a real Error object, do nothing
       event = eventFromStacktrace(computeStackTrace(exception as Error));
       return SyncPromise.resolve(this._buildEvent(event, hint));
-    } else if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
+    }
+    if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
       // If it is plain Object, serialize it manually and extract options
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change

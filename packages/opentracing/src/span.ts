@@ -1,5 +1,6 @@
 import { Span as SpanInterface } from '@sentry/types';
 import * as opentracing from 'opentracing';
+
 import { SpanContext } from './spancontext';
 import { Tracer } from './tracer';
 
@@ -140,14 +141,14 @@ export class Span extends opentracing.Span implements SpanInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public toJSON(): object {
     return {
       finish_time: (this._finishTime && this._finishTime / 1000) || undefined,
       logs: this._logs.length === 0 ? undefined : this._logs,
       operation: this._operation,
-      references: this._references && this._references,
+      references: this._references || undefined,
       span_id: this._spanContext.spanId,
       start_time: this._startTime / 1000,
       tags: Object.keys(this.tags).length === 0 ? undefined : this.tags,

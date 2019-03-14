@@ -1,5 +1,6 @@
 import { DsnLike } from '@sentry/types';
 import { urlEncode } from '@sentry/utils/object';
+
 import { Dsn } from './dsn';
 
 const SENTRY_API_VERSION = '7';

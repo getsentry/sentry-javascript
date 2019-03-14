@@ -1,4 +1,5 @@
 import { Event } from '@sentry/types';
+
 import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn: any = jest.fn();

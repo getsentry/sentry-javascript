@@ -1,6 +1,7 @@
 import { Integration, WrappedFunction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { fill } from '@sentry/utils/object';
+
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
@@ -114,7 +115,8 @@ export class TryCatch implements Integration {
             }
             if (eventType === 'click') {
               return clickHandler(event);
-            } else if (eventType === 'keypress') {
+            }
+            if (eventType === 'keypress') {
               return keypressHandler(event);
             }
           };

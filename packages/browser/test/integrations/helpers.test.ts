@@ -1,6 +1,7 @@
 import { WrappedFunction } from '@sentry/types';
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
+
 import { wrap } from '../../src/integrations/helpers';
 
 describe('wrap()', () => {

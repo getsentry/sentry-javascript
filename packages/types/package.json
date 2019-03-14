@@ -19,8 +19,8 @@
     "npm-run-all": "^4.1.2",
     "prettier": "^1.16.4",
     "prettier-check": "^2.0.0",
-    "tslint": "^5.12.1",
-    "typescript": "^3.3.3"
+    "tslint": "^5.14.0",
+    "typescript": "^3.3.3333"
   },
   "scripts": {
     "build": "run-p build:es5 build:esm",

@@ -1,6 +1,7 @@
 import { TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils/error';
 import * as HttpsProxyAgent from 'https-proxy-agent';
+
 import { HTTPTransport } from '../../src/transports/http';
 
 const mockSetEncoding = jest.fn();

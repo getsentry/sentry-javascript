@@ -1,4 +1,5 @@
 import { Event, StackFrame } from '@sentry/types';
+
 import { RewriteFrames } from '../src/rewriteframes';
 
 let rewriteFrames: RewriteFrames;

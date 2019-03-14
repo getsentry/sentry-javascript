@@ -3,6 +3,7 @@ import { DsnLike, Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { SyncPromise } from '@sentry/utils/syncpromise';
+
 import { BrowserBackend, BrowserOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
 

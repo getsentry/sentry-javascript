@@ -45,7 +45,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public addEventProcessor(callback: EventProcessor): this {
     this._eventProcessors.push(callback);
@@ -97,7 +97,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setUser(user: User): this {
     this._user = normalize(user);
@@ -106,7 +106,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setTags(tags: { [key: string]: string }): this {
     this._tags = {
@@ -118,7 +118,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setTag(key: string, value: string): this {
     this._tags = { ...this._tags, [key]: normalize(value) };
@@ -127,7 +127,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setExtras(extra: { [key: string]: any }): this {
     this._extra = {
@@ -139,7 +139,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setExtra(key: string, extra: any): this {
     this._extra = { ...this._extra, [key]: normalize(extra) };
@@ -148,7 +148,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setFingerprint(fingerprint: string[]): this {
     this._fingerprint = normalize(fingerprint);
@@ -157,7 +157,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setLevel(level: Severity): this {
     this._level = normalize(level);
@@ -187,7 +187,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public clear(): this {
     this._breadcrumbs = [];
@@ -201,7 +201,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     this._breadcrumbs =
@@ -213,7 +213,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public clearBreadcrumbs(): this {
     this._breadcrumbs = [];

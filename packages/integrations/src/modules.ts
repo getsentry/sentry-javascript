@@ -27,7 +27,8 @@ function collectModules(): {
 
       if (!dir || orig === dir || seen[orig]) {
         return undefined;
-      } else if (mainPaths.indexOf(dir) < 0) {
+      }
+      if (mainPaths.indexOf(dir) < 0) {
         return updir();
       }
 

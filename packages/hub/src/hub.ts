@@ -11,6 +11,7 @@ import {
 } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { consoleSandbox, dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
+
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
@@ -47,8 +48,7 @@ const DEFAULT_BREADCRUMBS = 30;
 const MAX_BREADCRUMBS = 100;
 
 /**
- * Internal class used to make sure we always have the latest internal functions
- * working in case we have a version conflict.
+ * @inheritDoc
  */
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
@@ -83,14 +83,14 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public isOlderThan(version: number): boolean {
     return this._version < version;
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
@@ -98,7 +98,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
@@ -113,14 +113,14 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public popScope(): boolean {
     return this.getStack().pop() !== undefined;
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public withScope(callback: (scope: Scope) => void): void {
     const scope = this.pushScope();
@@ -132,7 +132,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public getClient(): Client | undefined {
     return this.getStackTop().client;
@@ -154,7 +154,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -166,7 +166,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -178,7 +178,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
@@ -190,14 +190,14 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public lastEventId(): string | undefined {
     return this._lastEventId;
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     const top = this.getStackTop();
@@ -226,7 +226,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const top = this.getStackTop();
@@ -237,7 +237,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public run(callback: (hub: Hub) => void): void {
     const oldHub = makeMain(this);
@@ -249,7 +249,7 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     const client = this.getClient();
@@ -336,9 +336,8 @@ export function getCurrentHub(): Hub {
 function hasHubOnCarrier(carrier: any): boolean {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return true;
-  } else {
-    return false;
   }
+  return false;
 }
 
 /**
@@ -350,11 +349,10 @@ function hasHubOnCarrier(carrier: any): boolean {
 export function getHubFromCarrier(carrier: any): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return carrier.__SENTRY__.hub;
-  } else {
-    carrier.__SENTRY__ = {};
-    carrier.__SENTRY__.hub = new Hub();
-    return carrier.__SENTRY__.hub;
   }
+  carrier.__SENTRY__ = {};
+  carrier.__SENTRY__.hub = new Hub();
+  return carrier.__SENTRY__.hub;
 }
 
 /**

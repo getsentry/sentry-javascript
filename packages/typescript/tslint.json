@@ -22,13 +22,49 @@
     "completed-docs": [
       true,
       {
-        "classes": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "enums": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "enum-members": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "functions": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "interfaces": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "methods": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] } },
-        "properties": { "tags": { "content": {}, "existence": ["inheritDoc", "hidden"] }, "locations": "instance" }
+        "classes": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "enums": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "enum-members": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "functions": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "interfaces": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "methods": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          }
+        },
+        "properties": {
+          "tags": {
+            "content": {},
+            "existence": ["inheritDoc", "hidden"]
+          },
+          "locations": "instance"
+        }
       }
     ],
     "interface-name": [true, "never-prefix"],

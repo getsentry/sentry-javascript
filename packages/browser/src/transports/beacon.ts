@@ -1,5 +1,6 @@
 import { Event, Response, Status } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
+
 import { BaseTransport } from './base';
 
 const global = getGlobalObject() as Window;
