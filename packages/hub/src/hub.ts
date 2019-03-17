@@ -1,5 +1,6 @@
 import {
   Breadcrumb,
+  Client,
   Integration,
   IntegrationClass,
   SentryBreadcrumbHint,
@@ -61,8 +62,12 @@ export class Hub {
    */
   private invokeClient(method: string, ...args: any[]): void {
     const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope);
+    if (top && top.client) {
+      // tslint:disable-next-line:ban-types
+      const client = (top.client as unknown) as { [key: string]: Function };
+      if (client[method]) {
+        client[method](...args, top.scope);
+      }
     }
   }
 
@@ -75,8 +80,10 @@ export class Hub {
    */
   private invokeClientAsync(method: string, ...args: any[]): void {
     const top = this.getStackTop();
-    if (top && top.client && top.client[method]) {
-      top.client[method](...args, top.scope).catch((err: any) => {
+    if (top && top.client) {
+      // tslint:disable-next-line:ban-types
+      const client = (top.client as unknown) as { [key: string]: Function };
+      client[method](...args, top.scope).catch((err: any) => {
         logger.error(err);
       });
     }
@@ -168,12 +175,12 @@ export class Hub {
   }
 
   /** Returns the client of the top stack. */
-  public getClient(): any | undefined {
-    return this.getStackTop().client;
+  public getClient<T extends Client>(): T {
+    return this.getStackTop().client as T;
   }
 
   /** Returns the scope of the top stack. */
-  public getScope(): Scope | undefined {
+  public getScope(): Scope {
     return this.getStackTop().scope;
   }
 
@@ -287,7 +294,7 @@ export class Hub {
   /** Returns the integration if installed on the current client. */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     try {
-      return this.getClient().getIntegration(integration);
+      return this.getClient<any>().getIntegration(integration);
     } catch (_oO) {
       logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;

@@ -1,9 +1,17 @@
 import { Scope } from '@sentry/hub';
-import { Breadcrumb, SentryEvent, SentryEventHint, SentryResponse, Severity, Transport } from '@sentry/types';
+import {
+  Backend,
+  Breadcrumb,
+  Options,
+  SentryEvent,
+  SentryEventHint,
+  SentryResponse,
+  Severity,
+  Transport,
+} from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 import { serialize } from '@sentry/utils/object';
 import { SentryError } from './error';
-import { Backend, Options } from './interfaces';
 import { NoopTransport } from './transports/noop';
 
 /** A class object that can instanciate Backend objects. */

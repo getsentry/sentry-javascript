@@ -1,5 +1,5 @@
-import { BaseBackend, Dsn, getCurrentHub, Options } from '@sentry/core';
-import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
+import { Options, SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isError, isPlainObject } from '@sentry/utils/is';
 import { limitObjectDepthToSize, serializeKeysToEventMessage } from '@sentry/utils/object';
 import { createHash } from 'crypto';

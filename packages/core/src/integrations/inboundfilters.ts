@@ -1,10 +1,9 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, SentryEvent } from '@sentry/types';
+import { Client, Integration, SentryEvent } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
 import { includes } from '@sentry/utils/string';
-import { Client } from '../interfaces';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -42,7 +41,7 @@ export class InboundFilters implements Integration {
       }
       const self = hub.getIntegration(InboundFilters);
       if (self) {
-        const client = hub.getClient() as Client;
+        const client = hub.getClient<Client>();
         const clientOptions = client ? client.getOptions() : {};
         const options = self.mergeOptions(clientOptions);
         if (self.shouldDropEvent(event, options)) {

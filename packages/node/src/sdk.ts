@@ -105,7 +105,9 @@ export function lastEventId(): string | undefined {
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  return (getCurrentHub().getClient() as NodeClient).flush(timeout);
+  return getCurrentHub()
+    .getClient<NodeClient>()
+    .flush(timeout);
 }
 
 /**
@@ -115,5 +117,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function close(timeout?: number): Promise<boolean> {
-  return (getCurrentHub().getClient() as NodeClient).close(timeout);
+  return getCurrentHub()
+    .getClient<NodeClient>()
+    .close(timeout);
 }

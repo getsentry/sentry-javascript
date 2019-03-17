@@ -1,17 +1,19 @@
-import { Breadcrumb, SentryEvent, SentryEventHint, Severity, User } from '@sentry/types';
+import {
+  Breadcrumb,
+  EventProcessor,
+  ScopeInterface,
+  SentryEvent,
+  SentryEventHint,
+  Severity,
+  User,
+} from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 import { assign, safeNormalize } from '@sentry/utils/object';
 
-export type EventProcessor = (
-  event: SentryEvent,
-  hint?: SentryEventHint,
-) => Promise<SentryEvent | null> | SentryEvent | null;
-
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be
- * called by the client before an event will be sent.
+ * @inheritdoc
  */
-export class Scope {
+export class Scope implements ScopeInterface {
   /** Flag if notifiying is happening. */
   protected notifyingListeners: boolean = false;
 

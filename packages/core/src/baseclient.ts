@@ -1,8 +1,11 @@
 import { Scope } from '@sentry/hub';
 import {
+  Backend,
   Breadcrumb,
+  Client,
   Integration,
   IntegrationClass,
+  Options,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
@@ -18,7 +21,6 @@ import { truncate } from '@sentry/utils/string';
 import { BackendClass } from './basebackend';
 import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
-import { Backend, Client, Options } from './interfaces';
 import { PromiseBuffer } from './promisebuffer';
 
 /**

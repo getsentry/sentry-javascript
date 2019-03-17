@@ -1,5 +1,5 @@
-import { BaseBackend, Options, SentryError } from '@sentry/core';
-import { SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
+import { BaseBackend, SentryError } from '@sentry/core';
+import { Options, SentryEvent, SentryEventHint, Severity, Transport } from '@sentry/types';
 import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
 import { supportsBeacon, supportsFetch } from '@sentry/utils/supports';
 import { addExceptionTypeValue, eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';

@@ -280,16 +280,21 @@ export function errorHandler(): (
 /** JSDoc */
 export function defaultOnFatalError(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
-  const options = (getCurrentHub().getClient() as NodeClient).getOptions();
+  const options = getCurrentHub()
+    .getClient<NodeClient>()
+    .getOptions();
   const timeout =
     (options && options.shutdownTimeout && options.shutdownTimeout > 0 && options.shutdownTimeout) ||
     DEFAULT_SHUTDOWN_TIMEOUT;
   forget(
-    (getCurrentHub().getClient() as NodeClient).close(timeout).then((result: boolean) => {
-      if (!result) {
-        logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
-      }
-      global.process.exit(1);
-    }),
+    getCurrentHub()
+      .getClient<NodeClient>()
+      .close(timeout)
+      .then((result: boolean) => {
+        if (!result) {
+          logger.warn('We reached the timeout for emptying the request buffer, still exiting now!');
+        }
+        global.process.exit(1);
+      }),
   );
 }

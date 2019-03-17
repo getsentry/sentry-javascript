@@ -74,7 +74,9 @@ describe('SentryBrowser', () => {
       addBreadcrumb({ message: 'test2' });
 
       captureMessage('event');
-      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      await getCurrentHub()
+        .getClient<BrowserClient>()
+        .close(2000);
       expect(beforeSend.args[0][0].breadcrumbs).to.have.lengthOf(2);
     });
   });
@@ -87,7 +89,9 @@ describe('SentryBrowser', () => {
         captureException(e);
       }
 
-      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      await getCurrentHub()
+        .getClient<BrowserClient>()
+        .close(2000);
 
       const event = beforeSend.args[0][0];
       expect(event.exception).to.not.be.undefined;
@@ -131,7 +135,9 @@ describe('SentryBrowser', () => {
       captureMessage('event222');
       captureMessage('event222');
 
-      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      await getCurrentHub()
+        .getClient<BrowserClient>()
+        .close(2000);
 
       expect(beforeSend.calledOnce).to.be.true;
     });
@@ -149,7 +155,9 @@ describe('SentryBrowser', () => {
       captureMessage('event222');
       captureMessage('event222');
 
-      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      await getCurrentHub()
+        .getClient<BrowserClient>()
+        .close(2000);
 
       expect(localBeforeSend.calledTwice).to.be.true;
     });
@@ -166,7 +174,9 @@ describe('SentryBrowser', () => {
 
       captureMessage('capture');
 
-      await (getCurrentHub().getClient() as BrowserClient).close(2000);
+      await getCurrentHub()
+        .getClient<BrowserClient>()
+        .close(2000);
 
       expect(localBeforeSend.called).to.be.false;
     });
