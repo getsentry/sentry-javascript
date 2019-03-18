@@ -2,7 +2,6 @@ import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { isError, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
-import { truncate } from './string';
 
 /**
  * Wrap a given object method with a higher-order function
@@ -124,7 +123,7 @@ function serializeValue(value: any): any {
 
   // Node.js REPL notation
   if (typeof value === 'string') {
-    return truncate(value, 40);
+    return value;
   }
   if (type === '[object Object]') {
     return '[Object]';
