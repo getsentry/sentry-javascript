@@ -19,4 +19,21 @@
 
 ## General
 
-TBD
+This package implements the OpenTracing API and provides an integration that can be used by our other SDKs.
+
+```js
+import * as Sentry from '@sentry/browser';
+import * as OpenTracing from '@sentry/opentracing';
+
+const ot = new OpenTracing.Integration(ENV.traceId);
+
+Sentry.init({
+  debug: true,
+  dsn: ENV.sentry.dsn,
+  integrations: [ot],
+  beforeSend(event) {
+    console.log(event);
+    return event;
+  },
+});
+```

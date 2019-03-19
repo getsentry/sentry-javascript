@@ -41,7 +41,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
   integrations for Express, Koa, Loopback, Sails and Connect
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable
-  integrations that can be used to enchance JS SDKs
+  integrations that can be used to enhance JS SDKs
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
 - [`sentry-cordova`](https://github.com/getsentry/sentry-cordova): SDK for Cordova Apps and Ionic with support for
   native crashes
@@ -84,6 +84,8 @@ below:
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
   utility functions useful for various SDKs.
+- [`@sentry/opentracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/opentracing): OpenTracing
+  compatible integration that can be used as a pluggable integration for the SDKs.
 - [`@sentry/typescript`](https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript): Shared
   Typescript compiler and linter options.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
