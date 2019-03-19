@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Client, Event, Integration } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import { isRegExp } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription } from '@sentry/utils/misc';
@@ -40,7 +40,7 @@ export class InboundFilters implements Integration {
       }
       const self = hub.getIntegration(InboundFilters);
       if (self) {
-        const client = hub.getClient() as Client;
+        const client = hub.getClient();
         const clientOptions = client ? client.getOptions() : {};
         const options = self._mergeOptions(clientOptions);
         if (self._shouldDropEvent(event, options)) {

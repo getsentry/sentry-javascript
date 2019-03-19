@@ -87,7 +87,7 @@ export class Breadcrumbs implements Integration {
         // https://developer.mozilla.org/en-US/docs/Web/API/Beacon_API/Using_the_Beacon_API
         const result = originalBeaconFunction.apply(this, args);
 
-        const client = getCurrentHub().getClient() as BrowserClient;
+        const client = getCurrentHub().getClient<BrowserClient>();
         const dsn = client && client.getDsn();
         if (dsn) {
           const filterUrl = new API(dsn).getStoreEndpoint();
@@ -205,7 +205,7 @@ export class Breadcrumbs implements Integration {
           method = args[1].method;
         }
 
-        const client = getCurrentHub().getClient() as BrowserClient;
+        const client = getCurrentHub().getClient<BrowserClient>();
         const dsn = client && client.getDsn();
         if (dsn) {
           const filterUrl = new API(dsn).getStoreEndpoint();
@@ -376,7 +376,7 @@ export class Breadcrumbs implements Integration {
             url: args[1],
           };
 
-          const client = getCurrentHub().getClient() as BrowserClient;
+          const client = getCurrentHub().getClient<BrowserClient>();
           const dsn = client && client.getDsn();
           if (dsn) {
             const filterUrl = new API(dsn).getStoreEndpoint();

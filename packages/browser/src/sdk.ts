@@ -87,7 +87,10 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   if (!options.eventId) {
     options.eventId = getCurrentHub().lastEventId();
   }
-  (getCurrentHub().getClient() as BrowserClient).showReportDialog(options);
+  const client = getCurrentHub().getClient<BrowserClient>();
+  if (client) {
+    client.showReportDialog(options);
+  }
 }
 
 /**
@@ -122,7 +125,11 @@ export function onLoad(callback: () => void): void {
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  return (getCurrentHub().getClient() as BrowserClient).flush(timeout);
+  const client = getCurrentHub().getClient<BrowserClient>();
+  if (client) {
+    return client.flush(timeout);
+  }
+  return Promise.reject(false);
 }
 
 /**
@@ -132,5 +139,9 @@ export async function flush(timeout?: number): Promise<boolean> {
  * @param timeout Maximum time in ms the client should wait.
  */
 export async function close(timeout?: number): Promise<boolean> {
-  return (getCurrentHub().getClient() as BrowserClient).close(timeout);
+  const client = getCurrentHub().getClient<BrowserClient>();
+  if (client) {
+    return client.close(timeout);
+  }
+  return Promise.reject(false);
 }

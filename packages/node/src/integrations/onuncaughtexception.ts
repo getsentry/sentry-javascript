@@ -3,6 +3,7 @@ import { Integration, Severity } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 
 import { NodeOptions } from '../backend';
+import { NodeClient } from '../client';
 import { defaultOnFatalError } from '../handlers';
 
 /** Global Promise Rejection handler */
@@ -55,12 +56,12 @@ export class OnUncaughtException implements Integration {
       type onFatalErrorHandlerType = (firstError: Error, secondError?: Error) => void;
 
       let onFatalError: onFatalErrorHandlerType = defaultOnFatalError;
-      const client = getCurrentHub().getClient();
+      const client = getCurrentHub().getClient<NodeClient>();
 
       if (this._options.onFatalError) {
         onFatalError = this._options.onFatalError;
-      } else if (client && (client.getOptions() as NodeOptions).onFatalError) {
-        onFatalError = (client.getOptions() as NodeOptions).onFatalError as onFatalErrorHandlerType;
+      } else if (client && client.getOptions().onFatalError) {
+        onFatalError = client.getOptions().onFatalError as onFatalErrorHandlerType;
       }
 
       if (!caughtFirstError) {

@@ -134,8 +134,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public getClient(): Client | undefined {
-    return this.getStackTop().client;
+  public getClient<C extends Client>(): C | undefined {
+    return this.getStackTop().client as C;
   }
 
   /** Returns the scope of the top stack. */
