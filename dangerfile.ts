@@ -48,6 +48,6 @@ export default async () => {
 
   schedule(async () => {
     const result = (await promisify(exec)('cd packages/browser; yarn size:check')).stdout;
-    message(`@sentry/browser bundle gzip'ed minified size: \n${result.split('\n')[4]}\n${result.split('\n')[5]}`);
+    message(`@sentry/browser bundle gzip'ed minified size: *(${result.split('\n')[4]}) (${result.split('\n')[5]})*`);
   });
 };
