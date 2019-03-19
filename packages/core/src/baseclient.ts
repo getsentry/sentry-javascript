@@ -53,14 +53,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
-  /**
-   * The client Dsn, if specified in options. Without this Dsn, the SDK will be
-   * disabled.
-   */
+  /** The client Dsn, if specified in options. Without this Dsn, the SDK will be disabled. */
   protected readonly _dsn?: Dsn;
 
   /** Array of used integrations. */
   protected readonly _integrations: IntegrationIndex;
+
+  /** Is the client still processing a call? */
+  protected _processing: boolean = false;
 
   /**
    * Initializes this client instance.
@@ -84,15 +84,19 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
+    this._processing = true;
 
     this._getBackend()
       .eventFromException(exception, hint)
       .then(event => this._processEvent(event, hint, scope))
       .then(finalEvent => {
-        eventId = finalEvent.event_id;
+        // We need to check for finalEvent in case beforeSend returned null
+        eventId = finalEvent && finalEvent.event_id;
+        this._processing = false;
       })
       .catch(reason => {
         logger.log(reason);
+        this._processing = false;
       });
 
     return eventId;
@@ -104,6 +108,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
+    this._processing = true;
+
     const promisedEvent = isPrimitive(message)
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
@@ -111,10 +117,13 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     promisedEvent
       .then(event => this._processEvent(event, hint, scope))
       .then(finalEvent => {
-        eventId = finalEvent.event_id;
+        // We need to check for finalEvent in case beforeSend returned null
+        eventId = finalEvent && finalEvent.event_id;
+        this._processing = false;
       })
       .catch(reason => {
         logger.log(reason);
+        this._processing = false;
       });
 
     return eventId;
@@ -125,12 +134,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
+    this._processing = true;
+
     this._processEvent(event, hint, scope)
       .then(finalEvent => {
-        eventId = finalEvent.event_id;
+        // We need to check for finalEvent in case beforeSend returned null
+        eventId = finalEvent && finalEvent.event_id;
+        this._processing = false;
       })
       .catch(reason => {
         logger.log(reason);
+        this._processing = false;
       });
     return eventId;
   }
@@ -147,6 +161,64 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public getOptions(): O {
     return this._options;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async flush(timeout?: number): Promise<boolean> {
+    return (await Promise.all([
+      this._getBackend()
+        .getTransport()
+        .close(timeout),
+      this._isClientProcessing(),
+    ])).reduce((prev, current) => prev && current);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async close(timeout?: number): Promise<boolean> {
+    return this.flush(timeout).finally(() => {
+      this.getOptions().enabled = false;
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getIntegrations(): IntegrationIndex {
+    return this._integrations || {};
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    try {
+      return (this._integrations[integration.id] as T) || null;
+    } catch (_oO) {
+      logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      return null;
+    }
+  }
+
+  /** Waits for the client to be done with processing. */
+  protected async _isClientProcessing(counter: number = 0): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
+      if (this._processing) {
+        // Safeguard in case of endless recursion
+        if (counter >= 10) {
+          resolve(false);
+        } else {
+          setTimeout(async () => {
+            resolve(await this._isClientProcessing(counter + 1));
+          }, 10);
+        }
+      } else {
+        resolve(true);
+      }
+    });
   }
 
   /** Returns the current backend. */
@@ -314,42 +386,5 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       .catch(e => {
         reject(`beforeSend rejected with ${e}`);
       });
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async flush(timeout?: number): Promise<boolean> {
-    return this._getBackend()
-      .getTransport()
-      .close(timeout);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async close(timeout?: number): Promise<boolean> {
-    return this.flush(timeout).finally(() => {
-      this.getOptions().enabled = false;
-    });
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getIntegrations(): IntegrationIndex {
-    return this._integrations || {};
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    try {
-      return (this._integrations[integration.id] as T) || null;
-    } catch (_oO) {
-      logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
-      return null;
-    }
   }
 }
