@@ -2,7 +2,6 @@ import { getCurrentHub, Scope } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import { logger } from '@sentry/utils/logger';
 
-import { NodeOptions } from '../backend';
 import { NodeClient } from '../client';
 import { defaultOnFatalError } from '../handlers';
 
