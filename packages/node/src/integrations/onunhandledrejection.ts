@@ -41,14 +41,10 @@ export class OnUnhandledRejection implements Integration {
         scope.setUser(context.user);
       }
       if (context.tags) {
-        Object.keys(context.tags).forEach(key => {
-          scope.setTag(key, context.tags[key]);
-        });
+        scope.setTags(context.tags);
       }
       if (context.extra) {
-        Object.keys(context.extra).forEach(key => {
-          scope.setExtra(key, context.extra[key]);
-        });
+        scope.setExtras(context.extra);
       }
 
       hub.captureException(reason, { originalException: promise });
