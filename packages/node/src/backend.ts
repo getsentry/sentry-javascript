@@ -81,6 +81,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       handled: true,
       type: 'generic',
     };
+
     if (!isError(exception)) {
       if (isPlainObject(exception)) {
         // This will allow us to group events based on top-level keys
@@ -102,14 +103,16 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       mechanism.synthetic = true;
     }
 
-    return new SyncPromise<Event>(resolve =>
-      parseError(ex as Error, this._options).then(event => {
-        addExceptionTypeValue(event, undefined, undefined, mechanism);
-        resolve({
-          ...event,
-          event_id: hint && hint.event_id,
-        });
-      }),
+    return new SyncPromise<Event>((resolve, reject) =>
+      parseError(ex as Error, this._options)
+        .then(event => {
+          addExceptionTypeValue(event, undefined, undefined, mechanism);
+          resolve({
+            ...event,
+            event_id: hint && hint.event_id,
+          });
+        })
+        .catch(reject),
     );
   }
 
