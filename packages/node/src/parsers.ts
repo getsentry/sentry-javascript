@@ -4,9 +4,9 @@ import { snipLine } from '@sentry/utils/string';
 import { SyncPromise } from '@sentry/utils/syncpromise';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
-import * as stacktrace from 'stack-trace';
 
 import { NodeOptions } from './backend';
+import * as stacktrace from './stack-trace';
 
 // tslint:disable-next-line:no-unsafe-any
 const DEFAULT_LINES_OF_CONTEXT: number = 7;
@@ -23,7 +23,7 @@ export function resetFileContentCache(): void {
 /** JSDoc */
 function getFunction(frame: stacktrace.StackFrame): string {
   try {
-    return frame.getFunctionName() || `${frame.getTypeName()}.${frame.getMethodName() || '<anonymous>'}`;
+    return frame.functionName || `${frame.typeName}.${frame.methodName || '<anonymous>'}`;
   } catch (e) {
     // This seems to happen sometimes when using 'use strict',
     // stemming from `getTypeName`.
@@ -142,14 +142,14 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
 
   const frames: StackFrame[] = stack.map(frame => {
     const parsedFrame: StackFrame = {
-      colno: frame.getColumnNumber(),
-      filename: frame.getFileName() || '',
+      colno: frame.columnNumber,
+      filename: frame.fileName || '',
       function: getFunction(frame),
-      lineno: frame.getLineNumber(),
+      lineno: frame.lineNumber,
     };
 
     const isInternal =
-      frame.isNative() ||
+      frame.native ||
       (parsedFrame.filename &&
         !parsedFrame.filename.startsWith('/') &&
         !parsedFrame.filename.startsWith('.') &&
