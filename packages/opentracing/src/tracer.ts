@@ -31,10 +31,46 @@ export class Tracer extends opentracing.Tracer {
   }
 
   /**
+   * @hidden
+   */
+  protected _inject(context: SpanContext, format: string, carrier: any): void {
+    // tslint:disable: no-unsafe-any
+    switch (format) {
+      case opentracing.FORMAT_TEXT_MAP:
+      case opentracing.FORMAT_HTTP_HEADERS:
+        const headerName = 'traceparent';
+        const headerValue: string = `00-${context.traceId}-${context.spanId}-00`;
+
+        if (typeof carrier.setRequestHeader === 'function') {
+          carrier.setRequestHeader(headerName, headerValue);
+        } else if (carrier.headers && typeof carrier.headers.append === 'function') {
+          carrier.headers.append(headerName, headerValue);
+        } else {
+          carrier[headerName] = headerValue;
+        }
+
+        break;
+      case opentracing.FORMAT_BINARY:
+        break;
+      default:
+      // We do nothing
+    }
+    // tslint:enable: no-unsafe-any
+  }
+
+  /**
    * @inheritDoc
    */
   public startSpan(name: string, options: opentracing.SpanOptions = {}): Span {
     return (super.startSpan(name, options) as unknown) as Span;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public inject(spanContext: SpanContext | Span, format: string, carrier: any): void {
+    const context = spanContext instanceof Span ? spanContext.context() : spanContext;
+    this._inject(context as SpanContext, format, carrier);
   }
 
   /**

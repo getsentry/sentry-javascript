@@ -15,19 +15,19 @@ module.exports = config => {
       'karma-firefox-launcher',
     ],
     reporters: ['mocha'],
-    browsers: ['ChromeHeadlessNoSandbox', 'FirefoxHeadless'],
+    browsers: ['ChromeHeadlessNoSandbox'],
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
         flags: ['--no-sandbox', '--disable-setuid-sandbox'],
       },
-      FirefoxHeadless: {
-        base: 'Firefox',
-        flags: ['-headless'],
-      },
+      // FirefoxHeadless: {
+      //   base: 'Firefox',
+      //   flags: ['-headless'],
+      // },
     },
     browserNoActivityTimeout: 30000,
-    concurrency: 2,
+    concurrency: 1,
     client: {
       mocha: {
         reporter: 'html',
