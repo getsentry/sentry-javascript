@@ -53,7 +53,7 @@
     "ts-jest": "^24.0.0",
     "tslint": "^5.14.0",
     "typedoc": "^0.14.2",
-    "typedoc-plugin-monorepo": "^0.1.0",
+    "typedoc-plugin-monorepo": "https://github.com/gprzybylowicz/typedoc-plugin-monorepo",
     "typescript": "^3.3.3333",
     "typescript-tslint-plugin": "^0.3.1"
   }

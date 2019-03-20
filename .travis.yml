@@ -26,8 +26,8 @@ matrix:
 
 stages:
   - Test
-  - Saucelabs
   - Deploy
+  - Saucelabs
 
 jobs:
   include:

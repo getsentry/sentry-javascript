@@ -10442,10 +10442,9 @@ typedoc-default-themes@^0.5.0:
   resolved "https://registry.yarnpkg.com/typedoc-default-themes/-/typedoc-default-themes-0.5.0.tgz#6dc2433e78ed8bea8e887a3acde2f31785bd6227"
   integrity sha1-bcJDPnjti+qOiHo6zeLzF4W9Yic=
 
-typedoc-plugin-monorepo@^0.1.0:
+"typedoc-plugin-monorepo@https://github.com/gprzybylowicz/typedoc-plugin-monorepo":
   version "0.1.0"
-  resolved "https://registry.yarnpkg.com/typedoc-plugin-monorepo/-/typedoc-plugin-monorepo-0.1.0.tgz#d923cb6d9ffff09d8256b679c1bce2b929c0f271"
-  integrity sha512-hx42ck+9dJCoZO0jLCmEE3R6lydYaaYIKL+g6LT5Ev+B8CdAESsML2jiGR+TFu1rUuEujjArtCHjNLj2YqnKnQ==
+  resolved "https://github.com/gprzybylowicz/typedoc-plugin-monorepo#0814dc46441d28dcf88d32964e1700ae7427c854"
   dependencies:
     highlight.js "^9.12.0"
     marked "^0.3.19"
