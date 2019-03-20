@@ -13,8 +13,6 @@
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
-[![Sauce Test Status](https://saucelabs.com/browser-matrix/sentryio.svg)](https://saucelabs.com/u/sentryio)
-
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
@@ -22,8 +20,8 @@
 
 ## Usage
 
-To use this SDK, call `Sentry.init(options)` as early as possible after loading the page. This will initialize the SDK and hook
-into the environment. Note that you can turn off almost all side effects using the respective options.
+To use this SDK, call `Sentry.init(options)` as early as possible after loading the page. This will initialize the SDK
+and hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
 import * as Sentry from '@sentry/browser';
