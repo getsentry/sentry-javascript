@@ -1,6 +1,19 @@
+/**
+ * stack-trace - Parses node.js stack traces
+ *
+ * These tests were originally forked to fix this issue:
+ * https://github.com/felixge/node-stack-trace/issues/31
+ *
+ * Mar 19,2019 - #4fd379e
+ *
+ * https://github.com/felixge/node-stack-trace/
+ * @license MIT
+ */
+
 import * as stacktrace from '../src/stack-trace';
 
 // tslint:disable:typedef
+// tslint:disable:prefer-template
 
 function testBasic() {
   return new Error('something went wrong');
@@ -14,7 +27,6 @@ describe('stack-trace.ts', () => {
   test('testObjectInMethodName', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'Error: Foo\n' +
       '    at [object Object].global.every [as _onTimeout] (/Users/hoitz/develop/test.coffee:36:3)\n' +
       '    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)\n';
@@ -49,7 +61,6 @@ describe('stack-trace.ts', () => {
   test('testCorruptStack', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: true == false\n' +
       '    fuck' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45:10)\n' +
@@ -64,7 +75,6 @@ describe('stack-trace.ts', () => {
   test('testTraceWitoutColumnNumbers', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: true == false\n' +
       '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6)\n' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45)';
@@ -79,7 +89,6 @@ describe('stack-trace.ts', () => {
   test('testStackWithNativeCall', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: true == false\n' +
       '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6:10)\n' +
       '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45:10)\n' +
@@ -89,7 +98,6 @@ describe('stack-trace.ts', () => {
       '    at EventEmitter._tickCallback (node.js:126:26)';
 
     const trace = stacktrace.parse(err as Error);
-
     const nativeCallSite = trace[4];
 
     expect(nativeCallSite.fileName).toEqual(null);
@@ -103,12 +111,9 @@ describe('stack-trace.ts', () => {
 
   test('testStackWithFileOnly', () => {
     const err: { [key: string]: any } = {};
-    err.stack =
-      // tslint:disable-next-line:prefer-template
-      'AssertionError: true == false\n' + '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
+    err.stack = 'AssertionError: true == false\n' + '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
     const trace = stacktrace.parse(err as Error);
-
     const callSite = trace[0];
 
     expect(callSite.fileName).toEqual('/Users/felix/code/node-fast-or-slow/lib/test_case.js');
@@ -123,12 +128,10 @@ describe('stack-trace.ts', () => {
   test('testStackWithMultilineMessage', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: true == false\nAnd some more shit\n' +
       '   at /Users/felix/code/node-fast-or-slow/lib/test_case.js:80:10';
 
     const trace = stacktrace.parse(err as Error);
-
     const callSite = trace[0];
 
     expect(callSite.fileName).toEqual('/Users/felix/code/node-fast-or-slow/lib/test_case.js');
@@ -137,12 +140,10 @@ describe('stack-trace.ts', () => {
   test('testStackWithAnonymousFunctionCall', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: expected [] to be arguments\n' +
       '    at Assertion.prop.(anonymous function) (/Users/den/Projects/should.js/lib/should.js:60:14)\n';
 
     const trace = stacktrace.parse(err as Error);
-
     const callSite0 = trace[0];
 
     expect(callSite0.fileName).toEqual('/Users/den/Projects/should.js/lib/should.js');
@@ -157,7 +158,6 @@ describe('stack-trace.ts', () => {
   test('testTraceBracesInPath', () => {
     const err: { [key: string]: any } = {};
     err.stack =
-      // tslint:disable-next-line:prefer-template
       'AssertionError: true == false\n' +
       '    at Test.run (/Users/felix (something)/code/node-fast-or-slow/lib/test.js:45:10)\n' +
       '    at TestCase.run (/Users/felix (something)/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
