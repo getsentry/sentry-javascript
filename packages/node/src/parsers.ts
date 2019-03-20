@@ -6,7 +6,7 @@ import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
 import { NodeOptions } from './backend';
-import * as stacktrace from './stack-trace';
+import * as stacktrace from './stacktrace';
 
 // tslint:disable-next-line:no-unsafe-any
 const DEFAULT_LINES_OF_CONTEXT: number = 7;

@@ -46,6 +46,7 @@ since we removed some methods from the public API and removed some classes from 
 - [opentracing] feat: Introduce `@sentry/opentracing` providing functions to attach opentracing data to Sentry Events
 - **breaking** [core] ref: `Dedupe` Integration is now optional, it is no longer enabled by default.
 - **breaking** [core] ref: Removed default client fingerprinting for messages
+- [node] ref: Remove stack-trace dependencies
 
 ## 4.6.4
 
