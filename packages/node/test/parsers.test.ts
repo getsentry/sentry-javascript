@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import * as stacktrace from 'stack-trace';
 
 import * as Parsers from '../src/parsers';
+import * as stacktrace from '../src/stack-trace';
 
 import { getError } from './helper/error';
 
