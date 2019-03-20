@@ -19,6 +19,11 @@ cache:
   directories:
     - node_modules
 
+matrix:
+  fast_finish: true
+  allow_failures:
+    - script: scripts/browser-saucelabs.sh
+
 stages:
   - Test
   - Saucelabs
