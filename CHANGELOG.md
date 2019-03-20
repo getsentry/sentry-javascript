@@ -2,7 +2,7 @@
 
 ## 5.0.0-beta1
 
-### Migration from v4
+**Migration from v4**
 
 This major bump brings a lot of internal improvements. If you were using the SDK without any special abilities,
 basically, the way we describe it in the docs, you should be fine by just updating it. This is a **breaking** release
