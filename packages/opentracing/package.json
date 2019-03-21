@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentracing",
-  "version": "5.0.0-beta0",
+  "version": "5.0.0-beta1",
   "description": "Sentry OpenTracing SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal",
@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "5.0.0-beta0",
-    "@sentry/types": "5.0.0-beta0",
-    "@sentry/utils": "5.0.0-beta0",
+    "@sentry/hub": "5.0.0-beta1",
+    "@sentry/types": "5.0.0-beta1",
+    "@sentry/utils": "5.0.0-beta1",
     "opentracing": "0.14.3"
   },
   "devDependencies": {
