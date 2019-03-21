@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "5.0.0-beta0",
+  "version": "5.0.0-beta1",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -16,10 +16,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "5.0.0-beta0",
-    "@sentry/minimal": "5.0.0-beta0",
-    "@sentry/types": "5.0.0-beta0",
-    "@sentry/utils": "5.0.0-beta0",
+    "@sentry/hub": "5.0.0-beta1",
+    "@sentry/minimal": "5.0.0-beta1",
+    "@sentry/types": "5.0.0-beta1",
+    "@sentry/utils": "5.0.0-beta1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
