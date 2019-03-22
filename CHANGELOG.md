@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.0.0-beta1
+## 5.0.0-beta.2
 
 **Migration from v4**
 
