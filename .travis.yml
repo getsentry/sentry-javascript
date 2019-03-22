@@ -4,6 +4,7 @@ git:
 branches:
   only:
     - master
+    - 4.x
     - /^release\/.+$/
 
 install: true
