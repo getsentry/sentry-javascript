@@ -5,7 +5,7 @@ import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
 import { fill, normalize } from '@sentry/utils/object';
 import { safeJoin } from '@sentry/utils/string';
-import { supportsBeacon, supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
+import { supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
 
 import { BrowserClient } from '../client';
 
@@ -28,7 +28,6 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 
 /** JSDoc */
 interface BreadcrumbIntegrations {
-  beacon?: boolean;
   console?: boolean;
   dom?: boolean;
   fetch?: boolean;
@@ -57,7 +56,6 @@ export class Breadcrumbs implements Integration {
    */
   public constructor(options?: BreadcrumbIntegrations) {
     this._options = {
-      beacon: true,
       console: true,
       dom: true,
       fetch: true,
@@ -66,60 +64,6 @@ export class Breadcrumbs implements Integration {
       xhr: true,
       ...options,
     };
-  }
-
-  /**
-   * @hidden
-   */
-  private _instrumentBeacon(): void {
-    if (!supportsBeacon()) {
-      return;
-    }
-
-    /**
-     * @hidden
-     */
-    function beaconReplacementFunction(originalBeaconFunction: () => void): () => void {
-      return function(this: History, ...args: any[]): void {
-        const url = args[0];
-        const data = args[1];
-        // If the browser successfully queues the request for delivery, the method returns "true" and returns "false" otherwise.
-        // https://developer.mozilla.org/en-US/docs/Web/API/Beacon_API/Using_the_Beacon_API
-        const result = originalBeaconFunction.apply(this, args);
-
-        const client = getCurrentHub().getClient<BrowserClient>();
-        const dsn = client && client.getDsn();
-        if (dsn) {
-          const filterUrl = new API(dsn).getStoreEndpoint();
-          // if Sentry key appears in URL, don't capture it as a request
-          // but rather as our own 'sentry' type breadcrumb
-          if (filterUrl && url.includes(filterUrl)) {
-            addSentryBreadcrumb(data);
-            return result;
-          }
-        }
-
-        // What is wrong with you TypeScript...
-        const breadcrumbData = ({
-          category: 'beacon',
-          data,
-          type: 'http',
-        } as any) as { [key: string]: any };
-
-        if (!result) {
-          breadcrumbData.level = Severity.Error;
-        }
-
-        Breadcrumbs.addBreadcrumb(breadcrumbData, {
-          input: args,
-          result,
-        });
-
-        return result;
-      };
-    }
-
-    fill(global.navigator, 'sendBeacon', beaconReplacementFunction);
   }
 
   /** JSDoc */
@@ -494,9 +438,6 @@ export class Breadcrumbs implements Integration {
     }
     if (this._options.fetch) {
       this._instrumentFetch();
-    }
-    if (this._options.beacon) {
-      this._instrumentBeacon();
     }
     if (this._options.history) {
       this._instrumentHistory();

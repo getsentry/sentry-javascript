@@ -93,17 +93,6 @@ export function supportsNativeFetch(): boolean {
 }
 
 /**
- * Tells whether current environment supports sendBeacon API
- * {@link supportsBeacon}.
- *
- * @returns Answer to the given question.
- */
-export function supportsBeacon(): boolean {
-  const global = getGlobalObject();
-  return 'navigator' in global && 'sendBeacon' in global.navigator;
-}
-
-/**
  * Tells whether current environment supports ReportingObserver API
  * {@link supportsReportingObserver}.
  *
