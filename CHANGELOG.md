@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.0-rc.2
+
+- [browser] fix: Remove beacon transport.
+
 ## 5.0.0-rc.1
 
 - [node] fix: Check if buffer isReady before sending/creating Promise for request.
