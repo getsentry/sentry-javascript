@@ -2,6 +2,10 @@
 
 ## 5.0.0-beta.2
 
+- Fix: NPM release
+
+## 5.0.0-beta1
+
 **Migration from v4**
 
 This major bump brings a lot of internal improvements. If you were using the SDK without any special abilities,
