@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 4.6.5
+
+- [browser] fix: Remove beacon transport.
+
 ## 4.6.4
 
 - [utils] fix: Prevent decycling from referencing original objects
