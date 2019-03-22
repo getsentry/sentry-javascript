@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.0-rc.0
+
+- Fix: Tag npm release with `next` to not make it latest
+
 ## 5.0.0-beta.2
 
 - Fix: NPM release
