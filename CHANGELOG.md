@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.0-rc.1
+
+- [node] fix: Check if buffer isReady before sending/creating Promise for request.
+
 ## 5.0.0-rc.0
 
 - Fix: Tag npm release with `next` to not make it latest

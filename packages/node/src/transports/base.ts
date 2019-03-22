@@ -73,6 +73,9 @@ export abstract class BaseTransport implements Transport {
 
   /** JSDoc */
   protected async _sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
+    if (!this._buffer.isReady()) {
+      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+    }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
         const req = httpModule.request(this._getRequestOptions(), (res: http.IncomingMessage) => {
