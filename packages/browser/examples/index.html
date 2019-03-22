@@ -4,16 +4,33 @@
     <meta charset="utf-8" />
     <title>@sentry/browser SDK examples</title>
     <script src="bundle.js"></script>
-    <!-- <script src="https://browser.sentry-cdn.com/4.6.4/bundle.min.js" crossorigin="anonymous"></script> -->
-    <!-- <script src="https://cdn.ravenjs.com/3.26.4/raven.min.js" crossorigin="anonymous"></script> -->
+    <script src="app.js"></script>
+    <style>
+      button {
+        display: block;
+        margin: 0.5em 0;
+        font-size: 1em;
+        cursor: pointer;
+        padding: 0.5em;
+      }
 
-    <!-- <script src="app.js"></script> -->
-    <script type="text/javascript">
-      Sentry.init({ dsn: 'https://2838816694c54bf3973d9b08eeb429c1@dgriesser-7b0957b1732f38a5e205.eu.ngrok.io/11' });
-      // Raven.config('https://2838816694c54bf3973d9b08eeb429c1@dgriesser-7b0957b1732f38a5e205.eu.ngrok.io/11').install();
-      // Raven.captureException('this is a raven test');
-      Sentry.captureException('this is a test');
-    </script>
+      button:hover {
+        background: #ddd;
+      }
+    </style>
   </head>
-  <body></body>
+  <body>
+    <button id="blacklist-url">blacklistUrl example</button>
+    <button id="whitelist-url">whitelistUrl example</button>
+    <button id="ignore-message">ignoreError message example</button>
+    <button id="ignore-type">ignoreError type example</button>
+    <button id="regular-exception">regularException example</button>
+    <button id="capture-exception">captureException example</button>
+    <button id="capture-message">captureMessage example</button>
+    <button id="duplicate-exception">duplicated exception example</button>
+    <button id="duplicate-message">duplicated message example</button>
+    <button id="integration-example">integration example</button>
+    <button id="exception-hint">event hints example</button>
+    <button data-label="User Defined Label" id="breadcrumb-hint">breadcrumb hints example</button>
+  </body>
 </html>

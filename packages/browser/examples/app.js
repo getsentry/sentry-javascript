@@ -18,59 +18,59 @@ class HappyIntegration {
   }
 }
 
-// class HappyTransport extends Sentry.Transports.BaseTransport {
-//   captureEvent(event) {
-//     console.log(
-//       `This is the place where you'd implement your own sending logic. It'd get url: ${this.url} and an event itself:`,
-//       event,
-//     );
+class HappyTransport extends Sentry.Transports.BaseTransport {
+  captureEvent(event) {
+    console.log(
+      `This is the place where you'd implement your own sending logic. It'd get url: ${this.url} and an event itself:`,
+      event,
+    );
 
-//     return {
-//       status: 'success',
-//     };
-//   }
-// }
+    return {
+      status: 'success',
+    };
+  }
+}
 
 Sentry.init({
   // Client's DSN.
-  dsn: 'https://2838816694c54bf3973d9b08eeb429c1@dgriesser-7b0957b1732f38a5e205.eu.ngrok.io/11',
+  dsn: 'https://363a337c11a64611be4845ad6e24f3ac@sentry.io/297378',
   // An array of strings or regexps that'll be used to ignore specific errors based on their type/message
-  // ignoreErrors: [/PickleRick_\d\d/, "RangeError"],
-  // // // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
-  // blacklistUrls: ["external-lib.js"],
-  // // // An array of strings or regexps that'll be used to allow specific errors based on their origin url
-  // whitelistUrls: ["http://localhost:5000", "https://browser.sentry-cdn"],
-  // // // Debug mode with valuable initialization/lifecycle informations.
+  ignoreErrors: [/PickleRick_\d\d/, 'RangeError'],
+  // // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
+  blacklistUrls: ['external-lib.js'],
+  // // An array of strings or regexps that'll be used to allow specific errors based on their origin url
+  whitelistUrls: ['http://localhost:5000', 'https://browser.sentry-cdn'],
+  // // Debug mode with valuable initialization/lifecycle informations.
   debug: true,
   // Whether SDK should be enabled or not.
   enabled: true,
   // Custom integrations callback
-  // integrations(integrations) {
-  //   return [new HappyIntegration(), ...integrations];
-  // },
+  integrations(integrations) {
+    return [new HappyIntegration(), ...integrations];
+  },
   // A release identifier.
   release: '1537345109360',
   // An environment identifier.
   environment: 'staging',
   // Custom event transport that will be used to send things to Sentry
-  // transport: HappyTransport,
+  transport: HappyTransport,
   // Method called for every captured event
-  // async beforeSend(event, hint) {
-  //   // Because beforeSend and beforeBreadcrumb are async, user can fetch some data
-  //   // return a promise, or whatever he wants
-  //   // Our CustomError defined in errors.js has `someMethodAttachedToOurCustomError`
-  //   // which can mimick something like a network request to grab more detailed error info or something.
-  //   // hint is original exception that was triggered, so we check for our CustomError name
-  //   if (hint.originalException.name === 'CustomError') {
-  //     const serverData = await hint.originalException.someMethodAttachedToOurCustomError();
-  //     event.extra = {
-  //       ...event.extra,
-  //       serverData,
-  //     };
-  //   }
-  //   console.log(event);
-  //   return event;
-  // },
+  async beforeSend(event, hint) {
+    // Because beforeSend and beforeBreadcrumb are async, user can fetch some data
+    // return a promise, or whatever he wants
+    // Our CustomError defined in errors.js has `someMethodAttachedToOurCustomError`
+    // which can mimick something like a network request to grab more detailed error info or something.
+    // hint is original exception that was triggered, so we check for our CustomError name
+    if (hint.originalException.name === 'CustomError') {
+      const serverData = await hint.originalException.someMethodAttachedToOurCustomError();
+      event.extra = {
+        ...event.extra,
+        serverData,
+      };
+    }
+    console.log(event);
+    return event;
+  },
   // Method called for every captured breadcrumb
   beforeBreadcrumb(breadcrumb, hint) {
     // We ignore our own logger and rest of the buttons just for presentation purposes
