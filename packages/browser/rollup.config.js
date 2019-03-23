@@ -16,7 +16,7 @@ const terserInstance = terser({
     // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
     properties: {
-      regex: /^_/,
+      regex: /^_[^_]/,
     },
   },
 });
