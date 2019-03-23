@@ -38,11 +38,8 @@ export class Vue implements Integration {
    * @inheritDoc
    */
   public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
-    this._Vue =
-      options.Vue ||
-      (getGlobalObject() as {
-        Vue: any;
-      }).Vue;
+    // tslint:disable-next-line: no-unsafe-any
+    this._Vue = options.Vue || getGlobalObject().Vue;
     this._attachProps = options.attachProps || true;
   }
 

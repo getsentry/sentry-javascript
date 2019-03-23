@@ -2,7 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils/misc';
 
-const global = getGlobalObject() as Window;
+const global = getGlobalObject<Window>();
 
 /** UserAgent */
 export class UserAgent implements Integration {

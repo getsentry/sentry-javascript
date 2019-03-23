@@ -282,7 +282,7 @@ export class Scope implements ScopeInterface {
  * Retruns the global event processors.
  */
 function getGlobalEventProcessors(): EventProcessor[] {
-  const global: any = getGlobalObject();
+  const global = getGlobalObject();
   global.__SENTRY__ = global.__SENTRY__ || {};
   global.__SENTRY__.globalEventProcessors = global.__SENTRY__.globalEventProcessors || [];
   return global.__SENTRY__.globalEventProcessors;

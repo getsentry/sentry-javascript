@@ -11,7 +11,7 @@ import { BrowserClient } from '../client';
 
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
-const global = getGlobalObject() as Window;
+const global = getGlobalObject<Window>();
 let lastHref: string | undefined;
 
 /**

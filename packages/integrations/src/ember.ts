@@ -21,11 +21,8 @@ export class Ember implements Integration {
    * @inheritDoc
    */
   public constructor(options: { Ember?: any } = {}) {
-    this._Ember =
-      options.Ember ||
-      (getGlobalObject() as {
-        Ember: any;
-      }).Ember;
+    // tslint:disable-next-line: no-unsafe-any
+    this._Ember = options.Ember || getGlobalObject().Ember;
   }
 
   /**
