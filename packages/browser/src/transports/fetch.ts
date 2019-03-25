@@ -4,7 +4,7 @@ import { supportsReferrerPolicy } from '@sentry/utils/supports';
 
 import { BaseTransport } from './base';
 
-const global = getGlobalObject() as Window;
+const global = getGlobalObject<Window>();
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {

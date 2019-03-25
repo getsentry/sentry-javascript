@@ -59,7 +59,7 @@ export function supportsDOMException(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsFetch(): boolean {
-  if (!('fetch' in getGlobalObject())) {
+  if (!('fetch' in getGlobalObject<Window>())) {
     return false;
   }
 
@@ -86,10 +86,8 @@ export function supportsNativeFetch(): boolean {
   if (!supportsFetch()) {
     return false;
   }
-  const global = getGlobalObject();
-  const fetch = (global as any).fetch;
-  // tslint:disable-next-line:no-unsafe-any
-  return fetch.toString().indexOf('native') !== -1;
+  const global = getGlobalObject<Window>();
+  return global.fetch.toString().indexOf('native') !== -1;
 }
 
 /**
@@ -99,6 +97,7 @@ export function supportsNativeFetch(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsReportingObserver(): boolean {
+  // tslint:disable-next-line: no-unsafe-any
   return 'ReportingObserver' in getGlobalObject();
 }
 
@@ -139,7 +138,7 @@ export function supportsHistory(): boolean {
   // NOTE: in Chrome App environment, touching history.pushState, *even inside
   //       a try/catch block*, will cause Chrome to output an error to console.error
   // borrowed from: https://github.com/angular/angular.js/pull/13945/files
-  const global = getGlobalObject();
+  const global = getGlobalObject<Window>();
   const chrome = (global as any).chrome;
   // tslint:disable-next-line:no-unsafe-any
   const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;

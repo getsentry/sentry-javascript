@@ -267,7 +267,7 @@ export class Hub implements HubInterface {
 
 /** Returns the global shim registry. */
 export function getMainCarrier(): Carrier {
-  const carrier: any = getGlobalObject();
+  const carrier = getGlobalObject();
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
     hub: undefined,
   };
@@ -333,7 +333,7 @@ export function getCurrentHub(): Hub {
  * This will tell whether a carrier has a hub on it or not
  * @param carrier object
  */
-function hasHubOnCarrier(carrier: any): boolean {
+function hasHubOnCarrier(carrier: Carrier): boolean {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return true;
   }
@@ -346,7 +346,7 @@ function hasHubOnCarrier(carrier: any): boolean {
  * @param carrier object
  * @hidden
  */
-export function getHubFromCarrier(carrier: any): Hub {
+export function getHubFromCarrier(carrier: Carrier): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return carrier.__SENTRY__.hub;
   }
@@ -360,7 +360,7 @@ export function getHubFromCarrier(carrier: any): Hub {
  * @param carrier object
  * @param hub Hub
  */
-export function setHubOnCarrier(carrier: any, hub: Hub): boolean {
+export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) {
     return false;
   }

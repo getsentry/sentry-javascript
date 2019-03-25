@@ -55,7 +55,7 @@ interface ComputeStackTrace {
  * @namespace TraceKit
  */
 
-var window = getGlobalObject() as Window;
+var window = getGlobalObject<Window>();
 
 interface TraceKit {
   report: any;

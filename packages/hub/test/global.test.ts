@@ -8,10 +8,10 @@ describe('global', () => {
 
   test('getHubFromCarrier', () => {
     const bla = { a: 'b' };
-    getHubFromCarrier(bla);
+    getHubFromCarrier(bla as any);
     expect((bla as any).__SENTRY__.hub).toBeTruthy();
     expect((bla as any).__SENTRY__.hub).toBe((bla as any).__SENTRY__.hub);
-    getHubFromCarrier(bla);
+    getHubFromCarrier(bla as any);
   });
 
   test('getGlobalHub', () => {

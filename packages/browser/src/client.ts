@@ -76,7 +76,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    */
   public showReportDialog(options: ReportDialogOptions = {}): void {
     // doesn't work without a document (React Native)
-    const document = (getGlobalObject() as Window).document;
+    const document = getGlobalObject<Window>().document;
     if (!document) {
       return;
     }

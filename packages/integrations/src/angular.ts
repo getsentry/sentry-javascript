@@ -39,11 +39,8 @@ export class Angular implements Integration {
    * @inheritDoc
    */
   public constructor(options: { angular?: ng.IAngularStatic } = {}) {
-    this._angular =
-      options.angular ||
-      (getGlobalObject() as {
-        angular: ng.IAngularStatic;
-      }).angular;
+    // tslint:disable-next-line: no-unsafe-any
+    this._angular = options.angular || (getGlobalObject().angular as ng.IAngularStatic);
   }
 
   /**

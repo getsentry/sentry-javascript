@@ -2,6 +2,15 @@ import { Event, Mechanism, WrappedFunction } from '@sentry/types';
 
 import { isString } from './is';
 
+/** Internal */
+interface SentryGlobal {
+  __SENTRY__: {
+    globalEventProcessors: any;
+    hub: any;
+    logger: any;
+  };
+}
+
 /**
  * Requires a module which is protected _against bundler minification.
  *
@@ -29,14 +38,14 @@ const fallbackGlobalObject = {};
  * @returns Global scope object
  */
 // tslint:disable:strict-type-predicates
-export function getGlobalObject(): Window | NodeJS.Global | {} {
-  return isNodeEnv()
+export function getGlobalObject<T extends Window | NodeJS.Global = any>(): T & SentryGlobal {
+  return (isNodeEnv()
     ? global
     : typeof window !== 'undefined'
     ? window
     : typeof self !== 'undefined'
     ? self
-    : fallbackGlobalObject;
+    : fallbackGlobalObject) as T & SentryGlobal;
 }
 // tslint:enable:strict-type-predicates
 
@@ -228,7 +237,7 @@ interface ExtensibleConsole extends Console {
 
 /** JSDoc */
 export function consoleSandbox(callback: () => any): any {
-  const global = getGlobalObject() as Window;
+  const global = getGlobalObject<Window>();
   const levels = ['debug', 'info', 'warn', 'error', 'log'];
 
   if (!('console' in global)) {
