@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.0.0-rc.3
+
+- [browser] fix: Don't mangle names starting with two `__`
+- [utils] fix: Ensure only one logger instance
+
 ## 5.0.0-rc.2
 
 - [browser] fix: Remove beacon transport.
