@@ -7,4 +7,4 @@ yarn build
 yarn lint:json
 yarn test
 yarn codecov
-yarn danger ci
+yarn danger ci || true # for external PRs danger will fail because of token
