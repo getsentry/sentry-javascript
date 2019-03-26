@@ -92,7 +92,7 @@ export class ExtraErrorData implements Integration {
         for (const key of errorKeys) {
           let value = error[key];
           if (isError(value)) {
-            value = (value as Error).name || (value as Error).constructor.name;
+            value = (value as Error).toString();
           }
           extraErrorInfo[key] = value;
         }
