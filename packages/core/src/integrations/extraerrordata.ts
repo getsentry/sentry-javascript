@@ -93,7 +93,8 @@ export class ExtraErrorData implements Integration {
           let value = error[key];
           if (isError(value)) {
             const name = (value as Error).name || (value as Error).constructor.name;
-            value = `${name}: ${(value as Error).message}`;
+            const message = (value as Error).message ? `: ${(value as Error).message}` : '';
+            value = `${name}${message}`;
           }
           extraErrorInfo[key] = value;
         }
