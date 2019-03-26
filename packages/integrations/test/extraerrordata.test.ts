@@ -37,7 +37,7 @@ describe('ExtraErrorData()', () => {
 
     expect(enhancedEvent.extra).toEqual({
       TypeError: {
-        cause: 'SyntaxError',
+        cause: 'SyntaxError: bar',
       },
     });
   });
