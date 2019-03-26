@@ -69,23 +69,38 @@ function mergeIntoSentry(name) {
 }
 
 function allIntegrations() {
-  return fs.readdirSync('./src').filter(file => file != 'modules.ts');
+  return fs.readdirSync('./src').filter(file => file != 'index.ts');
 }
 
 function loadAllIntegrations() {
-  return allIntegrations().map(file => ({
-    input: `src/${file}`,
-    output: {
-      banner: '(function (window) {',
-      intro: 'var exports = {};',
-      footer: '}(window));',
-      outro: mergeIntoSentry(toPascalCase(file.replace('.ts', ''))),
-      file: `build/${file.replace('.ts', '.js')}`,
-      format: 'cjs',
-      sourcemap: true,
+  const builds = [];
+  [
+    {
+      extension: '.js',
+      plugins,
     },
-    plugins,
-  }));
+    {
+      extension: '.min.js',
+      plugins: [...plugins, terserInstance],
+    },
+  ].forEach(build => {
+    builds.push(
+      ...allIntegrations().map(file => ({
+        input: `src/${file}`,
+        output: {
+          banner: '(function (window) {',
+          intro: 'var exports = {};',
+          footer: '}(window));',
+          outro: mergeIntoSentry(toPascalCase(file.replace('.ts', ''))),
+          file: `build/${file.replace('.ts', build.extension)}`,
+          format: 'cjs',
+          sourcemap: true,
+        },
+        plugins: build.plugins,
+      })),
+    );
+  });
+  return builds;
 }
 
 export default loadAllIntegrations();

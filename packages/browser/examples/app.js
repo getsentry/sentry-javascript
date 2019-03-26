@@ -19,7 +19,7 @@ class HappyIntegration {
 }
 
 class HappyTransport extends Sentry.Transports.BaseTransport {
-  captureEvent(event) {
+  sendEvent(event) {
     console.log(
       `This is the place where you'd implement your own sending logic. It'd get url: ${this.url} and an event itself:`,
       event,
