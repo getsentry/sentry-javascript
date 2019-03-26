@@ -32,7 +32,7 @@ export class Vue implements Integration {
    * When set to false, Sentry will suppress reporting all props data
    * from your Vue components for privacy concerns.
    */
-  private readonly _attachProps: boolean;
+  private readonly _attachProps: boolean = true;
 
   /**
    * @inheritDoc
@@ -40,7 +40,9 @@ export class Vue implements Integration {
   public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
     // tslint:disable-next-line: no-unsafe-any
     this._Vue = options.Vue || getGlobalObject().Vue;
-    this._attachProps = options.attachProps || true;
+    if (options.attachProps === false) {
+      this._attachProps = false;
+    }
   }
 
   /** JSDoc */
