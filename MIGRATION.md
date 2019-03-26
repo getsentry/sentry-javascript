@@ -17,9 +17,8 @@ Integrations that were pluggable/optional before also live in this package:
 - Angular (browser)
 - Debug (browser/node)
 - Ember (browser)
-- Modules (node)
 - ReportingObserver (browser)
-- RewriteFrames (node)
+- RewriteFrames (browser/node)
 - Transaction (browser/node)
 - Vue (browser)
 
@@ -70,7 +69,7 @@ like this:
 <!-- <script src="https://browser.sentry-cdn.com/5.0.0/bundle.es6.min.js" crossorigin="anonymous"></script> -->
 <script src="https://browser.sentry-cdn.com/5.0.0/bundle.min.js" crossorigin="anonymous"></script>
 
-<!-- If you include the integration after the SDK it will be available under Sentry.Integrations.Vue -->
+<!-- If you include the integration it will be available under Sentry.Integrations.Vue -->
 <script src="https://browser.sentry-cdn.com/5.0.0/vue.min.js" crossorigin="anonymous"></script>
 
 <script>
@@ -78,28 +77,6 @@ like this:
     dsn: '___PUBLIC_DSN___',
     integrations: [
       new Sentry.Integrations.Vue({
-        Vue,
-        attachProps: true,
-      }),
-    ],
-  });
-</script>
-```
-
-If you are including it while using the Loader or before the CDN bundle:
-
-```html
-<!-- If you include the integration after the SDK it will be available under SentryIntegrations.Vue -->
-<script src="https://browser.sentry-cdn.com/5.0.0/vue.min.js" crossorigin="anonymous"></script>
-<!-- Also this will emit a warning telling you about the change. -->
-
-<script src="https://browser.sentry-cdn.com/5.0.0/bundle.min.js" crossorigin="anonymous"></script>
-
-<script>
-  Sentry.init({
-    dsn: '___PUBLIC_DSN___',
-    integrations: [
-      new SentryIntegrations.Vue({
         Vue,
         attachProps: true,
       }),
