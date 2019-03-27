@@ -3,11 +3,11 @@ import {
   Breadcrumb,
   Integration,
   IntegrationClass,
+  SdkInfo,
   SentryBreadcrumbHint,
   SentryEvent,
   SentryEventHint,
   SentryResponse,
-  SdkInfo,
   Severity,
   Status,
 } from '@sentry/types';

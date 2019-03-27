@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 4.6.6
+
+- [core] fix: Add integrations to sdkinfo
+- [browser] fix: Use `Error.toString()`
+
 ## 4.6.5
 
 - [browser] fix: Remove beacon transport.
