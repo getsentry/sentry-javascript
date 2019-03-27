@@ -7,6 +7,7 @@ import {
   SentryEvent,
   SentryEventHint,
   SentryResponse,
+  SdkInfo,
   Severity,
   Status,
 } from '@sentry/types';
@@ -274,6 +275,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       prepared.event_id = uuid4();
     }
 
+    this._addIntegrations(prepared.sdk);
+
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
     if (scope) {
@@ -281,6 +284,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     return prepared;
+  }
+
+  /**
+   * This function adds all used integrations to the SDK info in the event.
+   * @param sdkInfo The sdkInfo of the event that will be filled with all integrations.
+   */
+  protected _addIntegrations(sdkInfo?: SdkInfo): void {
+    const integrationsArray = Object.keys(this.integrations);
+    if (sdkInfo && integrationsArray.length > 0) {
+      sdkInfo.integrations = integrationsArray;
+    }
   }
 
   /**
