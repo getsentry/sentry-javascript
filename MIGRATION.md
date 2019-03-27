@@ -1,18 +1,17 @@
 # Upgrading from 4.x to 5.x
 
-In this version upgrade, there are a few breaking changes.
-This guide should help you update your code accordingly.
+In this version upgrade, there are a few breaking changes. This guide should help you update your code accordingly.
 
 ## Integrations
 
-We moved optional integrations into their own package, called `@sentry/integrations`.
-Also, we made a few default
+We moved optional integrations into their own package, called `@sentry/integrations`. Also, we made a few default
 integrations now optional. This is probably the biggest breaking change regarding the upgrade.
 
 Integrations that are now opt-in and were default before:
 
 - Dedupe (responsible for sending the same error only once)
-- ExtraErrorData (responsible for doing fancy magic, trying to extract data out of the error object using any non-standard keys)
+- ExtraErrorData (responsible for doing fancy magic, trying to extract data out of the error object using any
+  non-standard keys)
 
 Integrations that were pluggable/optional before, that also live in this package:
 
@@ -50,12 +49,12 @@ With `5.x` you need to install `@sentry/integrations` and change the import.
 
 ```js
 import * as Sentry from '@sentry/browser';
-import { Vue as VueIntegration } from '@sentry/integrations/vue';
+import * as Integrations from '@sentry/integrations';
 
 Sentry.init({
   dsn: '___PUBLIC_DSN___',
   integrations: [
-    new VueIntegration({
+    new Integrations.Vue({
       Vue,
       attachProps: true,
     }),
@@ -89,7 +88,8 @@ like this:
 
 ## New Scope functions
 
-We realized how annoying it is to set a whole object using `setExtra`, that's why there are now a few new methods on the `Scope`.
+We realized how annoying it is to set a whole object using `setExtra`, that's why there are now a few new methods on the
+`Scope`.
 
 ```typescript
 setTags(tags: { [key: string]: string }): this;
