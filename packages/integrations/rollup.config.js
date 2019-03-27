@@ -52,11 +52,11 @@ function toPascalCase(string) {
     .replace(new RegExp(/\w/), s => s.toUpperCase());
 }
 
-function mergeIntoSentry(name) {
+function mergeIntoSentry() {
   return `
   __window.Sentry = __window.Sentry || {};
-  __window.Sentry.Integrations = __window.Sentry.Integrations || [];
-  __window.Sentry.Integrations['${name}'] = exports.${name};
+  __window.Sentry.Integrations = __window.Sentry.Integrations || {};
+  Object.assign(__window.Sentry.Integrations, exports);
   `;
 }
 
@@ -82,7 +82,7 @@ function loadAllIntegrations() {
         output: {
           banner: '(function (__window) {',
           intro: 'var exports = {};',
-          outro: mergeIntoSentry(toPascalCase(file.replace('.ts', ''))),
+          outro: mergeIntoSentry(),
           footer: '}(window));',
           file: `build/${file.replace('.ts', build.extension)}`,
           format: 'cjs',

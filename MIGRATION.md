@@ -116,7 +116,7 @@ Sentry.withScope(scope => {
 ## Less Async API
 
 We removed a lot of the internal async code since in certain situations it generated a lot of memory pressure. This
-really only affects you if you where either user the `BrowserClient` or `NodeClient` directly.
+really only affects you if you where either using the `BrowserClient` or `NodeClient` directly.
 
 So all the `capture*` functions now instead of returning `Promise<Response>` return `string | undefined`. `string` in
 this case is the `event_id`, in case the event will not be sent because of filtering it will return `undefined`.
