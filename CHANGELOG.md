@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.0.0-rc.4
+
+- [node] feat: Add esm build
+- [integrations] feat: Fix build and prepare upload to cdn
+- [integrations] fix: Bug in vue integration with `attachProps`
+
 ## 5.0.0-rc.3
 
 - [browser] fix: Don't mangle names starting with two `__`
