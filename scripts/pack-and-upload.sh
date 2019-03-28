@@ -15,6 +15,8 @@ node scripts/package-and-upload-to-zeus.js
 
 # Upload "sentry-browser" bundles
 zeus upload -t "application/javascript" ./packages/browser/build/bundle*
+# Upload "integrations" bundles
+zeus upload -t "application/javascript" ./packages/integrations/build/*
 
 # Upload docs
 make build-docs

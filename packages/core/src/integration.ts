@@ -21,19 +21,19 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
     // Leave only unique default integrations, that were not overridden with provided user integrations
     defaultIntegrations.forEach(defaultIntegration => {
       if (
-        userIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1 &&
-        pickedIntegrationsNames.indexOf(getIntegrationName(defaultIntegration)) === -1
+        userIntegrationsNames.indexOf(defaultIntegration.name) === -1 &&
+        pickedIntegrationsNames.indexOf(defaultIntegration.name) === -1
       ) {
         integrations.push(defaultIntegration);
-        pickedIntegrationsNames.push(getIntegrationName(defaultIntegration));
+        pickedIntegrationsNames.push(defaultIntegration.name);
       }
     });
 
     // Don't add same user integration twice
     userIntegrations.forEach(userIntegration => {
-      if (pickedIntegrationsNames.indexOf(getIntegrationName(userIntegration)) === -1) {
+      if (pickedIntegrationsNames.indexOf(userIntegration.name) === -1) {
         integrations.push(userIntegration);
-        pickedIntegrationsNames.push(getIntegrationName(userIntegration));
+        pickedIntegrationsNames.push(userIntegration.name);
       }
     });
   } else if (typeof userIntegrations === 'function') {
@@ -48,12 +48,12 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
 
 /** Setup given integration */
 export function setupIntegration(integration: Integration): void {
-  if (installedIntegrations.indexOf(getIntegrationName(integration)) !== -1) {
+  if (installedIntegrations.indexOf(integration.name) !== -1) {
     return;
   }
   integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
-  installedIntegrations.push(getIntegrationName(integration));
-  logger.log(`Integration installed: ${getIntegrationName(integration)}`);
+  installedIntegrations.push(integration.name);
+  logger.log(`Integration installed: ${integration.name}`);
 }
 
 /**
@@ -65,20 +65,8 @@ export function setupIntegration(integration: Integration): void {
 export function setupIntegrations<O extends Options>(options: O): IntegrationIndex {
   const integrations: IntegrationIndex = {};
   getIntegrationsToSetup(options).forEach(integration => {
-    integrations[getIntegrationName(integration)] = integration;
+    integrations[integration.name] = integration;
     setupIntegration(integration);
   });
   return integrations;
-}
-
-/**
- * Returns the integration static id.
- * @param integration Integration to retrieve id
- */
-function getIntegrationName(integration: Integration): string {
-  /**
-   * @depracted
-   */
-  // tslint:disable-next-line:no-unsafe-any
-  return (integration as any).constructor.id || integration.name;
 }

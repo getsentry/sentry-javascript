@@ -43,49 +43,47 @@ const plugins = [
   commonjs(),
 ];
 
-function toPascalCase(string) {
-  return `${string}`
-    .replace(new RegExp(/[-_]+/, 'g'), ' ')
-    .replace(new RegExp(/[^\w\s]/, 'g'), '')
-    .replace(new RegExp(/\s+(.)(\w+)/, 'g'), ($1, $2, $3) => `${$2.toUpperCase() + $3.toLowerCase()}`)
-    .replace(new RegExp(/\s/, 'g'), '')
-    .replace(new RegExp(/\w/), s => s.toUpperCase());
-}
-
-function mergeIntoSentry(name) {
+function mergeIntoSentry() {
   return `
-  if (window.Sentry && window.Sentry.Integrations) {
-    window.Sentry.Integrations['${name}'] = exports.${name};
-  } else {
-    if ((typeof __SENTRY_INTEGRATIONS_LOG === 'undefined')) {
-      console.warn('Sentry.Integrations is not defined, make sure you included this script after the SDK.');
-      console.warn('In case you were using the loader, we added the Integration is now available under SentryIntegrations.${name}');
-      console.warn('To disable these warning set __SENTRY_INTEGRATIONS_LOG = true; somewhere before loading this script.');
-    }
-    window.SentryIntegrations = window.SentryIntegrations || {};
-    window.SentryIntegrations['${name}'] = exports.${name};
-  }
+  __window.Sentry = __window.Sentry || {};
+  __window.Sentry.Integrations = __window.Sentry.Integrations || {};
+  Object.assign(__window.Sentry.Integrations, exports);
   `;
 }
 
 function allIntegrations() {
-  return fs.readdirSync('./src').filter(file => file != 'modules.ts');
+  return fs.readdirSync('./src').filter(file => file != 'index.ts');
 }
 
 function loadAllIntegrations() {
-  return allIntegrations().map(file => ({
-    input: `src/${file}`,
-    output: {
-      banner: '(function (window) {',
-      intro: 'var exports = {};',
-      footer: '}(window));',
-      outro: mergeIntoSentry(toPascalCase(file.replace('.ts', ''))),
-      file: `build/${file.replace('.ts', '.js')}`,
-      format: 'cjs',
-      sourcemap: true,
+  const builds = [];
+  [
+    {
+      extension: '.js',
+      plugins,
     },
-    plugins,
-  }));
+    {
+      extension: '.min.js',
+      plugins: [...plugins, terserInstance],
+    },
+  ].forEach(build => {
+    builds.push(
+      ...allIntegrations().map(file => ({
+        input: `src/${file}`,
+        output: {
+          banner: '(function (__window) {',
+          intro: 'var exports = {};',
+          outro: mergeIntoSentry(),
+          footer: '}(window));',
+          file: `build/${file.replace('.ts', build.extension)}`,
+          format: 'cjs',
+          sourcemap: true,
+        },
+        plugins: build.plugins,
+      })),
+    );
+  });
+  return builds;
 }
 
 export default loadAllIntegrations();

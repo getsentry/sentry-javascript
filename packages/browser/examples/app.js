@@ -5,8 +5,8 @@ class HappyIntegration {
   }
 
   setupOnce() {
-    Sentry.addGlobalEventProcessor(async event => {
-      const self = getCurrentHub().getIntegration(HappyIntegration);
+    Sentry.addGlobalEventProcessor(event => {
+      const self = Sentry.getCurrentHub().getIntegration(HappyIntegration);
       // Run the integration ONLY when it was installed on the current Hub
       if (self) {
         if (event.message === 'Happy Message') {
@@ -19,7 +19,7 @@ class HappyIntegration {
 }
 
 class HappyTransport extends Sentry.Transports.BaseTransport {
-  captureEvent(event) {
+  sendEvent(event) {
     console.log(
       `This is the place where you'd implement your own sending logic. It'd get url: ${this.url} and an event itself:`,
       event,
@@ -36,11 +36,11 @@ Sentry.init({
   dsn: 'https://363a337c11a64611be4845ad6e24f3ac@sentry.io/297378',
   // An array of strings or regexps that'll be used to ignore specific errors based on their type/message
   ignoreErrors: [/PickleRick_\d\d/, 'RangeError'],
-  // // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
+  // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
   blacklistUrls: ['external-lib.js'],
-  // // An array of strings or regexps that'll be used to allow specific errors based on their origin url
+  // An array of strings or regexps that'll be used to allow specific errors based on their origin url
   whitelistUrls: ['http://localhost:5000', 'https://browser.sentry-cdn'],
-  // // Debug mode with valuable initialization/lifecycle informations.
+  // Debug mode with valuable initialization/lifecycle informations.
   debug: true,
   // Whether SDK should be enabled or not.
   enabled: true,

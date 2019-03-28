@@ -9,7 +9,7 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: gcs
-    includeNames: /^bundle\..*$/
+    includeNames: /*\.js.*$/
     bucket: sentry-js-sdk
     paths:
       - path: /{{version}}/

@@ -3,3 +3,4 @@ export { Http } from './http';
 export { OnUncaughtException } from './onuncaughtexception';
 export { OnUnhandledRejection } from './onunhandledrejection';
 export { LinkedErrors } from './linkederrors';
+export { Modules } from './modules';

@@ -12,6 +12,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "main": "dist/index.js",
+  "module": "esm/index.js",
+  "browser": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@sentry/types": "5.0.0-rc.3",
     "@sentry/utils": "5.0.0-rc.3"
@@ -33,7 +37,7 @@
     "typescript": "^3.3.3333"
   },
   "scripts": {
-    "build": "run-p build:es5 build:bundle",
+    "build": "run-p build:es5 build:esm build:bundle",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:watch:es5 build:watch:esm",
@@ -41,6 +45,7 @@
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "build:bundle": "rollup --config",
     "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
+    "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
     "lint:tslint": "tslint -t stylish -p .",
