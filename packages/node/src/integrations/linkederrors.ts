@@ -59,7 +59,7 @@ export class LinkedErrors implements Integration {
 
     return new SyncPromise<Event | null>(resolve => {
       this.walkErrorTree(hint.originalException as ExtendedError, this._key).then((linkedErrors: Exception[]) => {
-        if (event && event.exception) {
+        if (event && event.exception && event.exception.values) {
           event.exception.values = [...linkedErrors, ...event.exception.values];
         }
         resolve(event);
