@@ -1,5 +1,67 @@
 # Changelog
 
+## 5.0.0
+
+This major bump brings a lot of internal improvements. Also we extracted some integrations out of their packages and put
+them in their own package called `@sentry/integrations`. For a detailed guide how to upgrade from `4.x` to `5.x`
+consider our [migration guide](https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md).
+
+**Migration from v4**
+
+If you were using the SDK without any special abilities, basically, the way we describe it in the docs, you should be
+fine by just updating it. This is a **breaking** release since we removed some methods from the public API and removed
+some classes from the default export.
+
+- **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
+- [utils] ref: Update wrap method to hide internal sentry flags
+- [utils] fix: Make internal Sentry flags non-enumerable in fill utils
+- [utils] ref: Move `SentryError` + `PromiseBuffer` to utils
+- **breaking** [core] ref: Use `SyncPromise` internally, this reduces memory pressure by a lot.
+- ref: Move internal `ExtendedError` to a types package
+- **breaking** [browser] ref: Removed `BrowserBackend` from default export.
+- **breaking** [node] ref: Removed `BrowserBackend` from default export.
+- **breaking** [core] feat: Disable client once flushed using `close` method
+- **breaking** [core] ref: Pass `Event` to `sendEvent` instead of already stringified data
+- [utils] feat: Introduce `isSyntheticEvent` util
+- **breaking** [utils] ref: remove `isArray` util in favor of `Array.isArray`
+- **breaking** [utils] ref: Remove `isNaN` util in favor of `Number.isNaN`
+- **breaking** [utils] ref: Remove `isFunction` util in favor of `typeof === 'function'`
+- **breaking** [utils] ref: Remove `isUndefined` util in favor of `=== void 0`
+- **breaking** [utils] ref: Remove `assign` util in favor of `Object.assign`
+- **breaking** [utils] ref: Remove `includes` util in favor of native `includes`
+- **breaking** [utils] ref: Rename `serializeKeysToEventMessage` to `keysToEventMessage`
+- **breaking** [utils] ref: Rename `limitObjectDepthToSize` to `normalizeToSize` and rewrite its internals
+- **breaking** [utils] ref: Rename `safeNormalize` to `normalize` and rewrite its internals
+- **breaking** [utils] ref: Remove `serialize`, `deserialize`, `clone` and `serializeObject` functions
+- **breaking** [utils] ref: Rewrite normalization functions by removing most of them and leaving just `normalize` and
+  `normalizeToSize`
+- **breaking** [core] ref: Extract all pluggable integrations into a separate `@sentry/integrations` package
+- **breaking** [core] ref: Move `extraErrorData` integration to `@sentry/integrations` package
+- [core] feat: Add `maxValueLength` option to adjust max string length for values, default is 250.
+- [hub] feat: Introduce `setExtras`, `setTags`, `clearBreadcrumbs`.
+- **breaking** [all] feat: Move `Mechanism` to `Exception`
+- [browser/node] feat: Add `synthetic` to `Mechanism` in exception.
+- [browser/node] fix: Use `addExceptionTypeValue` in helpers
+- [browser] ref: Remove unused TraceKit code
+- **breaking** [all] build: Expose `module` in `package.json` as entry point for esm builds.
+- **breaking** [all] build: Use `es6` target instead of esnext for ESM builds
+- [all] feat: Prefix all private methods with `_`
+- [all] build: Use terser instead of uglify
+- [opentracing] feat: Introduce `@sentry/opentracing` providing functions to attach opentracing data to Sentry Events
+- **breaking** [core] ref: `Dedupe` Integration is now optional, it is no longer enabled by default.
+- **breaking** [core] ref: Removed default client fingerprinting for messages
+- [node] ref: Remove stack-trace dependencies
+- **breaking** [core] ref: Transport function `captureEvent` was renamed to `sendEvent`
+- [node] fix: Check if buffer isReady before sending/creating Promise for request.
+- [browser] fix: Remove beacon transport.
+- [browser] fix: Don't mangle names starting with two `__`
+- [utils] fix: Ensure only one logger instance
+- [node] feat: Add esm build
+- [integrations] feat: Fix build and prepare upload to cdn
+- [integrations] fix: Bug in vue integration with `attachProps`
+- **breaking** [core] ref: Remove SDK information integration
+- **breaking** [core] ref: Remove `install` function on integration interface
+
 ## 5.0.0-rc.4
 
 - [node] feat: Add esm build
@@ -74,6 +136,7 @@ since we removed some methods from the public API and removed some classes from 
 - **breaking** [core] ref: `Dedupe` Integration is now optional, it is no longer enabled by default.
 - **breaking** [core] ref: Removed default client fingerprinting for messages
 - [node] ref: Remove stack-trace dependencies
+- **breaking** [core] ref: Transport function `captureEvent` was renamed to `sendEvent`
 
 ## 4.6.4
 
