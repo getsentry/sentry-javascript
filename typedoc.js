@@ -9,7 +9,6 @@ module.exports = {
     '**/dist/**/*',
     '**/esm/**/*',
     '**/build/**/*',
-    '**/packages/integrations/**/*',
     '**/packages/opentracing/**/*',
     '**/packages/typescript/**/*',
     '**/packages/raven-js/**/*',

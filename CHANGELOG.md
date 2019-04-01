@@ -2,15 +2,15 @@
 
 ## 5.0.0
 
-This major bump brings a lot of internal improvements. Also we extracted some integrations out of their packages and put
-them in their own package called `@sentry/integrations`. For a detailed guide how to upgrade from `4.x` to `5.x`
-consider our [migration guide](https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md).
+This major bump brings a lot of internal improvements. Also, we extracted some integrations out of the SDKs and put them
+in their own package called `@sentry/integrations`. For a detailed guide how to upgrade from `4.x` to `5.x` refer to our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md).
 
 **Migration from v4**
 
-If you were using the SDK without any special abilities, basically, the way we describe it in the docs, you should be
-fine by just updating it. This is a **breaking** release since we removed some methods from the public API and removed
-some classes from the default export.
+If you were using the SDKs high level API, the way we describe it in the docs, you should be fine without any code
+changes. This is a **breaking** release since we removed some methods from the public API and removed some classes from
+the default export.
 
 - **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
 - [utils] ref: Update wrap method to hide internal sentry flags
@@ -61,9 +61,6 @@ some classes from the default export.
 - [integrations] fix: Bug in vue integration with `attachProps`
 - **breaking** [core] ref: Remove SDK information integration
 - **breaking** [core] ref: Remove `install` function on integration interface
-
-## 5.0.0-rc.4
-
 - [node] feat: Add esm build
 - [integrations] feat: Fix build and prepare upload to cdn
 - [integrations] fix: Bug in vue integration with `attachProps`
@@ -93,9 +90,8 @@ some classes from the default export.
 
 **Migration from v4**
 
-This major bump brings a lot of internal improvements. If you were using the SDK without any special abilities,
-basically, the way we describe it in the docs, you should be fine by just updating it. This is a **breaking** release
-since we removed some methods from the public API and removed some classes from the default export.
+This major bump brings a lot of internal improvements. This is a **breaking** release since we removed some methods from
+the public API and removed some classes from the default export.
 
 - **breaking** [node] fix: Events created from exception shouldn't have top-level message attribute
 - [utils] ref: Update wrap method to hide internal sentry flags

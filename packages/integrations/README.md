@@ -19,4 +19,10 @@
 
 ## General
 
-Pluggable integrations that can be used to enchance JS SDKs.
+Pluggable integrations that can be used to enhance JS SDKs.
+
+All of the integrations can also be found on our CDN e.g.:
+
+Angular integration: `https://browser.sentry-cdn.com/5.0.0/angular.min.js`
+
+Please make sure to always to match the version of the integration with the version of the JS SDK you are loading.
