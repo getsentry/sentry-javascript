@@ -66,18 +66,6 @@ const bundleConfig = {
 
 export default [
   {
-    input: 'src/index.ts',
-    output: {
-      file: 'dist/index.js',
-      format: 'cjs',
-      exports: 'named',
-      interop: false,
-      sourcemap: true,
-    },
-    external: ['tslib'],
-    plugins,
-  },
-  {
     ...bundleConfig,
     output: {
       ...bundleConfig.output,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.1
+
+- [browser] fix: Add missing types
+
 ## 5.0.0
 
 This major bump brings a lot of internal improvements. Also, we extracted some integrations out of the SDKs and put them
