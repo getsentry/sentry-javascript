@@ -55,8 +55,9 @@
     "webpack": "^4.29.6"
   },
   "scripts": {
-    "build": "run-s build:esm build:bundle",
+    "build": "run-s build:dist build:esm build:bundle",
     "build:bundle": "rollup --config",
+    "build:dist": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "rollup --config --watch",
     "clean": "rimraf dist coverage .rpt2_cache build esm",
