@@ -10,6 +10,9 @@ webpack(
       path: __dirname,
       filename: 'tmp.js',
     },
+    resolve: {
+      mainFields: ['main'],
+    },
     mode: 'development',
   },
   (err, stats) => {
