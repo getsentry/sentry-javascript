@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.2
+
+- [browser] fix: Remove `browser` field from `package.json`
+
 ## 5.0.1
 
 - [browser] fix: Add missing types
