@@ -21,7 +21,6 @@
     "@sentry/utils": "5.0.0"
   },
   "devDependencies": {
-    "@types/angular": "^1.6.54",
     "chai": "^4.1.2",
     "jest": "^24.5.0",
     "npm-run-all": "^4.1.2",
