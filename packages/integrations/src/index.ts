@@ -1,5 +1,6 @@
 export { Angular } from './angular';
 export { Debug } from './debug';
+export { Dedupe } from './dedupe';
 export { Ember } from './ember';
 export { ExtraErrorData } from './extraerrordata';
 export { ReportingObserver } from './reportingobserver';
