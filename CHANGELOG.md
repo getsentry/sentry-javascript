@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.4
+
+- [integrations] fix: Not requiring angular types
+
 ## 5.0.3
 
 - [hub] fix: Don't reset registry when there is no hub on the carrier #1969

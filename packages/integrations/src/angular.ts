@@ -28,7 +28,7 @@ export class Angular implements Integration {
   /**
    * Angular's instance
    */
-  private readonly _angular: ng.IAngularStatic;
+  private readonly _angular: any;
 
   /**
    * Returns current hub.
@@ -38,9 +38,9 @@ export class Angular implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options: { angular?: ng.IAngularStatic } = {}) {
+  public constructor(options: { angular?: any } = {}) {
     // tslint:disable-next-line: no-unsafe-any
-    this._angular = options.angular || (getGlobalObject().angular as ng.IAngularStatic);
+    this._angular = options.angular || getGlobalObject().angular;
   }
 
   /**
@@ -54,18 +54,21 @@ export class Angular implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
+    // tslint:disable: no-unsafe-any
     this._angular.module(Angular.moduleName, []).config([
       '$provide',
-      ($provide: ng.auto.IProvideService) => {
+      ($provide: any) => {
         $provide.decorator('$exceptionHandler', ['$delegate', this._$exceptionHandlerDecorator.bind(this)]);
       },
     ]);
+    // tslint:enable: no-unsafe-any
   }
 
   /**
    * Angular's exceptionHandler for Sentry integration
    */
-  private _$exceptionHandlerDecorator($delegate: ng.IExceptionHandlerService): ng.IExceptionHandlerService {
+  // tslint:disable-next-line: no-unsafe-any
+  private _$exceptionHandlerDecorator($delegate: any): any {
     return (exception: Error, cause?: string) => {
       const hub = this._getCurrentHub && this._getCurrentHub();
 
@@ -100,6 +103,7 @@ export class Angular implements Integration {
           hub.captureException(exception);
         });
       }
+      // tslint:disable-next-line: no-unsafe-any
       $delegate(exception, cause);
     };
   }

@@ -2,7 +2,7 @@
   "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
     "baseUrl": "packages",
-    "types": ["node", "angular"],
+    "types": ["node"],
     "paths": {
       "@sentry/*": ["*/src"],
       "raven-js": ["raven-js/src/singleton.js"],
