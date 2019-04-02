@@ -25,7 +25,7 @@ Integrations that were pluggable/optional before, that also live in this package
 
 ### How to use `@sentry/integrations`?
 
-Lets start with the approach if you install `@sentry/browser` / `@sentry/electron` with `npm` or `yarn`.
+Lets start with the approach if you install `@sentry/browser` / `@sentry/node` with `npm` or `yarn`.
 
 Given you have a `Vue` application running, in order to use the `Vue` integration you need to do the following:
 
