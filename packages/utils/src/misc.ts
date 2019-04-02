@@ -238,7 +238,7 @@ interface ExtensibleConsole extends Console {
 /** JSDoc */
 export function consoleSandbox(callback: () => any): any {
   const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log'];
+  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
   if (!('console' in global)) {
     return callback();
