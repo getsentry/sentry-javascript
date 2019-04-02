@@ -350,7 +350,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
   if (carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub) {
     return carrier.__SENTRY__.hub;
   }
-  carrier.__SENTRY__ = {};
+  carrier.__SENTRY__ = carrier.__SENTRY__ || {};
   carrier.__SENTRY__.hub = new Hub();
   return carrier.__SENTRY__.hub;
 }
