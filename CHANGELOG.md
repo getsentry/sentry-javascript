@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.5
+
+- [esm]: `module` in `package.json` now provides a `es5` build instead of `es2015`
+
 ## 5.0.4
 
 - [integrations] fix: Not requiring angular types
