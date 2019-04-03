@@ -1,8 +1,9 @@
-import { terser } from 'rollup-plugin-terser';
-import typescript from 'rollup-plugin-typescript2';
+import commonjs from 'rollup-plugin-commonjs';
 import license from 'rollup-plugin-license';
 import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
+import { terser } from 'rollup-plugin-terser';
+import typescript from 'rollup-plugin-typescript2';
+import { generate_cfg, paths } from '../../resources/rollup.base';
 
 const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
@@ -11,7 +12,7 @@ const commitHash = require('child_process')
 const terserInstance = terser({
   mangle: {
     // captureExceptions and captureMessage are public API methods and they don't need to be listed here
-    // as mangler doesn't touch user-facing thing, however sentryWrapepd is not, and it would be mangled into a minified version.
+    // as mangler doesn't touch user-facing thing, however sentryWrapped is not, and it would be mangled into a minified version.
     // We need those full names to correctly detect our internal frames for stripping.
     // I listed all of them here just for the clarity sake, as they are all used in the frames manipulation process.
     reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
@@ -28,13 +29,7 @@ const plugins = [
       compilerOptions: {
         declaration: false,
         module: 'ES2015',
-        paths: {
-          '@sentry/utils/*': ['../utils/src/*'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/minimal': ['../minimal/src'],
-        },
+        paths,
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
@@ -69,14 +64,14 @@ export default [
     ...bundleConfig,
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.js',
+      file: 'bundles/bundle.js',
     },
   },
   {
     ...bundleConfig,
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.min.js',
+      file: 'bundles/bundle.min.js',
     },
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
@@ -84,64 +79,5 @@ export default [
       .concat(terserInstance)
       .concat(bundleConfig.plugins.slice(-1)),
   },
-  {
-    ...bundleConfig,
-    output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.es6.js',
-    },
-    plugins: [
-      typescript({
-        tsconfig: 'tsconfig.build.json',
-        tsconfigOverride: {
-          compilerOptions: {
-            declaration: false,
-            module: 'ES2015',
-            paths: {
-              '@sentry/utils/*': ['../utils/src/*'],
-              '@sentry/core': ['../core/src'],
-              '@sentry/hub': ['../hub/src'],
-              '@sentry/types': ['../types/src'],
-              '@sentry/minimal': ['../minimal/src'],
-            },
-            target: 'es6',
-          },
-        },
-        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-      }),
-      ...plugins.slice(1),
-    ],
-  },
-  {
-    ...bundleConfig,
-    output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.es6.min.js',
-    },
-    plugins: [
-      typescript({
-        tsconfig: 'tsconfig.build.json',
-        tsconfigOverride: {
-          compilerOptions: {
-            declaration: false,
-            module: 'ES2015',
-            paths: {
-              '@sentry/utils/*': ['../utils/src/*'],
-              '@sentry/core': ['../core/src'],
-              '@sentry/hub': ['../hub/src'],
-              '@sentry/types': ['../types/src'],
-              '@sentry/minimal': ['../minimal/src'],
-            },
-            target: 'es6',
-          },
-        },
-        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-      }),
-      ...plugins
-        .slice(1)
-        .slice(0, -1)
-        .concat(terserInstance)
-        .concat(bundleConfig.plugins.slice(-1)),
-    ],
-  },
+  ...generate_cfg('browser'),
 ];

@@ -79,5 +79,6 @@
       { "type": "member", "modifiers": "protected", "leadingUnderscore": "require" },
       { "type": "member", "modifiers": "private", "leadingUnderscore": "require" }
     ]
-  }
+  },
+  "jsRules": {}
 }

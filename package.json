@@ -50,6 +50,7 @@
     "prettier-check": "^2.0.0",
     "replace-in-file": "^3.4.4",
     "rimraf": "^2.6.3",
+    "rollup-plugin-auto-external": "^2.0.0",
     "sinon": "^7.2.7",
     "ts-jest": "^24.0.0",
     "tslint": "^5.14.0",

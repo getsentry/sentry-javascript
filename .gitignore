@@ -33,3 +33,7 @@ lint-results.json
 # legacy
 !/packages/raven-js/dist
 tmp.js
+/packages/*/esm5
+/packages/*/esmnext
+/packages/*/fesm5
+/packages/*/fesmnext
