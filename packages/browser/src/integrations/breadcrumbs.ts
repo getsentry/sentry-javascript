@@ -1,5 +1,5 @@
 import { API, getCurrentHub } from '@sentry/core';
-import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
+import { Breadcrumb, BreadcrumbHint, Integration, Severity, WrappedFunction } from '@sentry/types';
 import { isString } from '@sentry/utils/is';
 import { logger } from '@sentry/utils/logger';
 import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
@@ -116,10 +116,89 @@ export class Breadcrumbs implements Integration {
     if (!('document' in global)) {
       return;
     }
+
     // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
     // to the document. Do this before we instrument addEventListener.
     global.document.addEventListener('click', breadcrumbEventHandler('click'), false);
     global.document.addEventListener('keypress', keypressEventHandler(), false);
+
+    // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
+    ['EventTarget', 'Node'].forEach((target: string) => {
+      const proto = (global as any)[target] && (global as any)[target].prototype;
+
+      if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+        return;
+      }
+
+      fill(proto, 'addEventListener', function(
+        original: () => void,
+      ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+          // More breadcrumb DOM capture ... done here and not in `_instrumentBreadcrumbs`
+          // so that we don't have more than one wrapper function
+
+          return original.call(
+            this,
+            eventName,
+            wrap((fn as any) as WrappedFunction, undefined, function(event: Event): any {
+              // need to intercept every DOM event in `before` argument, in case that
+              // same wrapped method is re-used for different events (e.g. mousemove THEN click)
+              // see #724
+              if (!event) {
+                return;
+              }
+
+              let eventType;
+              try {
+                eventType = event.type;
+              } catch (e) {
+                // just accessing event properties can throw an exception in some rare circumstances
+                // see: https://github.com/getsentry/raven-js/issues/838
+                return;
+              }
+              if (eventType === 'click') {
+                breadcrumbEventHandler('click')(event);
+                return;
+              }
+              if (eventType === 'keypress') {
+                keypressEventHandler()(event);
+                return;
+              }
+            }),
+            options,
+          );
+        };
+      });
+
+      fill(proto, 'removeEventListener', function(
+        original: () => void,
+      ): (
+        this: any,
+        eventName: string,
+        fn: EventListenerObject,
+        options?: boolean | EventListenerOptions,
+      ) => () => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerObject,
+          options?: boolean | EventListenerOptions,
+        ): () => void {
+          let callback = (fn as any) as WrappedFunction;
+          try {
+            callback = callback && (callback.__sentry_wrapped__ || callback);
+          } catch (e) {
+            // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+          }
+          return original.call(this, eventName, callback, options);
+        };
+      });
+    });
   }
 
   /** JSDoc */

@@ -56,9 +56,12 @@
   "scripts": {
     "build": "run-s build:dist build:esm build:bundle",
     "build:bundle": "rollup --config",
+    "build:bundle:watch": "rollup --config --watch",
     "build:dist": "tsc -p tsconfig.build.json",
+    "build:dist:watch": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:watch": "rollup --config --watch",
+    "build:esm:watch": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "build:watch": "run-p build:dist:watch build:esm:watch build:bundle:watch",
     "clean": "rimraf dist coverage .rpt2_cache build esm",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
