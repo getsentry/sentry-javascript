@@ -43,7 +43,7 @@
     "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
     "build:bundle": "rollup --config",
-    "clean": "rimraf dist coverage *.js *.js.map *.d.ts",
+    "clean": "rimraf dist coverage esm build .rpt2_cache",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
     "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
