@@ -29,7 +29,7 @@ const plugins = [
         declaration: false,
         module: 'ES2015',
         paths: {
-          '@sentry/utils/*': ['../utils/src/*'],
+          '@sentry/utils': ['../utils/src'],
           '@sentry/core': ['../core/src'],
           '@sentry/hub': ['../hub/src'],
           '@sentry/types': ['../types/src'],
@@ -54,6 +54,7 @@ const bundleConfig = {
     name: 'Sentry',
     sourcemap: true,
   },
+  external: ['fs', 'path'],
   context: 'window',
   plugins: [
     ...plugins,
@@ -98,7 +99,7 @@ export default [
             declaration: false,
             module: 'ES2015',
             paths: {
-              '@sentry/utils/*': ['../utils/src/*'],
+              '@sentry/utils': ['../utils/src'],
               '@sentry/core': ['../core/src'],
               '@sentry/hub': ['../hub/src'],
               '@sentry/types': ['../types/src'],
@@ -126,7 +127,7 @@ export default [
             declaration: false,
             module: 'ES2015',
             paths: {
-              '@sentry/utils/*': ['../utils/src/*'],
+              '@sentry/utils': ['../utils/src'],
               '@sentry/core': ['../core/src'],
               '@sentry/hub': ['../hub/src'],
               '@sentry/types': ['../types/src'],

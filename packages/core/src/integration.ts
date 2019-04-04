@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
+import { logger } from '@sentry/utils';
 
 export const installedIntegrations: string[] = [];
 

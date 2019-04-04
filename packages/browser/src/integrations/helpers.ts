@@ -1,7 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { addExceptionTypeValue, htmlTreeAsString } from '@sentry/utils/misc';
-import { normalize } from '@sentry/utils/object';
+import { addExceptionTypeValue, htmlTreeAsString, normalize } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -38,6 +37,7 @@ export function wrap(
   fn: WrappedFunction,
   options: {
     mechanism?: Mechanism;
+    capture?: boolean;
   } = {},
   before?: WrappedFunction,
 ): any {
@@ -62,7 +62,7 @@ export function wrap(
     // Bail on wrapping and return the function as-is (defers to window.onerror).
     return fn;
   }
-
+  console.log(JSON.stringify(options));
   const sentryWrapped: WrappedFunction = function(this: any): void {
     // tslint:disable-next-line:strict-type-predicates
     if (before && typeof before === 'function') {

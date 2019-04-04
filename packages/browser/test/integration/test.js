@@ -64,7 +64,7 @@ function _alt(title, condition) {
   return condition ? '⚠️   Skipped: ' + title : title;
 }
 
-var frames = ['frame', 'loader', 'loader-lazy-no'];
+var frames = ['frame'];
 
 for (var idx in frames) {
   (function() {
@@ -911,7 +911,7 @@ for (var idx in frames) {
           );
         });
 
-        it("should capture built-in's handlers fn name in mechanism data", function(done) {
+        it.only("should capture built-in's handlers fn name in mechanism data", function(done) {
           var iframe = this.iframe;
 
           iframeExecute(

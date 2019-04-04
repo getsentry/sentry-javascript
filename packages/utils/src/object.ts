@@ -16,6 +16,7 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   if (!(name in source) || (source[name] as WrappedFunction).__sentry__) {
     return;
   }
+
   const original = source[name] as () => any;
   const wrapped = replacement(original) as WrappedFunction;
 

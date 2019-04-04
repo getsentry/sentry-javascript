@@ -1,5 +1,5 @@
 import { DsnLike } from '@sentry/types';
-import { urlEncode } from '@sentry/utils/object';
+import { urlEncode } from '@sentry/utils';
 
 import { Dsn } from './dsn';
 

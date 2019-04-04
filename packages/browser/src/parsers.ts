@@ -1,6 +1,5 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { normalizeToSize } from '@sentry/utils/object';
-import { keysToEventMessage } from '@sentry/utils/string';
+import { keysToEventMessage, normalizeToSize } from '@sentry/utils';
 
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 

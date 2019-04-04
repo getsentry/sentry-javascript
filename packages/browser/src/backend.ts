@@ -1,9 +1,15 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
-import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils/is';
-import { addExceptionTypeValue } from '@sentry/utils/misc';
-import { supportsFetch } from '@sentry/utils/supports';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import {
+  addExceptionTypeValue,
+  isDOMError,
+  isDOMException,
+  isError,
+  isErrorEvent,
+  isPlainObject,
+  supportsFetch,
+  SyncPromise,
+} from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
 import { computeStackTrace } from './tracekit';

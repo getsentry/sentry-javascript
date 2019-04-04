@@ -1,8 +1,6 @@
 import { API, BaseClient, Scope } from '@sentry/core';
 import { DsnLike, Event, EventHint } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
-import { getGlobalObject } from '@sentry/utils/misc';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import { getGlobalObject, logger, SyncPromise } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';

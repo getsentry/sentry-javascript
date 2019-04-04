@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/hub';
 import { Client, Options } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
+import { logger } from '@sentry/utils';
 
 /** A class object that can instanciate Client objects. */
 export type ClientClass<F extends Client, O extends Options> = new (options: O) => F;
