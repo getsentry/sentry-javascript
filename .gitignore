@@ -35,5 +35,4 @@ lint-results.json
 tmp.js
 /packages/*/esm5
 /packages/*/esmnext
-/packages/*/fesm5
-/packages/*/fesmnext
+/packages/*/bundles

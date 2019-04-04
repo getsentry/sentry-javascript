@@ -1,8 +1,8 @@
 {
-  "extends": "../../tsconfig.esm2015.json",
+  "extends": "../../tsconfig.esmnext.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "esm"
+    "outDir": "esmnext"
   },
   "include": ["src/**/*"]
 }

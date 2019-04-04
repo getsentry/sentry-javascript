@@ -2,14 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist",
-    "paths": {
-      "@sentry/utils/*": ["../utils/src/*"],
-      "@sentry/core": ["../core/src"],
-      "@sentry/hub": ["../hub/src"],
-      "@sentry/types": ["../types/src"],
-      "@sentry/minimal": ["../minimal/src"]
-    }
+    "outDir": "dist"
   },
   "include": ["src/**/*"]
 }

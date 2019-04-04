@@ -9,8 +9,14 @@
   "engines": {
     "node": ">=6"
   },
+  "module": "./bundles/browser.fesm5.js",
+  "esnext": "./bundles/browser.fesmnext.js",
+  "esm5": "./esm5/index.js",
+  "esmnext": "./esmnext/index.js",
+  "fesm5": "./bundles/browser.fesm5.js",
+  "fesmnext": "./bundles/browser.fesmnext.js",
+  "jsnext:main": "./bundles/browser.fesmnext.js",
   "main": "dist/index.js",
-  "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
@@ -32,9 +38,10 @@
     "typescript": "^3.3.3333"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
+    "build": "run-p build:es5 build:esm build:bundle",
+    "build:bundle": "rollup --config",
     "build:es5": "tsc -p tsconfig.build.json",
-    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:esm": "tsc -p tsconfig.esm5.json && tsc -p tsconfig.esmnext.json",
     "build:watch": "run-p build:watch:es5 build:watch:esm",
     "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
     "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",

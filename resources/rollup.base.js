@@ -28,7 +28,7 @@ export function generate_cfg(module_name) {
           compilerOptions: {
             declaration: false,
             module: 'ES2015',
-            paths,
+            paths: paths,
           },
         },
         include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
@@ -53,7 +53,7 @@ export function generate_cfg(module_name) {
           compilerOptions: {
             declaration: false,
             module: 'ES2015',
-            paths,
+            paths: paths,
           },
         },
         include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],

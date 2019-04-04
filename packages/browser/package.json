@@ -17,7 +17,7 @@
   "fesmnext": "./bundles/browser.fesmnext.js",
   "jsnext:main": "./bundles/browser.fesmnext.js",
   "main": "./bundles/browser.js",
-  "typings": "browser.d.ts",
+  "typings": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
