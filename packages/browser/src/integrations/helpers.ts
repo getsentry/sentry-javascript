@@ -62,7 +62,7 @@ export function wrap(
     // Bail on wrapping and return the function as-is (defers to window.onerror).
     return fn;
   }
-  console.log(JSON.stringify(options));
+
   const sentryWrapped: WrappedFunction = function(this: any): void {
     // tslint:disable-next-line:strict-type-predicates
     if (before && typeof before === 'function') {
