@@ -14,6 +14,7 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
+
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 const global = getGlobalObject<Window>();
