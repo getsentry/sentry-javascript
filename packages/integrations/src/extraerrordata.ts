@@ -1,6 +1,5 @@
 import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
-import { isError, isPlainObject } from '@sentry/utils/is';
-import { normalize } from '@sentry/utils/object';
+import { isError, isPlainObject, normalize } from '@sentry/utils';
 
 /** JSDoc */
 interface ExtraErrorDataOptions {

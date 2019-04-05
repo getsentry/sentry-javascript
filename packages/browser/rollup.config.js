@@ -21,6 +21,14 @@ const terserInstance = terser({
   },
 });
 
+const paths = {
+  '@sentry/utils': ['../utils/src'],
+  '@sentry/core': ['../core/src'],
+  '@sentry/hub': ['../hub/src'],
+  '@sentry/types': ['../types/src'],
+  '@sentry/minimal': ['../minimal/src'],
+};
+
 const plugins = [
   typescript({
     tsconfig: 'tsconfig.build.json',
@@ -28,21 +36,15 @@ const plugins = [
       compilerOptions: {
         declaration: false,
         module: 'ES2015',
-        paths: {
-          '@sentry/utils': ['../utils/src'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/minimal': ['../minimal/src'],
-        },
+        paths,
       },
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
   }),
   resolve({
-    browser: true,
-    module: false,
-    modulesOnly: true,
+    module: true,
+    browser: false,
+    modulesOnly: false,
   }),
   commonjs(),
 ];
@@ -54,7 +56,6 @@ const bundleConfig = {
     name: 'Sentry',
     sourcemap: true,
   },
-  external: ['fs', 'path'],
   context: 'window',
   plugins: [
     ...plugins,
@@ -98,13 +99,7 @@ export default [
           compilerOptions: {
             declaration: false,
             module: 'ES2015',
-            paths: {
-              '@sentry/utils': ['../utils/src'],
-              '@sentry/core': ['../core/src'],
-              '@sentry/hub': ['../hub/src'],
-              '@sentry/types': ['../types/src'],
-              '@sentry/minimal': ['../minimal/src'],
-            },
+            paths,
             target: 'es6',
           },
         },
@@ -126,13 +121,7 @@ export default [
           compilerOptions: {
             declaration: false,
             module: 'ES2015',
-            paths: {
-              '@sentry/utils': ['../utils/src'],
-              '@sentry/core': ['../core/src'],
-              '@sentry/hub': ['../hub/src'],
-              '@sentry/types': ['../types/src'],
-              '@sentry/minimal': ['../minimal/src'],
-            },
+            paths,
             target: 'es6',
           },
         },

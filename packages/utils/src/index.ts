@@ -1,6 +1,5 @@
 export * from './async';
 export * from './error';
-export * from './fs';
 export * from './is';
 export * from './logger';
 export * from './memo';
@@ -8,7 +7,6 @@ export * from './misc';
 export * from './object';
 export * from './path';
 export * from './promisebuffer';
-export * from './store';
 export * from './string';
 export * from './supports';
 export * from './syncpromise';

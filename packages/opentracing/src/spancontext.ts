@@ -1,4 +1,4 @@
-import { uuid4 } from '@sentry/utils/misc';
+import { uuid4 } from '@sentry/utils';
 
 /**
  * SpanContext represents Span state that must propagate to descendant Spans

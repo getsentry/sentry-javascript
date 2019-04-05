@@ -1,6 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
-import { supportsReportingObserver } from '@sentry/utils/supports';
+import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
 /** JSDoc */
 interface Report {

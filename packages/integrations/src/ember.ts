@@ -1,5 +1,5 @@
 import { Event, EventProcessor, Hub, Integration, Scope } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
+import { getGlobalObject } from '@sentry/utils';
 
 /** JSDoc */
 export class Ember implements Integration {

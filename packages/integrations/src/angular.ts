@@ -1,5 +1,5 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
+import { getGlobalObject } from '@sentry/utils';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 const angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
