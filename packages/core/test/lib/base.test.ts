@@ -9,7 +9,7 @@ import { TestIntegration } from '../mocks/integration';
 const PUBLIC_DSN = 'https://username@domain/path';
 
 jest.mock('@sentry/utils', () => {
-  const original = require.requireActual('@sentry/utils');
+  const original = jest.requireActual('@sentry/utils');
   return {
     ...original,
 
