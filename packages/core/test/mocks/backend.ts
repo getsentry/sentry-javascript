@@ -1,5 +1,5 @@
 import { Event, Options } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import { SyncPromise } from '@sentry/utils';
 
 import { BaseBackend } from '../../src/basebackend';
 
