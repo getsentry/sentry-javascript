@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.0.6
+
+- [utils]: Change how we use `utils` and expose `esm` build
+- [utils]: Remove `store` and `fs` classes -> moved to @sentry/electron where this is used
+
 ## 5.0.5
 
 - [esm]: `module` in `package.json` now provides a `es5` build instead of `es2015`

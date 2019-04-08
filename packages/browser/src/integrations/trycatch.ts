@@ -1,6 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
-import { fill } from '@sentry/utils/object';
+import { fill, getGlobalObject } from '@sentry/utils';
 
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 

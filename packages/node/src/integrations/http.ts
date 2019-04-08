@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
-import { fill } from '@sentry/utils/object';
+import { fill } from '@sentry/utils';
 import * as http from 'http';
 import * as util from 'util';
 

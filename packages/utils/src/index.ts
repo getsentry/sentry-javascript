@@ -1,2 +1,12 @@
-// We do not export anything by default since we always want to deep import
-// like: import { getGlobalObject } from '@sentry/utils/misc';
+export * from './async';
+export * from './error';
+export * from './is';
+export * from './logger';
+export * from './memo';
+export * from './misc';
+export * from './object';
+export * from './path';
+export * from './promisebuffer';
+export * from './string';
+export * from './supports';
+export * from './syncpromise';

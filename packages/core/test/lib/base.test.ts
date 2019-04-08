@@ -1,6 +1,6 @@
 import { Hub, Scope } from '@sentry/hub';
 import { Event } from '@sentry/types';
-import { SentryError } from '@sentry/utils/error';
+import { SentryError } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
@@ -8,35 +8,37 @@ import { TestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
-jest.mock('@sentry/utils/misc', () => ({
-  uuid4(): string {
-    return '42';
-  },
-  getGlobalObject(): object {
-    return {
-      console: {
-        log(): void {
-          // no-empty
-        },
-        warn(): void {
-          // no-empty
-        },
-        error(): void {
-          // no-empty
-        },
-      },
-    };
-  },
-  consoleSandbox(cb: () => any): any {
-    return cb();
-  },
-}));
+jest.mock('@sentry/utils', () => {
+  const original = jest.requireActual('@sentry/utils');
+  return {
+    ...original,
 
-jest.mock('@sentry/utils/string', () => ({
-  truncate(str: string): string {
-    return str;
-  },
-}));
+    uuid4(): string {
+      return '42';
+    },
+    getGlobalObject(): object {
+      return {
+        console: {
+          log(): void {
+            // no-empty
+          },
+          warn(): void {
+            // no-empty
+          },
+          error(): void {
+            // no-empty
+          },
+        },
+      };
+    },
+    consoleSandbox(cb: () => any): any {
+      return cb();
+    },
+    truncate(str: string): string {
+      return str;
+    },
+  };
+});
 
 describe('BaseClient', () => {
   beforeEach(() => {

@@ -25,7 +25,7 @@ const plugins = [
         declaration: false,
         module: 'ES2015',
         paths: {
-          '@sentry/utils/*': ['../utils/src/*'],
+          '@sentry/utils': ['../utils/src'],
           '@sentry/core': ['../core/src'],
           '@sentry/hub': ['../hub/src'],
           '@sentry/types': ['../types/src'],

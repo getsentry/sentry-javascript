@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
+import { getGlobalObject } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 

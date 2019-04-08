@@ -1,5 +1,5 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
-import { SentryError } from '@sentry/utils/error';
+import { SentryError } from '@sentry/utils';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)/;

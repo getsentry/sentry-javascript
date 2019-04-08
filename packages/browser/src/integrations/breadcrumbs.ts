@@ -1,11 +1,17 @@
 import { API, getCurrentHub } from '@sentry/core';
 import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
-import { isString } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
-import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { fill, normalize } from '@sentry/utils/object';
-import { safeJoin } from '@sentry/utils/string';
-import { supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
+import {
+  fill,
+  getEventDescription,
+  getGlobalObject,
+  isString,
+  logger,
+  normalize,
+  parseUrl,
+  safeJoin,
+  supportsHistory,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 
