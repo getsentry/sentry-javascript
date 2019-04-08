@@ -9177,11 +9177,6 @@ rollup-plugin-commonjs@^9.2.1:
     resolve "^1.10.0"
     rollup-pluginutils "^2.3.3"
 
-rollup-plugin-ignore@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-ignore/-/rollup-plugin-ignore-1.0.5.tgz#fc16b321b29d054d728dafde808a8a52ec39f024"
-  integrity sha512-fGDl4eRMpEeSNqZ9WFR3piK47rrFgVzAIFRsJhTc9/P5t1qsScuFeEBfbXbHDnv6yh5OUth8dti+f+dswebV+Q==
-
 rollup-plugin-license@^0.8.1:
   version "0.8.1"
   resolved "https://registry.yarnpkg.com/rollup-plugin-license/-/rollup-plugin-license-0.8.1.tgz#cdcfee2a32f27790e5019a2a7abd9234476ac589"
