@@ -96,7 +96,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setUser(user: User): this {
+  public setUser(user: User | null): this {
     this._user = normalize(user);
     this._notifyScopeListeners();
     return this;

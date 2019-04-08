@@ -57,6 +57,11 @@ describe('Scope', () => {
       scope.setUser({ id: '1' });
       expect((scope as any)._user).toEqual({ id: '1' });
     });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setUser(null);
+      expect((scope as any)._user).toEqual(null);
+    });
   });
 
   describe('level', () => {

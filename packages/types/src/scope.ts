@@ -14,9 +14,9 @@ export interface Scope {
   /**
    * Updates user context information for future events.
    *
-   * @param user User context object to be set in the current context.
+   * @param user User context object to be set in the current context. Pass `null` to unset the user.
    */
-  setUser(user: User): this;
+  setUser(user: User | null): this;
 
   /**
    * Set an object that will be merged sent as tags data with the event.
