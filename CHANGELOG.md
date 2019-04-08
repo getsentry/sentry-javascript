@@ -4,6 +4,7 @@
 
 - [utils]: Change how we use `utils` and expose `esm` build
 - [utils]: Remove `store` and `fs` classes -> moved to @sentry/electron where this is used
+- [hub]: Allow to pass `null` to `setUser` to reset it
 
 ## 5.0.5
 
