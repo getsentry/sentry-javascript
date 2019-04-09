@@ -35,7 +35,6 @@ const fallbackGlobalObject = {};
  *
  * @returns Global scope object
  */
-// tslint:disable:strict-type-predicates
 export function getGlobalObject<T>(): T & SentryGlobal {
   return (isNodeEnv()
     ? global
