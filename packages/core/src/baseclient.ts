@@ -167,6 +167,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public async flush(timeout?: number): Promise<boolean> {
     const clientReady = await this._isClientProcessing(timeout);
+    if (this._processingInterval) {
+      clearInterval(this._processingInterval);
+    }
     const transportFlushed = await this._getBackend()
       .getTransport()
       .close(timeout);
@@ -177,9 +180,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.flush(timeout).finally(() => {
-      this.getOptions().enabled = false;
-    });
+    this.getOptions().enabled = false;
+    return this.flush(timeout);
   }
 
   /**
@@ -219,10 +221,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           }
         }
       }, tick);
-    }).finally(() => {
-      if (this._processingInterval) {
-        clearInterval(this._processingInterval);
-      }
     });
   }
 
