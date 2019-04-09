@@ -5,6 +5,7 @@ import { SentryError } from '@sentry/utils';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
+import { FakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
@@ -425,6 +426,49 @@ describe('BaseClient', () => {
       });
       expect(Object.keys(client.getIntegrations()).length).toBe(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
+    });
+  });
+
+  describe('flush/close', () => {
+    test('flush', async () => {
+      jest.useRealTimers();
+      expect.assertions(5);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enableSend: true,
+        transport: FakeTransport,
+      });
+
+      const delay = 1;
+      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      transportInstance.delay = delay;
+
+      client.captureMessage('test');
+      expect(transportInstance).toBeInstanceOf(FakeTransport);
+      expect(transportInstance.sendCalled).toEqual(1);
+      expect(transportInstance.sentCount).toEqual(0);
+      await client.flush(delay);
+      expect(transportInstance.sentCount).toEqual(1);
+      expect(transportInstance.sendCalled).toEqual(1);
+    });
+
+    test('close', async () => {
+      jest.useRealTimers();
+      expect.assertions(2);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enableSend: true,
+        transport: FakeTransport,
+      });
+
+      const delay = 1;
+      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      transportInstance.delay = delay;
+
+      expect(client.captureMessage('test')).toBeTruthy();
+      await client.close(delay);
+      // Sends after close shouldn't work anymore
+      expect(client.captureMessage('test')).toBeFalsy();
     });
   });
 });
