@@ -77,7 +77,8 @@ export class Breadcrumbs implements Integration {
     if (!('console' in global)) {
       return;
     }
-    ['debug', 'info', 'warn', 'error', 'log'].forEach(function(level: string): void {
+    const levels = ['log', 'info', 'warn', 'error', 'debug', 'assert'];
+    levels.forEach(function(level: string): void {
       if (!(level in global.console)) {
         return;
       }

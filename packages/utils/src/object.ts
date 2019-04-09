@@ -13,7 +13,7 @@ import { Memo } from './memo';
  */
 
 export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
-  if (!(name in source) || (source[name] as WrappedFunction).__sentry__) {
+  if (!(name in source)) {
     return;
   }
 
