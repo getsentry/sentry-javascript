@@ -22,7 +22,7 @@ export class Ember implements Integration {
    */
   public constructor(options: { Ember?: any } = {}) {
     // tslint:disable-next-line: no-unsafe-any
-    this._Ember = options.Ember || getGlobalObject().Ember;
+    this._Ember = options.Ember || getGlobalObject<any>().Ember;
   }
 
   /**
