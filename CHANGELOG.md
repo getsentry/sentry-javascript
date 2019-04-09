@@ -4,6 +4,7 @@
 
 - [utils] ref: Move `htmlTreeAsString` to `@sentry/browser`
 - [utils] ref: Remove `Window` typehint `getGlobalObject`
+- [core] fix: Make sure that flush/close works as advertised
 
 ## 5.0.6
 
