@@ -40,7 +40,7 @@ export class Angular implements Integration {
    */
   public constructor(options: { angular?: any } = {}) {
     // tslint:disable-next-line: no-unsafe-any
-    this._angular = options.angular || getGlobalObject().angular;
+    this._angular = options.angular || getGlobalObject<any>().angular;
   }
 
   /**
