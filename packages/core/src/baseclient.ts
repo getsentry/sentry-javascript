@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
+import { getGlobalObject, isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -59,7 +59,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected _processing: boolean = false;
 
   /** Processing interval */
-  protected _processingInterval?: NodeJS.Timeout;
+  protected _processingInterval?: number;
 
   /**
    * Initializes this client instance.
@@ -211,7 +211,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       if (this._processingInterval) {
         clearInterval(this._processingInterval);
       }
-      this._processingInterval = setInterval(() => {
+      this._processingInterval = getGlobalObject<Window>().setInterval(() => {
         if (!this._processing) {
           resolve(true);
         } else {
