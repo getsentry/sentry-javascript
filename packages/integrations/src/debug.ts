@@ -1,5 +1,5 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils/misc';
+import { consoleSandbox } from '@sentry/utils';
 
 /** JSDoc */
 interface DebugOptions {

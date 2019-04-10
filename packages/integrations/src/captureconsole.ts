@@ -1,7 +1,5 @@
 import { EventProcessor, Hub, Integration, Severity } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils/misc';
-import { fill, normalize } from '@sentry/utils/object';
-import { safeJoin } from '@sentry/utils/string';
+import { fill, getGlobalObject, normalize, safeJoin } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -39,49 +37,46 @@ export class CaptureConsole implements Integration {
       return;
     }
 
-    this._levels.forEach(function(level: string): void {
+    this._levels.forEach((level: string) => {
       if (!(level in global.console)) {
         return;
       }
 
-      fill(global.console, level, function(originalConsoleLevel: () => any): any {
-        // tslint:disable-next-line:only-arrow-functions
-        return function(...args: any[]): any {
-          const hub = getCurrentHub();
+      fill(global.console, level, (originalConsoleLevel: () => any) => (...args: any[]) => {
+        const hub = getCurrentHub();
 
-          if (hub.getIntegration(CaptureConsole)) {
-            hub.withScope(scope => {
-              scope.setLevel(Severity.fromString(level));
-              scope.setExtra('arguments', normalize(args, 3));
-              scope.addEventProcessor(event => {
-                event.logger = 'console';
-                if (event.sdk) {
-                  event.sdk = {
-                    ...event.sdk,
-                    integrations: [...(event.sdk.integrations || []), 'console'],
-                  };
-                }
-                return event;
-              });
+        if (hub.getIntegration(CaptureConsole)) {
+          hub.withScope(scope => {
+            scope.setLevel(Severity.fromString(level));
+            scope.setExtra('arguments', normalize(args, 3));
+            scope.addEventProcessor(event => {
+              event.logger = 'console';
+              if (event.sdk) {
+                event.sdk = {
+                  ...event.sdk,
+                  integrations: [...(event.sdk.integrations || []), 'console'],
+                };
+              }
+              return event;
+            });
 
-              let message = safeJoin(args, ' ');
-              if (level === 'assert') {
-                if (args[0] === false) {
-                  message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-                  scope.setExtra('arguments', normalize(args.slice(1), 3));
-                  hub.captureMessage(message);
-                }
-              } else {
+            let message = safeJoin(args, ' ');
+            if (level === 'assert') {
+              if (args[0] === false) {
+                message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
+                scope.setExtra('arguments', normalize(args.slice(1), 3));
                 hub.captureMessage(message);
               }
-            });
-          }
+            } else {
+              hub.captureMessage(message);
+            }
+          });
+        }
 
-          // this fails for some browsers. :(
-          if (originalConsoleLevel) {
-            Function.prototype.apply.call(originalConsoleLevel, global.console, args);
-          }
-        };
+        // this fails for some browsers. :(
+        if (originalConsoleLevel) {
+          Function.prototype.apply.call(originalConsoleLevel, global.console, args);
+        }
       });
     });
   }
