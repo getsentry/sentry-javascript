@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { getGlobalObject, isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
+import { isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -211,7 +211,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       if (this._processingInterval) {
         clearInterval(this._processingInterval);
       }
-      this._processingInterval = getGlobalObject<Window>().setInterval(() => {
+      this._processingInterval = (setInterval(() => {
         if (!this._processing) {
           resolve(true);
         } else {
@@ -220,7 +220,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             resolve(false);
           }
         }
-      }, tick);
+      }, tick) as unknown) as number;
     });
   }
 
