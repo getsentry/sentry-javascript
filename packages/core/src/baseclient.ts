@@ -58,6 +58,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Is the client still processing a call? */
   protected _processing: boolean = false;
 
+  /** Processing interval */
+  protected _processingInterval?: number;
+
   /**
    * Initializes this client instance.
    *
@@ -163,21 +166,22 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async flush(timeout?: number): Promise<boolean> {
-    return (await Promise.all([
-      this._getBackend()
-        .getTransport()
-        .close(timeout),
-      this._isClientProcessing(),
-    ])).reduce((prev, current) => prev && current);
+    const clientReady = await this._isClientProcessing(timeout);
+    if (this._processingInterval) {
+      clearInterval(this._processingInterval);
+    }
+    const transportFlushed = await this._getBackend()
+      .getTransport()
+      .close(timeout);
+    return clientReady && transportFlushed;
   }
 
   /**
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.flush(timeout).finally(() => {
-      this.getOptions().enabled = false;
-    });
+    this.getOptions().enabled = false;
+    return this.flush(timeout);
   }
 
   /**
@@ -200,20 +204,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected async _isClientProcessing(counter: number = 0): Promise<boolean> {
+  protected async _isClientProcessing(timeout?: number): Promise<boolean> {
     return new Promise<boolean>(resolve => {
-      if (this._processing) {
-        // Safeguard in case of endless recursion
-        if (counter >= 10) {
-          resolve(false);
-        } else {
-          setTimeout(async () => {
-            resolve(await this._isClientProcessing(counter + 1));
-          }, 10);
-        }
-      } else {
-        resolve(true);
+      let ticked: number = 0;
+      const tick: number = 1;
+      if (this._processingInterval) {
+        clearInterval(this._processingInterval);
       }
+      this._processingInterval = (setInterval(() => {
+        if (!this._processing) {
+          resolve(true);
+        } else {
+          ticked += tick;
+          if (timeout && ticked >= timeout) {
+            resolve(false);
+          }
+        }
+      }, tick) as unknown) as number;
     });
   }
 
