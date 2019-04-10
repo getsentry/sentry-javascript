@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 5.0.7
 
 - [utils] ref: Move `htmlTreeAsString` to `@sentry/browser`
 - [utils] ref: Remove `Window` typehint `getGlobalObject`
 - [core] fix: Make sure that flush/close works as advertised
+- [integrations] feat: Added `CaptueConsole` integration
 
 ## 5.0.6
 
