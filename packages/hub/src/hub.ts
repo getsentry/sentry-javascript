@@ -205,7 +205,8 @@ export class Hub implements HubInterface {
       return;
     }
 
-    const { beforeBreadcrumb, maxBreadcrumbs = DEFAULT_BREADCRUMBS } = top.client.getOptions();
+    const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
+      (top.client.getOptions && top.client.getOptions()) || {};
 
     if (maxBreadcrumbs <= 0) {
       return;

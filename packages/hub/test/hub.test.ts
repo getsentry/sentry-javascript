@@ -225,4 +225,29 @@ describe('Hub', () => {
     });
     expect(currentHub).toBe(getCurrentHub());
   });
+
+  describe('breadcrumbs', () => {
+    test('withScope', () => {
+      expect.assertions(6);
+      const hub = new Hub(clientFn);
+      hub.addBreadcrumb({ message: 'My Breadcrumb' });
+      hub.withScope(scope => {
+        scope.addBreadcrumb({ message: 'scope breadcrumb' });
+        const event: Event = {};
+        scope
+          .applyToEvent(event)
+          .then((appliedEvent: Event | null) => {
+            expect(appliedEvent).toBeTruthy();
+            expect(appliedEvent!.breadcrumbs).toHaveLength(2);
+            expect(appliedEvent!.breadcrumbs![0].message).toEqual('My Breadcrumb');
+            expect(appliedEvent!.breadcrumbs![0]).toHaveProperty('timestamp');
+            expect(appliedEvent!.breadcrumbs![1].message).toEqual('scope breadcrumb');
+            expect(appliedEvent!.breadcrumbs![1]).toHaveProperty('timestamp');
+          })
+          .catch(e => {
+            console.error(e);
+          });
+      });
+    });
+  });
 });
