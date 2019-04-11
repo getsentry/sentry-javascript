@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [utils] fix: Remove node types
+
 ## 5.0.7
 
 - [utils] ref: Move `htmlTreeAsString` to `@sentry/browser`

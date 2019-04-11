@@ -14,7 +14,8 @@ interface SentryGlobal {
  *
  * @param request The module path to resolve
  */
-export function dynamicRequire(mod: NodeModule, request: string): any {
+export function dynamicRequire(mod: any, request: string): any {
+  // tslint:disable-next-line: no-unsafe-any
   return mod.require(request);
 }
 
