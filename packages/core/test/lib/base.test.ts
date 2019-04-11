@@ -265,16 +265,15 @@ describe('BaseClient', () => {
     });
 
     test('adds breadcrumbs', () => {
-      expect.assertions(1);
+      expect.assertions(4);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
       client.captureEvent({ message: 'message' }, undefined, scope);
-      expect(TestBackend.instance!.event!).toEqual({
-        breadcrumbs: [{ message: 'breadcrumb' }],
-        event_id: '42',
-        message: 'message',
-      });
+      expect(TestBackend.instance!.event!).toHaveProperty('event_id', '42');
+      expect(TestBackend.instance!.event!).toHaveProperty('message', 'message');
+      expect(TestBackend.instance!.event!).toHaveProperty('breadcrumbs');
+      expect(TestBackend.instance!.event!.breadcrumbs![0]).toHaveProperty('message', 'breadcrumb');
     });
 
     test('limits previously saved breadcrumbs', () => {

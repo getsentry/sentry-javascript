@@ -270,6 +270,7 @@ export class Scope implements ScopeInterface {
     this._applyFingerprint(event);
 
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
+    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }
