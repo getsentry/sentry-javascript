@@ -3,6 +3,8 @@
 ## Unreleased
 
 - [utils] fix: Remove node types
+- [hub] fix: Make sure all breadcrumbs have a timestamp
+- [hub] fix: Merge event with scope breadcrumbs instead of only using event breadcrumbs
 
 ## 5.0.7
 
