@@ -201,10 +201,13 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
+    const timestamp = new Date().getTime() / 1000;
+    const mergedBreadcrumb = { timestamp, ...breadcrumb };
+
     this._breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-        ? [...this._breadcrumbs, normalize(breadcrumb)].slice(-maxBreadcrumbs)
-        : [...this._breadcrumbs, normalize(breadcrumb)];
+        ? [...this._breadcrumbs, normalize(mergedBreadcrumb)].slice(-maxBreadcrumbs)
+        : [...this._breadcrumbs, normalize(mergedBreadcrumb)];
     this._notifyScopeListeners();
     return this;
   }
@@ -266,10 +269,7 @@ export class Scope implements ScopeInterface {
 
     this._applyFingerprint(event);
 
-    const hasNoBreadcrumbs = !event.breadcrumbs || event.breadcrumbs.length === 0;
-    if (hasNoBreadcrumbs && this._breadcrumbs.length > 0) {
-      event.breadcrumbs = this._breadcrumbs;
-    }
+    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
 
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }

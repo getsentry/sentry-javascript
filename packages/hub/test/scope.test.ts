@@ -68,7 +68,7 @@ describe('Scope', () => {
     test('add', () => {
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'test' }, 100);
-      expect((scope as any)._breadcrumbs).toEqual([{ message: 'test' }]);
+      expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
     });
   });
 
@@ -128,12 +128,12 @@ describe('Scope', () => {
       expect(processedEvent!.user).toEqual({ id: '1' });
       expect(processedEvent!.fingerprint).toEqual(['abcd']);
       expect(processedEvent!.level).toEqual('warning');
-      expect(processedEvent!.breadcrumbs).toEqual([{ message: 'test' }]);
+      expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
     });
   });
 
   test('applyToEvent merge', () => {
-    expect.assertions(5);
+    expect.assertions(7);
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
@@ -141,7 +141,7 @@ describe('Scope', () => {
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
     const event: Event = {
-      breadcrumbs: [{ message: 'test2' }],
+      breadcrumbs: [{ message: 'test1' }],
       extra: { b: 3 },
       fingerprint: ['efgh'],
       tags: { b: 'c' },
@@ -152,7 +152,9 @@ describe('Scope', () => {
       expect(processedEvent!.tags).toEqual({ a: 'b', b: 'c' });
       expect(processedEvent!.user).toEqual({ id: '3' });
       expect(processedEvent!.fingerprint).toEqual(['efgh', 'abcd']);
-      expect(processedEvent!.breadcrumbs).toEqual([{ message: 'test2' }]);
+      expect(processedEvent!.breadcrumbs).toHaveLength(2);
+      expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test1');
+      expect(processedEvent!.breadcrumbs![1]).toHaveProperty('message', 'test');
     });
   });
 
