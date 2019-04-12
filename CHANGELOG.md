@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.0.8
 
 - [utils] fix: Remove node types
 - [hub] fix: Make sure all breadcrumbs have a timestamp
