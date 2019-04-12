@@ -94,7 +94,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
 
@@ -121,7 +121,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
 
@@ -142,7 +142,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
     return eventId;
@@ -180,8 +180,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
+    const result = await this.flush(timeout);
     this.getOptions().enabled = false;
-    return this.flush(timeout);
+    return result;
   }
 
   /**

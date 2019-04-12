@@ -2,6 +2,7 @@
 
 ## 5.0.8
 
+- [core] fix: Don't disable client before flushing
 - [utils] fix: Remove node types
 - [hub] fix: Make sure all breadcrumbs have a timestamp
 - [hub] fix: Merge event with scope breadcrumbs instead of only using event breadcrumbs
