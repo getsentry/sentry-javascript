@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [hub] feat: Add `setContext` on the scope
+
 ## 5.0.8
 
 - [core] fix: Don't disable client before flushing
