@@ -27,6 +27,9 @@ export class Scope implements ScopeInterface {
   /** Extra */
   protected _extra: { [key: string]: any } = {};
 
+  /** Contexts */
+  protected _context: { [key: string]: any } = {};
+
   /** Fingerprint */
   protected _fingerprint?: string[];
 
@@ -163,6 +166,15 @@ export class Scope implements ScopeInterface {
   }
 
   /**
+   * @inheritDoc
+   */
+  public setContext(name: string, context: { [key: string]: any } | null): this {
+    this._context[name] = context ? normalize(context) : undefined;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
    * Inherit values from the parent scope.
    * @param scope to clone.
    */
@@ -175,6 +187,7 @@ export class Scope implements ScopeInterface {
       newScope._breadcrumbs = [...scope._breadcrumbs];
       newScope._tags = { ...scope._tags };
       newScope._extra = { ...scope._extra };
+      newScope._context = { ...scope._context };
       newScope._user = scope._user;
       newScope._level = scope._level;
       newScope._fingerprint = scope._fingerprint;
@@ -191,6 +204,7 @@ export class Scope implements ScopeInterface {
     this._tags = {};
     this._extra = {};
     this._user = {};
+    this._context = {};
     this._level = undefined;
     this._fingerprint = undefined;
     this._notifyScopeListeners();
@@ -262,6 +276,9 @@ export class Scope implements ScopeInterface {
     }
     if (this._user && Object.keys(this._user).length) {
       event.user = { ...this._user, ...event.user };
+    }
+    if (this._context && Object.keys(this._context).length) {
+      event.contexts = { ...this._context, ...event.contexts };
     }
     if (this._level) {
       event.level = this._level;
