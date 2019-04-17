@@ -56,6 +56,13 @@ export interface Scope {
    */
   setLevel(level: Severity): this;
 
+  /**
+   * Sets context data with the given name.
+   * @param name of the context
+   * @param context Any kind of data. This data will be normailzed.
+   */
+  setContext(name: string, context: { [key: string]: any } | null): this;
+
   /** Clears the current scope and resets its properties. */
   clear(): this;
 
