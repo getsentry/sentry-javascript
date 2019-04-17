@@ -222,18 +222,18 @@ export function requestHandler(options?: {
   transaction?: boolean | TransactionTypes;
   user?: boolean | string[];
   version?: boolean;
-  wait?: boolean;
+  flushTimeout?: number;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    if (options && options.wait) {
+    if (options && options.flushTimeout && options.flushTimeout > 0) {
       const _end = res.end
 
       res.end = async function end (chunk?: any, encodingOrCb?: string | Function, cb?: Function) {
-        await flush(2000)
+        await flush(options.flushTimeout)
         return _end.call(this, chunk, encodingOrCb, cb)
       }
     }
