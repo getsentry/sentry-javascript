@@ -1,6 +1,7 @@
 import { captureException, getCurrentHub } from '@sentry/core';
 import { Event } from '@sentry/types';
 import { forget, isString, logger, normalize } from '@sentry/utils';
+import { flush } from './sdk';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -221,12 +222,21 @@ export function requestHandler(options?: {
   transaction?: boolean | TransactionTypes;
   user?: boolean | string[];
   version?: boolean;
+  flushTimeout?: number;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
+    if (options && options.flushTimeout && options.flushTimeout > 0) {
+      const _end = res.end
+
+      res.end = async function end (chunk?: any, encodingOrCb?: string | Function, cb?: Function) {
+        await flush(options.flushTimeout)
+        return _end.call(this, chunk, encodingOrCb, cb)
+      }
+    }
     const local = domain.create();
     local.add(req);
     local.add(res);
