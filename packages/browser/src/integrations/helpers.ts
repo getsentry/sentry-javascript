@@ -170,7 +170,7 @@ export function breadcrumbEventHandler(eventName: string, debounce: boolean = fa
     // It's possible this handler might trigger multiple times for the same
     // event (e.g. event propagation through node ancestors). Ignore if we've
     // already captured the event.
-    if (lastCapturedEvent === event) {
+    if (!event || lastCapturedEvent === event) {
       return;
     }
 
