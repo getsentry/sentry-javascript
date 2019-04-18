@@ -176,8 +176,7 @@ export class Breadcrumbs implements Integration {
 
             return original.call(this, eventName, fn, options);
           };
-        },
-        true,
+        }
       );
 
       fill(
@@ -205,8 +204,7 @@ export class Breadcrumbs implements Integration {
             }
             return original.call(this, eventName, callback, options);
           };
-        },
-        true,
+        }
       );
     });
   }

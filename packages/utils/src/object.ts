@@ -4,21 +4,6 @@ import { isError, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
 
 /**
- * This is a internal helper container holding all assigned filled functions.
- */
-const filledMethods: { [key: string]: WrappedFunction[] } = {};
-
-/**
- * This function will return the last value of wrapped functions while still calling all of them.
- */
-function filledLookup(name: string): WrappedFunction {
-  return filledMethods[name].reduce((prev, current) => {
-    prev();
-    return current;
-  });
-}
-
-/**
  * Wrap a given object method with a higher-order function
  *
  * @param source An object that contains a method to be wrapped.
@@ -27,18 +12,9 @@ function filledLookup(name: string): WrappedFunction {
  * @param mutli Should multiple fills be allowed?
  * @returns void
  */
-export function fill(
-  source: { [key: string]: any },
-  name: string,
-  replacement: (...args: any[]) => any,
-  multi: boolean = false,
-): void {
+export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
-  }
-
-  if (multi && !filledMethods[name]) {
-    filledMethods[name] = [];
   }
 
   const original = source[name] as () => any;
@@ -65,11 +41,7 @@ export function fill(
     });
   }
 
-  if (multi) {
-    filledMethods[name].push(wrapped);
-  }
-
-  source[name] = multi ? filledLookup(name) : wrapped;
+  source[name] = wrapped;
 }
 
 /**
