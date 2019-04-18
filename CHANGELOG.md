@@ -3,6 +3,8 @@
 ## Unreleased
 
 - [hub] feat: Add `setContext` on the scope
+- [browser] fix: Breacrumb integration ui clicks
+- [node] feat: Add `flushTimeout` to `requestHandler` to auto flush requests
 
 ## 5.0.8
 

@@ -153,49 +153,66 @@ export function wrap(
   return sentryWrapped;
 }
 
+let debounceTimer: number = 0;
+
 /**
  * Wraps addEventListener to capture UI breadcrumbs
  * @param eventName the event name (e.g. "click")
  * @returns wrapped breadcrumb events handler
  * @hidden
  */
-export function breadcrumbEventHandler(eventName: string): (event: Event) => void {
+export function breadcrumbEventHandler(eventName: string, debounce: boolean = false): (event: Event) => void {
   return (event: Event) => {
     // reset keypress timeout; e.g. triggering a 'click' after
     // a 'keypress' will reset the keypress debounce so that a new
     // set of keypresses can be recorded
     keypressTimeout = undefined;
-
     // It's possible this handler might trigger multiple times for the same
     // event (e.g. event propagation through node ancestors). Ignore if we've
     // already captured the event.
-    if (lastCapturedEvent === event) {
+    if (!event || lastCapturedEvent === event) {
       return;
     }
 
     lastCapturedEvent = event;
 
-    // try/catch both:
-    // - accessing event.target (see getsentry/raven-js#838, #768)
-    // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-    //   can throw an exception in some circumstances.
-    let target;
-    try {
-      target = _htmlTreeAsString(event.target as Node);
-    } catch (e) {
-      target = '<unknown>';
+    const captureBreadcrumb = () => {
+      // try/catch both:
+      // - accessing event.target (see getsentry/raven-js#838, #768)
+      // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
+      //   can throw an exception in some circumstances.
+      let target;
+      try {
+        target = event.target ? _htmlTreeAsString(event.target as Node) : _htmlTreeAsString((event as unknown) as Node);
+      } catch (e) {
+        target = '<unknown>';
+      }
+
+      if (target.length === 0) {
+        return;
+      }
+
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `ui.${eventName}`, // e.g. ui.click, ui.input
+          message: target,
+        },
+        {
+          event,
+          name: eventName,
+        },
+      );
+    };
+
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
     }
 
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `ui.${eventName}`, // e.g. ui.click, ui.input
-        message: target,
-      },
-      {
-        event,
-        name: eventName,
-      },
-    );
+    if (debounce) {
+      debounceTimer = setTimeout(captureBreadcrumb);
+    } else {
+      captureBreadcrumb();
+    }
   };
 }
 

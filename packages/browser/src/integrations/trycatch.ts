@@ -1,7 +1,7 @@
 import { Integration, WrappedFunction } from '@sentry/types';
 import { fill, getGlobalObject } from '@sentry/utils';
 
-import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
+import { wrap } from './helpers';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
@@ -85,60 +85,20 @@ export class TryCatch implements Integration {
           // can sometimes get 'Permission denied to access property "handle Event'
         }
 
-        // More breadcrumb DOM capture ... done here and not in `_instrumentBreadcrumbs`
-        // so that we don't have more than one wrapper function
-        let before: any;
-        let clickHandler: any;
-        let keypressHandler: any;
-
-        if (target === 'EventTarget' || target === 'Node') {
-          // NOTE: generating multiple handlers per addEventListener invocation, should
-          //       revisit and verify we can just use one (almost certainly)
-          clickHandler = breadcrumbEventHandler('click');
-          keypressHandler = keypressEventHandler();
-          before = function(event: Event): any {
-            // need to intercept every DOM event in `before` argument, in case that
-            // same wrapped method is re-used for different events (e.g. mousemove THEN click)
-            // see #724
-            if (!event) {
-              return;
-            }
-
-            let eventType;
-            try {
-              eventType = event.type;
-            } catch (e) {
-              // just accessing event properties can throw an exception in some rare circumstances
-              // see: https://github.com/getsentry/raven-js/issues/838
-              return;
-            }
-            if (eventType === 'click') {
-              return clickHandler(event);
-            }
-            if (eventType === 'keypress') {
-              return keypressHandler(event);
-            }
-          };
-        }
-
         return original.call(
           this,
           eventName,
-          wrap(
-            (fn as any) as WrappedFunction,
-            {
-              mechanism: {
-                data: {
-                  function: 'addEventListener',
-                  handler: getFunctionName(fn),
-                  target,
-                },
-                handled: true,
-                type: 'instrument',
+          wrap((fn as any) as WrappedFunction, {
+            mechanism: {
+              data: {
+                function: 'addEventListener',
+                handler: getFunctionName(fn),
+                target,
               },
+              handled: true,
+              type: 'instrument',
             },
-            before,
-          ),
+          }),
           options,
         );
       };

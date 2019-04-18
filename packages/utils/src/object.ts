@@ -11,7 +11,6 @@ import { Memo } from './memo';
  * @param replacement A function that should be used to wrap a given method.
  * @returns void
  */
-
 export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;

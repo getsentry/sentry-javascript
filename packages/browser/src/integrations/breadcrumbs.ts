@@ -1,5 +1,5 @@
 import { API, getCurrentHub } from '@sentry/core';
-import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
+import { Breadcrumb, BreadcrumbHint, Integration, Severity, WrappedFunction } from '@sentry/types';
 import {
   fill,
   getEventDescription,
@@ -19,7 +19,6 @@ import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
 
 const global = getGlobalObject<Window>();
 let lastHref: string | undefined;
-
 /**
  * @hidden
  */
@@ -77,8 +76,7 @@ export class Breadcrumbs implements Integration {
     if (!('console' in global)) {
       return;
     }
-    const levels = ['log', 'info', 'warn', 'error', 'debug', 'assert'];
-    levels.forEach(function(level: string): void {
+    ['debug', 'info', 'warn', 'error', 'log', 'assert'].forEach(function(level: string): void {
       if (!(level in global.console)) {
         return;
       }
@@ -123,10 +121,82 @@ export class Breadcrumbs implements Integration {
     if (!('document' in global)) {
       return;
     }
+
     // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
     // to the document. Do this before we instrument addEventListener.
     global.document.addEventListener('click', breadcrumbEventHandler('click'), false);
     global.document.addEventListener('keypress', keypressEventHandler(), false);
+
+    // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
+    ['EventTarget', 'Node'].forEach((target: string) => {
+      const proto = (global as any)[target] && (global as any)[target].prototype;
+
+      if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+        return;
+      }
+
+      fill(proto, 'addEventListener', function(
+        original: () => void,
+      ): (
+        eventName: string,
+        fn: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ) => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
+          if ((fn as any).handleEvent) {
+            if (eventName === 'click') {
+              fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
+                return function(this: any, event: Event): (event: Event) => void {
+                  breadcrumbEventHandler('click')(event);
+                  return innerOriginal.call(this, event);
+                };
+              });
+            }
+            if (eventName === 'keypress') {
+              fill(fn, 'handleEvent', keypressEventHandler());
+            }
+          } else {
+            if (eventName === 'click') {
+              breadcrumbEventHandler('click', true)(this);
+            }
+            if (eventName === 'keypress') {
+              keypressEventHandler()(this);
+            }
+          }
+
+          return original.call(this, eventName, fn, options);
+        };
+      });
+
+      fill(proto, 'removeEventListener', function(
+        original: () => void,
+      ): (
+        this: any,
+        eventName: string,
+        fn: EventListenerObject,
+        options?: boolean | EventListenerOptions,
+      ) => () => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerObject,
+          options?: boolean | EventListenerOptions,
+        ): () => void {
+          let callback = (fn as any) as WrappedFunction;
+          try {
+            callback = callback && (callback.__sentry_wrapped__ || callback);
+          } catch (e) {
+            // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+          }
+          return original.call(this, eventName, callback, options);
+        };
+      });
+    });
   }
 
   /** JSDoc */
