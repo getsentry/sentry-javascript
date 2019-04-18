@@ -135,69 +135,79 @@ export class Breadcrumbs implements Integration {
         return;
       }
 
-      fill(proto, 'addEventListener', function(
-        original: () => void,
-      ): (
-        eventName: string,
-        fn: EventListenerOrEventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ) => void {
-        return function(
-          this: any,
+      fill(
+        proto,
+        'addEventListener',
+        function(
+          original: () => void,
+        ): (
           eventName: string,
           fn: EventListenerOrEventListenerObject,
           options?: boolean | AddEventListenerOptions,
-        ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
-          if ((fn as any).handleEvent) {
-            if (eventName === 'click') {
-              fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
-                return function(this: any, event: Event): (event: Event) => void {
-                  if (event) {
-                    breadcrumbEventHandler('click')(event);
-                  }
-                  return innerOriginal.call(this, event);
-                };
-              });
+        ) => void {
+          return function(
+            this: any,
+            eventName: string,
+            fn: EventListenerOrEventListenerObject,
+            options?: boolean | AddEventListenerOptions,
+          ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
+            if ((fn as any).handleEvent) {
+              if (eventName === 'click') {
+                fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
+                  return function(this: any, event: Event): (event: Event) => void {
+                    if (event) {
+                      breadcrumbEventHandler('click')(event);
+                    }
+                    return innerOriginal.call(this, event);
+                  };
+                });
+              }
+              if (eventName === 'keypress') {
+                fill(fn, 'handleEvent', keypressEventHandler());
+              }
+            } else {
+              if (eventName === 'click') {
+                breadcrumbEventHandler('click', true)(this);
+              }
+              if (eventName === 'keypress') {
+                keypressEventHandler()(this);
+              }
             }
-            if (eventName === 'keypress') {
-              fill(fn, 'handleEvent', keypressEventHandler());
-            }
-          } else {
-            if (eventName === 'click') {
-              breadcrumbEventHandler('click', true)(this);
-            }
-            if (eventName === 'keypress') {
-              keypressEventHandler()(this);
-            }
-          }
 
-          return original.call(this, eventName, fn, options);
-        };
-      });
+            return original.call(this, eventName, fn, options);
+          };
+        },
+        true,
+      );
 
-      fill(proto, 'removeEventListener', function(
-        original: () => void,
-      ): (
-        this: any,
-        eventName: string,
-        fn: EventListenerObject,
-        options?: boolean | EventListenerOptions,
-      ) => () => void {
-        return function(
+      fill(
+        proto,
+        'removeEventListener',
+        function(
+          original: () => void,
+        ): (
           this: any,
           eventName: string,
           fn: EventListenerObject,
           options?: boolean | EventListenerOptions,
-        ): () => void {
-          let callback = (fn as any) as WrappedFunction;
-          try {
-            callback = callback && (callback.__sentry_wrapped__ || callback);
-          } catch (e) {
-            // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
-          }
-          return original.call(this, eventName, callback, options);
-        };
-      });
+        ) => () => void {
+          return function(
+            this: any,
+            eventName: string,
+            fn: EventListenerObject,
+            options?: boolean | EventListenerOptions,
+          ): () => void {
+            let callback = (fn as any) as WrappedFunction;
+            try {
+              callback = callback && (callback.__sentry_wrapped__ || callback);
+            } catch (e) {
+              // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+            }
+            return original.call(this, eventName, callback, options);
+          };
+        },
+        true,
+      );
     });
   }
 

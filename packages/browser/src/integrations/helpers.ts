@@ -188,6 +188,10 @@ export function breadcrumbEventHandler(eventName: string, debounce: boolean = fa
         target = '<unknown>';
       }
 
+      if (target.length === 0) {
+        return;
+      }
+
       getCurrentHub().addBreadcrumb(
         {
           category: `ui.${eventName}`, // e.g. ui.click, ui.input

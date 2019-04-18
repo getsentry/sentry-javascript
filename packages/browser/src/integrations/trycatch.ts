@@ -60,68 +60,83 @@ export class TryCatch implements Integration {
       return;
     }
 
-    fill(proto, 'addEventListener', function(
-      original: () => void,
-    ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
-      return function(
-        this: any,
-        eventName: string,
-        fn: EventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
-        try {
-          fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
-            mechanism: {
-              data: {
-                function: 'handleEvent',
-                handler: getFunctionName(fn),
-                target,
+    fill(
+      proto,
+      'addEventListener',
+      function(
+        original: () => void,
+      ): (eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+          try {
+            fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
+              mechanism: {
+                data: {
+                  function: 'handleEvent',
+                  handler: getFunctionName(fn),
+                  target,
+                },
+                handled: true,
+                type: 'instrument',
               },
-              handled: true,
-              type: 'instrument',
-            },
-          });
-        } catch (err) {
-          // can sometimes get 'Permission denied to access property "handle Event'
-        }
+            });
+          } catch (err) {
+            // can sometimes get 'Permission denied to access property "handle Event'
+          }
 
-        return original.call(
-          this,
-          eventName,
-          wrap((fn as any) as WrappedFunction, {
-            mechanism: {
-              data: {
-                function: 'addEventListener',
-                handler: getFunctionName(fn),
-                target,
+          return original.call(
+            this,
+            eventName,
+            wrap((fn as any) as WrappedFunction, {
+              mechanism: {
+                data: {
+                  function: 'addEventListener',
+                  handler: getFunctionName(fn),
+                  target,
+                },
+                handled: true,
+                type: 'instrument',
               },
-              handled: true,
-              type: 'instrument',
-            },
-          }),
-          options,
-        );
-      };
-    });
+            }),
+            options,
+          );
+        };
+      },
+      true,
+    );
 
-    fill(proto, 'removeEventListener', function(
-      original: () => void,
-    ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
-      return function(
+    fill(
+      proto,
+      'removeEventListener',
+      function(
+        original: () => void,
+      ): (
         this: any,
         eventName: string,
         fn: EventListenerObject,
         options?: boolean | EventListenerOptions,
-      ): () => void {
-        let callback = (fn as any) as WrappedFunction;
-        try {
-          callback = callback && (callback.__sentry_wrapped__ || callback);
-        } catch (e) {
-          // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
-        }
-        return original.call(this, eventName, callback, options);
-      };
-    });
+      ) => () => void {
+        return function(
+          this: any,
+          eventName: string,
+          fn: EventListenerObject,
+          options?: boolean | EventListenerOptions,
+        ): () => void {
+          let callback = (fn as any) as WrappedFunction;
+          try {
+            callback = callback && (callback.__sentry_wrapped__ || callback);
+          } catch (e) {
+            // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
+          }
+          return original.call(this, eventName, callback, options);
+        };
+      },
+      true,
+    );
   }
 
   /**

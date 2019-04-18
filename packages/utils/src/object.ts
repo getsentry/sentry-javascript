@@ -11,7 +11,7 @@ const filledMethods: { [key: string]: WrappedFunction[] } = {};
 /**
  * This function will return the last value of wrapped functions while still calling all of them.
  */
-function filledLookup(name: string): any {
+function filledLookup(name: string): WrappedFunction {
   return filledMethods[name].reduce((prev, current) => {
     prev();
     return current;
@@ -24,14 +24,20 @@ function filledLookup(name: string): any {
  * @param source An object that contains a method to be wrapped.
  * @param name A name of method to be wrapped.
  * @param replacement A function that should be used to wrap a given method.
+ * @param mutli Should multiple fills be allowed?
  * @returns void
  */
-export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
+export function fill(
+  source: { [key: string]: any },
+  name: string,
+  replacement: (...args: any[]) => any,
+  multi: boolean = false,
+): void {
   if (!(name in source)) {
     return;
   }
 
-  if (!filledMethods[name]) {
+  if (multi && !filledMethods[name]) {
     filledMethods[name] = [];
   }
 
@@ -59,8 +65,11 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
     });
   }
 
-  filledMethods[name].push(wrapped);
-  source[name] = filledLookup(name);
+  if (multi) {
+    filledMethods[name].push(wrapped);
+  }
+
+  source[name] = multi ? filledLookup(name) : wrapped;
 }
 
 /**
