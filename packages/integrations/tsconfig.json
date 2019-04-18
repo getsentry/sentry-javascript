@@ -3,6 +3,7 @@
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
+    "declarationMap": false,
     "rootDir": ".",
     "types": ["node", "jest"]
   }

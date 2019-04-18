@@ -35,6 +35,7 @@ const plugins = [
     tsconfigOverride: {
       compilerOptions: {
         declaration: false,
+        declarationMap: false,
         module: 'ES2015',
         paths,
       },
@@ -98,6 +99,7 @@ export default [
         tsconfigOverride: {
           compilerOptions: {
             declaration: false,
+            declarationMap: false,
             module: 'ES2015',
             paths,
             target: 'es6',
@@ -120,6 +122,7 @@ export default [
         tsconfigOverride: {
           compilerOptions: {
             declaration: false,
+            declarationMap: false,
             module: 'ES2015',
             paths,
             target: 'es6',
