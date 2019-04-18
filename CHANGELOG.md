@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.1.0
 
 - [hub] feat: Add `setContext` on the scope
 - [browser] fix: Breacrumb integration ui clicks
