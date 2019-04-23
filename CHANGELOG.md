@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.1.1
+
+- [browser] fix: Breadcrumb Integration: Fix #2034
+
 ## 5.1.0
 
 - [hub] feat: Add `setContext` on the scope
