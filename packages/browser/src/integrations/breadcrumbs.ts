@@ -148,7 +148,7 @@ export class Breadcrumbs implements Integration {
           fn: EventListenerOrEventListenerObject,
           options?: boolean | AddEventListenerOptions,
         ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
-          if ((fn as any).handleEvent) {
+          if (fn && (fn as any).handleEvent) {
             if (eventName === 'click') {
               fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
                 return function(this: any, event: Event): (event: Event) => void {
