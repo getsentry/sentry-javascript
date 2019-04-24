@@ -57,17 +57,17 @@ interface ComputeStackTrace {
 var window = getGlobalObject<Window>();
 
 interface TraceKit {
-  report: any;
-  collectWindowErrors: any;
-  computeStackTrace: any;
-  linesOfContext: any;
+  _report: any;
+  _collectWindowErrors: any;
+  _computeStackTrace: any;
+  _linesOfContext: any;
 }
 
 var TraceKit: TraceKit = {
-  report: false,
-  collectWindowErrors: false,
-  computeStackTrace: false,
-  linesOfContext: false,
+  _report: false,
+  _collectWindowErrors: false,
+  _computeStackTrace: false,
+  _linesOfContext: false,
 };
 
 // var TraceKit: TraceKitInterface = {};
@@ -130,7 +130,7 @@ function getLocationHref() {
  *   - Chrome 1+ (only 5+ tested)
  *   - Konqueror 3.5+ (untested)
  *
- * Requires TraceKit.computeStackTrace.
+ * Requires TraceKit._computeStackTrace.
  *
  * Tries to catch all unhandled exceptions and report them to the
  * subscribed handlers. Please note that TraceKit.report will rethrow the
@@ -139,12 +139,12 @@ function getLocationHref() {
  * get a stack trace from the point where TraceKit.report was called.
  *
  * Handlers receive a TraceKit.StackTrace object as described in the
- * TraceKit.computeStackTrace docs.
+ * TraceKit._computeStackTrace docs.
  *
  * @memberof TraceKit
  * @namespace
  */
-TraceKit.report = (function reportModuleWrapper() {
+TraceKit._report = (function reportModuleWrapper() {
   var handlers: any = [],
     lastException: any = null,
     lastExceptionStack: any = null;
@@ -154,7 +154,7 @@ TraceKit.report = (function reportModuleWrapper() {
    * @param {Function} handler
    * @memberof TraceKit.report
    */
-  function subscribe(handler: any) {
+  function _subscribe(handler: any) {
     // NOTE: We call both handlers manually in browser/integrations/globalhandler.ts
     // So user can choose which one he wants to attach
 
@@ -171,9 +171,9 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    * @throws An exception if an error occurs while calling an handler.
    */
-  function notifyHandlers(stack: any, isWindowError: any, error: any) {
+  function _notifyHandlers(stack: any, isWindowError: any, error: any) {
     var exception = null;
-    if (isWindowError && !TraceKit.collectWindowErrors) {
+    if (isWindowError && !TraceKit._collectWindowErrors) {
       return;
     }
     for (var i in handlers) {
@@ -203,7 +203,7 @@ TraceKit.report = (function reportModuleWrapper() {
    * @param {Error=} errorObj The actual Error object.
    * @memberof TraceKit.report
    */
-  function traceKitWindowOnError(message: any, url: any, lineNo: any, columnNo: any, errorObj: any) {
+  function _traceKitWindowOnError(message: any, url: any, lineNo: any, columnNo: any, errorObj: any) {
     var stack = null;
     // If 'errorObj' is ErrorEvent, get real Error from inside
     errorObj = isErrorEvent(errorObj) ? errorObj.error : errorObj;
@@ -211,12 +211,12 @@ TraceKit.report = (function reportModuleWrapper() {
     message = isErrorEvent(message) ? message.message : message;
 
     if (lastExceptionStack) {
-      TraceKit.computeStackTrace.augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
+      TraceKit._computeStackTrace._augmentStackTraceWithInitialElement(lastExceptionStack, url, lineNo, message);
       processLastException();
     } else if (errorObj && isError(errorObj)) {
-      stack = TraceKit.computeStackTrace(errorObj);
+      stack = TraceKit._computeStackTrace(errorObj);
       stack.mechanism = 'onerror';
-      notifyHandlers(stack, true, errorObj);
+      _notifyHandlers(stack, true, errorObj);
     } else {
       var location: any = {
         url: url,
@@ -252,7 +252,7 @@ TraceKit.report = (function reportModuleWrapper() {
         ],
       };
 
-      notifyHandlers(stack, true, null);
+      _notifyHandlers(stack, true, null);
     }
 
     if (_oldOnerrorHandler) {
@@ -270,24 +270,24 @@ TraceKit.report = (function reportModuleWrapper() {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onunhandledrejection
    * @see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
    */
-  function traceKitWindowOnUnhandledRejection(e: any) {
+  function _traceKitWindowOnUnhandledRejection(e: any) {
     var err = (e && (e.detail ? e.detail.reason : e.reason)) || e;
-    var stack = TraceKit.computeStackTrace(err);
+    var stack = TraceKit._computeStackTrace(err);
     stack.mechanism = 'onunhandledrejection';
-    notifyHandlers(stack, true, err);
+    _notifyHandlers(stack, true, err);
   }
 
   /**
    * Install a global onerror handler
    * @memberof TraceKit.report
    */
-  function installGlobalHandler() {
+  function _installGlobalHandler() {
     if (_onErrorHandlerInstalled === true) {
       return;
     }
 
     _oldOnerrorHandler = window.onerror;
-    window.onerror = traceKitWindowOnError;
+    window.onerror = _traceKitWindowOnError;
     _onErrorHandlerInstalled = true;
   }
 
@@ -295,8 +295,8 @@ TraceKit.report = (function reportModuleWrapper() {
    * Install a global onunhandledrejection handler
    * @memberof TraceKit.report
    */
-  function installGlobalUnhandledRejectionHandler() {
-    (window as any).onunhandledrejection = traceKitWindowOnUnhandledRejection;
+  function _installGlobalUnhandledRejectionHandler() {
+    (window as any).onunhandledrejection = _traceKitWindowOnUnhandledRejection;
   }
 
   /**
@@ -308,7 +308,7 @@ TraceKit.report = (function reportModuleWrapper() {
       _lastException = lastException;
     lastExceptionStack = null;
     lastException = null;
-    notifyHandlers(_lastExceptionStack, false, _lastException);
+    _notifyHandlers(_lastExceptionStack, false, _lastException);
   }
 
   /**
@@ -317,7 +317,7 @@ TraceKit.report = (function reportModuleWrapper() {
    * @memberof TraceKit.report
    * @throws An exception if an incomplete stack trace is detected (old IE browsers).
    */
-  function report(ex: any) {
+  function _report(ex: any) {
     if (lastExceptionStack) {
       if (lastException === ex) {
         return; // already caught by an inner catch block, ignore
@@ -326,7 +326,7 @@ TraceKit.report = (function reportModuleWrapper() {
       }
     }
 
-    var stack = TraceKit.computeStackTrace(ex);
+    var stack = TraceKit._computeStackTrace(ex);
     lastExceptionStack = stack;
     lastException = ex;
 
@@ -346,11 +346,11 @@ TraceKit.report = (function reportModuleWrapper() {
     throw ex; // re-throw to propagate to the top level (and cause window.onerror)
   }
 
-  (report as any).subscribe = subscribe;
-  (report as any).installGlobalHandler = installGlobalHandler;
-  (report as any).installGlobalUnhandledRejectionHandler = installGlobalUnhandledRejectionHandler;
+  (_report as any)._subscribe = _subscribe;
+  (_report as any)._installGlobalHandler = _installGlobalHandler;
+  (_report as any)._installGlobalUnhandledRejectionHandler = _installGlobalUnhandledRejectionHandler;
 
-  return report;
+  return _report;
 })();
 
 /**
@@ -376,11 +376,11 @@ TraceKit.report = (function reportModuleWrapper() {
  */
 
 /**
- * TraceKit.computeStackTrace: cross-browser stack traces in JavaScript
+ * TraceKit._computeStackTrace: cross-browser stack traces in JavaScript
  *
  * Syntax:
  *   ```js
- *   s = TraceKit.computeStackTrace(exception) // consider using TraceKit.report instead (see below)
+ *   s = TraceKit._computeStackTrace(exception) // consider using TraceKit.report instead (see below)
  *   ```
  *
  * Supports:
@@ -400,9 +400,9 @@ TraceKit.report = (function reportModuleWrapper() {
  * Here be dragons: some function names may be guessed incorrectly, and
  * duplicate functions may be mismatched.
  *
- * TraceKit.computeStackTrace should only be used for tracing purposes.
+ * TraceKit._computeStackTrace should only be used for tracing purposes.
  * Logging of unhandled exceptions should be done with TraceKit.report,
- * which builds on top of TraceKit.computeStackTrace and provides better
+ * which builds on top of TraceKit._computeStackTrace and provides better
  * IE support by utilizing the window.onerror event to retrieve information
  * about the top of the stack.
  *
@@ -423,7 +423,7 @@ TraceKit.report = (function reportModuleWrapper() {
  * @namespace
  */
 
-TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
+TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
   // Contents of Exception in various browsers.
   //
   // SAFARI:
@@ -466,9 +466,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * Chrome and Gecko use this property.
    * @param {Error} ex
    * @return {?TraceKit.StackTrace} Stack trace information.
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
-  function computeStackTraceFromStackProp(ex: any) {
+  function _computeStackTraceFromStackProp(ex: any) {
     if (!ex.stack) {
       return null;
     }
@@ -569,9 +569,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * Opera 10+ uses this property.
    * @param {Error} ex
    * @return {?TraceKit.StackTrace} Stack trace information.
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
-  function computeStackTraceFromStacktraceProp(ex: any) {
+  function _computeStackTraceFromStacktraceProp(ex: any) {
     // Access and store the stacktrace property before doing ANYTHING
     // else to it because Opera is not very good at providing it
     // reliably in other circumstances.
@@ -642,9 +642,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * traces is turned on in opera:config.
    * @param {Error} ex
    * @return {?TraceKit.StackTrace} Stack information.
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
-  function computeStackTraceFromOperaMultiLineMessage(ex: any) {
+  function _computeStackTraceFromOperaMultiLineMessage(ex: any) {
     // TODO: Clean this function up
     // Opera includes a stack trace into the exception message. An example is:
     //
@@ -741,9 +741,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * hopefully contains the name of the object that caused the error.
    * @return {boolean} Whether or not the stack information was
    * augmented.
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
-  function augmentStackTraceWithInitialElement(stackInfo: any, url: any, lineNo: any, message: any) {
+  function _augmentStackTraceWithInitialElement(stackInfo: any, url: any, lineNo: any, message: any) {
     var initial = {
       url: url,
       line: lineNo,
@@ -795,9 +795,9 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * {@link augmentStackTraceWithInitialElement}.
    * @param {Error} ex
    * @return {TraceKit.StackTrace=} Stack trace information.
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
-  function computeStackTraceByWalkingCallerChain(ex: any, depth: any) {
+  function _computeStackTraceByWalkingCallerChain(ex: any, depth: any) {
     var functionName = /function\s+([_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*)?\s*\(/i,
       stack = [],
       funcs = {},
@@ -805,8 +805,8 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       parts,
       item;
 
-    for (var curr = computeStackTraceByWalkingCallerChain.caller; curr && !recursion; curr = curr.caller) {
-      if (curr === computeStackTrace || curr === TraceKit.report) {
+    for (var curr = _computeStackTraceByWalkingCallerChain.caller; curr && !recursion; curr = curr.caller) {
+      if (curr === _computeStackTrace || curr === TraceKit._report) {
         continue;
       }
 
@@ -849,7 +849,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       message: ex.message,
       stack: stack,
     };
-    augmentStackTraceWithInitialElement(
+    _augmentStackTraceWithInitialElement(
       result,
       ex.sourceURL || ex.fileName,
       ex.line || ex.lineNumber,
@@ -862,7 +862,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
    * Computes a stack trace for an exception.
    * @param {Error} ex
    * @param {(string|number)=} depth
-   * @memberof TraceKit.computeStackTrace
+   * @memberof TraceKit._computeStackTrace
    */
   function computeStackTrace(ex: any, depth: any) {
     var stack = null;
@@ -872,28 +872,28 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
       // This must be tried first because Opera 10 *destroys*
       // its stacktrace property if you try to access the stack
       // property first!!
-      stack = computeStackTraceFromStacktraceProp(ex);
+      stack = _computeStackTraceFromStacktraceProp(ex);
       if (stack) {
         return stack;
       }
     } catch (e) {}
 
     try {
-      stack = computeStackTraceFromStackProp(ex);
+      stack = _computeStackTraceFromStackProp(ex);
       if (stack) {
         return stack;
       }
     } catch (e) {}
 
     try {
-      stack = computeStackTraceFromOperaMultiLineMessage(ex);
+      stack = _computeStackTraceFromOperaMultiLineMessage(ex);
       if (stack) {
         return stack;
       }
     } catch (e) {}
 
     try {
-      stack = computeStackTraceByWalkingCallerChain(ex, depth + 1);
+      stack = _computeStackTraceByWalkingCallerChain(ex, depth + 1);
       if (stack) {
         return stack;
       }
@@ -907,18 +907,18 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     };
   }
 
-  (computeStackTrace as any).augmentStackTraceWithInitialElement = augmentStackTraceWithInitialElement;
-  (computeStackTrace as any).computeStackTraceFromStackProp = computeStackTraceFromStackProp;
+  (computeStackTrace as any)._augmentStackTraceWithInitialElement = _augmentStackTraceWithInitialElement;
+  (computeStackTrace as any)._computeStackTraceFromStackProp = _computeStackTraceFromStackProp;
 
   return computeStackTrace;
 })();
 
-TraceKit.collectWindowErrors = true;
-TraceKit.linesOfContext = 11;
+TraceKit._collectWindowErrors = true;
+TraceKit._linesOfContext = 11;
 
-const subscribe = TraceKit.report.subscribe;
-const installGlobalHandler = TraceKit.report.installGlobalHandler;
-const installGlobalUnhandledRejectionHandler = TraceKit.report.installGlobalUnhandledRejectionHandler;
-const computeStackTrace: ComputeStackTrace = TraceKit.computeStackTrace;
+const _subscribe = TraceKit._report._subscribe;
+const _installGlobalHandler = TraceKit._report._installGlobalHandler;
+const _installGlobalUnhandledRejectionHandler = TraceKit._report._installGlobalUnhandledRejectionHandler;
+const _computeStackTrace: ComputeStackTrace = TraceKit._computeStackTrace;
 
-export { subscribe, installGlobalHandler, installGlobalUnhandledRejectionHandler, computeStackTrace };
+export { _subscribe, _installGlobalHandler, _installGlobalUnhandledRejectionHandler, _computeStackTrace };

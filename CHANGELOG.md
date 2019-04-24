@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [browser] ref: Mangle more stuff, reduce bundle size
+
 ## 5.1.1
 
 - [browser] fix: Breadcrumb Integration: Fix #2034

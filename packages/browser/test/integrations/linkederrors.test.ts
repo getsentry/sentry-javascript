@@ -5,7 +5,7 @@ import { stub } from 'sinon';
 import { BrowserBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
-let linkedErrors: LinkedErrors;
+let linkedErrors: any;
 
 describe('LinkedErrors', () => {
   beforeEach(() => {
@@ -14,30 +14,30 @@ describe('LinkedErrors', () => {
 
   describe('handler', () => {
     it('should bail out if event doesnt contain exception', () => {
-      const spy = stub(linkedErrors, 'walkErrorTree');
+      const spy = stub(linkedErrors, '_walkErrorTree');
       const event = {
         message: 'foo',
       };
-      const result = linkedErrors.handler(event);
+      const result = linkedErrors._handler(event);
       expect(spy.called).equal(false);
       expect(result).to.deep.equal(event);
     });
 
     it('should bail out if event contains exception, but no hint', () => {
-      const spy = stub(linkedErrors, 'walkErrorTree');
+      const spy = stub(linkedErrors, '_walkErrorTree');
       const event = {
         exception: {
           values: [],
         },
         message: 'foo',
       };
-      const result = linkedErrors.handler(event);
+      const result = linkedErrors._handler(event);
       expect(spy.called).equal(false);
       expect(result).to.deep.equal(event);
     });
 
     it('should call walkErrorTree if event contains exception and hint with originalException', () => {
-      const spy = stub(linkedErrors, 'walkErrorTree').callsFake(() => []);
+      const spy = stub(linkedErrors, '_walkErrorTree').callsFake(() => []);
       const event = {
         exception: {
           values: [],
@@ -47,7 +47,7 @@ describe('LinkedErrors', () => {
       const hint = {
         originalException: new Error('originalException'),
       };
-      linkedErrors.handler(event, hint);
+      linkedErrors._handler(event, hint);
       expect(spy.calledOnce).equal(true);
     });
 
@@ -63,7 +63,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const backend = new BrowserBackend({});
       return backend.eventFromException(originalException).then(event => {
-        const result = linkedErrors.handler(event, {
+        const result = linkedErrors._handler(event, {
           originalException,
         });
 
@@ -97,7 +97,7 @@ describe('LinkedErrors', () => {
       const originalException = one;
       const backend = new BrowserBackend({});
       return backend.eventFromException(originalException).then(event => {
-        const result = linkedErrors.handler(event, {
+        const result = linkedErrors._handler(event, {
           originalException,
         });
 
@@ -127,7 +127,7 @@ describe('LinkedErrors', () => {
 
       const backend = new BrowserBackend({});
       return backend.eventFromException(one).then(event => {
-        const result = linkedErrors.handler(event, {
+        const result = linkedErrors._handler(event, {
           originalException: one,
         });
 

@@ -40,6 +40,7 @@ import * as Transports from './transports';
 
 let windowIntegrations = {};
 
+// This block is needed to add compatibility with the integrations packages when used with a CDN
 // tslint:disable: no-unsafe-any
 const _window = getGlobalObject<Window>() as any;
 if (_window.Sentry && _window.Sentry.Integrations) {

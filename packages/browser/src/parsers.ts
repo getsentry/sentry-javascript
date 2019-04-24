@@ -1,7 +1,7 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
 import { keysToEventMessage, normalizeToSize } from '@sentry/utils';
 
-import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
+import { _computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;
 
@@ -43,7 +43,7 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
   };
 
   if (syntheticException) {
-    const stacktrace = computeStackTrace(syntheticException);
+    const stacktrace = _computeStackTrace(syntheticException);
     const frames = prepareFramesForEvent(stacktrace.stack);
     event.stacktrace = {
       frames,
