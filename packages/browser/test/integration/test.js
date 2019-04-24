@@ -1252,6 +1252,80 @@ for (var idx in frames) {
           );
         });
 
+        it('should not fail with undefined event handler', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 1000);
+
+              // add an event listener to the input. we want to make sure that
+              // our breadcrumbs still work even if the page has an event listener
+              // on an element that cancels event bubbling
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('build', undefined, false);
+              var customEvent = new CustomEvent('build', { detail: 1 });
+              input.dispatchEvent(customEvent);
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+              // There should be no expection, if there is one it means we threw it
+              assert.isUndefined(sentryData[0].exception);
+              assert.equal(breadcrumbs.length, 0);
+
+              done();
+            }
+          );
+        });
+
+        it('should not fail with custom event', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 1000);
+
+              // add an event listener to the input. we want to make sure that
+              // our breadcrumbs still work even if the page has an event listener
+              // on an element that cancels event bubbling
+              var input = document.getElementsByTagName('input')[0];
+              var clickHandler = function(evt) {
+                evt.stopPropagation(); // don't bubble
+              };
+              input.addEventListener('build', clickHandler, false);
+
+              var customEvent = new CustomEvent('build', { detail: 1 });
+              input.dispatchEvent(customEvent);
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
+              assert.equal(breadcrumbs.length, 0);
+
+              done();
+            }
+          );
+        });
+
         it('should record a mouse click on element WITH click handler present', function(done) {
           var iframe = this.iframe;
 
