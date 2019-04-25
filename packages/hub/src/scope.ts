@@ -1,14 +1,7 @@
-import {
-  Breadcrumb,
-  Event,
-  EventHint,
-  EventProcessor,
-  Scope as ScopeInterface,
-  Severity,
-  SpanContext,
-  User,
-} from '@sentry/types';
+import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
 import { getGlobalObject, isThenable, normalize, SyncPromise } from '@sentry/utils';
+
+import { SpanContext } from './spancontext';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -46,7 +39,7 @@ export class Scope implements ScopeInterface {
   protected _level?: Severity;
 
   /** SpanContext */
-  protected _span: SpanContext | null = null;
+  protected _span?: SpanContext;
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
@@ -189,10 +182,27 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setSpanContext(spanContext: SpanContext | null): this {
+  public setSpanContext(spanContext?: SpanContext): this {
     this._span = spanContext;
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startSpan(): SpanContext {
+    const span = new SpanContext();
+    this.setSpanContext(span);
+    return span;
+  }
+
+  /**
+   * Internal getter for SpanContext, used in Hub.
+   * @hidden
+   */
+  public getSpan(): SpanContext | undefined {
+    return this._span;
   }
 
   /**
@@ -228,6 +238,7 @@ export class Scope implements ScopeInterface {
     this._context = {};
     this._level = undefined;
     this._fingerprint = undefined;
+    this._span = undefined;
     this._notifyScopeListeners();
     return this;
   }
@@ -303,6 +314,10 @@ export class Scope implements ScopeInterface {
     }
     if (this._level) {
       event.level = this._level;
+    }
+    if (this._span) {
+      event.contexts = event.contexts || {};
+      event.contexts.trace = this._span;
     }
 
     this._applyFingerprint(event);

@@ -125,4 +125,7 @@ export interface Hub {
 
   /** Returns the integration if installed on the current client. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
+
+  /** Returns all trace headers that are currently on the top scope. */
+  traceHeaders(): { [key: string]: string };
 }

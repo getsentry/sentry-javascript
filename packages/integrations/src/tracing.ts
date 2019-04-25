@@ -1,5 +1,10 @@
-import { Integration } from '@sentry/types';
-import { fill, getGlobalObject, supportsNativeFetch, uuid4 } from '@sentry/utils';
+import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { fill, getGlobalObject, isMatchingPattern, supportsNativeFetch } from '@sentry/utils';
+
+/** JSDoc */
+interface TracingOptions {
+  tracingOrigins: Array<string | RegExp>;
+}
 
 /**
  * Tracing Integration
@@ -18,27 +23,33 @@ export class Tracing implements Integration {
   /**
    * Constructor for Tracing
    *
-   * @param traceId Optional TraceId that should be set into the integration.
+   * @param _options TracingOptions
    */
-  public constructor(private readonly _traceId: string = uuid4()) {}
+  public constructor(private readonly _options: TracingOptions) {}
 
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
-    this._traceXHR();
-    this._traceFetch();
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (this._options.tracingOrigins.length) {
+      this._traceXHR(getCurrentHub);
+      this._traceFetch(getCurrentHub);
+      getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
+        getCurrentHub().configureScope(scope => {
+          const span = scope.startSpan();
+          span.transaction = getGlobalObject<Window>().location.href;
+        });
+      });
+    }
   }
 
   /**
    * JSDoc
    */
-  private _traceXHR(): void {
+  private _traceXHR(getCurrentHub: () => Hub): void {
     if (!('XMLHttpRequest' in global)) {
       return;
     }
-
-    const traceId = this._traceId;
 
     const xhrproto = XMLHttpRequest.prototype;
     fill(
@@ -46,7 +57,11 @@ export class Tracing implements Integration {
       'send',
       originalSend =>
         function(this: XMLHttpRequest, ...args: any[]): void {
-          this.setRequestHeader('sentry-trace', traceId);
+          const headers = getCurrentHub().traceHeaders();
+          Object.keys(headers).forEach(key => {
+            this.setRequestHeader(key, headers[key]);
+          });
+
           // tslint:disable-next-line: no-unsafe-any
           return originalSend.apply(this, args);
         },
@@ -56,27 +71,36 @@ export class Tracing implements Integration {
   /**
    * JSDoc
    */
-  private _traceFetch(): void {
+  private _traceFetch(getCurrentHub: () => Hub): void {
     if (!supportsNativeFetch()) {
       return;
     }
 
-    const traceId = this._traceId;
-
     // tslint:disable: only-arrow-functions
     fill(getGlobalObject<Window>(), 'fetch', function(originalFetch: () => void): () => void {
       return function(...args: any[]): void {
-        const options = args[1] as { [key: string]: any };
-        if (options) {
-          if (options.headers) {
-            options.headers = {
-              ...options.headers,
-              'sentry-trace': traceId,
-            };
-          } else {
-            options.headers = {
-              'sentry-trace': traceId,
-            };
+        // @ts-ignore
+        const self = getCurrentHub().getIntegration(Tracing);
+        if (self) {
+          const url = args[0] as string;
+          const options = args[1] as { [key: string]: any };
+
+          let whiteListed = false;
+          self._options.tracingOrigins.forEach((whiteListUrl: string) => {
+            if (!whiteListed) {
+              whiteListed = isMatchingPattern(url, whiteListUrl);
+            }
+          });
+
+          if (options && whiteListed) {
+            if (options.headers) {
+              options.headers = {
+                ...options.headers,
+                ...getCurrentHub().traceHeaders(),
+              };
+            } else {
+              options.headers = getCurrentHub().traceHeaders();
+            }
           }
         }
         // tslint:disable-next-line: no-unsafe-any
@@ -84,16 +108,5 @@ export class Tracing implements Integration {
       };
     });
     // tslint:enable: only-arrow-functions
-
-    // fill(
-    //   getGlobalObject<Window>(),
-    //   'fetch',
-    //   originalFetch =>
-    //     function(...args: any[]): void {
-    //       console.log(args);
-    //       // tslint:disable-next-line: no-unsafe-any
-    //       return originalFetch.apply(this, args);
-    //     },
-    // );
   }
 }

@@ -1,4 +1,5 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getCurrentHub, withScope } from '@sentry/core';
+import { SpanContext } from '@sentry/hub';
 import { Event } from '@sentry/types';
 import { forget, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -292,9 +293,15 @@ export function errorHandler(): (
       next(error);
       return;
     }
-    const eventId = captureException(error);
-    (_res as any).sentry = eventId;
-    next(error);
+    withScope(scope => {
+      if (isString(_req.headers['sentry-trace'])) {
+        const span = SpanContext.fromTraceparent(_req.headers['sentry-trace'] as string);
+        scope.setSpanContext(span);
+      }
+      const eventId = captureException(error);
+      (_res as any).sentry = eventId;
+      next(error);
+    });
   };
 }
 

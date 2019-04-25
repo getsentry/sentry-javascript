@@ -68,7 +68,12 @@ export interface Scope {
    * Sets the SpanContext on the scope.
    * @param spanContext SpanContext
    */
-  setSpanContext(spanContext: SpanContext | null): this;
+  setSpanContext(spanContext?: SpanContext): this;
+
+  /**
+   * Starts a new Span.
+   */
+  startSpan(): SpanContext;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

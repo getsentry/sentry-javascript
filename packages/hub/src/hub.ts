@@ -263,6 +263,22 @@ export class Hub implements HubInterface {
       return null;
     }
   }
+
+  /**
+   * @inheritDoc
+   */
+  public traceHeaders(): { [key: string]: string } {
+    const top = this.getStackTop();
+    if (top.scope && top.client) {
+      const span = top.scope.getSpan();
+      if (span) {
+        return {
+          'sentry-trace': span.toTraceparent(),
+        };
+      }
+    }
+    return {};
+  }
 }
 
 /** Returns the global shim registry. */
