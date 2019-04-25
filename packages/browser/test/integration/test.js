@@ -1252,6 +1252,122 @@ for (var idx in frames) {
           );
         });
 
+        it('should not fail with click or keypress handler with no callback', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 1000);
+
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('click', undefined);
+              input.addEventListener('keypress', undefined);
+
+              var click = new MouseEvent('click');
+              input.dispatchEvent(click);
+
+              var keypress = new KeyboardEvent('keypress');
+              input.dispatchEvent(keypress);
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
+              assert.equal(breadcrumbs.length, 2);
+
+              assert.equal(breadcrumbs[0].category, 'ui.click');
+              assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+
+              assert.equal(breadcrumbs[1].category, 'ui.input');
+              assert.equal(breadcrumbs[1].message, 'body > form#foo-form > input[name="foo"]');
+
+              // There should be no expection, if there is one it means we threw it
+              assert.isUndefined(sentryData[0].exception);
+
+              done();
+            }
+          );
+        });
+
+        it('should not fail with custom event', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 1000);
+
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('build', function(evt) {
+                evt.stopPropagation();
+              });
+
+              var customEvent = new CustomEvent('build', { detail: 1 });
+              input.dispatchEvent(customEvent);
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+              // There should be no expection, if there is one it means we threw it
+              assert.isUndefined(sentryData[0].exception);
+              assert.equal(breadcrumbs.length, 0);
+
+              done();
+            }
+          );
+        });
+
+        it('should not fail with custom event and handler with no callback', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              setTimeout(function() {
+                Sentry.captureMessage('test');
+              }, 1000);
+
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('build', undefined);
+
+              var customEvent = new CustomEvent('build', { detail: 1 });
+              input.dispatchEvent(customEvent);
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+              // There should be no expection, if there is one it means we threw it
+              assert.isUndefined(sentryData[0].exception);
+              assert.equal(breadcrumbs.length, 0);
+
+              done();
+            }
+          );
+        });
+
         it('should record a mouse click on element WITH click handler present', function(done) {
           var iframe = this.iframe;
 
@@ -1278,7 +1394,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1311,7 +1427,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1353,7 +1469,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1393,7 +1509,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1427,7 +1543,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1499,7 +1615,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
@@ -1542,7 +1658,7 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (IS_LOADER) {
-                // The async loader doesn't wrap fetch, but we should receive the event without breadcrumbs
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
                 assert.lengthOf(sentryData, 1);
                 return done();
               }
