@@ -102,7 +102,7 @@ function readSourceFiles(filenames: string[]): SyncPromise<{ [key: string]: stri
         continue;
       }
 
-      readFile(filename, (err: Error, data: Buffer) => {
+      readFile(filename, (err: Error | null, data: Buffer) => {
         const content = err ? null : data.toString();
         sourceFiles[filename] = content;
 

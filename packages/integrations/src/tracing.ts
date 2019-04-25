@@ -2,7 +2,7 @@ import { Integration } from '@sentry/types';
 import { fill, getGlobalObject, supportsNativeFetch, uuid4 } from '@sentry/utils';
 
 /**
- * Session Tracking Integration
+ * Tracing Integration
  */
 export class Tracing implements Integration {
   /**
@@ -16,7 +16,7 @@ export class Tracing implements Integration {
   public static id: string = 'Tracing';
 
   /**
-   * Constructor for OpenTracingIntegration
+   * Constructor for Tracing
    *
    * @param traceId Optional TraceId that should be set into the integration.
    */

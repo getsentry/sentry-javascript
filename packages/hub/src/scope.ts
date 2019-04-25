@@ -1,4 +1,13 @@
-import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
+import {
+  Breadcrumb,
+  Event,
+  EventHint,
+  EventProcessor,
+  Scope as ScopeInterface,
+  Severity,
+  SpanContext,
+  User,
+} from '@sentry/types';
 import { getGlobalObject, isThenable, normalize, SyncPromise } from '@sentry/utils';
 
 /**
@@ -35,6 +44,9 @@ export class Scope implements ScopeInterface {
 
   /** Severity */
   protected _level?: Severity;
+
+  /** SpanContext */
+  protected _span: SpanContext | null = null;
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
@@ -170,6 +182,15 @@ export class Scope implements ScopeInterface {
    */
   public setContext(name: string, context: { [key: string]: any } | null): this {
     this._context[name] = context ? normalize(context) : undefined;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setSpanContext(spanContext: SpanContext | null): this {
+    this._span = spanContext;
     this._notifyScopeListeners();
     return this;
   }
