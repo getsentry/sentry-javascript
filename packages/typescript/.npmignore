@@ -1,3 +1,4 @@
 *
 !/tsconfig.json
 !/tslint.json
+*.tsbuildinfo
