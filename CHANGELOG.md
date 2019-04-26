@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] ref: Mangle more stuff, reduce bundle size
+- [node] fix: Expose lastEventId method
 
 ## 5.1.1
 
