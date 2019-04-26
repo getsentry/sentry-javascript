@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.esmnext.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "esmnext"
+    "outDir": "esmnext",
+    "paths": {
+      "@sentry/*": [
+        "../*/src"
+      ]
+    }
   },
   "include": ["src/**/*"]
 }

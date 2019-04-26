@@ -1,8 +1,5 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
-import { isThenable } from '@sentry/utils/is';
-import { getGlobalObject } from '@sentry/utils/misc';
-import { normalize } from '@sentry/utils/object';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import { isThenable, getGlobalObject, normalizeObject, SyncPromise } from '@sentry/utils';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -100,7 +97,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User): this {
-    this._user = normalize(user);
+    this._user = normalizeObject(user);
     this._notifyScopeListeners();
     return this;
   }
@@ -111,7 +108,7 @@ export class Scope implements ScopeInterface {
   public setTags(tags: { [key: string]: string }): this {
     this._tags = {
       ...this._tags,
-      ...normalize(tags),
+      ...normalizeObject(tags),
     };
     this._notifyScopeListeners();
     return this;
@@ -121,7 +118,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setTag(key: string, value: string): this {
-    this._tags = { ...this._tags, [key]: normalize(value) };
+    this._tags = { ...this._tags, [key]: normalizeObject(value) };
     this._notifyScopeListeners();
     return this;
   }
@@ -132,7 +129,7 @@ export class Scope implements ScopeInterface {
   public setExtras(extra: { [key: string]: any }): this {
     this._extra = {
       ...this._extra,
-      ...normalize(extra),
+      ...normalizeObject(extra),
     };
     this._notifyScopeListeners();
     return this;
@@ -142,7 +139,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setExtra(key: string, extra: any): this {
-    this._extra = { ...this._extra, [key]: normalize(extra) };
+    this._extra = { ...this._extra, [key]: normalizeObject(extra) };
     this._notifyScopeListeners();
     return this;
   }
@@ -151,7 +148,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setFingerprint(fingerprint: string[]): this {
-    this._fingerprint = normalize(fingerprint);
+    this._fingerprint = normalizeObject(fingerprint);
     this._notifyScopeListeners();
     return this;
   }
@@ -160,7 +157,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setLevel(level: Severity): this {
-    this._level = normalize(level);
+    this._level = normalizeObject(level);
     this._notifyScopeListeners();
     return this;
   }
@@ -206,8 +203,8 @@ export class Scope implements ScopeInterface {
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     this._breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-        ? [...this._breadcrumbs, normalize(breadcrumb)].slice(-maxBreadcrumbs)
-        : [...this._breadcrumbs, normalize(breadcrumb)];
+        ? [...this._breadcrumbs, normalizeObject(breadcrumb)].slice(-maxBreadcrumbs)
+        : [...this._breadcrumbs, normalizeObject(breadcrumb)];
     this._notifyScopeListeners();
     return this;
   }

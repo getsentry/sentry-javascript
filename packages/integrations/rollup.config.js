@@ -3,6 +3,7 @@ import typescript from 'rollup-plugin-typescript2';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import * as fs from 'fs';
+import { generate_cfg } from "../../resources/rollup.base";
 
 const terserInstance = terser({
   mangle: {
@@ -86,4 +87,7 @@ function loadAllIntegrations() {
   return builds;
 }
 
-export default loadAllIntegrations();
+export default [
+  ...loadAllIntegrations(),
+  ...generate_cfg('integrations'),
+];

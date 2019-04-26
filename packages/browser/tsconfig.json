@@ -4,6 +4,11 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "mocha", "chai", "sinon"]
+    "types": ["node", "mocha", "chai", "sinon"],
+    "paths": {
+      "@sentry/*": [
+        "../*/src"
+      ]
+    }
   }
 }

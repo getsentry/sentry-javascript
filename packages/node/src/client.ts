@@ -1,6 +1,6 @@
 import { BaseClient, Scope } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import { SyncPromise } from '@sentry/utils';
 
 import { NodeBackend, NodeOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';

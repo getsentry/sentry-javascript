@@ -1,4 +1,4 @@
-import { SentryError } from '@sentry/utils/error';
+import { SentryError } from '@sentry/utils';
 
 import { Dsn } from '../../src/dsn';
 

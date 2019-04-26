@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.esm5.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "esm"
+    "outDir": "esm5",
+    "paths": {
+      "@sentry/*": [
+        "../*/src"
+      ]
+    }
   },
   "include": ["src/**/*"]
 }

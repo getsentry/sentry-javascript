@@ -1,9 +1,9 @@
 import { captureException, getCurrentHub } from '@sentry/core';
 import { Event } from '@sentry/types';
-import { forget } from '@sentry/utils/async';
-import { isString } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
-import { normalize } from '@sentry/utils/object';
+import { forget } from '@sentry/utils';
+import { isString } from '@sentry/utils';
+import { logger } from '@sentry/utils';
+import { normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';

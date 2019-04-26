@@ -1,8 +1,8 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.esmnext.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist",
+    "outDir": "esmnext",
     "rootDir": "src",
     "paths": {
       "@sentry/*": ["../*/src"]
@@ -13,5 +13,5 @@
       "path": "../types"
     }
   ],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*"]
 }

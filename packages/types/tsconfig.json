@@ -4,6 +4,11 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@sentry/*": [
+        "../*/src"
+      ]
+    }
   }
 }

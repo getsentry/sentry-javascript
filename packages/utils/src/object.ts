@@ -108,7 +108,7 @@ export function normalizeToSize<T>(
   // 100kB, as 200kB is max payload size, so half sounds reasonable
   maxSize: number = 100 * 1024,
 ): T {
-  const serialized = normalize(object, depth);
+  const serialized = normalizeObject(object, depth);
 
   if (jsonSize(serialized) > maxSize) {
     return normalizeToSize(object, depth - 1, maxSize);
@@ -249,7 +249,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
 }
 
 /**
- * normalize()
+ * normalizeObject()
  *
  * - Creates a copy to prevent original input mutation
  * - Skip non-enumerablers
@@ -260,7 +260,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
  * - Takes care of Error objects serialization
  * - Optionally limit depth of final output
  */
-export function normalize(input: any, depth?: number): any {
+export function normalizeObject(input: any, depth?: number): any {
   try {
     // tslint:disable-next-line:no-unsafe-any
     return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));

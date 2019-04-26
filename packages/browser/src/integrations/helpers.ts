@@ -1,7 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { addExceptionTypeValue, htmlTreeAsString } from '@sentry/utils/misc';
-import { normalize } from '@sentry/utils/object';
+import { addExceptionTypeValue, htmlTreeAsString, normalizeObject } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -95,7 +94,7 @@ export function wrap(
 
           processedEvent.extra = {
             ...processedEvent.extra,
-            arguments: normalize(args, 3),
+            arguments: normalizeObject(args, 3),
           };
 
           return processedEvent;

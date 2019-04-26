@@ -1,6 +1,6 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { isPlainObject } from '@sentry/utils/is';
-import { getGlobalObject } from '@sentry/utils/misc';
+import { isPlainObject } from '@sentry/utils';
+import { getGlobalObject } from '@sentry/utils';
 
 /** JSDoc */
 interface Metadata {

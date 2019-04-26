@@ -1,7 +1,7 @@
 // tslint:disable
 
-import { isError, isErrorEvent } from '@sentry/utils/is';
-import { getGlobalObject } from '@sentry/utils/misc';
+import { isError, isErrorEvent } from '@sentry/utils';
+import { getGlobalObject } from '@sentry/utils';
 
 /**
  * @hidden

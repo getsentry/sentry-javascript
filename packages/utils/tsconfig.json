@@ -1,9 +1,14 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "../../tsconfig.json",
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "paths": {
+      "@sentry/*": [
+        "../*/src"
+      ]
+    }
   }
 }

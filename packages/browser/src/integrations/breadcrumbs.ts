@@ -1,11 +1,17 @@
 import { API, getCurrentHub } from '@sentry/core';
 import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
-import { isString } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
-import { getEventDescription, getGlobalObject, parseUrl } from '@sentry/utils/misc';
-import { fill, normalize } from '@sentry/utils/object';
-import { safeJoin } from '@sentry/utils/string';
-import { supportsHistory, supportsNativeFetch } from '@sentry/utils/supports';
+import {
+  fill,
+  getEventDescription,
+  getGlobalObject,
+  isString,
+  logger,
+  normalizeObject,
+  parseUrl,
+  safeJoin,
+  supportsHistory,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 
@@ -82,7 +88,7 @@ export class Breadcrumbs implements Integration {
             category: 'console',
             data: {
               extra: {
-                arguments: normalize(args, 3),
+                arguments: normalizeObject(args, 3),
               },
               logger: 'console',
             },
@@ -93,7 +99,7 @@ export class Breadcrumbs implements Integration {
           if (level === 'assert') {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-              breadcrumbData.data.extra.arguments = normalize(args.slice(1), 3);
+              breadcrumbData.data.extra.arguments = normalizeObject(args.slice(1), 3);
             }
           }
 

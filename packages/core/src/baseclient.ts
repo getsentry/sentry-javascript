@@ -1,10 +1,10 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { isPrimitive, isThenable } from '@sentry/utils/is';
-import { logger } from '@sentry/utils/logger';
-import { uuid4 } from '@sentry/utils/misc';
-import { truncate } from '@sentry/utils/string';
-import { SyncPromise } from '@sentry/utils/syncpromise';
+import { isPrimitive, isThenable } from '@sentry/utils';
+import { logger } from '@sentry/utils';
+import { uuid4 } from '@sentry/utils';
+import { truncate } from '@sentry/utils';
+import { SyncPromise } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';

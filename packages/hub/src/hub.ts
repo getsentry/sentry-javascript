@@ -9,8 +9,8 @@ import {
   IntegrationClass,
   Severity,
 } from '@sentry/types';
-import { logger } from '@sentry/utils/logger';
-import { consoleSandbox, dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils/misc';
+import { logger } from '@sentry/utils';
+import { consoleSandbox, dynamicRequire, getGlobalObject, uuid4 } from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
