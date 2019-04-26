@@ -1,9 +1,12 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { fill, getGlobalObject, isMatchingPattern, supportsNativeFetch } from '@sentry/utils';
+import { fill, getGlobalObject, isMatchingPattern, SentryError, supportsNativeFetch } from '@sentry/utils';
 
 /** JSDoc */
 interface TracingOptions {
   tracingOrigins: Array<string | RegExp>;
+  traceXHR?: boolean;
+  traceFetch?: boolean;
+  autoStartOnDomReady?: boolean;
 }
 
 /**
@@ -21,6 +24,13 @@ export class Tracing implements Integration {
   public static id: string = 'Tracing';
 
   /**
+   * If we have an xhr we need to store the url in the instance.
+   *
+   */
+  // @ts-ignore
+  private _xhrUrl?: string;
+
+  /**
    * Constructor for Tracing
    *
    * @param _options TracingOptions
@@ -32,15 +42,32 @@ export class Tracing implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (this._options.tracingOrigins.length) {
-      this._traceXHR(getCurrentHub);
-      this._traceFetch(getCurrentHub);
-      getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
-        getCurrentHub().configureScope(scope => {
-          const span = scope.startSpan();
-          span.transaction = getGlobalObject<Window>().location.href;
+      if (this._options.traceXHR !== false) {
+        this._traceXHR(getCurrentHub);
+      }
+      if (this._options.traceFetch !== false) {
+        this._traceFetch(getCurrentHub);
+      }
+      if (this._options.autoStartOnDomReady !== false) {
+        getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
+          Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
         });
-      });
+      }
+    } else {
+      throw new SentryError('You need to define tracingOrigins in the options');
     }
+  }
+
+  /**
+   * Starts a new trace
+   * @param hub The hub to start the trace on
+   * @param transaction Optional transaction
+   */
+  public static startTrace(hub: Hub, transaction?: string): void {
+    hub.configureScope(scope => {
+      const span = scope.startSpan();
+      span.transaction = transaction;
+    });
   }
 
   /**
@@ -52,16 +79,47 @@ export class Tracing implements Integration {
     }
 
     const xhrproto = XMLHttpRequest.prototype;
+
+    fill(
+      xhrproto,
+      'open',
+      originalOpen =>
+        function(this: XMLHttpRequest, ...args: any[]): void {
+          // @ts-ignore
+          const self = getCurrentHub().getIntegration(Tracing);
+          if (self) {
+            self._xhrUrl = args[1] as string;
+          }
+          // tslint:disable-next-line: no-unsafe-any
+          return originalOpen.apply(this, args);
+        },
+    );
+
     fill(
       xhrproto,
       'send',
       originalSend =>
         function(this: XMLHttpRequest, ...args: any[]): void {
-          const headers = getCurrentHub().traceHeaders();
-          Object.keys(headers).forEach(key => {
-            this.setRequestHeader(key, headers[key]);
-          });
+          // @ts-ignore
+          const self = getCurrentHub().getIntegration(Tracing);
+          if (self) {
+            const headers = getCurrentHub().traceHeaders();
+            let whiteListed = false;
 
+            if (self._xhrUrl) {
+              self._options.tracingOrigins.forEach((whiteListUrl: string) => {
+                if (!whiteListed) {
+                  whiteListed = isMatchingPattern(self._xhrUrl, whiteListUrl);
+                }
+              });
+            }
+
+            if (whiteListed) {
+              Object.keys(headers).forEach(key => {
+                this.setRequestHeader(key, headers[key]);
+              });
+            }
+          }
           // tslint:disable-next-line: no-unsafe-any
           return originalSend.apply(this, args);
         },
