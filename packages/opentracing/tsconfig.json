@@ -1,8 +1,7 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist"],
   "compilerOptions": {
+    "baseUrl": ".",
     "rootDir": ".",
     "types": ["node", "jest"],
     "paths": {
@@ -10,5 +9,18 @@
         "../*/src"
       ]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../utils"
+    },
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../hub"
+    }
+  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist"]
 }

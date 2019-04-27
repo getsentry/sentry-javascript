@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
+    "composite": true,
     "types": ["node", "jest"],
     "paths": {
       "@sentry/*": [

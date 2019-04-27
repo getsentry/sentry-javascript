@@ -1,5 +1,5 @@
 import { API, getCurrentHub } from '@sentry/core';
-import { Breadcrumb, BreadcrumbHint, Integration, Severity } from '@sentry/types';
+import { Breadcrumb, BreadcrumbHint, Integration, Severity, WrappedFunction } from '@sentry/types';
 import {
   fill,
   getEventDescription,

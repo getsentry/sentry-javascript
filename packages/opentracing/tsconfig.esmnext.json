@@ -9,5 +9,16 @@
       ]
     }
   },
+  "references": [
+    {
+      "path": "../utils"
+    },
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../hub"
+    }
+  ],
   "include": ["src/**/*"]
 }

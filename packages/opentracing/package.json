@@ -29,7 +29,7 @@
     "rimraf": "^2.6.3",
     "rollup-plugin-typescript2": "^0.21.0",
     "tslint": "^5.14.0",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.4.5"
   },
   "scripts": {
     "build": "run-s build:split build:bundle",

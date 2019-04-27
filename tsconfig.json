@@ -2,6 +2,7 @@
   "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
     "types": ["node"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "declaration": true
   }
 }

@@ -20,7 +20,7 @@
     "prettier": "^1.16.4",
     "prettier-check": "^2.0.0",
     "tslint": "^5.14.0",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.4.5"
   },
   "scripts": {
     "build": "run-s build:split build:bundle",
