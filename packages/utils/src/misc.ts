@@ -1,7 +1,5 @@
 import { Event, Mechanism, WrappedFunction } from '@sentry/types';
 
-import { isString } from './is';
-
 /** Internal */
 interface SentryGlobal {
   __SENTRY__: {
@@ -16,7 +14,8 @@ interface SentryGlobal {
  *
  * @param request The module path to resolve
  */
-export function dynamicRequire(mod: NodeModule, request: string): any {
+export function dynamicRequire(mod: any, request: string): any {
+  // tslint:disable-next-line: no-unsafe-any
   return mod.require(request);
 }
 
@@ -37,8 +36,7 @@ const fallbackGlobalObject = {};
  *
  * @returns Global scope object
  */
-// tslint:disable:strict-type-predicates
-export function getGlobalObject<T extends Window | NodeJS.Global = any>(): T & SentryGlobal {
+export function getGlobalObject<T>(): T & SentryGlobal {
   return (isNodeEnv()
     ? global
     : typeof window !== 'undefined'
@@ -97,82 +95,6 @@ export function uuid4(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-}
-
-/**
- * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
- * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-export function htmlTreeAsString(elem: Node): string {
-  let currentElem: Node | null = elem;
-  const MAX_TRAVERSE_HEIGHT = 5;
-  const MAX_OUTPUT_LEN = 80;
-  const out = [];
-  let height = 0;
-  let len = 0;
-  const separator = ' > ';
-  const sepLength = separator.length;
-  let nextStr;
-
-  while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-    nextStr = htmlElementAsString(currentElem as HTMLElement);
-    // bail out if
-    // - nextStr is the 'html' element
-    // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
-    //   (ignore this limit if we are on the first iteration)
-    if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
-      break;
-    }
-
-    out.push(nextStr);
-
-    len += nextStr.length;
-    currentElem = currentElem.parentNode;
-  }
-
-  return out.reverse().join(separator);
-}
-
-/**
- * Returns a simple, query-selector representation of a DOM element
- * e.g. [HTMLElement] => input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-export function htmlElementAsString(elem: HTMLElement): string {
-  const out = [];
-  let className;
-  let classes;
-  let key;
-  let attr;
-  let i;
-
-  if (!elem || !elem.tagName) {
-    return '';
-  }
-
-  out.push(elem.tagName.toLowerCase());
-  if (elem.id) {
-    out.push(`#${elem.id}`);
-  }
-
-  className = elem.className;
-  if (className && isString(className)) {
-    classes = className.split(/\s+/);
-    for (i = 0; i < classes.length; i++) {
-      out.push(`.${classes[i]}`);
-    }
-  }
-  const attrWhitelist = ['type', 'name', 'title', 'alt'];
-  for (i = 0; i < attrWhitelist.length; i++) {
-    key = attrWhitelist[i];
-    attr = elem.getAttribute(key);
-    if (attr) {
-      out.push(`[${key}="${attr}"]`);
-    }
-  }
-  return out.join('');
 }
 
 /**
@@ -238,7 +160,7 @@ interface ExtensibleConsole extends Console {
 /** JSDoc */
 export function consoleSandbox(callback: () => any): any {
   const global = getGlobalObject<Window>();
-  const levels = ['debug', 'info', 'warn', 'error', 'log'];
+  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
   if (!('console' in global)) {
     return callback();

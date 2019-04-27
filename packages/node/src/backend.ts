@@ -1,10 +1,13 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Mechanism, Options, Severity, Transport } from '@sentry/types';
-import { isError, isPlainObject } from '@sentry/utils';
-import { addExceptionTypeValue } from '@sentry/utils';
-import { normalizeToSize } from '@sentry/utils';
-import { keysToEventMessage } from '@sentry/utils';
-import { SyncPromise } from '@sentry/utils';
+import {
+  addExceptionTypeValue,
+  isError,
+  isPlainObject,
+  keysToEventMessage,
+  normalizeToSize,
+  SyncPromise,
+} from '@sentry/utils';
 
 import { extractStackFromError, parseError, parseStack, prepareFramesForEvent } from './parsers';
 import { HTTPSTransport, HTTPTransport } from './transports';

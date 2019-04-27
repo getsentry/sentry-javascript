@@ -1,6 +1,5 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { isPlainObject } from '@sentry/utils';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, isPlainObject } from '@sentry/utils';
 
 /** JSDoc */
 interface Metadata {
@@ -39,7 +38,7 @@ export class Vue implements Integration {
    */
   public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
     // tslint:disable-next-line: no-unsafe-any
-    this._Vue = options.Vue || getGlobalObject().Vue;
+    this._Vue = options.Vue || getGlobalObject<any>().Vue;
     if (options.attachProps === false) {
       this._attachProps = false;
     }

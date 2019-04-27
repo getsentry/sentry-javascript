@@ -5,38 +5,41 @@ import { SentryError } from '@sentry/utils';
 import { TestBackend } from '../mocks/backend';
 import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
+import { FakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/path';
 
-jest.mock('@sentry/utils/misc', () => ({
-  uuid4(): string {
-    return '42';
-  },
-  getGlobalObject(): object {
-    return {
-      console: {
-        log(): void {
-          // no-empty
-        },
-        warn(): void {
-          // no-empty
-        },
-        error(): void {
-          // no-empty
-        },
-      },
-    };
-  },
-  consoleSandbox(cb: () => any): any {
-    return cb();
-  },
-}));
+jest.mock('@sentry/utils', () => {
+  const original = jest.requireActual('@sentry/utils');
+  return {
+    ...original,
 
-jest.mock('@sentry/utils/string', () => ({
-  truncate(str: string): string {
-    return str;
-  },
-}));
+    uuid4(): string {
+      return '42';
+    },
+    getGlobalObject(): object {
+      return {
+        console: {
+          log(): void {
+            // no-empty
+          },
+          warn(): void {
+            // no-empty
+          },
+          error(): void {
+            // no-empty
+          },
+        },
+      };
+    },
+    consoleSandbox(cb: () => any): any {
+      return cb();
+    },
+    truncate(str: string): string {
+      return str;
+    },
+  };
+});
 
 describe('BaseClient', () => {
   beforeEach(() => {
@@ -262,16 +265,15 @@ describe('BaseClient', () => {
     });
 
     test('adds breadcrumbs', () => {
-      expect.assertions(1);
+      expect.assertions(4);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'breadcrumb' }, 100);
       client.captureEvent({ message: 'message' }, undefined, scope);
-      expect(TestBackend.instance!.event!).toEqual({
-        breadcrumbs: [{ message: 'breadcrumb' }],
-        event_id: '42',
-        message: 'message',
-      });
+      expect(TestBackend.instance!.event!).toHaveProperty('event_id', '42');
+      expect(TestBackend.instance!.event!).toHaveProperty('message', 'message');
+      expect(TestBackend.instance!.event!).toHaveProperty('breadcrumbs');
+      expect(TestBackend.instance!.event!.breadcrumbs![0]).toHaveProperty('message', 'breadcrumb');
     });
 
     test('limits previously saved breadcrumbs', () => {
@@ -423,6 +425,49 @@ describe('BaseClient', () => {
       });
       expect(Object.keys(client.getIntegrations()).length).toBe(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
+    });
+  });
+
+  describe('flush/close', () => {
+    test('flush', async () => {
+      jest.useRealTimers();
+      expect.assertions(5);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enableSend: true,
+        transport: FakeTransport,
+      });
+
+      const delay = 1;
+      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      transportInstance.delay = delay;
+
+      client.captureMessage('test');
+      expect(transportInstance).toBeInstanceOf(FakeTransport);
+      expect(transportInstance.sendCalled).toEqual(1);
+      expect(transportInstance.sentCount).toEqual(0);
+      await client.flush(delay);
+      expect(transportInstance.sentCount).toEqual(1);
+      expect(transportInstance.sendCalled).toEqual(1);
+    });
+
+    test('close', async () => {
+      jest.useRealTimers();
+      expect.assertions(2);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enableSend: true,
+        transport: FakeTransport,
+      });
+
+      const delay = 1;
+      const transportInstance = (client as any)._getBackend().getTransport() as FakeTransport;
+      transportInstance.delay = delay;
+
+      expect(client.captureMessage('test')).toBeTruthy();
+      await client.close(delay);
+      // Sends after close shouldn't work anymore
+      expect(client.captureMessage('test')).toBeFalsy();
     });
   });
 });

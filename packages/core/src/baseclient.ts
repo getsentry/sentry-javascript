@@ -1,10 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { isPrimitive, isThenable } from '@sentry/utils';
-import { logger } from '@sentry/utils';
-import { uuid4 } from '@sentry/utils';
-import { truncate } from '@sentry/utils';
-import { SyncPromise } from '@sentry/utils';
+import { isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { Dsn } from './dsn';
@@ -62,6 +58,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Is the client still processing a call? */
   protected _processing: boolean = false;
 
+  /** Processing interval */
+  protected _processingInterval?: number;
+
   /**
    * Initializes this client instance.
    *
@@ -95,7 +94,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
 
@@ -122,7 +121,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
 
@@ -143,7 +142,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._processing = false;
       })
       .catch(reason => {
-        logger.log(reason);
+        logger.error(reason);
         this._processing = false;
       });
     return eventId;
@@ -167,21 +166,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public async flush(timeout?: number): Promise<boolean> {
-    return (await Promise.all([
-      this._getBackend()
-        .getTransport()
-        .close(timeout),
-      this._isClientProcessing(),
-    ])).reduce((prev, current) => prev && current);
+    const clientReady = await this._isClientProcessing(timeout);
+    if (this._processingInterval) {
+      clearInterval(this._processingInterval);
+    }
+    const transportFlushed = await this._getBackend()
+      .getTransport()
+      .close(timeout);
+    return clientReady && transportFlushed;
   }
 
   /**
    * @inheritDoc
    */
   public async close(timeout?: number): Promise<boolean> {
-    return this.flush(timeout).finally(() => {
-      this.getOptions().enabled = false;
-    });
+    const result = await this.flush(timeout);
+    this.getOptions().enabled = false;
+    return result;
   }
 
   /**
@@ -204,20 +205,23 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected async _isClientProcessing(counter: number = 0): Promise<boolean> {
+  protected async _isClientProcessing(timeout?: number): Promise<boolean> {
     return new Promise<boolean>(resolve => {
-      if (this._processing) {
-        // Safeguard in case of endless recursion
-        if (counter >= 10) {
-          resolve(false);
-        } else {
-          setTimeout(async () => {
-            resolve(await this._isClientProcessing(counter + 1));
-          }, 10);
-        }
-      } else {
-        resolve(true);
+      let ticked: number = 0;
+      const tick: number = 1;
+      if (this._processingInterval) {
+        clearInterval(this._processingInterval);
       }
+      this._processingInterval = (setInterval(() => {
+        if (!this._processing) {
+          resolve(true);
+        } else {
+          ticked += tick;
+          if (timeout && ticked >= timeout) {
+            resolve(false);
+          }
+        }
+      }, tick) as unknown) as number;
     });
   }
 

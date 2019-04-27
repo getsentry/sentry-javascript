@@ -1,7 +1,6 @@
 import { API } from '@sentry/core';
 import { Event, Response, Transport, TransportOptions } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
-import { PromiseBuffer } from '@sentry/utils';
+import { PromiseBuffer, SentryError } from '@sentry/utils';
 
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {

@@ -143,7 +143,7 @@ describe('SentryBrowser', () => {
       captureMessage('event222');
       captureMessage('event222');
 
-      await flush(2000);
+      await flush(10);
 
       expect(localBeforeSend.calledTwice).to.be.true;
     });

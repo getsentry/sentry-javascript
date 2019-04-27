@@ -33,6 +33,30 @@ describe('fill()', () => {
     expect.assertions(3);
   });
 
+  test('mulitple fills calls all functions', () => {
+    const source = {
+      foo: (): number => 42,
+    };
+    const name = 'foo';
+    const replacement = jest.fn().mockImplementationOnce(cb => {
+      expect(cb).toBe(source.foo);
+      return () => 1337;
+    });
+
+    const replacement2 = jest.fn().mockImplementationOnce(cb => {
+      expect(cb).toBe(source.foo);
+      return () => 1338;
+    });
+
+    fill(source, name, replacement);
+    fill(source, name, replacement2);
+
+    expect(source.foo()).toEqual(1338);
+    expect(replacement).toBeCalled();
+    expect(replacement2).toBeCalled();
+    expect.assertions(5);
+  });
+
   test('internal flags shouldnt be enumerable', () => {
     const source = {
       foo: (): number => 42,

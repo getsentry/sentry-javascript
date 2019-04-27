@@ -1,4 +1,4 @@
-import { Event, Options } from '@sentry/types';
+import { Event, Options, Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
 import { BaseBackend } from '../../src/basebackend';
@@ -6,6 +6,7 @@ import { BaseBackend } from '../../src/basebackend';
 export interface TestOptions extends Options {
   test?: boolean;
   mockInstallFailure?: boolean;
+  enableSend?: boolean;
 }
 
 export class TestBackend extends BaseBackend<TestOptions> {
@@ -17,6 +18,23 @@ export class TestBackend extends BaseBackend<TestOptions> {
   public constructor(protected readonly _options: TestOptions) {
     super(_options);
     TestBackend.instance = this;
+  }
+
+  protected _setupTransport(): Transport {
+    if (!this._options.dsn) {
+      // We return the noop transport here in case there is no Dsn.
+      return super._setupTransport();
+    }
+
+    const transportOptions = this._options.transportOptions
+      ? this._options.transportOptions
+      : { dsn: this._options.dsn };
+
+    if (this._options.transport) {
+      return new this._options.transport(transportOptions);
+    }
+
+    return super._setupTransport();
   }
 
   public eventFromException(exception: any): SyncPromise<Event> {
@@ -38,6 +56,10 @@ export class TestBackend extends BaseBackend<TestOptions> {
 
   public sendEvent(event: Event): void {
     this.event = event;
+    if (this._options.enableSend) {
+      super.sendEvent(event);
+      return;
+    }
     // tslint:disable-next-line
     TestBackend.sendEventCalled && TestBackend.sendEventCalled(event);
   }

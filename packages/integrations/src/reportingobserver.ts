@@ -1,6 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
-import { supportsReportingObserver } from '@sentry/utils';
+import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
 
 /** JSDoc */
 interface Report {
@@ -90,7 +89,7 @@ export class ReportingObserver implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
-    const observer = new (getGlobalObject()).ReportingObserver(this.handler.bind(this), {
+    const observer = new (getGlobalObject<any>()).ReportingObserver(this.handler.bind(this), {
       buffered: true,
       types: this._options.types,
     });

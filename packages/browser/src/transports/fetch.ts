@@ -1,6 +1,5 @@
 import { Event, Response, Status } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
-import { supportsReferrerPolicy } from '@sentry/utils';
+import { getGlobalObject, supportsReferrerPolicy } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 

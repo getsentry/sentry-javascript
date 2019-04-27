@@ -1,11 +1,13 @@
 import { Event, EventHint, Severity } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
-import { Scope } from '../src';
+import { addGlobalEventProcessor, Scope } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
     jest.useRealTimers();
+    getGlobalObject<any>().__SENTRY__.globalEventProcessors = undefined;
   });
 
   describe('fingerprint', () => {
@@ -57,13 +59,19 @@ describe('Scope', () => {
       scope.setUser({ id: '1' });
       expect((scope as any)._user).toEqual({ id: '1' });
     });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      scope.setUser(null);
+      expect((scope as any)._user).toEqual(null);
+    });
   });
 
   describe('level', () => {
     test('add', () => {
       const scope = new Scope();
       scope.addBreadcrumb({ message: 'test' }, 100);
-      expect((scope as any)._breadcrumbs).toEqual([{ message: 'test' }]);
+      expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
     });
   });
 
@@ -72,6 +80,20 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setLevel(Severity.Critical);
       expect((scope as any)._level).toEqual(Severity.Critical);
+    });
+  });
+
+  describe('context', () => {
+    test('set', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      expect((scope as any)._context.os).toEqual({ id: '1' });
+    });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      scope.setContext('os', null);
+      expect((scope as any)._user).toEqual({});
     });
   });
 
@@ -108,7 +130,7 @@ describe('Scope', () => {
   });
 
   test('applyToEvent', () => {
-    expect.assertions(6);
+    expect.assertions(7);
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
@@ -116,6 +138,7 @@ describe('Scope', () => {
     scope.setFingerprint(['abcd']);
     scope.setLevel(Severity.Warning);
     scope.addBreadcrumb({ message: 'test' }, 100);
+    scope.setContext('os', { id: '1' });
     const event: Event = {};
     return scope.applyToEvent(event).then(processedEvent => {
       expect(processedEvent!.extra).toEqual({ a: 2 });
@@ -123,20 +146,23 @@ describe('Scope', () => {
       expect(processedEvent!.user).toEqual({ id: '1' });
       expect(processedEvent!.fingerprint).toEqual(['abcd']);
       expect(processedEvent!.level).toEqual('warning');
-      expect(processedEvent!.breadcrumbs).toEqual([{ message: 'test' }]);
+      expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
+      expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
     });
   });
 
   test('applyToEvent merge', () => {
-    expect.assertions(5);
+    expect.assertions(8);
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' }, 100);
+    scope.setContext('server', { id: '2' });
     const event: Event = {
-      breadcrumbs: [{ message: 'test2' }],
+      breadcrumbs: [{ message: 'test1' }],
+      contexts: { os: { id: '1' } },
       extra: { b: 3 },
       fingerprint: ['efgh'],
       tags: { b: 'c' },
@@ -147,7 +173,13 @@ describe('Scope', () => {
       expect(processedEvent!.tags).toEqual({ a: 'b', b: 'c' });
       expect(processedEvent!.user).toEqual({ id: '3' });
       expect(processedEvent!.fingerprint).toEqual(['efgh', 'abcd']);
-      expect(processedEvent!.breadcrumbs).toEqual([{ message: 'test2' }]);
+      expect(processedEvent!.breadcrumbs).toHaveLength(2);
+      expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test1');
+      expect(processedEvent!.breadcrumbs![1]).toHaveProperty('message', 'test');
+      expect(processedEvent!.contexts).toEqual({
+        os: { id: '1' },
+        server: { id: '2' },
+      });
     });
   });
 
@@ -186,6 +218,14 @@ describe('Scope', () => {
     expect((scope as any)._extra).toEqual({});
   });
 
+  test('clearBreadcrumbs', () => {
+    const scope = new Scope();
+    scope.addBreadcrumb({ message: 'test' }, 100);
+    expect((scope as any)._breadcrumbs).toHaveLength(1);
+    scope.clearBreadcrumbs();
+    expect((scope as any)._breadcrumbs).toHaveLength(0);
+  });
+
   test('addEventProcessor', () => {
     expect.assertions(3);
     const event: Event = {
@@ -201,6 +241,34 @@ describe('Scope', () => {
       processedEvent.dist = '1';
       return processedEvent;
     });
+    localScope.addEventProcessor((processedEvent: Event) => {
+      expect(processedEvent.dist).toEqual('1');
+      return processedEvent;
+    });
+
+    return localScope.applyToEvent(event).then(final => {
+      expect(final!.dist).toEqual('1');
+    });
+  });
+
+  test('addEventProcessor + global', () => {
+    expect.assertions(3);
+    const event: Event = {
+      extra: { b: 3 },
+    };
+    const localScope = new Scope();
+    localScope.setExtra('a', 'b');
+
+    addGlobalEventProcessor((processedEvent: Event) => {
+      processedEvent.dist = '1';
+      return processedEvent;
+    });
+
+    localScope.addEventProcessor((processedEvent: Event) => {
+      expect(processedEvent.extra).toEqual({ a: 'b', b: 3 });
+      return processedEvent;
+    });
+
     localScope.addEventProcessor((processedEvent: Event) => {
       expect(processedEvent.dist).toEqual('1');
       return processedEvent;

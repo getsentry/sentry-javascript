@@ -120,7 +120,7 @@ export function relative(from: string, to: string): string {
 // path.normalize(path)
 // posix version
 /** JSDoc */
-export function normalize(path: string): string {
+export function normalizePath(path: string): string {
   const isPathAbsolute = isAbsolute(path);
   const trailingSlash = path.substr(-1) === '/';
 
@@ -146,7 +146,7 @@ export function isAbsolute(path: string): boolean {
 // posix version
 /** JSDoc */
 export function join(...args: string[]): string {
-  return normalize(args.join('/'));
+  return normalizePath(args.join('/'));
 }
 
 /** JSDoc */

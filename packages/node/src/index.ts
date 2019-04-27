@@ -29,7 +29,7 @@ export {
 
 export { NodeOptions } from './backend';
 export { NodeClient } from './client';
-export { defaultIntegrations, init, flush, close } from './sdk';
+export { defaultIntegrations, init, lastEventId, flush, close } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';

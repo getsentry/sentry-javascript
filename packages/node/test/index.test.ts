@@ -33,53 +33,6 @@ describe('SentryNode', () => {
     getCurrentHub().popScope();
   });
 
-  test('flush() with to short timeout', done => {
-    expect.assertions(1);
-    jest.useFakeTimers();
-    const client = new NodeClient({
-      dsn,
-      transport: SetTimeoutTransport,
-    });
-    getCurrentHub().bindClient(client);
-    captureMessage('test');
-    captureMessage('test');
-    captureMessage('test');
-    client
-      .flush(50)
-      .then(result => {
-        expect(result).toBeFalsy();
-        done();
-      })
-      .catch(() => {
-        // test
-      });
-    jest.runAllTimers();
-  });
-
-  test('flush() with timeout', done => {
-    expect.assertions(1);
-    jest.useFakeTimers();
-    const client = new NodeClient({
-      dsn,
-      transport: SetTimeoutTransport,
-    });
-    getCurrentHub().bindClient(client);
-    captureMessage('test');
-    captureMessage('test');
-    captureMessage('test');
-    jest.runAllTimers();
-    client
-      .flush(50)
-      .then(result => {
-        expect(result).toBeFalsy();
-        done();
-      })
-      .catch(() => {
-        // test
-      });
-    jest.runAllTimers();
-  });
-
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
       configureScope((scope: Scope) => {

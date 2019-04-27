@@ -1,16 +1,13 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
-import { addExceptionTypeValue } from '@sentry/utils';
-import { normalize } from '@sentry/utils';
-import { truncate } from '@sentry/utils';
+import { addExceptionTypeValue, logger, normalizeObject, truncate } from '@sentry/utils';
 
 import { eventFromStacktrace } from '../parsers';
 import {
-  installGlobalHandler,
-  installGlobalUnhandledRejectionHandler,
+  _installGlobalHandler,
+  _installGlobalUnhandledRejectionHandler,
+  _subscribe,
   StackTrace as TraceKitStackTrace,
-  subscribe,
 } from '../tracekit';
 
 import { shouldIgnoreOnError } from './helpers';
@@ -50,7 +47,7 @@ export class GlobalHandlers implements Integration {
   public setupOnce(): void {
     Error.stackTraceLimit = 50;
 
-    subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
+    _subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
       // TODO: use stack.context to get a valuable information from TraceKit, eg.
       // [
       //   0: "  })"
@@ -79,12 +76,12 @@ export class GlobalHandlers implements Integration {
 
     if (this._options.onerror) {
       logger.log('Global Handler attached: onerror');
-      installGlobalHandler();
+      _installGlobalHandler();
     }
 
     if (this._options.onunhandledrejection) {
       logger.log('Global Handler attached: onunhandledrejection');
-      installGlobalUnhandledRejectionHandler();
+      _installGlobalUnhandledRejectionHandler();
     }
   }
 

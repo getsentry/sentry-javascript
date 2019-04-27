@@ -1,7 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { basename, dirname } from '@sentry/utils';
-import { snipLine } from '@sentry/utils';
-import { SyncPromise } from '@sentry/utils';
+import { basename, dirname, snipLine, SyncPromise } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 

@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased
+
+- [browser] ref: Mangle more stuff, reduce bundle size
+- [node] fix: Expose lastEventId method
+
+## 5.1.1
+
+- [browser] fix: Breadcrumb Integration: Fix #2034
+
+## 5.1.0
+
+- [hub] feat: Add `setContext` on the scope
+- [browser] fix: Breacrumb integration ui clicks
+- [node] feat: Add `flushTimeout` to `requestHandler` to auto flush requests
+
+## 5.0.8
+
+- [core] fix: Don't disable client before flushing
+- [utils] fix: Remove node types
+- [hub] fix: Make sure all breadcrumbs have a timestamp
+- [hub] fix: Merge event with scope breadcrumbs instead of only using event breadcrumbs
+
+## 5.0.7
+
+- [utils] ref: Move `htmlTreeAsString` to `@sentry/browser`
+- [utils] ref: Remove `Window` typehint `getGlobalObject`
+- [core] fix: Make sure that flush/close works as advertised
+- [integrations] feat: Added `CaptureConsole` integration
+
+## 5.0.6
+
+- [utils]: Change how we use `utils` and expose `esm` build
+- [utils]: Remove `store` and `fs` classes -> moved to @sentry/electron where this is used
+- [hub]: Allow to pass `null` to `setUser` to reset it
+
+## 5.0.5
+
+- [esm]: `module` in `package.json` now provides a `es5` build instead of `es2015`
+
 ## 5.0.4
 
 - [integrations] fix: Not requiring angular types

@@ -14,9 +14,9 @@ export interface Scope {
   /**
    * Updates user context information for future events.
    *
-   * @param user User context object to be set in the current context.
+   * @param user User context object to be set in the current context. Pass `null` to unset the user.
    */
-  setUser(user: User): this;
+  setUser(user: User | null): this;
 
   /**
    * Set an object that will be merged sent as tags data with the event.
@@ -55,6 +55,13 @@ export interface Scope {
    * @param level string {@link Severity}
    */
   setLevel(level: Severity): this;
+
+  /**
+   * Sets context data with the given name.
+   * @param name of the context
+   * @param context Any kind of data. This data will be normailzed.
+   */
+  setContext(name: string, context: { [key: string]: any } | null): this;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

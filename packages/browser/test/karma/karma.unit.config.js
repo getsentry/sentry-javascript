@@ -16,6 +16,7 @@ module.exports = config => {
       compilerOptions: {
         allowJs: true,
         declaration: false,
+        declarationMap: false,
         paths: {
           '@sentry/utils/*': ['../../utils/src/*'],
           '@sentry/core': ['../../core/src'],

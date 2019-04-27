@@ -1,2 +1,2 @@
 export const SDK_NAME = 'sentry.javascript.node';
-export const SDK_VERSION = '5.0.3';
+export const SDK_VERSION = '5.1.0';

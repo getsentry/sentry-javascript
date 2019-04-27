@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { addExceptionTypeValue, htmlTreeAsString, normalizeObject } from '@sentry/utils';
+import { addExceptionTypeValue, isString, normalize } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -37,6 +37,7 @@ export function wrap(
   fn: WrappedFunction,
   options: {
     mechanism?: Mechanism;
+    capture?: boolean;
   } = {},
   before?: WrappedFunction,
 ): any {
@@ -94,7 +95,7 @@ export function wrap(
 
           processedEvent.extra = {
             ...processedEvent.extra,
-            arguments: normalizeObject(args, 3),
+            arguments: normalize(args, 3),
           };
 
           return processedEvent;
@@ -152,49 +153,66 @@ export function wrap(
   return sentryWrapped;
 }
 
+let debounceTimer: number = 0;
+
 /**
  * Wraps addEventListener to capture UI breadcrumbs
  * @param eventName the event name (e.g. "click")
  * @returns wrapped breadcrumb events handler
  * @hidden
  */
-export function breadcrumbEventHandler(eventName: string): (event: Event) => void {
+export function breadcrumbEventHandler(eventName: string, debounce: boolean = false): (event: Event) => void {
   return (event: Event) => {
     // reset keypress timeout; e.g. triggering a 'click' after
     // a 'keypress' will reset the keypress debounce so that a new
     // set of keypresses can be recorded
     keypressTimeout = undefined;
-
     // It's possible this handler might trigger multiple times for the same
     // event (e.g. event propagation through node ancestors). Ignore if we've
     // already captured the event.
-    if (lastCapturedEvent === event) {
+    if (!event || lastCapturedEvent === event) {
       return;
     }
 
     lastCapturedEvent = event;
 
-    // try/catch both:
-    // - accessing event.target (see getsentry/raven-js#838, #768)
-    // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-    //   can throw an exception in some circumstances.
-    let target;
-    try {
-      target = htmlTreeAsString(event.target as Node);
-    } catch (e) {
-      target = '<unknown>';
+    const captureBreadcrumb = () => {
+      // try/catch both:
+      // - accessing event.target (see getsentry/raven-js#838, #768)
+      // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
+      //   can throw an exception in some circumstances.
+      let target;
+      try {
+        target = event.target ? _htmlTreeAsString(event.target as Node) : _htmlTreeAsString((event as unknown) as Node);
+      } catch (e) {
+        target = '<unknown>';
+      }
+
+      if (target.length === 0) {
+        return;
+      }
+
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `ui.${eventName}`, // e.g. ui.click, ui.input
+          message: target,
+        },
+        {
+          event,
+          name: eventName,
+        },
+      );
+    };
+
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
     }
 
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `ui.${eventName}`, // e.g. ui.click, ui.input
-        message: target,
-      },
-      {
-        event,
-        name: eventName,
-      },
-    );
+    if (debounce) {
+      debounceTimer = setTimeout(captureBreadcrumb);
+    } else {
+      captureBreadcrumb();
+    }
   };
 }
 
@@ -238,4 +256,80 @@ export function keypressEventHandler(): (event: Event) => void {
       keypressTimeout = undefined;
     }, debounceDuration) as any) as number;
   };
+}
+
+/**
+ * Given a child DOM element, returns a query-selector statement describing that
+ * and its ancestors
+ * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
+ * @returns generated DOM path
+ */
+function _htmlTreeAsString(elem: Node): string {
+  let currentElem: Node | null = elem;
+  const MAX_TRAVERSE_HEIGHT = 5;
+  const MAX_OUTPUT_LEN = 80;
+  const out = [];
+  let height = 0;
+  let len = 0;
+  const separator = ' > ';
+  const sepLength = separator.length;
+  let nextStr;
+
+  while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
+    nextStr = _htmlElementAsString(currentElem as HTMLElement);
+    // bail out if
+    // - nextStr is the 'html' element
+    // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
+    //   (ignore this limit if we are on the first iteration)
+    if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
+      break;
+    }
+
+    out.push(nextStr);
+
+    len += nextStr.length;
+    currentElem = currentElem.parentNode;
+  }
+
+  return out.reverse().join(separator);
+}
+
+/**
+ * Returns a simple, query-selector representation of a DOM element
+ * e.g. [HTMLElement] => input#foo.btn[name=baz]
+ * @returns generated DOM path
+ */
+function _htmlElementAsString(elem: HTMLElement): string {
+  const out = [];
+  let className;
+  let classes;
+  let key;
+  let attr;
+  let i;
+
+  if (!elem || !elem.tagName) {
+    return '';
+  }
+
+  out.push(elem.tagName.toLowerCase());
+  if (elem.id) {
+    out.push(`#${elem.id}`);
+  }
+
+  className = elem.className;
+  if (className && isString(className)) {
+    classes = className.split(/\s+/);
+    for (i = 0; i < classes.length; i++) {
+      out.push(`.${classes[i]}`);
+    }
+  }
+  const attrWhitelist = ['type', 'name', 'title', 'alt'];
+  for (i = 0; i < attrWhitelist.length; i++) {
+    key = attrWhitelist[i];
+    attr = elem.getAttribute(key);
+    if (attr) {
+      out.push(`[${key}="${attr}"]`);
+    }
+  }
+  return out.join('');
 }

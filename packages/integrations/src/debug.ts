@@ -1,4 +1,5 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /** JSDoc */
 interface DebugOptions {
@@ -45,17 +46,19 @@ export class Debug implements Integration {
           debugger;
         }
 
-        if (self._options.stringify) {
-          console.log(JSON.stringify(event, null, 2));
-          if (hint) {
-            console.log(JSON.stringify(hint, null, 2));
+        consoleSandbox(() => {
+          if (self._options.stringify) {
+            console.log(JSON.stringify(event, null, 2));
+            if (hint) {
+              console.log(JSON.stringify(hint, null, 2));
+            }
+          } else {
+            console.log(event);
+            if (hint) {
+              console.log(hint);
+            }
           }
-        } else {
-          console.log(event);
-          if (hint) {
-            console.log(hint);
-          }
-        }
+        });
       }
       return event;
     });

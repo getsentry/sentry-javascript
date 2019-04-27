@@ -1,9 +1,6 @@
 import { captureException, getCurrentHub } from '@sentry/core';
 import { Event } from '@sentry/types';
-import { forget } from '@sentry/utils';
-import { isString } from '@sentry/utils';
-import { logger } from '@sentry/utils';
-import { normalize } from '@sentry/utils';
+import { forget, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -11,6 +8,7 @@ import * as os from 'os';
 import * as url from 'url';
 
 import { NodeClient } from './client';
+import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
@@ -224,12 +222,26 @@ export function requestHandler(options?: {
   transaction?: boolean | TransactionTypes;
   user?: boolean | string[];
   version?: boolean;
+  flushTimeout?: number;
 }): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
+    if (options && options.flushTimeout && options.flushTimeout > 0) {
+      // tslint:disable-next-line: no-unbound-method
+      const _end = res.end;
+      res.end = function(chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+        flush(options.flushTimeout)
+          .then(() => {
+            _end.call(this, chunk, encoding, cb);
+          })
+          .catch(e => {
+            logger.error(e);
+          });
+      };
+    }
     const local = domain.create();
     local.add(req);
     local.add(res);

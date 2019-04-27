@@ -1,12 +1,18 @@
 import { BaseBackend } from '@sentry/core';
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
-import { isDOMError, isDOMException, isError, isErrorEvent, isPlainObject } from '@sentry/utils';
-import { addExceptionTypeValue } from '@sentry/utils';
-import { supportsFetch } from '@sentry/utils';
-import { SyncPromise } from '@sentry/utils';
+import {
+  addExceptionTypeValue,
+  isDOMError,
+  isDOMException,
+  isError,
+  isErrorEvent,
+  isPlainObject,
+  supportsFetch,
+  SyncPromise,
+} from '@sentry/utils';
 
 import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from './parsers';
-import { computeStackTrace } from './tracekit';
+import { _computeStackTrace } from './tracekit';
 import { FetchTransport, XHRTransport } from './transports';
 
 /**
@@ -66,7 +72,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       // If it is an ErrorEvent with `error` property, extract it to get actual Error
       const errorEvent = exception as ErrorEvent;
       exception = errorEvent.error; // tslint:disable-line:no-parameter-reassignment
-      event = eventFromStacktrace(computeStackTrace(exception as Error));
+      event = eventFromStacktrace(_computeStackTrace(exception as Error));
       return SyncPromise.resolve(this._buildEvent(event, hint));
     }
     if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
@@ -85,7 +91,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     }
     if (isError(exception as Error)) {
       // we have a real Error object, do nothing
-      event = eventFromStacktrace(computeStackTrace(exception as Error));
+      event = eventFromStacktrace(_computeStackTrace(exception as Error));
       return SyncPromise.resolve(this._buildEvent(event, hint));
     }
     if (isPlainObject(exception as {}) && hint && hint.syntheticException) {
@@ -142,7 +148,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     };
 
     if (this._options.attachStacktrace && hint && hint.syntheticException) {
-      const stacktrace = computeStackTrace(hint.syntheticException);
+      const stacktrace = _computeStackTrace(hint.syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
       event.stacktrace = {
         frames,

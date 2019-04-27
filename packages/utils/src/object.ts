@@ -11,11 +11,11 @@ import { Memo } from './memo';
  * @param replacement A function that should be used to wrap a given method.
  * @returns void
  */
-
 export function fill(source: { [key: string]: any }, name: string, replacement: (...args: any[]) => any): void {
-  if (!(name in source) || (source[name] as WrappedFunction).__sentry__) {
+  if (!(name in source)) {
     return;
   }
+
   const original = source[name] as () => any;
   const wrapped = replacement(original) as WrappedFunction;
 
@@ -108,7 +108,7 @@ export function normalizeToSize<T>(
   // 100kB, as 200kB is max payload size, so half sounds reasonable
   maxSize: number = 100 * 1024,
 ): T {
-  const serialized = normalizeObject(object, depth);
+  const serialized = normalize(object, depth);
 
   if (jsonSize(serialized) > maxSize) {
     return normalizeToSize(object, depth - 1, maxSize);
@@ -260,7 +260,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
  * - Takes care of Error objects serialization
  * - Optionally limit depth of final output
  */
-export function normalizeObject(input: any, depth?: number): any {
+export function normalize(input: any, depth?: number): any {
   try {
     // tslint:disable-next-line:no-unsafe-any
     return JSON.parse(JSON.stringify(input, (key: string, value: any) => walk(key, value, depth)));
