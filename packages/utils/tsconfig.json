@@ -9,6 +9,11 @@
       "@sentry/*": ["../*/src"]
     }
   },
+  "references": [
+    {
+      "path": "../types"
+    }
+  ],
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"]
 }

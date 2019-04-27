@@ -1,7 +1,5 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
     "composite": true,
@@ -11,5 +9,15 @@
         "../*/src"
       ]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../utils"
+    }
+  ],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["dist"]
 }

@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "outDir": "dist",
     "rootDir": "src",
+    "types": ["node"],
     "paths": {
       "@sentry/*": ["../*/src"]
     }

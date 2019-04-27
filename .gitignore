@@ -36,3 +36,6 @@ tmp.js
 /packages/*/esm5
 /packages/*/esmnext
 /packages/*/bundles
+
+# ts
+*.tsbuildinfo
