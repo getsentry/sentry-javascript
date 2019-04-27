@@ -1,12 +1,10 @@
 import autoExternal from 'rollup-plugin-auto-external';
 import typescript from 'rollup-plugin-typescript2';
+import { resolve, join } from 'path';
+
 
 export const paths = {
-  '@sentry/utils/*': ['../utils/src/*'],
-  '@sentry/core': ['../core/src'],
-  '@sentry/hub': ['../hub/src'],
-  '@sentry/types': ['../types/src'],
-  '@sentry/minimal': ['../minimal/src'],
+  '@sentry/*': [join(resolve(__dirname), '../packages/*/src')]
 };
 
 export function generate_cfg(module_name) {

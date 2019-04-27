@@ -9224,10 +9224,10 @@ rollup-plugin-terser@^4.0.4:
     serialize-javascript "^1.6.1"
     terser "^3.14.1"
 
-rollup-plugin-typescript2@^0.20.1:
-  version "0.20.1"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-typescript2/-/rollup-plugin-typescript2-0.20.1.tgz#fb1d411975cd875d24882ea66f5f4fd11d2f2240"
-  integrity sha512-uxA5JQNOfmJ9rsO0yJKTObb1t4nNYUexCg9zxhEKF+NzZwljYWdfgrA06UzA24cOk8fQjGEe7Q5+Vge2vFlnnw==
+rollup-plugin-typescript2@^0.21.0:
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/rollup-plugin-typescript2/-/rollup-plugin-typescript2-0.21.0.tgz#cc61ed756ac6e68cb3c03f7ee78001346243ed54"
+  integrity sha512-fbUAc2bvWxRrg1GGMYCFVf6aSxq3zvWn0sY2ubzFW9shJNT95ztFbM6GHO4/2rDSCjier7IswQnbr1ySqoLNPw==
   dependencies:
     fs-extra "7.0.1"
     resolve "1.10.0"

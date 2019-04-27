@@ -11,6 +11,7 @@
     "access": "public"
   },
   "dependencies": {
+    "rollup-plugin-typescript2": "^0.21.0",
     "tslint-config-prettier": "^1.18.0",
     "tslint-consistent-codestyle": "^1.15.1"
   },
@@ -20,5 +21,8 @@
   },
   "scripts": {
     "link:yarn": "yarn link"
+  },
+  "devDependencies": {
+    "rollup-plugin-typescript2": "^0.21.0"
   }
 }

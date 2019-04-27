@@ -5,10 +5,16 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@sentry/*": [
-        "../*/src"
-      ]
+      "@sentry/*": ["../*/src"]
     }
   },
+  "references": [
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../utils"
+    }
+  ],
   "include": ["src/**/*.ts"]
 }

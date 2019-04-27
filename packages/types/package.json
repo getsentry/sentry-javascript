@@ -44,5 +44,8 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p ."
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "rollup-plugin-typescript2": "^0.21.0"
+  }
 }

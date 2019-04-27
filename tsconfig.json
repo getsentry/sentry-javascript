@@ -1,14 +1,7 @@
 {
   "extends": "./packages/typescript/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./packages",
     "types": ["node"],
-    "moduleResolution": "node",
-    "composite": true,
-    "paths": {
-      "@sentry/*": ["./*/src"],
-      "raven-js": ["raven-js/src/singleton.js"],
-      "raven-node": ["raven-node/lib/client.js"]
-    }
+    "moduleResolution": "node"
   }
 }

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "esm5",
+    "rootDir": "src",
     "paths": {
       "@sentry/*": [
         "../*/src"

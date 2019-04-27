@@ -1,14 +1,14 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist"],
   "compilerOptions": {
+    "baseUrl": ".",
     "rootDir": ".",
+    "composite": true,
     "types": ["node", "jest"],
     "paths": {
-      "@sentry/*": [
-        "../*/src"
-      ]
+      "@sentry/*": ["../*/src"]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["dist"]
 }

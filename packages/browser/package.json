@@ -53,7 +53,7 @@
     "rollup-plugin-license": "^0.8.1",
     "rollup-plugin-node-resolve": "^4.0.1",
     "rollup-plugin-terser": "^4.0.4",
-    "rollup-plugin-typescript2": "^0.20.1",
+    "rollup-plugin-typescript2": "^0.21.0",
     "sinon": "^7.2.7",
     "tslint": "^5.14.0",
     "typescript": "^3.3.3333",
