@@ -1,4 +1,4 @@
-import { fill, normalizeObject, urlEncode } from '../src/object';
+import { fill, normalize, urlEncode } from '../src/object';
 
 describe('fill()', () => {
   test('wraps a method by calling a replacement function on it', () => {
@@ -106,18 +106,18 @@ describe('urlEncode()', () => {
   });
 });
 
-describe('normalizeObject()', () => {
+describe('normalize()', () => {
   describe('acts as a pass-through for simple-cases', () => {
     test('return same value for simple input', () => {
-      expect(normalizeObject('foo')).toEqual('foo');
-      expect(normalizeObject(42)).toEqual(42);
-      expect(normalizeObject(true)).toEqual(true);
-      expect(normalizeObject(null)).toEqual(null);
+      expect(normalize('foo')).toEqual('foo');
+      expect(normalize(42)).toEqual(42);
+      expect(normalize(true)).toEqual(true);
+      expect(normalize(null)).toEqual(null);
     });
 
     test('return same object or arrays for referenced inputs', () => {
-      expect(normalizeObject({ foo: 'bar' })).toEqual({ foo: 'bar' });
-      expect(normalizeObject([42])).toEqual([42]);
+      expect(normalize({ foo: 'bar' })).toEqual({ foo: 'bar' });
+      expect(normalize([42])).toEqual([42]);
     });
   });
 
@@ -139,7 +139,7 @@ describe('normalizeObject()', () => {
     // @ts-ignore
     delete obj.reason.description;
 
-    expect(normalizeObject(obj)).toEqual({
+    expect(normalize(obj)).toEqual({
       message: 'Wubba Lubba Dub Dub',
       name: 'Error',
       stack: 'x',
@@ -157,21 +157,21 @@ describe('normalizeObject()', () => {
       const obj = { name: 'Alice' };
       // @ts-ignore
       obj.self = obj;
-      expect(normalizeObject(obj)).toEqual({ name: 'Alice', self: '[Circular ~]' });
+      expect(normalize(obj)).toEqual({ name: 'Alice', self: '[Circular ~]' });
     });
 
     test('circular objects with intermediaries', () => {
       const obj = { name: 'Alice' };
       // @ts-ignore
       obj.identity = { self: obj };
-      expect(normalizeObject(obj)).toEqual({ name: 'Alice', identity: { self: '[Circular ~]' } });
+      expect(normalize(obj)).toEqual({ name: 'Alice', identity: { self: '[Circular ~]' } });
     });
 
     test('deep circular objects', () => {
       const obj = { name: 'Alice', child: { name: 'Bob' } };
       // @ts-ignore
       obj.child.self = obj.child;
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         name: 'Alice',
         child: { name: 'Bob', self: '[Circular ~]' },
       });
@@ -181,7 +181,7 @@ describe('normalizeObject()', () => {
       const obj = { name: 'Alice', child: { name: 'Bob' } };
       // @ts-ignore
       obj.child.identity = { self: obj.child };
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         name: 'Alice',
         child: { name: 'Bob', identity: { self: '[Circular ~]' } },
       });
@@ -191,7 +191,7 @@ describe('normalizeObject()', () => {
       const obj = { name: 'Alice' };
       // @ts-ignore
       obj.self = [obj, obj];
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         name: 'Alice',
         self: ['[Circular ~]', '[Circular ~]'],
       });
@@ -206,7 +206,7 @@ describe('normalizeObject()', () => {
       obj.children[0].self = obj.children[0];
       // @ts-ignore
       obj.children[1].self = obj.children[1];
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         name: 'Alice',
         children: [{ name: 'Bob', self: '[Circular ~]' }, { name: 'Eve', self: '[Circular ~]' }],
       });
@@ -216,14 +216,14 @@ describe('normalizeObject()', () => {
       const obj: object[] = [];
       obj.push(obj);
       obj.push(obj);
-      expect(normalizeObject(obj)).toEqual(['[Circular ~]', '[Circular ~]']);
+      expect(normalize(obj)).toEqual(['[Circular ~]', '[Circular ~]']);
     });
 
     test('circular arrays with intermediaries', () => {
       const obj: object[] = [];
       obj.push({ name: 'Alice', self: obj });
       obj.push({ name: 'Bob', self: obj });
-      expect(normalizeObject(obj)).toEqual([{ name: 'Alice', self: '[Circular ~]' }, { name: 'Bob', self: '[Circular ~]' }]);
+      expect(normalize(obj)).toEqual([{ name: 'Alice', self: '[Circular ~]' }, { name: 'Bob', self: '[Circular ~]' }]);
     });
 
     test('repeated objects in objects', () => {
@@ -233,7 +233,7 @@ describe('normalizeObject()', () => {
       obj.alice1 = alice;
       // @ts-ignore
       obj.alice2 = alice;
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         alice1: { name: 'Alice' },
         alice2: { name: 'Alice' },
       });
@@ -242,7 +242,7 @@ describe('normalizeObject()', () => {
     test('repeated objects in arrays', () => {
       const alice = { name: 'Alice' };
       const obj = [alice, alice];
-      expect(normalizeObject(obj)).toEqual([{ name: 'Alice' }, { name: 'Alice' }]);
+      expect(normalize(obj)).toEqual([{ name: 'Alice' }, { name: 'Alice' }]);
     });
 
     test('error objects with circular references', () => {
@@ -259,7 +259,7 @@ describe('normalizeObject()', () => {
       // @ts-ignore
       delete obj.description;
 
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         message: 'Wubba Lubba Dub Dub',
         name: 'Error',
         stack: 'x',
@@ -275,7 +275,7 @@ describe('normalizeObject()', () => {
       };
       circular.bar = circular;
 
-      const normalized = normalizeObject(circular);
+      const normalized = normalize(circular);
       expect(normalized).toEqual({
         foo: 1,
         bar: '[Circular ~]',
@@ -297,7 +297,7 @@ describe('normalizeObject()', () => {
       ];
       circular.qux = circular.bar[0].baz;
 
-      const normalized = normalizeObject(circular);
+      const normalized = normalize(circular);
       expect(normalized).toEqual({
         bar: [
           {
@@ -336,7 +336,7 @@ describe('normalizeObject()', () => {
         value: circular,
       });
 
-      expect(normalizeObject(circular)).toEqual({
+      expect(normalize(circular)).toEqual({
         bar: '[Circular ~]',
         baz: {
           one: 1337,
@@ -354,8 +354,8 @@ describe('normalizeObject()', () => {
       a.toJSON = () => 10;
       const b = new String('2');
       b.toJSON = () => '20';
-      expect(normalizeObject(a)).toEqual(10);
-      expect(normalizeObject(b)).toEqual('20');
+      expect(normalize(a)).toEqual(10);
+      expect(normalize(b)).toEqual('20');
     });
 
     test('objects, arrays and classes', () => {
@@ -367,32 +367,32 @@ describe('normalizeObject()', () => {
       B.prototype.toJSON = () => 2;
       const c = [];
       c.toJSON = () => 3;
-      expect(normalizeObject([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
+      expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
   });
 
   describe('changes unserializeable/global values/classes to its string representation', () => {
     test('primitive values', () => {
-      expect(normalizeObject(undefined)).toEqual('[undefined]');
-      expect(normalizeObject(NaN)).toEqual('[NaN]');
+      expect(normalize(undefined)).toEqual('[undefined]');
+      expect(normalize(NaN)).toEqual('[NaN]');
     });
 
     test('functions', () => {
       expect(
-        normalizeObject(() => {
+        normalize(() => {
           /* no-empty */
         }),
       ).toEqual('[Function: <unknown-function-name>]');
       const foo = () => {
         /* no-empty */
       };
-      expect(normalizeObject(foo)).toEqual('[Function: foo]');
+      expect(normalize(foo)).toEqual('[Function: foo]');
     });
 
     test('primitive values in objects/arrays', () => {
-      expect(normalizeObject(['foo', 42, undefined, NaN])).toEqual(['foo', 42, '[undefined]', '[NaN]']);
+      expect(normalize(['foo', 42, undefined, NaN])).toEqual(['foo', 42, '[undefined]', '[NaN]']);
       expect(
-        normalizeObject({
+        normalize({
           foo: 42,
           bar: undefined,
           baz: NaN,
@@ -405,9 +405,9 @@ describe('normalizeObject()', () => {
     });
 
     test('primitive values in deep objects/arrays', () => {
-      expect(normalizeObject(['foo', 42, [[undefined]], [NaN]])).toEqual(['foo', 42, [['[undefined]']], ['[NaN]']]);
+      expect(normalize(['foo', 42, [[undefined]], [NaN]])).toEqual(['foo', 42, [['[undefined]']], ['[NaN]']]);
       expect(
-        normalizeObject({
+        normalize({
           foo: 42,
           bar: {
             baz: {
@@ -439,7 +439,7 @@ describe('normalizeObject()', () => {
           stopPropagation: 'wat',
         },
       };
-      expect(normalizeObject(obj)).toEqual({
+      expect(normalize(obj)).toEqual({
         foo: '[SyntheticEvent]',
       });
     });
@@ -451,7 +451,7 @@ describe('normalizeObject()', () => {
         foo: [],
       };
 
-      expect(normalizeObject(obj, 1)).toEqual({
+      expect(normalize(obj, 1)).toEqual({
         foo: '[Array]',
       });
     });
@@ -461,7 +461,7 @@ describe('normalizeObject()', () => {
         foo: [1, 2, []],
       };
 
-      expect(normalizeObject(obj, 2)).toEqual({
+      expect(normalize(obj, 2)).toEqual({
         foo: [1, 2, '[Array]'],
       });
     });
@@ -489,7 +489,7 @@ describe('normalizeObject()', () => {
         ],
       };
 
-      expect(normalizeObject(obj, 3)).toEqual({
+      expect(normalize(obj, 3)).toEqual({
         bar: 1,
         baz: [
           {
@@ -519,7 +519,7 @@ describe('normalizeObject()', () => {
         /*no-empty*/
       },
     };
-    const result = normalizeObject(obj);
+    const result = normalize(obj);
     expect(result).toEqual({
       foo: '[SyntheticEvent]',
       baz: '[NaN]',

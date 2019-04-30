@@ -249,7 +249,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
 }
 
 /**
- * normalizeObject()
+ * normalize()
  *
  * - Creates a copy to prevent original input mutation
  * - Skip non-enumerablers

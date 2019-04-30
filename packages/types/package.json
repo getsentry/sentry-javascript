@@ -25,6 +25,7 @@
     "npm-run-all": "^4.1.2",
     "prettier": "^1.16.4",
     "prettier-check": "^2.0.0",
+    "rollup-plugin-typescript2": "^0.21.0",
     "tslint": "^5.14.0",
     "typescript": "^3.4.5"
   },
@@ -50,8 +51,5 @@
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "fix:tslint": "tslint --fix -t stylish -p ."
   },
-  "sideEffects": false,
-  "dependencies": {
-    "rollup-plugin-typescript2": "^0.21.0"
-  }
+  "sideEffects": false
 }
