@@ -1,13 +1,13 @@
 import { isThenable } from './is';
 
-/** JSDoc */
+/** SyncPromise internal states */
 enum States {
-  /** JSDoc */
-  PENDING = 'PENDING',
-  /** JSDoc */
-  RESOLVED = 'RESOLVED',
-  /** JSDoc */
-  REJECTED = 'REJECTED',
+  /** Pending */
+  P = 'P',
+  /** Resolved / OK */
+  O = 'O',
+  /** Rejected / Error */
+  E = 'E',
 }
 
 /** JSDoc */
@@ -31,7 +31,7 @@ type Reject = (value?: any) => void;
 /** JSDoc */
 export class SyncPromise<T> implements PromiseLike<T> {
   /** JSDoc */
-  private _state: States = States.PENDING;
+  private _state: States = States.P;
   /** JSDoc */
   private _handlers: Array<Handler<T, any>> = [];
   /** JSDoc */
@@ -47,17 +47,17 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** JSDoc */
   private readonly _resolve = (value: T) => {
-    this._setResult(value, States.RESOLVED);
+    this._setResult(value, States.O);
   };
 
   /** JSDoc */
   private readonly _reject = (reason: any) => {
-    this._setResult(reason, States.REJECTED);
+    this._setResult(reason, States.E);
   };
 
   /** JSDoc */
   private readonly _setResult = (value: T | any, state: States) => {
-    if (this._state !== States.PENDING) {
+    if (this._state !== States.P) {
       return;
     }
 
@@ -74,11 +74,11 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** JSDoc */
   private readonly _executeHandlers = () => {
-    if (this._state === States.PENDING) {
+    if (this._state === States.P) {
       return;
     }
 
-    if (this._state === States.REJECTED) {
+    if (this._state === States.E) {
       // tslint:disable-next-line:no-unsafe-any
       this._handlers.forEach(h => h.onFail && h.onFail(this._value));
     } else {
