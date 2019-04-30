@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
-import { addExceptionTypeValue, logger, normalizeObject, truncate } from '@sentry/utils';
+import { addExceptionTypeValue, logger, normalize, truncate } from '@sentry/utils';
 
 import { eventFromStacktrace } from '../parsers';
 import {

@@ -6,20 +6,9 @@
     "rootDir": "src",
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/dist"
       ]
     }
   },
-  "references": [
-    {
-      "path": "../utils"
-    },
-    {
-      "path": "../types"
-    },
-    {
-      "path": "../hub"
-    }
-  ],
   "include": ["src/**/*.ts"]
 }

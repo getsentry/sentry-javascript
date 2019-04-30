@@ -1,9 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "build": "lerna run --stream --concurrency 1 --sort build",
-    "build:es5": "lerna run --stream --concurrency 1 --sort build:es5",
-    "build:esm": "lerna run --stream --concurrency 1 --sort build:esm",
+    "build": "lerna run --stream --sort build",
+    "build:esm5": "lerna run --stream --sort build:esm5",
+    "build:esmnext": "lerna run --stream --sort build:esmnext",
     "build:watch": "lerna run build:watch --stream --no-sort --concurrency 9999",
     "clean": "lerna run --stream clean",
     "fix": "lerna run --stream --concurrency 1 fix",

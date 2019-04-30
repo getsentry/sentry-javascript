@@ -3,9 +3,18 @@ import typescript from 'rollup-plugin-typescript2';
 import { resolve, join } from 'path';
 
 
-export const paths = {
-  '@sentry/*': [join(resolve(__dirname), '../packages/*/src')]
-};
+/**
+ * Generates a `path` value
+ *
+ * @param build
+ * @returns {{}}
+ */
+export function getPaths(build) {
+  return {
+    // __dirname points to directory of rollup.config.js
+    '@sentry/*': [join(resolve(__dirname), '../*', build)]
+  };
+}
 
 export function generate_cfg(module_name) {
   // TODO: License?
@@ -25,8 +34,9 @@ export function generate_cfg(module_name) {
         tsconfigOverride: {
           compilerOptions: {
             declaration: false,
+            declarationMap: false,
             module: 'ES2015',
-            paths: paths,
+            paths: getPaths("esm5"),
           },
         },
         include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
@@ -50,8 +60,9 @@ export function generate_cfg(module_name) {
         tsconfigOverride: {
           compilerOptions: {
             declaration: false,
+            declarationMap: false,
             module: 'ES2015',
-            paths: paths,
+            paths: getPaths("esmnext"),
           },
         },
         include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],

@@ -9,6 +9,15 @@
   "engines": {
     "node": ">=6"
   },
+  "main": "./dist/index.js",
+  "module": "./bundles/utils.fesm5.js",
+  "esnext": "./bundles/utils.fesmnext.js",
+  "esm5": "./esm5/index.js",
+  "esmnext": "./esmnext/index.js",
+  "fesm5": "./bundles/utils.fesm5.js",
+  "fesmnext": "./bundles/utils.fesmnext.js",
+  "jsnext:main": "./esmnext/index.js",
+  "typings": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },

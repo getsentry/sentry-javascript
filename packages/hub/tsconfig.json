@@ -2,7 +2,6 @@
   "extends": "./tsconfig.build.json",
   "compilerOptions": {
     "rootDir": ".",
-    "composite": true,
     "types": ["node", "jest"],
     "paths": {
       "@sentry/*": [
@@ -10,14 +9,6 @@
       ]
     }
   },
-  "references": [
-    {
-      "path": "../types"
-    },
-    {
-      "path": "../utils"
-    }
-  ],
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"]
 }

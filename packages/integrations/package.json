@@ -12,10 +12,15 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "browser": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./bundles/integrations.fesm5.js",
+  "esnext": "./bundles/integrations.fesmnext.js",
+  "esm5": "./esm5/index.js",
+  "esmnext": "./esmnext/index.js",
+  "fesm5": "./bundles/integrations.fesm5.js",
+  "fesmnext": "./bundles/integrations.fesmnext.js",
+  "jsnext:main": "./esmnext/index.js",
+  "typings": "./dist/index.d.ts",
   "dependencies": {
     "@sentry/types": "5.1.0",
     "@sentry/utils": "5.1.0"

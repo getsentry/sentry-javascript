@@ -6,16 +6,8 @@
     "rootDir": "src",
     "types": ["node"],
     "paths": {
-      "@sentry/*": ["../*/src"]
+      "@sentry/*": ["../*/dist"]
     }
   },
-  "references": [
-    {
-      "path": "../types"
-    },
-    {
-      "path": "../utils"
-    }
-  ],
   "include": ["src/**/*.ts"]
 }

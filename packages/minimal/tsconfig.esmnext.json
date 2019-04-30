@@ -5,7 +5,7 @@
     "outDir": "esmnext",
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/esmnext"
       ]
     }
   },

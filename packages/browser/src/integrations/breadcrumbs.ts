@@ -6,7 +6,7 @@ import {
   getGlobalObject,
   isString,
   logger,
-  normalizeObject,
+  normalize,
   parseUrl,
   safeJoin,
   supportsHistory,
@@ -87,7 +87,7 @@ export class Breadcrumbs implements Integration {
             category: 'console',
             data: {
               extra: {
-                arguments: normalizeObject(args, 3),
+                arguments: normalize(args, 3),
               },
               logger: 'console',
             },
@@ -98,7 +98,7 @@ export class Breadcrumbs implements Integration {
           if (level === 'assert') {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-              breadcrumbData.data.extra.arguments = normalizeObject(args.slice(1), 3);
+              breadcrumbData.data.extra.arguments = normalize(args.slice(1), 3);
             }
           }
 

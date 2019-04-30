@@ -9,15 +9,15 @@
   "engines": {
     "node": ">=6"
   },
-  "module": "./bundles/browser.fesm5.js",
-  "esnext": "./bundles/browser.fesmnext.js",
+  "main": "dist/index.js",
+  "module": "./bundles/core.fesm5.js",
+  "esnext": "./bundles/core.fesmnext.js",
   "esm5": "./esm5/index.js",
   "esmnext": "./esmnext/index.js",
-  "fesm5": "./bundles/browser.fesm5.js",
-  "fesmnext": "./bundles/browser.fesmnext.js",
-  "jsnext:main": "./bundles/browser.fesmnext.js",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "fesm5": "./bundles/core.fesm5.js",
+  "fesmnext": "./bundles/core.fesmnext.js",
+  "jsnext:main": "./esmnext/index.js",
+  "typings": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },

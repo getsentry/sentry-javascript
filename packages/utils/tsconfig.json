@@ -3,17 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "composite": true,
     "types": ["node", "jest"],
     "paths": {
       "@sentry/*": ["../*/src"]
     }
   },
-  "references": [
-    {
-      "path": "../types"
-    }
-  ],
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"]
 }

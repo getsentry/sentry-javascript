@@ -5,20 +5,9 @@
     "outDir": "esm5",
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/esm5"
       ]
     }
   },
-  "references": [
-    {
-      "path": "../utils"
-    },
-    {
-      "path": "../types"
-    },
-    {
-      "path": "../hub"
-    }
-  ],
   "include": ["src/**/*"]
 }

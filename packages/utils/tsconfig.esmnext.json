@@ -5,13 +5,8 @@
     "outDir": "esmnext",
     "rootDir": "src",
     "paths": {
-      "@sentry/*": ["../*/src"]
+      "@sentry/*": ["../*/esmnext"]
     }
   },
-  "references": [
-    {
-      "path": "../types"
-    }
-  ],
   "include": ["src/**/*"]
 }

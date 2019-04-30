@@ -7,7 +7,7 @@
     "types": ["node"],
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/dist"
       ]
     }
   },

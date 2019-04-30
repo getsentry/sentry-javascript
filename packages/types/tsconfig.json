@@ -3,7 +3,6 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "src",
-    "composite": true,
     "types": ["node"],
     "paths": {
       "@sentry/*": ["../*/src"]

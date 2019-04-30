@@ -9,9 +9,15 @@
   "engines": {
     "node": ">=6"
   },
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./bundles/hub.fesm5.js",
+  "esnext": "./bundles/hub.fesmnext.js",
+  "esm5": "./esm5/index.js",
+  "esmnext": "./esmnext/index.js",
+  "fesm5": "./bundles/hub.fesm5.js",
+  "fesmnext": "./bundles/hub.fesmnext.js",
+  "jsnext:main": "./esmnext/index.js",
+  "typings": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },

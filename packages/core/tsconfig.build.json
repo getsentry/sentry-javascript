@@ -5,7 +5,7 @@
     "outDir": "dist",
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/dist"
       ]
     }
   },

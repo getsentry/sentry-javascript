@@ -6,7 +6,7 @@
     "rootDir": "src",
     "paths": {
       "@sentry/*": [
-        "../*/src"
+        "../*/dist"
       ]
     }
   },
