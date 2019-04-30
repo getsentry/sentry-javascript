@@ -6,6 +6,7 @@
 - [integrations] feat: Add tracing integration
 - [hub] feat: Add tracing related function to scope and hub (`Scope.startSpan`, `Scope.setSpanContext`, `Hub.traceHeaders`)
 - [hub] feat: Add new function to Scope `setContext`
+- [hub] feat: Add new function to Scope `setTransaction`
 
 ## 5.1.1
 

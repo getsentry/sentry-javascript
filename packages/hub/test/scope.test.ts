@@ -83,6 +83,14 @@ describe('Scope', () => {
     });
   });
 
+  describe('transaction', () => {
+    test('set', () => {
+      const scope = new Scope();
+      scope.setTransaction('/abc');
+      expect((scope as any)._transaction).toEqual('/abc');
+    });
+  });
+
   describe('context', () => {
     test('set', () => {
       const scope = new Scope();
@@ -130,13 +138,14 @@ describe('Scope', () => {
   });
 
   test('applyToEvent', () => {
-    expect.assertions(7);
+    expect.assertions(8);
     const scope = new Scope();
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.setLevel(Severity.Warning);
+    scope.setTransaction('/abc');
     scope.addBreadcrumb({ message: 'test' }, 100);
     scope.setContext('os', { id: '1' });
     const event: Event = {};
@@ -146,6 +155,7 @@ describe('Scope', () => {
       expect(processedEvent!.user).toEqual({ id: '1' });
       expect(processedEvent!.fingerprint).toEqual(['abcd']);
       expect(processedEvent!.level).toEqual('warning');
+      expect(processedEvent!.transaction).toEqual('/abc');
       expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
       expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
     });
@@ -203,6 +213,17 @@ describe('Scope', () => {
     event.level = Severity.Critical;
     return scope.applyToEvent(event).then(processedEvent => {
       expect(processedEvent!.level).toEqual('warning');
+    });
+  });
+
+  test('applyToEvent scope transaction should be stronger', () => {
+    expect.assertions(1);
+    const scope = new Scope();
+    scope.setTransaction('/abc');
+    const event: Event = {};
+    event.transaction = '/cdf';
+    return scope.applyToEvent(event).then(processedEvent => {
+      expect(processedEvent!.transaction).toEqual('/abc');
     });
   });
 

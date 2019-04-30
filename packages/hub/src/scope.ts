@@ -38,6 +38,9 @@ export class Scope implements ScopeInterface {
   /** Severity */
   protected _level?: Severity;
 
+  /** Transaction */
+  protected _transaction?: string;
+
   /** SpanContext */
   protected _span?: SpanContext;
 
@@ -173,6 +176,15 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setTransaction(transaction: string): this {
+    this._transaction = transaction;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public setContext(name: string, context: { [key: string]: any } | null): this {
     this._context[name] = context ? normalize(context) : undefined;
     this._notifyScopeListeners();
@@ -221,6 +233,7 @@ export class Scope implements ScopeInterface {
       newScope._context = { ...scope._context };
       newScope._user = scope._user;
       newScope._level = scope._level;
+      newScope._transaction = scope._transaction;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
     }
@@ -237,6 +250,7 @@ export class Scope implements ScopeInterface {
     this._user = {};
     this._context = {};
     this._level = undefined;
+    this._transaction = undefined;
     this._fingerprint = undefined;
     this._span = undefined;
     this._notifyScopeListeners();
@@ -314,6 +328,9 @@ export class Scope implements ScopeInterface {
     }
     if (this._level) {
       event.level = this._level;
+    }
+    if (this._transaction) {
+      event.transaction = this._transaction;
     }
     if (this._span) {
       event.contexts = event.contexts || {};

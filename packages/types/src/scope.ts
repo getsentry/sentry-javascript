@@ -58,6 +58,12 @@ export interface Scope {
   setLevel(level: Severity): this;
 
   /**
+   * Sets the transaction on the scope for future events.
+   * @param transaction string This will be converted in a tag in Sentry
+   */
+  setTransaction(transaction: string): this;
+
+  /**
    * Sets context data with the given name.
    * @param name of the context
    * @param context Any kind of data. This data will be normailzed.

@@ -6,11 +6,11 @@ describe('SpanContext', () => {
   });
 
   test('fromTraceparent', () => {
-    const from = SpanContext.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-00');
-    expect(from!.parent!.traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-    expect(from!.parent!.spanId).toEqual('bbbbbbbbbbbbbbbb');
-    expect(from!.traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-    expect(from!.spanId).not.toEqual('bbbbbbbbbbbbbbbb');
+    const from = SpanContext.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-00') as any;
+    expect(from._parent._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    expect(from._parent._spanId).toEqual('bbbbbbbbbbbbbbbb');
+    expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    expect(from._spanId).not.toEqual('bbbbbbbbbbbbbbbb');
   });
 
   test('fromTraceparent - invalid', () => {

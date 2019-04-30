@@ -1,12 +1,7 @@
-/** JSDoc */
+/** SpanContext holding trace_id, span_id */
 export interface SpanContext {
-  traceId: string;
-  spanId: string;
-  recorded: boolean;
-  transaction?: string;
-  parent?: SpanContext;
-  /** JSDoc */
+  /** Return a traceparent compatible header string */
   toTraceparent(): string;
-  /** JSDoc */
+  /** Convert the object to JSON */
   toJSON(): object;
 }

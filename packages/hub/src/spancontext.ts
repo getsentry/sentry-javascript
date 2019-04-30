@@ -8,11 +8,10 @@ export const TRACEPARENT_REGEX = /([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([
  */
 export class SpanContext implements SpanContextInterface {
   public constructor(
-    public traceId: string = uuid4(),
-    public spanId: string = uuid4().substring(16),
-    public recorded: boolean = false,
-    public transaction?: string,
-    public parent?: SpanContext,
+    private readonly _traceId: string = uuid4(),
+    private readonly _spanId: string = uuid4().substring(16),
+    private readonly _recorded: boolean = false,
+    private readonly _parent?: SpanContext,
   ) {}
 
   /**
@@ -23,7 +22,7 @@ export class SpanContext implements SpanContextInterface {
     const matches = traceparent.match(TRACEPARENT_REGEX);
     if (matches) {
       const parent = new SpanContext(matches[2], matches[3], matches[4] === '01' ? true : false);
-      return new SpanContext(matches[2], undefined, undefined, undefined, parent);
+      return new SpanContext(matches[2], undefined, undefined, parent);
     }
     return undefined;
   }
@@ -32,7 +31,7 @@ export class SpanContext implements SpanContextInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    return `00-${this.traceId}-${this.spanId}-${this.recorded ? '01' : '00'}`;
+    return `00-${this._traceId}-${this._spanId}-${this._recorded ? '01' : '00'}`;
   }
 
   /**
@@ -40,9 +39,9 @@ export class SpanContext implements SpanContextInterface {
    */
   public toJSON(): object {
     return {
-      span_id: this.spanId,
-      trace_id: this.traceId,
-      transaction: this.transaction,
+      parent: (this._parent && this._parent.toJSON()) || undefined,
+      span_id: this._spanId,
+      trace_id: this._traceId,
     };
   }
 }
