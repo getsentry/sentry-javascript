@@ -176,7 +176,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setTransaction(transaction: string): this {
+  public setTransaction(transaction?: string): this {
     this._transaction = transaction;
     this._notifyScopeListeners();
     return this;

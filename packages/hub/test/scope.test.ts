@@ -89,6 +89,12 @@ describe('Scope', () => {
       scope.setTransaction('/abc');
       expect((scope as any)._transaction).toEqual('/abc');
     });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setTransaction('/abc');
+      scope.setTransaction();
+      expect((scope as any)._transaction).toBeUndefined();
+    });
   });
 
   describe('context', () => {

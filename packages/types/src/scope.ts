@@ -61,7 +61,7 @@ export interface Scope {
    * Sets the transaction on the scope for future events.
    * @param transaction string This will be converted in a tag in Sentry
    */
-  setTransaction(transaction: string): this;
+  setTransaction(transaction?: string): this;
 
   /**
    * Sets context data with the given name.
