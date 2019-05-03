@@ -23,21 +23,26 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
   // tslint:disable-next-line:strict-type-predicates
   if (typeof wrapped === 'function') {
-    wrapped.prototype = wrapped.prototype || {};
-    Object.defineProperties(wrapped, {
-      __sentry__: {
-        enumerable: false,
-        value: true,
-      },
-      __sentry_original__: {
-        enumerable: false,
-        value: original,
-      },
-      __sentry_wrapped__: {
-        enumerable: false,
-        value: wrapped,
-      },
-    });
+    try {
+      wrapped.prototype = wrapped.prototype || {};
+      Object.defineProperties(wrapped, {
+        __sentry__: {
+          enumerable: false,
+          value: true,
+        },
+        __sentry_original__: {
+          enumerable: false,
+          value: original,
+        },
+        __sentry_wrapped__: {
+          enumerable: false,
+          value: wrapped,
+        },
+      });
+    } catch (_Oo) {
+      // This can throw if multiple fill happens on a global object like XMLHttpRequest
+      // Fixes https://github.com/getsentry/sentry-javascript/issues/2043
+    }
   }
 
   source[name] = wrapped;

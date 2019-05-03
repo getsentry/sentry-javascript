@@ -59,4 +59,10 @@ function runTests() {
   const scriptEl = window.document.createElement('script');
   scriptEl.textContent = myLibrary;
   window.document.body.appendChild(scriptEl);
+
+  // Testing https://github.com/getsentry/sentry-javascript/issues/2043
+  const scriptEl2 = window.document.createElement('script');
+  scriptEl2.textContent = myLibrary;
+  window.document.body.appendChild(scriptEl2);
+  // ------------------------------------------------------------------
 }
