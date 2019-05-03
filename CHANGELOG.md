@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] ref: Mangle more stuff, reduce bundle size
+- [browser] fix: Support for ram bundle frames
 
 ## 5.1.1
 
