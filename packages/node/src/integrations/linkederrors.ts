@@ -43,7 +43,7 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return (self.handler(event, hint) as unknown) as Promise<Event | null>;
+        return (self.handler(event, hint) as unknown) as Promise<Event>;
       }
       return event;
     });
@@ -52,12 +52,12 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: Event, hint?: EventHint): SyncPromise<Event | null> {
+  public handler(event: Event, hint?: EventHint): SyncPromise<Event> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return SyncPromise.resolve(event);
     }
 
-    return new SyncPromise<Event | null>(resolve => {
+    return new SyncPromise<Event>(resolve => {
       this.walkErrorTree(hint.originalException as ExtendedError, this._key).then((linkedErrors: Exception[]) => {
         if (event && event.exception && event.exception.values) {
           event.exception.values = [...linkedErrors, ...event.exception.values];
