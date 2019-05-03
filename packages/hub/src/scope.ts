@@ -233,6 +233,7 @@ export class Scope implements ScopeInterface {
       newScope._context = { ...scope._context };
       newScope._user = scope._user;
       newScope._level = scope._level;
+      newScope._span = scope._span;
       newScope._transaction = scope._transaction;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
