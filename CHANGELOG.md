@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [browser] fix: Fixed a bug if Sentry was initialized multiple times: Fix #2043
 - [browser] ref: Mangle more stuff, reduce bundle size
 - [browser] fix: Support for ram bundle frames
 - [node] fix: Expose lastEventId method

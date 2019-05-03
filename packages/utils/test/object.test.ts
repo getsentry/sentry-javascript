@@ -33,7 +33,7 @@ describe('fill()', () => {
     expect.assertions(3);
   });
 
-  test('mulitple fills calls all functions', () => {
+  test('multiple fills calls all functions', () => {
     const source = {
       foo: (): number => 42,
     };
