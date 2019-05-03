@@ -20,7 +20,6 @@
     "strict": true,
     "target": "es5",
     "strictBindCallApply": false,
-    "incremental": true,
     "plugins": [
       {
         "name": "typescript-tslint-plugin",

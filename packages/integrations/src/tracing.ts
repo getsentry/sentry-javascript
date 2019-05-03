@@ -35,26 +35,26 @@ export class Tracing implements Integration {
    *
    * @param _options TracingOptions
    */
-  public constructor(private readonly _options: TracingOptions) {}
+  public constructor(private readonly _options: TracingOptions) {
+    if (!_options.tracingOrigins || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
+      throw new SentryError('You need to define `tracingOrigins` in the options. Set an array of urls to trace.');
+    }
+  }
 
   /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (this._options.tracingOrigins.length) {
-      if (this._options.traceXHR !== false) {
-        this._traceXHR(getCurrentHub);
-      }
-      if (this._options.traceFetch !== false) {
-        this._traceFetch(getCurrentHub);
-      }
-      if (this._options.autoStartOnDomReady !== false) {
-        getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
-          Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
-        });
-      }
-    } else {
-      throw new SentryError('You need to define tracingOrigins in the options');
+    if (this._options.traceXHR !== false) {
+      this._traceXHR(getCurrentHub);
+    }
+    if (this._options.traceFetch !== false) {
+      this._traceFetch(getCurrentHub);
+    }
+    if (this._options.autoStartOnDomReady !== false) {
+      getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
+        Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
+      });
     }
   }
 
@@ -102,19 +102,19 @@ export class Tracing implements Integration {
         function(this: XMLHttpRequest, ...args: any[]): void {
           // @ts-ignore
           const self = getCurrentHub().getIntegration(Tracing);
-          if (self) {
+          if (self && self._xhrUrl) {
             const headers = getCurrentHub().traceHeaders();
             let whiteListed = false;
-
-            if (self._xhrUrl) {
-              self._options.tracingOrigins.forEach((whiteListUrl: string) => {
-                if (!whiteListed) {
-                  whiteListed = isMatchingPattern(self._xhrUrl, whiteListUrl);
-                }
-              });
+            // tslint:disable-next-line: prefer-for-of
+            for (let index = 0; index < self._options.tracingOrigins.length; index++) {
+              const whiteListUrl = self._options.tracingOrigins[index];
+              whiteListed = isMatchingPattern(self._xhrUrl, whiteListUrl);
+              if (whiteListed) {
+                break;
+              }
             }
 
-            if (whiteListed) {
+            if (whiteListed && this.setRequestHeader) {
               Object.keys(headers).forEach(key => {
                 this.setRequestHeader(key, headers[key]);
               });
