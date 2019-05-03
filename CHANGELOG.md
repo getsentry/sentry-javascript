@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.1.2
+## Unreleased
 
 - [opentracing] ref: Removed opentracing package
 - [integrations] feat: Add tracing integration
