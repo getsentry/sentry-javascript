@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration, Scope } from '@sentry/types';
+import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 /** JSDoc */
@@ -40,10 +40,7 @@ export class Ember implements Integration {
 
     this._Ember.onerror = (error: Error): void => {
       if (getCurrentHub().getIntegration(Ember)) {
-        getCurrentHub().withScope(scope => {
-          this._addIntegrationToSdkInfo(scope);
-          getCurrentHub().captureException(error, { originalException: error });
-        });
+        getCurrentHub().captureException(error, { originalException: error });
       }
 
       if (typeof oldOnError === 'function') {
@@ -60,33 +57,14 @@ export class Ember implements Integration {
           getCurrentHub().withScope(scope => {
             if (reason instanceof Error) {
               scope.setExtra('context', 'Unhandled Promise error detected');
-              this._addIntegrationToSdkInfo(scope);
               getCurrentHub().captureException(reason, { originalException: reason });
             } else {
               scope.setExtra('reason', reason);
-              this._addIntegrationToSdkInfo(scope);
               getCurrentHub().captureMessage('Unhandled Promise error detected');
             }
           });
         }
       },
     );
-  }
-
-  /**
-   * Appends SDK integrations
-   * @param scope The scope currently used.
-   */
-  private _addIntegrationToSdkInfo(scope: Scope): void {
-    scope.addEventProcessor((event: Event) => {
-      if (event.sdk) {
-        const integrations = event.sdk.integrations || [];
-        event.sdk = {
-          ...event.sdk,
-          integrations: [...integrations, 'ember'],
-        };
-      }
-      return event;
-    });
   }
 }
