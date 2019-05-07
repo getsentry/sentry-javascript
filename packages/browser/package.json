@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "5.1.2",
+  "version": "5.1.3",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
