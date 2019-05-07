@@ -20,7 +20,7 @@ export class PromiseBuffer<T> {
    * @param task Can be any Promise<T>
    * @returns The original promise.
    */
-  public async add(task: Promise<T>): Promise<T> {
+  public add(task: Promise<T>): Promise<T> {
     if (!this.isReady()) {
       return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
@@ -28,8 +28,8 @@ export class PromiseBuffer<T> {
       this._buffer.push(task);
     }
     task
-      .then(async () => this.remove(task))
-      .catch(async () =>
+      .then(() => this.remove(task))
+      .catch(() =>
         this.remove(task).catch(() => {
           // We have to add this catch here otherwise we have an unhandledPromiseRejection
           // because it's a new Promise chain.
@@ -44,7 +44,7 @@ export class PromiseBuffer<T> {
    * @param task Can be any Promise<T>
    * @returns Removed promise.
    */
-  public async remove(task: Promise<T>): Promise<T> {
+  public remove(task: Promise<T>): Promise<T> {
     const removedTask = this._buffer.splice(this._buffer.indexOf(task), 1)[0];
     return removedTask;
   }
@@ -62,7 +62,7 @@ export class PromiseBuffer<T> {
    *
    * @param timeout Number in ms to wait until it resolves with false.
    */
-  public async drain(timeout?: number): Promise<boolean> {
+  public drain(timeout?: number): Promise<boolean> {
     return new Promise<boolean>(resolve => {
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {

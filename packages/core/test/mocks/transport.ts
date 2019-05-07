@@ -13,7 +13,7 @@ export class FakeTransport implements Transport {
   public sentCount: number = 0;
   public delay: number = 2000;
 
-  public async sendEvent(_event: Event): Promise<Response> {
+  public sendEvent(_event: Event): Promise<Response> {
     this.sendCalled += 1;
     return this._buffer.add(
       new Promise(async res => {
@@ -24,7 +24,7 @@ export class FakeTransport implements Transport {
     );
   }
 
-  public async close(timeout?: number): Promise<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     return this._buffer.drain(timeout);
   }
 }

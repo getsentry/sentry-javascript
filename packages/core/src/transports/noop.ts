@@ -5,7 +5,7 @@ export class NoopTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: Event): Promise<Response> {
+  public sendEvent(_: Event): Promise<Response> {
     return Promise.resolve({
       reason: `NoopTransport: Event has been skipped because no Dsn is configured.`,
       status: Status.Skipped,
@@ -15,7 +15,7 @@ export class NoopTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async close(_?: number): Promise<boolean> {
+  public close(_?: number): Promise<boolean> {
     return Promise.resolve(true);
   }
 }

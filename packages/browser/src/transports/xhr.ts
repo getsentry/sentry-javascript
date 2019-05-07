@@ -7,7 +7,7 @@ export class XHRTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(event: Event): Promise<Response> {
+  public sendEvent(event: Event): Promise<Response> {
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
         const request = new XMLHttpRequest();

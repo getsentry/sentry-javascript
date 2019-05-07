@@ -14,8 +14,6 @@ import {
 } from '../src';
 import { NodeBackend } from '../src/backend';
 
-import { SetTimeoutTransport } from './helper/settimeouttransport';
-
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
 declare var global: any;
