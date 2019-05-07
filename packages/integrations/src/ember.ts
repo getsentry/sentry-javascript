@@ -42,7 +42,7 @@ export class Ember implements Integration {
       if (getCurrentHub().getIntegration(Ember)) {
         getCurrentHub().withScope(scope => {
           this._addIntegrationToSdkInfo(scope);
-          getCurrentHub().captureException(error);
+          getCurrentHub().captureException(error, { originalException: error });
         });
       }
 
@@ -61,7 +61,7 @@ export class Ember implements Integration {
             if (reason instanceof Error) {
               scope.setExtra('context', 'Unhandled Promise error detected');
               this._addIntegrationToSdkInfo(scope);
-              getCurrentHub().captureException(reason);
+              getCurrentHub().captureException(reason, { originalException: reason });
             } else {
               scope.setExtra('reason', reason);
               this._addIntegrationToSdkInfo(scope);
