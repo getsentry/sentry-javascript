@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.1.3
 
 - [browser] fix: GlobalHandler integration sometimes receives Event objects as message: Fix #1949
 
