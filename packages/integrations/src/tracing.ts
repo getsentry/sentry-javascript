@@ -39,14 +39,13 @@ export class Tracing implements Integration {
     if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
       consoleSandbox(() => {
         const defaultTracingOrigins = ['localhost', /^\//];
-        // tslint:disable: no-unsafe-any
         // @ts-ignore
-        console.warning(
+        console.warn(
           'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
         );
         // @ts-ignore
-        console.warning(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
-        // tslint:enable: no-unsafe-any
+        console.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+        _options.tracingOrigins = defaultTracingOrigins;
       });
     }
   }
@@ -119,18 +118,12 @@ export class Tracing implements Integration {
           const self = getCurrentHub().getIntegration(Tracing);
           if (self && self._xhrUrl) {
             const headers = getCurrentHub().traceHeaders();
-            let whiteList = false;
-
             // tslint:disable-next-line: prefer-for-of
-            for (let index = 0; index < self._options.tracingOrigins.length; index++) {
-              const whiteListUrl = self._options.tracingOrigins[index];
-              whiteList = isMatchingPattern(self._xhrUrl, whiteListUrl);
-              if (whiteList) {
-                break;
-              }
-            }
+            const isWhitelisted = self._options.tracingOrigins.some((origin: string | RegExp) =>
+              isMatchingPattern(self._xhrUrl, origin),
+            );
 
-            if (whiteList && this.setRequestHeader) {
+            if (isWhitelisted && this.setRequestHeader) {
               Object.keys(headers).forEach(key => {
                 this.setRequestHeader(key, headers[key]);
               });
