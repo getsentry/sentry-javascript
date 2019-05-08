@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased
+## 5.2.0
 
 - [opentracing] ref: Removed opentracing package
 - [integrations] feat: Add tracing integration
 - [hub] feat: Add tracing related function to scope and hub (`Scope.startSpan`, `Scope.setSpan`, `Hub.traceHeaders`)
 - [hub] feat: Add new function to Scope `setContext`
 - [hub] feat: Add new function to Scope `setTransaction`
+- [integrations] fix: Update ember integration to include original error in `hint` in `beforeSend`
+- [integrations] fix: Ember/Vue fix integration
 
 ## 5.1.3
 
