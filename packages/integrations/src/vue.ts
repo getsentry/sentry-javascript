@@ -92,17 +92,6 @@ export class Vue implements Integration {
             scope.setExtra(key, metadata[key]);
           });
 
-          scope.addEventProcessor((event: Event) => {
-            if (event.sdk) {
-              const integrations = event.sdk.integrations || [];
-              event.sdk = {
-                ...event.sdk,
-                integrations: [...integrations, 'vue'],
-              };
-            }
-            return event;
-          });
-
           getCurrentHub().captureException(error);
         });
       }
