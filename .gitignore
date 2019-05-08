@@ -9,6 +9,7 @@ packages/*/esm/
 coverage/
 scratch/
 *.pyc
+*.tsbuildinfo
 
 # logs
 yarn-error.log

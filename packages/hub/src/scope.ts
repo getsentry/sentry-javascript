@@ -1,6 +1,8 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
 import { getGlobalObject, isThenable, normalize, SyncPromise } from '@sentry/utils';
 
+import { Span } from './span';
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
@@ -35,6 +37,12 @@ export class Scope implements ScopeInterface {
 
   /** Severity */
   protected _level?: Severity;
+
+  /** Transaction */
+  protected _transaction?: string;
+
+  /** Span */
+  protected _span?: Span;
 
   /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
@@ -168,10 +176,45 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setTransaction(transaction?: string): this {
+    this._transaction = transaction;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public setContext(name: string, context: { [key: string]: any } | null): this {
     this._context[name] = context ? normalize(context) : undefined;
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setSpan(span?: Span): this {
+    this._span = span;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startSpan(): Span {
+    const span = new Span();
+    this.setSpan(span);
+    return span;
+  }
+
+  /**
+   * Internal getter for Span, used in Hub.
+   * @hidden
+   */
+  public getSpan(): Span | undefined {
+    return this._span;
   }
 
   /**
@@ -190,6 +233,8 @@ export class Scope implements ScopeInterface {
       newScope._context = { ...scope._context };
       newScope._user = scope._user;
       newScope._level = scope._level;
+      newScope._span = scope._span;
+      newScope._transaction = scope._transaction;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
     }
@@ -206,7 +251,9 @@ export class Scope implements ScopeInterface {
     this._user = {};
     this._context = {};
     this._level = undefined;
+    this._transaction = undefined;
     this._fingerprint = undefined;
+    this._span = undefined;
     this._notifyScopeListeners();
     return this;
   }
@@ -282,6 +329,13 @@ export class Scope implements ScopeInterface {
     }
     if (this._level) {
       event.level = this._level;
+    }
+    if (this._transaction) {
+      event.transaction = this._transaction;
+    }
+    if (this._span) {
+      event.contexts = event.contexts || {};
+      event.contexts.trace = this._span;
     }
 
     this._applyFingerprint(event);

@@ -1,3 +1,5 @@
+import { isRegExp } from './is';
+
 /**
  * Truncates given string to the maximum characters count
  *
@@ -102,4 +104,19 @@ export function keysToEventMessage(keys: string[], maxLength: number = 40): stri
   }
 
   return '';
+}
+
+/**
+ * Checks if the value matches a regex or includes the string
+ * @param value The string value to be checked against
+ * @param pattern Either a regex or a string that must be contained in value
+ */
+export function isMatchingPattern(value: string, pattern: RegExp | string): boolean {
+  if (isRegExp(pattern)) {
+    return (pattern as RegExp).test(value);
+  }
+  if (typeof pattern === 'string') {
+    return value.includes(pattern);
+  }
+  return false;
 }

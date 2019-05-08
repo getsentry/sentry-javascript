@@ -21,8 +21,6 @@ cache:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - script: scripts/browser-saucelabs.sh
 
 stages:
   - Test
@@ -70,13 +68,6 @@ jobs:
         chrome: stable
         firefox: latest
       script: scripts/raven-js.sh
-    - stage: Saucelabs
-      name: '@sentry/browser - SauceLabs tests'
-      if: fork = false
-      node_js: '8'
-      addons:
-        sauce_connect: true
-      script: scripts/browser-saucelabs.sh
     - stage: Deploy
       name: '@sentry/packages - pack and zeus upload'
       node_js: '8'

@@ -124,7 +124,7 @@ export function onLoad(callback: () => void): void {
  *
  * @param timeout Maximum time in ms the client should wait.
  */
-export async function flush(timeout?: number): Promise<boolean> {
+export function flush(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<BrowserClient>();
   if (client) {
     return client.flush(timeout);
@@ -138,7 +138,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  *
  * @param timeout Maximum time in ms the client should wait.
  */
-export async function close(timeout?: number): Promise<boolean> {
+export function close(timeout?: number): Promise<boolean> {
   const client = getCurrentHub().getClient<BrowserClient>();
   if (client) {
     return client.close(timeout);

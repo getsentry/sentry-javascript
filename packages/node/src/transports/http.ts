@@ -21,7 +21,7 @@ export class HTTPTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(event: Event): Promise<Response> {
+  public sendEvent(event: Event): Promise<Response> {
     if (!this.module) {
       throw new SentryError('No module available in HTTPTransport');
     }

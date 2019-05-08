@@ -43,9 +43,7 @@ const plugins = [
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
   }),
   resolve({
-    module: true,
-    browser: false,
-    modulesOnly: false,
+    mainFields: ['module'],
   }),
   commonjs(),
 ];

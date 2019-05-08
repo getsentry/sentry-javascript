@@ -19,14 +19,14 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public async sendEvent(_: Event): Promise<Response> {
+  public sendEvent(_: Event): Promise<Response> {
     throw new SentryError('Transport Class has to implement `sendEvent` method');
   }
 
   /**
    * @inheritDoc
    */
-  public async close(timeout?: number): Promise<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     return this._buffer.drain(timeout);
   }
 }

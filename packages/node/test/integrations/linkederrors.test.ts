@@ -4,7 +4,7 @@ import { Event } from '../../src';
 import { NodeBackend } from '../../src/backend';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 
-let linkedErrors: LinkedErrors;
+let linkedErrors: any;
 
 describe('LinkedErrors', () => {
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('LinkedErrors', () => {
       const event = {
         message: 'foo',
       };
-      return linkedErrors.handler(event).then(result => {
+      return linkedErrors.handler(event).then((result: any) => {
         expect(spy.mock.calls.length).toEqual(0);
         expect(result).toEqual(event);
       });
@@ -77,17 +77,17 @@ describe('LinkedErrors', () => {
           .handler(event, {
             originalException: one,
           })
-          .then(result => {
-            expect(result!.exception!.values!.length).toEqual(3);
-            expect(result!.exception!.values![0].type).toEqual('SyntaxError');
-            expect(result!.exception!.values![0].value).toEqual('three');
-            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-            expect(result!.exception!.values![1].type).toEqual('TypeError');
-            expect(result!.exception!.values![1].value).toEqual('two');
-            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
-            expect(result!.exception!.values![2].type).toEqual('Error');
-            expect(result!.exception!.values![2].value).toEqual('one');
-            expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+          .then((result: any) => {
+            expect(result.exception.values.length).toEqual(3);
+            expect(result.exception.values[0].type).toEqual('SyntaxError');
+            expect(result.exception.values[0].value).toEqual('three');
+            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+            expect(result.exception.values[1].type).toEqual('TypeError');
+            expect(result.exception.values[1].value).toEqual('two');
+            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+            expect(result.exception.values[2].type).toEqual('Error');
+            expect(result.exception.values[2].value).toEqual('one');
+            expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
           }),
       );
     });
@@ -110,17 +110,17 @@ describe('LinkedErrors', () => {
           .handler(event, {
             originalException: one,
           })
-          .then(result => {
-            expect(result!.exception!.values!.length).toEqual(3);
-            expect(result!.exception!.values![0].type).toEqual('SyntaxError');
-            expect(result!.exception!.values![0].value).toEqual('three');
-            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-            expect(result!.exception!.values![1].type).toEqual('TypeError');
-            expect(result!.exception!.values![1].value).toEqual('two');
-            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
-            expect(result!.exception!.values![2].type).toEqual('Error');
-            expect(result!.exception!.values![2].value).toEqual('one');
-            expect(result!.exception!.values![2].stacktrace).toHaveProperty('frames');
+          .then((result: any) => {
+            expect(result.exception.values.length).toEqual(3);
+            expect(result.exception.values[0].type).toEqual('SyntaxError');
+            expect(result.exception.values[0].value).toEqual('three');
+            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+            expect(result.exception.values[1].type).toEqual('TypeError');
+            expect(result.exception.values[1].value).toEqual('two');
+            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+            expect(result.exception.values[2].type).toEqual('Error');
+            expect(result.exception.values[2].value).toEqual('one');
+            expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
           }),
       );
     });
@@ -143,14 +143,14 @@ describe('LinkedErrors', () => {
           .handler(event, {
             originalException: one,
           })
-          .then(result => {
-            expect(result!.exception!.values!.length).toEqual(2);
-            expect(result!.exception!.values![0].type).toEqual('TypeError');
-            expect(result!.exception!.values![0].value).toEqual('two');
-            expect(result!.exception!.values![0].stacktrace).toHaveProperty('frames');
-            expect(result!.exception!.values![1].type).toEqual('Error');
-            expect(result!.exception!.values![1].value).toEqual('one');
-            expect(result!.exception!.values![1].stacktrace).toHaveProperty('frames');
+          .then((result: any) => {
+            expect(result.exception.values.length).toEqual(2);
+            expect(result.exception.values[0].type).toEqual('TypeError');
+            expect(result.exception.values[0].value).toEqual('two');
+            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+            expect(result.exception.values[1].type).toEqual('Error');
+            expect(result.exception.values[1].value).toEqual('one');
+            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
           }),
       );
     });

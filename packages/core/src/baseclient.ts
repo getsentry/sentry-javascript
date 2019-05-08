@@ -165,24 +165,26 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public async flush(timeout?: number): Promise<boolean> {
-    const clientReady = await this._isClientProcessing(timeout);
-    if (this._processingInterval) {
-      clearInterval(this._processingInterval);
-    }
-    const transportFlushed = await this._getBackend()
-      .getTransport()
-      .close(timeout);
-    return clientReady && transportFlushed;
+  public flush(timeout?: number): Promise<boolean> {
+    return this._isClientProcessing(timeout).then(clientReady => {
+      if (this._processingInterval) {
+        clearInterval(this._processingInterval);
+      }
+      return this._getBackend()
+        .getTransport()
+        .close(timeout)
+        .then(transportFlushed => clientReady && transportFlushed);
+    });
   }
 
   /**
    * @inheritDoc
    */
-  public async close(timeout?: number): Promise<boolean> {
-    const result = await this.flush(timeout);
-    this.getOptions().enabled = false;
-    return result;
+  public close(timeout?: number): Promise<boolean> {
+    return this.flush(timeout).then(result => {
+      this.getOptions().enabled = false;
+      return result;
+    });
   }
 
   /**
@@ -205,7 +207,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected async _isClientProcessing(timeout?: number): Promise<boolean> {
+  protected _isClientProcessing(timeout?: number): Promise<boolean> {
     return new Promise<boolean>(resolve => {
       let ticked: number = 0;
       const tick: number = 1;

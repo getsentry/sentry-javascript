@@ -1,6 +1,7 @@
 import { Breadcrumb } from './breadcrumb';
 import { EventProcessor } from './eventprocessor';
 import { Severity } from './severity';
+import { Span } from './span';
 import { User } from './user';
 
 /**
@@ -57,11 +58,28 @@ export interface Scope {
   setLevel(level: Severity): this;
 
   /**
+   * Sets the transaction on the scope for future events.
+   * @param transaction string This will be converted in a tag in Sentry
+   */
+  setTransaction(transaction?: string): this;
+
+  /**
    * Sets context data with the given name.
    * @param name of the context
    * @param context Any kind of data. This data will be normailzed.
    */
   setContext(name: string, context: { [key: string]: any } | null): this;
+
+  /**
+   * Sets the Span on the scope.
+   * @param span Span
+   */
+  setSpan(span?: Span): this;
+
+  /**
+   * Starts a new Span.
+   */
+  startSpan(): Span;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

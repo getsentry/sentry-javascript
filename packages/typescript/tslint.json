@@ -17,6 +17,8 @@
     "no-inferrable-types": false,
     "ban-ts-ignore": false,
     "increment-decrement": false,
+    "promise-function-async": false,
+    "ban-types": [true, ["async", "Use Promises instead, it add a lot to bundle size."]],
     // These are too strict in tslint:all
     "comment-format": [true, "check-space"],
     "completed-docs": [

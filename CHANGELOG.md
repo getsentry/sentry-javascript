@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- [opentracing] ref: Removed opentracing package
+- [integrations] feat: Add tracing integration
+- [hub] feat: Add tracing related function to scope and hub (`Scope.startSpan`, `Scope.setSpan`, `Hub.traceHeaders`)
+- [hub] feat: Add new function to Scope `setContext`
+- [hub] feat: Add new function to Scope `setTransaction`
+
 ## 5.1.3
 
 - [browser] fix: GlobalHandler integration sometimes receives Event objects as message: Fix #1949

@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Event, Integration } from '@sentry/types';
-import { getEventDescription, isRegExp, logger } from '@sentry/utils';
+import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -102,7 +102,7 @@ export class InboundFilters implements Integration {
 
     return this._getPossibleEventMessages(event).some(message =>
       // Not sure why TypeScript complains here...
-      (options.ignoreErrors as Array<RegExp | string>).some(pattern => this._isMatchingPattern(message, pattern)),
+      (options.ignoreErrors as Array<RegExp | string>).some(pattern => isMatchingPattern(message, pattern)),
     );
   }
 
@@ -113,7 +113,7 @@ export class InboundFilters implements Integration {
       return false;
     }
     const url = this._getEventFilterUrl(event);
-    return !url ? false : options.blacklistUrls.some(pattern => this._isMatchingPattern(url, pattern));
+    return !url ? false : options.blacklistUrls.some(pattern => isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
@@ -123,7 +123,7 @@ export class InboundFilters implements Integration {
       return true;
     }
     const url = this._getEventFilterUrl(event);
-    return !url ? true : options.whitelistUrls.some(pattern => this._isMatchingPattern(url, pattern));
+    return !url ? true : options.whitelistUrls.some(pattern => isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
@@ -138,17 +138,6 @@ export class InboundFilters implements Integration {
       ignoreInternal: typeof this._options.ignoreInternal !== 'undefined' ? this._options.ignoreInternal : true,
       whitelistUrls: [...(this._options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
     };
-  }
-
-  /** JSDoc */
-  private _isMatchingPattern(value: string, pattern: RegExp | string): boolean {
-    if (isRegExp(pattern)) {
-      return (pattern as RegExp).test(value);
-    }
-    if (typeof pattern === 'string') {
-      return value.includes(pattern);
-    }
-    return false;
   }
 
   /** JSDoc */
