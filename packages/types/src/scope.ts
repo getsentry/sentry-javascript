@@ -1,7 +1,7 @@
 import { Breadcrumb } from './breadcrumb';
 import { EventProcessor } from './eventprocessor';
 import { Severity } from './severity';
-import { SpanContext } from './spancontext';
+import { Span } from './span';
 import { User } from './user';
 
 /**
@@ -71,15 +71,15 @@ export interface Scope {
   setContext(name: string, context: { [key: string]: any } | null): this;
 
   /**
-   * Sets the SpanContext on the scope.
-   * @param spanContext SpanContext
+   * Sets the Span on the scope.
+   * @param span Span
    */
-  setSpanContext(spanContext?: SpanContext): this;
+  setSpan(span?: Span): this;
 
   /**
    * Starts a new Span.
    */
-  startSpan(): SpanContext;
+  startSpan(): Span;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

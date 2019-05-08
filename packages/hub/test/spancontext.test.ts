@@ -1,12 +1,12 @@
-import { SpanContext, TRACEPARENT_REGEX } from '../src';
+import { Span, TRACEPARENT_REGEXP } from '../src';
 
-describe('SpanContext', () => {
+describe('Span', () => {
   test('toTraceparent', () => {
-    expect(new SpanContext().toTraceparent()).toMatch(TRACEPARENT_REGEX);
+    expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
   });
 
   test('fromTraceparent', () => {
-    const from = SpanContext.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-00') as any;
+    const from = Span.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-00') as any;
     expect(from._parent._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     expect(from._parent._spanId).toEqual('bbbbbbbbbbbbbbbb');
     expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
@@ -14,11 +14,11 @@ describe('SpanContext', () => {
   });
 
   test('fromTraceparent - invalid', () => {
-    expect(SpanContext.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
+    expect(Span.fromTraceparent('00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
   });
 
   test('toJSON', () => {
-    expect(JSON.stringify(new SpanContext('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'))).toEqual(
+    expect(JSON.stringify(new Span('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'))).toEqual(
       `{"span_id":"bbbbbbbbbbbbbbbb","trace_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`,
     );
   });
