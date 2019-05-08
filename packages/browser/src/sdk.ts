@@ -1,7 +1,9 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { WrappedFunction } from '@sentry/types';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
+import { wrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
@@ -144,4 +146,13 @@ export function close(timeout?: number): Promise<boolean> {
     return client.close(timeout);
   }
   return Promise.reject(false);
+}
+
+/**
+ * Wrap code within a try/catch block so the SDK is able to capture errors.
+ *
+ * @param fn A function to wrap.
+ */
+export function context(fn: WrappedFunction): any {
+  return wrap(fn);
 }

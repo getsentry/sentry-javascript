@@ -2,7 +2,7 @@ import { WrappedFunction } from '@sentry/types';
 import { expect } from 'chai';
 import { SinonSpy, spy } from 'sinon';
 
-import { wrap } from '../../src/integrations/helpers';
+import { wrap } from '../../src/helpers';
 
 describe('wrap()', () => {
   it('should wrap only functions', () => {

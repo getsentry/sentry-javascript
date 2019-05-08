@@ -14,8 +14,7 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
-
-import { breadcrumbEventHandler, keypressEventHandler, wrap } from './helpers';
+import { breadcrumbEventHandler, keypressEventHandler, wrap } from '../helpers';
 
 const global = getGlobalObject<Window>();
 let lastHref: string | undefined;
