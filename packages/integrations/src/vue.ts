@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { getGlobalObject, isPlainObject } from '@sentry/utils';
 
 /** JSDoc */
