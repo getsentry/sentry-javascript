@@ -51,12 +51,6 @@ export class CaptureConsole implements Integration {
             scope.setExtra('arguments', normalize(args, 3));
             scope.addEventProcessor(event => {
               event.logger = 'console';
-              if (event.sdk) {
-                event.sdk = {
-                  ...event.sdk,
-                  integrations: [...(event.sdk.integrations || []), 'console'],
-                };
-              }
               return event;
             });
 
