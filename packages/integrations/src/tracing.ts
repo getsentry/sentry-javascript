@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { fill, getGlobalObject, isMatchingPattern, SentryError, supportsNativeFetch } from '@sentry/utils';
+import { consoleSandbox, fill, getGlobalObject, isMatchingPattern, supportsNativeFetch } from '@sentry/utils';
 
 /** JSDoc */
 interface TracingOptions {
@@ -36,8 +36,18 @@ export class Tracing implements Integration {
    * @param _options TracingOptions
    */
   public constructor(private readonly _options: TracingOptions) {
-    if (!_options.tracingOrigins || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
-      throw new SentryError('You need to define `tracingOrigins` in the options. Set an array of urls to trace.');
+    if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
+      consoleSandbox(() => {
+        const defaultTracingOrigins = ['localhost', /^\//];
+        // tslint:disable: no-unsafe-any
+        // @ts-ignore
+        console.warning(
+          'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+        );
+        // @ts-ignore
+        console.warning(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+        // tslint:enable: no-unsafe-any
+      });
     }
   }
 
@@ -55,6 +65,11 @@ export class Tracing implements Integration {
       getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
         Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
       });
+      getGlobalObject<Window>().document.onreadystatechange = () => {
+        if (document.readyState === 'complete') {
+          Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
+        }
+      };
     }
   }
 
@@ -104,17 +119,18 @@ export class Tracing implements Integration {
           const self = getCurrentHub().getIntegration(Tracing);
           if (self && self._xhrUrl) {
             const headers = getCurrentHub().traceHeaders();
-            let whiteListed = false;
+            let whiteList = false;
+
             // tslint:disable-next-line: prefer-for-of
             for (let index = 0; index < self._options.tracingOrigins.length; index++) {
               const whiteListUrl = self._options.tracingOrigins[index];
-              whiteListed = isMatchingPattern(self._xhrUrl, whiteListUrl);
-              if (whiteListed) {
+              whiteList = isMatchingPattern(self._xhrUrl, whiteListUrl);
+              if (whiteList) {
                 break;
               }
             }
 
-            if (whiteListed && this.setRequestHeader) {
+            if (whiteList && this.setRequestHeader) {
               Object.keys(headers).forEach(key => {
                 this.setRequestHeader(key, headers[key]);
               });

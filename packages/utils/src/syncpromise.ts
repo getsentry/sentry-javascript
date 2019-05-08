@@ -3,11 +3,11 @@ import { isThenable } from './is';
 /** SyncPromise internal states */
 enum States {
   /** Pending */
-  P = 'P',
+  PENDING = 'PENDING',
   /** Resolved / OK */
-  O = 'O',
+  RESOLVED = 'RESOLVED',
   /** Rejected / Error */
-  E = 'E',
+  REJECTED = 'REJECTED',
 }
 
 /** JSDoc */
@@ -31,7 +31,7 @@ type Reject = (value?: any) => void;
 /** JSDoc */
 export class SyncPromise<T> implements PromiseLike<T> {
   /** JSDoc */
-  private _state: States = States.P;
+  private _state: States = States.PENDING;
   /** JSDoc */
   private _handlers: Array<Handler<T, any>> = [];
   /** JSDoc */
@@ -47,17 +47,17 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** JSDoc */
   private readonly _resolve = (value: T) => {
-    this._setResult(value, States.O);
+    this._setResult(value, States.RESOLVED);
   };
 
   /** JSDoc */
   private readonly _reject = (reason: any) => {
-    this._setResult(reason, States.E);
+    this._setResult(reason, States.REJECTED);
   };
 
   /** JSDoc */
   private readonly _setResult = (value: T | any, state: States) => {
-    if (this._state !== States.P) {
+    if (this._state !== States.PENDING) {
       return;
     }
 
@@ -74,11 +74,11 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** JSDoc */
   private readonly _executeHandlers = () => {
-    if (this._state === States.P) {
+    if (this._state === States.PENDING) {
       return;
     }
 
-    if (this._state === States.E) {
+    if (this._state === States.REJECTED) {
       // tslint:disable-next-line:no-unsafe-any
       this._handlers.forEach(h => h.onFail && h.onFail(this._value));
     } else {

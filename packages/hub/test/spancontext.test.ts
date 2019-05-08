@@ -11,6 +11,7 @@ describe('Span', () => {
     expect(from._parent._spanId).toEqual('bbbbbbbbbbbbbbbb');
     expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     expect(from._spanId).not.toEqual('bbbbbbbbbbbbbbbb');
+    expect(from._recorded).toEqual(false);
   });
 
   test('fromTraceparent - invalid', () => {
@@ -21,5 +22,11 @@ describe('Span', () => {
     expect(JSON.stringify(new Span('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'))).toEqual(
       `{"span_id":"bbbbbbbbbbbbbbbb","trace_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`,
     );
+  });
+
+  test('toJSON with parent', () => {
+    const spanA = new Span('a', 'b');
+    const spanB = new Span('c', 'd', false, spanA);
+    expect(JSON.stringify(spanB)).toEqual(`{"parent":{"span_id":"b","trace_id":"a"},"span_id":"d","trace_id":"c"}`);
   });
 });

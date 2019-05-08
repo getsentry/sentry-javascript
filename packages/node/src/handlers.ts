@@ -294,7 +294,7 @@ export function errorHandler(): (
       return;
     }
     withScope(scope => {
-      if (isString(_req.headers['sentry-trace'])) {
+      if (_req.headers && isString(_req.headers['sentry-trace'])) {
         const span = Span.fromTraceparent(_req.headers['sentry-trace'] as string);
         scope.setSpan(span);
       }
