@@ -8,6 +8,10 @@
 - [hub] feat: Add new function to Scope `setContext`
 - [hub] feat: Add new function to Scope `setTransaction`
 
+## 5.1.3
+
+- [browser] fix: GlobalHandler integration sometimes receives Event objects as message: Fix #1949
+
 ## 5.1.2
 
 - [browser] fix: Fixed a bug if Sentry was initialized multiple times: Fix #2043
