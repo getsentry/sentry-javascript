@@ -492,19 +492,17 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
 
     for (var i = 0, j = lines.length; i < j; ++i) {
       if ((parts = chrome.exec(lines[i]))) {
-        var isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
         isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
         if (isEval && (submatch = chromeEval.exec(parts[2]))) {
           // throw out eval line/column and use top-most line/column number
           parts[2] = submatch[1]; // url
-          // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
-          // parts[3] = submatch[2]; // line
-          // parts[4] = submatch[3]; // column
+          parts[3] = submatch[2]; // line
+          parts[4] = submatch[3]; // column
         }
         element = {
-          url: !isNative ? parts[2] : null,
+          url: parts[2],
           func: parts[1] || UNKNOWN_FUNCTION,
-          args: isNative ? [parts[2]] : [],
+          args: [],
           line: parts[3] ? +parts[3] : null,
           column: parts[4] ? +parts[4] : null,
         };
@@ -521,9 +519,8 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
         if (isEval && (submatch = geckoEval.exec(parts[3]))) {
           // throw out eval line/column and use top-most line number
           parts[3] = submatch[1];
-          // NOTE: It's messing out our integration tests in Karma, let's see if we can live with it – Kamil
-          // parts[4] = submatch[2];
-          // parts[5] = null; // no column when eval
+          parts[4] = submatch[2];
+          parts[5] = ''; // no column when eval
         } else if (i === 0 && !parts[5] && ex.columnNumber !== void 0) {
           // FireFox uses this awesome columnNumber property for its top frame
           // Also note, Firefox's column number is 0-based and everything else expects 1-based,
