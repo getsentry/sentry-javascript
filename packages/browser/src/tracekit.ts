@@ -38,6 +38,7 @@ interface ComputeStackTrace {
    * @param {(string|number)=} depth
    */
   (ex: Error, depth?: string | number): StackTrace;
+  _computeStackTraceFromStackProp(ex: any): StackTrace;
 }
 
 /**
@@ -469,7 +470,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
    * @memberof TraceKit._computeStackTrace
    */
   function _computeStackTraceFromStackProp(ex: any) {
-    if (!ex.stack) {
+    if (!ex || !ex.stack) {
       return null;
     }
 
