@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [browser] feat: Expose `wrap` function in `@sentry/browser`
+
 ## 5.2.0
 
 - [opentracing] ref: Removed opentracing package

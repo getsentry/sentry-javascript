@@ -153,6 +153,6 @@ export function close(timeout?: number): Promise<boolean> {
  *
  * @param fn A function to wrap.
  */
-export function context(fn: WrappedFunction): any {
+export function wrap(fn: WrappedFunction): any {
   return wrap(fn);
 }
