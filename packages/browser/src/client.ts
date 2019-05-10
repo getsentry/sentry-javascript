@@ -28,6 +28,7 @@ export interface ReportDialogOptions {
   errorGeneric?: string;
   errorFormEntry?: string;
   successMessage?: string;
+  /** Callback after reportDialog showed up */
   onLoad?(): void;
 }
 
