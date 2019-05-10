@@ -1,7 +1,7 @@
 import { Integration, WrappedFunction } from '@sentry/types';
 import { fill, getGlobalObject } from '@sentry/utils';
 
-import { wrap } from './helpers';
+import { wrap } from '../helpers';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {

@@ -71,6 +71,7 @@ export function wrap(
 
     const args = Array.prototype.slice.call(arguments);
 
+    // tslint:disable:no-unsafe-any
     try {
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
@@ -82,6 +83,7 @@ export function wrap(
         return fn.handleEvent.apply(this, wrappedArguments);
       }
       return fn.apply(this, wrappedArguments);
+      // tslint:enable:no-unsafe-any
     } catch (ex) {
       ignoreNextOnError();
 

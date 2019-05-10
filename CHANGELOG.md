@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- [browser] - feat: Added `onLoad` callback to `showReportDialog`
+- [browser] feat: Expose `wrap` function in `@sentry/browser`
+- [browser] feat: Added `onLoad` callback to `showReportDialog`
+- [browser] fix: Use 'native code' as a filename for some frames
 
 ## 5.2.0
 

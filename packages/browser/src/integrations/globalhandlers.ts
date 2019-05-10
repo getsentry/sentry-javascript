@@ -2,6 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
 import { addExceptionTypeValue, isString, logger, normalize, truncate } from '@sentry/utils';
 
+import { shouldIgnoreOnError } from '../helpers';
 import { eventFromStacktrace } from '../parsers';
 import {
   _installGlobalHandler,
@@ -9,8 +10,6 @@ import {
   _subscribe,
   StackTrace as TraceKitStackTrace,
 } from '../tracekit';
-
-import { shouldIgnoreOnError } from './helpers';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {
