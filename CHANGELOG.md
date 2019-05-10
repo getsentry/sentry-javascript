@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [browser] - feat: Added `onLoad` callback to `showReportDialog`
+
 ## 5.2.0
 
 - [opentracing] ref: Removed opentracing package
