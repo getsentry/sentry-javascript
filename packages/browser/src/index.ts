@@ -29,7 +29,7 @@ export {
 
 export { BrowserOptions } from './backend';
 export { BrowserClient, ReportDialogOptions } from './client';
-export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close } from './sdk';
+export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
 export { SDK_NAME, SDK_VERSION } from './version';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';

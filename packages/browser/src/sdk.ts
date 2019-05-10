@@ -1,5 +1,4 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { WrappedFunction } from '@sentry/types';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
@@ -153,6 +152,7 @@ export function close(timeout?: number): Promise<boolean> {
  *
  * @param fn A function to wrap.
  */
-export function wrap(fn: WrappedFunction): any {
-  return internalWrap(fn);
+export function wrap(fn: Function): void {
+  // tslint:disable-next-line: no-unsafe-any
+  internalWrap(fn)();
 }
