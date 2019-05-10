@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.2.1
 
 - [browser] feat: Expose `wrap` function in `@sentry/browser`
 - [browser] feat: Added `onLoad` callback to `showReportDialog`
