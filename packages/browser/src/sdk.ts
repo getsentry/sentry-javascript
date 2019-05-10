@@ -3,7 +3,7 @@ import { WrappedFunction } from '@sentry/types';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
-import { wrap } from './helpers';
+import { wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
@@ -154,5 +154,5 @@ export function close(timeout?: number): Promise<boolean> {
  * @param fn A function to wrap.
  */
 export function wrap(fn: WrappedFunction): any {
-  return wrap(fn);
+  return internalWrap(fn);
 }
