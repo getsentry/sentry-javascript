@@ -28,6 +28,7 @@ export interface ReportDialogOptions {
   errorGeneric?: string;
   errorFormEntry?: string;
   successMessage?: string;
+  onLoad?(): void;
 }
 
 /**
@@ -99,6 +100,11 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     const script = document.createElement('script');
     script.async = true;
     script.src = new API(dsn).getReportDialogEndpoint(options);
+
+    if (options.onLoad) {
+      script.onload = options.onLoad;
+    }
+
     (document.head || document.body).appendChild(script);
   }
 }
