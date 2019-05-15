@@ -38,7 +38,7 @@ import {
   ANDROID_REACT_NATIVE_PROD,
 } from './original-fixtures';
 
-describe.only('Parser', function() {
+describe('Tracekit - Original Tests', function() {
   it('should parse Safari 6 error', function() {
     var stackFrames = _computeStackTrace(SAFARI_6);
     expect(stackFrames).to.be.ok;
@@ -394,7 +394,7 @@ describe.only('Parser', function() {
     var stackFrames = _computeStackTrace({ message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' });
     expect(stackFrames.stack.length).to.be.equal(1);
     expect(stackFrames.stack[0]).to.deep.equal({
-      url: null,
+      url: 'native',
       func: 'Array.forEach',
       args: ['native'],
       line: null,
@@ -1166,7 +1166,7 @@ describe.only('Parser', function() {
     });
     expect(stackFrames.stack[2]).to.deep.equal({
       url: 'http://localhost:8080/file.js',
-      func: '?',
+      func: 'eval',
       args: [],
       line: 26,
       column: null,
