@@ -38,7 +38,6 @@ interface ComputeStackTrace {
    * @param {(string|number)=} depth
    */
   (ex: Error, depth?: string | number): StackTrace;
-  _computeStackTraceFromStackProp(ex: any): StackTrace;
 }
 
 /**
@@ -479,7 +478,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
       // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
       // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
       // We need this specific case for now because we want no other regex to match.
-      gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js))(?::(\d+))?(?::(\d+))?\s*$/i,
+      gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js))(?::(\d+))?(?::(\d+))?\s*$/i,
       winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
       // Used to additionally parse URL/line/column from eval frames
       isEval,
@@ -494,6 +493,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
 
     for (var i = 0, j = lines.length; i < j; ++i) {
       if ((parts = chrome.exec(lines[i]))) {
+        var isNative = parts[2] && parts[2].indexOf('native') === 0; // start of line
         isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
         if (isEval && (submatch = chromeEval.exec(parts[2]))) {
           // throw out eval line/column and use top-most line/column number
@@ -504,7 +504,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
         element = {
           url: parts[2],
           func: parts[1] || UNKNOWN_FUNCTION,
-          args: [],
+          args: isNative ? [parts[2]] : [],
           line: parts[3] ? +parts[3] : null,
           column: parts[4] ? +parts[4] : null,
         };
@@ -520,6 +520,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
         isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
         if (isEval && (submatch = geckoEval.exec(parts[3]))) {
           // throw out eval line/column and use top-most line number
+          parts[1] = parts[1] || `eval`;
           parts[3] = submatch[1];
           parts[4] = submatch[2];
           parts[5] = ''; // no column when eval
