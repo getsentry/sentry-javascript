@@ -1,46 +1,48 @@
-// @ts-ignore
+// tslint:disable:prefer-template
+// tslint:disable:object-literal-sort-keys
+// tslint:disable:max-file-line-count
 
 import { expect } from 'chai';
 
 import { _computeStackTrace } from '../../src/tracekit';
 
 import {
-  SAFARI_6,
-  SAFARI_7,
-  SAFARI_8,
-  SAFARI_8_EVAL,
-  FIREFOX_3,
-  FIREFOX_7,
-  FIREFOX_14,
-  FIREFOX_31,
-  FIREFOX_44_NS_EXCEPTION,
+  ANDROID_REACT_NATIVE,
+  ANDROID_REACT_NATIVE_PROD,
   CHROME_15,
   CHROME_36,
-  CHROME_XX_WEBPACK,
-  CHROME_48_EVAL,
   CHROME_48_BLOB,
-  IE_9,
+  CHROME_48_EVAL,
+  CHROME_XX_WEBPACK,
+  FIREFOX_14,
+  FIREFOX_3,
+  FIREFOX_31,
+  FIREFOX_43_EVAL,
+  FIREFOX_44_NS_EXCEPTION,
+  FIREFOX_50_RESOURCE_URL,
+  FIREFOX_7,
   IE_10,
   IE_11,
   IE_11_EVAL,
-  OPERA_854,
-  OPERA_902,
-  OPERA_927,
-  OPERA_964,
+  IE_9,
   OPERA_10,
   OPERA_11,
   OPERA_12,
   OPERA_25,
+  OPERA_854,
+  OPERA_902,
+  OPERA_927,
+  OPERA_964,
   PHANTOMJS_1_19,
-  FIREFOX_50_RESOURCE_URL,
-  FIREFOX_43_EVAL,
-  ANDROID_REACT_NATIVE,
-  ANDROID_REACT_NATIVE_PROD,
-} from './original-fixtures';
+  SAFARI_6,
+  SAFARI_7,
+  SAFARI_8,
+  SAFARI_8_EVAL,
+} from './originalfixtures';
 
-describe('Tracekit - Original Tests', function() {
-  it('should parse Safari 6 error', function() {
-    var stackFrames = _computeStackTrace(SAFARI_6);
+describe('Tracekit - Original Tests', () => {
+  it('should parse Safari 6 error', () => {
+    const stackFrames = _computeStackTrace(SAFARI_6);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(4);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -77,8 +79,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Safari 7 error', function() {
-    var stackFrames = _computeStackTrace(SAFARI_7);
+  it('should parse Safari 7 error', () => {
+    const stackFrames = _computeStackTrace(SAFARI_7);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -107,8 +109,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Safari 8 error', function() {
-    var stackFrames = _computeStackTrace(SAFARI_8);
+  it('should parse Safari 8 error', () => {
+    const stackFrames = _computeStackTrace(SAFARI_8);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -137,9 +139,9 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Safari 8 eval error', function() {
+  it('should parse Safari 8 eval error', () => {
     // TODO: Take into account the line and column properties on the error object and use them for the first stack trace.
-    var stackFrames = _computeStackTrace(SAFARI_8_EVAL);
+    const stackFrames = _computeStackTrace(SAFARI_8_EVAL);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -168,8 +170,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox 3 error', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_3);
+  it('should parse Firefox 3 error', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_3);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -230,8 +232,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox 7 error', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_7);
+  it('should parse Firefox 7 error', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_7);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -292,8 +294,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox 14 error', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_14);
+  it('should parse Firefox 14 error', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_14);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -322,8 +324,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox 31 error', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_31);
+  it('should parse Firefox 31 error', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_31);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -352,8 +354,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox 44 ns exceptions', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_44_NS_EXCEPTION);
+  it('should parse Firefox 44 ns exceptions', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_44_NS_EXCEPTION);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(4);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -390,8 +392,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Chrome error with no location', function() {
-    var stackFrames = _computeStackTrace({ message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' });
+  it('should parse Chrome error with no location', () => {
+    const stackFrames = _computeStackTrace({ message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' });
     expect(stackFrames.stack.length).to.be.equal(1);
     expect(stackFrames.stack[0]).to.deep.equal({
       url: 'native',
@@ -403,8 +405,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Chrome 15 error', function() {
-    var stackFrames = _computeStackTrace(CHROME_15);
+  it('should parse Chrome 15 error', () => {
+    const stackFrames = _computeStackTrace(CHROME_15);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(4);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -441,8 +443,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Chrome 36 error with port numbers', function() {
-    var stackFrames = _computeStackTrace(CHROME_36);
+  it('should parse Chrome 36 error with port numbers', () => {
+    const stackFrames = _computeStackTrace(CHROME_36);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -471,8 +473,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Chrome error with webpack URLs', function() {
-    var stackFrames = _computeStackTrace(CHROME_XX_WEBPACK);
+  it('should parse Chrome error with webpack URLs', () => {
+    const stackFrames = _computeStackTrace(CHROME_XX_WEBPACK);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(4);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -509,8 +511,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse nested eval() from Chrome', function() {
-    var stackFrames = _computeStackTrace(CHROME_48_EVAL);
+  it('should parse nested eval() from Chrome', () => {
+    const stackFrames = _computeStackTrace(CHROME_48_EVAL);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(5);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -555,8 +557,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Chrome error with blob URLs', function() {
-    var stackFrames = _computeStackTrace(CHROME_48_BLOB);
+  it('should parse Chrome error with blob URLs', () => {
+    const stackFrames = _computeStackTrace(CHROME_48_BLOB);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[1]).to.deep.equal({
@@ -609,14 +611,14 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse empty IE 9 error', function() {
-    var stackFrames = _computeStackTrace(IE_9);
+  it('should parse empty IE 9 error', () => {
+    const stackFrames = _computeStackTrace(IE_9);
     expect(stackFrames).to.be.ok;
     stackFrames.stack && expect(stackFrames.stack.length).to.equal(0);
   });
 
-  it('should parse IE 10 error', function() {
-    var stackFrames = _computeStackTrace(IE_10);
+  it('should parse IE 10 error', () => {
+    const stackFrames = _computeStackTrace(IE_10);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     // TODO: func should be normalized
@@ -646,8 +648,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse IE 11 error', function() {
-    var stackFrames = _computeStackTrace(IE_11);
+  it('should parse IE 11 error', () => {
+    const stackFrames = _computeStackTrace(IE_11);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     // TODO: func should be normalized
@@ -677,8 +679,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse IE 11 eval error', function() {
-    var stackFrames = _computeStackTrace(IE_11_EVAL);
+  it('should parse IE 11 eval error', () => {
+    const stackFrames = _computeStackTrace(IE_11_EVAL);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -707,8 +709,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 8.54 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_854);
+  it('should parse Opera 8.54 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_854);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -769,8 +771,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 9.02 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_902);
+  it('should parse Opera 9.02 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_902);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -831,8 +833,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 9.27 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_927);
+  it('should parse Opera 9.27 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_927);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -861,8 +863,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 9.64 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_964);
+  it('should parse Opera 9.64 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_964);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(6);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -915,8 +917,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 10 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_10);
+  it('should parse Opera 10 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_10);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -977,8 +979,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 11 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_11);
+  it('should parse Opera 11 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_11);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(7);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1039,9 +1041,9 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 12 error', function() {
+  it('should parse Opera 12 error', () => {
     // TODO: Improve anonymous function name.
-    var stackFrames = _computeStackTrace(OPERA_12);
+    const stackFrames = _computeStackTrace(OPERA_12);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1070,8 +1072,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Opera 25 error', function() {
-    var stackFrames = _computeStackTrace(OPERA_25);
+  it('should parse Opera 25 error', () => {
+    const stackFrames = _computeStackTrace(OPERA_25);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1100,8 +1102,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse PhantomJS 1.19 error', function() {
-    var stackFrames = _computeStackTrace(PHANTOMJS_1_19);
+  it('should parse PhantomJS 1.19 error', () => {
+    const stackFrames = _computeStackTrace(PHANTOMJS_1_19);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1130,8 +1132,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox errors with resource: URLs', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_50_RESOURCE_URL);
+  it('should parse Firefox errors with resource: URLs', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_50_RESOURCE_URL);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(3);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1144,8 +1146,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse Firefox errors with eval URLs', function() {
-    var stackFrames = _computeStackTrace(FIREFOX_43_EVAL);
+  it('should parse Firefox errors with eval URLs', () => {
+    const stackFrames = _computeStackTrace(FIREFOX_43_EVAL);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(5);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1190,8 +1192,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse React Native errors on Android', function() {
-    var stackFrames = _computeStackTrace(ANDROID_REACT_NATIVE);
+  it('should parse React Native errors on Android', () => {
+    const stackFrames = _computeStackTrace(ANDROID_REACT_NATIVE);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(8);
     expect(stackFrames.stack[0]).to.deep.equal({
@@ -1213,8 +1215,8 @@ describe('Tracekit - Original Tests', function() {
     });
   });
 
-  it('should parse React Native errors on Android Production', function() {
-    var stackFrames = _computeStackTrace(ANDROID_REACT_NATIVE_PROD);
+  it('should parse React Native errors on Android Production', () => {
+    const stackFrames = _computeStackTrace(ANDROID_REACT_NATIVE_PROD);
     expect(stackFrames).to.be.ok;
     expect(stackFrames.stack.length).to.equal(37);
     expect(stackFrames.stack[0]).to.deep.equal({

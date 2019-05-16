@@ -1,3 +1,6 @@
+// tslint:disable:prefer-template
+// tslint:disable:object-literal-sort-keys
+
 export const OPERA_854 = {
   name: 'foo',
   message:
