@@ -76,6 +76,7 @@ function loadAllIntegrations() {
           file: `build/${file.replace('.ts', build.extension)}`,
           format: 'cjs',
           sourcemap: true,
+          strict: false,
         },
         plugins: build.plugins,
       })),

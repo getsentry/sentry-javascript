@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "alwaysStrict": false,
     "declaration": true,
     "declarationMap": true,
     "downlevelIteration": true,
@@ -12,6 +13,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
+    "noImplicitUseStrict": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
