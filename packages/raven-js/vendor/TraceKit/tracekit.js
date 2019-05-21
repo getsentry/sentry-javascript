@@ -19,7 +19,11 @@ var TraceKit = {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+    ? global
+    : typeof self !== 'undefined'
+    ? self
+    : {};
 
 // global reference to slice
 var _slice = [].slice;
@@ -272,11 +276,14 @@ TraceKit.report = (function reportModuleWrapper() {
     // slow slow IE to see if onerror occurs or not before reporting
     // this exception; otherwise, we will end up with an incomplete
     // stack trace
-    setTimeout(function() {
-      if (lastException === ex) {
-        processLastException();
-      }
-    }, stack.incomplete ? 2000 : 0);
+    setTimeout(
+      function() {
+        if (lastException === ex) {
+          processLastException();
+        }
+      },
+      stack.incomplete ? 2000 : 0
+    );
 
     if (rethrow !== false) {
       throw ex; // re-throw to propagate to the top level (and cause window.onerror)
@@ -391,7 +398,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     var winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
     // NOTE: blob urls are now supposed to always have an origin, therefore it's format
     // which is `blob:http://url/path/with-some-uuid`, is matched by `blob.*?:\/` as well
-    var gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i;
+    var gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js))(?::(\d+))?(?::(\d+))?\s*$/i;
     // Used to additionally parse URL/line/column from eval frames
     var geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
     var chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
