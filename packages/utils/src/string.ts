@@ -8,7 +8,8 @@ import { isRegExp } from './is';
  * @returns string Encoded
  */
 export function truncate(str: string, max: number = 0): string {
-  if (max === 0) {
+  // tslint:disable-next-line:strict-type-predicates
+  if (typeof str !== 'string' || max === 0) {
     return str;
   }
   return str.length <= max ? str : `${str.substr(0, max)}...`;
