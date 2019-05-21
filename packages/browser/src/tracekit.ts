@@ -1,6 +1,6 @@
 // tslint:disable
 
-import { getGlobalObject, isError, isErrorEvent } from '@sentry/utils';
+import { getGlobalObject, isError, isErrorEvent, normalize } from '@sentry/utils';
 
 /**
  * @hidden
@@ -274,6 +274,9 @@ TraceKit._report = (function reportModuleWrapper() {
     var err = (e && (e.detail ? e.detail.reason : e.reason)) || e;
     var stack = TraceKit._computeStackTrace(err);
     stack.mechanism = 'onunhandledrejection';
+    if (!stack.message) {
+      stack.message = JSON.stringify(normalize(err))
+    }
     _notifyHandlers(stack, true, err);
   }
 

@@ -54,6 +54,7 @@ const bundleConfig = {
     format: 'iife',
     name: 'Sentry',
     sourcemap: true,
+    strict: false,
   },
   context: 'window',
   plugins: [
