@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.3.0
+
+- [browser] fix: Remove `use_strict` from `@sentry/browser`
+- [utils] fix: Guard string check in `truncate`
+- [browser] fix: TraceKit fix for eval frames
+
 ## 5.2.1
 
 - [browser] feat: Expose `wrap` function in `@sentry/browser`
