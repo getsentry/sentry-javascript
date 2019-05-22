@@ -667,9 +667,9 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
+                // non-error rejections doesnt provide stacktraces so we can skip the assertion
                 assert.equal(sentryData[0].exception.values[0].value, '"test"');
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
-                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
                 assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
@@ -696,9 +696,9 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
-                assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
+                // non-error rejections doesnt provide stacktraces so we can skip the assertion
+                assert.equal(sentryData[0].exception.values[0].value.length, 253);
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
-                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
                 assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
@@ -725,9 +725,9 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
+                // non-error rejections doesnt provide stacktraces so we can skip the assertion
                 assert.equal(sentryData[0].exception.values[0].value, '{"a":"b"}');
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
-                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
                 assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
@@ -761,9 +761,9 @@ for (var idx in frames) {
             },
             function(sentryData) {
               if (debounceAssertEventCount(sentryData, 1, done)) {
-                assert.isAtMost(sentryData[0].exception.values[0].value.length, 303);
+                // non-error rejections doesnt provide stacktraces so we can skip the assertion
+                assert.equal(sentryData[0].exception.values[0].value.length, 253);
                 assert.equal(sentryData[0].exception.values[0].type, 'UnhandledRejection');
-                assert.equal(sentryData[0].exception.values[0].stacktrace, undefined);
                 assert.equal(sentryData[0].exception.values[0].mechanism.handled, false);
                 assert.equal(sentryData[0].exception.values[0].mechanism.type, 'onunhandledrejection');
                 done();
