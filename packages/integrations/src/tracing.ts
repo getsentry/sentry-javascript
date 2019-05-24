@@ -3,7 +3,7 @@ import { consoleSandbox, fill, getGlobalObject, isMatchingPattern, supportsNativ
 
 /** JSDoc */
 interface TracingOptions {
-  tracingOrigins: Array<string | RegExp>;
+  tracingOrigins?: Array<string | RegExp>;
   traceXHR?: boolean;
   traceFetch?: boolean;
   autoStartOnDomReady?: boolean;
@@ -35,7 +35,7 @@ export class Tracing implements Integration {
    *
    * @param _options TracingOptions
    */
-  public constructor(private readonly _options: TracingOptions) {
+  public constructor(private readonly _options: TracingOptions = {}) {
     if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
       consoleSandbox(() => {
         const defaultTracingOrigins = ['localhost', /^\//];
@@ -88,7 +88,7 @@ export class Tracing implements Integration {
    * JSDoc
    */
   private _traceXHR(getCurrentHub: () => Hub): void {
-    if (!('XMLHttpRequest' in global)) {
+    if (!('XMLHttpRequest' in getGlobalObject<Window>())) {
       return;
     }
 
@@ -116,11 +116,12 @@ export class Tracing implements Integration {
         function(this: XMLHttpRequest, ...args: any[]): void {
           // @ts-ignore
           const self = getCurrentHub().getIntegration(Tracing);
-          if (self && self._xhrUrl) {
+          if (self && self._xhrUrl && self._options.tracingOrigins) {
+            const url = self._xhrUrl;
             const headers = getCurrentHub().traceHeaders();
             // tslint:disable-next-line: prefer-for-of
             const isWhitelisted = self._options.tracingOrigins.some((origin: string | RegExp) =>
-              isMatchingPattern(self._xhrUrl, origin),
+              isMatchingPattern(url, origin),
             );
 
             if (isWhitelisted && this.setRequestHeader) {
@@ -148,12 +149,12 @@ export class Tracing implements Integration {
       return function(...args: any[]): void {
         // @ts-ignore
         const self = getCurrentHub().getIntegration(Tracing);
-        if (self) {
+        if (self && self._options.tracingOrigins) {
           const url = args[0] as string;
           const options = args[1] as { [key: string]: any };
 
           let whiteListed = false;
-          self._options.tracingOrigins.forEach((whiteListUrl: string) => {
+          self._options.tracingOrigins.forEach((whiteListUrl: string | RegExp) => {
             if (!whiteListed) {
               whiteListed = isMatchingPattern(url, whiteListUrl);
             }
@@ -171,7 +172,7 @@ export class Tracing implements Integration {
           }
         }
         // tslint:disable-next-line: no-unsafe-any
-        return originalFetch.apply(global, args);
+        return originalFetch.apply(getGlobalObject<Window>(), args);
       };
     });
     // tslint:enable: only-arrow-functions
