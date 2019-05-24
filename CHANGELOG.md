@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.3.1
+
+- [integrations] fix: Tracing integration CDN build.
+
 ## 5.3.0
 
 - [browser] fix: Remove `use_strict` from `@sentry/browser`
