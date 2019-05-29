@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [minimal] feat: Add `getScope` returns the current Scope and an empty new one if there is no current hub.
+
 ## 5.3.1
 
 - [integrations] fix: Tracing integration CDN build.

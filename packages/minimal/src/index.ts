@@ -101,6 +101,14 @@ export function withScope(callback: (scope: Scope) => void): void {
   callOnHub<void>('withScope', callback);
 }
 
+
+/**
+ * Returns the current top Scope on the hub or an empty new Scope if there is is none on the hub.
+ */
+export function getScope(): Scope {
+  return callOnHub<Scope | undefined>('getScope') || new Scope();
+}
+
 /**
  * Calls a function on the latest client. Use this with caution, it's meant as
  * in "internal" helper so we don't need to expose every possible function in

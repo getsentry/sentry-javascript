@@ -23,6 +23,7 @@ export {
   withScope,
   getHubFromCarrier,
   getCurrentHub,
+  getScope,
   Hub,
   Scope,
 } from '@sentry/core';

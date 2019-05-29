@@ -1,6 +1,14 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import { Severity } from '@sentry/types';
-import { _callOnClient, captureEvent, captureException, captureMessage, configureScope, withScope } from '../../src';
+import {
+  _callOnClient,
+  captureEvent,
+  captureException,
+  captureMessage,
+  configureScope,
+  getScope,
+  withScope,
+} from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
@@ -207,5 +215,11 @@ describe('Minimal', () => {
       expect(global.__SENTRY__.hub._stack).toHaveLength(2);
     });
     expect(global.__SENTRY__.hub._stack).toHaveLength(1);
+  });
+
+  test('getScope', () => {
+    const scope = getScope();
+    scope.setTag('a', 'b');
+    expect(global.__SENTRY__.hub._stack[0].scope).toEqual(scope);
   });
 });

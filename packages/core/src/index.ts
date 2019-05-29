@@ -4,6 +4,7 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
+  getScope,
   withScope,
 } from '@sentry/minimal';
 export { addGlobalEventProcessor, getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';

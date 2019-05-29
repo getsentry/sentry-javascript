@@ -22,6 +22,7 @@ export {
   configureScope,
   getCurrentHub,
   getHubFromCarrier,
+  getScope,
   Hub,
   Scope,
   withScope,
