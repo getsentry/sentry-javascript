@@ -20,11 +20,15 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  withScope,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
   Scope,
+  setContext,
+  setExtras,
+  setTags,
+  setUser,
+  withScope,
 } from '@sentry/core';
 
 export { BrowserOptions } from './backend';

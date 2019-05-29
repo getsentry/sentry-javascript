@@ -24,6 +24,10 @@ export {
   getHubFromCarrier,
   Hub,
   Scope,
+  setContext,
+  setExtras,
+  setTags,
+  setUser,
   withScope,
 } from '@sentry/core';
 

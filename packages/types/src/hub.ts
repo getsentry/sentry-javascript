@@ -4,6 +4,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
+import { User } from './user';
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -109,6 +110,33 @@ export interface Hub {
    * @param hint May contain additional information about the original breadcrumb.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
+
+  /**
+   * Updates user context information for future events.
+   *
+   * @param user User context object to be set in the current context. Pass `null` to unset the user.
+   */
+  setUser(user: User | null): void;
+
+  /**
+   * Set an object that will be merged sent as tags data with the event.
+   * @param tags Tags context object to merge into current context.
+   */
+  setTags(tags: { [key: string]: string }): void;
+
+  /**
+   * Set an object that will be merged sent as extra data with the event.
+   * @param extras Extras object to merge into current context.
+   */
+  setExtras(extras: { [key: string]: any }): void;
+
+  /**
+   * Sets context data with the given name.
+   * @param name of the context
+   * @param context Any kind of data. This data will be normailzed.
+   */
+  setContext(name: string, context: { [key: string]: any } | null): void;
+
   /**
    * Callback to set context information onto the scope.
    *

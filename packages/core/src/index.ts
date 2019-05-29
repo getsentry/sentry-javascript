@@ -4,6 +4,10 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
+  setContext,
+  setExtras,
+  setTags,
+  setUser,
   withScope,
 } from '@sentry/minimal';
 export { addGlobalEventProcessor, getCurrentHub, Hub, getHubFromCarrier, Scope } from '@sentry/hub';
