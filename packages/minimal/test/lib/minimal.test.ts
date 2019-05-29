@@ -1,6 +1,17 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import { Severity } from '@sentry/types';
-import { _callOnClient, captureEvent, captureException, captureMessage, configureScope, withScope } from '../../src';
+import {
+  _callOnClient,
+  captureEvent,
+  captureException,
+  captureMessage,
+  configureScope,
+  setContext,
+  setExtras,
+  setTags,
+  setUser,
+  withScope,
+} from '../../src';
 import { init, TestClient, TestClient2 } from '../mocks/client';
 
 declare var global: any;
@@ -207,5 +218,29 @@ describe('Minimal', () => {
       expect(global.__SENTRY__.hub._stack).toHaveLength(2);
     });
     expect(global.__SENTRY__.hub._stack).toHaveLength(1);
+  });
+
+  test('setExtra', () => {
+    init({});
+    setExtras({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+  });
+
+  test('setTags', () => {
+    init({});
+    setTags({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+  });
+
+  test('setUser', () => {
+    init({});
+    setUser({ id: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
+  });
+
+  test('setContext', () => {
+    init({});
+    setContext('test', { id: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._context).toEqual({ test: { id: 'b' } });
   });
 });

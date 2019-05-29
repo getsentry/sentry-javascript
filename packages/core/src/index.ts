@@ -5,7 +5,7 @@ export {
   captureMessage,
   configureScope,
   setContext,
-  setExtras,
+  setExtra,
   setTags,
   setUser,
   withScope,

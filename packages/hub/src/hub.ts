@@ -251,12 +251,12 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extras: { [key: string]: any }): void {
+  public setExtra(extra: { [key: string]: any }): void {
     const top = this.getStackTop();
     if (!top.scope) {
       return;
     }
-    top.scope.setExtras(extras);
+    top.scope.setExtras(extra);
   }
 
   /**
