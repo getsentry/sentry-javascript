@@ -75,8 +75,8 @@ export function wrap(
     try {
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
-      //       means Raven caught an error invoking your application code. This is
-      //       expected behavior and NOT indicative of a bug with Raven.js.
+      //       means the sentry.javascript SDK caught an error invoking your application code. This
+      //       is expected behavior and NOT indicative of a bug with sentry.javascript.
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
