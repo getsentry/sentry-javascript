@@ -232,6 +232,18 @@ describe('Minimal', () => {
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
+  test('setExtra', () => {
+    init({});
+    setExtra({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+  });
+
+  test('setTag', () => {
+    init({});
+    setTag({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+  });
+
   test('setUser', () => {
     init({});
     setUser({ id: 'b' });

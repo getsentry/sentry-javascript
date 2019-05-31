@@ -262,6 +262,28 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  public setTag(key: string, value: string): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setTag(key, value);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setExtra(key: string, extra: any): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setTag(key, extra);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public setContext(name: string, context: { [key: string]: any } | null): void {
     const top = this.getStackTop();
     if (!top.scope) {

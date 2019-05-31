@@ -102,20 +102,39 @@ export function setExtras(extras: { [key: string]: any }): void {
 }
 
 /**
+ * Set an object that will be merged sent as tags data with the event.
+ * @param tags Tags context object to merge into current context.
+ */
+export function setTags(tags: { [key: string]: string }): void {
+  callOnHub<void>('setTags', tags);
+}
+
+/**
+ * Set key:value that will be sent as extra data with the event.
+ * @param key String of extra
+ * @param extra Any kind of data. This data will be normailzed.
+ */
+
+export function setExtra(key: string, extra: any): void {
+  callOnHub<void>('setExtra', key, extra);
+}
+
+/**
+ * Set key:value that will be sent as tags data with the event.
+ * @param key String key of tag
+ * @param value String value of tag
+ */
+export function setTag(key: string, value: string): void {
+  callOnHub<void>('setTag', key, value);
+}
+
+/**
  * Updates user context information for future events.
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): void {
   callOnHub<void>('setUser', user);
-}
-
-/**
- * Set an object that will be merged sent as tags data with the event.
- * @param tags Tags context object to merge into current context.
- */
-export function setTags(tags: { [key: string]: string }): void {
-  callOnHub<void>('setTags', tags);
 }
 
 /**
