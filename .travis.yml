@@ -70,7 +70,7 @@ jobs:
       script: scripts/raven-js.sh
     - stage: Deploy
       name: '@sentry/packages - pack and zeus upload'
-      node_js: '8'
+      node_js: '10'
       script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
 
 notifications:
