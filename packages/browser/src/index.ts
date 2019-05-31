@@ -25,7 +25,7 @@ export {
   Hub,
   Scope,
   setContext,
-  setExtra,
+  setExtras,
   setTags,
   setUser,
   withScope,

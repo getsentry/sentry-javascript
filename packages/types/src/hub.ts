@@ -126,9 +126,9 @@ export interface Hub {
 
   /**
    * Set an object that will be merged sent as extra data with the event.
-   * @param extra Extra object to merge into current context.
+   * @param extras Extras object to merge into current context.
    */
-  setExtra(extra: { [key: string]: any }): void;
+  setExtras(extras: { [key: string]: any }): void;
 
   /**
    * Sets context data with the given name.

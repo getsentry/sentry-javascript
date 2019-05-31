@@ -95,10 +95,10 @@ export function setContext(name: string, context: { [key: string]: any } | null)
 
 /**
  * Set an object that will be merged sent as extra data with the event.
- * @param extra Extra object to merge into current context.
+ * @param extras Extras object to merge into current context.
  */
-export function setExtra(extra: { [key: string]: any }): void {
-  callOnHub<void>('setExtra', extra);
+export function setExtras(extras: { [key: string]: any }): void {
+  callOnHub<void>('setExtras', extras);
 }
 
 /**
