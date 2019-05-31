@@ -12,10 +12,12 @@ build-docs:
 
 publish-docs: build-docs
 	rm -rf /tmp/sentry-js-docs | true
-	cp -r ./docs /tmp/sentry-js-docs
-	git checkout gh-pages
-	cp -r /tmp/sentry-js-docs/* .
-	git commit -a -m "meta: Update docs"
+	mkdir /tmp/sentry-js-docs
+	cp -r ./docs /tmp/sentry-js-docs/docs
+	cd /tmp/sentry-js-docs && \
+	git clone --single-branch --branch gh-pages git@github.com:getsentry/sentry-javascript.git && \
+	cp -r /tmp/sentry-js-docs/docs/* /tmp/sentry-js-docs/sentry-javascript/ && \
+	cd /tmp/sentry-js-docs/sentry-javascript && \
+	git commit -a -m "meta: Update docs" && \
 	git push origin gh-pages
-	git checkout master
 .PHONY: publish-docs
