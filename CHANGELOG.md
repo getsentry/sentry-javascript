@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`, `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
+
 ## 5.3.1
 
 - [integrations] fix: Tracing integration CDN build.

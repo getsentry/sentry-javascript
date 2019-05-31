@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity } from '@sentry/types';
+import { Breadcrumb, Event, Severity, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -65,6 +65,14 @@ export function captureEvent(event: Event): string {
 }
 
 /**
+ * Callback to set context information onto the scope.
+ * @param callback Callback function that receives Scope.
+ */
+export function configureScope(callback: (scope: Scope) => void): void {
+  callOnHub<void>('configureScope', callback);
+}
+
+/**
  * Records a new breadcrumb which will be attached to future events.
  *
  * Breadcrumbs will be added to subsequent events to provide more context on
@@ -77,11 +85,56 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 }
 
 /**
- * Callback to set context information onto the scope.
- * @param callback Callback function that receives Scope.
+ * Sets context data with the given name.
+ * @param name of the context
+ * @param context Any kind of data. This data will be normailzed.
  */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callOnHub<void>('configureScope', callback);
+export function setContext(name: string, context: { [key: string]: any } | null): void {
+  callOnHub<void>('setContext', name, context);
+}
+
+/**
+ * Set an object that will be merged sent as extra data with the event.
+ * @param extras Extras object to merge into current context.
+ */
+export function setExtras(extras: { [key: string]: any }): void {
+  callOnHub<void>('setExtras', extras);
+}
+
+/**
+ * Set an object that will be merged sent as tags data with the event.
+ * @param tags Tags context object to merge into current context.
+ */
+export function setTags(tags: { [key: string]: string }): void {
+  callOnHub<void>('setTags', tags);
+}
+
+/**
+ * Set key:value that will be sent as extra data with the event.
+ * @param key String of extra
+ * @param extra Any kind of data. This data will be normailzed.
+ */
+
+export function setExtra(key: string, extra: any): void {
+  callOnHub<void>('setExtra', key, extra);
+}
+
+/**
+ * Set key:value that will be sent as tags data with the event.
+ * @param key String key of tag
+ * @param value String value of tag
+ */
+export function setTag(key: string, value: string): void {
+  callOnHub<void>('setTag', key, value);
+}
+
+/**
+ * Updates user context information for future events.
+ *
+ * @param user User context object to be set in the current context. Pass `null` to unset the user.
+ */
+export function setUser(user: User | null): void {
+  callOnHub<void>('setUser', user);
 }
 
 /**

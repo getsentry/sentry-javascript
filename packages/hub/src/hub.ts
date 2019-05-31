@@ -8,6 +8,7 @@ import {
   Integration,
   IntegrationClass,
   Severity,
+  User,
 } from '@sentry/types';
 import { consoleSandbox, dynamicRequire, getGlobalObject, logger, uuid4 } from '@sentry/utils';
 
@@ -228,10 +229,75 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  public setUser(user: User | null): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setUser(user);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setTags(tags: { [key: string]: string }): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setTags(tags);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setExtras(extras: { [key: string]: any }): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setExtras(extras);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setTag(key: string, value: string): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setTag(key, value);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setExtra(key: string, extra: any): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setExtra(key, extra);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setContext(name: string, context: { [key: string]: any } | null): void {
+    const top = this.getStackTop();
+    if (!top.scope) {
+      return;
+    }
+    top.scope.setContext(name, context);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public configureScope(callback: (scope: Scope) => void): void {
     const top = this.getStackTop();
     if (top.scope && top.client) {
-      // TODO: freeze flag
       callback(top.scope);
     }
   }

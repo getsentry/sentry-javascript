@@ -19,5 +19,5 @@ module.exports = {
   excludeExternals: true,
   excludeNotExported: true,
   excludePrivate: true,
-  'external-modulemap': '.*packages/([^/]+)/.*',
+  'external-modulemap': '.*/packages/([^/]+)/.*',
 };
