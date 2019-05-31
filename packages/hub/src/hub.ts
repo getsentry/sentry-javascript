@@ -278,7 +278,7 @@ export class Hub implements HubInterface {
     if (!top.scope) {
       return;
     }
-    top.scope.setTag(key, extra);
+    top.scope.setExtra(key, extra);
   }
 
   /**

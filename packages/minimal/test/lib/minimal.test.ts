@@ -1,5 +1,6 @@
 import { getCurrentHub, getHubFromCarrier, Scope } from '@sentry/hub';
 import { Severity } from '@sentry/types';
+
 import {
   _callOnClient,
   captureEvent,
@@ -7,7 +8,9 @@ import {
   captureMessage,
   configureScope,
   setContext,
+  setExtra,
   setExtras,
+  setTag,
   setTags,
   setUser,
   withScope,
@@ -234,14 +237,16 @@ describe('Minimal', () => {
 
   test('setExtra', () => {
     init({});
-    setExtra({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+    setExtra('a', 'b');
+    // prettier-ignore
+    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
   });
 
   test('setTag', () => {
     init({});
-    setTag({ a: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    setTag('a', 'b');
+    // prettier-ignore
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
   });
 
   test('setUser', () => {
