@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.4.1
+
+- [integrations] fix: Tracing integration fetch headers bug.
+
 ## 5.4.0
 
 - [global] feat: Exposed new simplified scope API. `Sentry.setTag`, `Sentry.setTags`, `Sentry.setExtra`, `Sentry.setExtras`, `Sentry.setUser`, `Sentry.setContext`
