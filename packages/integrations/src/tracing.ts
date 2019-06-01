@@ -162,10 +162,14 @@ export class Tracing implements Integration {
 
           if (options && whiteListed) {
             if (options.headers) {
-              options.headers = {
-                ...options.headers,
-                ...getCurrentHub().traceHeaders(),
-              };
+              if (Array.isArray(options.headers)) {
+                options.headers = [...options.headers, ...Object.entries(getCurrentHub().traceHeaders())];
+              } else {
+                options.headers = {
+                  ...options.headers,
+                  ...getCurrentHub().traceHeaders(),
+                };
+              }
             } else {
               options.headers = getCurrentHub().traceHeaders();
             }
