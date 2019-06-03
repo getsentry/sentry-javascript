@@ -93,7 +93,7 @@ export class Vue implements Integration {
             scope.setContext('vue', metadata);
             getCurrentHub().captureException(error);
           });
-        }, 10);
+        });
       }
 
       if (typeof oldOnError === 'function') {
