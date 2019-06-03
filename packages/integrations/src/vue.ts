@@ -66,7 +66,6 @@ export class Vue implements Integration {
 
     if (!this._Vue || !this._Vue.config) {
       console.error('VueIntegration is missing a Vue instance');
-      4;
       return;
     }
 
