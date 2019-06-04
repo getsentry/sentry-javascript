@@ -80,14 +80,38 @@ export function supportsFetch(): boolean {
  * Tells whether current environment supports Fetch API natively
  * {@link supportsNativeFetch}.
  *
- * @returns Answer to the given question.
+ * @returns true if `window.fetch` is natively implemented, false otherwise
  */
 export function supportsNativeFetch(): boolean {
   if (!supportsFetch()) {
     return false;
   }
+
+  const isNativeFunc = (func: Function) => func.toString().indexOf('native') !== -1;
   const global = getGlobalObject<Window>();
-  return global.fetch.toString().indexOf('native') !== -1;
+  let result = null;
+  const doc = global.document;
+  if (doc) {
+    const sandbox = doc.createElement('iframe');
+    sandbox.hidden = true;
+    try {
+      doc.head.appendChild(sandbox);
+      if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
+        // tslint:disable-next-line no-unbound-method
+        result = isNativeFunc(sandbox.contentWindow.fetch);
+      }
+      doc.head.removeChild(sandbox);
+    } catch (err) {
+      console.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
+    }
+  }
+
+  if (result === null) {
+    // tslint:disable-next-line no-unbound-method
+    result = isNativeFunc(global.fetch);
+  }
+
+  return result;
 }
 
 /**

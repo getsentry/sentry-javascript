@@ -4,6 +4,7 @@
 
 - [integrations] fix: Tracing integration fetch headers bug.
 - [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
+- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
 
 ## 5.4.0
 
