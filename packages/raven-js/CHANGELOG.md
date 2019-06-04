@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.27.2
+
+- FIX: Plugin in npm package
+
 ## 3.27.1
 
 - FIX: TraceKit Gecko regex to support ram bundles

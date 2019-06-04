@@ -1,10 +1,10 @@
-/*! Raven.js 3.27.0 (200cffcc) | github.com/getsentry/raven-js */
+/*! Raven.js 3.27.2 (6d91db933) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
  * https://github.com/getsentry/TraceKit
  *
- * Copyright (c) 2018 Sentry (https://sentry.io) and individual contributors.
+ * Copyright (c) 2019 Sentry (https://sentry.io) and individual contributors.
  * All rights reserved.
  * https://github.com/getsentry/sentry-javascript/blob/master/packages/raven-js/LICENSE
  *
@@ -206,7 +206,7 @@ Raven.prototype = {
   // webpack (using a build step causes webpack #1617). Grunt verifies that
   // this value matches package.json during build.
   //   See: https://github.com/getsentry/raven-js/issues/465
-  VERSION: '3.27.0',
+  VERSION: '3.27.2',
 
   debug: false,
 
@@ -1989,6 +1989,9 @@ Raven.prototype = {
     } else if (current.exception || last.exception) {
       // Exception interface (i.e. from captureException/onerror)
       return isSameException(current.exception, last.exception);
+    } else if (current.fingerprint || last.fingerprint) {
+      return Boolean(current.fingerprint && last.fingerprint) &&
+        JSON.stringify(current.fingerprint) === JSON.stringify(last.fingerprint)
     }
 
     return true;
@@ -3104,7 +3107,11 @@ var TraceKit = {
 var _window =
   typeof window !== 'undefined'
     ? window
-    : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+    : typeof global !== 'undefined'
+    ? global
+    : typeof self !== 'undefined'
+    ? self
+    : {};
 
 // global reference to slice
 var _slice = [].slice;
@@ -3357,11 +3364,14 @@ TraceKit.report = (function reportModuleWrapper() {
     // slow slow IE to see if onerror occurs or not before reporting
     // this exception; otherwise, we will end up with an incomplete
     // stack trace
-    setTimeout(function() {
-      if (lastException === ex) {
-        processLastException();
-      }
-    }, stack.incomplete ? 2000 : 0);
+    setTimeout(
+      function() {
+        if (lastException === ex) {
+          processLastException();
+        }
+      },
+      stack.incomplete ? 2000 : 0
+    );
 
     if (rethrow !== false) {
       throw ex; // re-throw to propagate to the top level (and cause window.onerror)
@@ -3476,7 +3486,7 @@ TraceKit.computeStackTrace = (function computeStackTraceWrapper() {
     var winjs = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx(?:-web)|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
     // NOTE: blob urls are now supposed to always have an origin, therefore it's format
     // which is `blob:http://url/path/with-some-uuid`, is matched by `blob.*?:\/` as well
-    var gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i;
+    var gecko = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|moz-extension).*?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js))(?::(\d+))?(?::(\d+))?\s*$/i;
     // Used to additionally parse URL/line/column from eval frames
     var geckoEval = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
     var chromeEval = /\((\S*)(?::(\d+))(?::(\d+))\)/;
