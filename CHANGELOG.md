@@ -3,6 +3,7 @@
 ## 5.4.1
 
 - [integrations] fix: Tracing integration fetch headers bug.
+- [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
 
 ## 5.4.0
 
