@@ -157,6 +157,49 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs[0].message).toBe('hello');
       expect((scope as any)._breadcrumbs[0].data).toBe('someRandomThing');
     });
+
+    test('calls beforeBreadcrumb and waits for promise response then uses breadcrumb', async () => {
+      jest.useFakeTimers();
+      expect.assertions(2);
+      const beforeBreadcrumb = jest.fn(
+        async () =>
+          new Promise<any>(resolve => {
+            setTimeout(() => {
+              resolve({ message: 'changed' });
+            }, 1);
+          }),
+      );
+
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' });
+      expect((scope as any)._breadcrumbs.length).toBe(0);
+      jest.runAllTimers();
+      await Promise.resolve(); // Flush the promise queue https://github.com/facebook/jest/issues/7151
+      expect((scope as any)._breadcrumbs[0].message).toBe('changed');
+    });
+
+    test('calls beforeBreadcrumb and waits for promise response then discards if null', async () => {
+      jest.useFakeTimers();
+      expect.assertions(2);
+      const beforeBreadcrumb = jest.fn(
+        async () =>
+          new Promise<any>(resolve => {
+            setTimeout(() => {
+              resolve(null);
+            }, 1);
+          }),
+      );
+      const client = new TestClient({ beforeBreadcrumb });
+      const scope = new Scope();
+      const hub = new Hub(client, scope);
+      hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
+      expect((scope as any)._breadcrumbs.length).toBe(0);
+      jest.runAllTimers();
+      await Promise.resolve(); // Flush the promise queue https://github.com/facebook/jest/issues/7151
+      expect((scope as any)._breadcrumbs.length).toBe(0);
+    });
   });
 
   describe('captures', () => {

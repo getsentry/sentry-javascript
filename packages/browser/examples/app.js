@@ -85,6 +85,13 @@ Sentry.init({
         breadcrumb.message = `User clicked on a button with label "${label}"`;
       }
     }
+
+    // if we get back a failed fetch, add a breadcrumb with the error code.
+    if (breadcrumb.category === 'fetch') {
+      if (hint && hint.response && hint.response.body) {
+        return hint.response.body().then(({ errorCode }) => ({ ...breadcrumb, errorCode }));
+      }
+    }
     console.log(breadcrumb);
     return breadcrumb;
   },

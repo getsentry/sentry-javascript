@@ -106,5 +106,5 @@ export interface Options {
    * @param breadcrumb The breadcrumb as created by the SDK.
    * @returns The breadcrumb that will be added | null.
    */
-  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+  beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): PromiseLike<Breadcrumb | null> | Breadcrumb | null;
 }

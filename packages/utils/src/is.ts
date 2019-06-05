@@ -99,7 +99,7 @@ export function isRegExp(wat: any): boolean {
  * Checks whether given value has a then function.
  * @param wat A value to be checked.
  */
-export function isThenable(wat: any): boolean {
+export function isThenable<T>(wat: any): wat is PromiseLike<T> {
   // tslint:disable:no-unsafe-any
   return Boolean(wat && wat.then && typeof wat.then === 'function');
   // tslint:enable:no-unsafe-any

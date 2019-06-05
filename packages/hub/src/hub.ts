@@ -10,7 +10,7 @@ import {
   Severity,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dynamicRequire, getGlobalObject, logger, uuid4 } from '@sentry/utils';
+import { consoleSandbox, dynamicRequire, getGlobalObject, isThenable, logger, uuid4 } from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -215,15 +215,27 @@ export class Hub implements HubInterface {
 
     const timestamp = new Date().getTime() / 1000;
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
-    const finalBreadcrumb = beforeBreadcrumb
-      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
+    const beforeBreadcrumbResponse = beforeBreadcrumb
+      ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as
+          | PromiseLike<Breadcrumb | null>
+          | Breadcrumb
+          | null)
       : mergedBreadcrumb;
 
-    if (finalBreadcrumb === null) {
+    if (beforeBreadcrumbResponse === null) {
       return;
     }
 
-    top.scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    if (isThenable(beforeBreadcrumbResponse)) {
+      beforeBreadcrumbResponse.then((finalBreadcrumb: Breadcrumb | null) => {
+        if (!top.scope || finalBreadcrumb === null) {
+          return;
+        }
+        top.scope.addBreadcrumb(finalBreadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+      });
+    } else {
+      top.scope.addBreadcrumb(beforeBreadcrumbResponse as Breadcrumb, Math.min(maxBreadcrumbs, MAX_BREADCRUMBS));
+    }
   }
 
   /**
