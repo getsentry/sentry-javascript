@@ -17,8 +17,6 @@ import { HTTPSTransport, HTTPTransport } from './transports';
  * @see NodeClient for more information.
  */
 export interface NodeOptions extends Options {
-  [key: string]: any;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 
