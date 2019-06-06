@@ -143,11 +143,14 @@ export function wrap(
 
   // Restore original function name (not all browsers allow that)
   try {
-    Object.defineProperty(sentryWrapped, 'name', {
-      get(): string {
-        return fn.name;
-      },
-    });
+    const descriptor = Object.getOwnPropertyDescriptor(sentryWrapped, 'name') as PropertyDescriptor;
+    if (descriptor.configurable) {
+      Object.defineProperty(sentryWrapped, 'name', {
+        get(): string {
+          return fn.name;
+        },
+      });
+    }
   } catch (_oO) {
     /*no-empty*/
   }
