@@ -1,5 +1,5 @@
 import { Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
-import { isError, isPlainObject, normalize } from '@sentry/utils';
+import { isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 /** JSDoc */
 interface ExtraErrorDataOptions {
@@ -94,7 +94,7 @@ export class ExtraErrorData implements Integration {
         };
       }
     } catch (oO) {
-      console.error('Unable to extract extra data from the Error object:', oO);
+      logger.error('Unable to extract extra data from the Error object:', oO);
     }
 
     return result;
