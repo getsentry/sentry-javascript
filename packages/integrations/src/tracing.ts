@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { consoleSandbox, fill, getGlobalObject, isMatchingPattern, supportsNativeFetch } from '@sentry/utils';
+import { fill, getGlobalObject, isMatchingPattern, logger, supportsNativeFetch } from '@sentry/utils';
 
 /** JSDoc */
 interface TracingOptions {
@@ -37,16 +37,12 @@ export class Tracing implements Integration {
    */
   public constructor(private readonly _options: TracingOptions = {}) {
     if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
-      consoleSandbox(() => {
-        const defaultTracingOrigins = ['localhost', /^\//];
-        // @ts-ignore
-        console.warn(
-          'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-        );
-        // @ts-ignore
-        console.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
-        _options.tracingOrigins = defaultTracingOrigins;
-      });
+      const defaultTracingOrigins = ['localhost', /^\//];
+      logger.warn(
+        'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+      );
+      logger.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+      _options.tracingOrigins = defaultTracingOrigins;
     }
   }
 
