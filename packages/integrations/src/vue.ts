@@ -87,12 +87,12 @@ export class Vue implements Integration {
       }
 
       if (getCurrentHub().getIntegration(Vue)) {
-        getCurrentHub().withScope(scope => {
-          Object.keys(metadata).forEach(key => {
-            scope.setExtra(key, metadata[key]);
+        // This timeout makes sure that any breadcrumbs are recorded before sending it off the sentry
+        setTimeout(() => {
+          getCurrentHub().withScope(scope => {
+            scope.setContext('vue', metadata);
+            getCurrentHub().captureException(error);
           });
-
-          getCurrentHub().captureException(error);
         });
       }
 
