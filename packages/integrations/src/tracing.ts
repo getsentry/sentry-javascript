@@ -4,8 +4,9 @@ import { fill, getGlobalObject, isMatchingPattern, logger, supportsNativeFetch }
 /** JSDoc */
 interface TracingOptions {
   tracingOrigins?: Array<string | RegExp>;
-  traceXHR?: boolean;
+  traceId?: string;
   traceFetch?: boolean;
+  traceXHR?: boolean;
   autoStartOnDomReady?: boolean;
 }
 
@@ -147,7 +148,7 @@ export class Tracing implements Integration {
         const self = getCurrentHub().getIntegration(Tracing);
         if (self && self._options.tracingOrigins) {
           const url = args[0] as string;
-          const options = args[1] as { [key: string]: any };
+          const options = (args[1] = (args[1] as { [key: string]: any }) || {});
 
           let whiteListed = false;
           self._options.tracingOrigins.forEach((whiteListUrl: string | RegExp) => {
@@ -156,7 +157,7 @@ export class Tracing implements Integration {
             }
           });
 
-          if (options && whiteListed) {
+          if (whiteListed) {
             if (options.headers) {
               if (Array.isArray(options.headers)) {
                 options.headers = [...options.headers, ...Object.entries(getCurrentHub().traceHeaders())];
