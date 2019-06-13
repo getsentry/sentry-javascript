@@ -4,7 +4,6 @@ import { fill, getGlobalObject, isMatchingPattern, logger, supportsNativeFetch }
 /** JSDoc */
 interface TracingOptions {
   tracingOrigins?: Array<string | RegExp>;
-  traceId?: string;
   traceFetch?: boolean;
   traceXHR?: boolean;
   autoStartOnDomReady?: boolean;
