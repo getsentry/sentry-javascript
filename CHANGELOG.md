@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
+
 ## 5.4.1
 
 - [integrations] fix: Tracing integration fetch headers bug.
