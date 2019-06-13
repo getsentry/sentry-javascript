@@ -69,7 +69,7 @@ export interface Options {
   /** 
   * The maximum number of breadcrumbs sent with events. Defaults to 30.
   * Values over 100 will be ignored and 100 used instead.
-  */
+   */
   maxBreadcrumbs?: number;
 
   /** Console logging verbosity for the SDK Client. */
