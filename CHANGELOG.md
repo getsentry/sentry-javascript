@@ -2,13 +2,13 @@
 
 ## Unreleased
 
+- [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
+- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
 - [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
 
 ## 5.4.1
 
 - [integrations] fix: Tracing integration fetch headers bug.
-- [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
-- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
 
 ## 5.4.0
 
