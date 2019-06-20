@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 5.4.2
 
+- [core] fix: Allow Integration<T> constructor to have arguments
+- [browser] fix: Vue breadcrumb recording missing in payload
 - [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
-- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
 - [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
+- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
 
 ## 5.4.1
 
