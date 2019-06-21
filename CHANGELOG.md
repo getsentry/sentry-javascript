@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [core] feat: Expose `Span` class
+
 ## 5.4.2
 
 - [core] fix: Allow Integration<T> constructor to have arguments

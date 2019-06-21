@@ -203,8 +203,9 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(): Span {
+  public startSpan(parentSpan?: Span): Span {
     const span = new Span();
+    span.setParent(parentSpan);
     this.setSpan(span);
     return span;
   }
