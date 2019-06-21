@@ -203,7 +203,7 @@ export function parseRequest(
     };
   }
 
-  if (options.transaction) {
+  if (options.transaction && !event.transaction) {
     const transaction = extractTransaction(req, options.transaction);
     if (transaction) {
       event.transaction = transaction;
