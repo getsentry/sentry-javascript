@@ -3,6 +3,7 @@
 ## 5.4.3
 
 - [core] feat: Expose `Span` class
+- [node] fix: Don't overwrite transaction on event in express handler
 
 ## 5.4.2
 
