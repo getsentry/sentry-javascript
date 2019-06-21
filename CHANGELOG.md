@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.4.3
 
 - [core] feat: Expose `Span` class
 
