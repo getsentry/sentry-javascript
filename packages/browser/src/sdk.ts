@@ -1,4 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getGlobalObject } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
@@ -75,6 +76,13 @@ export const defaultIntegrations = [
 export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
+  }
+  if (options.release === undefined) {
+    const window = getGlobalObject<Window>() as any;
+    // This supports the variable that sentry-webpack-plugin injects
+    if (window.SENTRY_RELEASE && window.SENTRY_RELEASE.id) {
+      options.release = window.SENTRY_RELEASE.id;
+    }
   }
   initAndBind(BrowserClient, options);
 }
