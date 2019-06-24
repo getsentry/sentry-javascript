@@ -1,7 +1,7 @@
 import { Span as SpanInterface } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
-export const TRACEPARENT_REGEXP = /([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})/;
+export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
 
 /**
  * Span containg all data about a span
@@ -10,9 +10,25 @@ export class Span implements SpanInterface {
   public constructor(
     private readonly _traceId: string = uuid4(),
     private readonly _spanId: string = uuid4().substring(16),
-    private readonly _recorded: boolean = false,
-    private readonly _parent?: Span,
+    private _sampled?: boolean,
+    private _parent?: Span,
   ) {}
+
+  /**
+   * Setter for parent
+   */
+  public setParent(parent: Span | undefined): this {
+    this._parent = parent;
+    return this;
+  }
+
+  /**
+   * Setter for sampled
+   */
+  public setSampled(sampled: boolean | undefined): this {
+    this._sampled = sampled;
+    return this;
+  }
 
   /**
    * Continues a trace
@@ -21,8 +37,14 @@ export class Span implements SpanInterface {
   public static fromTraceparent(traceparent: string): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
-      const parent = new Span(matches[2], matches[3], matches[4] === '01' ? true : false);
-      return new Span(matches[2], undefined, undefined, parent);
+      let sampled;
+      if (matches[3] === '1') {
+        sampled = true;
+      } else if (matches[3] === '0') {
+        sampled = false;
+      }
+      const parent = new Span(matches[1], matches[2], sampled);
+      return new Span(matches[1], undefined, sampled, parent);
     }
     return undefined;
   }
@@ -31,7 +53,14 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    return `00-${this._traceId}-${this._spanId}-${this._recorded ? '01' : '00'}`;
+    let sampled = '';
+    if (this._sampled === true) {
+      sampled = '-1';
+    } else if (this._sampled === false) {
+      sampled = '-0';
+    }
+
+    return `${this._traceId}-${this._spanId}${sampled}`;
   }
 
   /**
@@ -40,6 +69,7 @@ export class Span implements SpanInterface {
   public toJSON(): object {
     return {
       parent: (this._parent && this._parent.toJSON()) || undefined,
+      sampled: this._sampled,
       span_id: this._spanId,
       trace_id: this._traceId,
     };
