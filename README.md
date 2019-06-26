@@ -32,10 +32,6 @@ convenient interface and improved consistency between various JavaScript environ
 For each major JavaScript platform, there is a specific high-level SDK that provides all the tools you need in a single
 package. Please refer to the README and instructions of those SDKs for more detailed information:
 
-- [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
-  SDKs
-- [`@sentry/minimal`](https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal): Minimal SDK for
-  library authors to add Sentry support
 - [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers,
   including integrations for React, Angular, Ember, Vue and Backbone
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
@@ -80,12 +76,15 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
+
+- [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
+  SDKs
+- [`@sentry/minimal`](https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal): Minimal SDK for
+  library authors to add Sentry support
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
   utility functions useful for various SDKs.
-- [`@sentry/opentracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/opentracing): OpenTracing
-  compatible integration that can be used as a pluggable integration for the SDKs.
 - [`@sentry/typescript`](https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript): Shared
   Typescript compiler and linter options.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
