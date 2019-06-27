@@ -18,6 +18,7 @@ publish-docs: build-docs
 	git clone --single-branch --branch gh-pages git@github.com:getsentry/sentry-javascript.git && \
 	cp -r /tmp/sentry-js-docs/docs/* /tmp/sentry-js-docs/sentry-javascript/ && \
 	cd /tmp/sentry-js-docs/sentry-javascript && \
-	git commit -a -m "meta: Update docs" && \
+	git add --all && \
+	git commit -m "meta: Update docs" && \
 	git push origin gh-pages
 .PHONY: publish-docs
