@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- [browser]: feat: Try to read `window.SENTRY_RELEASE` to set release by default
+- [utils]: fix(utils): Add polyfill for Object.setPrototypeOf
+
 ## 5.4.3
 
 - [core] feat: Expose `Span` class
