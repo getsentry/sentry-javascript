@@ -46,11 +46,11 @@ in the project root.
 
 ## Running the Test Suite
 
-You can run all test at once by calling `yarn test` in the project root or in individual sub packages.
+You can run all test at once by calling `yarn test` in the project root or in individual sub packages. Note that you must run `yarn build` before the test command will work.
 
 ## Lint
 
-You can run all test at once by calling `yarn lint` in the project root or in individual sub packages.
+You can run all test at once by calling `yarn lint` in the project root or in individual sub packages. Note that you must run `yarn build` before the lint command will work.
 
 ## Contributing Back Code
 

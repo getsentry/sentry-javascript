@@ -166,3 +166,19 @@ describe('SentryBrowser', () => {
     });
   });
 });
+
+
+describe('SentryBrowser initialization', () => {
+  it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
+    global.SENTRY_RELEASE = { id: 'foobar' };
+    init({ dsn });
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.equal('foobar');
+    // Manually tear down global set. Is there a nicer way to do this?
+    global.SENTRY_RELEASE = undefined;
+  });
+  it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
+    // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
+    init({ dsn });
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.be.undefined;
+  });
+})
