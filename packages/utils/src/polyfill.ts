@@ -1,5 +1,5 @@
 export const setPrototypeOf =
-  Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties);
+  Object.setPrototypeOf || ({ __proto__: [] } instanceof Array ? setProtoOf : mixinProperties); // tslint:disable-line:no-unbound-method
 
 /**
  * setPrototypeOf polyfill using __proto__

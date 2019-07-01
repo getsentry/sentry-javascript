@@ -44,7 +44,7 @@ export class ExtraErrorData implements Integration {
       return event;
     }
 
-    const errorData = this._extractErrorData(hint.originalException);
+    const errorData = this._extractErrorData(hint.originalException as ExtendedError);
 
     if (errorData) {
       let extra = {

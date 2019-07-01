@@ -86,7 +86,7 @@ export function init(options: NodeOptions = {}): void {
   }
 
   if (options.release === undefined) {
-    const global = getGlobalObject<Window>() as any;
+    const global = getGlobalObject<Window>();
     // Prefer env var over global
     if (process.env.SENTRY_RELEASE) {
       options.release = process.env.SENTRY_RELEASE;

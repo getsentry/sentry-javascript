@@ -252,4 +252,4 @@ describe('SentryNode initialization', () => {
     init({ dsn });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
   });
-})
+});

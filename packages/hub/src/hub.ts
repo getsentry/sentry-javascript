@@ -158,8 +158,27 @@ export class Hub implements HubInterface {
    */
   public captureException(exception: any, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
+    let finalHint = hint;
+
+    // If there's no explicit hint provided, mimick the same thing that would happen
+    // in the minimal itself to create a consistent behavior.
+    // We don't do this in the client, as it's the lowest level API, and doing this,
+    // would prevent user from having full control over direct calls.
+    if (!hint) {
+      let syntheticException: Error;
+      try {
+        throw new Error('Sentry syntheticException');
+      } catch (exception) {
+        syntheticException = exception as Error;
+      }
+      finalHint = {
+        originalException: exception,
+        syntheticException,
+      };
+    }
+
     this._invokeClient('captureException', exception, {
-      ...hint,
+      ...finalHint,
       event_id: eventId,
     });
     return eventId;
@@ -170,8 +189,27 @@ export class Hub implements HubInterface {
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint): string {
     const eventId = (this._lastEventId = uuid4());
+    let finalHint = hint;
+
+    // If there's no explicit hint provided, mimick the same thing that would happen
+    // in the minimal itself to create a consistent behavior.
+    // We don't do this in the client, as it's the lowest level API, and doing this,
+    // would prevent user from having full control over direct calls.
+    if (!hint) {
+      let syntheticException: Error;
+      try {
+        throw new Error(message);
+      } catch (exception) {
+        syntheticException = exception as Error;
+      }
+      finalHint = {
+        originalException: message,
+        syntheticException,
+      };
+    }
+
     this._invokeClient('captureMessage', message, level, {
-      ...hint,
+      ...finalHint,
       event_id: eventId,
     });
     return eventId;

@@ -1,7 +1,15 @@
-import { Event, Mechanism, WrappedFunction } from '@sentry/types';
+import { Event, Integration, Mechanism, WrappedFunction } from '@sentry/types';
 
 /** Internal */
 interface SentryGlobal {
+  Sentry?: {
+    Integrations?: Integration[];
+  };
+  SENTRY_ENVIRONMENT?: string;
+  SENTRY_DSN?: string;
+  SENTRY_RELEASE?: {
+    id?: string;
+  };
   __SENTRY__: {
     globalEventProcessors: any;
     hub: any;
