@@ -212,6 +212,25 @@ describe('Hub', () => {
     expect(eventId).toBe(hub.lastEventId());
   });
 
+  test('captureException should generate hint if not provided in the call', () => {
+    const hub = new Hub();
+    const spy = jest.spyOn(hub as any, '_invokeClient');
+    const ex = new Error('foo');
+    hub.captureException(ex);
+    expect(spy.mock.calls[0][2].originalException).toBe(ex);
+    expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
+    expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
+  });
+
+  test('captureMessage should generate hint if not provided in the call', () => {
+    const hub = new Hub();
+    const spy = jest.spyOn(hub as any, '_invokeClient');
+    hub.captureMessage('foo');
+    expect(spy.mock.calls[0][3].originalException).toBe('foo');
+    expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
+    expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
+  });
+
   test('run', () => {
     const currentHub = getCurrentHub();
     const myScope = new Scope();

@@ -42,6 +42,6 @@ export type EventType = 'none';
 export interface EventHint {
   event_id?: string;
   syntheticException?: Error | null;
-  originalException?: Error | null;
+  originalException?: Error | string | null;
   data?: any;
 }

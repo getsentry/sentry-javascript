@@ -78,7 +78,7 @@ export function init(options: BrowserOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
   if (options.release === undefined) {
-    const window = getGlobalObject<Window>() as any;
+    const window = getGlobalObject<Window>();
     // This supports the variable that sentry-webpack-plugin injects
     if (window.SENTRY_RELEASE && window.SENTRY_RELEASE.id) {
       options.release = window.SENTRY_RELEASE.id;
