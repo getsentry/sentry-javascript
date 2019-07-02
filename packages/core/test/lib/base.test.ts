@@ -469,5 +469,18 @@ describe('BaseClient', () => {
       // Sends after close shouldn't work anymore
       expect(client.captureMessage('test')).toBeFalsy();
     });
+
+    test('multiple concurrent flush calls should just work', async () => {
+      jest.useRealTimers();
+      expect.assertions(3);
+
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+
+      return Promise.all([
+        client.flush(1).then(() => expect(true).toEqual(true)),
+        client.flush(1).then(() => expect(true).toEqual(true)),
+        client.flush(1).then(() => expect(true).toEqual(true)),
+      ]);
+    });
   });
 });
