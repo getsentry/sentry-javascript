@@ -58,9 +58,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /** Is the client still processing a call? */
   protected _processing: boolean = false;
 
-  /** Processing interval */
-  protected _processingInterval?: number;
-
   /**
    * Initializes this client instance.
    *
@@ -166,14 +163,12 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @inheritDoc
    */
   public flush(timeout?: number): Promise<boolean> {
-    return this._isClientProcessing(timeout).then(clientReady => {
-      if (this._processingInterval) {
-        clearInterval(this._processingInterval);
-      }
+    return this._isClientProcessing(timeout).then(status => {
+      clearInterval(status.interval);
       return this._getBackend()
         .getTransport()
         .close(timeout)
-        .then(transportFlushed => clientReady && transportFlushed);
+        .then(transportFlushed => status.ready && transportFlushed);
     });
   }
 
@@ -207,20 +202,27 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected _isClientProcessing(timeout?: number): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
+  protected _isClientProcessing(timeout?: number): Promise<{ ready: boolean; interval: number }> {
+    return new Promise<{ ready: boolean; interval: number }>(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
-      if (this._processingInterval) {
-        clearInterval(this._processingInterval);
-      }
-      this._processingInterval = (setInterval(() => {
+
+      let interval = 0;
+      clearInterval(interval);
+
+      interval = (setInterval(() => {
         if (!this._processing) {
-          resolve(true);
+          resolve({
+            interval,
+            ready: true,
+          });
         } else {
           ticked += tick;
           if (timeout && ticked >= timeout) {
-            resolve(false);
+            resolve({
+              interval,
+              ready: false,
+            });
           }
         }
       }, tick) as unknown) as number;
