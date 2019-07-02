@@ -70,17 +70,19 @@ export class TryCatch implements Integration {
         options?: boolean | AddEventListenerOptions,
       ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
         try {
-          fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
-            mechanism: {
-              data: {
-                function: 'handleEvent',
-                handler: getFunctionName(fn),
-                target,
+          if (typeof fn.handleEvent === 'function') {
+            fn.handleEvent = wrap(fn.handleEvent.bind(fn), {
+              mechanism: {
+                data: {
+                  function: 'handleEvent',
+                  handler: getFunctionName(fn),
+                  target,
+                },
+                handled: true,
+                type: 'instrument',
               },
-              handled: true,
-              type: 'instrument',
-            },
-          });
+            });
+          }
         } catch (err) {
           // can sometimes get 'Permission denied to access property "handle Event'
         }
