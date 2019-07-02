@@ -272,11 +272,23 @@ function getStatusCodeFromResponse(error: MiddlewareError): number {
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
+/** JSDoc */
+function defaultShouldHandleError(error: MiddlewareError): boolean {
+  const status = getStatusCodeFromResponse(error);
+  return status >= 500;
+}
+
 /**
  * Express compatible error handler.
  * @see Exposed as `Handlers.errorHandler`
  */
-export function errorHandler(): (
+export function errorHandler(options?: {
+  /**
+   * Callback method deciding whether error should be captured and sent to Sentry
+   * @param error Captured middleware error
+   */
+  shouldHandleError?(error: MiddlewareError): boolean;
+}): (
   error: MiddlewareError,
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -288,20 +300,23 @@ export function errorHandler(): (
     _res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
-    const status = getStatusCodeFromResponse(error);
-    if (status < 500) {
-      next(error);
+    const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
+
+    if (shouldHandleError(error)) {
+      withScope(scope => {
+        if (_req.headers && isString(_req.headers['sentry-trace'])) {
+          const span = Span.fromTraceparent(_req.headers['sentry-trace'] as string);
+          scope.setSpan(span);
+        }
+        const eventId = captureException(error);
+        (_res as any).sentry = eventId;
+        next(error);
+      });
+
       return;
     }
-    withScope(scope => {
-      if (_req.headers && isString(_req.headers['sentry-trace'])) {
-        const span = Span.fromTraceparent(_req.headers['sentry-trace'] as string);
-        scope.setSpan(span);
-      }
-      const eventId = captureException(error);
-      (_res as any).sentry = eventId;
-      next(error);
-    });
+
+    next(error);
   };
 }
 
