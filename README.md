@@ -5,6 +5,8 @@
   <br />
 </p>
 
+bla
+
 [![Build Status](https://travis-ci.com/getsentry/sentry-javascript.svg?branch=master)](https://travis-ci.com/getsentry/sentry-javascript)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
