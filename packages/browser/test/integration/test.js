@@ -1673,6 +1673,84 @@ for (var idx in frames) {
           );
         });
 
+        it('should record click events that were handled using an object with handleEvent property and call original callback', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              var frame = this;
+              frame.handleEventCalled = false;
+
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('click', {
+                handleEvent() {
+                  frame.handleEventCalled = true;
+                },
+              });
+              input.dispatchEvent(new MouseEvent('click'));
+
+              Sentry.captureMessage('test');
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
+              assert.equal(breadcrumbs.length, 1);
+              assert.equal(breadcrumbs[0].category, 'ui.click');
+              assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+
+              assert.equal(iframe.contentWindow.handleEventCalled, true);
+
+              done();
+            }
+          );
+        });
+
+        it('should record keypress events that were handled using an object with handleEvent property and call original callback', function(done) {
+          var iframe = this.iframe;
+
+          iframeExecute(
+            iframe,
+            done,
+            function() {
+              var frame = this;
+              frame.handleEventCalled = false;
+
+              var input = document.getElementsByTagName('input')[0];
+              input.addEventListener('keypress', {
+                handleEvent() {
+                  frame.handleEventCalled = true;
+                },
+              });
+              input.dispatchEvent(new KeyboardEvent('keypress'));
+
+              Sentry.captureMessage('test');
+            },
+            function(sentryData) {
+              if (IS_LOADER) {
+                // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+                assert.lengthOf(sentryData, 1);
+                return done();
+              }
+              var breadcrumbs = iframe.contentWindow.sentryBreadcrumbs;
+
+              assert.equal(breadcrumbs.length, 1);
+              assert.equal(breadcrumbs[0].category, 'ui.input');
+              assert.equal(breadcrumbs[0].message, 'body > form#foo-form > input[name="foo"]');
+
+              assert.equal(iframe.contentWindow.handleEventCalled, true);
+
+              done();
+            }
+          );
+        });
+
         it(
           _alt('should record history.[pushState|replaceState] changes as navigation breadcrumbs', IS_LOADER),
           function(done) {

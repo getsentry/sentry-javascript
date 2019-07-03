@@ -157,7 +157,12 @@ export class Breadcrumbs implements Integration {
               });
             }
             if (eventName === 'keypress') {
-              fill(fn, 'handleEvent', keypressEventHandler());
+              fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
+                return function(this: any, event: Event): (event: Event) => void {
+                  keypressEventHandler()(event);
+                  return innerOriginal.call(this, event);
+                };
+              });
             }
           } else {
             if (eventName === 'click') {
