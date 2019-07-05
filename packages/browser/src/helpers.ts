@@ -10,6 +10,39 @@ let ignoreOnError: number = 0;
 /**
  * @hidden
  */
+export function verifyRequiredBrowserAPIs(): void {
+  // tslint:disable:strict-type-predicates no-unbound-method
+  const missingAPIs = [];
+
+  if (typeof Promise === 'undefined') {
+    missingAPIs.push('Promise');
+  }
+
+  if (typeof Object.assign === 'undefined') {
+    missingAPIs.push('Object.assign');
+  }
+
+  if (typeof Number.isNaN === 'undefined') {
+    missingAPIs.push('Number.isNaN');
+  }
+
+  if (typeof String.prototype.includes === 'undefined') {
+    missingAPIs.push('String.includes');
+  }
+
+  if (missingAPIs.length > 0) {
+    // tslint:disable-next-line:no-console
+    console.warn(
+      'Your current browser is missing following APIs:',
+      missingAPIs.join(', '),
+      'Sentry SDK may not work as expected. Please provide necessary polyfills. https://docs.sentry.io/platforms/javascript/#browser-table',
+    );
+  }
+}
+
+/**
+ * @hidden
+ */
 export function shouldIgnoreOnError(): boolean {
   return ignoreOnError > 0;
 }

@@ -3,7 +3,7 @@ import { getGlobalObject } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
-import { wrap as internalWrap } from './helpers';
+import { verifyRequiredBrowserAPIs, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
@@ -74,6 +74,12 @@ export const defaultIntegrations = [
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
 export function init(options: BrowserOptions = {}): void {
+  try {
+    verifyRequiredBrowserAPIs();
+  } catch (_oO) {
+    // juuust in case
+  }
+
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
