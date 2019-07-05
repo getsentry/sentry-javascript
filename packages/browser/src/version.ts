@@ -1,2 +1,2 @@
 export const SDK_NAME = 'sentry.javascript.browser';
-export const SDK_VERSION = '5.4.3';
+export const SDK_VERSION = '5.5.0';
