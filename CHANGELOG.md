@@ -2,8 +2,20 @@
 
 ## Unreleased
 
-- [browser]: feat: Try to read `window.SENTRY_RELEASE` to set release by default
-- [utils]: fix(utils): Add polyfill for Object.setPrototypeOf
+- None
+
+## 5.5.0
+
+- [core] fix: Store processing state for each `flush` call separately (#2143)
+- [scope] feat: Generate hint if not provided in the Hub calls (#2142)
+- [browser] feat: Read `window.SENTRY_RELEASE` to set release by default (#2132)
+- [browser] fix: Don't call `fn.handleEvent.bind` if `fn.handleEvent` does not exist (#2138)
+- [browser] fix: Correctly handle events that utilize `handleEvent` object (#2149)
+- [node] feat: Provide optional `shouldHandleError` option for node `errorHandler` (#2146)
+- [node] fix: Remove unsafe `any` from `NodeOptions` type (#2111)
+- [node] fix: Merge `transportOptions` correctly (#2151)
+- [utils] fix: Add polyfill for `Object.setPrototypeOf` (#2127)
+- [integrations] feat: `SessionDuration` integration (#2150)
 
 ## 5.4.3
 

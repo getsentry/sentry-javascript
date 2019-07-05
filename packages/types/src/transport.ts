@@ -24,7 +24,6 @@ export type TransportClass<T extends Transport> = new (options: TransportOptions
 
 /** JSDoc */
 export interface TransportOptions {
-  [key: string]: any;
   /** Sentry DSN */
   dsn: DsnLike;
   /** Define custom headers */
