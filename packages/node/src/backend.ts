@@ -1,5 +1,5 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Mechanism, Options, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Mechanism, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import {
   addExceptionTypeValue,
   isError,
@@ -55,14 +55,13 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
 
     const dsn = new Dsn(this._options.dsn);
 
-    const transportOptions = this._options.transportOptions || { dsn };
-    const clientOptions = ['httpProxy', 'httpsProxy', 'caCerts'];
-
-    for (const option of clientOptions) {
-      if (this._options[option] || transportOptions[option]) {
-        transportOptions[option] = transportOptions[option] || this._options[option];
-      }
-    }
+    const transportOptions: TransportOptions = {
+      ...this._options.transportOptions,
+      ...(this._options.httpProxy && { httpProxy: this._options.httpProxy }),
+      ...(this._options.httpsProxy && { httpsProxy: this._options.httpsProxy }),
+      ...(this._options.caCerts && { caCerts: this._options.caCerts }),
+      dsn: this._options.dsn,
+    };
 
     if (this._options.transport) {
       return new this._options.transport(transportOptions);

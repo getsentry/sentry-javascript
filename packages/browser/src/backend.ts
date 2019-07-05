@@ -49,9 +49,10 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
       return super._setupTransport();
     }
 
-    const transportOptions = this._options.transportOptions
-      ? this._options.transportOptions
-      : { dsn: this._options.dsn };
+    const transportOptions = {
+      ...this._options.transportOptions,
+      dsn: this._options.dsn,
+    };
 
     if (this._options.transport) {
       return new this._options.transport(transportOptions);
