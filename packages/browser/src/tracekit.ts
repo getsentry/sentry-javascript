@@ -275,7 +275,7 @@ TraceKit._report = (function reportModuleWrapper() {
     var stack = TraceKit._computeStackTrace(err);
     stack.mechanism = 'onunhandledrejection';
     if (!stack.message) {
-      stack.message = JSON.stringify(normalize(err))
+      stack.message = JSON.stringify(normalize(err));
     }
     _notifyHandlers(stack, true, err);
   }

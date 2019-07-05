@@ -1,5 +1,5 @@
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 // See https://github.com/angular/angular.js/blob/v1.4.7/src/minErr.js
 const angularPattern = /^\[((?:[$a-zA-Z0-9]+:)?(?:[$a-zA-Z0-9]+))\] (.*?)\n?(\S+)$/;
@@ -48,7 +48,7 @@ export class Angular implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._angular) {
-      console.error('AngularIntegration is missing an Angular instance');
+      logger.error('AngularIntegration is missing an Angular instance');
       return;
     }
 

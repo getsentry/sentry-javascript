@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- [browser]: feat: Try to read `window.SENTRY_RELEASE` to set release by default
+- [utils]: fix(utils): Add polyfill for Object.setPrototypeOf
+
+## 5.4.3
+
+- [core] feat: Expose `Span` class
+- [node] fix: Don't overwrite transaction on event in express handler
+
+## 5.4.2
+
+- [core] fix: Allow Integration<T> constructor to have arguments
+- [browser] fix: Vue breadcrumb recording missing in payload
+- [node] fix: Force agent-base to be at version 4.3.0 to fix various issues. Fix #1762, fix #2085
+- [integrations] fix: Tracing integration fetch headers bug where trace header is not attached if there are no options.
+- [utils] fix: Better native `fetch` detection via iframes. Fix #1601
+
 ## 5.4.1
 
 - [integrations] fix: Tracing integration fetch headers bug.

@@ -56,5 +56,8 @@
     "typedoc": "^0.14.2",
     "typescript": "^3.4.5",
     "typescript-tslint-plugin": "^0.3.1"
+  },
+  "resolutions": {
+    "**/agent-base": "4.3.0"
   }
 }

@@ -238,3 +238,18 @@ describe('SentryNode', () => {
     });
   });
 });
+
+describe('SentryNode initialization', () => {
+  test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
+    global.SENTRY_RELEASE = { id: 'foobar' };
+    init({ dsn });
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
+    // Unsure if this is needed under jest.
+    global.SENTRY_RELEASE = undefined;
+  });
+  test('initialization proceeds as normal if global.SENTRY_RELEASE is not set', () => {
+    // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
+    init({ dsn });
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
+  });
+});

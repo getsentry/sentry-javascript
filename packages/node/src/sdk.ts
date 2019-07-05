@@ -1,5 +1,6 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import { getGlobalObject } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { NodeOptions } from './backend';
@@ -84,8 +85,16 @@ export function init(options: NodeOptions = {}): void {
     options.dsn = process.env.SENTRY_DSN;
   }
 
-  if (options.release === undefined && process.env.SENTRY_RELEASE) {
-    options.release = process.env.SENTRY_RELEASE;
+  if (options.release === undefined) {
+    const global = getGlobalObject<Window>();
+    // Prefer env var over global
+    if (process.env.SENTRY_RELEASE) {
+      options.release = process.env.SENTRY_RELEASE;
+    }
+    // This supports the variable that sentry-webpack-plugin injects
+    else if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
+      options.release = global.SENTRY_RELEASE.id;
+    }
   }
 
   if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {

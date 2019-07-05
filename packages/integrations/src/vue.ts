@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, isPlainObject } from '@sentry/utils';
+import { getGlobalObject, isPlainObject, logger } from '@sentry/utils';
 
 /** JSDoc */
 interface Metadata {
@@ -65,7 +65,7 @@ export class Vue implements Integration {
     // tslint:disable:no-unsafe-any
 
     if (!this._Vue || !this._Vue.config) {
-      console.error('VueIntegration is missing a Vue instance');
+      logger.error('VueIntegration is missing a Vue instance');
       return;
     }
 
@@ -87,12 +87,12 @@ export class Vue implements Integration {
       }
 
       if (getCurrentHub().getIntegration(Vue)) {
-        getCurrentHub().withScope(scope => {
-          Object.keys(metadata).forEach(key => {
-            scope.setExtra(key, metadata[key]);
+        // This timeout makes sure that any breadcrumbs are recorded before sending it off the sentry
+        setTimeout(() => {
+          getCurrentHub().withScope(scope => {
+            scope.setContext('vue', metadata);
+            getCurrentHub().captureException(error);
           });
-
-          getCurrentHub().captureException(error);
         });
       }
 

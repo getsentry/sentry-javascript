@@ -203,8 +203,9 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(): Span {
+  public startSpan(parentSpan?: Span): Span {
     const span = new Span();
+    span.setParent(parentSpan);
     this.setSpan(span);
     return span;
   }
@@ -311,7 +312,6 @@ export class Scope implements ScopeInterface {
    * Also if the event has already breadcrumbs on it, we do not merge them.
    * @param event Event
    * @param hint May contain additional informartion about the original exception.
-   * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    * @hidden
    */
   public applyToEvent(event: Event, hint?: EventHint): SyncPromise<Event | null> {

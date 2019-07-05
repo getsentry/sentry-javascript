@@ -30,6 +30,7 @@ export {
   setTag,
   setTags,
   setUser,
+  Span,
   withScope,
 } from '@sentry/core';
 
@@ -48,7 +49,7 @@ let windowIntegrations = {};
 
 // This block is needed to add compatibility with the integrations packages when used with a CDN
 // tslint:disable: no-unsafe-any
-const _window = getGlobalObject<Window>() as any;
+const _window = getGlobalObject<Window>();
 if (_window.Sentry && _window.Sentry.Integrations) {
   windowIntegrations = _window.Sentry.Integrations;
 }

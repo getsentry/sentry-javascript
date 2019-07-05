@@ -130,3 +130,112 @@ using `@sentry/node` on a serverless infrastructure.
 
 Now `close` and `flush` work similar, with the difference that if you call `close` in addition to returing a `Promise`
 that you can await it also **disables** the client so it will not send any future events.
+
+# Migrating from `raven-js` to `@sentry/browser`
+
+`@sentry/browser` needs polyfills to work in IE 11 or older, see: https://docs.sentry.io/platforms/javascript/#browser-table
+Here are some examples of how the new SDKs work. Please note that the API for all JavaScript SDKs is the same.
+
+#### Installation
+
+_Old_:
+
+```js
+Raven.config('___PUBLIC_DSN___', {
+  release: '1.3.0',
+}).install();
+```
+
+_New_:
+
+```js
+Sentry.init({
+  dsn: '___PUBLIC_DSN___',
+  release: '1.3.0',
+});
+```
+
+#### Set a global tag
+
+_Old_:
+
+```js
+Raven.setTagsContext({ key: 'value' });
+```
+
+_New_:
+
+```js
+Sentry.setTag('key', 'value');
+```
+
+#### Capture custom exception
+
+_Old_:
+
+```js
+try {
+  throwingFunction();
+} catch (e) {
+  Raven.captureException(e, { extra: { debug: false } });
+}
+```
+
+_New_:
+
+```js
+try {
+  throwingFunction();
+} catch (e) {
+  Sentry.withScope(scope => {
+    scope.setExtra('debug', false);
+    Sentry.captureException(e);
+  });
+}
+```
+
+#### Capture a message
+
+_Old_:
+
+```js
+Raven.captureMessage('test', 'info', { extra: { debug: false } });
+```
+
+_New_:
+
+```js
+Sentry.withScope(scope => {
+  scope.setExtra('debug', false);
+  Sentry.captureMessage('test', 'info');
+});
+```
+
+#### Breadcrumbs
+
+_Old_:
+
+```js
+Raven.captureBreadcrumb({
+  message: 'Item added to shopping cart',
+  category: 'action',
+  data: {
+    isbn: '978-1617290541',
+    cartSize: '3',
+  },
+});
+```
+
+_New_:
+
+```js
+Sentry.addBreadcrumb({
+  message: 'Item added to shopping cart',
+  category: 'action',
+  data: {
+    isbn: '978-1617290541',
+    cartSize: '3',
+  },
+});
+```
+

@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -32,7 +32,7 @@ export class Ember implements Integration {
     // tslint:disable:no-unsafe-any
 
     if (!this._Ember) {
-      console.error('EmberIntegration is missing an Ember instance');
+      logger.error('EmberIntegration is missing an Ember instance');
       return;
     }
 
