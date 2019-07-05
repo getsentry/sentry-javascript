@@ -272,7 +272,7 @@ function getStatusCodeFromResponse(error: MiddlewareError): number {
   return statusCode ? parseInt(statusCode as string, 10) : 500;
 }
 
-/** JSDoc */
+/** Returns true if response code is internal server error */
 function defaultShouldHandleError(error: MiddlewareError): boolean {
   const status = getStatusCodeFromResponse(error);
   return status >= 500;
