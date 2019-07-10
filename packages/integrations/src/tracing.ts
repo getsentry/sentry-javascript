@@ -75,7 +75,7 @@ export class Tracing implements Integration {
    */
   public static startTrace(hub: Hub, transaction?: string): void {
     hub.configureScope(scope => {
-      scope.startSpan();
+      // scope.startSpan();
       scope.setTransaction(transaction);
     });
   }

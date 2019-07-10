@@ -8,12 +8,14 @@ import {
   Integration,
   IntegrationClass,
   Severity,
+  SpanDetails,
   User,
 } from '@sentry/types';
 import { consoleSandbox, dynamicRequire, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
+import { Span } from './span';
 
 declare module 'domain' {
   export let active: Domain;
@@ -382,6 +384,52 @@ export class Hub implements HubInterface {
       }
     }
     return {};
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startSpan(spanDetails?: SpanDetails): Span {
+    const scope = this.getScope();
+
+    if (scope) {
+      const span = scope.getSpan();
+      if (span) {
+        return span.newSpan(spanDetails);
+      }
+    }
+
+    return new Span(spanDetails);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public finishSpan(span: Span): string | undefined {
+    if (!span.timestamp) {
+      span.finish();
+    }
+
+    if (!span.transaction) {
+      return undefined;
+    }
+
+    if (span.sampled) {
+      return undefined;
+    }
+
+    if (!this.getClient()) {
+      return undefined;
+    }
+
+    return this.captureEvent({
+      contexts: { trace: span.getTraceContext() },
+      spans: span.finishedSpans.filter(s => s !== span),
+      start_timestamp: span.startTimestamp,
+      timestamp: span.timestamp,
+      transaction: span.transaction,
+      type: 'transaction',
+    });
   }
 }
 

@@ -12,16 +12,16 @@ describe('Span', () => {
       expect(from._parent._spanId).toEqual('bbbbbbbbbbbbbbbb');
       expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
       expect(from._spanId).not.toEqual('bbbbbbbbbbbbbbbb');
-      expect(from._sampled).toBeUndefined();
+      expect(from.sampled).toBeUndefined();
     });
     test('sample true', () => {
       const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1') as any;
-      expect(from._sampled).toBeTruthy();
+      expect(from.sampled).toBeTruthy();
     });
 
     test('sample false', () => {
       const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-0') as any;
-      expect(from._sampled).toBeFalsy();
+      expect(from.sampled).toBeFalsy();
     });
   });
 

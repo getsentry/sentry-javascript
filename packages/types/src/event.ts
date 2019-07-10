@@ -3,6 +3,7 @@ import { Exception } from './exception';
 import { Request } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
+import { Span } from './span';
 import { Stacktrace } from './stacktrace';
 import { User } from './user';
 
@@ -11,6 +12,7 @@ export interface Event {
   event_id?: string;
   message?: string;
   timestamp?: number;
+  start_timestamp?: number;
   level?: Severity;
   platform?: string;
   logger?: string;
@@ -33,10 +35,11 @@ export interface Event {
   extra?: { [key: string]: any };
   user?: User;
   type?: EventType;
+  spans?: Span[];
 }
 
 /** JSDoc */
-export type EventType = 'none';
+export type EventType = 'transaction';
 
 /** JSDoc */
 export interface EventHint {

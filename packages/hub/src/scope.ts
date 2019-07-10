@@ -201,16 +201,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
-   */
-  public startSpan(parentSpan?: Span): Span {
-    const span = new Span();
-    span.setParent(parentSpan);
-    this.setSpan(span);
-    return span;
-  }
-
-  /**
    * Internal getter for Span, used in Hub.
    * @hidden
    */

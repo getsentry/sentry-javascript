@@ -2,6 +2,19 @@
 export interface Span {
   /** Return a traceparent compatible header string */
   toTraceparent(): string;
+  /** Convert the object to JSON for w. spans array info only */
+  getTraceContext(): object;
   /** Convert the object to JSON */
   toJSON(): object;
+}
+
+/** JSDoc */
+export interface SpanDetails {
+  description?: string;
+  op?: string;
+  parentSpanId?: string;
+  sampled?: string;
+  spanId?: string;
+  traceId?: string;
+  transaction?: string;
 }
