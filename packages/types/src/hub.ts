@@ -4,6 +4,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
+import { Span, SpanDetails } from './span';
 import { User } from './user';
 
 /**
@@ -170,4 +171,10 @@ export interface Hub {
 
   /** Returns all trace headers that are currently on the top scope. */
   traceHeaders(): { [key: string]: string };
+
+  /** JSDoc */
+  startSpan(spanDetails?: SpanDetails): Span;
+
+  /** JSDoc */
+  finishSpan(span: Span): string | undefined;
 }
