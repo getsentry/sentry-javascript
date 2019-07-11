@@ -4,7 +4,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
-import { Span, SpanDetails } from './span';
+import { Span, SpanProps } from './span';
 import { User } from './user';
 
 /**
@@ -173,7 +173,7 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /** JSDoc */
-  startSpan(spanDetails?: SpanDetails): Span;
+  startSpan(spanProps?: SpanProps): Span;
 
   /** JSDoc */
   finishSpan(span: Span): string | undefined;

@@ -6,7 +6,6 @@ interface TracingOptions {
   tracingOrigins?: Array<string | RegExp>;
   traceFetch?: boolean;
   traceXHR?: boolean;
-  autoStartOnDomReady?: boolean;
 }
 
 /**
@@ -56,31 +55,6 @@ export class Tracing implements Integration {
     if (this._options.traceFetch !== false) {
       this._traceFetch(getCurrentHub);
     }
-    if (this._options.autoStartOnDomReady !== false) {
-      getGlobalObject<Window>().addEventListener('DOMContentLoaded', () => {
-        Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
-      });
-      getGlobalObject<Window>().document.onreadystatechange = () => {
-        if (document.readyState === 'complete') {
-          Tracing.startTrace(getCurrentHub(), getGlobalObject<Window>().location.href);
-        }
-      };
-    }
-  }
-
-  /**
-   * Starts a new trace
-   * @param hub The hub to start the trace on
-   * @param transaction Optional transaction
-   */
-  public static startTrace(hub: Hub, transaction?: string): void {
-    const span = hub.startSpan({
-      transaction,
-    });
-
-    hub.configureScope(scope => {
-      scope.setSpan(span);
-    });
   }
 
   /**

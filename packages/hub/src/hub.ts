@@ -8,7 +8,7 @@ import {
   Integration,
   IntegrationClass,
   Severity,
-  SpanDetails,
+  SpanProps,
   User,
 } from '@sentry/types';
 import { consoleSandbox, dynamicRequire, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
@@ -389,17 +389,17 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanDetails?: SpanDetails): Span {
+  public startSpan(spanProps?: SpanProps): Span {
     const scope = this.getScope();
 
     if (scope) {
       const span = scope.getSpan();
       if (span) {
-        return span.newSpan(spanDetails);
+        return span.newSpan(spanProps);
       }
     }
 
-    return new Span(spanDetails);
+    return new Span(spanProps);
   }
 
   /**

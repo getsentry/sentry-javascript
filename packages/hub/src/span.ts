@@ -1,12 +1,12 @@
-import { Span as SpanInterface, SpanDetails } from '@sentry/types';
+import { Span as SpanInterface, SpanProps } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
 
 /**
- * Span containg all data about a span
+ * Span contains all data about a span
  */
-export class Span implements SpanInterface {
+export class Span implements SpanInterface, SpanProps {
   /**
    * Trace ID
    */
@@ -57,38 +57,38 @@ export class Span implements SpanInterface {
    */
   public finishedSpans: Span[] = [];
 
-  public constructor(spanDetails?: SpanDetails) {
-    if (!spanDetails) {
+  public constructor(spanProps?: SpanProps) {
+    if (!spanProps) {
       return this;
     }
 
-    if (spanDetails.traceId) {
-      this._traceId = spanDetails.traceId;
+    if (spanProps.traceId) {
+      this._traceId = spanProps.traceId;
     }
-    if (spanDetails.spanId) {
-      this._spanId = spanDetails.spanId;
+    if (spanProps.spanId) {
+      this._spanId = spanProps.spanId;
     }
-    if (spanDetails.parentSpanId) {
-      this._parentSpanId = spanDetails.parentSpanId;
+    if (spanProps.parentSpanId) {
+      this._parentSpanId = spanProps.parentSpanId;
     }
-    if (spanDetails.sampled) {
-      this.sampled = spanDetails.sampled;
+    if (spanProps.sampled) {
+      this.sampled = spanProps.sampled;
     }
-    if (spanDetails.transaction) {
-      this.transaction = spanDetails.transaction;
+    if (spanProps.transaction) {
+      this.transaction = spanProps.transaction;
     }
-    if (spanDetails.op) {
-      this.op = spanDetails.op;
+    if (spanProps.op) {
+      this.op = spanProps.op;
     }
-    if (spanDetails.description) {
-      this.description = spanDetails.description;
+    if (spanProps.description) {
+      this.description = spanProps.description;
     }
   }
 
   /** JSDoc */
-  public newSpan(spanDetails?: Pick<SpanDetails, Exclude<keyof SpanDetails, 'spanId'>>): Span {
+  public newSpan(spanProps?: Pick<SpanProps, Exclude<keyof SpanProps, 'spanId'>>): Span {
     const span = new Span({
-      ...spanDetails,
+      ...spanProps,
       parentSpanId: this._parentSpanId,
       sampled: this.sampled,
       traceId: this._traceId,
@@ -100,26 +100,18 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * Setter for transaction.
-   */
-  public setTransaction(transaction: string | undefined): this {
-    this.transaction = transaction;
-    return this;
-  }
-
-  /**
    * Continues a trace
    * @param traceparent Traceparent string
    */
   public static fromTraceparent(
     traceparent: string,
-    spanDetails?: Pick<SpanDetails, Exclude<keyof SpanDetails, 'spanId' | 'sampled' | 'traceid'>>,
+    spanProps?: Pick<SpanProps, Exclude<keyof SpanProps, 'spanId' | 'sampled' | 'traceid'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
       const [traceId, spanId, sampled] = matches;
       return new Span({
-        ...spanDetails,
+        ...spanProps,
         sampled,
         spanId,
         traceId,
@@ -142,6 +134,7 @@ export class Span implements SpanInterface {
   public toTraceparent(): string {
     return `${this._traceId}-${this._spanId}${this.sampled ? '-1' : '0'}`;
   }
+
   /**
    * @inheritDoc
    */
