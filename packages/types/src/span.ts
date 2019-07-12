@@ -17,4 +17,6 @@ export interface SpanProps {
   spanId?: string;
   traceId?: string;
   transaction?: string;
+  tags?: { [key: string]: string };
+  data?: { [key: string]: any };
 }

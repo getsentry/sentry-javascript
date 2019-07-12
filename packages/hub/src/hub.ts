@@ -422,14 +422,20 @@ export class Hub implements HubInterface {
       return undefined;
     }
 
-    return this.captureEvent({
+    const finishedSpans = span.finishedSpans.filter(s => s !== span);
+
+    const eventId = this.captureEvent({
       contexts: { trace: span.getTraceContext() },
-      spans: span.finishedSpans.filter(s => s !== span),
+      spans: finishedSpans,
       start_timestamp: span.startTimestamp,
       timestamp: span.timestamp,
       transaction: span.transaction,
       type: 'transaction',
     });
+
+    // After sending we reset the finishedSpans array
+    span.finishedSpans = [];
+    return eventId;
   }
 }
 

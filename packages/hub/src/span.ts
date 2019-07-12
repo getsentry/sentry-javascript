@@ -38,19 +38,29 @@ export class Span implements SpanInterface, SpanProps {
   public timestamp?: number;
 
   /**
-   * Set the transaction of the Span.
+   * Transaction of the Span.
    */
   public transaction?: string;
 
   /**
-   * Set the operation of the Span.
+   * Operation of the Span.
    */
   public op?: string;
 
   /**
-   * Set the description of the Span.
+   * Description of the Span.
    */
   public description?: string;
+
+  /**
+   * Tags of the Span.
+   */
+  public tags?: { [key: string]: string };
+
+  /**
+   * Data of the Span.
+   */
+  public data?: { [key: string]: any };
 
   /**
    * List of spans that were finalized
@@ -83,13 +93,19 @@ export class Span implements SpanInterface, SpanProps {
     if (spanProps.description) {
       this.description = spanProps.description;
     }
+    if (spanProps.data) {
+      this.data = spanProps.data;
+    }
+    if (spanProps.tags) {
+      this.tags = spanProps.tags;
+    }
   }
 
   /** JSDoc */
   public newSpan(spanProps?: Pick<SpanProps, Exclude<keyof SpanProps, 'spanId'>>): Span {
     const span = new Span({
       ...spanProps,
-      parentSpanId: this._parentSpanId,
+      parentSpanId: this._spanId,
       sampled: this.sampled,
       traceId: this._traceId,
     });
@@ -140,10 +156,12 @@ export class Span implements SpanInterface, SpanProps {
    */
   public getTraceContext(): object {
     return {
+      data: this.data,
       description: this.description,
       op: this.op,
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
+      tags: this.tags,
       trace_id: this._traceId,
     };
   }
@@ -153,12 +171,14 @@ export class Span implements SpanInterface, SpanProps {
    */
   public toJSON(): object {
     return {
+      data: this.data,
       description: this.description,
       op: this.op,
       parent_span_id: this._parentSpanId,
       sampled: this.sampled,
       span_id: this._spanId,
       start_timestamp: this.startTimestamp,
+      tags: this.tags,
       timestamp: this.timestamp,
       trace_id: this._traceId,
       transaction: this.transaction,
