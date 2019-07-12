@@ -44,7 +44,7 @@ function instrument(Raven, config) {
 
   // special case: since console is built-in and app-level code won't require() it, do that here
   if (config.console) {
-    require('console');
+    require('./console');
   }
 
   // observation: when the https module does its own require('http'), it *does not* hit our hooked require to instrument http on the fly
@@ -53,7 +53,7 @@ function instrument(Raven, config) {
   // so module cache will have uninstrumented http; proactively loading it here ensures instrumented version is in module cache
   // alternatively we could refactor to load our transports later, but this is easier and doesn't have much drawback
   if (config.http) {
-    require('http');
+    require('./http');
   }
 }
 
