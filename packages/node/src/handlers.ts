@@ -26,7 +26,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
         stack: [
           {
             name: string;
-          }
+          },
         ];
       };
     };
@@ -51,7 +51,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
 }
 
 /** JSDoc */
-function extractRequestData(req: { [key: string]: any }): { [key: string]: string } {
+function extractRequestData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
   // headers:
   //   node, express: req.headers
   //   koa: req.header
@@ -112,6 +112,17 @@ function extractRequestData(req: { [key: string]: any }): { [key: string]: strin
     url: absoluteUrl,
   };
 
+  const attributes = Array.isArray(keys) ? keys : [];
+
+  if (attributes.length) {
+    Object.keys(request).forEach(key => {
+      /** Remove any of the unspecified keys in the options from the request interface */
+      if (!attributes.includes(key)) {
+        delete request[key];
+      }
+    });
+  }
+
   return request;
 }
 
@@ -161,7 +172,7 @@ export function parseRequest(
     [key: string]: any;
   },
   options?: {
-    request?: boolean;
+    request?: boolean | string[];
     serverName?: boolean;
     transaction?: boolean | TransactionTypes;
     user?: boolean | string[];
@@ -188,7 +199,7 @@ export function parseRequest(
   if (options.request) {
     event.request = {
       ...event.request,
-      ...extractRequestData(req),
+      ...extractRequestData(req, options.request),
     };
   }
 
