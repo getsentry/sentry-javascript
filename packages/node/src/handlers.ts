@@ -161,6 +161,7 @@ export function parseRequest(
     [key: string]: any;
   },
   options?: {
+    cookies?: boolean;
     request?: boolean;
     serverName?: boolean;
     transaction?: boolean | TransactionTypes;
@@ -170,6 +171,7 @@ export function parseRequest(
 ): Event {
   // tslint:disable-next-line:no-parameter-reassignment
   options = {
+    cookies: true,
     request: true,
     serverName: true,
     transaction: true,
@@ -190,6 +192,10 @@ export function parseRequest(
       ...event.request,
       ...extractRequestData(req),
     };
+
+    if (!options.cookies) {
+      delete event.request.cookies;
+    }
   }
 
   if (options.serverName) {
