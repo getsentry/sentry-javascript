@@ -414,13 +414,11 @@ export class Hub implements HubInterface {
       return undefined;
     }
 
-    if (span.sampled) {
-      return undefined;
-    }
-
     if (!this.getClient()) {
       return undefined;
     }
+
+    // TODO: if sampled do what?
 
     const finishedSpans = span.finishedSpans.filter(s => s !== span);
 
