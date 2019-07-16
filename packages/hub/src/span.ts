@@ -25,7 +25,7 @@ export class Span implements SpanInterface, SpanProps {
   /**
    * Has the sampling decision been made?
    */
-  public readonly sampled?: string;
+  public readonly sampled?: boolean;
 
   /**
    * Timestamp when the span was created.
@@ -125,12 +125,18 @@ export class Span implements SpanInterface, SpanProps {
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
-      const [traceId, spanId, sampled] = matches;
+      let sampled: boolean | undefined;
+      if (matches[3] === '1') {
+        sampled = true;
+      } else if (matches[3] === '0') {
+        sampled = false;
+      }
+
       return new Span({
         ...spanProps,
+        parentSpanId: matches[2],
         sampled,
-        spanId,
-        traceId,
+        traceId: matches[1],
       });
     }
     return undefined;
@@ -148,7 +154,11 @@ export class Span implements SpanInterface, SpanProps {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    return `${this._traceId}-${this._spanId}${this.sampled ? '-1' : '0'}`;
+    let sampledString = '';
+    if (this.sampled !== undefined) {
+      sampledString = this.sampled ? '-1' : '-0';
+    }
+    return `${this._traceId}-${this._spanId}${sampledString}`;
   }
 
   /**

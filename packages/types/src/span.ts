@@ -13,7 +13,7 @@ export interface SpanProps {
   description?: string;
   op?: string;
   parentSpanId?: string;
-  sampled?: string;
+  sampled?: boolean;
   spanId?: string;
   traceId?: string;
   transaction?: string;

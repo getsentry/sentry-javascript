@@ -8,8 +8,8 @@ describe('Span', () => {
   describe('fromTraceparent', () => {
     test('no sample', () => {
       const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb') as any;
-      expect(from._parent._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-      expect(from._parent._spanId).toEqual('bbbbbbbbbbbbbbbb');
+
+      expect(from._parentSpanId).toEqual('bbbbbbbbbbbbbbbb');
       expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
       expect(from._spanId).not.toEqual('bbbbbbbbbbbbbbbb');
       expect(from.sampled).toBeUndefined();
@@ -30,16 +30,19 @@ describe('Span', () => {
   });
 
   test('toJSON', () => {
-    expect(JSON.stringify(new Span('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'))).toEqual(
-      `{"span_id":"bbbbbbbbbbbbbbbb","trace_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`,
+    const span = JSON.parse(
+      JSON.stringify(new Span({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
     );
+    expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
+    expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 
   test('toJSON with parent', () => {
-    const spanA = new Span('a', 'b');
-    const spanB = new Span('c', 'd', false, spanA);
-    expect(JSON.stringify(spanB)).toEqual(
-      `{"parent":{"span_id":"b","trace_id":"a"},"sampled":false,"span_id":"d","trace_id":"c"}`,
-    );
+    const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
+    const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA._spanId });
+    const serialized = JSON.parse(JSON.stringify(spanB));
+    expect(serialized).toHaveProperty('parent_span_id', 'b');
+    expect(serialized).toHaveProperty('span_id', 'd');
+    expect(serialized).toHaveProperty('trace_id', 'c');
   });
 });
