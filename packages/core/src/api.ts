@@ -28,7 +28,7 @@ export class API {
   public getStoreEndpointWithUrlEncodedAuth(): string {
     const dsn = this._dsnObject;
     const auth = {
-      sentry_key: dsn.user,
+      sentry_key: dsn.user, // sentry_key is currently used in tracing integration to identify internal sentry requests
       sentry_version: SENTRY_API_VERSION,
     };
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header)

@@ -23,6 +23,18 @@ describe('Span', () => {
       const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-0') as any;
       expect(from.sampled).toBeFalsy();
     });
+
+    test('just sample rate', () => {
+      const from = Span.fromTraceparent('0') as any;
+      expect(from._traceId).toHaveLength(32);
+      expect(from._spanId).toHaveLength(16);
+      expect(from.sampled).toBeFalsy();
+
+      const from2 = Span.fromTraceparent('1') as any;
+      expect(from2._traceId).toHaveLength(32);
+      expect(from2._spanId).toHaveLength(16);
+      expect(from2.sampled).toBeTruthy();
+    });
   });
 
   test('fromTraceparent - invalid', () => {

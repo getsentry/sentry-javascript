@@ -93,9 +93,15 @@ export class Tracing implements Integration {
             const url = self._xhrUrl;
             const headers = getCurrentHub().traceHeaders();
             // tslint:disable-next-line: prefer-for-of
-            const isWhitelisted = self._options.tracingOrigins.some((origin: string | RegExp) =>
+            let isWhitelisted = self._options.tracingOrigins.some((origin: string | RegExp) =>
               isMatchingPattern(url, origin),
             );
+
+            if (isMatchingPattern(url, 'sentry_key')) {
+              // If sentry_key is in the url, it's an internal store request to sentry
+              // we do not want to add the trace header to store requests
+              isWhitelisted = false;
+            }
 
             if (isWhitelisted && this.setRequestHeader) {
               Object.keys(headers).forEach(key => {
@@ -121,30 +127,37 @@ export class Tracing implements Integration {
     fill(getGlobalObject<Window>(), 'fetch', function(originalFetch: () => void): () => void {
       return function(...args: any[]): void {
         // @ts-ignore
-        const self = getCurrentHub().getIntegration(Tracing);
+        const hub = getCurrentHub();
+        const self = hub.getIntegration(Tracing);
         if (self && self._options.tracingOrigins) {
           const url = args[0] as string;
           const options = (args[1] = (args[1] as { [key: string]: any }) || {});
 
-          let whiteListed = false;
+          let isWhitelisted = false;
           self._options.tracingOrigins.forEach((whiteListUrl: string | RegExp) => {
-            if (!whiteListed) {
-              whiteListed = isMatchingPattern(url, whiteListUrl);
+            if (!isWhitelisted) {
+              isWhitelisted = isMatchingPattern(url, whiteListUrl);
             }
           });
 
-          if (whiteListed) {
+          if (isMatchingPattern(url, 'sentry_key')) {
+            // If sentry_key is in the url, it's an internal store request to sentry
+            // we do not want to add the trace header to store requests
+            isWhitelisted = false;
+          }
+
+          if (isWhitelisted) {
             if (options.headers) {
               if (Array.isArray(options.headers)) {
-                options.headers = [...options.headers, ...Object.entries(getCurrentHub().traceHeaders())];
+                options.headers = [...options.headers, ...Object.entries(hub.traceHeaders())];
               } else {
                 options.headers = {
                   ...options.headers,
-                  ...getCurrentHub().traceHeaders(),
+                  ...hub.traceHeaders(),
                 };
               }
             } else {
-              options.headers = getCurrentHub().traceHeaders();
+              options.headers = hub.traceHeaders();
             }
           }
         }
