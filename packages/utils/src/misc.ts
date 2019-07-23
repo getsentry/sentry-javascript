@@ -335,3 +335,10 @@ function _htmlElementAsString(elem: HTMLElement): string {
   }
   return out.join('');
 }
+
+/**
+ * Returns a timestamp in seconds with milliseconds precision.
+ */
+export function timestampWithMs(): number {
+  return new Date().getTime() / 1000;
+}

@@ -1,5 +1,5 @@
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+import { timestampWithMs, uuid4 } from '@sentry/utils';
 
 export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
 
@@ -8,29 +8,29 @@ export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01
  */
 export class Span implements SpanInterface, SpanContext {
   /**
-   * Trace ID
+   * @inheritDoc
    */
   private readonly _traceId: string = uuid4();
 
   /**
-   * Span ID
+   * @inheritDoc
    */
   private readonly _spanId: string = uuid4().substring(16);
 
   /**
-   * Parent Span ID
+   * @inheritDoc
    */
   private readonly _parentSpanId?: string;
 
   /**
-   * Has the sampling decision been made?
+   * @inheritDoc
    */
   public readonly sampled?: boolean;
 
   /**
    * Timestamp when the span was created.
    */
-  public readonly startTimestamp: number = new Date().getTime() / 1000;
+  public readonly startTimestamp: number = timestampWithMs();
 
   /**
    * Finish timestamp of the span.
@@ -38,27 +38,27 @@ export class Span implements SpanInterface, SpanContext {
   public timestamp?: number;
 
   /**
-   * Transaction of the Span.
+   * @inheritDoc
    */
   public transaction?: string;
 
   /**
-   * Operation of the Span.
+   * @inheritDoc
    */
   public op?: string;
 
   /**
-   * Description of the Span.
+   * @inheritDoc
    */
   public description?: string;
 
   /**
-   * Tags of the Span.
+   * @inheritDoc
    */
   public tags?: { [key: string]: string };
 
   /**
-   * Data of the Span.
+   * @inheritDoc
    */
   public data?: { [key: string]: any };
 
@@ -101,7 +101,10 @@ export class Span implements SpanInterface, SpanContext {
     }
   }
 
-  /** JSDoc */
+  /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   */
   public newSpan(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
     const span = new Span({
       ...spanContext,
@@ -116,7 +119,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Continues a trace
+   * Continues a trace from a string (usually the header).
    * @param traceparent Traceparent string
    */
   public static fromTraceparent(
@@ -131,7 +134,6 @@ export class Span implements SpanInterface, SpanContext {
       } else if (matches[3] === '0') {
         sampled = false;
       }
-
       return new Span({
         ...spanContext,
         parentSpanId: matches[2],
@@ -146,7 +148,7 @@ export class Span implements SpanInterface, SpanContext {
    * Sets the finish timestamp on the current span
    */
   public finish(): void {
-    this.timestamp = new Date().getTime() / 1000;
+    this.timestamp = timestampWithMs();
     this.finishedSpans.push(this);
   }
 

@@ -8,15 +8,43 @@ export interface Span {
   toJSON(): object;
 }
 
-/** JSDoc */
+/** Interface holder all properties that can be set on a Span on creation. */
 export interface SpanContext {
+  /**
+   * Description of the Span.
+   */
   description?: string;
+  /**
+   * Operation of the Span.
+   */
   op?: string;
+  /**
+   * Parent Span ID
+   */
   parentSpanId?: string;
+  /**
+   * Has the sampling decision been made?
+   */
   sampled?: boolean;
+  /**
+   * Span ID
+   */
   spanId?: string;
+  /**
+   * Trace ID
+   */
   traceId?: string;
+  /**
+   * Transaction of the Span.
+   */
   transaction?: string;
+  /**
+   * Tags of the Span.
+   */
   tags?: { [key: string]: string };
+
+  /**
+   * Data of the Span.
+   */
   data?: { [key: string]: any };
 }

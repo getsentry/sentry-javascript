@@ -1,5 +1,5 @@
 import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
-import { getGlobalObject, isThenable, normalize, SyncPromise } from '@sentry/utils';
+import { getGlobalObject, isThenable, normalize, SyncPromise, timestampWithMs } from '@sentry/utils';
 
 import { Span } from './span';
 
@@ -250,7 +250,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const timestamp = new Date().getTime() / 1000;
+    const timestamp = timestampWithMs();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
 
     this._breadcrumbs =

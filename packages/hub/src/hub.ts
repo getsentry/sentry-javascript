@@ -11,7 +11,15 @@ import {
   SpanContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dynamicRequire, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
+import {
+  consoleSandbox,
+  dynamicRequire,
+  getGlobalObject,
+  isNodeEnv,
+  logger,
+  timestampWithMs,
+  uuid4,
+} from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -253,7 +261,7 @@ export class Hub implements HubInterface {
       return;
     }
 
-    const timestamp = new Date().getTime() / 1000;
+    const timestamp = timestampWithMs();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
     const finalBreadcrumb = beforeBreadcrumb
       ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
@@ -389,17 +397,22 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanContext?: SpanContext): Span {
-    const scope = this.getScope();
+  public startSpan(spanContext?: SpanContext, bindOnScope: boolean = false): Span {
+    const top = this.getStackTop();
 
-    if (scope) {
-      const span = scope.getSpan();
+    const simpleNewSpan = new Span(spanContext);
+    if (top.scope && top.client) {
+      if (bindOnScope) {
+        top.scope.setSpan(simpleNewSpan);
+        return simpleNewSpan;
+      }
+      const span = top.scope.getSpan();
       if (span) {
         return span.newSpan(spanContext);
       }
     }
 
-    return new Span(spanContext);
+    return simpleNewSpan;
   }
 
   /**
