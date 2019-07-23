@@ -173,7 +173,7 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /** JSDoc */
-  startSpan(SpanContext?: SpanContext): Span;
+  startSpan(spanContext?: SpanContext): Span;
 
   /** JSDoc */
   finishSpan(span: Span): string | undefined;

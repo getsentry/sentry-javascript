@@ -389,17 +389,17 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(SpanContext?: SpanContext): Span {
+  public startSpan(spanContext?: SpanContext): Span {
     const scope = this.getScope();
 
     if (scope) {
       const span = scope.getSpan();
       if (span) {
-        return span.newSpan(SpanContext);
+        return span.newSpan(spanContext);
       }
     }
 
-    return new Span(SpanContext);
+    return new Span(spanContext);
   }
 
   /**

@@ -30,7 +30,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Timestamp when the span was created.
    */
-  public readonly startTimestamp: number = new Date().getTime();
+  public readonly startTimestamp: number = new Date().getTime() / 1000;
 
   /**
    * Finish timestamp of the span.
@@ -67,44 +67,44 @@ export class Span implements SpanInterface, SpanContext {
    */
   public finishedSpans: Span[] = [];
 
-  public constructor(SpanContext?: SpanContext) {
-    if (!SpanContext) {
+  public constructor(spanContext?: SpanContext) {
+    if (!spanContext) {
       return this;
     }
 
-    if (SpanContext.traceId) {
-      this._traceId = SpanContext.traceId;
+    if (spanContext.traceId) {
+      this._traceId = spanContext.traceId;
     }
-    if (SpanContext.spanId) {
-      this._spanId = SpanContext.spanId;
+    if (spanContext.spanId) {
+      this._spanId = spanContext.spanId;
     }
-    if (SpanContext.parentSpanId) {
-      this._parentSpanId = SpanContext.parentSpanId;
+    if (spanContext.parentSpanId) {
+      this._parentSpanId = spanContext.parentSpanId;
     }
-    if (SpanContext.sampled) {
-      this.sampled = SpanContext.sampled;
+    if (spanContext.sampled) {
+      this.sampled = spanContext.sampled;
     }
-    if (SpanContext.transaction) {
-      this.transaction = SpanContext.transaction;
+    if (spanContext.transaction) {
+      this.transaction = spanContext.transaction;
     }
-    if (SpanContext.op) {
-      this.op = SpanContext.op;
+    if (spanContext.op) {
+      this.op = spanContext.op;
     }
-    if (SpanContext.description) {
-      this.description = SpanContext.description;
+    if (spanContext.description) {
+      this.description = spanContext.description;
     }
-    if (SpanContext.data) {
-      this.data = SpanContext.data;
+    if (spanContext.data) {
+      this.data = spanContext.data;
     }
-    if (SpanContext.tags) {
-      this.tags = SpanContext.tags;
+    if (spanContext.tags) {
+      this.tags = spanContext.tags;
     }
   }
 
   /** JSDoc */
-  public newSpan(SpanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
+  public newSpan(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
     const span = new Span({
-      ...SpanContext,
+      ...spanContext,
       parentSpanId: this._spanId,
       sampled: this.sampled,
       traceId: this._traceId,
@@ -121,7 +121,7 @@ export class Span implements SpanInterface, SpanContext {
    */
   public static fromTraceparent(
     traceparent: string,
-    SpanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
@@ -133,7 +133,7 @@ export class Span implements SpanInterface, SpanContext {
       }
 
       return new Span({
-        ...SpanContext,
+        ...spanContext,
         parentSpanId: matches[2],
         sampled,
         traceId: matches[1],
@@ -146,7 +146,7 @@ export class Span implements SpanInterface, SpanContext {
    * Sets the finish timestamp on the current span
    */
   public finish(): void {
-    this.timestamp = new Date().getTime();
+    this.timestamp = new Date().getTime() / 1000;
     this.finishedSpans.push(this);
   }
 
