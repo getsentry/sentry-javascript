@@ -1,4 +1,4 @@
-import { Span as SpanInterface, SpanProps } from '@sentry/types';
+import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
@@ -6,7 +6,7 @@ export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01
 /**
  * Span contains all data about a span
  */
-export class Span implements SpanInterface, SpanProps {
+export class Span implements SpanInterface, SpanContext {
   /**
    * Trace ID
    */
@@ -67,44 +67,44 @@ export class Span implements SpanInterface, SpanProps {
    */
   public finishedSpans: Span[] = [];
 
-  public constructor(spanProps?: SpanProps) {
-    if (!spanProps) {
+  public constructor(SpanContext?: SpanContext) {
+    if (!SpanContext) {
       return this;
     }
 
-    if (spanProps.traceId) {
-      this._traceId = spanProps.traceId;
+    if (SpanContext.traceId) {
+      this._traceId = SpanContext.traceId;
     }
-    if (spanProps.spanId) {
-      this._spanId = spanProps.spanId;
+    if (SpanContext.spanId) {
+      this._spanId = SpanContext.spanId;
     }
-    if (spanProps.parentSpanId) {
-      this._parentSpanId = spanProps.parentSpanId;
+    if (SpanContext.parentSpanId) {
+      this._parentSpanId = SpanContext.parentSpanId;
     }
-    if (spanProps.sampled) {
-      this.sampled = spanProps.sampled;
+    if (SpanContext.sampled) {
+      this.sampled = SpanContext.sampled;
     }
-    if (spanProps.transaction) {
-      this.transaction = spanProps.transaction;
+    if (SpanContext.transaction) {
+      this.transaction = SpanContext.transaction;
     }
-    if (spanProps.op) {
-      this.op = spanProps.op;
+    if (SpanContext.op) {
+      this.op = SpanContext.op;
     }
-    if (spanProps.description) {
-      this.description = spanProps.description;
+    if (SpanContext.description) {
+      this.description = SpanContext.description;
     }
-    if (spanProps.data) {
-      this.data = spanProps.data;
+    if (SpanContext.data) {
+      this.data = SpanContext.data;
     }
-    if (spanProps.tags) {
-      this.tags = spanProps.tags;
+    if (SpanContext.tags) {
+      this.tags = SpanContext.tags;
     }
   }
 
   /** JSDoc */
-  public newSpan(spanProps?: Pick<SpanProps, Exclude<keyof SpanProps, 'spanId'>>): Span {
+  public newSpan(SpanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
     const span = new Span({
-      ...spanProps,
+      ...SpanContext,
       parentSpanId: this._spanId,
       sampled: this.sampled,
       traceId: this._traceId,
@@ -121,7 +121,7 @@ export class Span implements SpanInterface, SpanProps {
    */
   public static fromTraceparent(
     traceparent: string,
-    spanProps?: Pick<SpanProps, Exclude<keyof SpanProps, 'spanId' | 'sampled' | 'traceid'>>,
+    SpanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
@@ -133,7 +133,7 @@ export class Span implements SpanInterface, SpanProps {
       }
 
       return new Span({
-        ...spanProps,
+        ...SpanContext,
         parentSpanId: matches[2],
         sampled,
         traceId: matches[1],

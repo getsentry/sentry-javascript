@@ -9,7 +9,7 @@ export interface Span {
 }
 
 /** JSDoc */
-export interface SpanProps {
+export interface SpanContext {
   description?: string;
   op?: string;
   parentSpanId?: string;
