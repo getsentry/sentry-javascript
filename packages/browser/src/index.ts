@@ -20,6 +20,7 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
+  finishSpan,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
@@ -30,6 +31,7 @@ export {
   setTag,
   setTags,
   setUser,
+  startSpan,
   Span,
   withScope,
 } from '@sentry/core';

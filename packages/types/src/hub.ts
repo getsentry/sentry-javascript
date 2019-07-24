@@ -191,5 +191,5 @@ export interface Hub {
    *
    * @param span `Span` instance that was created by {@link startSpan}
    */
-  finishSpan(span: Span): string | undefined;
+  finishSpan(span?: Span): string | undefined;
 }

@@ -162,6 +162,7 @@ export function withScope(callback: (scope: Scope) => void): void {
  *
  * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
+ * @hidden
  */
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
@@ -188,6 +189,6 @@ export function startSpan(spanContext?: SpanContext, bindOnScope?: boolean): Spa
  *
  * @param span `Span` instance that was created by {@link startSpan}
  */
-export function finishSpan(span: Span): string | undefined {
+export function finishSpan(span?: Span): string | undefined {
   return callOnHub<string | undefined>('startSpan', span);
 }

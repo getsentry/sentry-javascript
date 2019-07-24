@@ -418,34 +418,52 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public finishSpan(span: Span): string | undefined {
-    if (!span.timestamp) {
-      span.finish();
+  public finishSpan(span?: Span): string | undefined {
+    const top = this.getStackTop();
+    let passedSpan = span;
+
+    // If the passed span is undefined we try to get the span from the scope and finish it.
+    if (passedSpan === undefined) {
+      if (top.scope && top.client) {
+        const scopeSpan = top.scope.getSpan();
+        if (scopeSpan) {
+          passedSpan = scopeSpan;
+        }
+      }
     }
 
-    if (!span.transaction) {
+    if (passedSpan === undefined) {
+      // We will do nothing since nothing was passed and there is no Span on the scope.
       return undefined;
     }
 
-    if (!this.getClient()) {
+    if (!passedSpan.timestamp) {
+      passedSpan.finish();
+    }
+
+    if (!passedSpan.transaction) {
+      return undefined;
+    }
+
+    if (!top.client) {
       return undefined;
     }
 
     // TODO: if sampled do what?
 
-    const finishedSpans = span.finishedSpans.filter(s => s !== span);
+    const finishedSpans = passedSpan.finishedSpans.filter(s => s !== span);
 
     const eventId = this.captureEvent({
-      contexts: { trace: span.getTraceContext() },
+      contexts: { trace: passedSpan.getTraceContext() },
       spans: finishedSpans,
-      start_timestamp: span.startTimestamp,
-      timestamp: span.timestamp,
-      transaction: span.transaction,
+      start_timestamp: passedSpan.startTimestamp,
+      timestamp: passedSpan.timestamp,
+      transaction: passedSpan.transaction,
       type: 'transaction',
     });
 
     // After sending we reset the finishedSpans array
-    span.finishedSpans = [];
+    passedSpan.finishedSpans = [];
     return eventId;
   }
 }
