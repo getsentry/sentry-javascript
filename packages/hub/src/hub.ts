@@ -452,11 +452,11 @@ export class Hub implements HubInterface {
 
     // TODO: if sampled do what?
 
-    const finishedSpans = passedSpan.finishedSpans.filter(s => s !== span);
+    const finishedSpans = passedSpan.finishedSpans.filter(s => s !== passedSpan);
 
     const eventId = this.captureEvent({
       contexts: { trace: passedSpan.getTraceContext() },
-      spans: finishedSpans,
+      spans: finishedSpans.length > 0 ? finishedSpans : undefined,
       start_timestamp: passedSpan.startTimestamp,
       timestamp: passedSpan.timestamp,
       transaction: passedSpan.transaction,

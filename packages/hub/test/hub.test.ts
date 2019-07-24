@@ -323,6 +323,18 @@ describe('Hub', () => {
         const span = hub.startSpan({ transaction: 'test' }, true) as any;
         expect(hub.finishSpan(span)).toBeDefined();
         expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toBeUndefined();
+      });
+
+      test('finish a scope span with transaction + child span', () => {
+        const myScope = new Scope();
+        const hub = new Hub(clientFn, myScope);
+        const spy = jest.spyOn(hub as any, 'captureEvent');
+        const span = hub.startSpan({ transaction: 'test' }, true) as any;
+        hub.finishSpan(hub.startSpan());
+        expect(hub.finishSpan(span)).toBeDefined();
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toHaveLength(1);
       });
     });
   });
