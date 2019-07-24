@@ -1,8 +1,23 @@
 import { Span, TRACEPARENT_REGEXP } from '../src';
 
 describe('Span', () => {
-  test('toTraceparent', () => {
-    expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+  describe('newSpan', () => {
+    test('simple', () => {
+      const span = new Span({ sampled: true });
+      const span2 = span.newSpan();
+      expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
+      expect((span2 as any)._traceId).toBe((span as any)._traceId);
+      expect((span2 as any).sampled).toBe((span as any).sampled);
+    });
+  });
+
+  describe('toTraceparent', () => {
+    test('simple', () => {
+      expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+    });
+    test('with sample', () => {
+      expect(new Span({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+    });
   });
 
   describe('fromTraceparent', () => {
@@ -35,26 +50,28 @@ describe('Span', () => {
       expect(from2._spanId).toHaveLength(16);
       expect(from2.sampled).toBeTruthy();
     });
+
+    test('invalid', () => {
+      expect(Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
+    });
   });
 
-  test('fromTraceparent - invalid', () => {
-    expect(Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-x')).toBeUndefined();
-  });
+  describe('toJSON', () => {
+    test('simple', () => {
+      const span = JSON.parse(
+        JSON.stringify(new Span({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
+      );
+      expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
+      expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    });
 
-  test('toJSON', () => {
-    const span = JSON.parse(
-      JSON.stringify(new Span({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
-    );
-    expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
-    expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-  });
-
-  test('toJSON with parent', () => {
-    const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
-    const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA._spanId });
-    const serialized = JSON.parse(JSON.stringify(spanB));
-    expect(serialized).toHaveProperty('parent_span_id', 'b');
-    expect(serialized).toHaveProperty('span_id', 'd');
-    expect(serialized).toHaveProperty('trace_id', 'c');
+    test('with parent', () => {
+      const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA._spanId });
+      const serialized = JSON.parse(JSON.stringify(spanB));
+      expect(serialized).toHaveProperty('parent_span_id', 'b');
+      expect(serialized).toHaveProperty('span_id', 'd');
+      expect(serialized).toHaveProperty('trace_id', 'c');
+    });
   });
 });
