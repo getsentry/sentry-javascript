@@ -190,5 +190,5 @@ export function startSpan(spanContext?: SpanContext, bindOnScope?: boolean): Spa
  * @param span `Span` instance that was created by {@link startSpan}
  */
 export function finishSpan(span?: Span): string | undefined {
-  return callOnHub<string | undefined>('startSpan', span);
+  return callOnHub<string | undefined>('finishSpan', span);
 }
