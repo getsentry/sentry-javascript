@@ -38,6 +38,7 @@ import {
   SAFARI_7,
   SAFARI_8,
   SAFARI_8_EVAL,
+  CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME
 } from './originalfixtures';
 
 describe('Tracekit - Original Tests', () => {
@@ -1244,4 +1245,18 @@ describe('Tracekit - Original Tests', () => {
       context: null,
     });
   });
+
+  it('should parse Chromium Embedded Framework errors with custom schemes', () => {
+    const stackFrames = _computeStackTrace(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
+    expect(stackFrames).to.be.ok;
+    expect(stackFrames.stack.length).to.equal(1);
+    expect(stackFrames.stack[0]).to.deep.equal({
+      url: 'examplescheme://examplehost/cd351f7250857e22ceaa.worker.js',
+      func: '?',
+      args: [],
+      line: 70179,
+      column: 15,
+      context: null,
+    });
+  })
 });
