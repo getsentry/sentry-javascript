@@ -477,7 +477,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
     }
 
     // Chromium based browsers: Chrome, Brave, new Opera, new Edge
-    var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
+    var chrome = /^\s*at (?:(.*?) ?\()?((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|[a-z]:|[-a-z]+(?=:)|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
       // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
       // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
       // We need this specific case for now because we want no other regex to match.
