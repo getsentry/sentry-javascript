@@ -1,4 +1,4 @@
-minVersion: '0.6.0'
+minVersion: '0.8.2'
 github:
   owner: getsentry
   repo: sentry-javascript
@@ -17,12 +17,16 @@ targets:
           cacheControl: 'public, max-age=31536000'
   - name: registry
     type: sdk
-    includeNames: /^sentry-browser-.*\.tgz$/
+    onlyIfPresent: /^sentry-browser-.*\.tgz$/
+    includeNames: /\.js$/
+    checksums:
+      - algorithm: sha384
+        format: base64
     config:
       canonical: 'npm:@sentry/browser'
   - name: registry
     type: sdk
-    includeNames: /^sentry-node-.*\.tgz$/
+    onlyIfPresent: /^sentry-node-.*\.tgz$/
     config:
       canonical: 'npm:@sentry/node'
   - name: gh-pages
