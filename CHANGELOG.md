@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- None
+- [integrations] feat: Add logErrors option to Vue integration (#2182)
+- [browser] test: Complete rewrite of Browser Integration Tests (#2176)
 
 ## 5.5.0
 

@@ -34,11 +34,21 @@ export class Vue implements Integration {
   private readonly _attachProps: boolean = true;
 
   /**
+   * When set to true, original Vue's `logError` will be called as well.
+   * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
+   */
+  private readonly _logErrors: boolean = false;
+
+  /**
    * @inheritDoc
    */
-  public constructor(options: { Vue?: any; attachProps?: boolean } = {}) {
+  public constructor(options: { Vue?: any; attachProps?: boolean; logErrors?: boolean } = {}) {
     // tslint:disable-next-line: no-unsafe-any
     this._Vue = options.Vue || getGlobalObject<any>().Vue;
+
+    if (options.logErrors !== undefined) {
+      this._logErrors = options.logErrors;
+    }
     if (options.attachProps === false) {
       this._attachProps = false;
     }
@@ -98,6 +108,14 @@ export class Vue implements Integration {
 
       if (typeof oldOnError === 'function') {
         oldOnError.call(this._Vue, error, vm, info);
+      }
+
+      if (this._logErrors) {
+        if (process && process.env && process.env.NODE_ENV !== 'production') {
+          this._Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
+        }
+        // tslint:disable-next-line:no-console
+        console.error(error);
       }
     };
   }
