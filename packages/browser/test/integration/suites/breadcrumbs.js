@@ -32,7 +32,7 @@ describe("breadcrumbs", function() {
     function() {
       return runInSandbox(sandbox, { manual: true }, function() {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/base/subjects/example.json");
+        xhr.open("get", "/base/subjects/example.json");
         xhr.send();
         waitForXHR(xhr, function() {
           Sentry.captureMessage("test");
@@ -87,7 +87,9 @@ describe("breadcrumbs", function() {
 
   it("should record a fetch request", function() {
     return runInSandbox(sandbox, { manual: true }, function() {
-      fetch("/base/subjects/example.json")
+      fetch("/base/subjects/example.json", {
+        method: "Get",
+      })
         .then(
           function() {
             Sentry.captureMessage("test");

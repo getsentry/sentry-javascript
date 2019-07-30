@@ -249,7 +249,7 @@ export class Breadcrumbs implements Integration {
           url: string;
           status_code?: number;
         } = {
-          method,
+          method: isString(method) ? method.toUpperCase() : method,
           url,
         };
 
@@ -397,7 +397,7 @@ export class Breadcrumbs implements Integration {
         function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
           const url = args[1];
           this.__sentry_xhr__ = {
-            method: args[0],
+            method: isString(args[0]) ? args[0].toUpperCase() : args[0],
             url: args[1],
           };
 
