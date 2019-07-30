@@ -53,7 +53,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected readonly _dsn?: Dsn;
 
   /** Array of used integrations. */
-  protected readonly _integrations: IntegrationIndex;
+  protected readonly _integrations: IntegrationIndex = {};
 
   /** Is the client still processing a call? */
   protected _processing: boolean = false;
@@ -72,7 +72,9 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       this._dsn = new Dsn(options.dsn);
     }
 
-    this._integrations = setupIntegrations(this._options);
+    if (!options.enabled) {
+      this._integrations = setupIntegrations(this._options);
+    }
   }
 
   /**
