@@ -3,7 +3,7 @@ export interface Mechanism {
   type: string;
   handled: boolean;
   data?: {
-    [key: string]: string;
+    [key: string]: string | boolean;
   };
   synthetic?: boolean;
 }

@@ -80,7 +80,10 @@ describe("wrapped built-ins", function() {
     }).then(function(summary) {
       if (summary.window.isChrome()) {
         // non-error rejections doesnt provide stacktraces so we can skip the assertion
-        assert.equal(summary.events[0].exception.values[0].value, '"test"');
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "Non-Error promise rejection captured with value: test"
+        );
         assert.equal(
           summary.events[0].exception.values[0].type,
           "UnhandledRejection"
@@ -92,6 +95,10 @@ describe("wrapped built-ins", function() {
         assert.equal(
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.data.incomplete,
+          true
         );
       }
     });
@@ -108,6 +115,10 @@ describe("wrapped built-ins", function() {
       if (summary.window.isChrome()) {
         // non-error rejections doesnt provide stacktraces so we can skip the assertion
         assert.equal(summary.events[0].exception.values[0].value.length, 253);
+        assert.include(
+          summary.events[0].exception.values[0].value,
+          "Non-Error promise rejection captured with value: "
+        );
         assert.equal(
           summary.events[0].exception.values[0].type,
           "UnhandledRejection"
@@ -119,6 +130,10 @@ describe("wrapped built-ins", function() {
         assert.equal(
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.data.incomplete,
+          true
         );
       }
     });
@@ -127,14 +142,17 @@ describe("wrapped built-ins", function() {
   it("should capture unhandledrejection with an object", function() {
     return runInSandbox(sandbox, function() {
       if (isChrome()) {
-        Promise.reject({ a: "b" });
+        Promise.reject({ a: "b", b: "c", c: "d" });
       } else {
         window.resolveTest({ window: window });
       }
     }).then(function(summary) {
       if (summary.window.isChrome()) {
         // non-error rejections doesnt provide stacktraces so we can skip the assertion
-        assert.equal(summary.events[0].exception.values[0].value, '{"a":"b"}');
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "Non-Error promise rejection captured with keys: a, b, c"
+        );
         assert.equal(
           summary.events[0].exception.values[0].type,
           "UnhandledRejection"
@@ -146,6 +164,10 @@ describe("wrapped built-ins", function() {
         assert.equal(
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.data.incomplete,
+          true
         );
       }
     });
@@ -168,7 +190,10 @@ describe("wrapped built-ins", function() {
     }).then(function(summary) {
       if (summary.window.isChrome()) {
         // non-error rejections doesnt provide stacktraces so we can skip the assertion
-        assert.equal(summary.events[0].exception.values[0].value.length, 253);
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "Non-Error promise rejection captured with keys: a, b, c, d, e"
+        );
         assert.equal(
           summary.events[0].exception.values[0].type,
           "UnhandledRejection"
@@ -180,6 +205,10 @@ describe("wrapped built-ins", function() {
         assert.equal(
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.data.incomplete,
+          true
         );
       }
     });
