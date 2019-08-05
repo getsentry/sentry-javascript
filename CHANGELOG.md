@@ -1,9 +1,13 @@
 # Changelog
 
-## Unreleased
+## 5.6.0
 
-- [integrations] feat: Add logErrors option to Vue integration (#2182)
+- [core] fix: When using enabled:false integrations shouldnt be installed (#2181)
+- [browser] feat: Add support for custom schemes to Tracekit
+- [browser] ref: Better UnhandledRejection messages (#2185)
 - [browser] test: Complete rewrite of Browser Integration Tests (#2176)
+- [node] ref: Unify method name casing in breadcrumbs (#2183)
+- [integrations] feat: Add logErrors option to Vue integration (#2182)
 
 ## 5.5.0
 
