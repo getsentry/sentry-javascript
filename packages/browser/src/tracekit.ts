@@ -1,6 +1,6 @@
 // tslint:disable
 
-import { getGlobalObject, isError, isErrorEvent, normalize } from '@sentry/utils';
+import { getGlobalObject, isError, isErrorEvent } from '@sentry/utils';
 
 /**
  * @hidden
@@ -29,6 +29,7 @@ export interface StackTrace {
   stack: StackFrame[];
   useragent: string;
   original?: string;
+  incomplete?: boolean;
 }
 
 interface ComputeStackTrace {
@@ -271,12 +272,9 @@ TraceKit._report = (function reportModuleWrapper() {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
    */
   function _traceKitWindowOnUnhandledRejection(e: any) {
-    var err = (e && (e.detail ? e.detail.reason : e.reason)) || e;
+    var err = e && typeof e.reason !== 'undefined' ? e.reason : e;
     var stack = TraceKit._computeStackTrace(err);
     stack.mechanism = 'onunhandledrejection';
-    if (!stack.message) {
-      stack.message = JSON.stringify(normalize(err));
-    }
     _notifyHandlers(stack, true, err);
   }
 

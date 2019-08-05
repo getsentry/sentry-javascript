@@ -1,6 +1,15 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
-import { addExceptionTypeValue, isString, logger, normalize, truncate } from '@sentry/utils';
+import { Event, Integration, Severity } from '@sentry/types';
+import {
+  addExceptionTypeValue,
+  isPrimitive,
+  isString,
+  keysToEventMessage,
+  logger,
+  normalize,
+  normalizeToSize,
+  truncate,
+} from '@sentry/utils';
 
 import { shouldIgnoreOnError } from '../helpers';
 import { eventFromStacktrace } from '../parsers';
@@ -46,27 +55,13 @@ export class GlobalHandlers implements Integration {
   public setupOnce(): void {
     Error.stackTraceLimit = 50;
 
-    _subscribe((stack: TraceKitStackTrace, _: boolean, error: Error) => {
-      // TODO: use stack.context to get a valuable information from TraceKit, eg.
-      // [
-      //   0: "  })"
-      //   1: ""
-      //   2: "  function foo () {"
-      //   3: "    Sentry.captureException('some error')"
-      //   4: "    Sentry.captureMessage('some message')"
-      //   5: "    throw 'foo'"
-      //   6: "  }"
-      //   7: ""
-      //   8: "  function bar () {"
-      //   9: "    foo();"
-      //   10: "  }"
-      // ]
+    _subscribe((stack: TraceKitStackTrace, _: boolean, error: any) => {
       if (shouldIgnoreOnError()) {
         return;
       }
       const self = getCurrentHub().getIntegration(GlobalHandlers);
       if (self) {
-        getCurrentHub().captureEvent(self._eventFromGlobalHandler(stack), {
+        getCurrentHub().captureEvent(self._eventFromGlobalHandler(stack, error), {
           data: { stack },
           originalException: error,
         });
@@ -89,7 +84,7 @@ export class GlobalHandlers implements Integration {
    *
    * @param stacktrace TraceKitStackTrace to be converted to an Event.
    */
-  private _eventFromGlobalHandler(stacktrace: TraceKitStackTrace): Event {
+  private _eventFromGlobalHandler(stacktrace: TraceKitStackTrace, error: any): Event {
     if (!isString(stacktrace.message) && stacktrace.mechanism !== 'onunhandledrejection') {
       // There are cases where stacktrace.message is an Event object
       // https://github.com/getsentry/sentry-javascript/issues/1949
@@ -98,6 +93,11 @@ export class GlobalHandlers implements Integration {
       stacktrace.message =
         message.error && isString(message.error.message) ? message.error.message : 'No error message';
     }
+
+    if (stacktrace.mechanism === 'onunhandledrejection' && stacktrace.incomplete) {
+      return this._eventFromIncompleteRejection(stacktrace, error);
+    }
+
     const event = eventFromStacktrace(stacktrace);
 
     const data: { [key: string]: string } = {
@@ -126,6 +126,55 @@ export class GlobalHandlers implements Integration {
       handled: false,
       type: stacktrace.mechanism,
     });
+
+    return event;
+  }
+
+  /**
+   * This function creates an Event from an TraceKitStackTrace that has part of it missing.
+   *
+   * @param stacktrace TraceKitStackTrace to be converted to an Event.
+   */
+  private _eventFromIncompleteRejection(stacktrace: TraceKitStackTrace, error: any): Event {
+    const event: Event = {
+      level: Severity.Error,
+    };
+
+    if (isPrimitive(error)) {
+      event.exception = {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: `Non-Error promise rejection captured with value: ${error}`,
+          },
+        ],
+      };
+    } else {
+      event.exception = {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: `Non-Error promise rejection captured with keys: ${keysToEventMessage(Object.keys(error).sort())}`,
+          },
+        ],
+      };
+      event.extra = {
+        __serialized__: normalizeToSize(error),
+      };
+    }
+
+    if (event.exception.values && event.exception.values[0]) {
+      event.exception.values[0].mechanism = {
+        data: {
+          incomplete: true,
+          mode: stacktrace.mode,
+          ...(stacktrace.message && { message: stacktrace.message }),
+          ...(stacktrace.name && { name: stacktrace.name }),
+        },
+        handled: false,
+        type: stacktrace.mechanism,
+      };
+    }
 
     return event;
   }
