@@ -3,6 +3,28 @@ import { expect } from 'chai';
 import { _computeStackTrace } from '../../../src/tracekit';
 
 describe('Tracekit - Custom Tests', () => {
+  it('should parse errors with custom schemes', () => {
+    const CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME = {
+      message: 'message string',
+      name: 'Error',
+      stack: `Error: message string
+            at examplescheme://examplehost/cd351f7250857e22ceaa.worker.js:70179:15`,
+    };
+
+    const stacktrace = _computeStackTrace(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
+
+    expect(stacktrace.stack).deep.equal([
+      {
+        args: [],
+        column: 15,
+        context: null,
+        func: '?',
+        line: 70179,
+        url: 'examplescheme://examplehost/cd351f7250857e22ceaa.worker.js',
+      },
+    ]);
+  });
+
   describe('should parse exceptions with native code frames', () => {
     it('in Chrome 73', () => {
       const CHROME73_NATIVE_CODE_EXCEPTION = {
@@ -235,6 +257,30 @@ describe('Tracekit - Custom Tests', () => {
           url: 'http://localhost:5000/',
         },
         { column: 8, url: 'http://localhost:5000/', func: 'Anonymous function', line: 50, context: null, args: [] },
+      ]);
+    });
+  });
+
+  describe('should parse exceptions called within an iframe', () => {
+    it('in Electron Renderer', () => {
+      const CHROME_ELECTRON_RENDERER = {
+        message: "Cannot read property 'error' of undefined",
+        name: 'TypeError',
+        stack: `TypeError: Cannot read property 'error' of undefined
+            at TESTTESTTEST.someMethod (C:\\Users\\user\\path\\to\\file.js:295:108)`,
+      };
+
+      const stacktrace = _computeStackTrace(CHROME_ELECTRON_RENDERER);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          args: [],
+          column: 108,
+          context: null,
+          func: 'TESTTESTTEST.someMethod',
+          line: 295,
+          url: 'C:\\Users\\user\\path\\to\\file.js',
+        },
       ]);
     });
   });

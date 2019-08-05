@@ -482,11 +482,3 @@ export const ANDROID_REACT_NATIVE_PROD = {
     'value@index.android.bundle:29:927\n' +
     '[native code]',
 };
-
-export const CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME = {
-  message: 'message string',
-  name: 'Error',
-  stack:
-    'Error: message string\n' +
-    '    at examplescheme://examplehost/cd351f7250857e22ceaa.worker.js:70179:15'
-};
