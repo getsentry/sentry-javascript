@@ -6,6 +6,7 @@
 - [browser] feat: Add support for custom schemes to Tracekit
 - [browser] ref: Better UnhandledRejection messages (#2185)
 - [browser] test: Complete rewrite of Browser Integration Tests (#2176)
+- [node] feat: Add cookies as an optional property in the request handler (#2167)
 - [node] ref: Unify method name casing in breadcrumbs (#2183)
 - [integrations] feat: Add logErrors option to Vue integration (#2182)
 
