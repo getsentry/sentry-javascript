@@ -4,7 +4,7 @@ import { SinonSpy, spy } from 'sinon';
 
 import { wrap } from '../../../src/helpers';
 
-describe('wrap()', () => {
+describe('internal wrap()', () => {
   it('should wrap only functions', () => {
     const fn = () => 1337;
     const obj = { pickle: 'Rick' };

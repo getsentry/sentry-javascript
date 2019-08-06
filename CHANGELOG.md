@@ -4,6 +4,7 @@
 
 - [core] fix: When using enabled:false integrations shouldnt be installed (#2181)
 - [browser] feat: Add support for custom schemes to Tracekit
+- [browser] ref: Return function call result from `wrap` method
 - [browser] ref: Better UnhandledRejection messages (#2185)
 - [browser] test: Complete rewrite of Browser Integration Tests (#2176)
 - [node] feat: Add cookies as an optional property in the request handler (#2167)

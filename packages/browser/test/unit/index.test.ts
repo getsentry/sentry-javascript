@@ -14,6 +14,7 @@ import {
   init,
   Integrations,
   Scope,
+  wrap,
 } from '../../src';
 
 import { SimpleTransport } from './mocks/simpletransport';
@@ -178,5 +179,50 @@ describe('SentryBrowser initialization', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
     expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).to.be.undefined;
+  });
+});
+
+describe('wrap()', () => {
+  it('should wrap and call function while capturing error', done => {
+    getCurrentHub().bindClient(
+      new BrowserClient({
+        beforeSend: (event: Event) => {
+          expect(event.exception!.values![0].type).to.equal('TypeError');
+          expect(event.exception!.values![0].value).to.equal('mkey');
+          done();
+          return null;
+        },
+        dsn,
+      }),
+    );
+
+    wrap(() => {
+      throw new TypeError('mkey');
+    });
+  });
+
+  it('should return result of a function call', () => {
+    const result = wrap(() => 2);
+    expect(result).to.equal(2);
+  });
+
+  it('should allow for passing this and arguments through binding', () => {
+    const result = wrap(
+      function(this: any, a: string, b: number): any[] {
+        return [this, a, b];
+      }.bind({ context: 'this' }, 'b', 42),
+    );
+
+    expect((result as any[])[0]).to.deep.equal({ context: 'this' });
+    expect((result as any[])[1]).to.equal('b');
+    expect((result as any[])[2]).to.equal(42);
+
+    const result2 = wrap(
+      function(this: { x: number }): number {
+        return this.x;
+      }.bind({ x: 42 }),
+    );
+
+    expect(result2).to.equal(42);
   });
 });

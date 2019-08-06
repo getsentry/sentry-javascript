@@ -159,8 +159,10 @@ export function close(timeout?: number): Promise<boolean> {
  * Wrap code within a try/catch block so the SDK is able to capture errors.
  *
  * @param fn A function to wrap.
+ *
+ * @returns The result of wrapped function call.
  */
-export function wrap(fn: Function): void {
+export function wrap<T>(fn: () => T): ReturnType<typeof fn> {
   // tslint:disable-next-line: no-unsafe-any
-  internalWrap(fn)();
+  return internalWrap(fn)();
 }
