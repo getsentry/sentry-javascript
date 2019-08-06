@@ -26,7 +26,7 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
         stack: [
           {
             name: string;
-          },
+          }
         ];
       };
     };
@@ -50,8 +50,14 @@ function extractTransaction(req: { [key: string]: any }, type: boolean | Transac
   }
 }
 
+/** Default request keys that'll be used to extract data from the request */
+const DEFAULT_REQUEST_KEYS = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
+
 /** JSDoc */
 function extractRequestData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
+  const request: { [key: string]: any } = {};
+  const attributes = Array.isArray(keys) ? keys : DEFAULT_REQUEST_KEYS;
+
   // headers:
   //   node, express: req.headers
   //   koa: req.header
@@ -80,48 +86,50 @@ function extractRequestData(req: { [key: string]: any }, keys: boolean | string[
   const originalUrl = (req.originalUrl || req.url) as string;
   // absolute url
   const absoluteUrl = `${protocol}://${host}${originalUrl}`;
-  // query string:
-  //   node: req.url (raw)
-  //   express, koa: req.query
-  const query = url.parse(originalUrl || '', false).query;
-  // cookies:
-  //   node, express, koa: req.headers.cookie
-  const cookies = cookie.parse(headers.cookie || '');
-  // body data:
-  //   node, express, koa: req.body
-  let data = req.body;
-  if (method === 'GET' || method === 'HEAD') {
-    if (typeof data === 'undefined') {
-      data = '<unavailable>';
+
+  attributes.forEach(key => {
+    switch (key) {
+      case 'headers':
+        request.headers = headers;
+        break;
+      case 'method':
+        request.method = method;
+        break;
+      case 'url':
+        request.url = absoluteUrl;
+        break;
+      case 'cookies':
+        // cookies:
+        //   node, express, koa: req.headers.cookie
+        request.cookies = cookie.parse(headers.cookie || '');
+        break;
+      case 'query_string':
+        // query string:
+        //   node: req.url (raw)
+        //   express, koa: req.query
+        request.query_string = url.parse(originalUrl || '', false).query;
+        break;
+      case 'data':
+        // body data:
+        //   node, express, koa: req.body
+        let data = req.body;
+        if (method === 'GET' || method === 'HEAD') {
+          if (typeof data === 'undefined') {
+            data = '<unavailable>';
+          }
+        }
+        if (data && !isString(data)) {
+          // Make sure the request body is a string
+          data = JSON.stringify(normalize(data));
+        }
+        request.data = data;
+        break;
+      default:
+        if ({}.hasOwnProperty.call(req, key)) {
+          request[key] = (req as { [key: string]: any })[key];
+        }
     }
-  }
-  if (data && !isString(data)) {
-    // Make sure the request body is a string
-    data = JSON.stringify(normalize(data));
-  }
-
-  // request interface
-  const request: {
-    [key: string]: any;
-  } = {
-    cookies,
-    data,
-    headers,
-    method,
-    query_string: query,
-    url: absoluteUrl,
-  };
-
-  const attributes = Array.isArray(keys) ? keys : [];
-
-  if (attributes.length) {
-    Object.keys(request).forEach(key => {
-      /** Remove any of the unspecified keys in the options from the request interface */
-      if (!attributes.includes(key)) {
-        delete request[key];
-      }
-    });
-  }
+  });
 
   return request;
 }
