@@ -426,6 +426,26 @@ describe('BaseClient', () => {
       expect(Object.keys(client.getIntegrations()).length).toBe(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
+
+    test('skips installation if DSN is not provided', () => {
+      expect.assertions(2);
+      const client = new TestClient({
+        integrations: [new TestIntegration()],
+      });
+      expect(Object.keys(client.getIntegrations()).length).toBe(0);
+      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+    });
+
+    test('skips installation if enabled is set to false', () => {
+      expect.assertions(2);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        enabled: false,
+        integrations: [new TestIntegration()],
+      });
+      expect(Object.keys(client.getIntegrations()).length).toBe(0);
+      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+    });
   });
 
   describe('flush/close', () => {
