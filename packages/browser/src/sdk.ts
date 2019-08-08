@@ -162,7 +162,7 @@ export function close(timeout?: number): Promise<boolean> {
  *
  * @returns The result of wrapped function call.
  */
-export function wrap<T>(fn: () => T): ReturnType<typeof fn> {
+export function wrap(fn: Function): any {
   // tslint:disable-next-line: no-unsafe-any
   return internalWrap(fn)();
 }
