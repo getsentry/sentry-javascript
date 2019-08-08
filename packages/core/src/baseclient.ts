@@ -72,7 +72,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       this._dsn = new Dsn(options.dsn);
     }
 
-    if (!options.enabled) {
+    if (this._isEnabled()) {
       this._integrations = setupIntegrations(this._options);
     }
   }

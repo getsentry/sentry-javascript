@@ -6,6 +6,8 @@ import { TestClient } from '../mocks/client';
 
 declare var global: any;
 
+const PUBLIC_DSN = 'https://username@domain/path';
+
 jest.mock('@sentry/hub', () => ({
   getCurrentHub(): {
     bindClient(): boolean;
@@ -42,7 +44,7 @@ describe('SDK', () => {
         new MockIntegration('MockIntegration 1'),
         new MockIntegration('MockIntegration 2'),
       ];
-      initAndBind(TestClient, { defaultIntegrations: DEFAULT_INTEGRATIONS });
+      initAndBind(TestClient, { dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS });
       expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
       expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });
@@ -52,7 +54,7 @@ describe('SDK', () => {
         new MockIntegration('MockIntegration 1'),
         new MockIntegration('MockIntegration 2'),
       ];
-      initAndBind(TestClient, { defaultIntegrations: false });
+      initAndBind(TestClient, { dsn: PUBLIC_DSN, defaultIntegrations: false });
       expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(0);
       expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(0);
     });
@@ -62,7 +64,7 @@ describe('SDK', () => {
         new MockIntegration('MockIntegration 1'),
         new MockIntegration('MockIntegration 2'),
       ];
-      initAndBind(TestClient, { integrations });
+      initAndBind(TestClient, { dsn: PUBLIC_DSN, integrations });
       expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
       expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });
@@ -76,7 +78,7 @@ describe('SDK', () => {
         new MockIntegration('MockIntegration 1'),
         new MockIntegration('MockIntegration 3'),
       ];
-      initAndBind(TestClient, { defaultIntegrations: DEFAULT_INTEGRATIONS, integrations });
+      initAndBind(TestClient, { dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS, integrations });
       // 'MockIntegration 1' should be overridden by the one with the same name provided through options
       expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(0);
       expect((DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
@@ -91,6 +93,7 @@ describe('SDK', () => {
       ];
       const newIntegration = new MockIntegration('MockIntegration 3');
       initAndBind(TestClient, {
+        dsn: PUBLIC_DSN,
         // Take only the first one and add a new one to it
         defaultIntegrations: DEFAULT_INTEGRATIONS,
         integrations: (integrations: Integration[]) => integrations.slice(0, 1).concat(newIntegration),
