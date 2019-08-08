@@ -1,20 +1,20 @@
-import { parseRequest } from '../src/handlers';
 import { Event } from '../src';
+import { parseRequest } from '../src/handlers';
 
 describe('parseRequest', () => {
   const mockReq = {
-    method: 'GET',
-    url: '/some/path?key=value',
+    body: '',
+    cookies: { test: 'test' },
     headers: {
       host: 'mattrobenolt.com',
     },
-    cookies: { test: 'test' },
-    body: '',
+    method: 'GET',
+    url: '/some/path?key=value',
     user: {
+      custom_property: 'foo',
+      email: 'tobias@mail.com',
       id: 123,
       username: 'tobias',
-      email: 'tobias@mail.com',
-      custom_property: 'foo',
     },
   };
 

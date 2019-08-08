@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.6.1
+
+- [core] fix: Correctly detect when client is enabled before installing integrations (#2193)
+- [browser] ref: Loosen typings in `wrap` method
+
 ## 5.6.0
 
 - [core] fix: When using enabled:false integrations shouldnt be installed (#2181)
