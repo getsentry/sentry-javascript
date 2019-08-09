@@ -61,7 +61,7 @@
     var _currentScriptTag = _document.getElementsByTagName(_script)[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
-    _newScriptTag.crossorigin = 'anonymous';
+    _newScriptTag.setAttribute('crossorigin', 'anonymous');
 
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function() {
