@@ -93,9 +93,9 @@ describe('SDK', () => {
       ];
       const newIntegration = new MockIntegration('MockIntegration 3');
       initAndBind(TestClient, {
-        dsn: PUBLIC_DSN,
         // Take only the first one and add a new one to it
         defaultIntegrations: DEFAULT_INTEGRATIONS,
+        dsn: PUBLIC_DSN,
         integrations: (integrations: Integration[]) => integrations.slice(0, 1).concat(newIntegration),
       });
       expect((DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
