@@ -290,51 +290,16 @@ describe('Hub', () => {
         expect(span._spanId).toBeTruthy();
       });
 
-      test('bindOnScope', () => {
+      test('inherits from parent span', () => {
         const myScope = new Scope();
         const hub = new Hub(clientFn, myScope);
-        const span = hub.startSpan({}, true) as any;
-        expect((myScope as any)._span).toBe(span);
-      });
-    });
-
-    describe('finish', () => {
-      test('simple', () => {
-        const hub = new Hub(clientFn);
-        const span = hub.startSpan() as any;
-        expect(span.timestamp).toBeUndefined();
-        expect(hub.finishSpan(span)).toBeUndefined();
-        expect(span.timestamp).toBeGreaterThan(1);
-      });
-
-      test('finish a scope span without transaction', () => {
-        const myScope = new Scope();
-        const hub = new Hub(clientFn, myScope);
-        const spy = jest.spyOn(hub as any, 'captureEvent');
-        const span = hub.startSpan({}, true) as any;
-        expect(hub.finishSpan(span)).toBeUndefined();
-        expect(spy).not.toHaveBeenCalled();
-      });
-
-      test('finish a scope span with transaction', () => {
-        const myScope = new Scope();
-        const hub = new Hub(clientFn, myScope);
-        const spy = jest.spyOn(hub as any, 'captureEvent');
-        const span = hub.startSpan({ transaction: 'test' }, true) as any;
-        expect(hub.finishSpan(span)).toBeDefined();
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toBeUndefined();
-      });
-
-      test('finish a scope span with transaction + child span', () => {
-        const myScope = new Scope();
-        const hub = new Hub(clientFn, myScope);
-        const spy = jest.spyOn(hub as any, 'captureEvent');
-        const span = hub.startSpan({ transaction: 'test' }, true) as any;
-        hub.finishSpan(hub.startSpan());
-        expect(hub.finishSpan(span)).toBeDefined();
-        expect(spy).toHaveBeenCalled();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(1);
+        const parentSpan = hub.startSpan({}) as any;
+        expect(parentSpan._parentId).toBeFalsy();
+        hub.configureScope(scope => {
+          scope.setSpan(parentSpan);
+        });
+        const span = hub.startSpan({}) as any;
+        expect(span._parentSpanId).toBeTruthy();
       });
     });
   });

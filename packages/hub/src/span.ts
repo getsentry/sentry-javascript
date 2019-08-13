@@ -1,5 +1,6 @@
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { timestampWithMs, uuid4 } from '@sentry/utils';
+import { getCurrentHub, Hub } from './hub';
 
 export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
 
@@ -7,6 +8,11 @@ export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01
  * Span contains all data about a span
  */
 export class Span implements SpanInterface, SpanContext {
+  /**
+   * @inheritDoc
+   */
+  private readonly _hub: Hub = getCurrentHub();
+
   /**
    * @inheritDoc
    */
@@ -67,7 +73,11 @@ export class Span implements SpanInterface, SpanContext {
    */
   public finishedSpans: Span[] = [];
 
-  public constructor(spanContext?: SpanContext) {
+  public constructor(spanContext?: SpanContext, hub?: Hub) {
+    if (hub instanceof Hub) {
+      this._hub = hub;
+    }
+
     if (!spanContext) {
       return this;
     }
@@ -147,9 +157,32 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Sets the finish timestamp on the current span
    */
-  public finish(): void {
+  public finish(): string | undefined {
+    // Don't allow for finishing more than once
+    if (typeof this.timestamp === 'number') {
+      return undefined;
+    }
+
     this.timestamp = timestampWithMs();
     this.finishedSpans.push(this);
+
+    // Don't send non-transaction spans
+    if (typeof this.transaction !== 'string') {
+      return undefined;
+    }
+
+    // TODO: if sampled do what?
+    const finishedSpans = this.finishedSpans.filter(s => s !== this);
+    this.finishedSpans = [];
+
+    return this._hub.captureEvent({
+      contexts: { trace: this.getTraceContext() },
+      spans: finishedSpans.length > 0 ? finishedSpans : undefined,
+      start_timestamp: this.startTimestamp,
+      timestamp: this.timestamp,
+      transaction: this.transaction,
+      type: 'transaction',
+    });
   }
 
   /**

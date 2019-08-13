@@ -1,6 +1,14 @@
-import { Span, TRACEPARENT_REGEXP } from '../src';
+import { Span, TRACEPARENT_REGEXP, Hub, Scope } from '../src';
 
 describe('Span', () => {
+  let hub: Hub;
+
+  beforeEach(() => {
+    const clientFn: any = jest.fn();
+    const myScope = new Scope();
+    hub = new Hub(clientFn, myScope);
+  });
+
   describe('newSpan', () => {
     test('simple', () => {
       const span = new Span({ sampled: true });
@@ -8,6 +16,13 @@ describe('Span', () => {
       expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
       expect((span2 as any)._traceId).toBe((span as any)._traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
+    });
+
+    test.only('gets currentHub', () => {
+      const span = new Span({});
+      const span2 = span.newSpan();
+      expect((span as any)._hub).toBeInstanceOf(Hub);
+      expect((span2 as any)._hub).toBeInstanceOf(Hub);
     });
   });
 
@@ -72,6 +87,40 @@ describe('Span', () => {
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
+    });
+  });
+
+  describe('finish', () => {
+    test('simple', () => {
+      const span = new Span({});
+      expect(span.timestamp).toBeUndefined();
+      span.finish();
+      expect(span.timestamp).toBeGreaterThan(1);
+    });
+
+    test('finish a scope span without transaction', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent');
+      const span = new Span({}, hub);
+      span.finish();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test('finish a scope span with transaction', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+      const span = new Span({ transaction: 'test' }, hub);
+      span.finish();
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.calls[0][0].spans).toBeUndefined();
+    });
+
+    test('finish a scope span with transaction + child span', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+      const parentSpan = new Span({ transaction: 'test' }, hub);
+      const childSpan = parentSpan.newSpan();
+      childSpan.finish();
+      parentSpan.finish();
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.calls[0][0].spans).toHaveLength(1);
     });
   });
 });

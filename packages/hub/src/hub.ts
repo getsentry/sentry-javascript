@@ -397,75 +397,18 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanContext?: SpanContext, bindOnScope: boolean = false): Span {
+  public startSpan(spanContext?: SpanContext): Span {
     const top = this.getStackTop();
 
-    const simpleNewSpan = new Span(spanContext);
-    if (top.scope && top.client) {
-      if (bindOnScope) {
-        top.scope.setSpan(simpleNewSpan);
-        return simpleNewSpan;
-      }
+    if (top.scope) {
       const span = top.scope.getSpan();
+
       if (span) {
         return span.newSpan(spanContext);
       }
     }
 
-    return simpleNewSpan;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public finishSpan(span?: Span): string | undefined {
-    const top = this.getStackTop();
-    let passedSpan = span;
-
-    // If the passed span is undefined we try to get the span from the scope and finish it.
-    if (passedSpan === undefined) {
-      if (top.scope && top.client) {
-        const scopeSpan = top.scope.getSpan();
-        if (scopeSpan) {
-          passedSpan = scopeSpan;
-        }
-      }
-    }
-
-    if (passedSpan === undefined) {
-      logger.warn('There was no Span on the Scope and none was passed, do nothing.');
-      // We will do nothing since nothing was passed and there is no Span on the scope.
-      return undefined;
-    }
-
-    if (!passedSpan.timestamp) {
-      passedSpan.finish();
-    }
-
-    if (!passedSpan.transaction) {
-      return undefined;
-    }
-
-    if (!top.client) {
-      return undefined;
-    }
-
-    // TODO: if sampled do what?
-
-    const finishedSpans = passedSpan.finishedSpans.filter(s => s !== passedSpan);
-
-    const eventId = this.captureEvent({
-      contexts: { trace: passedSpan.getTraceContext() },
-      spans: finishedSpans.length > 0 ? finishedSpans : undefined,
-      start_timestamp: passedSpan.startTimestamp,
-      timestamp: passedSpan.timestamp,
-      transaction: passedSpan.transaction,
-      type: 'transaction',
-    });
-
-    // After sending we reset the finishedSpans array
-    passedSpan.finishedSpans = [];
-    return eventId;
+    return new Span(spanContext);
   }
 }
 

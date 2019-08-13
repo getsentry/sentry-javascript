@@ -1,7 +1,7 @@
 import { Event, EventHint, Severity } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-import { addGlobalEventProcessor, Scope } from '../src';
+import { addGlobalEventProcessor, Scope, Span } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {
@@ -73,9 +73,6 @@ describe('Scope', () => {
       scope.addBreadcrumb({ message: 'test' }, 100);
       expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
     });
-  });
-
-  describe('level', () => {
     test('set', () => {
       const scope = new Scope();
       scope.setLevel(Severity.Critical);
@@ -108,6 +105,21 @@ describe('Scope', () => {
       scope.setContext('os', { id: '1' });
       scope.setContext('os', null);
       expect((scope as any)._user).toEqual({});
+    });
+  });
+
+  describe('span', () => {
+    test('set', () => {
+      const scope = new Scope();
+      const span = new Span({});
+      scope.setSpan(span);
+      expect((scope as any)._span).toEqual(span);
+    });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setSpan(new Span({}));
+      scope.setSpan();
+      expect((scope as any)._span).toEqual(undefined);
     });
   });
 
