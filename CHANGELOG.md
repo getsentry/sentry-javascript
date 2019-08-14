@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [browser] feat: Use framesToPop for InvaliantViolations in React errors (#2204)
+
 ## 5.6.1
 
 - [core] fix: Correctly detect when client is enabled before installing integrations (#2193)

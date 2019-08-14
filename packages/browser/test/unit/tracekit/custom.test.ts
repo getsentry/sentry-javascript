@@ -284,4 +284,57 @@ describe('Tracekit - Custom Tests', () => {
       ]);
     });
   });
+
+  describe('React', () => {
+    it('should correctly parse Invariant Violation errors and use framesToPop to drop info message', () => {
+      const REACT_INVARIANT_VIOLATION_EXCEPTION = {
+        framesToPop: 1,
+        message:
+          'Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%7D&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings. ',
+        name: 'Invariant Violation',
+        stack: `Invariant Violation: Minified React error #31; visit https://reactjs.org/docs/error-decoder.html?invariant=31&args[]=object%20with%20keys%20%7B%7D&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+            at http://localhost:5000/static/js/foo.chunk.js:1:21738
+            at a (http://localhost:5000/static/js/foo.chunk.js:1:21841)
+            at ho (http://localhost:5000/static/js/foo.chunk.js:1:68735)
+            at f (http://localhost:5000/:1:980)`,
+      };
+
+      const stacktrace = _computeStackTrace(REACT_INVARIANT_VIOLATION_EXCEPTION);
+
+      expect(stacktrace.stack).deep.equal([
+        {
+          args: [],
+          column: 21738,
+          context: null,
+          func: '?',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 21841,
+          context: null,
+          func: 'a',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 68735,
+          context: null,
+          func: 'ho',
+          line: 1,
+          url: 'http://localhost:5000/static/js/foo.chunk.js',
+        },
+        {
+          args: [],
+          column: 980,
+          context: null,
+          func: 'f',
+          line: 1,
+          url: 'http://localhost:5000/',
+        },
+      ]);
+    });
+  });
 });
