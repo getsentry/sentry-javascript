@@ -1,5 +1,6 @@
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { timestampWithMs, uuid4 } from '@sentry/utils';
+
 import { getCurrentHub, Hub } from './hub';
 
 export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
@@ -61,12 +62,12 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public tags?: { [key: string]: string };
+  public tags: { [key: string]: string } = {};
 
   /**
    * @inheritDoc
    */
-  public data?: { [key: string]: any };
+  public data: { [key: string]: any } = {};
 
   /**
    * List of spans that were finalized
@@ -155,6 +156,55 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
+   * Sets the tag attribute on the current span
+   * @param key Tag key
+   * @param value Tag value
+   */
+  public setTag(key: string, value: string): this {
+    this.tags = { ...this.tags, [key]: value };
+    return this;
+  }
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  public setData(key: string, value: any): this {
+    this.data = { ...this.data, [key]: value };
+    return this;
+  }
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  public setFailure(): this {
+    this.setTag('status', 'failure');
+    return this;
+  }
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  public setSuccess(): this {
+    this.setTag('status', 'success');
+    return this;
+  }
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  public isSuccess(): boolean {
+    return this.tags.status !== 'failure';
+  }
+
+  /**
    * Sets the finish timestamp on the current span
    */
   public finish(): string | undefined {
@@ -200,7 +250,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public getTraceContext(): object {
-    return {
+    const context = {
       data: this.data,
       description: this.description,
       op: this.op,
@@ -209,6 +259,13 @@ export class Span implements SpanInterface, SpanContext {
       tags: this.tags,
       trace_id: this._traceId,
     };
+
+    if (this.tags.status) {
+      // TODO: Fixme, just use better typings
+      (context as any).status = this.tags.status;
+    }
+
+    return context;
   }
 
   /**

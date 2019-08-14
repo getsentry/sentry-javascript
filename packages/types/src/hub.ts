@@ -183,13 +183,4 @@ export interface Hub {
    * @param bindOnScope Determines if the started span will be set on the Scope
    */
   startSpan(spanContext?: SpanContext, bindOnScope?: boolean): Span;
-
-  /**
-   * This finishes the passed `Span`. If the `Span` has the property `transaction` set and it's bound on the
-   * current Scope, an `transaction` Event will be sent to Sentry containing all finished Spans inbetween.
-   * Returns either an `event.id` or `undefined` in case event wasn't sent.
-   *
-   * @param span `Span` instance that was created by {@link startSpan}
-   */
-  finishSpan(span?: Span): string | undefined;
 }

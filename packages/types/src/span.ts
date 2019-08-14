@@ -19,6 +19,10 @@ export interface SpanContext {
    */
   op?: string;
   /**
+   * Completion status of the Span.
+   */
+  status?: boolean;
+  /**
    * Parent Span ID
    */
   parentSpanId?: string;

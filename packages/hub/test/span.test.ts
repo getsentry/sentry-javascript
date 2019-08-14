@@ -18,7 +18,69 @@ describe('Span', () => {
       expect((span2 as any).sampled).toBe((span as any).sampled);
     });
 
-    test.only('gets currentHub', () => {
+    test('gets currentHub', () => {
+      const span = new Span({});
+      const span2 = span.newSpan();
+      expect((span as any)._hub).toBeInstanceOf(Hub);
+      expect((span2 as any)._hub).toBeInstanceOf(Hub);
+    });
+  });
+
+  describe('setters', () => {
+    test('setTag', () => {
+      const span = new Span({});
+      expect(span.tags.foo).toBeUndefined();
+      span.setTag('foo', 'bar');
+      expect(span.tags.foo).toBe('bar');
+      span.setTag('foo', 'baz');
+      expect(span.tags.foo).toBe('baz');
+    });
+
+    test('setData', () => {
+      const span = new Span({});
+      expect(span.data.foo).toBeUndefined();
+      span.setData('foo', null);
+      expect(span.data.foo).toBe(null);
+      span.setData('foo', 2);
+      expect(span.data.foo).toBe(2);
+      span.setData('foo', true);
+      expect(span.data.foo).toBe(true);
+    });
+  });
+
+  describe('status', () => {
+    test('setSuccess', () => {
+      const span = new Span({});
+      span.setSuccess();
+      expect(span.tags.status).toBe('success');
+    });
+
+    test('setFailure', () => {
+      const span = new Span({});
+      span.setFailure();
+      expect(span.tags.status).toBe('failure');
+    });
+
+    test('isSuccess', () => {
+      const span = new Span({});
+      expect(span.isSuccess()).toBe(true);
+      span.setFailure();
+      expect(span.isSuccess()).toBe(false);
+      span.setSuccess();
+      expect(span.isSuccess()).toBe(true);
+    });
+  });
+
+  describe('newSpan', () => {
+    test('simple', () => {
+      const span = new Span({ sampled: true });
+      const span2 = span.newSpan();
+      expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
+      expect((span2 as any)._traceId).toBe((span as any)._traceId);
+      expect((span2 as any).sampled).toBe((span as any).sampled);
+    });
+
+    test('gets currentHub', () => {
       const span = new Span({});
       const span2 = span.newSpan();
       expect((span as any)._hub).toBeInstanceOf(Hub);
@@ -121,6 +183,28 @@ describe('Span', () => {
       parentSpan.finish();
       expect(spy).toHaveBeenCalled();
       expect(spy.mock.calls[0][0].spans).toHaveLength(1);
+    });
+  });
+
+  describe('getTraceContext', () => {
+    test('should have status attribute undefined if no status tag is available', () => {
+      const span = new Span({});
+      const context = span.getTraceContext();
+      expect((context as any).status).toBeUndefined();
+    });
+
+    test('should have success status extracted from tags', () => {
+      const span = new Span({});
+      span.setSuccess();
+      const context = span.getTraceContext();
+      expect((context as any).status).toBe('success');
+    });
+
+    test('should have failure status extracted from tags', () => {
+      const span = new Span({});
+      span.setFailure();
+      const context = span.getTraceContext();
+      expect((context as any).status).toBe('failure');
     });
   });
 });
