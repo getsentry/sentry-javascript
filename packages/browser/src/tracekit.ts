@@ -272,7 +272,12 @@ TraceKit._report = (function reportModuleWrapper() {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
    */
   function _traceKitWindowOnUnhandledRejection(e: any) {
-    var err = e && typeof e.reason !== 'undefined' ? e.reason : e;
+    var err = e;
+    // You cannot itterate over non-objects, but we want to check
+    // for the existence in any value, not for the value itself
+    try {
+      err = e && 'reason' in e ? e.reason : e;
+    } catch (_oO) {}
     var stack = TraceKit._computeStackTrace(err);
     stack.mechanism = 'onunhandledrejection';
     _notifyHandlers(stack, true, err);
@@ -906,8 +911,8 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
 
     return {
       original: ex,
-      name: ex.name,
-      message: ex.message,
+      name: ex && ex.name,
+      message: ex && ex.message,
       mode: 'failed',
     };
   }

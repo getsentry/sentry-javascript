@@ -94,7 +94,7 @@ export class GlobalHandlers implements Integration {
         message.error && isString(message.error.message) ? message.error.message : 'No error message';
     }
 
-    if (stacktrace.mechanism === 'onunhandledrejection' && stacktrace.incomplete) {
+    if (stacktrace.mechanism === 'onunhandledrejection' && (stacktrace.incomplete || stacktrace.mode === 'failed')) {
       return this._eventFromIncompleteRejection(stacktrace, error);
     }
 
@@ -166,8 +166,8 @@ export class GlobalHandlers implements Integration {
     if (event.exception.values && event.exception.values[0]) {
       event.exception.values[0].mechanism = {
         data: {
-          incomplete: true,
           mode: stacktrace.mode,
+          ...(stacktrace.incomplete && { incomplete: stacktrace.incomplete }),
           ...(stacktrace.message && { message: stacktrace.message }),
           ...(stacktrace.name && { name: stacktrace.name }),
         },
