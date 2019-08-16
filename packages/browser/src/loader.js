@@ -31,8 +31,8 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e ||
-        content.p ||
+      ('e' in content ||
+        'p' in content ||
         (content.f && content.f.indexOf('capture') > -1) ||
         (content.f && content.f.indexOf('showReportDialog') > -1)) &&
       lazy
@@ -139,9 +139,9 @@
 
       // And now capture all previously caught exceptions
       for (var i = 0; i < data.length; i++) {
-        if (data[i].e && tracekitErrorHandler) {
+        if ('e' in data[i] && tracekitErrorHandler) {
           tracekitErrorHandler.apply(_window, data[i].e);
-        } else if (data[i].p && tracekitUnhandledRejectionHandler) {
+        } else if ('p' in data[i] && tracekitUnhandledRejectionHandler) {
           tracekitUnhandledRejectionHandler.apply(_window, [data[i].p]);
         }
       }
