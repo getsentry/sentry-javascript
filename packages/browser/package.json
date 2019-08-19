@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "5.6.1",
+  "version": "5.6.2",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,7 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "5.6.1",
+    "@sentry/core": "5.6.2",
     "@sentry/types": "5.6.1",
     "@sentry/utils": "5.6.1",
     "tslib": "^1.9.3"
