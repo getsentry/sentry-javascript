@@ -870,6 +870,7 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
    */
   function computeStackTrace(ex: any, depth: any) {
     var stack = null;
+    var popSize = ex && ex.framesToPop;
     depth = depth == null ? 0 : +depth;
 
     try {
@@ -878,28 +879,28 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
       // property first!!
       stack = _computeStackTraceFromStacktraceProp(ex);
       if (stack) {
-        return stack;
+        return popFrames(stack, popSize);
       }
     } catch (e) {}
 
     try {
       stack = _computeStackTraceFromStackProp(ex);
       if (stack) {
-        return stack;
+        return popFrames(stack, popSize);
       }
     } catch (e) {}
 
     try {
       stack = _computeStackTraceFromOperaMultiLineMessage(ex);
       if (stack) {
-        return stack;
+        return popFrames(stack, popSize);
       }
     } catch (e) {}
 
     try {
       stack = _computeStackTraceByWalkingCallerChain(ex, depth + 1);
       if (stack) {
-        return stack;
+        return popFrames(stack, popSize);
       }
     } catch (e) {}
 
@@ -909,6 +910,21 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
       message: ex.message,
       mode: 'failed',
     };
+  }
+
+  function popFrames(stacktrace: any, popSize: number): any {
+    if (Number.isNaN(popSize)) {
+      return stacktrace;
+    }
+
+    try {
+      return {
+        ...stacktrace,
+        stack: stacktrace.stack.slice(popSize),
+      };
+    } catch (e) {
+      return stacktrace;
+    }
   }
 
   (computeStackTrace as any)._augmentStackTraceWithInitialElement = _augmentStackTraceWithInitialElement;
