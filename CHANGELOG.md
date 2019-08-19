@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [browser] feat: Use framesToPop for InvaliantViolations in React errors (#2204)
+- [browser] fix: Apply crossorigin attribute with setAttribute tag for userReport dialog (#2196)
 - [browser] fix: Make sure that falsy values are captured in unhandledrejections (#2207)
 - [loader] fix: Loader should also retrigger falsy values as errors (#2207)
 
