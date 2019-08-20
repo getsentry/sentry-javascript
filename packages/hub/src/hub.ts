@@ -404,7 +404,7 @@ export class Hub implements HubInterface {
       const span = top.scope.getSpan();
 
       if (span) {
-        return span.newSpan(spanContext);
+        return span.makeChild(spanContext);
       }
     }
 

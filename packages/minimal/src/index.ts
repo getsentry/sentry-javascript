@@ -171,24 +171,9 @@ export function _callOnClient(method: string, ...args: any[]): void {
 /**
  * This functions starts a span. If just a `SpanContext` is passed and there is already a Span
  * on the Scope, the created Span will have a reference to the one on the Scope.
- * If a Span is on the current Scope it is considered a `transaction`.
- * When using the second parameter it will set the created Span on the Scope (replacing whats there).
- * This can be used as a shortcut to not set it manually on the Scope.
  *
  * @param spanContext Properties with which the span should be created
- * @param bindOnScope Determines if the started span will be set on the Scope
  */
-export function startSpan(spanContext?: SpanContext, bindOnScope?: boolean): Span {
-  return callOnHub<Span>('startSpan', spanContext, bindOnScope);
-}
-
-/**
- * This finishes the passed `Span`. If the `Span` has the property `transaction` set and it's bound on the
- * current Scope, an `transaction` Event will be sent to Sentry containing all finished Spans inbetween.
- * Returns either an `event.id` or `undefined` in case event wasn't sent.
- *
- * @param span `Span` instance that was created by {@link startSpan}
- */
-export function finishSpan(span?: Span): string | undefined {
-  return callOnHub<string | undefined>('finishSpan', span);
+export function startSpan(spanContext?: SpanContext): Span {
+  return callOnHub<Span>('startSpan', spanContext);
 }

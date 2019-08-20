@@ -10,7 +10,7 @@ export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01
  */
 export class Span implements SpanInterface, SpanContext {
   /**
-   * @inheritDoc
+   * The reference to the current hub.
    */
   private readonly _hub: Hub = getCurrentHub();
 
@@ -116,7 +116,7 @@ export class Span implements SpanInterface, SpanContext {
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
    * Also the `sampled` decision will be inherited.
    */
-  public newSpan(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
+  public makeChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
     const span = new Span({
       ...spanContext,
       parentSpanId: this._spanId,
