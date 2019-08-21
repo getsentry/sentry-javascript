@@ -116,7 +116,7 @@ export class Span implements SpanInterface, SpanContext {
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
    * Also the `sampled` decision will be inherited.
    */
-  public makeChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
+  public child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
     const span = new Span({
       ...spanContext,
       parentSpanId: this._spanId,

@@ -12,7 +12,7 @@ describe('Span', () => {
   describe('newSpan', () => {
     test('simple', () => {
       const span = new Span({ sampled: true });
-      const span2 = span.makeChild();
+      const span2 = span.child();
       expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
       expect((span2 as any)._traceId).toBe((span as any)._traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
@@ -20,7 +20,7 @@ describe('Span', () => {
 
     test('gets currentHub', () => {
       const span = new Span({});
-      const span2 = span.makeChild();
+      const span2 = span.child();
       expect((span as any)._hub).toBeInstanceOf(Hub);
       expect((span2 as any)._hub).toBeInstanceOf(Hub);
     });
@@ -74,7 +74,7 @@ describe('Span', () => {
   describe('newSpan', () => {
     test('simple', () => {
       const span = new Span({ sampled: true });
-      const span2 = span.makeChild();
+      const span2 = span.child();
       expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
       expect((span2 as any)._traceId).toBe((span as any)._traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
@@ -82,7 +82,7 @@ describe('Span', () => {
 
     test('gets currentHub', () => {
       const span = new Span({});
-      const span2 = span.makeChild();
+      const span2 = span.child();
       expect((span as any)._hub).toBeInstanceOf(Hub);
       expect((span2 as any)._hub).toBeInstanceOf(Hub);
     });
@@ -178,7 +178,7 @@ describe('Span', () => {
     test('finish a scope span with transaction + child span', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const parentSpan = new Span({ transaction: 'test' }, hub);
-      const childSpan = parentSpan.makeChild();
+      const childSpan = parentSpan.child();
       childSpan.finish();
       parentSpan.finish();
       expect(spy).toHaveBeenCalled();
