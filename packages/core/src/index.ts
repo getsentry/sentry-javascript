@@ -4,7 +4,6 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  finishSpan,
   setContext,
   setExtra,
   setExtras,

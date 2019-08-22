@@ -20,7 +20,6 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
-  finishSpan,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
