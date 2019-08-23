@@ -2277,6 +2277,10 @@ Raven.prototype = {
     if (isUndefined(context)) {
       delete this._globalContext[key];
     } else {
+      // if the destination object is frozen, clone it first.
+      if (this._globalContext[key] && objectFrozen(this._globalContext[key])) {
+        this._globalContext[key] = objectMerge({}, this._globalContext)
+      }
       this._globalContext[key] = objectMerge(this._globalContext[key] || {}, context);
     }
   }
