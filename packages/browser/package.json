@@ -19,7 +19,8 @@
     "@sentry/core": "5.6.2",
     "@sentry/types": "5.6.1",
     "@sentry/utils": "5.6.1",
-    "tslib": "^1.9.3"
+    "tslib": "^1.9.3",
+    "localforage": "1.7.3"
   },
   "devDependencies": {
     "@types/md5": "2.1.33",

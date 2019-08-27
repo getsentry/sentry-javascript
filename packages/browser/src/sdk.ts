@@ -4,7 +4,7 @@ import { getGlobalObject } from '@sentry/utils';
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
 import { wrap as internalWrap } from './helpers';
-import { Breadcrumbs, GlobalHandlers, LinkedErrors, TryCatch, UserAgent } from './integrations';
+import { Breadcrumbs, GlobalHandlers, LinkedErrors, Offline, TryCatch, UserAgent } from './integrations';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -14,6 +14,7 @@ export const defaultIntegrations = [
   new GlobalHandlers(),
   new LinkedErrors(),
   new UserAgent(),
+  new Offline(),
 ];
 
 /**
