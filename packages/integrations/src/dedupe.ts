@@ -1,5 +1,7 @@
 import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
 
+import { getFramesFromEvent } from './helpers';
+
 /** Deduplication filter */
 export class Dedupe implements Integration {
   /**
@@ -87,26 +89,9 @@ export class Dedupe implements Integration {
   }
 
   /** JSDoc */
-  private _getFramesFromEvent(event: Event): StackFrame[] | undefined {
-    const exception = event.exception;
-
-    if (exception) {
-      try {
-        // @ts-ignore
-        return exception.values[0].stacktrace.frames;
-      } catch (_oO) {
-        return undefined;
-      }
-    } else if (event.stacktrace) {
-      return event.stacktrace.frames;
-    }
-    return undefined;
-  }
-
-  /** JSDoc */
   private _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
-    let currentFrames = this._getFramesFromEvent(currentEvent);
-    let previousFrames = this._getFramesFromEvent(previousEvent);
+    let currentFrames = getFramesFromEvent(currentEvent);
+    let previousFrames = getFramesFromEvent(previousEvent);
 
     // If no event has a fingerprint, they are assumed to be the same
     if (!currentFrames && !previousFrames) {

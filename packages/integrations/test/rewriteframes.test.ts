@@ -1,3 +1,5 @@
+// tslint:disable:deprecation
+
 import { Event, StackFrame } from '@sentry/types';
 
 import { RewriteFrames } from '../src/rewriteframes';
@@ -5,6 +7,7 @@ import { RewriteFrames } from '../src/rewriteframes';
 let rewriteFrames: RewriteFrames;
 let messageEvent: Event;
 let exceptionEvent: Event;
+let threadEvent: Event;
 
 describe('RewriteFrames', () => {
   beforeEach(() => {
@@ -38,6 +41,22 @@ describe('RewriteFrames', () => {
         ],
       },
     };
+    threadEvent = {
+      threads: [
+        {
+          stacktrace: {
+            frames: [
+              {
+                filename: '/www/src/app/file1.js',
+              },
+              {
+                filename: '/www/src/app/file2.js',
+              },
+            ],
+          },
+        },
+      ],
+    };
   });
 
   describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
@@ -55,6 +74,12 @@ describe('RewriteFrames', () => {
       const event = rewriteFrames.process(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
+    });
+
+    it('transforms threadEvent frames', () => {
+      const event = rewriteFrames.process(threadEvent);
+      expect(event.threads![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
+      expect(event.threads![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
   });
 
@@ -75,6 +100,12 @@ describe('RewriteFrames', () => {
       const event = rewriteFrames.process(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('transforms threadEvent frames', async () => {
+      const event = rewriteFrames.process(threadEvent);
+      expect(event.threads![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.threads![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
   });
 
@@ -102,6 +133,14 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('/www/src/app/file2.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].function).toEqual('whoops');
+    });
+
+    it('transforms threadEvent frames', async () => {
+      const event = rewriteFrames.process(threadEvent);
+      expect(event.threads![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
+      expect(event.threads![0].stacktrace!.frames![0].function).toEqual('whoops');
+      expect(event.threads![0].stacktrace!.frames![1].filename).toEqual('/www/src/app/file2.js');
+      expect(event.threads![0].stacktrace!.frames![1].function).toEqual('whoops');
     });
   });
 });
