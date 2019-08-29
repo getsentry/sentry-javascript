@@ -1,8 +1,6 @@
 import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
-import { getFramesFromEvent } from './helpers';
-
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 
 /** Rewrite event frames paths */
@@ -60,11 +58,30 @@ export class RewriteFrames implements Integration {
 
   /** JSDoc */
   public process(event: Event): Event {
-    const frames = getFramesFromEvent(event) || [];
-    for (const i in frames) {
-      // tslint:disable-next-line
-      frames[i] = this._iteratee(frames[i]);
+    const frames = this._getFramesFromEvent(event);
+    if (frames) {
+      for (const i in frames) {
+        // tslint:disable-next-line
+        frames[i] = this._iteratee(frames[i]);
+      }
     }
     return event;
+  }
+
+  /** JSDoc */
+  private _getFramesFromEvent(event: Event): StackFrame[] | undefined {
+    const exception = event.exception;
+
+    if (exception) {
+      try {
+        // tslint:disable-next-line:no-unsafe-any
+        return (exception as any).values[0].stacktrace.frames;
+      } catch (_oO) {
+        return undefined;
+      }
+    } else if (event.stacktrace) {
+      return event.stacktrace.frames;
+    }
+    return undefined;
   }
 }

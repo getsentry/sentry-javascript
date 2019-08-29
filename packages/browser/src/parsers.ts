@@ -45,13 +45,9 @@ export function eventFromPlainObject(exception: {}, syntheticException: Error | 
   if (syntheticException) {
     const stacktrace = _computeStackTrace(syntheticException);
     const frames = prepareFramesForEvent(stacktrace.stack);
-    event.threads = [
-      {
-        stacktrace: {
-          frames,
-        },
-      },
-    ];
+    event.stacktrace = {
+      frames,
+    };
   }
 
   return event;

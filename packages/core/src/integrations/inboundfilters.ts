@@ -161,7 +161,6 @@ export class InboundFilters implements Integration {
   /** JSDoc */
   private _getEventFilterUrl(event: Event): string | null {
     try {
-      // tslint:disable-next-line:deprecation
       if (event.stacktrace) {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).stacktrace.frames;
@@ -170,11 +169,6 @@ export class InboundFilters implements Integration {
       if (event.exception) {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).exception.values[0].stacktrace.frames;
-        return frames[frames.length - 1].filename;
-      }
-      if (event.threads) {
-        // tslint:disable:no-unsafe-any
-        const frames = (event as any).threads[0].stacktrace.frames;
         return frames[frames.length - 1].filename;
       }
       return null;
