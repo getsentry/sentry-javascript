@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- This slot is waiting for you
+- [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler
 
 ## 5.6.2
 
