@@ -56,7 +56,8 @@ export class GlobalHandlers implements Integration {
     Error.stackTraceLimit = 50;
 
     _subscribe((stack: TraceKitStackTrace, _: boolean, error: any) => {
-      if (shouldIgnoreOnError()) {
+      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
+      if (shouldIgnoreOnError() || isFailedOwnDelivery) {
         return;
       }
       const self = getCurrentHub().getIntegration(GlobalHandlers);

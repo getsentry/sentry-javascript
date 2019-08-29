@@ -304,6 +304,26 @@ describe("wrapped built-ins", function() {
         }
       });
     });
+
+    it("should skip our own failed requests that somehow bubbled-up to unhandledrejection handler", function() {
+      return runInSandbox(sandbox, function() {
+        if (isChrome()) {
+          Promise.reject({
+            __sentry_own_request__: true,
+          });
+          Promise.reject({
+            __sentry_own_request__: false,
+          });
+          Promise.reject({});
+        } else {
+          window.resolveTest({ window: window });
+        }
+      }).then(function(summary) {
+        if (summary.window.isChrome()) {
+          assert.equal(summary.events.length, 2);
+        }
+      });
+    });
   });
 
   it("should capture exceptions inside setTimeout", function() {
