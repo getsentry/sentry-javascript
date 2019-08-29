@@ -4,6 +4,7 @@ import { Request } from './request';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
 import { Stacktrace } from './stacktrace';
+import { Thread } from './thread';
 import { User } from './user';
 
 /** JSDoc */
@@ -26,6 +27,10 @@ export interface Event {
   exception?: {
     values?: Exception[];
   };
+  /**
+   * @deprecated Top-level `stacktrace` attribute has been deprecated. Use event.threads.0.stacktrace instead.
+   * See https://docs.sentry.io/development/sdk-dev/event-payloads/stacktrace/ for more informations.
+   */
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
   contexts?: { [key: string]: object };
@@ -33,6 +38,7 @@ export interface Event {
   extra?: { [key: string]: any };
   user?: User;
   type?: EventType;
+  threads?: Thread[];
 }
 
 /** JSDoc */

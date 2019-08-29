@@ -151,9 +151,13 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
     if (this._options.attachStacktrace && hint && hint.syntheticException) {
       const stacktrace = _computeStackTrace(hint.syntheticException);
       const frames = prepareFramesForEvent(stacktrace.stack);
-      event.stacktrace = {
-        frames,
-      };
+      event.threads = [
+        {
+          stacktrace: {
+            frames,
+          },
+        },
+      ];
     }
 
     return SyncPromise.resolve(event);

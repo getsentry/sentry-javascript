@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler
+- [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler (#2221)
+- [core] ref: Deprecate top-level stacktrace event attribute (#2214)
 
 ## 5.6.2
 
