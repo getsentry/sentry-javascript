@@ -110,4 +110,10 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+
+  /**
+   * Enable debug functionality in Expo(ReactNative) environment.
+   * Defaults to false.
+   */
+  enableInExpoDevelopment?: boolean;
 }
