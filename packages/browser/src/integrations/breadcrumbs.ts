@@ -98,13 +98,17 @@ export class Breadcrumbs implements Integration {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
               breadcrumbData.data.extra.arguments = normalize(args.slice(1), 3);
+              Breadcrumbs.addBreadcrumb(breadcrumbData, {
+                input: args,
+                level,
+              });
             }
+          } else {
+            Breadcrumbs.addBreadcrumb(breadcrumbData, {
+              input: args,
+              level,
+            });
           }
-
-          Breadcrumbs.addBreadcrumb(breadcrumbData, {
-            input: args,
-            level,
-          });
 
           // this fails for some browsers. :(
           if (originalConsoleLevel) {
