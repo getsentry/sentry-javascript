@@ -13,6 +13,8 @@ sudo: required
 
 language: node_js
 dist: trusty
+addons:
+  chrome: stable
 
 cache:
   yarn: true
