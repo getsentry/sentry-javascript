@@ -9,6 +9,7 @@
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
+[![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 
 # Official Sentry SDKs for JavaScript
 
