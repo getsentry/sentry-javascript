@@ -236,7 +236,7 @@ export class Breadcrumbs implements Integration {
           const filterUrl = new API(dsn).getStoreEndpoint();
           // if Sentry key appears in URL, don't capture it as a request
           // but rather as our own 'sentry' type breadcrumb
-          if (filterUrl && url.includes(filterUrl)) {
+          if (filterUrl && url.indexOf(filterUrl) !== -1) {
             if (method === 'POST' && args[1] && args[1].body) {
               addSentryBreadcrumb(args[1].body);
             }
@@ -407,7 +407,7 @@ export class Breadcrumbs implements Integration {
             const filterUrl = new API(dsn).getStoreEndpoint();
             // if Sentry key appears in URL, don't capture it as a request
             // but rather as our own 'sentry' type breadcrumb
-            if (isString(url) && (filterUrl && url.includes(filterUrl))) {
+            if (isString(url) && (filterUrl && url.indexOf(filterUrl) !== -1)) {
               this.__sentry_own_request__ = true;
             }
           }
