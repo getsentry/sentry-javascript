@@ -77,7 +77,6 @@ function build() {
     "polyfills/events.js",
     "polyfills/assign.js",
     "polyfills/nan.js",
-    "polyfills/includes.js",
   ]);
 
   writeFile(

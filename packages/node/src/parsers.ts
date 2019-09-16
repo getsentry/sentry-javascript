@@ -157,7 +157,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
     // note that isNative appears to return true even for node core libraries
     // see https://github.com/getsentry/raven-node/issues/176
     parsedFrame.in_app =
-      !isInternal && parsedFrame.filename !== undefined && !parsedFrame.filename.includes('node_modules/');
+      !isInternal && parsedFrame.filename !== undefined && parsedFrame.filename.indexOf('node_modules/') === -1;
 
     // Extract a module name based on the filename
     if (parsedFrame.filename) {
@@ -271,7 +271,7 @@ export function prepareFramesForEvent(stack: StackFrame[]): StackFrame[] {
   let localStack = stack;
   const firstFrameFunction = localStack[0].function || '';
 
-  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
+  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
     localStack = localStack.slice(1);
   }
 
