@@ -918,10 +918,6 @@ TraceKit._computeStackTrace = (function _computeStackTraceWrapper() {
   }
 
   function popFrames(stacktrace: any, popSize: number): any {
-    if (Number.isNaN(popSize)) {
-      return stacktrace;
-    }
-
     try {
       return {
         ...stacktrace,

@@ -181,7 +181,8 @@ function normalizeValue<T>(value: T, key?: any): T | string {
     return '[SyntheticEvent]';
   }
 
-  if (Number.isNaN((value as unknown) as number)) {
+  // tslint:disable-next-line:no-tautology-expression
+  if (typeof value === 'number' && value !== value) {
     return '[NaN]';
   }
 
