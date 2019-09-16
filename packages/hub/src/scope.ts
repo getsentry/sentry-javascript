@@ -224,9 +224,6 @@ export class Scope implements ScopeInterface {
    */
   public static clone(scope?: Scope): Scope {
     const newScope = new Scope();
-    Object.assign(newScope, scope, {
-      _scopeListeners: [],
-    });
     if (scope) {
       newScope._breadcrumbs = [...scope._breadcrumbs];
       newScope._tags = { ...scope._tags };
