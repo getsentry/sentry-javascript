@@ -94,7 +94,7 @@ export class Dsn implements DsnComponents {
       throw new SentryError(ERROR_MESSAGE);
     }
 
-    if (this.port && Number.isNaN(parseInt(this.port, 10))) {
+    if (this.port && isNaN(parseInt(this.port, 10))) {
       throw new SentryError(ERROR_MESSAGE);
     }
   }
