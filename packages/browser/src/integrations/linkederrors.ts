@@ -2,7 +2,7 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
 
 import { exceptionFromStacktrace } from '../parsers';
-import { _computeStackTrace } from '../tracekit';
+import { computeStackTrace } from '../tracekit';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -69,7 +69,7 @@ export class LinkedErrors implements Integration {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
       return stack;
     }
-    const stacktrace = _computeStackTrace(error[key]);
+    const stacktrace = computeStackTrace(error[key]);
     const exception = exceptionFromStacktrace(stacktrace);
     return this._walkErrorTree(error[key], key, [exception, ...stack]);
   }

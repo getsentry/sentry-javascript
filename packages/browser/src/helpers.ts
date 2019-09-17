@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { addExceptionTypeValue, isString, normalize } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, isString, normalize } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -97,7 +97,8 @@ export function wrap(
           const processedEvent = { ...event };
 
           if (options.mechanism) {
-            addExceptionTypeValue(processedEvent, undefined, undefined, options.mechanism);
+            addExceptionTypeValue(processedEvent, undefined, undefined);
+            addExceptionMechanism(processedEvent, options.mechanism);
           }
 
           processedEvent.extra = {

@@ -2,6 +2,7 @@ import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { isError, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
+import { truncate } from './string';
 
 /**
  * Wrap a given object method with a higher-order function
@@ -273,4 +274,42 @@ export function normalize(input: any, depth?: number): any {
   } catch (_oO) {
     return '**non-serializable**';
   }
+}
+
+/** Merges provided array of keys into */
+export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
+  // tslint:disable:strict-type-predicates
+  const keys = Object.keys(exception as {});
+
+  // TODO: Extract keys for a specific types here
+  if (typeof Event !== 'undefined' && exception instanceof Event) {
+    // keys = [];
+  } else if (typeof CustomEvent !== 'undefined' && exception instanceof CustomEvent) {
+    // keys = [];
+  } else if (typeof ErrorEvent !== 'undefined' && exception instanceof ErrorEvent) {
+    // keys = [];
+  }
+
+  keys.sort();
+
+  if (!keys.length) {
+    return '[object has no keys]';
+  }
+
+  if (keys[0].length >= maxLength) {
+    return truncate(keys[0], maxLength);
+  }
+
+  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
+    const serialized = keys.slice(0, includedKeys).join(', ');
+    if (serialized.length > maxLength) {
+      continue;
+    }
+    if (includedKeys === keys.length) {
+      return serialized;
+    }
+    return truncate(serialized, maxLength);
+  }
+
+  return '';
 }

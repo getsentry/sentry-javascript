@@ -1,7 +1,7 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { keysToEventMessage, normalizeToSize } from '@sentry/utils';
+import { extractExceptionKeysForMessage, normalizeToSize } from '@sentry/utils';
 
-import { _computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
+import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;
 
@@ -33,17 +33,16 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Excepti
 /**
  * @hidden
  */
-export function eventFromPlainObject(exception: {}, syntheticException: Error | null): Event {
-  const exceptionKeys = Object.keys(exception).sort();
+export function eventFromPlainObject(exception: {}, syntheticException?: Error): Event {
   const event: Event = {
     extra: {
       __serialized__: normalizeToSize(exception),
     },
-    message: `Non-Error exception captured with keys: ${keysToEventMessage(exceptionKeys)}`,
+    message: `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`,
   };
 
   if (syntheticException) {
-    const stacktrace = _computeStackTrace(syntheticException);
+    const stacktrace = computeStackTrace(syntheticException);
     const frames = prepareFramesForEvent(stacktrace.stack);
     event.stacktrace = {
       frames,
@@ -93,11 +92,11 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   return localStack
     .map(
       (frame: TraceKitStackFrame): StackFrame => ({
-        colno: frame.column,
+        colno: frame.column === null ? undefined : frame.column,
         filename: frame.url || localStack[0].url,
         function: frame.func || '?',
         in_app: true,
-        lineno: frame.line,
+        lineno: frame.line === null ? undefined : frame.line,
       }),
     )
     .slice(0, STACKTRACE_LIMIT)
