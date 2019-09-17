@@ -1,10 +1,11 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Mechanism, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import {
+  addExceptionMechanism,
   addExceptionTypeValue,
+  extractExceptionKeysForMessage,
   isError,
   isPlainObject,
-  keysToEventMessage,
   normalizeToSize,
   SyncPromise,
 } from '@sentry/utils';
@@ -86,8 +87,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       if (isPlainObject(exception)) {
         // This will allow us to group events based on top-level keys
         // which is much better than creating new group when any key/value change
-        const keys = Object.keys(exception as {}).sort();
-        const message = `Non-Error exception captured with keys: ${keysToEventMessage(keys)}`;
+        const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
         getCurrentHub().configureScope(scope => {
           scope.setExtra('__serialized__', normalizeToSize(exception as {}));
@@ -106,7 +106,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     return new SyncPromise<Event>((resolve, reject) =>
       parseError(ex as Error, this._options)
         .then(event => {
-          addExceptionTypeValue(event, undefined, undefined, mechanism);
+          addExceptionTypeValue(event, undefined, undefined);
+          addExceptionMechanism(event, mechanism);
+
           resolve({
             ...event,
             event_id: hint && hint.event_id,

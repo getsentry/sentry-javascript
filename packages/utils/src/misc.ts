@@ -1,4 +1,4 @@
-import { Event, Integration, Mechanism, WrappedFunction } from '@sentry/types';
+import { Event, Integration, WrappedFunction } from '@sentry/types';
 
 /** Internal */
 interface SentryGlobal {
@@ -201,22 +201,49 @@ export function consoleSandbox(callback: () => any): any {
  * @param event The event to modify.
  * @param value Value of the exception.
  * @param type Type of the exception.
- * @param mechanism Mechanism of the exception.
  * @hidden
  */
-export function addExceptionTypeValue(
-  event: Event,
-  value?: string,
-  type?: string,
-  mechanism: Mechanism = {
-    handled: true,
-    type: 'generic',
-  },
-): void {
+export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
   event.exception.values[0] = event.exception.values[0] || {};
   event.exception.values[0].value = event.exception.values[0].value || value || '';
   event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
-  event.exception.values[0].mechanism = event.exception.values[0].mechanism || mechanism;
+}
+
+/**
+ * Adds exception mechanism to a given event.
+ * @param event The event to modify.
+ * @param mechanism Mechanism of the mechanism.
+ * @hidden
+ */
+export function addExceptionMechanism(
+  event: Event,
+  mechanism: {
+    [key: string]: any;
+  } = {},
+): void {
+  // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
+  try {
+    // @ts-ignore
+    // tslint:disable:no-non-null-assertion
+    event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
+    Object.keys(mechanism).forEach(key => {
+      // @ts-ignore
+      event.exception!.values![0].mechanism[key] = mechanism[key];
+    });
+  } catch (_oO) {
+    // no-empty
+  }
+}
+
+/**
+ * A safe form of location.href
+ */
+export function getLocationHref(): string {
+  try {
+    return document.location.href;
+  } catch (oO) {
+    return '';
+  }
 }

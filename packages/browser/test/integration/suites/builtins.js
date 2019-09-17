@@ -97,10 +97,6 @@ describe("wrapped built-ins", function() {
             summary.events[0].exception.values[0].mechanism.type,
             "onunhandledrejection"
           );
-          assert.equal(
-            summary.events[0].exception.values[0].mechanism.data.incomplete,
-            true
-          );
         }
       });
     });
@@ -132,10 +128,6 @@ describe("wrapped built-ins", function() {
             summary.events[0].exception.values[0].mechanism.type,
             "onunhandledrejection"
           );
-          assert.equal(
-            summary.events[0].exception.values[0].mechanism.data.incomplete,
-            true
-          );
         }
       });
     });
@@ -165,10 +157,6 @@ describe("wrapped built-ins", function() {
           assert.equal(
             summary.events[0].exception.values[0].mechanism.type,
             "onunhandledrejection"
-          );
-          assert.equal(
-            summary.events[0].exception.values[0].mechanism.data.incomplete,
-            true
           );
         }
       });
@@ -206,10 +194,6 @@ describe("wrapped built-ins", function() {
           assert.equal(
             summary.events[0].exception.values[0].mechanism.type,
             "onunhandledrejection"
-          );
-          assert.equal(
-            summary.events[0].exception.values[0].mechanism.data.incomplete,
-            true
           );
         }
       });

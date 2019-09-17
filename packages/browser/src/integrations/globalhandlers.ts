@@ -1,24 +1,22 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event, Integration, Severity } from '@sentry/types';
 import {
+  addExceptionMechanism,
   addExceptionTypeValue,
+  extractExceptionKeysForMessage,
+  getGlobalObject,
+  getLocationHref,
+  isErrorEvent,
   isPrimitive,
   isString,
-  keysToEventMessage,
   logger,
-  normalize,
   normalizeToSize,
   truncate,
 } from '@sentry/utils';
 
+import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
-import { eventFromStacktrace } from '../parsers';
-import {
-  _installGlobalHandler,
-  _installGlobalUnhandledRejectionHandler,
-  _subscribe,
-  StackTrace as TraceKitStackTrace,
-} from '../tracekit';
+import { computeStackTrace } from '../tracekit';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {
@@ -42,6 +40,21 @@ export class GlobalHandlers implements Integration {
   private readonly _options: GlobalHandlersIntegrations;
 
   /** JSDoc */
+  private readonly _global: Window = getGlobalObject();
+
+  /** JSDoc */
+  private _oldOnErrorHandler: OnErrorEventHandler = null;
+
+  /** JSDoc */
+  private _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
+
+  /** JSDoc */
+  private _onErrorHandlerInstalled: boolean = false;
+
+  /** JSDoc */
+  private _onUnhandledRejectionHandlerInstalled: boolean = false;
+
+  /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {
     this._options = {
       onerror: true,
@@ -55,88 +68,176 @@ export class GlobalHandlers implements Integration {
   public setupOnce(): void {
     Error.stackTraceLimit = 50;
 
-    _subscribe((stack: TraceKitStackTrace, _: boolean, error: any) => {
-      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
-      if (shouldIgnoreOnError() || isFailedOwnDelivery) {
-        return;
-      }
-      const self = getCurrentHub().getIntegration(GlobalHandlers);
-      if (self) {
-        getCurrentHub().captureEvent(self._eventFromGlobalHandler(stack, error), {
-          data: { stack },
-          originalException: error,
-        });
-      }
-    });
-
     if (this._options.onerror) {
       logger.log('Global Handler attached: onerror');
-      _installGlobalHandler();
+      this._installGlobalOnErrorHandler();
     }
 
     if (this._options.onunhandledrejection) {
       logger.log('Global Handler attached: onunhandledrejection');
-      _installGlobalUnhandledRejectionHandler();
+      this._installGlobalOnUnhandledRejectionHandler();
     }
   }
 
-  /**
-   * This function creates an Event from an TraceKitStackTrace.
-   *
-   * @param stacktrace TraceKitStackTrace to be converted to an Event.
-   */
-  private _eventFromGlobalHandler(stacktrace: TraceKitStackTrace, error: any): Event {
-    if (!isString(stacktrace.message) && stacktrace.mechanism !== 'onunhandledrejection') {
-      // There are cases where stacktrace.message is an Event object
-      // https://github.com/getsentry/sentry-javascript/issues/1949
-      // In this specific case we try to extract stacktrace.message.error.message
-      const message = (stacktrace.message as unknown) as any;
-      stacktrace.message =
-        message.error && isString(message.error.message) ? message.error.message : 'No error message';
+  /** JSDoc */
+  private _installGlobalOnErrorHandler(): void {
+    if (this._onErrorHandlerInstalled) {
+      return;
     }
 
-    if (stacktrace.mechanism === 'onunhandledrejection' && (stacktrace.incomplete || stacktrace.mode === 'failed')) {
-      return this._eventFromIncompleteRejection(stacktrace, error);
-    }
+    const self = this; // tslint:disable-line:no-this-assignment
+    this._oldOnErrorHandler = this._global.onerror;
 
-    const event = eventFromStacktrace(stacktrace);
+    this._global.onerror = function(msg: any, url: any, line: any, column: any, error: any): boolean {
+      const hasIntegration = getCurrentHub().getIntegration(GlobalHandlers);
+      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-    const data: { [key: string]: string } = {
-      mode: stacktrace.mode,
+      if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (self._oldOnErrorHandler) {
+          return self._oldOnErrorHandler.apply(this, arguments);
+        }
+        return false;
+      }
+
+      const event = isPrimitive(error)
+        ? self._eventFromIncompleteOnError(msg, url, line, column)
+        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error), url, line, column);
+
+      const client = getCurrentHub().getClient();
+      const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
+      const fallbackValue = truncate(`${error || msg}`, maxValueLength) || '';
+
+      addExceptionTypeValue(event, fallbackValue, 'Error');
+      addExceptionMechanism(event, {
+        handled: false,
+        type: 'onerror',
+      });
+
+      getCurrentHub().captureEvent(event, {
+        originalException: error,
+      });
+
+      if (self._oldOnErrorHandler) {
+        return self._oldOnErrorHandler.apply(this, arguments);
+      }
+
+      return false;
     };
 
-    if (stacktrace.message) {
-      data.message = stacktrace.message;
+    this._onErrorHandlerInstalled = true;
+  }
+
+  /** JSDoc */
+  private _installGlobalOnUnhandledRejectionHandler(): void {
+    if (this._onUnhandledRejectionHandlerInstalled) {
+      return;
     }
 
-    if (stacktrace.name) {
-      data.name = stacktrace.name;
+    const self = this; // tslint:disable-line:no-this-assignment
+    this._oldOnUnhandledRejectionHandler = this._global.onunhandledrejection;
+
+    this._global.onunhandledrejection = function(e: any): boolean {
+      let error = e;
+      try {
+        error = e && 'reason' in e ? e.reason : e;
+      } catch (_oO) {
+        // no-empty
+      }
+
+      const hasIntegration = getCurrentHub().getIntegration(GlobalHandlers);
+      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
+
+      if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+        if (self._oldOnUnhandledRejectionHandler) {
+          return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
+        }
+        return false;
+      }
+
+      const stack = computeStackTrace(error);
+      const event = stack.failed ? self._eventFromIncompleteRejection(error) : eventFromUnknownInput(error);
+
+      const client = getCurrentHub().getClient();
+      const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
+      const fallbackValue = truncate(`${error}`, maxValueLength) || '';
+
+      addExceptionTypeValue(event, fallbackValue, 'UnhandledRejection');
+      addExceptionMechanism(event, {
+        handled: false,
+        type: 'onunhandledrejection',
+      });
+
+      getCurrentHub().captureEvent(event, {
+        originalException: error,
+      });
+
+      if (self._oldOnUnhandledRejectionHandler) {
+        return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
+      }
+
+      return false;
+    };
+
+    this._onUnhandledRejectionHandlerInstalled = true;
+  }
+
+  /**
+   * This function creates a stack from an old, error-less onerror handler.
+   */
+  private _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
+    const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/;
+
+    // If 'message' is ErrorEvent, get real message from inside
+    let message = isErrorEvent(msg) ? msg.message : msg;
+    let name;
+
+    if (isString(message)) {
+      const groups = message.match(ERROR_TYPES_RE);
+      if (groups) {
+        name = groups[1];
+        message = groups[2];
+      }
     }
 
-    const client = getCurrentHub().getClient();
-    const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
+    const event = {
+      exception: {
+        values: [
+          {
+            value: message,
+            ...(name && { type: name }),
+          },
+        ],
+      },
+    };
 
-    const fallbackValue = stacktrace.original
-      ? truncate(JSON.stringify(normalize(stacktrace.original)), maxValueLength)
-      : '';
-    const fallbackType = stacktrace.mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error';
+    return this._enhanceEventWithInitialFrame(event, url, line, column);
+  }
 
-    // This makes sure we have type/value in every exception
-    addExceptionTypeValue(event, fallbackValue, fallbackType, {
-      data,
-      handled: false,
-      type: stacktrace.mechanism,
-    });
+  /** JSDoc */
+  private _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
+    event.exception = event.exception || {};
+    event.exception.values = event.exception.values || [];
+    event.exception.values[0] = event.exception.values[0] || {};
+    event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
+    event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
+
+    if (event.exception.values[0].stacktrace.frames.length === 0) {
+      event.exception.values[0].stacktrace.frames.push({
+        colno: column,
+        filename: url || getLocationHref(),
+        function: '?',
+        in_app: true,
+        lineno: line,
+      });
+    }
 
     return event;
   }
 
   /**
    * This function creates an Event from an TraceKitStackTrace that has part of it missing.
-   *
-   * @param stacktrace TraceKitStackTrace to be converted to an Event.
    */
-  private _eventFromIncompleteRejection(stacktrace: TraceKitStackTrace, error: any): Event {
+  private _eventFromIncompleteRejection(error: any): Event {
     const event: Event = {
       level: Severity.Error,
     };
@@ -155,25 +256,12 @@ export class GlobalHandlers implements Integration {
         values: [
           {
             type: 'UnhandledRejection',
-            value: `Non-Error promise rejection captured with keys: ${keysToEventMessage(Object.keys(error).sort())}`,
+            value: `Non-Error promise rejection captured with keys: ${extractExceptionKeysForMessage(error)}`,
           },
         ],
       };
       event.extra = {
         __serialized__: normalizeToSize(error),
-      };
-    }
-
-    if (event.exception.values && event.exception.values[0]) {
-      event.exception.values[0].mechanism = {
-        data: {
-          mode: stacktrace.mode,
-          ...(stacktrace.incomplete && { incomplete: stacktrace.incomplete }),
-          ...(stacktrace.message && { message: stacktrace.message }),
-          ...(stacktrace.name && { name: stacktrace.name }),
-        },
-        handled: false,
-        type: stacktrace.mechanism,
       };
     }
 
