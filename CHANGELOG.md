@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- [types] fix: Breadcrumb `data` needs to be an object
+
 ## 5.6.3
 
 - [browser] fix: Don't capture our own XHR events that somehow bubbled-up to global handler
