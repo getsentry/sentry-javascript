@@ -60,7 +60,7 @@ module.exports = {
   bs_android_9: {
     base: "BrowserStack",
     browser: "Android",
-    device: "Samsung Galaxy S10",
+    device: "Samsung Galaxy S9 Plus",
     os: "android",
     os_version: "9.0",
     real_mobile: true,
