@@ -12,7 +12,7 @@ install: true
 sudo: required
 
 language: node_js
-dist: trusty
+dist: bionic
 
 cache:
   yarn: true
