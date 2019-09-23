@@ -80,12 +80,12 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   const lastFrameFunction = localStack[localStack.length - 1].func || '';
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
+  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
     localStack = localStack.slice(1);
   }
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.includes('sentryWrapped')) {
+  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
     localStack = localStack.slice(0, -1);
   }
 

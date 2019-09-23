@@ -75,9 +75,6 @@ function build() {
     "polyfills/fetch.js",
     "polyfills/raf.js",
     "polyfills/events.js",
-    "polyfills/assign.js",
-    "polyfills/nan.js",
-    "polyfills/includes.js",
   ]);
 
   writeFile(

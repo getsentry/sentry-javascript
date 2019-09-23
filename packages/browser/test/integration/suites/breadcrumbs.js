@@ -712,7 +712,7 @@ describe("breadcrumbs", function() {
     }
   );
 
-  it("should add breadcrumbs on thrown errors", function() {
+  it("should capture console breadcrumbs", function() {
     return runInSandbox(sandbox, { manual: true }, function() {
       window.allowConsoleBreadcrumbs = true;
       var logs = document.createElement("script");
@@ -726,8 +726,15 @@ describe("breadcrumbs", function() {
         // The async loader doesn't capture breadcrumbs, but we should receive the event without them
         assert.lengthOf(summary.events, 1);
       } else {
-        assert.ok(summary.breadcrumbs);
-        assert.lengthOf(summary.breadcrumbs, 3);
+        if ("assert" in console) {
+          assert.lengthOf(summary.breadcrumbs, 4);
+          assert.deepEqual(summary.breadcrumbs[3].data.extra.arguments, [
+            "math broke",
+          ]);
+        } else {
+          assert.lengthOf(summary.breadcrumbs, 3);
+        }
+
         assert.deepEqual(summary.breadcrumbs[0].data.extra.arguments, ["One"]);
         assert.deepEqual(summary.breadcrumbs[1].data.extra.arguments, [
           "Two",

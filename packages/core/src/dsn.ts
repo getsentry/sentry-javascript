@@ -56,6 +56,7 @@ export class Dsn implements DsnComponents {
   /** Parses a string into this Dsn. */
   private _fromString(str: string): void {
     const match = DSN_REGEX.exec(str);
+
     if (!match) {
       throw new SentryError(ERROR_MESSAGE);
     }
@@ -63,12 +64,14 @@ export class Dsn implements DsnComponents {
     const [protocol, user, pass = '', host, port = '', lastPath] = match.slice(1);
     let path = '';
     let projectId = lastPath;
+
     const split = projectId.split('/');
     if (split.length > 1) {
       path = split.slice(0, -1).join('/');
       projectId = split.pop() as string;
     }
-    Object.assign(this, { host, pass, path, projectId, port, protocol, user });
+
+    this._fromComponents({ host, pass, path, projectId, port, protocol: protocol as DsnProtocol, user });
   }
 
   /** Maps Dsn components into this instance. */
@@ -94,7 +97,7 @@ export class Dsn implements DsnComponents {
       throw new SentryError(ERROR_MESSAGE);
     }
 
-    if (this.port && Number.isNaN(parseInt(this.port, 10))) {
+    if (this.port && isNaN(parseInt(this.port, 10))) {
       throw new SentryError(ERROR_MESSAGE);
     }
   }
