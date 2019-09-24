@@ -143,7 +143,7 @@ function extractUserData(req: { [key: string]: any }, keys: boolean | string[]):
   const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_KEYS;
 
   attributes.forEach(key => {
-    if ({}.hasOwnProperty.call(req.user, key)) {
+    if (key in req.user)) {
       user[key] = (req.user as { [key: string]: string })[key];
     }
   });
