@@ -164,12 +164,14 @@ export class InboundFilters implements Integration {
       if (event.stacktrace) {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).stacktrace.frames;
-        return frames[frames.length - 1].filename;
+	const {length: len, [len - 1]: last} = frames;
+        return last.filename;
       }
       if (event.exception) {
         // tslint:disable:no-unsafe-any
         const frames = (event as any).exception.values[0].stacktrace.frames;
-        return frames[frames.length - 1].filename;
+	const {length: len, [len - 1]: last} = frames;
+        return last.filename;
       }
       return null;
     } catch (oO) {
