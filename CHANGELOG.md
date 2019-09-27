@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- [browser] fix: Capture only failed `console.assert` calls
+- [browser] ref: Major `TraceKit` and `GlobalHandlers` refactor
+- [browser] ref: Remove `Object.assign` method usage
+- [browser] ref: Remove `Number.isNaN` method usage
+- [browser] ref: Remove `includes` method usage
+- [browser] ci: Use Galaxy S9 Plus for Android 9
+- [node] feat: Extract prototyped data in `extractUserData` (#2247)
+- [node] ref: Use domain Hub detection only in Node environment
+- [integrations] feat: Use `contexts` to handle ExtraErrorData (#2208)
 - [types] fix: Breadcrumb `data` needs to be an object
 
 ## 5.6.3
