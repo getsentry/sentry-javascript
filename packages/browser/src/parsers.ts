@@ -1,5 +1,5 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { extractExceptionKeysForMessage, normalizeToSize } from '@sentry/utils';
+import { extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
 
 import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
@@ -33,14 +33,21 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Excepti
 /**
  * @hidden
  */
-export function eventFromPlainObject(exception: {}, syntheticException?: Error, type?: 'error' | 'promise'): Event {
+export function eventFromPlainObject(exception: {}, syntheticException?: Error, rejection?: boolean): Event {
   const event: Event = {
+    exception: {
+      values: [
+        {
+          type: isEvent(exception) ? exception.constructor.name : rejection ? 'UnhandledRejection' : 'Error',
+          value: `Non-Error ${
+            rejection ? 'promise rejection' : 'exception'
+          } captured with keys: ${extractExceptionKeysForMessage(exception)}`,
+        },
+      ],
+    },
     extra: {
       __serialized__: normalizeToSize(exception),
     },
-    message: `Non-Error ${
-      type === 'promise' ? 'promise rejection' : 'exception'
-    } captured with keys: ${extractExceptionKeysForMessage(exception)}`,
   };
 
   if (syntheticException) {

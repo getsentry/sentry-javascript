@@ -70,10 +70,6 @@ describe("window.onerror", function() {
       } else {
         assert.equal(
           summary.events[0].exception.values[0].value,
-          "Custom Object"
-        );
-        assert.equal(
-          summary.events[0].message,
           "Non-Error exception captured with keys: error, somekey"
         );
       }

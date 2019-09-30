@@ -1,4 +1,4 @@
-import { Event, Severity } from '@sentry/types';
+import { Event } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -14,11 +14,7 @@ import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from
 import { computeStackTrace } from './tracekit';
 
 /** JSDoc */
-export function eventFromUnknownInput(
-  exception: unknown,
-  syntheticException?: Error,
-  type?: 'error' | 'promise',
-): Event {
+export function eventFromUnknownInput(exception: unknown, syntheticException?: Error, rejection?: boolean): Event {
   let event: Event;
 
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -51,16 +47,10 @@ export function eventFromUnknownInput(
     // This will allow us to group events based on top-level keys
     // which is much better than creating new group when any key/value change
     const objectException = exception as {};
-    event = eventFromPlainObject(objectException, syntheticException, type);
-    addExceptionTypeValue(
-      event,
-      isEvent(exception) ? exception.constructor.name : 'Custom Object',
-      type === 'promise' ? 'UnhandledRejection' : 'Error',
-    );
+    event = eventFromPlainObject(objectException, syntheticException, rejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });
-    event.level = Severity.Error;
     return event;
   }
 
@@ -71,7 +61,6 @@ export function eventFromUnknownInput(
   // it's not an Error
   // So bail out and capture it as a simple message:
   event = eventFromString(exception as string, syntheticException);
-
   addExceptionTypeValue(event, `${exception}`, undefined);
   addExceptionMechanism(event, {
     synthetic: true,

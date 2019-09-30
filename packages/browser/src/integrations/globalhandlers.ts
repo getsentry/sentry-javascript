@@ -2,14 +2,12 @@ import { getCurrentHub } from '@sentry/core';
 import { Event, Integration, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
-  addExceptionTypeValue,
   getGlobalObject,
   getLocationHref,
   isErrorEvent,
   isPrimitive,
   isString,
   logger,
-  truncate,
 } from '@sentry/utils';
 
 import { eventFromUnknownInput } from '../eventbuilder';
@@ -98,13 +96,8 @@ export class GlobalHandlers implements Integration {
 
       const event = isPrimitive(error)
         ? self._eventFromIncompleteOnError(msg, url, line, column)
-        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error, undefined, 'error'), url, line, column);
+        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error, undefined), url, line, column);
 
-      const client = getCurrentHub().getClient();
-      const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
-      const fallbackValue = truncate(`${error || msg}`, maxValueLength) || '';
-
-      addExceptionTypeValue(event, fallbackValue, 'Error');
       addExceptionMechanism(event, {
         handled: false,
         type: 'onerror',
@@ -153,13 +146,10 @@ export class GlobalHandlers implements Integration {
 
       const event = isPrimitive(error)
         ? self._eventFromIncompleteRejection(error)
-        : eventFromUnknownInput(error, undefined, 'promise');
+        : eventFromUnknownInput(error, undefined, true);
 
-      const client = getCurrentHub().getClient();
-      const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
-      const fallbackValue = truncate(`${error}`, maxValueLength) || '';
+      event.level = Severity.Error;
 
-      addExceptionTypeValue(event, fallbackValue, 'UnhandledRejection');
       addExceptionMechanism(event, {
         handled: false,
         type: 'onunhandledrejection',
@@ -183,7 +173,7 @@ export class GlobalHandlers implements Integration {
    * This function creates a stack from an old, error-less onerror handler.
    */
   private _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any): Event {
-    const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/;
+    const ERROR_TYPES_RE = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/i;
 
     // If 'message' is ErrorEvent, get real message from inside
     let message = isErrorEvent(msg) ? msg.message : msg;
@@ -201,8 +191,8 @@ export class GlobalHandlers implements Integration {
       exception: {
         values: [
           {
+            type: name || 'Error',
             value: message,
-            ...(name && { type: name }),
           },
         ],
       },
@@ -216,8 +206,14 @@ export class GlobalHandlers implements Integration {
    */
   private _eventFromIncompleteRejection(error: any): Event {
     return {
-      level: Severity.Error,
-      message: `Non-Error promise rejection captured with value: ${error}`,
+      exception: {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: `Non-Error promise rejection captured with value: ${error}`,
+          },
+        ],
+      },
     };
   }
 
