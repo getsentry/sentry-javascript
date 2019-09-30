@@ -58,7 +58,7 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    */
   public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
     const syntheticException = (hint && hint.syntheticException) || undefined;
-    const event = eventFromUnknownInput(exception, syntheticException);
+    const event = eventFromUnknownInput(exception, syntheticException, 'error');
     addExceptionMechanism(event, {
       handled: true,
       type: 'generic',

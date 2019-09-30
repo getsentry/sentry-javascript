@@ -33,12 +33,14 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Excepti
 /**
  * @hidden
  */
-export function eventFromPlainObject(exception: {}, syntheticException?: Error): Event {
+export function eventFromPlainObject(exception: {}, syntheticException?: Error, type?: 'error' | 'promise'): Event {
   const event: Event = {
     extra: {
       __serialized__: normalizeToSize(exception),
     },
-    message: `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`,
+    message: `Non-Error ${
+      type === 'promise' ? 'promise rejection' : 'exception'
+    } captured with keys: ${extractExceptionKeysForMessage(exception)}`,
   };
 
   if (syntheticException) {

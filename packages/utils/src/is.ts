@@ -85,6 +85,30 @@ export function isPlainObject(wat: any): boolean {
 }
 
 /**
+ * Checks whether given value's type is an Event instance
+ * {@link isEvent}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isEvent(wat: any): wat is Event {
+  // tslint:disable-next-line:strict-type-predicates
+  return typeof Event !== 'undefined' && wat instanceof Event;
+}
+
+/**
+ * Checks whether given value's type is an Element instance
+ * {@link isElement}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isElement(wat: any): wat is Element {
+  // tslint:disable-next-line:strict-type-predicates
+  return typeof Element !== 'undefined' && wat instanceof Element;
+}
+
+/**
  * Checks whether given value's type is an regexp
  * {@link isRegExp}.
  *

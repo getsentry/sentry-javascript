@@ -3,20 +3,17 @@ import { Event, Integration, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
-  extractExceptionKeysForMessage,
   getGlobalObject,
   getLocationHref,
   isErrorEvent,
   isPrimitive,
   isString,
   logger,
-  normalizeToSize,
   truncate,
 } from '@sentry/utils';
 
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
-import { computeStackTrace } from '../tracekit';
 
 /** JSDoc */
 interface GlobalHandlersIntegrations {
@@ -101,7 +98,7 @@ export class GlobalHandlers implements Integration {
 
       const event = isPrimitive(error)
         ? self._eventFromIncompleteOnError(msg, url, line, column)
-        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error), url, line, column);
+        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error, undefined, 'error'), url, line, column);
 
       const client = getCurrentHub().getClient();
       const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
@@ -154,8 +151,9 @@ export class GlobalHandlers implements Integration {
         return false;
       }
 
-      const stack = computeStackTrace(error);
-      const event = stack.failed ? self._eventFromIncompleteRejection(error) : eventFromUnknownInput(error);
+      const event = isPrimitive(error)
+        ? self._eventFromIncompleteRejection(error)
+        : eventFromUnknownInput(error, undefined, 'promise');
 
       const client = getCurrentHub().getClient();
       const maxValueLength = (client && client.getOptions().maxValueLength) || 250;
@@ -213,6 +211,16 @@ export class GlobalHandlers implements Integration {
     return this._enhanceEventWithInitialFrame(event, url, line, column);
   }
 
+  /**
+   * This function creates an Event from an TraceKitStackTrace that has part of it missing.
+   */
+  private _eventFromIncompleteRejection(error: any): Event {
+    return {
+      level: Severity.Error,
+      message: `Non-Error promise rejection captured with value: ${error}`,
+    };
+  }
+
   /** JSDoc */
   private _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
     event.exception = event.exception || {};
@@ -229,40 +237,6 @@ export class GlobalHandlers implements Integration {
         in_app: true,
         lineno: line,
       });
-    }
-
-    return event;
-  }
-
-  /**
-   * This function creates an Event from an TraceKitStackTrace that has part of it missing.
-   */
-  private _eventFromIncompleteRejection(error: any): Event {
-    const event: Event = {
-      level: Severity.Error,
-    };
-
-    if (isPrimitive(error)) {
-      event.exception = {
-        values: [
-          {
-            type: 'UnhandledRejection',
-            value: `Non-Error promise rejection captured with value: ${error}`,
-          },
-        ],
-      };
-    } else {
-      event.exception = {
-        values: [
-          {
-            type: 'UnhandledRejection',
-            value: `Non-Error promise rejection captured with keys: ${extractExceptionKeysForMessage(error)}`,
-          },
-        ],
-      };
-      event.extra = {
-        __serialized__: normalizeToSize(error),
-      };
     }
 
     return event;
