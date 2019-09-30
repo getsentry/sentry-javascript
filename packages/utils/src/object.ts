@@ -1,9 +1,9 @@
 import { ExtendedError, WrappedFunction } from '@sentry/types';
 
-import { isError, isPrimitive, isSyntheticEvent, isEvent, isElement } from './is';
+import { isElement, isError, isEvent, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
-import { truncate } from './string';
 import { htmlTreeAsString } from './misc';
+import { truncate } from './string';
 
 /**
  * Wrap a given object method with a higher-order function
@@ -104,12 +104,23 @@ function getWalkSource(
     } = {};
 
     source.type = value.type;
-    source.target = isElement(value.target)
-      ? htmlTreeAsString(value.target)
-      : Object.prototype.toString.call(value.target);
-    source.currentTarget = isElement(value.currentTarget)
-      ? htmlTreeAsString(value.currentTarget)
-      : Object.prototype.toString.call(value.currentTarget);
+
+    // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+    try {
+      source.target = isElement(value.target)
+        ? htmlTreeAsString(value.target)
+        : Object.prototype.toString.call(value.target);
+    } catch (_oO) {
+      source.target = '<unknown>';
+    }
+
+    try {
+      source.currentTarget = isElement(value.currentTarget)
+        ? htmlTreeAsString(value.currentTarget)
+        : Object.prototype.toString.call(value.currentTarget);
+    } catch (_oO) {
+      source.currentTarget = '<unknown>';
+    }
 
     // tslint:disable-next-line:strict-type-predicates
     if (typeof CustomEvent !== 'undefined' && value instanceof CustomEvent) {
