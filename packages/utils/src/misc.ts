@@ -1,4 +1,5 @@
 import { Event, Integration, WrappedFunction } from '@sentry/types';
+
 import { isString } from './is';
 
 /** Internal */
@@ -259,7 +260,7 @@ export function htmlTreeAsString(elem: Node): string {
   // try/catch both:
   // - accessing event.target (see getsentry/raven-js#838, #768)
   // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-  //   can throw an exception in some circumstances.
+  // - can throw an exception in some circumstances.
   try {
     let currentElem: Node | null = elem;
     const MAX_TRAVERSE_HEIGHT = 5;

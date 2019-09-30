@@ -188,7 +188,15 @@ export function breadcrumbEventHandler(eventName: string, debounce: boolean = fa
     lastCapturedEvent = event;
 
     const captureBreadcrumb = () => {
-      const target = htmlTreeAsString(event.target as Node);
+      let target;
+
+      // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+      try {
+        target = event.target ? htmlTreeAsString(event.target as Node) : htmlTreeAsString((event as unknown) as Node);
+      } catch (e) {
+        target = '<unknown>';
+      }
+
       if (target.length === 0) {
         return;
       }
