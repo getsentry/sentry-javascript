@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, isString, normalize } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, htmlTreeAsString, normalize } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
 let keypressTimeout: number | undefined;
@@ -188,17 +188,7 @@ export function breadcrumbEventHandler(eventName: string, debounce: boolean = fa
     lastCapturedEvent = event;
 
     const captureBreadcrumb = () => {
-      // try/catch both:
-      // - accessing event.target (see getsentry/raven-js#838, #768)
-      // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
-      //   can throw an exception in some circumstances.
-      let target;
-      try {
-        target = event.target ? _htmlTreeAsString(event.target as Node) : _htmlTreeAsString((event as unknown) as Node);
-      } catch (e) {
-        target = '<unknown>';
-      }
-
+      const target = htmlTreeAsString(event.target as Node);
       if (target.length === 0) {
         return;
       }
@@ -267,80 +257,4 @@ export function keypressEventHandler(): (event: Event) => void {
       keypressTimeout = undefined;
     }, debounceDuration) as any) as number;
   };
-}
-
-/**
- * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
- * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-function _htmlTreeAsString(elem: Node): string {
-  let currentElem: Node | null = elem;
-  const MAX_TRAVERSE_HEIGHT = 5;
-  const MAX_OUTPUT_LEN = 80;
-  const out = [];
-  let height = 0;
-  let len = 0;
-  const separator = ' > ';
-  const sepLength = separator.length;
-  let nextStr;
-
-  while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-    nextStr = _htmlElementAsString(currentElem as HTMLElement);
-    // bail out if
-    // - nextStr is the 'html' element
-    // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
-    //   (ignore this limit if we are on the first iteration)
-    if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
-      break;
-    }
-
-    out.push(nextStr);
-
-    len += nextStr.length;
-    currentElem = currentElem.parentNode;
-  }
-
-  return out.reverse().join(separator);
-}
-
-/**
- * Returns a simple, query-selector representation of a DOM element
- * e.g. [HTMLElement] => input#foo.btn[name=baz]
- * @returns generated DOM path
- */
-function _htmlElementAsString(elem: HTMLElement): string {
-  const out = [];
-  let className;
-  let classes;
-  let key;
-  let attr;
-  let i;
-
-  if (!elem || !elem.tagName) {
-    return '';
-  }
-
-  out.push(elem.tagName.toLowerCase());
-  if (elem.id) {
-    out.push(`#${elem.id}`);
-  }
-
-  className = elem.className;
-  if (className && isString(className)) {
-    classes = className.split(/\s+/);
-    for (i = 0; i < classes.length; i++) {
-      out.push(`.${classes[i]}`);
-    }
-  }
-  const attrWhitelist = ['type', 'name', 'title', 'alt'];
-  for (i = 0; i < attrWhitelist.length; i++) {
-    key = attrWhitelist[i];
-    attr = elem.getAttribute(key);
-    if (attr) {
-      out.push(`[${key}="${attr}"]`);
-    }
-  }
-  return out.join('');
 }

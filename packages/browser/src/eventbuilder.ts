@@ -6,6 +6,7 @@ import {
   isDOMException,
   isError,
   isErrorEvent,
+  isEvent,
   isPlainObject,
 } from '@sentry/utils';
 
@@ -13,7 +14,11 @@ import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from
 import { computeStackTrace } from './tracekit';
 
 /** JSDoc */
-export function eventFromUnknownInput(exception: unknown, syntheticException?: Error): Event {
+export function eventFromUnknownInput(
+  exception: unknown,
+  syntheticException?: Error,
+  type?: 'error' | 'promise',
+): Event {
   let event: Event;
 
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -41,13 +46,17 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
     event = eventFromStacktrace(computeStackTrace(exception as Error));
     return event;
   }
-  if (isPlainObject(exception as {})) {
-    // If it is plain Object, serialize it manually and extract options
+  if (isPlainObject(exception) || isEvent(exception)) {
+    // If it is plain Object or Event, serialize it manually and extract options
     // This will allow us to group events based on top-level keys
     // which is much better than creating new group when any key/value change
     const objectException = exception as {};
-    event = eventFromPlainObject(objectException, syntheticException);
-    addExceptionTypeValue(event, 'Custom Object', undefined);
+    event = eventFromPlainObject(objectException, syntheticException, type);
+    addExceptionTypeValue(
+      event,
+      isEvent(exception) ? exception.constructor.name : 'Custom Object',
+      type === 'promise' ? 'UnhandledRejection' : 'Error',
+    );
     addExceptionMechanism(event, {
       synthetic: true,
     });
