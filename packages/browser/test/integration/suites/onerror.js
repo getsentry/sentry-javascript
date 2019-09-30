@@ -61,11 +61,22 @@ describe("window.onerror", function() {
     }).then(function(summary) {
       assert.equal(summary.events[0].exception.values[0].type, "Error");
 
-      // #<Object> is covering default Android 4.4 and 5.1 browser
-      assert.match(
-        summary.events[0].exception.values[0].value,
-        /^(\[object Object\]|#<Object>)$/
-      );
+      // ¯\_(ツ)_/¯
+      if (summary.window.isBelowIE11()) {
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "[object Object]"
+        );
+      } else {
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "Custom Object"
+        );
+        assert.equal(
+          summary.events[0].message,
+          "Non-Error exception captured with keys: error, somekey"
+        );
+      }
       assert.equal(
         summary.events[0].exception.values[0].stacktrace.frames.length,
         1
