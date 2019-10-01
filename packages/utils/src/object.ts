@@ -316,20 +316,14 @@ export function normalize(input: any, depth?: number): any {
   }
 }
 
-/** Merges provided array of keys into */
+/**
+ * Given any captured exception, extract its keys and create a sorted
+ * and truncated list that will be used inside the event message.
+ * eg. `Non-error exception captured with keys: foo, bar, baz`
+ */
 export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
   // tslint:disable:strict-type-predicates
   const keys = Object.keys(getWalkSource(exception));
-
-  // TODO: Extract keys for a specific types here
-  if (typeof Event !== 'undefined' && exception instanceof Event) {
-    // keys = [];
-  } else if (typeof CustomEvent !== 'undefined' && exception instanceof CustomEvent) {
-    // keys = [];
-  } else if (typeof ErrorEvent !== 'undefined' && exception instanceof ErrorEvent) {
-    // keys = [];
-  }
-
   keys.sort();
 
   if (!keys.length) {
