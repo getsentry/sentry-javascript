@@ -54,11 +54,14 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
     return event;
   }
 
-  // If none of previous checks were valid, then it means that
-  // it's not a DOMError/DOMException
-  // it's not a plain Object
-  // it's not a valid ErrorEvent (one with an error property)
-  // it's not an Error
+  // If none of previous checks were valid, then it means that it's not:
+  // - an instance of DOMError
+  // - an instance of DOMException
+  // - an instance of Event
+  // - an instance of Error
+  // - a valid ErrorEvent (one with an error property)
+  // - a plain Object
+  //
   // So bail out and capture it as a simple message:
   event = eventFromString(exception as string, syntheticException);
   addExceptionTypeValue(event, `${exception}`, undefined);
