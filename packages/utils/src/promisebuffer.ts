@@ -69,7 +69,7 @@ export class PromiseBuffer<T> {
           resolve(false);
         }
       }, timeout);
-      Promise.all(this._buffer)
+      SyncPromise.all(this._buffer)
         .then(() => {
           clearTimeout(capturedSetTimeout);
           resolve(true);
