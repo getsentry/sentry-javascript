@@ -3,6 +3,7 @@ import typescript from 'rollup-plugin-typescript2';
 import license from 'rollup-plugin-license';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
+import modify from 'rollup-plugin-modify';
 
 const commitHash = require('child_process')
   .execSync('git rev-parse --short HEAD', { encoding: 'utf-8' })
@@ -46,6 +47,11 @@ const plugins = [
     mainFields: ['module'],
   }),
   commonjs(),
+  modify({
+    // It's very difficult to use Symbol without polyfilling in IE10 and still making TypeScript behave correctly.
+    // Just remove it and leave this space in there, so that SourceMaps are still correct.
+    "this[Symbol.toStringTag] = '[object SyncPromise]';": ' ',
+  }),
 ];
 
 const bundleConfig = {
