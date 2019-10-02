@@ -78,7 +78,6 @@ export class SyncPromise<T> implements Promise<T> {
             if (counter !== 0) {
               return;
             }
-
             resolve(resolvedCollection);
           })
           .catch(reject);

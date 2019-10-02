@@ -1,4 +1,5 @@
 import { Event, Response, Status } from '@sentry/types';
+import { SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -9,7 +10,7 @@ export class XHRTransport extends BaseTransport {
    */
   public sendEvent(event: Event): Promise<Response> {
     return this._buffer.add(
-      new Promise<Response>((resolve, reject) => {
+      new SyncPromise<Response>((resolve, reject) => {
         const request = new XMLHttpRequest();
 
         request.onreadystatechange = () => {

@@ -1,5 +1,5 @@
 import { getCurrentHub, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getGlobalObject } from '@sentry/utils';
+import { getGlobalObject, SyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from './backend';
 import { BrowserClient, ReportDialogOptions } from './client';
@@ -138,7 +138,7 @@ export function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  return Promise.reject(false);
+  return SyncPromise.reject(false);
 }
 
 /**
@@ -152,7 +152,7 @@ export function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  return Promise.reject(false);
+  return SyncPromise.reject(false);
 }
 
 /**
