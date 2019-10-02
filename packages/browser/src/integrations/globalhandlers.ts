@@ -84,7 +84,8 @@ export class GlobalHandlers implements Integration {
     this._oldOnErrorHandler = this._global.onerror;
 
     this._global.onerror = function(msg: any, url: any, line: any, column: any, error: any): boolean {
-      const hasIntegration = getCurrentHub().getIntegration(GlobalHandlers);
+      const currentHub = getCurrentHub();
+      const hasIntegration = currentHub.getIntegration(GlobalHandlers);
       const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
       if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
@@ -94,16 +95,25 @@ export class GlobalHandlers implements Integration {
         return false;
       }
 
+      const client = currentHub.getClient();
       const event = isPrimitive(error)
         ? self._eventFromIncompleteOnError(msg, url, line, column)
-        : self._enhanceEventWithInitialFrame(eventFromUnknownInput(error, undefined), url, line, column);
+        : self._enhanceEventWithInitialFrame(
+            eventFromUnknownInput(error, undefined, {
+              attachStacktrace: client && client.getOptions().attachStacktrace,
+              rejection: false,
+            }),
+            url,
+            line,
+            column,
+          );
 
       addExceptionMechanism(event, {
         handled: false,
         type: 'onerror',
       });
 
-      getCurrentHub().captureEvent(event, {
+      currentHub.captureEvent(event, {
         originalException: error,
       });
 
@@ -134,7 +144,8 @@ export class GlobalHandlers implements Integration {
         // no-empty
       }
 
-      const hasIntegration = getCurrentHub().getIntegration(GlobalHandlers);
+      const currentHub = getCurrentHub();
+      const hasIntegration = currentHub.getIntegration(GlobalHandlers);
       const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
       if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
@@ -144,9 +155,13 @@ export class GlobalHandlers implements Integration {
         return false;
       }
 
+      const client = currentHub.getClient();
       const event = isPrimitive(error)
         ? self._eventFromIncompleteRejection(error)
-        : eventFromUnknownInput(error, undefined, true);
+        : eventFromUnknownInput(error, undefined, {
+            attachStacktrace: client && client.getOptions().attachStacktrace,
+            rejection: true,
+          });
 
       event.level = Severity.Error;
 
@@ -155,7 +170,7 @@ export class GlobalHandlers implements Integration {
         type: 'onunhandledrejection',
       });
 
-      getCurrentHub().captureEvent(event, {
+      currentHub.captureEvent(event, {
         originalException: error,
       });
 

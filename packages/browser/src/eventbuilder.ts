@@ -14,7 +14,14 @@ import { eventFromPlainObject, eventFromStacktrace, prepareFramesForEvent } from
 import { computeStackTrace } from './tracekit';
 
 /** JSDoc */
-export function eventFromUnknownInput(exception: unknown, syntheticException?: Error, rejection?: boolean): Event {
+export function eventFromUnknownInput(
+  exception: unknown,
+  syntheticException?: Error,
+  options: {
+    rejection?: boolean;
+    attachStacktrace?: boolean;
+  } = {},
+): Event {
   let event: Event;
 
   if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
@@ -33,7 +40,7 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
     const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
     const message = domException.message ? `${name}: ${domException.message}` : name;
 
-    event = eventFromString(message);
+    event = eventFromString(message, syntheticException, options);
     addExceptionTypeValue(event, message);
     return event;
   }
@@ -47,7 +54,7 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
     // This will allow us to group events based on top-level keys
     // which is much better than creating new group when any key/value change
     const objectException = exception as {};
-    event = eventFromPlainObject(objectException, syntheticException, rejection);
+    event = eventFromPlainObject(objectException, syntheticException, options.rejection);
     addExceptionMechanism(event, {
       synthetic: true,
     });
@@ -63,7 +70,7 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(exception as string, syntheticException);
+  event = eventFromString(exception as string, syntheticException, options);
   addExceptionTypeValue(event, `${exception}`, undefined);
   addExceptionMechanism(event, {
     synthetic: true,
@@ -72,14 +79,20 @@ export function eventFromUnknownInput(exception: unknown, syntheticException?: E
   return event;
 }
 
+// this._options.attachStacktrace
 /** JSDoc */
-export function eventFromString(input: string, syntheticException?: Error): Event {
+export function eventFromString(
+  input: string,
+  syntheticException?: Error,
+  options: {
+    attachStacktrace?: boolean;
+  } = {},
+): Event {
   const event: Event = {
     message: input,
   };
 
-  // TODO: Only if `this._options.attachStacktrace`
-  if (syntheticException) {
+  if (options.attachStacktrace && syntheticException) {
     const stacktrace = computeStackTrace(syntheticException);
     const frames = prepareFramesForEvent(stacktrace.stack);
     event.stacktrace = {

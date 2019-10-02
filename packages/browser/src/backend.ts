@@ -58,7 +58,9 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    */
   public eventFromException(exception: any, hint?: EventHint): Promise<Event> {
     const syntheticException = (hint && hint.syntheticException) || undefined;
-    const event = eventFromUnknownInput(exception, syntheticException);
+    const event = eventFromUnknownInput(exception, syntheticException, {
+      attachStacktrace: this._options.attachStacktrace,
+    });
     addExceptionMechanism(event, {
       handled: true,
       type: 'generic',
@@ -74,7 +76,9 @@ export class BrowserBackend extends BaseBackend<BrowserOptions> {
    */
   public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): Promise<Event> {
     const syntheticException = (hint && hint.syntheticException) || undefined;
-    const event = eventFromString(message, syntheticException);
+    const event = eventFromString(message, syntheticException, {
+      attachStacktrace: this._options.attachStacktrace,
+    });
     event.level = level;
     if (hint && hint.event_id) {
       event.event_id = hint.event_id;
