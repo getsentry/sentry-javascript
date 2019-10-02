@@ -54,6 +54,39 @@ export class SyncPromise<T> implements Promise<T> {
   }
 
   /** JSDoc */
+  public static all<U = any>(collection: Array<U | PromiseLike<U>>): Promise<U[]> {
+    return new SyncPromise<U[]>((resolve, reject) => {
+      if (!Array.isArray(collection)) {
+        reject(new TypeError(`Promise.all requires an array as input.`));
+        return;
+      }
+
+      if (collection.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      let counter = collection.length;
+      const resolvedCollection: U[] = [];
+
+      collection.forEach((item, index) => {
+        SyncPromise.resolve(item)
+          .then(value => {
+            resolvedCollection[index] = value;
+            counter -= 1;
+
+            if (counter !== 0) {
+              return;
+            }
+
+            resolve(resolvedCollection);
+          })
+          .catch(reject);
+      });
+    });
+  }
+
+  /** JSDoc */
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
