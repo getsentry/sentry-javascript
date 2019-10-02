@@ -205,7 +205,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
   /** Waits for the client to be done with processing. */
   protected _isClientProcessing(timeout?: number): Promise<{ ready: boolean; interval: number }> {
-    return new Promise<{ ready: boolean; interval: number }>(resolve => {
+    return new SyncPromise<{ ready: boolean; interval: number }>(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
