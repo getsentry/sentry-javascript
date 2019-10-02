@@ -67,7 +67,7 @@ function getModule(filename: string, base?: string): string {
  *
  * @param filenames Array of filepaths to read content from.
  */
-function readSourceFiles(filenames: string[]): SyncPromise<{ [key: string]: string | null }> {
+function readSourceFiles(filenames: string[]): Promise<{ [key: string]: string | null }> {
   // we're relying on filenames being de-duped already
   if (filenames.length === 0) {
     return SyncPromise.resolve({});
@@ -132,7 +132,7 @@ export function extractStackFromError(error: Error): stacktrace.StackFrame[] {
 /**
  * @hidden
  */
-export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): SyncPromise<StackFrame[]> {
+export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions): Promise<StackFrame[]> {
   const filesToRead: string[] = [];
 
   const linesOfContext =
@@ -191,11 +191,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
  * @param filesToRead string[] of filepaths
  * @param frames StackFrame[] containg all frames
  */
-function addPrePostContext(
-  filesToRead: string[],
-  frames: StackFrame[],
-  linesOfContext: number,
-): SyncPromise<StackFrame[]> {
+function addPrePostContext(filesToRead: string[], frames: StackFrame[], linesOfContext: number): Promise<StackFrame[]> {
   return new SyncPromise<StackFrame[]>(resolve =>
     readSourceFiles(filesToRead).then(sourceFiles => {
       const result = frames.map(frame => {
@@ -228,7 +224,7 @@ function addPrePostContext(
 /**
  * @hidden
  */
-export function getExceptionFromError(error: Error, options?: NodeOptions): SyncPromise<Exception> {
+export function getExceptionFromError(error: Error, options?: NodeOptions): Promise<Exception> {
   const name = error.name || error.constructor.name;
   const stack = extractStackFromError(error);
   return new SyncPromise<Exception>(resolve =>
@@ -248,7 +244,7 @@ export function getExceptionFromError(error: Error, options?: NodeOptions): Sync
 /**
  * @hidden
  */
-export function parseError(error: ExtendedError, options?: NodeOptions): SyncPromise<Event> {
+export function parseError(error: ExtendedError, options?: NodeOptions): Promise<Event> {
   return new SyncPromise<Event>(resolve =>
     getExceptionFromError(error, options).then((exception: Exception) => {
       resolve({

@@ -23,31 +23,51 @@ describe('parsers.ts', () => {
     test('parseStack with same file', done => {
       expect.assertions(1);
       let mockCalls = 0;
-      Parsers.parseStack(frames).then(_ => {
-        mockCalls = spy.mock.calls.length;
-        Parsers.parseStack(frames).then(_1 => {
-          // Calls to readFile shouldn't increase if there isn't a new error
-          expect(spy).toHaveBeenCalledTimes(mockCalls);
-          done();
+      Parsers.parseStack(frames)
+        .then(_ => {
+          mockCalls = spy.mock.calls.length;
+          Parsers.parseStack(frames)
+            .then(_1 => {
+              // Calls to readFile shouldn't increase if there isn't a new error
+              expect(spy).toHaveBeenCalledTimes(mockCalls);
+              done();
+            })
+            .catch(() => {
+              // no-empty
+            });
+        })
+        .catch(() => {
+          // no-empty
         });
-      });
     });
 
     test('parseStack with adding different file', done => {
       expect.assertions(2);
       let mockCalls = 0;
       let newErrorCalls = 0;
-      Parsers.parseStack(frames).then(_ => {
-        mockCalls = spy.mock.calls.length;
-        Parsers.parseStack(stacktrace.parse(getError())).then(_1 => {
-          newErrorCalls = spy.mock.calls.length;
-          expect(newErrorCalls).toBeGreaterThan(mockCalls);
-          Parsers.parseStack(stacktrace.parse(getError())).then(_2 => {
-            expect(spy).toHaveBeenCalledTimes(newErrorCalls);
-            done();
-          });
+      Parsers.parseStack(frames)
+        .then(_ => {
+          mockCalls = spy.mock.calls.length;
+          Parsers.parseStack(stacktrace.parse(getError()))
+            .then(_1 => {
+              newErrorCalls = spy.mock.calls.length;
+              expect(newErrorCalls).toBeGreaterThan(mockCalls);
+              Parsers.parseStack(stacktrace.parse(getError()))
+                .then(_2 => {
+                  expect(spy).toHaveBeenCalledTimes(newErrorCalls);
+                  done();
+                })
+                .catch(() => {
+                  // no-empty
+                });
+            })
+            .catch(() => {
+              // no-empty
+            });
+        })
+        .catch(() => {
+          // no-empty
         });
-      });
     });
   });
 

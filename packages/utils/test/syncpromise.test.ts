@@ -72,6 +72,8 @@ describe('SyncPromise', () => {
       new SyncPromise<string>(resolve => {
         s.then(val => {
           resolve(prepend + val);
+        }).catch(() => {
+          // no-empty
         });
       });
 
@@ -147,10 +149,14 @@ describe('SyncPromise', () => {
     );
     qp.then(value => {
       expect(value).toEqual(2);
+    }).catch(() => {
+      // no-empty
     });
     expect(qp).not.toHaveProperty('_value');
     qp.then(value => {
       expect(value).toEqual(2);
+    }).catch(() => {
+      // no-empty
     });
     jest.runAllTimers();
     expect(qp).toHaveProperty('_value');
