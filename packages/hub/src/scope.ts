@@ -83,7 +83,7 @@ export class Scope implements ScopeInterface {
     event: Event | null,
     hint?: EventHint,
     index: number = 0,
-  ): SyncPromise<Event | null> {
+  ): Promise<Event | null> {
     return new SyncPromise<Event | null>((resolve, reject) => {
       const processor = processors[index];
       // tslint:disable-next-line:strict-type-predicates
@@ -311,7 +311,7 @@ export class Scope implements ScopeInterface {
    * @param hint May contain additional informartion about the original exception.
    * @hidden
    */
-  public applyToEvent(event: Event, hint?: EventHint): SyncPromise<Event | null> {
+  public applyToEvent(event: Event, hint?: EventHint): Promise<Event | null> {
     if (this._extra && Object.keys(this._extra).length) {
       event.extra = { ...this._extra, ...event.extra };
     }

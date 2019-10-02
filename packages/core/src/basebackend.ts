@@ -1,5 +1,5 @@
 import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
-import { logger, SentryError, SyncPromise } from '@sentry/utils';
+import { logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
 
@@ -25,10 +25,10 @@ import { NoopTransport } from './transports/noop';
  */
 export interface Backend {
   /** Creates a {@link Event} from an exception. */
-  eventFromException(exception: any, hint?: EventHint): SyncPromise<Event>;
+  eventFromException(exception: any, hint?: EventHint): Promise<Event>;
 
   /** Creates a {@link Event} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: EventHint): SyncPromise<Event>;
+  eventFromMessage(message: string, level?: Severity, hint?: EventHint): Promise<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;
@@ -78,14 +78,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromException(_exception: any, _hint?: EventHint): SyncPromise<Event> {
+  public eventFromException(_exception: any, _hint?: EventHint): Promise<Event> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): SyncPromise<Event> {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): Promise<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 

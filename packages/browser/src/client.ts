@@ -1,6 +1,6 @@
 import { API, BaseClient, Scope } from '@sentry/core';
 import { DsnLike, Event, EventHint } from '@sentry/types';
-import { getGlobalObject, logger, SyncPromise } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
 import { SDK_NAME, SDK_VERSION } from './version';
@@ -51,7 +51,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): Promise<Event | null> {
     event.platform = event.platform || 'javascript';
     event.sdk = {
       ...event.sdk,

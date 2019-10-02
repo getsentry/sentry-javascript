@@ -76,7 +76,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
+  public eventFromException(exception: any, hint?: EventHint): Promise<Event> {
     let ex: any = exception;
     const mechanism: Mechanism = {
       handled: true,
@@ -121,7 +121,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): SyncPromise<Event> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): Promise<Event> {
     const event: Event = {
       event_id: hint && hint.event_id,
       level,
@@ -131,12 +131,16 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     return new SyncPromise<Event>(resolve => {
       if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-        parseStack(stack, this._options).then(frames => {
-          event.stacktrace = {
-            frames: prepareFramesForEvent(frames),
-          };
-          resolve(event);
-        });
+        parseStack(stack, this._options)
+          .then(frames => {
+            event.stacktrace = {
+              frames: prepareFramesForEvent(frames),
+            };
+            resolve(event);
+          })
+          .catch(() => {
+            resolve(event);
+          });
       } else {
         resolve(event);
       }
