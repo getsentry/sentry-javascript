@@ -2,16 +2,24 @@
 
 ## Unreleased
 
+- Coming soon...
+
+## 5.7.0-beta.0
+
+- [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need `thenable` API
 - [browser] fix: Capture only failed `console.assert` calls
 - [browser] ref: Major `TraceKit` and `GlobalHandlers` refactor
+- [browser] ref: Remove _all_ required IE10-11 polyfills
 - [browser] ref: Remove `Object.assign` method usage
 - [browser] ref: Remove `Number.isNaN` method usage
 - [browser] ref: Remove `includes` method usage
 - [browser] ci: Use Galaxy S9 Plus for Android 9
+- [browser] ci: Increase timeouts and retries between Travis and BrowserStack
 - [node] feat: Extract prototyped data in `extractUserData` (#2247)
 - [node] ref: Use domain Hub detection only in Node environment
 - [integrations] feat: Use `contexts` to handle ExtraErrorData (#2208)
 - [types] fix: Breadcrumb `data` needs to be an object
+- [utils] ref: Make `Event` instances somewhat serializeable
 
 ## 5.6.3
 
