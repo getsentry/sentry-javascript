@@ -43,25 +43,28 @@ export class ExtraErrorData implements Integration {
     if (!hint || !hint.originalException || !isError(hint.originalException)) {
       return event;
     }
+    const name = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;
 
     const errorData = this._extractErrorData(hint.originalException as ExtendedError);
 
     if (errorData) {
-      let extra = {
-        ...event.extra,
+      let contexts = {
+        ...event.contexts,
       };
 
       const normalizedErrorData = normalize(errorData, this._options.depth);
       if (isPlainObject(normalizedErrorData)) {
-        extra = {
-          ...event.extra,
-          ...normalizedErrorData,
+        contexts = {
+          ...event.contexts,
+          [name]: {
+            ...normalizedErrorData,
+          },
         };
       }
 
       return {
         ...event,
-        extra,
+        contexts,
       };
     }
 
@@ -76,7 +79,6 @@ export class ExtraErrorData implements Integration {
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
       const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
-      const name = error.name || error.constructor.name;
       const errorKeys = Object.getOwnPropertyNames(error).filter(key => nativeKeys.indexOf(key) === -1);
 
       if (errorKeys.length) {
@@ -89,9 +91,7 @@ export class ExtraErrorData implements Integration {
           // tslint:disable:no-unsafe-any
           extraErrorInfo[key] = value;
         }
-        result = {
-          [name]: extraErrorInfo,
-        };
+        result = extraErrorInfo;
       }
     } catch (oO) {
       logger.error('Unable to extract extra data from the Error object:', oO);

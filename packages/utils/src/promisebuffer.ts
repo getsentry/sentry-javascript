@@ -1,4 +1,5 @@
 import { SentryError } from './error';
+import { SyncPromise } from './syncpromise';
 
 /** A simple queue that holds promises. */
 export class PromiseBuffer<T> {
@@ -22,7 +23,7 @@ export class PromiseBuffer<T> {
    */
   public add(task: Promise<T>): Promise<T> {
     if (!this.isReady()) {
-      return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
     if (this._buffer.indexOf(task) === -1) {
       this._buffer.push(task);
@@ -63,13 +64,13 @@ export class PromiseBuffer<T> {
    * @param timeout Number in ms to wait until it resolves with false.
    */
   public drain(timeout?: number): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
+    return new SyncPromise<boolean>(resolve => {
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {
           resolve(false);
         }
       }, timeout);
-      Promise.all(this._buffer)
+      SyncPromise.all(this._buffer)
         .then(() => {
           clearTimeout(capturedSetTimeout);
           resolve(true);

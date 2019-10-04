@@ -205,7 +205,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
   /** Waits for the client to be done with processing. */
   protected _isClientProcessing(timeout?: number): Promise<{ ready: boolean; interval: number }> {
-    return new Promise<{ ready: boolean; interval: number }>(resolve => {
+    return new SyncPromise<{ ready: boolean; interval: number }>(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
@@ -255,7 +255,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): SyncPromise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): Promise<Event | null> {
     const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
 
     const prepared: Event = { ...event };
@@ -327,7 +327,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): SyncPromise<Event> {
+  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): Promise<Event> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
@@ -341,50 +341,54 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     return new SyncPromise((resolve, reject) => {
-      this._prepareEvent(event, scope, hint).then(prepared => {
-        if (prepared === null) {
-          reject('An event processor returned null, will not send event.');
-          return;
-        }
-
-        let finalEvent: Event | null = prepared;
-
-        try {
-          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-          if (isInternalException || !beforeSend) {
-            this._getBackend().sendEvent(finalEvent);
-            resolve(finalEvent);
+      this._prepareEvent(event, scope, hint)
+        .then(prepared => {
+          if (prepared === null) {
+            reject('An event processor returned null, will not send event.');
             return;
           }
 
-          const beforeSendResult = beforeSend(prepared, hint);
-          if ((typeof beforeSendResult as any) === 'undefined') {
-            logger.error('`beforeSend` method has to return `null` or a valid event.');
-          } else if (isThenable(beforeSendResult)) {
-            this._handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
-          } else {
-            finalEvent = beforeSendResult as Event | null;
+          let finalEvent: Event | null = prepared;
 
-            if (finalEvent === null) {
-              logger.log('`beforeSend` returned `null`, will not send event.');
-              resolve(null);
+          try {
+            const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+            if (isInternalException || !beforeSend) {
+              this._getBackend().sendEvent(finalEvent);
+              resolve(finalEvent);
               return;
             }
 
-            // From here on we are really async
-            this._getBackend().sendEvent(finalEvent);
-            resolve(finalEvent);
+            const beforeSendResult = beforeSend(prepared, hint);
+            if ((typeof beforeSendResult as any) === 'undefined') {
+              logger.error('`beforeSend` method has to return `null` or a valid event.');
+            } else if (isThenable(beforeSendResult)) {
+              this._handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
+            } else {
+              finalEvent = beforeSendResult as Event | null;
+
+              if (finalEvent === null) {
+                logger.log('`beforeSend` returned `null`, will not send event.');
+                resolve(null);
+                return;
+              }
+
+              // From here on we are really async
+              this._getBackend().sendEvent(finalEvent);
+              resolve(finalEvent);
+            }
+          } catch (exception) {
+            this.captureException(exception, {
+              data: {
+                __sentry__: true,
+              },
+              originalException: exception as Error,
+            });
+            reject('`beforeSend` threw an error, will not send event.');
           }
-        } catch (exception) {
-          this.captureException(exception, {
-            data: {
-              __sentry__: true,
-            },
-            originalException: exception as Error,
-          });
-          reject('`beforeSend` throw an error, will not send event.');
-        }
-      });
+        })
+        .catch(() => {
+          reject('`beforeSend` threw an error, will not send event.');
+        });
     });
   }
 

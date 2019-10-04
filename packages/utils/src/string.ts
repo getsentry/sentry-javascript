@@ -83,30 +83,6 @@ export function safeJoin(input: any[], delimiter?: string): string {
   return output.join(delimiter);
 }
 
-/** Merges provided array of keys into */
-export function keysToEventMessage(keys: string[], maxLength: number = 40): string {
-  if (!keys.length) {
-    return '[object has no keys]';
-  }
-
-  if (keys[0].length >= maxLength) {
-    return truncate(keys[0], maxLength);
-  }
-
-  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
-    const serialized = keys.slice(0, includedKeys).join(', ');
-    if (serialized.length > maxLength) {
-      continue;
-    }
-    if (includedKeys === keys.length) {
-      return serialized;
-    }
-    return truncate(serialized, maxLength);
-  }
-
-  return '';
-}
-
 /**
  * Checks if the value matches a regex or includes the string
  * @param value The string value to be checked against
@@ -117,7 +93,7 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
     return (pattern as RegExp).test(value);
   }
   if (typeof pattern === 'string') {
-    return value.includes(pattern);
+    return value.indexOf(pattern) !== -1;
   }
   return false;
 }

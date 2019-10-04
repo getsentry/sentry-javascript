@@ -78,5 +78,11 @@ module.exports = config => {
     },
     build: process.env.TRAVIS_BUILD_NUMBER || Date.now(),
     concurrency: isLocalRun ? 1 : 2,
+    retryLimit: 5,
+    browserDisconnectTolerance: 5,
+    // 2 minutes should be more than enough...
+    browserNoActivityTimeout: 120 * 1000,
+    browserSocketTimeout: 120 * 1000,
+    captureTimeout: 120 * 1000,
   });
 };

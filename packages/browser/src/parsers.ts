@@ -1,7 +1,7 @@
 import { Event, Exception, StackFrame } from '@sentry/types';
-import { keysToEventMessage, normalizeToSize } from '@sentry/utils';
+import { extractExceptionKeysForMessage, isEvent, normalizeToSize } from '@sentry/utils';
 
-import { _computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
+import { computeStackTrace, StackFrame as TraceKitStackFrame, StackTrace as TraceKitStackTrace } from './tracekit';
 
 const STACKTRACE_LIMIT = 50;
 
@@ -33,17 +33,25 @@ export function exceptionFromStacktrace(stacktrace: TraceKitStackTrace): Excepti
 /**
  * @hidden
  */
-export function eventFromPlainObject(exception: {}, syntheticException: Error | null): Event {
-  const exceptionKeys = Object.keys(exception).sort();
+export function eventFromPlainObject(exception: {}, syntheticException?: Error, rejection?: boolean): Event {
   const event: Event = {
+    exception: {
+      values: [
+        {
+          type: isEvent(exception) ? exception.constructor.name : rejection ? 'UnhandledRejection' : 'Error',
+          value: `Non-Error ${
+            rejection ? 'promise rejection' : 'exception'
+          } captured with keys: ${extractExceptionKeysForMessage(exception)}`,
+        },
+      ],
+    },
     extra: {
       __serialized__: normalizeToSize(exception),
     },
-    message: `Non-Error exception captured with keys: ${keysToEventMessage(exceptionKeys)}`,
   };
 
   if (syntheticException) {
-    const stacktrace = _computeStackTrace(syntheticException);
+    const stacktrace = computeStackTrace(syntheticException);
     const frames = prepareFramesForEvent(stacktrace.stack);
     event.stacktrace = {
       frames,
@@ -80,12 +88,12 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   const lastFrameFunction = localStack[localStack.length - 1].func || '';
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.includes('captureMessage') || firstFrameFunction.includes('captureException')) {
+  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
     localStack = localStack.slice(1);
   }
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.includes('sentryWrapped')) {
+  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
     localStack = localStack.slice(0, -1);
   }
 
@@ -93,11 +101,11 @@ export function prepareFramesForEvent(stack: TraceKitStackFrame[]): StackFrame[]
   return localStack
     .map(
       (frame: TraceKitStackFrame): StackFrame => ({
-        colno: frame.column,
+        colno: frame.column === null ? undefined : frame.column,
         filename: frame.url || localStack[0].url,
         function: frame.func || '?',
         in_app: true,
-        lineno: frame.line,
+        lineno: frame.line === null ? undefined : frame.line,
       }),
     )
     .slice(0, STACKTRACE_LIMIT)

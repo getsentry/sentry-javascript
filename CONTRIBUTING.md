@@ -10,6 +10,10 @@
 This part of the documentation gives you a basic overview of how to help with the development of our `@sentry/*`
 packages contained in this repo.
 
+## Community
+
+The public-facing channels for support and development of Sentry SDKs can be found on [Discord](https://discord.gg/Ww9hbqr).
+
 ## Setting up an Environment
 
 To run the test suite and run our code linter, node.js and yarn are required.

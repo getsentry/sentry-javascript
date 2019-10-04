@@ -43,7 +43,11 @@ function mergeIntoSentry() {
   return `
   __window.Sentry = __window.Sentry || {};
   __window.Sentry.Integrations = __window.Sentry.Integrations || {};
-  Object.assign(__window.Sentry.Integrations, exports);
+  for (var key in exports) {
+    if (Object.prototype.hasOwnProperty.call(exports, key)) {
+      __window.Sentry.Integrations[key] = exports[key];
+    }
+  }
   `;
 }
 

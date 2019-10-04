@@ -1,4 +1,6 @@
-import { Event, Integration, Mechanism, WrappedFunction } from '@sentry/types';
+import { Event, Integration, WrappedFunction } from '@sentry/types';
+
+import { isString } from './is';
 
 /** Internal */
 interface SentryGlobal {
@@ -201,22 +203,133 @@ export function consoleSandbox(callback: () => any): any {
  * @param event The event to modify.
  * @param value Value of the exception.
  * @param type Type of the exception.
- * @param mechanism Mechanism of the exception.
  * @hidden
  */
-export function addExceptionTypeValue(
-  event: Event,
-  value?: string,
-  type?: string,
-  mechanism: Mechanism = {
-    handled: true,
-    type: 'generic',
-  },
-): void {
+export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
   event.exception.values[0] = event.exception.values[0] || {};
   event.exception.values[0].value = event.exception.values[0].value || value || '';
   event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
-  event.exception.values[0].mechanism = event.exception.values[0].mechanism || mechanism;
+}
+
+/**
+ * Adds exception mechanism to a given event.
+ * @param event The event to modify.
+ * @param mechanism Mechanism of the mechanism.
+ * @hidden
+ */
+export function addExceptionMechanism(
+  event: Event,
+  mechanism: {
+    [key: string]: any;
+  } = {},
+): void {
+  // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
+  try {
+    // @ts-ignore
+    // tslint:disable:no-non-null-assertion
+    event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
+    Object.keys(mechanism).forEach(key => {
+      // @ts-ignore
+      event.exception!.values![0].mechanism[key] = mechanism[key];
+    });
+  } catch (_oO) {
+    // no-empty
+  }
+}
+
+/**
+ * A safe form of location.href
+ */
+export function getLocationHref(): string {
+  try {
+    return document.location.href;
+  } catch (oO) {
+    return '';
+  }
+}
+
+/**
+ * Given a child DOM element, returns a query-selector statement describing that
+ * and its ancestors
+ * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
+ * @returns generated DOM path
+ */
+export function htmlTreeAsString(elem: Node): string {
+  // try/catch both:
+  // - accessing event.target (see getsentry/raven-js#838, #768)
+  // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
+  // - can throw an exception in some circumstances.
+  try {
+    let currentElem: Node | null = elem;
+    const MAX_TRAVERSE_HEIGHT = 5;
+    const MAX_OUTPUT_LEN = 80;
+    const out = [];
+    let height = 0;
+    let len = 0;
+    const separator = ' > ';
+    const sepLength = separator.length;
+    let nextStr;
+
+    while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
+      nextStr = _htmlElementAsString(currentElem as HTMLElement);
+      // bail out if
+      // - nextStr is the 'html' element
+      // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
+      //   (ignore this limit if we are on the first iteration)
+      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
+        break;
+      }
+
+      out.push(nextStr);
+
+      len += nextStr.length;
+      currentElem = currentElem.parentNode;
+    }
+
+    return out.reverse().join(separator);
+  } catch (_oO) {
+    return '<unknown>';
+  }
+}
+
+/**
+ * Returns a simple, query-selector representation of a DOM element
+ * e.g. [HTMLElement] => input#foo.btn[name=baz]
+ * @returns generated DOM path
+ */
+function _htmlElementAsString(elem: HTMLElement): string {
+  const out = [];
+  let className;
+  let classes;
+  let key;
+  let attr;
+  let i;
+
+  if (!elem || !elem.tagName) {
+    return '';
+  }
+
+  out.push(elem.tagName.toLowerCase());
+  if (elem.id) {
+    out.push(`#${elem.id}`);
+  }
+
+  className = elem.className;
+  if (className && isString(className)) {
+    classes = className.split(/\s+/);
+    for (i = 0; i < classes.length; i++) {
+      out.push(`.${classes[i]}`);
+    }
+  }
+  const attrWhitelist = ['type', 'name', 'title', 'alt'];
+  for (i = 0; i < attrWhitelist.length; i++) {
+    key = attrWhitelist[i];
+    attr = elem.getAttribute(key);
+    if (attr) {
+      out.push(`[${key}="${attr}"]`);
+    }
+  }
+  return out.join('');
 }

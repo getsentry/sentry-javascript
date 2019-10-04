@@ -1,10 +1,11 @@
 import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Mechanism, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import {
+  addExceptionMechanism,
   addExceptionTypeValue,
+  extractExceptionKeysForMessage,
   isError,
   isPlainObject,
-  keysToEventMessage,
   normalizeToSize,
   SyncPromise,
 } from '@sentry/utils';
@@ -75,7 +76,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: EventHint): SyncPromise<Event> {
+  public eventFromException(exception: any, hint?: EventHint): Promise<Event> {
     let ex: any = exception;
     const mechanism: Mechanism = {
       handled: true,
@@ -86,8 +87,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
       if (isPlainObject(exception)) {
         // This will allow us to group events based on top-level keys
         // which is much better than creating new group when any key/value change
-        const keys = Object.keys(exception as {}).sort();
-        const message = `Non-Error exception captured with keys: ${keysToEventMessage(keys)}`;
+        const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
         getCurrentHub().configureScope(scope => {
           scope.setExtra('__serialized__', normalizeToSize(exception as {}));
@@ -106,7 +106,9 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     return new SyncPromise<Event>((resolve, reject) =>
       parseError(ex as Error, this._options)
         .then(event => {
-          addExceptionTypeValue(event, undefined, undefined, mechanism);
+          addExceptionTypeValue(event, undefined, undefined);
+          addExceptionMechanism(event, mechanism);
+
           resolve({
             ...event,
             event_id: hint && hint.event_id,
@@ -119,7 +121,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): SyncPromise<Event> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): Promise<Event> {
     const event: Event = {
       event_id: hint && hint.event_id,
       level,
@@ -129,12 +131,16 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
     return new SyncPromise<Event>(resolve => {
       if (this._options.attachStacktrace && hint && hint.syntheticException) {
         const stack = hint.syntheticException ? extractStackFromError(hint.syntheticException) : [];
-        parseStack(stack, this._options).then(frames => {
-          event.stacktrace = {
-            frames: prepareFramesForEvent(frames),
-          };
-          resolve(event);
-        });
+        parseStack(stack, this._options)
+          .then(frames => {
+            event.stacktrace = {
+              frames: prepareFramesForEvent(frames),
+            };
+            resolve(event);
+          })
+          .catch(() => {
+            resolve(event);
+          });
       } else {
         resolve(event);
       }

@@ -98,13 +98,17 @@ export class Breadcrumbs implements Integration {
             if (args[0] === false) {
               breadcrumbData.message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
               breadcrumbData.data.extra.arguments = normalize(args.slice(1), 3);
+              Breadcrumbs.addBreadcrumb(breadcrumbData, {
+                input: args,
+                level,
+              });
             }
+          } else {
+            Breadcrumbs.addBreadcrumb(breadcrumbData, {
+              input: args,
+              level,
+            });
           }
-
-          Breadcrumbs.addBreadcrumb(breadcrumbData, {
-            input: args,
-            level,
-          });
 
           // this fails for some browsers. :(
           if (originalConsoleLevel) {
@@ -236,7 +240,7 @@ export class Breadcrumbs implements Integration {
           const filterUrl = new API(dsn).getStoreEndpoint();
           // if Sentry key appears in URL, don't capture it as a request
           // but rather as our own 'sentry' type breadcrumb
-          if (filterUrl && url.includes(filterUrl)) {
+          if (filterUrl && url.indexOf(filterUrl) !== -1) {
             if (method === 'POST' && args[1] && args[1].body) {
               addSentryBreadcrumb(args[1].body);
             }
@@ -407,7 +411,7 @@ export class Breadcrumbs implements Integration {
             const filterUrl = new API(dsn).getStoreEndpoint();
             // if Sentry key appears in URL, don't capture it as a request
             // but rather as our own 'sentry' type breadcrumb
-            if (isString(url) && (filterUrl && url.includes(filterUrl))) {
+            if (isString(url) && (filterUrl && url.indexOf(filterUrl) !== -1)) {
               this.__sentry_own_request__ = true;
             }
           }

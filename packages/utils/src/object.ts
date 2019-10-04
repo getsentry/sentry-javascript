@@ -1,7 +1,9 @@
 import { ExtendedError, WrappedFunction } from '@sentry/types';
 
-import { isError, isPrimitive, isSyntheticEvent } from './is';
+import { isElement, isError, isEvent, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
+import { htmlTreeAsString } from './misc';
+import { truncate } from './string';
 
 /**
  * Wrap a given object method with a higher-order function
@@ -64,34 +66,79 @@ export function urlEncode(object: { [key: string]: any }): string {
 }
 
 /**
- * Transforms Error object into an object literal with all it's attributes
+ * Transforms any object into an object literal with all it's attributes
  * attached to it.
  *
- * Based on: https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
- *
- * @param error An Error containing all relevant information
- * @returns An object with all error properties
+ * @param value Initial source that we have to transform in order to be usable by the serializer
  */
-function objectifyError(error: ExtendedError): object {
-  // These properties are implemented as magical getters and don't show up in `for-in` loop
-  const err: {
-    stack: string | undefined;
-    message: string;
-    name: string;
-    [key: string]: any;
-  } = {
-    message: error.message,
-    name: error.name,
-    stack: error.stack,
-  };
+function getWalkSource(
+  value: any,
+): {
+  [key: string]: any;
+} {
+  if (isError(value)) {
+    const error = value as ExtendedError;
+    const err: {
+      stack: string | undefined;
+      message: string;
+      name: string;
+      [key: string]: any;
+    } = {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    };
 
-  for (const i in error) {
-    if (Object.prototype.hasOwnProperty.call(error, i)) {
-      err[i] = error[i];
+    for (const i in error) {
+      if (Object.prototype.hasOwnProperty.call(error, i)) {
+        err[i] = error[i];
+      }
     }
+
+    return err;
   }
 
-  return err;
+  if (isEvent(value)) {
+    const source: {
+      [key: string]: any;
+    } = {};
+
+    source.type = value.type;
+
+    // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+    try {
+      source.target = isElement(value.target)
+        ? htmlTreeAsString(value.target)
+        : Object.prototype.toString.call(value.target);
+    } catch (_oO) {
+      source.target = '<unknown>';
+    }
+
+    try {
+      source.currentTarget = isElement(value.currentTarget)
+        ? htmlTreeAsString(value.currentTarget)
+        : Object.prototype.toString.call(value.currentTarget);
+    } catch (_oO) {
+      source.currentTarget = '<unknown>';
+    }
+
+    // tslint:disable-next-line:strict-type-predicates
+    if (typeof CustomEvent !== 'undefined' && value instanceof CustomEvent) {
+      source.detail = value.detail;
+    }
+
+    for (const i in value) {
+      if (Object.prototype.hasOwnProperty.call(value, i)) {
+        source[i] = (value as { [key: string]: any })[i];
+      }
+    }
+
+    return source;
+  }
+
+  return value as {
+    [key: string]: any;
+  };
 }
 
 /** Calculates bytes size of input string */
@@ -150,6 +197,7 @@ function serializeValue(value: any): any {
  * - serializes Error objects
  * - filter global objects
  */
+// tslint:disable-next-line:cyclomatic-complexity
 function normalizeValue<T>(value: T, key?: any): T | string {
   if (key === 'domain' && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
     return '[Domain]';
@@ -171,17 +219,13 @@ function normalizeValue<T>(value: T, key?: any): T | string {
     return '[Document]';
   }
 
-  // tslint:disable-next-line:strict-type-predicates
-  if (typeof Event !== 'undefined' && value instanceof Event) {
-    return Object.getPrototypeOf(value) ? value.constructor.name : 'Event';
-  }
-
   // React's SyntheticEvent thingy
   if (isSyntheticEvent(value)) {
     return '[SyntheticEvent]';
   }
 
-  if (Number.isNaN((value as unknown) as number)) {
+  // tslint:disable-next-line:no-tautology-expression
+  if (typeof value === 'number' && value !== value) {
     return '[NaN]';
   }
 
@@ -224,9 +268,7 @@ export function walk(key: string, value: any, depth: number = +Infinity, memo: M
   }
 
   // Create source that we will use for next itterations, either objectified error object (Error type with extracted keys:value pairs) or the input itself
-  const source = (isError(value) ? objectifyError(value as Error) : value) as {
-    [key: string]: any;
-  };
+  const source = getWalkSource(value);
 
   // Create an accumulator that will act as a parent for all future itterations of that branch
   const acc = Array.isArray(value) ? [] : {};
@@ -272,4 +314,36 @@ export function normalize(input: any, depth?: number): any {
   } catch (_oO) {
     return '**non-serializable**';
   }
+}
+
+/**
+ * Given any captured exception, extract its keys and create a sorted
+ * and truncated list that will be used inside the event message.
+ * eg. `Non-error exception captured with keys: foo, bar, baz`
+ */
+export function extractExceptionKeysForMessage(exception: any, maxLength: number = 40): string {
+  // tslint:disable:strict-type-predicates
+  const keys = Object.keys(getWalkSource(exception));
+  keys.sort();
+
+  if (!keys.length) {
+    return '[object has no keys]';
+  }
+
+  if (keys[0].length >= maxLength) {
+    return truncate(keys[0], maxLength);
+  }
+
+  for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {
+    const serialized = keys.slice(0, includedKeys).join(', ');
+    if (serialized.length > maxLength) {
+      continue;
+    }
+    if (includedKeys === keys.length) {
+      return serialized;
+    }
+    return truncate(serialized, maxLength);
+  }
+
+  return '';
 }

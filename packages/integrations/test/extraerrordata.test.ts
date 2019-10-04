@@ -19,7 +19,7 @@ describe('ExtraErrorData()', () => {
       originalException: error,
     });
 
-    expect(enhancedEvent.extra).toEqual({
+    expect(enhancedEvent.contexts).toEqual({
       TypeError: {
         baz: 42,
         foo: 'bar',
@@ -35,7 +35,7 @@ describe('ExtraErrorData()', () => {
       originalException: error,
     });
 
-    expect(enhancedEvent.extra).toEqual({
+    expect(enhancedEvent.contexts).toEqual({
       TypeError: {
         cause: 'SyntaxError: bar',
       },
@@ -44,7 +44,7 @@ describe('ExtraErrorData()', () => {
 
   it('should not remove previous data existing in extra field', () => {
     event = {
-      extra: {
+      contexts: {
         foo: 42,
       },
     };
@@ -55,7 +55,7 @@ describe('ExtraErrorData()', () => {
       originalException: error,
     });
 
-    expect(enhancedEvent.extra).toEqual({
+    expect(enhancedEvent.contexts).toEqual({
       TypeError: {
         baz: 42,
       },

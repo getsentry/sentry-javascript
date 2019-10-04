@@ -138,28 +138,34 @@ function extractRequestData(req: { [key: string]: any }, keys: boolean | string[
 const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
 
 /** JSDoc */
-function extractUserData(req: { [key: string]: any }, keys: boolean | string[]): { [key: string]: string } {
-  const user: { [key: string]: string } = {};
+function extractUserData(
+  req: {
+    ip?: string;
+    connection?: {
+      remoteAddress?: string;
+    };
+    user?: {
+      [key: string]: any;
+    };
+  },
+  keys: boolean | string[],
+): { [key: string]: any } {
+  const user: { [key: string]: any } = {};
   const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_KEYS;
 
   attributes.forEach(key => {
-    if ({}.hasOwnProperty.call(req.user, key)) {
-      user[key] = (req.user as { [key: string]: string })[key];
+    if (req.user && key in req.user) {
+      user[key] = req.user[key];
     }
   });
 
   // client ip:
   //   node: req.connection.remoteAddress
   //   express, koa: req.ip
-  const ip =
-    req.ip ||
-    (req.connection &&
-      (req.connection as {
-        remoteAddress?: string;
-      }).remoteAddress);
+  const ip = req.ip || (req.connection && req.connection.remoteAddress);
 
   if (ip) {
-    user.ip_address = ip as string;
+    user.ip_address = ip;
   }
 
   return user;

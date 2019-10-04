@@ -52,32 +52,44 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: Event, hint?: EventHint): SyncPromise<Event> {
+  public handler(event: Event, hint?: EventHint): Promise<Event> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return SyncPromise.resolve(event);
     }
 
     return new SyncPromise<Event>(resolve => {
-      this.walkErrorTree(hint.originalException as ExtendedError, this._key).then((linkedErrors: Exception[]) => {
-        if (event && event.exception && event.exception.values) {
-          event.exception.values = [...linkedErrors, ...event.exception.values];
-        }
-        resolve(event);
-      });
+      this.walkErrorTree(hint.originalException as ExtendedError, this._key)
+        .then((linkedErrors: Exception[]) => {
+          if (event && event.exception && event.exception.values) {
+            event.exception.values = [...linkedErrors, ...event.exception.values];
+          }
+          resolve(event);
+        })
+        .catch(() => {
+          resolve(event);
+        });
     });
   }
 
   /**
    * @inheritDoc
    */
-  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): SyncPromise<Exception[]> {
+  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Promise<Exception[]> {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
       return SyncPromise.resolve(stack);
     }
-    return new SyncPromise<Exception[]>(resolve => {
-      getExceptionFromError(error[key]).then((exception: Exception) => {
-        this.walkErrorTree(error[key], key, [exception, ...stack]).then(resolve);
-      });
+    return new SyncPromise<Exception[]>((resolve, reject) => {
+      getExceptionFromError(error[key])
+        .then((exception: Exception) => {
+          this.walkErrorTree(error[key], key, [exception, ...stack])
+            .then(resolve)
+            .catch(() => {
+              reject();
+            });
+        })
+        .catch(() => {
+          reject();
+        });
     });
   }
 }

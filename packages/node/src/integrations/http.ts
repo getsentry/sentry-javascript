@@ -142,7 +142,7 @@ function emitWrapper(origEmit: EventListener): (event: string, response: http.Se
       const dsn = client.getDsn();
 
       const isInterestingEvent = event === 'response' || event === 'error';
-      const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && !this.__ravenBreadcrumbUrl.includes(dsn.host);
+      const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && this.__ravenBreadcrumbUrl.indexOf(dsn.host) === -1;
 
       if (isInterestingEvent && isNotSentryRequest && getCurrentHub().getIntegration(Http)) {
         getCurrentHub().addBreadcrumb(
