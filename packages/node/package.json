@@ -20,13 +20,13 @@
     "@sentry/hub": "5.6.1",
     "@sentry/types": "5.6.1",
     "@sentry/utils": "5.6.1",
-    "cookie": "0.3.1",
-    "https-proxy-agent": "2.2.1",
-    "lru_map": "0.3.3",
+    "cookie": "^0.3.1",
+    "https-proxy-agent": "^3.0.0",
+    "lru_map": "^0.3.3",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@types/cookie": "0.3.2",
+    "@types/cookie": "^0.3.2",
     "@types/lru-cache": "^5.1.0",
     "@types/node": "^11.13.7",
     "express": "^4.16.4",
