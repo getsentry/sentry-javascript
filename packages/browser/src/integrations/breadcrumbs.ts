@@ -40,6 +40,8 @@ interface BreadcrumbIntegrations {
   xhr?: boolean;
 }
 
+type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
+
 /** Default Breadcrumbs instrumentations */
 export class Breadcrumbs implements Integration {
   /**
@@ -80,8 +82,8 @@ export class Breadcrumbs implements Integration {
         return;
       }
 
-      fill(global.console, level, function(originalConsoleLevel: () => any): any {
-        return function(...args: any[]): any {
+      fill(global.console, level, function(originalConsoleLevel: () => any): Function {
+        return function(...args: any[]): void {
           const breadcrumbData = {
             category: 'console',
             data: {
@@ -151,7 +153,7 @@ export class Breadcrumbs implements Integration {
           fn: EventListenerOrEventListenerObject,
           options?: boolean | AddEventListenerOptions,
         ): (eventName: string, fn: EventListenerOrEventListenerObject, capture?: boolean, secure?: boolean) => void {
-          if (fn && (fn as any).handleEvent) {
+          if (fn && (fn as EventListenerObject).handleEvent) {
             if (eventName === 'click') {
               fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
                 return function(this: any, event: Event): (event: Event) => void {
@@ -195,7 +197,7 @@ export class Breadcrumbs implements Integration {
           fn: EventListenerObject,
           options?: boolean | EventListenerOptions,
         ): () => void {
-          let callback = (fn as any) as WrappedFunction;
+          let callback = fn as WrappedFunction;
           try {
             callback = callback && (callback.__sentry_wrapped__ || callback);
           } catch (e) {
@@ -375,9 +377,8 @@ export class Breadcrumbs implements Integration {
     /**
      * @hidden
      */
-    function wrapProp(prop: string, xhr: XMLHttpRequest): void {
-      // TODO: Fix XHR types
-      if (prop in xhr && typeof (xhr as { [key: string]: any })[prop] === 'function') {
+    function wrapProp(prop: XMLHttpRequestProp, xhr: XMLHttpRequest): void {
+      if (prop in xhr && typeof xhr[prop] === 'function') {
         fill(xhr, prop, original =>
           wrap(original, {
             mechanism: {
@@ -461,7 +462,8 @@ export class Breadcrumbs implements Integration {
             }
           }
 
-          ['onload', 'onerror', 'onprogress'].forEach(prop => {
+          const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress'];
+          xmlHttpRequestProps.forEach(prop => {
             wrapProp(prop, xhr);
           });
 
@@ -534,7 +536,7 @@ export class Breadcrumbs implements Integration {
 function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
   try {
-    const event: { [key: string]: any } = JSON.parse(serializedData);
+    const event = JSON.parse(serializedData);
     Breadcrumbs.addBreadcrumb(
       {
         category: 'sentry',
