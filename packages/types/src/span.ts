@@ -1,5 +1,7 @@
 /** Span holding trace_id, span_id */
 export interface Span {
+  /** Sets the finish timestamp on the current span and sends it if it was a transaction */
+  finish(): string | undefined;
   /** Return a traceparent compatible header string */
   toTraceparent(): string;
   /** Convert the object to JSON for w. spans array info only */
