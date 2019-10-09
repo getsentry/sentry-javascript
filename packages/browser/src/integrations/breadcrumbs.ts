@@ -188,13 +188,13 @@ export class Breadcrumbs implements Integration {
       ): (
         this: any,
         eventName: string,
-        fn: EventListenerObject,
+        fn: EventListenerOrEventListenerObject,
         options?: boolean | EventListenerOptions,
       ) => () => void {
         return function(
           this: any,
           eventName: string,
-          fn: EventListenerObject,
+          fn: EventListenerOrEventListenerObject,
           options?: boolean | EventListenerOptions,
         ): () => void {
           let callback = fn as WrappedFunction;
