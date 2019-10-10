@@ -146,7 +146,7 @@ export class InboundFilters implements Integration {
     }
     if (event.exception) {
       try {
-        const { type, value } = event.exception.values && event.exception.values[0] || {};
+        const { type = '', value = '' } = event.exception.values && event.exception.values[0] || {};
         return [`${value}`, `${type}: ${value}`];
       } catch (oO) {
         logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
@@ -160,11 +160,11 @@ export class InboundFilters implements Integration {
   private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
-        const { frames } = event.stacktrace;
+        const frames = event.stacktrace.frames;
         return frames && frames[frames.length - 1].filename || null;
       }
       if (event.exception) {
-        const { frames } = event.exception.values && event.exception.values[0].stacktrace || {};
+        const frames = event.exception.values && event.exception.values[0].stacktrace && event.exception.values[0].stacktrace.frames;
         return frames && frames[frames.length - 1].filename || null;
       }
       return null;

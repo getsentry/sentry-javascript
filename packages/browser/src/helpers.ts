@@ -40,7 +40,7 @@ export function wrap(
     capture?: boolean;
   } = {},
   before?: WrappedFunction,
-): Function {
+): any {
   // tslint:disable-next-line:strict-type-predicates
   if (typeof fn !== 'function') {
     return fn;
