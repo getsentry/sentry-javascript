@@ -111,9 +111,7 @@ export class Vue implements Integration {
       }
 
       if (this._logErrors) {
-        if (process && process.env && process.env.NODE_ENV !== 'production') {
-          this._Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
-        }
+        this._Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
         // tslint:disable-next-line:no-console
         console.error(error);
       }
