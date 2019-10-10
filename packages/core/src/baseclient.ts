@@ -359,7 +359,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             }
 
             const beforeSendResult = beforeSend(prepared, hint);
-            if ((typeof beforeSendResult as any) === 'undefined') {
+            // tslint:disable-next-line:strict-type-predicates
+            if (typeof beforeSendResult === 'undefined') {
               logger.error('`beforeSend` method has to return `null` or a valid event.');
             } else if (isThenable(beforeSendResult)) {
               this._handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);

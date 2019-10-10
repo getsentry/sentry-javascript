@@ -1,5 +1,5 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Event as SentryEvent, Mechanism, WrappedFunction } from '@sentry/types';
+import { Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, addExceptionTypeValue, htmlTreeAsString, normalize } from '@sentry/utils';
 
 const debounceDuration: number = 1000;
@@ -40,7 +40,7 @@ export function wrap(
     capture?: boolean;
   } = {},
   before?: WrappedFunction,
-): any {
+): Function {
   // tslint:disable-next-line:strict-type-predicates
   if (typeof fn !== 'function') {
     return fn;
@@ -92,7 +92,7 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      withScope(scope => {
+      withScope((scope: Scope) => {
         scope.addEventProcessor((event: SentryEvent) => {
           const processedEvent = { ...event };
 

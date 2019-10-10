@@ -87,8 +87,7 @@ export class InboundFilters implements Integration {
     }
 
     try {
-      // tslint:disable-next-line:no-unsafe-any
-      return (event as any).exception.values[0].type === 'SentryError';
+      return event && event.exception && event.exception.values && event.exception.values[0] && event.exception.values[0].type === 'SentryError' || false;
     } catch (_oO) {
       return false;
     }
@@ -147,8 +146,7 @@ export class InboundFilters implements Integration {
     }
     if (event.exception) {
       try {
-        // tslint:disable-next-line:no-unsafe-any
-        const { type, value } = (event as any).exception.values[0];
+        const { type, value } = event.exception.values && event.exception.values[0] || {};
         return [`${value}`, `${type}: ${value}`];
       } catch (oO) {
         logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
@@ -162,14 +160,12 @@ export class InboundFilters implements Integration {
   private _getEventFilterUrl(event: Event): string | null {
     try {
       if (event.stacktrace) {
-        // tslint:disable:no-unsafe-any
-        const frames = (event as any).stacktrace.frames;
-        return frames[frames.length - 1].filename;
+        const { frames } = event.stacktrace;
+        return frames && frames[frames.length - 1].filename || null;
       }
       if (event.exception) {
-        // tslint:disable:no-unsafe-any
-        const frames = (event as any).exception.values[0].stacktrace.frames;
-        return frames[frames.length - 1].filename;
+        const { frames } = event.exception.values && event.exception.values[0].stacktrace || {};
+        return frames && frames[frames.length - 1].filename || null;
       }
       return null;
     } catch (oO) {
