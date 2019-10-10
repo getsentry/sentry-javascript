@@ -4,7 +4,7 @@
 
 - Coming soon...
 
-## 5.7.0-beta.0
+## 5.7.0
 
 - [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need `thenable` API
 - [browser] fix: Capture only failed `console.assert` calls
@@ -13,11 +13,14 @@
 - [browser] ref: Remove `Object.assign` method usage
 - [browser] ref: Remove `Number.isNaN` method usage
 - [browser] ref: Remove `includes` method usage
+- [browser] ref: Improve usage of types in `addEventListener` breadcrumbs wrapper
 - [browser] ci: Use Galaxy S9 Plus for Android 9
 - [browser] ci: Increase timeouts and retries between Travis and BrowserStack
+- [node] fix: Update https-proxy-agent to 3.0.0 for security reasons (#2262)
 - [node] feat: Extract prototyped data in `extractUserData` (#2247)
 - [node] ref: Use domain Hub detection only in Node environment
 - [integrations] feat: Use `contexts` to handle ExtraErrorData (#2208)
+- [integrations] ref: Remove `process.env.NODE_ENV` from Vue integration (#2263)
 - [types] fix: Breadcrumb `data` needs to be an object
 - [utils] ref: Make `Event` instances somewhat serializeable
 
