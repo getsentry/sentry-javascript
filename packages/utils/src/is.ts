@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
