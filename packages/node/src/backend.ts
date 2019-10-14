@@ -76,7 +76,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: any, hint?: EventHint): Promise<Event> {
+  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
     let ex: any = exception;
     const mechanism: Mechanism = {
       handled: true,
@@ -114,14 +114,14 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
             event_id: hint && hint.event_id,
           });
         })
-        .catch(reject),
+        .then(null, reject),
     );
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): Promise<Event> {
+  public eventFromMessage(message: string, level: Severity = Severity.Info, hint?: EventHint): PromiseLike<Event> {
     const event: Event = {
       event_id: hint && hint.event_id,
       level,
@@ -138,7 +138,7 @@ export class NodeBackend extends BaseBackend<NodeOptions> {
             };
             resolve(event);
           })
-          .catch(() => {
+          .then(null, () => {
             resolve(event);
           });
       } else {

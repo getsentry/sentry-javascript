@@ -80,6 +80,8 @@
       // this config will apply to properties AND methods, if you only need it for properties, use "property" instead of "member"
       { "type": "member", "modifiers": "protected", "leadingUnderscore": "require" },
       { "type": "member", "modifiers": "private", "leadingUnderscore": "require" }
-    ]
+    ],
+    // we cannot use Promises as they are not IE10-11 compatibile, so we had to create our own implementation
+    "await-promise": [true, "PromiseLike"]
   }
 }

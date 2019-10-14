@@ -37,7 +37,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
     return super._setupTransport();
   }
 
-  public eventFromException(exception: any): Promise<Event> {
+  public eventFromException(exception: any): PromiseLike<Event> {
     return SyncPromise.resolve({
       exception: {
         values: [
@@ -50,7 +50,7 @@ export class TestBackend extends BaseBackend<TestOptions> {
     });
   }
 
-  public eventFromMessage(message: string): Promise<Event> {
+  public eventFromMessage(message: string): PromiseLike<Event> {
     return SyncPromise.resolve({ message });
   }
 

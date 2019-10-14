@@ -32,11 +32,11 @@ describe('parsers.ts', () => {
               expect(spy).toHaveBeenCalledTimes(mockCalls);
               done();
             })
-            .catch(() => {
+            .then(null, () => {
               // no-empty
             });
         })
-        .catch(() => {
+        .then(null, () => {
           // no-empty
         });
     });
@@ -57,15 +57,15 @@ describe('parsers.ts', () => {
                   expect(spy).toHaveBeenCalledTimes(newErrorCalls);
                   done();
                 })
-                .catch(() => {
+                .then(null, () => {
                   // no-empty
                 });
             })
-            .catch(() => {
+            .then(null, () => {
               // no-empty
             });
         })
-        .catch(() => {
+        .then(null, () => {
           // no-empty
         });
     });

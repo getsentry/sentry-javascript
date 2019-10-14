@@ -263,7 +263,7 @@ describe('Hub', () => {
             expect(appliedEvent!.breadcrumbs![1].message).toEqual('scope breadcrumb');
             expect(appliedEvent!.breadcrumbs![1]).toHaveProperty('timestamp');
           })
-          .catch(e => {
+          .then(null, e => {
             console.error(e);
           });
       });

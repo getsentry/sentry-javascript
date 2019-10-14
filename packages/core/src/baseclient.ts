@@ -92,7 +92,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         eventId = finalEvent && finalEvent.event_id;
         this._processing = false;
       })
-      .catch(reason => {
+      .then(null, reason => {
         logger.error(reason);
         this._processing = false;
       });
@@ -119,7 +119,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         eventId = finalEvent && finalEvent.event_id;
         this._processing = false;
       })
-      .catch(reason => {
+      .then(null, reason => {
         logger.error(reason);
         this._processing = false;
       });
@@ -140,7 +140,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         eventId = finalEvent && finalEvent.event_id;
         this._processing = false;
       })
-      .catch(reason => {
+      .then(null, reason => {
         logger.error(reason);
         this._processing = false;
       });
@@ -164,7 +164,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public flush(timeout?: number): Promise<boolean> {
+  public flush(timeout?: number): PromiseLike<boolean> {
     return this._isClientProcessing(timeout).then(status => {
       clearInterval(status.interval);
       return this._getBackend()
@@ -177,7 +177,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): Promise<boolean> {
+  public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
       return result;
@@ -204,7 +204,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /** Waits for the client to be done with processing. */
-  protected _isClientProcessing(timeout?: number): Promise<{ ready: boolean; interval: number }> {
+  protected _isClientProcessing(timeout?: number): PromiseLike<{ ready: boolean; interval: number }> {
     return new SyncPromise<{ ready: boolean; interval: number }>(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
@@ -255,7 +255,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): Promise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
     const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
 
     const prepared: Event = { ...event };
@@ -327,7 +327,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): Promise<Event> {
+  protected _processEvent(event: Event, hint?: EventHint, scope?: Scope): PromiseLike<Event> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
@@ -362,7 +362,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             if ((typeof beforeSendResult as any) === 'undefined') {
               logger.error('`beforeSend` method has to return `null` or a valid event.');
             } else if (isThenable(beforeSendResult)) {
-              this._handleAsyncBeforeSend(beforeSendResult as Promise<Event | null>, resolve, reject);
+              this._handleAsyncBeforeSend(beforeSendResult as PromiseLike<Event | null>, resolve, reject);
             } else {
               finalEvent = beforeSendResult as Event | null;
 
@@ -386,7 +386,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             reject('`beforeSend` threw an error, will not send event.');
           }
         })
-        .catch(() => {
+        .then(null, () => {
           reject('`beforeSend` threw an error, will not send event.');
         });
     });
@@ -396,7 +396,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * Resolves before send Promise and calls resolve/reject on parent SyncPromise.
    */
   private _handleAsyncBeforeSend(
-    beforeSend: Promise<Event | null>,
+    beforeSend: PromiseLike<Event | null>,
     resolve: (event: Event) => void,
     reject: (reason: string) => void,
   ): void {
@@ -410,7 +410,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         this._getBackend().sendEvent(processedEvent);
         resolve(processedEvent);
       })
-      .catch(e => {
+      .then(null, e => {
         reject(`beforeSend rejected with ${e}`);
       });
   }

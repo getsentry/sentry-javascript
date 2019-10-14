@@ -263,7 +263,7 @@ export function requestHandler(options?: {
           .then(() => {
             _end.call(this, chunk, encoding, cb);
           })
-          .catch(e => {
+          .then(null, e => {
             logger.error(e);
           });
       };

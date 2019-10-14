@@ -10,7 +10,7 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event): Promise<Response> {
+  public sendEvent(event: Event): PromiseLike<Response> {
     const defaultOptions: RequestInit = {
       body: JSON.stringify(event),
       method: 'POST',

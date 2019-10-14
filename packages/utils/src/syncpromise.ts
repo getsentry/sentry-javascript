@@ -14,7 +14,7 @@ enum States {
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  */
-export class SyncPromise<T> implements Promise<T> {
+class SyncPromise<T> implements PromiseLike<T> {
   private _state: States = States.PENDING;
   private _handlers: Array<{
     onfulfilled?: ((value: T) => T | PromiseLike<T>) | null;
@@ -37,24 +37,22 @@ export class SyncPromise<T> implements Promise<T> {
     return '[object SyncPromise]';
   }
 
-  public [Symbol.toStringTag]: string = '[object SyncPromise]';
-
   /** JSDoc */
-  public static resolve<T>(value: T | PromiseLike<T>): Promise<T> {
+  public static resolve<T>(value: T | PromiseLike<T>): PromiseLike<T> {
     return new SyncPromise(resolve => {
       resolve(value);
     });
   }
 
   /** JSDoc */
-  public static reject<T = never>(reason?: any): Promise<T> {
+  public static reject<T = never>(reason?: any): PromiseLike<T> {
     return new SyncPromise((_, reject) => {
       reject(reason);
     });
   }
 
   /** JSDoc */
-  public static all<U = any>(collection: Array<U | PromiseLike<U>>): Promise<U[]> {
+  public static all<U = any>(collection: Array<U | PromiseLike<U>>): PromiseLike<U[]> {
     return new SyncPromise<U[]>((resolve, reject) => {
       if (!Array.isArray(collection)) {
         reject(new TypeError(`Promise.all requires an array as input.`));
@@ -80,7 +78,7 @@ export class SyncPromise<T> implements Promise<T> {
             }
             resolve(resolvedCollection);
           })
-          .catch(reject);
+          .then(null, reject);
       });
     });
   }
@@ -89,7 +87,7 @@ export class SyncPromise<T> implements Promise<T> {
   public then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
-  ): Promise<TResult1 | TResult2> {
+  ): PromiseLike<TResult1 | TResult2> {
     return new SyncPromise((resolve, reject) => {
       this._attachHandler({
         onfulfilled: result => {
@@ -127,12 +125,12 @@ export class SyncPromise<T> implements Promise<T> {
   /** JSDoc */
   public catch<TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
-  ): Promise<T | TResult> {
+  ): PromiseLike<T | TResult> {
     return this.then(val => val, onrejected);
   }
 
   /** JSDoc */
-  public finally<TResult>(onfinally?: (() => void) | null): Promise<TResult> {
+  public finally<TResult>(onfinally?: (() => void) | null): PromiseLike<TResult> {
     return new SyncPromise<TResult>((resolve, reject) => {
       let val: TResult | any;
       let isRejected: boolean;
@@ -227,3 +225,5 @@ export class SyncPromise<T> implements Promise<T> {
     this._handlers = [];
   };
 }
+
+export { SyncPromise };

@@ -6,7 +6,7 @@ export class PromiseBuffer<T> {
   public constructor(protected _limit?: number) {}
 
   /** Internal set of queued Promises */
-  private readonly _buffer: Array<Promise<T>> = [];
+  private readonly _buffer: Array<PromiseLike<T>> = [];
 
   /**
    * Says if the buffer is ready to take more requests
@@ -18,10 +18,10 @@ export class PromiseBuffer<T> {
   /**
    * Add a promise to the queue.
    *
-   * @param task Can be any Promise<T>
+   * @param task Can be any PromiseLike<T>
    * @returns The original promise.
    */
-  public add(task: Promise<T>): Promise<T> {
+  public add(task: PromiseLike<T>): PromiseLike<T> {
     if (!this.isReady()) {
       return SyncPromise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
@@ -30,8 +30,8 @@ export class PromiseBuffer<T> {
     }
     task
       .then(() => this.remove(task))
-      .catch(() =>
-        this.remove(task).catch(() => {
+      .then(null, () =>
+        this.remove(task).then(null, () => {
           // We have to add this catch here otherwise we have an unhandledPromiseRejection
           // because it's a new Promise chain.
         }),
@@ -42,10 +42,10 @@ export class PromiseBuffer<T> {
   /**
    * Remove a promise to the queue.
    *
-   * @param task Can be any Promise<T>
+   * @param task Can be any PromiseLike<T>
    * @returns Removed promise.
    */
-  public remove(task: Promise<T>): Promise<T> {
+  public remove(task: PromiseLike<T>): PromiseLike<T> {
     const removedTask = this._buffer.splice(this._buffer.indexOf(task), 1)[0];
     return removedTask;
   }
@@ -63,7 +63,7 @@ export class PromiseBuffer<T> {
    *
    * @param timeout Number in ms to wait until it resolves with false.
    */
-  public drain(timeout?: number): Promise<boolean> {
+  public drain(timeout?: number): PromiseLike<boolean> {
     return new SyncPromise<boolean>(resolve => {
       const capturedSetTimeout = setTimeout(() => {
         if (timeout && timeout > 0) {
@@ -75,7 +75,7 @@ export class PromiseBuffer<T> {
           clearTimeout(capturedSetTimeout);
           resolve(true);
         })
-        .catch(() => {
+        .then(null, () => {
           resolve(true);
         });
     });
