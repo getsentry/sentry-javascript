@@ -276,7 +276,7 @@ export class Breadcrumbs implements Integration {
             );
             return response;
           })
-          .catch((error: Error) => {
+          .then(null, (error: Error) => {
             Breadcrumbs.addBreadcrumb(
               {
                 category: 'fetch',

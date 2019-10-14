@@ -43,7 +43,7 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
       const self = getCurrentHub().getIntegration(LinkedErrors);
       if (self) {
-        return (self.handler(event, hint) as unknown) as Promise<Event>;
+        return (self.handler(event, hint) as unknown) as PromiseLike<Event>;
       }
       return event;
     });
@@ -52,7 +52,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public handler(event: Event, hint?: EventHint): Promise<Event> {
+  public handler(event: Event, hint?: EventHint): PromiseLike<Event> {
     if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
       return SyncPromise.resolve(event);
     }
@@ -65,7 +65,7 @@ export class LinkedErrors implements Integration {
           }
           resolve(event);
         })
-        .catch(() => {
+        .then(null, () => {
           resolve(event);
         });
     });
@@ -74,7 +74,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Promise<Exception[]> {
+  public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): PromiseLike<Exception[]> {
     if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
       return SyncPromise.resolve(stack);
     }
@@ -83,11 +83,11 @@ export class LinkedErrors implements Integration {
         .then((exception: Exception) => {
           this.walkErrorTree(error[key], key, [exception, ...stack])
             .then(resolve)
-            .catch(() => {
+            .then(null, () => {
               reject();
             });
         })
-        .catch(() => {
+        .then(null, () => {
           reject();
         });
     });

@@ -9,14 +9,14 @@ export interface Transport {
    *
    * @param body String body that should be sent to Sentry.
    */
-  sendEvent(event: Event): Promise<Response>;
+  sendEvent(event: Event): PromiseLike<Response>;
 
   /**
    * Call this function to wait until all pending requests have been sent.
    *
    * @param timeout Number time in ms to wait until the buffer is drained.
    */
-  close(timeout?: number): Promise<boolean>;
+  close(timeout?: number): PromiseLike<boolean>;
 }
 
 /** JSDoc */

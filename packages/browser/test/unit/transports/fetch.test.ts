@@ -55,7 +55,7 @@ describe('FetchTransport', () => {
 
       fetch.returns(Promise.reject(response));
 
-      return transport.sendEvent(payload).catch(res => {
+      return transport.sendEvent(payload).then(null, res => {
         expect(res.status).equal(403);
         expect(fetch.calledOnce).equal(true);
         expect(

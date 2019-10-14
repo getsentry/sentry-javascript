@@ -47,7 +47,7 @@ describe('XHRTransport', () => {
     it('rejects with non-200 status code', done => {
       server.respondWith('POST', transportUrl, [403, {}, '']);
 
-      transport.sendEvent(payload).catch(res => {
+      transport.sendEvent(payload).then(null, res => {
         expect(res.status).equal(403);
 
         const request = server.requests[0];

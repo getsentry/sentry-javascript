@@ -98,7 +98,7 @@ describe('PromiseBuffer', () => {
     const q = new PromiseBuffer<void>();
     const p = new Promise<void>((_, reject) => setTimeout(reject, 1));
     jest.runAllTimers();
-    return q.add(p).catch(() => {
+    return q.add(p).then(null, () => {
       expect(true).toBe(true);
     });
   });

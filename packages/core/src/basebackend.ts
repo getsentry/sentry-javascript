@@ -25,10 +25,10 @@ import { NoopTransport } from './transports/noop';
  */
 export interface Backend {
   /** Creates a {@link Event} from an exception. */
-  eventFromException(exception: any, hint?: EventHint): Promise<Event>;
+  eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates a {@link Event} from a plain message. */
-  eventFromMessage(message: string, level?: Severity, hint?: EventHint): Promise<Event>;
+  eventFromMessage(message: string, level?: Severity, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event): void;
@@ -78,14 +78,14 @@ export abstract class BaseBackend<O extends Options> implements Backend {
   /**
    * @inheritDoc
    */
-  public eventFromException(_exception: any, _hint?: EventHint): Promise<Event> {
+  public eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromException` method');
   }
 
   /**
    * @inheritDoc
    */
-  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): Promise<Event> {
+  public eventFromMessage(_message: string, _level?: Severity, _hint?: EventHint): PromiseLike<Event> {
     throw new SentryError('Backend has to implement `eventFromMessage` method');
   }
 
@@ -93,7 +93,7 @@ export abstract class BaseBackend<O extends Options> implements Backend {
    * @inheritDoc
    */
   public sendEvent(event: Event): void {
-    this._transport.sendEvent(event).catch(reason => {
+    this._transport.sendEvent(event).then(null, reason => {
       logger.error(`Error while sending event: ${reason}`);
     });
   }

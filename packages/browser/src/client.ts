@@ -51,7 +51,7 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): Promise<Event | null> {
+  protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     event.sdk = {
       ...event.sdk,

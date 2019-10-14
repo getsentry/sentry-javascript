@@ -40,11 +40,11 @@ describe('SyncPromise', () => {
       resolve('3');
     });
 
-    const fp = async (s: Promise<string>, prepend: string) =>
+    const fp = async (s: PromiseLike<string>, prepend: string) =>
       new Promise<string>(resolve => {
         s.then(val => {
           resolve(prepend + val);
-        }).catch(_ => {
+        }).then(null, _ => {
           // bla
         });
       });
@@ -72,7 +72,7 @@ describe('SyncPromise', () => {
       new SyncPromise<string>(resolve => {
         s.then(val => {
           resolve(prepend + val);
-        }).catch(() => {
+        }).then(null, () => {
           // no-empty
         });
       });
@@ -104,7 +104,7 @@ describe('SyncPromise', () => {
         resolve(41);
       })
         .then(done)
-        .catch(_ => {
+        .then(null, _ => {
           //
         });
     }).then(val => {
@@ -149,13 +149,13 @@ describe('SyncPromise', () => {
     );
     qp.then(value => {
       expect(value).toEqual(2);
-    }).catch(() => {
+    }).then(null, () => {
       // no-empty
     });
     expect(qp).not.toHaveProperty('_value');
     qp.then(value => {
       expect(value).toEqual(2);
-    }).catch(() => {
+    }).then(null, () => {
       // no-empty
     });
     jest.runAllTimers();
@@ -224,7 +224,7 @@ describe('SyncPromise', () => {
       .then(_ => {
         expect(true).toBeFalsy();
       })
-      .catch(reason => {
+      .then(null, reason => {
         expect(reason).toBe('test');
       });
   });
@@ -234,7 +234,7 @@ describe('SyncPromise', () => {
 
     return new SyncPromise<number>((_, reject) => {
       reject('test');
-    }).catch(reason => {
+    }).then(null, reason => {
       expect(reason).toBe('test');
     });
   });
@@ -249,7 +249,7 @@ describe('SyncPromise', () => {
         expect(value).toEqual(2);
         return SyncPromise.reject('wat');
       })
-      .catch(reason => {
+      .then(null, reason => {
         expect(reason).toBe('wat');
       });
   });

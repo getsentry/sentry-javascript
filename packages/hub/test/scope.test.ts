@@ -374,7 +374,7 @@ describe('Scope', () => {
       return processedEvent;
     });
 
-    return localScope.applyToEvent(event).catch(reason => {
+    return localScope.applyToEvent(event).then(null, reason => {
       expect(reason).toEqual('bla');
     });
   });

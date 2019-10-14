@@ -83,7 +83,7 @@ export class Scope implements ScopeInterface {
     event: Event | null,
     hint?: EventHint,
     index: number = 0,
-  ): Promise<Event | null> {
+  ): PromiseLike<Event | null> {
     return new SyncPromise<Event | null>((resolve, reject) => {
       const processor = processors[index];
       // tslint:disable-next-line:strict-type-predicates
@@ -92,13 +92,13 @@ export class Scope implements ScopeInterface {
       } else {
         const result = processor({ ...event }, hint) as Event | null;
         if (isThenable(result)) {
-          (result as Promise<Event | null>)
+          (result as PromiseLike<Event | null>)
             .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
-            .catch(reject);
+            .then(null, reject);
         } else {
           this._notifyEventProcessors(processors, result, hint, index + 1)
             .then(resolve)
-            .catch(reject);
+            .then(null, reject);
         }
       }
     });
@@ -311,7 +311,7 @@ export class Scope implements ScopeInterface {
    * @param hint May contain additional informartion about the original exception.
    * @hidden
    */
-  public applyToEvent(event: Event, hint?: EventHint): Promise<Event | null> {
+  public applyToEvent(event: Event, hint?: EventHint): PromiseLike<Event | null> {
     if (this._extra && Object.keys(this._extra).length) {
       event.extra = { ...this._extra, ...event.extra };
     }

@@ -58,7 +58,7 @@ export interface Client<O extends Options = Options> {
    *
    * @param timeout Maximum time in ms the client should wait.
    */
-  close(timeout?: number): Promise<boolean>;
+  close(timeout?: number): PromiseLike<boolean>;
 
   /**
    * A promise that resolves when all current events have been sent.
@@ -66,7 +66,7 @@ export interface Client<O extends Options = Options> {
    *
    * @param timeout Maximum time in ms the client should wait.
    */
-  flush(timeout?: number): Promise<boolean>;
+  flush(timeout?: number): PromiseLike<boolean>;
 
   /** Returns an array of installed integrations on the client. */
   getIntegration<T extends Integration>(integartion: IntegrationClass<T>): T | null;
