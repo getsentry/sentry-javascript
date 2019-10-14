@@ -4,6 +4,11 @@
 
 - Coming soon...
 
+## 5.7.1
+
+- [core] ref: Use the smallest possible interface for our needs - `PromiseLike` (#2273)
+- [utils] fix: Add TS dom reference to make sure its in place for compilation (#2274)
+
 ## 5.7.0
 
 - [core] ref: Use `Promise` as the interface, but `SyncPromise` as the implementation in all the places we need `thenable` API
