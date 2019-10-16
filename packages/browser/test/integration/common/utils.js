@@ -44,12 +44,8 @@ function supportsNativeFetch() {
   return result;
 }
 
-function isChrome() {
-  return (
-    /Chrome/.test(navigator.userAgent) &&
-    /Google Inc/.test(navigator.vendor) &&
-    !/Android/.test(navigator.userAgent)
-  );
+function supportsOnunhandledRejection() {
+  return typeof PromiseRejectionEvent !== "undefined";
 }
 
 function isBelowIE11() {

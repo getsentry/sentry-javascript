@@ -46,19 +46,23 @@ describe("wrapped built-ins", function() {
   describe("unhandledrejection", function() {
     it("should capture unhandledrejection with error", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject(new Error("test2"));
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           assert.equal(summary.events[0].exception.values[0].value, "test2");
           assert.equal(summary.events[0].exception.values[0].type, "Error");
-          assert.isAtLeast(
-            summary.events[0].exception.values[0].stacktrace.frames.length,
-            1
-          );
+
+          // Of course Safari had to screw up here...
+          if (!/Version\/\d.+Safari\/\d/.test(window.navigator.userAgent)) {
+            assert.isAtLeast(
+              summary.events[0].exception.values[0].stacktrace.frames.length,
+              1
+            );
+          }
           assert.equal(
             summary.events[0].exception.values[0].mechanism.handled,
             false
@@ -73,13 +77,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with a string", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject("test");
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -103,13 +107,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with a monster string", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject("test".repeat(100));
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(summary.events[0].exception.values[0].value.length, 253);
           assert.include(
@@ -134,13 +138,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with an object", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject({ a: "b", b: "c", c: "d" });
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -164,7 +168,7 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with an monster object", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           var a = {
             a: "1".repeat("100"),
             b: "2".repeat("100"),
@@ -177,7 +181,7 @@ describe("wrapped built-ins", function() {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -201,13 +205,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with a number", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject(1337);
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -231,13 +235,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with null", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject(null);
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -261,13 +265,13 @@ describe("wrapped built-ins", function() {
 
     it("should capture unhandledrejection with an undefined", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject(undefined);
         } else {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           // non-error rejections doesnt provide stacktraces so we can skip the assertion
           assert.equal(
             summary.events[0].exception.values[0].value,
@@ -291,7 +295,7 @@ describe("wrapped built-ins", function() {
 
     it("should skip our own failed requests that somehow bubbled-up to unhandledrejection handler", function() {
       return runInSandbox(sandbox, function() {
-        if (isChrome()) {
+        if (supportsOnunhandledRejection()) {
           Promise.reject({
             __sentry_own_request__: true,
           });
@@ -303,7 +307,7 @@ describe("wrapped built-ins", function() {
           window.resolveTest({ window: window });
         }
       }).then(function(summary) {
-        if (summary.window.isChrome()) {
+        if (summary.window.supportsOnunhandledRejection()) {
           assert.equal(summary.events.length, 2);
         }
       });
