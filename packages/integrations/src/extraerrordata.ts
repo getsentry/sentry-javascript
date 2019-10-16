@@ -78,7 +78,17 @@ export class ExtraErrorData implements Integration {
     let result = null;
     // We are trying to enhance already existing event, so no harm done if it won't succeed
     try {
-      const nativeKeys = ['name', 'message', 'stack', 'line', 'column', 'fileName', 'lineNumber', 'columnNumber'];
+      const nativeKeys = [
+        'name',
+        'message',
+        'stack',
+        'line',
+        'column',
+        'fileName',
+        'lineNumber',
+        'columnNumber',
+        'fingerprint',
+      ];
       const errorKeys = Object.getOwnPropertyNames(error).filter(key => nativeKeys.indexOf(key) === -1);
 
       if (errorKeys.length) {
