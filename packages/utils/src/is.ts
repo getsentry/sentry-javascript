@@ -7,7 +7,7 @@
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isError(wat: any): boolean {
+export function isError(wat: any): wat is Error {
   switch (Object.prototype.toString.call(wat)) {
     case '[object Error]':
       return true;
@@ -27,7 +27,7 @@ export function isError(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isErrorEvent(wat: any): boolean {
+export function isErrorEvent(wat: any): wat is ErrorEvent {
   return Object.prototype.toString.call(wat) === '[object ErrorEvent]';
 }
 
@@ -38,7 +38,7 @@ export function isErrorEvent(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMError(wat: any): boolean {
+export function isDOMError(wat: any): wat is DOMError {
   return Object.prototype.toString.call(wat) === '[object DOMError]';
 }
 
@@ -49,7 +49,7 @@ export function isDOMError(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isDOMException(wat: any): boolean {
+export function isDOMException(wat: any): wat is DOMException {
   return Object.prototype.toString.call(wat) === '[object DOMException]';
 }
 
@@ -60,7 +60,7 @@ export function isDOMException(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isString(wat: any): boolean {
+export function isString(wat: any): wat is String {
   return Object.prototype.toString.call(wat) === '[object String]';
 }
 
@@ -117,7 +117,7 @@ export function isElement(wat: any): wat is Element {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isRegExp(wat: any): boolean {
+export function isRegExp(wat: any): wat is RegExp {
   return Object.prototype.toString.call(wat) === '[object RegExp]';
 }
 
