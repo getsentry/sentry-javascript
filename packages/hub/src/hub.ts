@@ -36,6 +36,14 @@ declare module 'domain' {
 }
 
 /**
+ * Checks whether given value is instance of Span
+ * @param span value to check
+ */
+function isSpanInstance(span: unknown): span is Span {
+  return span instanceof Span;
+}
+
+/**
  * API compatibility version of this hub.
  *
  * WARNING: This number should only be incresed when the global interface
@@ -382,9 +390,9 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public traceHeaders(): { [key: string]: string } {
-    const top = this.getStackTop();
-    if (top.scope && top.client) {
-      const span = top.scope.getSpan();
+    const scope = this.getScope();
+    if (scope) {
+      const span = scope.getSpan();
       if (span) {
         return {
           'sentry-trace': span.toTraceparent(),
@@ -397,18 +405,36 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanContext?: SpanContext): Span {
-    const top = this.getStackTop();
+  public startSpan(spanOrSpanContext?: Span | SpanContext): Span {
+    const scope = this.getScope();
+    const client = this.getClient();
+    let span;
 
-    if (top.scope) {
-      const span = top.scope.getSpan();
-
-      if (span) {
-        return span.child(spanContext);
+    if (!isSpanInstance(spanOrSpanContext)) {
+      if (scope) {
+        const parentSpan = scope.getSpan();
+        if (parentSpan) {
+          span = parentSpan.child(spanOrSpanContext);
+        }
       }
     }
 
-    return new Span(spanContext);
+    if (!isSpanInstance(span)) {
+      span = new Span(spanOrSpanContext, this);
+    }
+
+    if (span.sampled === undefined && span.transaction !== undefined) {
+      const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
+      span.sampled = Math.random() < sampleRate;
+    }
+
+    if (span.sampled) {
+      const experimentsOptions = (client && client.getOptions()._experiments) || {};
+      const maxSpans = experimentsOptions.maxSpans || 1000;
+      span.initFinishedSpans(maxSpans);
+    }
+
+    return span;
   }
 }
 

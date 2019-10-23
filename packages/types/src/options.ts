@@ -78,6 +78,9 @@ export interface Options {
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
 
+  /** A global sample rate to apply to all transactions (0 - 1). */
+  tracesSampleRate?: number;
+
   /** Attaches stacktraces to pure capture message / log integrations */
   attachStacktrace?: boolean;
 
@@ -110,4 +113,8 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
+
+  _experiments?: {
+    [key: string]: any;
+  };
 }

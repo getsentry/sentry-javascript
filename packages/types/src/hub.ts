@@ -173,14 +173,11 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * This functions starts a span. If just a `SpanContext` is passed and there is already a Span
-   * on the Scope, the created Span will have a reference to the one on the Scope.
-   * If a Span is on the current Scope it is considered a `transaction`.
-   * When using the second parameter it will set the created Span on the Scope (replacing whats there).
-   * This can be used as a shortcut to not set it manually on the Scope.
+   * This functions starts a span. If argument passed is of type `Span`, it'll run sampling on it if configured
+   * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
+   * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
    *
-   * @param spanContext Properties with which the span should be created
-   * @param bindOnScope Determines if the started span will be set on the Scope
+   * @param span Already constructed span which should be started or properties with which the span should be created
    */
-  startSpan(spanContext?: SpanContext, bindOnScope?: boolean): Span;
+  startSpan(span?: Span | SpanContext): Span;
 }

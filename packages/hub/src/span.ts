@@ -1,9 +1,51 @@
+// tslint:disable:max-classes-per-file
+
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
-import { timestampWithMs, uuid4 } from '@sentry/utils';
+import { logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { getCurrentHub, Hub } from './hub';
 
-export const TRACEPARENT_REGEXP = /^[ \t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \t]*$/;
+export const TRACEPARENT_REGEXP = new RegExp(
+  '^[ \\t]*' + // whitespace
+  '([0-9a-f]{32})?' + // trace_id
+  '-?([0-9a-f]{16})?' + // span_id
+  '-?([01])?' + // sampled
+    '[ \\t]*$', // whitespace
+);
+
+/**
+ * Keeps track of finished spans for a given transaction
+ */
+class SpanRecorder {
+  private readonly _maxlen: number;
+  private _openSpanCount: number = 0;
+  public finishedSpans: Span[] = [];
+
+  public constructor(maxlen: number) {
+    this._maxlen = maxlen;
+  }
+
+  /**
+   * This is just so that we don't run out of memory while recording a lot
+   * of spans. At some point we just stop and flush out the start of the
+   * trace tree (i.e.the first n spans with the smallest
+   * start_timestamp).
+   */
+  public startSpan(span: Span): void {
+    this._openSpanCount += 1;
+    if (this._openSpanCount > this._maxlen) {
+      span.spanRecorder = undefined;
+    }
+  }
+
+  /**
+   * Appends a span to finished spans table
+   * @param span Span to be added
+   */
+  public finishSpan(span: Span): void {
+    this.finishedSpans.push(span);
+  }
+}
 
 /**
  * Span contains all data about a span
@@ -32,7 +74,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public readonly sampled?: boolean;
+  public sampled?: boolean;
 
   /**
    * Timestamp when the span was created.
@@ -72,7 +114,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * List of spans that were finalized
    */
-  public finishedSpans: Span[] = [];
+  public spanRecorder?: SpanRecorder;
 
   public constructor(spanContext?: SpanContext, hub?: Hub) {
     if (hub instanceof Hub) {
@@ -113,6 +155,17 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
+   * Attaches SpanRecorder to the span itself
+   * @param maxlen maximum number of spans that can be recorded
+   */
+  public initFinishedSpans(maxlen: number): void {
+    if (!this.spanRecorder) {
+      this.spanRecorder = new SpanRecorder(maxlen);
+    }
+    this.spanRecorder.startSpan(this);
+  }
+
+  /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
    * Also the `sampled` decision will be inherited.
    */
@@ -124,7 +177,7 @@ export class Span implements SpanInterface, SpanContext {
       traceId: this._traceId,
     });
 
-    span.finishedSpans = this.finishedSpans;
+    span.spanRecorder = this.spanRecorder;
 
     return span;
   }
@@ -208,26 +261,41 @@ export class Span implements SpanInterface, SpanContext {
    * Sets the finish timestamp on the current span
    */
   public finish(): string | undefined {
-    // Don't allow for finishing more than once
-    if (typeof this.timestamp === 'number') {
+    // This transaction is already finished, so we should not flush it again.
+    if (this.timestamp !== undefined) {
       return undefined;
     }
 
     this.timestamp = timestampWithMs();
-    this.finishedSpans.push(this);
 
-    // Don't send non-transaction spans
-    if (typeof this.transaction !== 'string') {
+    if (this.spanRecorder === undefined) {
       return undefined;
     }
 
-    // TODO: if sampled do what?
-    const finishedSpans = this.finishedSpans.filter(s => s !== this);
-    this.finishedSpans = [];
+    this.spanRecorder.finishSpan(this);
+
+    if (this.transaction === undefined) {
+      // If this has no transaction set we assume there's a parent
+      // transaction for this span that would be flushed out eventually.
+      return undefined;
+    }
+
+    if (this.sampled === undefined) {
+      // At this point a `sampled === undefined` should have already been
+      // resolved to a concrete decision. If `sampled` is `undefined`, it's
+      // likely that somebody used `Sentry.startSpan(...)` on a
+      // non-transaction span and later decided to make it a transaction.
+      logger.warn('Discarding transaction Span without sampling decision');
+      return undefined;
+    }
+
+    const finishedSpans = !this.spanRecorder ? [] : this.spanRecorder.finishedSpans.filter(s => s !== this);
 
     return this._hub.captureEvent({
+      // TODO: Is this necessary? We already do store contextx in in applyToEvent,
+      // so maybe we can move `getTraceContext` call there as well?
       contexts: { trace: this.getTraceContext() },
-      spans: finishedSpans.length > 0 ? finishedSpans : undefined,
+      spans: finishedSpans,
       start_timestamp: this.startTimestamp,
       timestamp: this.timestamp,
       transaction: this.transaction,
