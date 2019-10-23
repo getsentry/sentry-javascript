@@ -40,7 +40,14 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
     integrations = userIntegrations(defaultIntegrations);
     integrations = Array.isArray(integrations) ? integrations : [integrations];
   } else {
-    return [...defaultIntegrations];
+    integrations = [...defaultIntegrations];
+  }
+
+  // Make sure that if present, `Debug` integration will always run last
+  const integrationsNames = integrations.map(i => i.name);
+  const alwaysLastToRun = 'Debug';
+  if (integrationsNames.indexOf(alwaysLastToRun) !== -1) {
+    integrations.push(...integrations.splice(integrationsNames.indexOf(alwaysLastToRun), 1));
   }
 
   return integrations;

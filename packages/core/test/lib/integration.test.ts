@@ -122,4 +122,27 @@ describe('getIntegrationsToSetup', () => {
     expect((integrations[0] as any).order).toEqual('firstUser');
     expect((integrations[1] as any).order).toEqual('secondUser');
   });
+
+  it('always moves Debug integration to the end of the list', () => {
+    let integrations = getIntegrationsToSetup({
+      defaultIntegrations: [new MockIntegration('Debug'), new MockIntegration('foo')],
+      integrations: [new MockIntegration('bar')],
+    });
+
+    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
+
+    integrations = getIntegrationsToSetup({
+      defaultIntegrations: [new MockIntegration('foo')],
+      integrations: [new MockIntegration('Debug'), new MockIntegration('bar')],
+    });
+
+    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar', 'Debug']);
+
+    integrations = getIntegrationsToSetup({
+      defaultIntegrations: [new MockIntegration('Debug')],
+      integrations: [new MockIntegration('foo')],
+    });
+
+    expect(integrations.map(i => i.name)).toEqual(['foo', 'Debug']);
+  });
 });
