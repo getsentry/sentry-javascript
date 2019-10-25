@@ -3,6 +3,7 @@ export { CaptureConsole } from './captureconsole';
 export { Debug } from './debug';
 export { Dedupe } from './dedupe';
 export { Ember } from './ember';
+export { Express } from './express';
 export { ExtraErrorData } from './extraerrordata';
 export { ReportingObserver } from './reportingobserver';
 export { RewriteFrames } from './rewriteframes';
