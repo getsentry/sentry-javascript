@@ -1,8 +1,10 @@
 import { getCurrentHub, Span } from '@sentry/core';
 import { Integration } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+
+const NODE_VERSION = parseSemver(process.versions.node);
 
 /** http module integration */
 export class Http implements Integration {
@@ -48,9 +50,14 @@ export class Http implements Integration {
     fill(httpModule, 'get', handlerWrapper);
     fill(httpModule, 'request', handlerWrapper);
 
-    const httpsModule = require('https');
-    fill(httpsModule, 'get', handlerWrapper);
-    fill(httpsModule, 'request', handlerWrapper);
+    // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
+    // If we do, we'd get double breadcrumbs and double spans for `https` calls.
+    // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
+    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+      const httpsModule = require('https');
+      fill(httpsModule, 'get', handlerWrapper);
+      fill(httpsModule, 'request', handlerWrapper);
+    }
   }
 }
 
@@ -74,7 +81,7 @@ function createHandlerWrapper(
       let span: Span;
       if (tracingEnabled) {
         span = getCurrentHub().startSpan({
-          description: `${typeof options === 'string' ? 'GET' : options.method}|${requestUrl}`,
+          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
           op: 'request',
         });
       }
