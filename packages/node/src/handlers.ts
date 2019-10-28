@@ -12,6 +12,39 @@ import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
+/**
+ * Express compatible tracing handler.
+ * @see Exposed as `Handlers.tracingHandler`
+ */
+export function tracingHandler(): (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  next: (error?: any) => void,
+) => void {
+  return function sentryTracingMiddleware(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    next: (error?: any) => void,
+  ): void {
+    // TODO: At this point req.route.path we use in `extractTransaction` is not available
+    // but `req.path` or `req.url` should do the job as well. We could unify this here.
+    const reqMethod = (req.method || '').toUpperCase();
+    const reqUrl = req.url;
+    const hub = getCurrentHub();
+    const transaction = hub.startSpan({
+      transaction: `${reqMethod}|${reqUrl}`,
+    });
+    hub.configureScope(scope => {
+      scope.setSpan(transaction);
+    });
+    res
+      .once('response', () => transaction.setSuccess())
+      .once('error', () => transaction.setFailure())
+      .once('finish', () => transaction.finish());
+    next();
+  };
+}
+
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
