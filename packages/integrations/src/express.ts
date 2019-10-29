@@ -44,7 +44,16 @@ export class Express implements Integration {
 }
 
 /**
- * JSDoc
+ * Wraps original middleware function in a tracing call, which stores the info about the call as a span,
+ * and finishes it once the middleware is done invoking.
+ *
+ * Express middlewares have 3 various forms, thus we have to take care of all of them:
+ * // sync
+ * app.use(function (req, res) { ... })
+ * // async
+ * app.use(function (req, res, next) { ... })
+ * // error handler
+ * app.use(function (err, req, res, next) { ... })
  */
 function wrap(fn: Function, getCurrentHub: () => Hub): RequestHandler | ErrorRequestHandler {
   const arrity = fn.length;
@@ -91,7 +100,14 @@ function wrap(fn: Function, getCurrentHub: () => Hub): RequestHandler | ErrorReq
 }
 
 /**
- * JSDoc
+ * Takes all the function arguments passed to the original `app.use` call
+ * and wraps every function, as well as array of functions with a call to our `wrap` method.
+ * We have to take care of the arrays as well as iterate over all of the arguments,
+ * as `app.use` can accept middlewares in few various forms.
+ *
+ * app.use([<path>], <fn>)
+ * app.use([<path>], <fn>, ...<fn>)
+ * app.use([<path>], ...<fn>[])
  */
 function wrapUseArgs(args: IArguments, getCurrentHub: () => Hub): unknown[] {
   return Array.from(args).map((arg: unknown) => {
@@ -113,9 +129,9 @@ function wrapUseArgs(args: IArguments, getCurrentHub: () => Hub): unknown[] {
 }
 
 /**
- * JSDoc
+ * Patches original app.use to utilize our tracing functionality
  */
-function instrumentMiddlewares(app: Application, getCurrentHub: () => Hub): any {
+function instrumentMiddlewares(app: Application, getCurrentHub: () => Hub): Application {
   const originalAppUse = app.use;
   app.use = function(): any {
     return originalAppUse.apply(this, wrapUseArgs(arguments, getCurrentHub));
