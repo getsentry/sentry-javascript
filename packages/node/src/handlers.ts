@@ -37,10 +37,14 @@ export function tracingHandler(): (
     hub.configureScope(scope => {
       scope.setSpan(transaction);
     });
-    res
-      .once('response', () => transaction.setSuccess())
-      .once('error', () => transaction.setFailure())
-      .once('finish', () => transaction.finish());
+    res.once('finish', () => {
+      if (res.statusCode >= 500) {
+        transaction.setFailure();
+      } else {
+        transaction.setSuccess();
+      }
+      transaction.finish();
+    });
     next();
   };
 }

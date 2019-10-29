@@ -92,6 +92,7 @@ function createHandlerWrapper(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('response', requestUrl, this, res);
           }
+          // TODO: Mark >= 500 as failed as well?
           if (tracingEnabled) {
             span.setSuccess();
             span.finish();
