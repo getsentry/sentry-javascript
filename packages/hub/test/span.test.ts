@@ -169,15 +169,17 @@ describe('Span', () => {
 
     test('finish a scope span with transaction', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-      const span = new Span({ transaction: 'test' }, hub);
+      const span = new Span({ transaction: 'test', sampled: false }, hub);
+      span.initFinishedSpans();
       span.finish();
       expect(spy).toHaveBeenCalled();
-      expect(spy.mock.calls[0][0].spans).toBeUndefined();
+      expect(spy.mock.calls[0][0].spans).toHaveLength(0);
     });
 
     test('finish a scope span with transaction + child span', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-      const parentSpan = new Span({ transaction: 'test' }, hub);
+      const parentSpan = new Span({ transaction: 'test', sampled: false }, hub);
+      parentSpan.initFinishedSpans();
       const childSpan = parentSpan.child();
       childSpan.finish();
       parentSpan.finish();

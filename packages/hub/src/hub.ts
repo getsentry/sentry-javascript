@@ -430,8 +430,7 @@ export class Hub implements HubInterface {
 
     if (span.sampled) {
       const experimentsOptions = (client && client.getOptions()._experiments) || {};
-      const maxSpans = experimentsOptions.maxSpans || 1000;
-      span.initFinishedSpans(maxSpans);
+      span.initFinishedSpans(experimentsOptions.maxSpans);
     }
 
     return span;

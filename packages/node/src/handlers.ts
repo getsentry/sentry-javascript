@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getCurrentHub, Span, withScope } from '@sentry/core';
 import { Event } from '@sentry/types';
 import { forget, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';

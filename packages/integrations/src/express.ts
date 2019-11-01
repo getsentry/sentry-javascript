@@ -1,5 +1,6 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
+// tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
 
 /**

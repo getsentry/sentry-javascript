@@ -134,7 +134,8 @@ export class Span implements SpanInterface, SpanContext {
     if (spanContext.parentSpanId) {
       this._parentSpanId = spanContext.parentSpanId;
     }
-    if (spanContext.sampled) {
+    // We want to include booleans as well here
+    if ('sampled' in spanContext) {
       this.sampled = spanContext.sampled;
     }
     if (spanContext.transaction) {
@@ -158,7 +159,7 @@ export class Span implements SpanInterface, SpanContext {
    * Attaches SpanRecorder to the span itself
    * @param maxlen maximum number of spans that can be recorded
    */
-  public initFinishedSpans(maxlen: number): void {
+  public initFinishedSpans(maxlen: number = 1000): void {
     if (!this.spanRecorder) {
       this.spanRecorder = new SpanRecorder(maxlen);
     }
@@ -288,8 +289,7 @@ export class Span implements SpanInterface, SpanContext {
       logger.warn('Discarding transaction Span without sampling decision');
       return undefined;
     }
-
-    const finishedSpans = !this.spanRecorder ? [] : this.spanRecorder.finishedSpans.filter(s => s !== this);
+    const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
 
     return this._hub.captureEvent({
       // TODO: Is this necessary? We already do store contextx in in applyToEvent,
