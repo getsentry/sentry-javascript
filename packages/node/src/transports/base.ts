@@ -1,6 +1,6 @@
 import { API } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
-import { PromiseBuffer, SentryError } from '@sentry/utils';
+import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -38,6 +38,9 @@ export abstract class BaseTransport implements Transport {
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
+  /** Locks transport after receiving 429 response */
+  private _disabledUntil: Date = new Date(Date.now());
+
   /** Create instance and set this.dsn */
   public constructor(public options: TransportOptions) {
     this._api = new API(options.dsn);
@@ -72,26 +75,41 @@ export abstract class BaseTransport implements Transport {
 
   /** JSDoc */
   protected async _sendWithModule(httpModule: HTTPRequest, event: Event): Promise<Response> {
+    if (new Date(Date.now()) < this._disabledUntil) {
+      return Promise.reject(new SentryError(`Transport locked till ${this._disabledUntil} due to too many requests.`));
+    }
+
     if (!this._buffer.isReady()) {
       return Promise.reject(new SentryError('Not adding Promise due to buffer limit reached.'));
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
         const req = httpModule.request(this._getRequestOptions(), (res: http.IncomingMessage) => {
+          const statusCode = res.statusCode || 500;
+          const status = Status.fromHttpCode(statusCode);
+
           res.setEncoding('utf8');
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({
-              status: Status.fromHttpCode(res.statusCode),
-            });
+
+          if (status === Status.Success) {
+            resolve({ status });
           } else {
-            if (res.headers && res.headers['x-sentry-error']) {
-              const reason = res.headers['x-sentry-error'];
-              reject(new SentryError(`HTTP Error (${res.statusCode}): ${reason}`));
-            } else {
-              reject(new SentryError(`HTTP Error (${res.statusCode})`));
+            if (status === Status.RateLimit) {
+              const now = Date.now();
+              let header = res.headers ? res.headers['Retry-After'] : '';
+              header = Array.isArray(header) ? header[0] : header;
+              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, header));
+              logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
             }
+
+            let rejectionMessage = `HTTP Error (${statusCode})`;
+            if (res.headers && res.headers['x-sentry-error']) {
+              rejectionMessage += `: ${res.headers['x-sentry-error']}`;
+            }
+
+            reject(new SentryError(rejectionMessage));
           }
-          // force the socket to drain
+
+          // Force the socket to drain
           res.on('data', () => {
             // Drain
           });

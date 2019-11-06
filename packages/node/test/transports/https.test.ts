@@ -93,6 +93,49 @@ describe('HTTPSTransport', () => {
     }
   });
 
+  test('back-off using Retry-After header', async () => {
+    const retryAfterSeconds = 10;
+    mockReturnCode = 429;
+    mockHeaders = {
+      'Retry-After': retryAfterSeconds,
+    };
+    const transport = createTransport({ dsn });
+
+    const now = Date.now();
+    const mock = jest
+      .spyOn(Date, 'now')
+      // Check for first event
+      .mockReturnValueOnce(now)
+      // Setting disableUntil
+      .mockReturnValueOnce(now)
+      // Check for second event
+      .mockReturnValueOnce(now + (retryAfterSeconds / 2) * 1000)
+      // Check for third event
+      .mockReturnValueOnce(now + retryAfterSeconds * 1000);
+
+    try {
+      await transport.sendEvent({ message: 'test' });
+    } catch (e) {
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+
+    try {
+      await transport.sendEvent({ message: 'test' });
+    } catch (e) {
+      expect(e).toEqual(
+        new SentryError(`Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`),
+      );
+    }
+
+    try {
+      await transport.sendEvent({ message: 'test' });
+    } catch (e) {
+      expect(e).toEqual(new SentryError(`HTTP Error (${mockReturnCode})`));
+    }
+
+    mock.mockRestore();
+  });
+
   test('transport options', async () => {
     mockReturnCode = 200;
     const transport = createTransport({
