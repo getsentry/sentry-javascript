@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { fakeServer, SinonFakeServer } from 'sinon';
+import { fakeServer, SinonFakeServer, stub } from 'sinon';
 
 import { Status, Transports } from '../../../src';
 
@@ -35,27 +35,72 @@ describe('XHRTransport', () => {
     it('sends a request to Sentry servers', async () => {
       server.respondWith('POST', transportUrl, [200, {}, '']);
 
-      return transport.sendEvent(payload).then(res => {
-        expect(res.status).equal(Status.Success);
-        const request = server.requests[0];
-        expect(server.requests.length).equal(1);
-        expect(request.method).equal('POST');
-        expect(JSON.parse(request.requestBody)).deep.equal(payload);
-      });
+      const res = await transport.sendEvent(payload);
+
+      expect(res.status).equal(Status.Success);
+      const request = server.requests[0];
+      expect(server.requests.length).equal(1);
+      expect(request.method).equal('POST');
+      expect(JSON.parse(request.requestBody)).deep.equal(payload);
     });
 
-    it('rejects with non-200 status code', done => {
+    it('rejects with non-200 status code', async () => {
       server.respondWith('POST', transportUrl, [403, {}, '']);
 
-      transport.sendEvent(payload).then(null, res => {
+      try {
+        await transport.sendEvent(payload);
+      } catch (res) {
         expect(res.status).equal(403);
-
         const request = server.requests[0];
         expect(server.requests.length).equal(1);
         expect(request.method).equal('POST');
         expect(JSON.parse(request.requestBody)).deep.equal(payload);
-        done();
-      });
+      }
+    });
+
+    it('back-off using Retry-After header', async () => {
+      const retryAfterSeconds = 10;
+      server.respondWith('POST', transportUrl, [429, { 'Retry-After': retryAfterSeconds }, '']);
+
+      const now = Date.now();
+      const dateStub = stub(Date, 'now')
+        // Check for first event
+        .onCall(0)
+        .returns(now)
+        // Setting disableUntil
+        .onCall(1)
+        .returns(now)
+        // Check for second event
+        .onCall(2)
+        .returns(now + (retryAfterSeconds / 2) * 1000)
+        // Check for third event
+        .onCall(3)
+        .returns(now + retryAfterSeconds * 1000);
+
+      try {
+        await transport.sendEvent(payload);
+      } catch (res) {
+        expect(res.status).equal(429);
+        expect(res.reason).equal(undefined);
+      }
+
+      try {
+        await transport.sendEvent(payload);
+      } catch (res) {
+        expect(res.status).equal(429);
+        expect(res.reason).equal(
+          `Transport locked till ${new Date(now + retryAfterSeconds * 1000)} due to too many requests.`,
+        );
+      }
+
+      try {
+        await transport.sendEvent(payload);
+      } catch (res) {
+        expect(res.status).equal(429);
+        expect(res.reason).equal(undefined);
+      }
+
+      dateStub.restore();
     });
   });
 });
