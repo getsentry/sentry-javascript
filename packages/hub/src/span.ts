@@ -261,13 +261,13 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Sets the finish timestamp on the current span
    */
-  public finish(): string | undefined {
+  public finish(endTimestamp?: number): string | undefined {
     // This transaction is already finished, so we should not flush it again.
     if (this.timestamp !== undefined) {
       return undefined;
     }
 
-    this.timestamp = timestampWithMs();
+    this.timestamp = endTimestamp || timestampWithMs();
 
     if (this.spanRecorder === undefined) {
       return undefined;

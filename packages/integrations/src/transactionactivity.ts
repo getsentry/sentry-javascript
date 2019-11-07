@@ -75,12 +75,13 @@ export class TransactionActivity implements Integration {
         TransactionActivity._watchActivity();
       }, 10);
     } else {
+      const timeout = TransactionActivity._options && TransactionActivity._options.idleTimeout;
       TransactionActivity._debounce = (setTimeout(() => {
         const active = TransactionActivity._activeTransaction;
         if (active) {
-          active.finish();
+          active.finish(new Date().getTime() / 1000 - (timeout || 0));
         }
-      }, (TransactionActivity._options && TransactionActivity._options.idleTimeout) || 500) as any) as number; // TODO 500
+      }, timeout) as any) as number; // TODO 500
     }
   }
 
