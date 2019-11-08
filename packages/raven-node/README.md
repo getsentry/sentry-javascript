@@ -18,4 +18,4 @@ To see up-to-date Node.js LTS Release Schedule, go to https://github.com/nodejs/
 
 * [Documentation](https://docs.getsentry.com/hosted/clients/node/)
 * [Bug Tracker](https://github.com/getsentry/raven-node/issues)
-* [IRC](irc://chat.freenode.net/sentry) (chat.freenode.net, #sentry)
+- [Discord](https://discord.gg/ez5KZN7)
