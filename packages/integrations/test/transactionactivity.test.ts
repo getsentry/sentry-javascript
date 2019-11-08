@@ -2,8 +2,8 @@ import { TransactionActivity } from '../src/transactionactivity';
 
 const transactionActivity: TransactionActivity = new TransactionActivity();
 
-const configureScope: any = jest.fn();
-const startSpan: any = jest.fn();
+const configureScope = jest.fn();
+const startSpan = jest.fn();
 
 const getCurrentHubMock: any = () => ({
   configureScope,
@@ -23,7 +23,7 @@ describe('TransactionActivity', () => {
   test('startSpan with transaction', () => {
     TransactionActivity.startIdleTransaction('test');
     expect(startSpan).toBeCalled();
-    expect(startSpan.mock.calls[0][0].transaction).toBe('test');
+    expect(startSpan).toBeCalledWith({ transaction: 'test' });
   });
 
   test('track activity', () => {
@@ -46,7 +46,7 @@ describe('TransactionActivity', () => {
     expect(Object.keys((TransactionActivity as any)._activities)).toHaveLength(2);
   });
 
-  test.only('finishing a transaction after debounce', () => {
+  test('finishing a transaction after debounce', () => {
     jest.useFakeTimers();
     const spy = jest.spyOn(TransactionActivity as any, '_watchActivity');
     TransactionActivity.startIdleTransaction('test');
@@ -57,6 +57,5 @@ describe('TransactionActivity', () => {
     expect(Object.keys((TransactionActivity as any)._activities)).toHaveLength(0);
     jest.runOnlyPendingTimers();
     expect(spy).toBeCalledTimes(2);
-    expect((TransactionActivity as any)._debounce).toBeTruthy();
   });
 });

@@ -1,4 +1,5 @@
 import { EventProcessor, Hub, Integration, Scope, Span, SpanContext } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 
 /** JSDoc */
 interface TransactionActivityOptions {
@@ -69,8 +70,8 @@ export class TransactionActivity implements Integration {
    */
   private static _watchActivity(): void {
     const count = Object.keys(TransactionActivity._activities).length;
+    clearTimeout(TransactionActivity._debounce);
     if (count > 0) {
-      clearTimeout(TransactionActivity._debounce);
       setTimeout(() => {
         TransactionActivity._watchActivity();
       }, 10);
@@ -79,7 +80,7 @@ export class TransactionActivity implements Integration {
       TransactionActivity._debounce = (setTimeout(() => {
         const active = TransactionActivity._activeTransaction;
         if (active) {
-          active.finish(new Date().getTime() / 1000 - (timeout || 0));
+          active.finish(timestampWithMs() - (timeout || 0));
         }
       }, timeout) as any) as number; // TODO 500
     }
@@ -89,6 +90,13 @@ export class TransactionActivity implements Integration {
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
+    const activeTransaction = TransactionActivity._activeTransaction;
+
+    if (activeTransaction) {
+      // We need to finish any active transaction before starting a new
+      activeTransaction.finish();
+    }
+
     const _getCurrentHub = TransactionActivity._getCurrentHub;
     if (!_getCurrentHub) {
       return undefined;
@@ -111,6 +119,18 @@ export class TransactionActivity implements Integration {
     });
 
     return span;
+  }
+
+  /**
+   * Update transaction
+   */
+  public static updateTransactionName(name: string): void {
+    const activeTransaction = TransactionActivity._activeTransaction;
+    if (!activeTransaction) {
+      return;
+    }
+    // TODO
+    (activeTransaction as any).transaction = name;
   }
 
   /**
