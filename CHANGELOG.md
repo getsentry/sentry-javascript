@@ -4,6 +4,13 @@
 
 - Coming soon...
 
+## 5.8.0
+
+- [browser/node] feat: 429 http code handling in node/browser transports (#2300)
+- [core] feat: Make sure that Debug integration is always setup as the last one (#2285)
+- [browser] fix: Gracefuly handle incorrect input from onerror (#2302)
+- [utils] ref: Remove dom references from utils for old TS and env interop (#2303)
+
 ## 5.7.1
 
 - [core] ref: Use the smallest possible interface for our needs - `PromiseLike` (#2273)
