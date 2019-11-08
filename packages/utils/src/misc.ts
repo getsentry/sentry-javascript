@@ -1,5 +1,3 @@
-/// <reference lib="dom" />
-
 import { Event, Integration, WrappedFunction } from '@sentry/types';
 
 import { isString } from './is';
@@ -258,13 +256,17 @@ export function getLocationHref(): string {
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-export function htmlTreeAsString(elem: Node): string {
+export function htmlTreeAsString(elem: unknown): string {
+  type SimpleNode = {
+    parentNode: SimpleNode;
+  } | null;
+
   // try/catch both:
   // - accessing event.target (see getsentry/raven-js#838, #768)
   // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly
   // - can throw an exception in some circumstances.
   try {
-    let currentElem: Node | null = elem;
+    let currentElem = elem as SimpleNode;
     const MAX_TRAVERSE_HEIGHT = 5;
     const MAX_OUTPUT_LEN = 80;
     const out = [];
@@ -275,7 +277,7 @@ export function htmlTreeAsString(elem: Node): string {
     let nextStr;
 
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem as HTMLElement);
+      nextStr = _htmlElementAsString(currentElem);
       // bail out if
       // - nextStr is the 'html' element
       // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
@@ -301,7 +303,14 @@ export function htmlTreeAsString(elem: Node): string {
  * e.g. [HTMLElement] => input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-function _htmlElementAsString(elem: HTMLElement): string {
+function _htmlElementAsString(el: unknown): string {
+  const elem = el as {
+    getAttribute(key: string): string; // tslint:disable-line:completed-docs
+    tagName?: string;
+    id?: string;
+    className?: string;
+  };
+
   const out = [];
   let className;
   let classes;

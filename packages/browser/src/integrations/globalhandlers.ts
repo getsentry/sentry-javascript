@@ -240,13 +240,17 @@ export class GlobalHandlers implements Integration {
     event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
 
+    const colno = isNaN(parseInt(column, 10)) ? undefined : column;
+    const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
+    const filename = isString(url) ? url : getLocationHref();
+
     if (event.exception.values[0].stacktrace.frames.length === 0) {
       event.exception.values[0].stacktrace.frames.push({
-        colno: column,
-        filename: url || getLocationHref(),
+        colno,
+        filename,
         function: '?',
         in_app: true,
-        lineno: line,
+        lineno,
       });
     }
 

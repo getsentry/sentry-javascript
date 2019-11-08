@@ -99,37 +99,49 @@ function getWalkSource(
   }
 
   if (isEvent(value)) {
+    /**
+     * Event-like interface that's usable in browser and node
+     */
+    interface SimpleEvent {
+      [key: string]: unknown;
+      type: string;
+      target?: unknown;
+      currentTarget?: unknown;
+    }
+
+    const event = value as SimpleEvent;
+
     const source: {
       [key: string]: any;
     } = {};
 
-    source.type = value.type;
+    source.type = event.type;
 
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
-      source.target = isElement(value.target)
-        ? htmlTreeAsString(value.target)
-        : Object.prototype.toString.call(value.target);
+      source.target = isElement(event.target)
+        ? htmlTreeAsString(event.target)
+        : Object.prototype.toString.call(event.target);
     } catch (_oO) {
       source.target = '<unknown>';
     }
 
     try {
-      source.currentTarget = isElement(value.currentTarget)
-        ? htmlTreeAsString(value.currentTarget)
-        : Object.prototype.toString.call(value.currentTarget);
+      source.currentTarget = isElement(event.currentTarget)
+        ? htmlTreeAsString(event.currentTarget)
+        : Object.prototype.toString.call(event.currentTarget);
     } catch (_oO) {
       source.currentTarget = '<unknown>';
     }
 
     // tslint:disable-next-line:strict-type-predicates
     if (typeof CustomEvent !== 'undefined' && value instanceof CustomEvent) {
-      source.detail = value.detail;
+      source.detail = event.detail;
     }
 
-    for (const i in value) {
-      if (Object.prototype.hasOwnProperty.call(value, i)) {
-        source[i] = (value as { [key: string]: any })[i];
+    for (const i in event) {
+      if (Object.prototype.hasOwnProperty.call(event, i)) {
+        source[i] = event;
       }
     }
 
