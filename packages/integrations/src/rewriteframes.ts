@@ -74,8 +74,7 @@ export class RewriteFrames implements Integration {
 
     if (exception) {
       try {
-        // tslint:disable-next-line:no-unsafe-any
-        return (exception as any).values[0].stacktrace.frames;
+        return exception.values && exception.values[0].stacktrace && exception.values[0].stacktrace.frames;
       } catch (_oO) {
         return undefined;
       }

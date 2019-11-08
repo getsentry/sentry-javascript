@@ -468,7 +468,7 @@ export class Breadcrumbs implements Integration {
           });
 
           if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-            fill(xhr, 'onreadystatechange', function(original: () => void): void {
+            fill(xhr, 'onreadystatechange', function(original: () => void): Function {
               return wrap(
                 original,
                 {

@@ -163,6 +163,5 @@ export function close(timeout?: number): PromiseLike<boolean> {
  * @returns The result of wrapped function call.
  */
 export function wrap(fn: Function): any {
-  // tslint:disable-next-line: no-unsafe-any
   return internalWrap(fn)();
 }
