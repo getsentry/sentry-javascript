@@ -211,7 +211,7 @@ function serializeValue(value: any): any {
  */
 // tslint:disable-next-line:cyclomatic-complexity
 function normalizeValue<T>(value: T, key?: any): T | string {
-  if (key === 'domain' && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
+  if (key === 'domain' && value && typeof value === 'object' && ((value as unknown) as { _events: any })._events) {
     return '[Domain]';
   }
 
