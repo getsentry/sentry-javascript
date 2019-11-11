@@ -9,6 +9,7 @@
 - [browser/node] feat: 429 http code handling in node/browser transports (#2300)
 - [core] feat: Make sure that Debug integration is always setup as the last one (#2285)
 - [browser] fix: Gracefuly handle incorrect input from onerror (#2302)
+- [utils] fix: Safer normalizing for input with `domain` key (#2305)
 - [utils] ref: Remove dom references from utils for old TS and env interop (#2303)
 
 ## 5.7.1
