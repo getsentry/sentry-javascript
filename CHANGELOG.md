@@ -4,6 +4,11 @@
 
 - Coming soon...
 
+## 5.9.0
+
+- [node] feat: Added `mode` option for `OnUnhandledRejection` integration that changes how we log errors and what we do with the process itself
+- [browser] ref: Both global handlers now always return `true` to call default implementations (error logging)
+
 ## 5.8.0
 
 - [browser/node] feat: 429 http code handling in node/browser transports (#2300)

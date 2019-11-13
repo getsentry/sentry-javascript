@@ -3,7 +3,7 @@ import { Integration, Severity } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { NodeClient } from '../client';
-import { defaultOnFatalError } from '../handlers';
+import { logAndExitProcess } from '../handlers';
 
 /** Global Promise Rejection handler */
 export class OnUncaughtException implements Integration {
@@ -54,7 +54,7 @@ export class OnUncaughtException implements Integration {
     return (error: Error): void => {
       type onFatalErrorHandlerType = (firstError: Error, secondError?: Error) => void;
 
-      let onFatalError: onFatalErrorHandlerType = defaultOnFatalError;
+      let onFatalError: onFatalErrorHandlerType = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
 
       if (this._options.onFatalError) {
@@ -90,7 +90,7 @@ export class OnUncaughtException implements Integration {
       } else if (calledFatalError) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
         logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
-        defaultOnFatalError(error);
+        logAndExitProcess(error);
       } else if (!caughtSecondError) {
         // two cases for how we can hit this branch:
         //   - capturing of first error blew up and we just caught the exception from that
