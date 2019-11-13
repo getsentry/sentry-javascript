@@ -348,8 +348,9 @@ export function errorHandler(options?: {
 /**
  * @hidden
  */
-export function defaultOnFatalError(error: Error): void {
+export function logAndExitProcess(error: Error): void {
   console.error(error && error.stack ? error.stack : error);
+
   const client = getCurrentHub().getClient<NodeClient>();
 
   if (client === undefined) {

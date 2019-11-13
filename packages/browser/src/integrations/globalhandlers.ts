@@ -92,7 +92,7 @@ export class GlobalHandlers implements Integration {
         if (self._oldOnErrorHandler) {
           return self._oldOnErrorHandler.apply(this, arguments);
         }
-        return false;
+        return true;
       }
 
       const client = currentHub.getClient();
@@ -121,7 +121,7 @@ export class GlobalHandlers implements Integration {
         return self._oldOnErrorHandler.apply(this, arguments);
       }
 
-      return false;
+      return true;
     };
 
     this._onErrorHandlerInstalled = true;
@@ -152,7 +152,7 @@ export class GlobalHandlers implements Integration {
         if (self._oldOnUnhandledRejectionHandler) {
           return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
         }
-        return false;
+        return true;
       }
 
       const client = currentHub.getClient();
@@ -178,7 +178,7 @@ export class GlobalHandlers implements Integration {
         return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
       }
 
-      return false;
+      return true;
     };
 
     this._onUnhandledRejectionHandlerInstalled = true;
