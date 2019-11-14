@@ -1,5 +1,4 @@
 import { EventProcessor, Hub, Integration, Scope, Span, SpanContext } from '@sentry/types';
-import { timestampWithMs } from '@sentry/utils';
 
 /** JSDoc */
 interface TransactionActivityOptions {
@@ -11,7 +10,7 @@ interface TransactionActivityOptions {
   // onActivity?: (info) => {
   //   return info.type !== 'xhr' || !info.url.match(/zendesk/);
   // },
-  idleTimeout?: number;
+  idleTimeout: number;
 }
 
 /** JSDoc */
@@ -51,11 +50,12 @@ export class TransactionActivity implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options?: TransactionActivityOptions) {
-    TransactionActivity._options = {
+  public constructor(
+    public readonly _options: TransactionActivityOptions = {
       idleTimeout: 500,
-      ...options,
-    };
+    },
+  ) {
+    TransactionActivity._options = _options;
   }
 
   /**
@@ -66,34 +66,15 @@ export class TransactionActivity implements Integration {
   }
 
   /**
-   * Internal run loop that checks if activy is running
-   */
-  private static _watchActivity(): void {
-    const count = Object.keys(TransactionActivity._activities).length;
-    clearTimeout(TransactionActivity._debounce);
-    if (count > 0) {
-      setTimeout(() => {
-        TransactionActivity._watchActivity();
-      }, 10);
-    } else {
-      const timeout = TransactionActivity._options && TransactionActivity._options.idleTimeout;
-      TransactionActivity._debounce = (setTimeout(() => {
-        const active = TransactionActivity._activeTransaction;
-        if (active) {
-          active.finish(timestampWithMs() - (timeout || 0));
-        }
-      }, timeout) as any) as number; // TODO 500
-    }
-  }
-
-  /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
     const activeTransaction = TransactionActivity._activeTransaction;
 
     if (activeTransaction) {
-      // We need to finish any active transaction before starting a new
+      // If we already have an active transaction it means one of two things
+      // a) The user did rapid navigation changes and didn't wait until the transaction was finished
+      // b) A activity wasn't popped correctly and therefore the transaction is stalling
       activeTransaction.finish();
     }
 
@@ -107,16 +88,26 @@ export class TransactionActivity implements Integration {
       return undefined;
     }
 
-    const span = hub.startSpan({
-      ...spanContext,
-      transaction: name,
-    });
+    const span = hub.startSpan(
+      {
+        ...spanContext,
+        transaction: name,
+      },
+      true,
+    );
 
     TransactionActivity._activeTransaction = span;
 
     hub.configureScope((scope: Scope) => {
       scope.setSpan(span);
     });
+
+    // The reason we do this here is because of cached responses
+    // If we start and transaction without an activity it would never finish since there is no activity
+    const id = TransactionActivity.pushActivity('idleTransactionStarted');
+    setTimeout(() => {
+      TransactionActivity.popActivity(id);
+    }, (TransactionActivity._options && TransactionActivity._options.idleTimeout) || 100);
 
     return span;
   }
@@ -152,7 +143,6 @@ export class TransactionActivity implements Integration {
       };
     }
 
-    TransactionActivity._watchActivity();
     return TransactionActivity._currentIndex++;
   }
 
@@ -167,6 +157,19 @@ export class TransactionActivity implements Integration {
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete TransactionActivity._activities[id];
+    }
+
+    const count = Object.keys(TransactionActivity._activities).length;
+    clearTimeout(TransactionActivity._debounce);
+
+    if (count === 0) {
+      const timeout = TransactionActivity._options && TransactionActivity._options.idleTimeout;
+      TransactionActivity._debounce = (setTimeout(() => {
+        const active = TransactionActivity._activeTransaction;
+        if (active) {
+          active.finish(true);
+        }
+      }, timeout) as any) as number; // TODO 500
     }
   }
 }

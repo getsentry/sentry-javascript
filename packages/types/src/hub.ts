@@ -179,5 +179,5 @@ export interface Hub {
    *
    * @param span Already constructed span which should be started or properties with which the span should be created
    */
-  startSpan(span?: Span | SpanContext): Span;
+  startSpan(span?: Span | SpanContext, forceNoChild?: boolean): Span;
 }

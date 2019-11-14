@@ -405,12 +405,12 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanOrSpanContext?: Span | SpanContext): Span {
+  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
     const scope = this.getScope();
     const client = this.getClient();
     let span;
 
-    if (!isSpanInstance(spanOrSpanContext)) {
+    if (!isSpanInstance(spanOrSpanContext) && !forceNoChild) {
       if (scope) {
         const parentSpan = scope.getSpan();
         if (parentSpan) {

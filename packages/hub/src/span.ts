@@ -261,13 +261,13 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Sets the finish timestamp on the current span
    */
-  public finish(endTimestamp?: number): string | undefined {
+  public finish(useLastSpanTimestamp: boolean = false): string | undefined {
     // This transaction is already finished, so we should not flush it again.
     if (this.timestamp !== undefined) {
       return undefined;
     }
 
-    this.timestamp = endTimestamp || timestampWithMs();
+    this.timestamp = timestampWithMs();
 
     if (this.spanRecorder === undefined) {
       return undefined;
@@ -290,6 +290,10 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
     const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
+
+    if (useLastSpanTimestamp && finishedSpans.length > 0) {
+      this.timestamp = finishedSpans[finishedSpans.length - 1].timestamp;
+    }
 
     return this._hub.captureEvent({
       // TODO: Is this necessary? We already do store contextx in in applyToEvent,
