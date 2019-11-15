@@ -2,15 +2,13 @@ import { EventProcessor, Hub, Integration, Scope, Span, SpanContext } from '@sen
 
 /** JSDoc */
 interface TransactionActivityOptions {
-  // onLocationChange: (info) => {
-  //   // info holds the location change api.
-  //   // if this returns `null` there is no transaction started.
-  //   return info.state.transaction || info.url;
-  // },
-  // onActivity?: (info) => {
-  //   return info.type !== 'xhr' || !info.url.match(/zendesk/);
-  // },
   idleTimeout: number;
+  patchHistory: boolean;
+  /**
+   * Called when an history change happend
+   */
+  onLocationChange(state: any): string;
+  startTransactionOnLocationChange: boolean;
 }
 
 /** JSDoc */
@@ -53,6 +51,9 @@ export class TransactionActivity implements Integration {
   public constructor(
     public readonly _options: TransactionActivityOptions = {
       idleTimeout: 500,
+      onLocationChange: () => window.location.href,
+      patchHistory: true,
+      startTransactionOnLocationChange: true,
     },
   ) {
     TransactionActivity._options = _options;
@@ -63,6 +64,31 @@ export class TransactionActivity implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     TransactionActivity._getCurrentHub = getCurrentHub;
+    if (this._options.patchHistory) {
+      // tslint:disable: no-unsafe-any
+      // tslint:disable-next-line: typedef only-arrow-functions
+      (function(history: any) {
+        const pushState = history.pushState;
+        // tslint:disable-next-line: typedef only-arrow-functions
+        history.pushState = function(state: any) {
+          if (typeof history.onpushstate === 'function') {
+            history.onpushstate({ state });
+          }
+          // ... whatever else you want to do
+          // maybe call onhashchange e.handler
+          return pushState.apply(history, arguments);
+        };
+      })(window.history);
+      window.onpopstate = (history as any).onpushstate = (_state: any) => {
+        if (this._options.startTransactionOnLocationChange) {
+          TransactionActivity.startIdleTransaction(`${window.location.href}`, {
+            op: 'navigation',
+            sampled: true,
+          });
+        }
+      };
+      // tslint:enable: no-unsafe-any
+    }
   }
 
   /**
@@ -124,6 +150,14 @@ export class TransactionActivity implements Integration {
     (activeTransaction as any).transaction = name;
   }
 
+  public static finishIdleTransaction(): void {
+    const active = TransactionActivity._activeTransaction;
+    if (active) {
+      // true = use timestamp of last span
+      active.finish(true);
+    }
+  }
+
   /**
    * Starts tracking for a specifc activity
    */
@@ -165,11 +199,8 @@ export class TransactionActivity implements Integration {
     if (count === 0) {
       const timeout = TransactionActivity._options && TransactionActivity._options.idleTimeout;
       TransactionActivity._debounce = (setTimeout(() => {
-        const active = TransactionActivity._activeTransaction;
-        if (active) {
-          active.finish(true);
-        }
-      }, timeout) as any) as number; // TODO 500
+        TransactionActivity.finishIdleTransaction();
+      }, timeout) as any) as number;
     }
   }
 }
