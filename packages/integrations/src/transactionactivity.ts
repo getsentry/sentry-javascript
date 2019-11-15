@@ -150,6 +150,9 @@ export class TransactionActivity implements Integration {
     (activeTransaction as any).transaction = name;
   }
 
+  /**
+   * Finshes the current active transaction
+   */
   public static finishIdleTransaction(): void {
     const active = TransactionActivity._activeTransaction;
     if (active) {
