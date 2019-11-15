@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Coming soon...
+- [browser] ref: Fix regression with bundle size
 
 ## 5.9.0
 

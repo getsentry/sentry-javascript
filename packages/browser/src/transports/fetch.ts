@@ -33,29 +33,26 @@ export class FetchTransport extends BaseTransport {
     };
 
     return this._buffer.add(
-      new SyncPromise<Response>(async (resolve, reject) => {
-        let response;
-        try {
-          response = await global.fetch(this.url, defaultOptions);
-        } catch (err) {
-          reject(err);
-          return;
-        }
+      new SyncPromise<Response>((resolve, reject) => {
+        global
+          .fetch(this.url, defaultOptions)
+          .then(response => {
+            const status = Status.fromHttpCode(response.status);
 
-        const status = Status.fromHttpCode(response.status);
+            if (status === Status.Success) {
+              resolve({ status });
+              return;
+            }
 
-        if (status === Status.Success) {
-          resolve({ status });
-          return;
-        }
+            if (status === Status.RateLimit) {
+              const now = Date.now();
+              this._disabledUntil = new Date(now + parseRetryAfterHeader(now, response.headers.get('Retry-After')));
+              logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
+            }
 
-        if (status === Status.RateLimit) {
-          const now = Date.now();
-          this._disabledUntil = new Date(now + parseRetryAfterHeader(now, response.headers.get('Retry-After')));
-          logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
-        }
-
-        reject(response);
+            reject(response);
+          })
+          .catch(reject);
       }),
     );
   }
