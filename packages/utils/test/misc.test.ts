@@ -1,4 +1,4 @@
-import { getEventDescription, getGlobalObject } from '../src/misc';
+import { getEventDescription, getGlobalObject, parseRetryAfterHeader } from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -117,5 +117,25 @@ describe('getGlobalObject()', () => {
     const second = getGlobalObject();
     expect(first).toEqual(second);
     global.process = backup;
+  });
+});
+
+describe('parseRetryAfterHeader', () => {
+  test('no header', () => {
+    expect(parseRetryAfterHeader(Date.now())).toEqual(60 * 1000);
+  });
+
+  test('incorrect header', () => {
+    expect(parseRetryAfterHeader(Date.now(), 'x')).toEqual(60 * 1000);
+  });
+
+  test('delay header', () => {
+    expect(parseRetryAfterHeader(Date.now(), '1337')).toEqual(1337 * 1000);
+  });
+
+  test('date header', () => {
+    expect(
+      parseRetryAfterHeader(new Date('Wed, 21 Oct 2015 07:28:00 GMT').getTime(), 'Wed, 21 Oct 2015 07:28:13 GMT'),
+    ).toEqual(13 * 1000);
   });
 });

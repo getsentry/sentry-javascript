@@ -1,5 +1,5 @@
 import { Event, Response, Status } from '@sentry/types';
-import { getGlobalObject, supportsReferrerPolicy } from '@sentry/utils';
+import { getGlobalObject, logger, parseRetryAfterHeader, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
 
@@ -7,10 +7,21 @@ const global = getGlobalObject<Window>();
 
 /** `fetch` based transport */
 export class FetchTransport extends BaseTransport {
+  /** Locks transport after receiving 429 response */
+  private _disabledUntil: Date = new Date(Date.now());
+
   /**
    * @inheritDoc
    */
   public sendEvent(event: Event): PromiseLike<Response> {
+    if (new Date(Date.now()) < this._disabledUntil) {
+      return Promise.reject({
+        event,
+        reason: `Transport locked till ${this._disabledUntil} due to too many requests.`,
+        status: 429,
+      });
+    }
+
     const defaultOptions: RequestInit = {
       body: JSON.stringify(event),
       method: 'POST',
@@ -22,9 +33,30 @@ export class FetchTransport extends BaseTransport {
     };
 
     return this._buffer.add(
-      global.fetch(this.url, defaultOptions).then(response => ({
-        status: Status.fromHttpCode(response.status),
-      })),
+      new SyncPromise<Response>(async (resolve, reject) => {
+        let response;
+        try {
+          response = await global.fetch(this.url, defaultOptions);
+        } catch (err) {
+          reject(err);
+          return;
+        }
+
+        const status = Status.fromHttpCode(response.status);
+
+        if (status === Status.Success) {
+          resolve({ status });
+          return;
+        }
+
+        if (status === Status.RateLimit) {
+          const now = Date.now();
+          this._disabledUntil = new Date(now + parseRetryAfterHeader(now, response.headers.get('Retry-After')));
+          logger.warn(`Too many requests, backing off till: ${this._disabledUntil}`);
+        }
+
+        reject(response);
+      }),
     );
   }
 }

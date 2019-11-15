@@ -1,5 +1,3 @@
-/// <reference lib="dom" />
-
 /**
  * Checks whether given value's type is one of a few Error or Error-like
  * {@link isError}.
@@ -93,7 +91,7 @@ export function isPlainObject(wat: any): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isEvent(wat: any): wat is Event {
+export function isEvent(wat: any): boolean {
   // tslint:disable-next-line:strict-type-predicates
   return typeof Event !== 'undefined' && wat instanceof Event;
 }
@@ -105,7 +103,7 @@ export function isEvent(wat: any): wat is Event {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isElement(wat: any): wat is Element {
+export function isElement(wat: any): boolean {
   // tslint:disable-next-line:strict-type-predicates
   return typeof Element !== 'undefined' && wat instanceof Element;
 }

@@ -1,6 +1,6 @@
 {
   "lerna": "3.4.0",
-  "version": "5.8.0-beta.1",
+  "version": "5.9.0",
   "packages": "packages/*",
   "ignore": "raven-*",
   "npmClient": "yarn",

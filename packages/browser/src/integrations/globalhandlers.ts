@@ -92,7 +92,7 @@ export class GlobalHandlers implements Integration {
         if (self._oldOnErrorHandler) {
           return self._oldOnErrorHandler.apply(this, arguments);
         }
-        return false;
+        return true;
       }
 
       const client = currentHub.getClient();
@@ -121,7 +121,7 @@ export class GlobalHandlers implements Integration {
         return self._oldOnErrorHandler.apply(this, arguments);
       }
 
-      return false;
+      return true;
     };
 
     this._onErrorHandlerInstalled = true;
@@ -152,7 +152,7 @@ export class GlobalHandlers implements Integration {
         if (self._oldOnUnhandledRejectionHandler) {
           return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
         }
-        return false;
+        return true;
       }
 
       const client = currentHub.getClient();
@@ -178,7 +178,7 @@ export class GlobalHandlers implements Integration {
         return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
       }
 
-      return false;
+      return true;
     };
 
     this._onUnhandledRejectionHandlerInstalled = true;
@@ -240,13 +240,17 @@ export class GlobalHandlers implements Integration {
     event.exception.values[0].stacktrace = event.exception.values[0].stacktrace || {};
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames || [];
 
+    const colno = isNaN(parseInt(column, 10)) ? undefined : column;
+    const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
+    const filename = isString(url) && url.length > 0 ? url : getLocationHref();
+
     if (event.exception.values[0].stacktrace.frames.length === 0) {
       event.exception.values[0].stacktrace.frames.push({
-        colno: column,
-        filename: url || getLocationHref(),
+        colno,
+        filename,
         function: '?',
         in_app: true,
-        lineno: line,
+        lineno,
       });
     }
 

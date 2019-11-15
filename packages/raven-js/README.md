@@ -30,5 +30,5 @@ To get started with Raven.js, please see [Installation](https://docs.sentry.io/c
 - [Download](http://ravenjs.com)
 - [Documentation](https://docs.sentry.io/hosted/clients/javascript/)
 - [Bug Tracker](https://github.com/getsentry/raven-js/issues)
-- [IRC](irc://chat.freenode.net/sentry) (chat.freenode.net, #sentry)
+- [Discord](https://discord.gg/ez5KZN7)
 - Follow [@getsentry](https://twitter.com/getsentry) on Twitter for updates
