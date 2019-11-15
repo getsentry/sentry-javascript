@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Coming soon...
 - [hub] feat: Add more span functions (#2161)
 - [integrations] feat: Change `Tracing` integration (#2161)
+- [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
+- [browser] ref: Fix regression with bundle size
 
 ## 5.9.0
 
