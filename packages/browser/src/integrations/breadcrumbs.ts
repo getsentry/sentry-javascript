@@ -30,9 +30,6 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   };
 }
 
-// Dynamic keys like the one below doesn't work with interfaces :(
-// [key in InstrumentHandlerType]?: boolean;
-
 /** JSDoc */
 interface BreadcrumbIntegrations {
   console?: boolean;
@@ -46,7 +43,10 @@ interface BreadcrumbIntegrations {
 
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
 
-/** Default Breadcrumbs instrumentations */
+/**
+ * Default Breadcrumbs instrumentations
+ * @deprecated With v6, this will be renamed
+ */
 export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc

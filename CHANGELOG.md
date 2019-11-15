@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Coming soon...
+- [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
 
 ## 5.9.0
 
