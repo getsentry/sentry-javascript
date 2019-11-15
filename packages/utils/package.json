@@ -16,7 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "5.8.0-beta.1",
+    "@sentry/types": "5.7.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
