@@ -1,4 +1,5 @@
 import { EventProcessor, Hub, Integration, Scope, Span, SpanContext } from '@sentry/types';
+import { getGlobalObject } from '@sentry/utils';
 
 /** JSDoc */
 interface TransactionActivityOptions {
@@ -16,6 +17,8 @@ interface Activity {
   name: string;
   span?: Span;
 }
+
+const global = getGlobalObject<Window>();
 
 /** JSDoc */
 export class TransactionActivity implements Integration {
@@ -51,7 +54,7 @@ export class TransactionActivity implements Integration {
   public constructor(
     public readonly _options: TransactionActivityOptions = {
       idleTimeout: 500,
-      onLocationChange: () => window.location.href,
+      onLocationChange: () => global.location.href,
       patchHistory: true,
       startTransactionOnLocationChange: true,
     },
@@ -66,27 +69,29 @@ export class TransactionActivity implements Integration {
     TransactionActivity._getCurrentHub = getCurrentHub;
     if (this._options.patchHistory) {
       // tslint:disable: no-unsafe-any
-      // tslint:disable-next-line: typedef only-arrow-functions
-      (function(history: any) {
-        const pushState = history.pushState;
+      if (global.history) {
         // tslint:disable-next-line: typedef only-arrow-functions
-        history.pushState = function(state: any) {
-          if (typeof history.onpushstate === 'function') {
-            history.onpushstate({ state });
+        (function(history: any) {
+          const pushState = history.pushState;
+          // tslint:disable-next-line: typedef only-arrow-functions
+          history.pushState = function(state: any) {
+            if (typeof history.onpushstate === 'function') {
+              history.onpushstate({ state });
+            }
+            // ... whatever else you want to do
+            // maybe call onhashchange e.handler
+            return pushState.apply(history, arguments);
+          };
+        })(global.history);
+        global.onpopstate = (history as any).onpushstate = (_state: any) => {
+          if (this._options.startTransactionOnLocationChange) {
+            TransactionActivity.startIdleTransaction(`${global.location.href}`, {
+              op: 'navigation',
+              sampled: true,
+            });
           }
-          // ... whatever else you want to do
-          // maybe call onhashchange e.handler
-          return pushState.apply(history, arguments);
         };
-      })(window.history);
-      window.onpopstate = (history as any).onpushstate = (_state: any) => {
-        if (this._options.startTransactionOnLocationChange) {
-          TransactionActivity.startIdleTransaction(`${window.location.href}`, {
-            op: 'navigation',
-            sampled: true,
-          });
-        }
-      };
+      }
       // tslint:enable: no-unsafe-any
     }
   }
