@@ -24,8 +24,12 @@ export class RewriteFrames implements Integration {
    * @inheritDoc
    */
   private readonly _iteratee: StackFrameIteratee = (frame: StackFrame) => {
-    if (frame.filename && frame.filename.startsWith('/')) {
-      const base = this._root ? relative(this._root, frame.filename) : basename(frame.filename);
+    // Check if the frame filename begins with `/` or a Windows-style prefix such as `C:\\`
+    if (frame.filename && /^(\/|[A-Z]:\\)/.test(frame.filename)) {
+      const filename = frame.filename
+        .replace(/^[A-Z]:/, '') // remove Windows-style prefix
+        .replace(/\\/g, '/'); // replace all `\\` instances with `/`
+      const base = this._root ? relative(this._root, filename) : basename(filename);
       frame.filename = `app:///${base}`;
     }
     return frame;
