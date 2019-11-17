@@ -5,6 +5,7 @@ import { RewriteFrames } from '../src/rewriteframes';
 let rewriteFrames: RewriteFrames;
 let messageEvent: Event;
 let exceptionEvent: Event;
+let windowsExceptionEvent: Event;
 
 describe('RewriteFrames', () => {
   beforeEach(() => {
@@ -38,6 +39,24 @@ describe('RewriteFrames', () => {
         ],
       },
     };
+    windowsExceptionEvent = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'C:\\www\\src\\app\\file1.js',
+                },
+                {
+                  filename: 'C:\\www\\src\\app\\file2.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
   });
 
   describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
@@ -58,6 +77,18 @@ describe('RewriteFrames', () => {
     });
   });
 
+  describe('default iteratee appends basename to `app:///` if frame starts with `C:\\`', () => {
+    beforeEach(() => {
+      rewriteFrames = new RewriteFrames();
+    });
+
+    it('trasforms windowsExceptionEvent frames', () => {
+      const event = rewriteFrames.process(windowsExceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
+    });
+  });
+
   describe('can use custom root to perform `relative` on filepaths', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames({
@@ -73,6 +104,12 @@ describe('RewriteFrames', () => {
 
     it('transforms exceptionEvent frames', () => {
       const event = rewriteFrames.process(exceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('trasforms windowsExceptionEvent frames', () => {
+      const event = rewriteFrames.process(windowsExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
