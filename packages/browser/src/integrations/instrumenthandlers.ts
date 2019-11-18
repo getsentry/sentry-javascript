@@ -103,6 +103,11 @@ function xhrBreadcrumb(handlerData: { [key: string]: any }): void {
  * Creates breadcrumbs from fetch API calls
  */
 function fetchBreadcrumb(handlerData: { [key: string]: any }): void {
+  // We only capture complete fetch requests
+  if (!handlerData.requestComplete) {
+    return;
+  }
+
   const client = getCurrentHub().getClient<BrowserClient>();
   const dsn = client && client.getDsn();
 
