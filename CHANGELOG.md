@@ -3,6 +3,9 @@
 ## Unreleased
 
 - [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
+
+## 5.9.1
+
 - [browser] ref: Fix regression with bundle size
 
 ## 5.9.0
