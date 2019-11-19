@@ -10,6 +10,7 @@ interface TransactionActivityOptions {
    */
   onLocationChange(state: any): string;
   startTransactionOnLocationChange: boolean;
+  tracesSampleRate: number;
 }
 
 /** JSDoc */
@@ -32,6 +33,11 @@ export class TransactionActivity implements Integration {
    */
   public static id: string = 'TransactionActivity';
 
+  /**
+   * Is Tracing enabled, this will be determined once per pageload.
+   */
+  private static _enabled?: boolean;
+
   /** JSDoc */
   private static _options: TransactionActivityOptions;
 
@@ -51,15 +57,18 @@ export class TransactionActivity implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(
-    public readonly _options: TransactionActivityOptions = {
+  public constructor(public readonly _options?: Partial<TransactionActivityOptions>) {
+    const defaults = {
       idleTimeout: 500,
       onLocationChange: () => global.location.href,
       patchHistory: true,
       startTransactionOnLocationChange: true,
-    },
-  ) {
-    TransactionActivity._options = _options;
+      tracesSampleRate: 1,
+    };
+    TransactionActivity._options = {
+      ...defaults,
+      ..._options,
+    };
   }
 
   /**
@@ -67,39 +76,61 @@ export class TransactionActivity implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     TransactionActivity._getCurrentHub = getCurrentHub;
-    if (this._options.patchHistory) {
-      // tslint:disable: no-unsafe-any
-      if (global.history) {
-        // tslint:disable-next-line: typedef only-arrow-functions
-        (function(history: any) {
-          const pushState = history.pushState;
-          // tslint:disable-next-line: typedef only-arrow-functions
-          history.pushState = function(state: any) {
-            if (typeof history.onpushstate === 'function') {
-              history.onpushstate({ state });
-            }
-            // ... whatever else you want to do
-            // maybe call onhashchange e.handler
-            return pushState.apply(history, arguments);
-          };
-        })(global.history);
-        global.onpopstate = (history as any).onpushstate = (_state: any) => {
-          if (this._options.startTransactionOnLocationChange) {
-            TransactionActivity.startIdleTransaction(`${global.location.href}`, {
-              op: 'navigation',
-              sampled: true,
-            });
-          }
-        };
-      }
-      // tslint:enable: no-unsafe-any
+    if (!TransactionActivity._isEnabled()) {
+      return;
     }
+    // `${window.location.href}` will be used a temp transaction name
+    TransactionActivity.startIdleTransaction(`${window.location.href}`, {
+      op: 'pageload',
+      sampled: true,
+    });
+
+    // tslint:disable: no-unsafe-any
+    if (global.history && this._options && this._options.patchHistory) {
+      // tslint:disable-next-line: typedef only-arrow-functions
+      (function(history: any) {
+        const pushState = history.pushState;
+        // tslint:disable-next-line: typedef only-arrow-functions
+        history.pushState = function(state: any) {
+          if (typeof history.onpushstate === 'function') {
+            history.onpushstate({ state });
+          }
+          // ... whatever else you want to do
+          // maybe call onhashchange e.handler
+          return pushState.apply(history, arguments);
+        };
+      })(global.history);
+      global.onpopstate = (history as any).onpushstate = (_state: any) => {
+        if (this._options && this._options.startTransactionOnLocationChange) {
+          TransactionActivity.startIdleTransaction(`${global.location.href}`, {
+            op: 'navigation',
+            sampled: true,
+          });
+        }
+      };
+    }
+    // tslint:enable: no-unsafe-any
+  }
+
+  /**
+   * Is tracing enabled
+   */
+  private static _isEnabled(): boolean {
+    if (TransactionActivity._enabled !== undefined) {
+      return TransactionActivity._enabled;
+    }
+    TransactionActivity._enabled = Math.random() > TransactionActivity._options.tracesSampleRate ? false : true;
+    return TransactionActivity._enabled;
   }
 
   /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
+    if (!TransactionActivity._isEnabled()) {
+      // Tracing is not enabled
+      return undefined;
+    }
     const activeTransaction = TransactionActivity._activeTransaction;
 
     if (activeTransaction) {
@@ -170,6 +201,10 @@ export class TransactionActivity implements Integration {
    * Starts tracking for a specifc activity
    */
   public static pushActivity(name: string, spanContext?: SpanContext): number {
+    if (!TransactionActivity._isEnabled()) {
+      // Tracing is not enabled
+      return 0;
+    }
     const _getCurrentHub = TransactionActivity._getCurrentHub;
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
@@ -192,6 +227,10 @@ export class TransactionActivity implements Integration {
    * Removes activity and finishes the span in case there is one
    */
   public static popActivity(id: number): void {
+    if (!TransactionActivity._isEnabled()) {
+      // Tracing is not enabled
+      return;
+    }
     const activity = TransactionActivity._activities[id];
     if (activity) {
       if (activity.span) {
