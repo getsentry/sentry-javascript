@@ -1,4 +1,4 @@
-minVersion: '0.8.2'
+minVersion: '0.8.4'
 github:
   owner: getsentry
   repo: sentry-javascript
