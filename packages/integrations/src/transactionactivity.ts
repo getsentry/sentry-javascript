@@ -39,7 +39,7 @@ export class TransactionActivity implements Integration {
   private static _enabled?: boolean;
 
   /** JSDoc */
-  private static _options: TransactionActivityOptions;
+  public static options: TransactionActivityOptions;
 
   /**
    * Returns current hub.
@@ -65,7 +65,7 @@ export class TransactionActivity implements Integration {
       startTransactionOnLocationChange: true,
       tracesSampleRate: 1,
     };
-    TransactionActivity._options = {
+    TransactionActivity.options = {
       ...defaults,
       ..._options,
     };
@@ -84,32 +84,6 @@ export class TransactionActivity implements Integration {
       op: 'pageload',
       sampled: true,
     });
-
-    // tslint:disable: no-unsafe-any
-    if (global.history && this._options && this._options.patchHistory) {
-      // tslint:disable-next-line: typedef only-arrow-functions
-      (function(history: any) {
-        const pushState = history.pushState;
-        // tslint:disable-next-line: typedef only-arrow-functions
-        history.pushState = function(state: any) {
-          if (typeof history.onpushstate === 'function') {
-            history.onpushstate({ state });
-          }
-          // ... whatever else you want to do
-          // maybe call onhashchange e.handler
-          return pushState.apply(history, arguments);
-        };
-      })(global.history);
-      global.onpopstate = (history as any).onpushstate = (_state: any) => {
-        if (this._options && this._options.startTransactionOnLocationChange) {
-          TransactionActivity.startIdleTransaction(`${global.location.href}`, {
-            op: 'navigation',
-            sampled: true,
-          });
-        }
-      };
-    }
-    // tslint:enable: no-unsafe-any
   }
 
   /**
@@ -119,7 +93,7 @@ export class TransactionActivity implements Integration {
     if (TransactionActivity._enabled !== undefined) {
       return TransactionActivity._enabled;
     }
-    TransactionActivity._enabled = Math.random() > TransactionActivity._options.tracesSampleRate ? false : true;
+    TransactionActivity._enabled = Math.random() > TransactionActivity.options.tracesSampleRate ? false : true;
     return TransactionActivity._enabled;
   }
 
@@ -169,7 +143,7 @@ export class TransactionActivity implements Integration {
     const id = TransactionActivity.pushActivity('idleTransactionStarted');
     setTimeout(() => {
       TransactionActivity.popActivity(id);
-    }, (TransactionActivity._options && TransactionActivity._options.idleTimeout) || 100);
+    }, (TransactionActivity.options && TransactionActivity.options.idleTimeout) || 100);
 
     return span;
   }
@@ -244,10 +218,116 @@ export class TransactionActivity implements Integration {
     clearTimeout(TransactionActivity._debounce);
 
     if (count === 0) {
-      const timeout = TransactionActivity._options && TransactionActivity._options.idleTimeout;
+      const timeout = TransactionActivity.options && TransactionActivity.options.idleTimeout;
       TransactionActivity._debounce = (setTimeout(() => {
         TransactionActivity.finishIdleTransaction();
       }, timeout) as any) as number;
     }
   }
 }
+
+/**
+ * Creates breadcrumbs from XHR API calls
+ */
+function xhrCallback(handlerData: { [key: string]: any }): void {
+  // tslint:disable: no-unsafe-any
+  if (handlerData.requestComplete && handlerData.xhr.__sentry_xhr_activity_id__) {
+    TransactionActivity.popActivity(handlerData.xhr.__sentry_xhr_activity_id__);
+    return;
+  }
+  // We only capture complete, non-sentry requests
+  if (handlerData.xhr.__sentry_own_request__) {
+    return;
+  }
+
+  const xhr = handlerData.xhr.__sentry_xhr__;
+  handlerData.xhr.__sentry_xhr_activity_id__ = TransactionActivity.pushActivity('xhr', {
+    data: {
+      request_data: xhr.data,
+    },
+    description: `${xhr.method} ${xhr.url}`,
+    op: 'http',
+  });
+  // tslint:enable: no-unsafe-any
+}
+
+/**
+ * Creates breadcrumbs from fetch API calls
+ */
+// function fetchHandler(handlerData: { [key: string]: any }): void {
+//   // We only capture complete fetch requests
+//   if (!handlerData.requestComplete) {
+//     return;
+//   }
+
+// const client = getCurrentHub().getClient<BrowserClient>();
+// const dsn = client && client.getDsn();
+
+// if (dsn) {
+//   const filterUrl = new API(dsn).getStoreEndpoint();
+//   // if Sentry key appears in URL, don't capture it as a request
+//   // but rather as our own 'sentry' type breadcrumb
+//   if (
+//     filterUrl &&
+//     handlerData.fetchData.url.indexOf(filterUrl) !== -1 &&
+//     handlerData.fetchData.method === 'POST' &&
+//     handlerData.args[1] &&
+//     handlerData.args[1].body
+//   ) {
+//     addSentryBreadcrumb(handlerData.args[1].body);
+//     return;
+//   }
+// }
+
+// if (handlerData.error) {
+//   getCurrentHub().addBreadcrumb(
+//     {
+//       category: 'fetch',
+//       data: handlerData.fetchData,
+//       level: Severity.Error,
+//       type: 'http',
+//     },
+//     {
+//       data: handlerData.error,
+//       input: handlerData.args,
+//     },
+//   );
+// } else {
+//   getCurrentHub().addBreadcrumb(
+//     {
+//       category: 'fetch',
+//       data: handlerData.fetchData,
+//       type: 'http',
+//     },
+//     {
+//       input: handlerData.args,
+//       response: handlerData.response,
+//     },
+//   );
+// }
+// }
+
+/**
+ * Creates transaction from navigation changes
+ */
+function historyCallback(_: { [key: string]: any }): void {
+  if (TransactionActivity.options.startTransactionOnLocationChange) {
+    TransactionActivity.startIdleTransaction(global.location.href, {
+      op: 'navigation',
+      sampled: true,
+    });
+  }
+}
+
+const historyHandler = {
+  callback: historyCallback,
+  type: 'history',
+};
+
+const xhrHandler = {
+  callback: xhrCallback,
+  type: 'xhr',
+};
+
+// tslint:disable-next-line: variable-name
+export const TransactionActivityHandlers = [historyHandler, xhrHandler];

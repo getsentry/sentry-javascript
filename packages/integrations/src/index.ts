@@ -10,5 +10,5 @@ export { RewriteFrames } from './rewriteframes';
 export { SessionTiming } from './sessiontiming';
 export { Tracing } from './tracing';
 export { Transaction } from './transaction';
-export { TransactionActivity } from './transactionactivity';
+export { TransactionActivity, TransactionActivityHandlers } from './transactionactivity';
 export { Vue } from './vue';
