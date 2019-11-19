@@ -79,11 +79,13 @@ export class TransactionActivity implements Integration {
     if (!TransactionActivity._isEnabled()) {
       return;
     }
-    // `${window.location.href}` will be used a temp transaction name
-    TransactionActivity.startIdleTransaction(`${window.location.href}`, {
-      op: 'pageload',
-      sampled: true,
-    });
+    if (global.location && global.location.href) {
+      // `${global.location.href}` will be used a temp transaction name
+      TransactionActivity.startIdleTransaction(global.location.href, {
+        op: 'pageload',
+        sampled: true,
+      });
+    }
   }
 
   /**
@@ -92,6 +94,10 @@ export class TransactionActivity implements Integration {
   private static _isEnabled(): boolean {
     if (TransactionActivity._enabled !== undefined) {
       return TransactionActivity._enabled;
+    }
+    // This happens only in test cases where the integration isn't initalized properly
+    if (!TransactionActivity.options || isNaN(TransactionActivity.options.tracesSampleRate)) {
+      return false;
     }
     TransactionActivity._enabled = Math.random() > TransactionActivity.options.tracesSampleRate ? false : true;
     return TransactionActivity._enabled;
