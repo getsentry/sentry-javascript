@@ -45,7 +45,7 @@ type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
 
 /**
  * Default Breadcrumbs instrumentations
- * @deprecated With v6, this will be renamed
+ * TODO: Deprecated - with v6, this will be renamed to `Instrument`
  */
 export class Breadcrumbs implements Integration {
   /**
@@ -255,12 +255,16 @@ export class Breadcrumbs implements Integration {
             method: getFetchMethod(args),
             url: getFetchUrl(args),
           },
+          requestComplete: false,
           startTimestamp: Date.now(),
         };
+
+        triggerHandlers(handlerData);
 
         return originalFetch.apply(global, args).then(
           (response: Response) => {
             handlerData.endTimestamp = Date.now();
+            handlerData.requestComplete = true;
             handlerData.response = response;
             handlerData.fetchData.status_code = response.status;
             triggerHandlers(handlerData);
@@ -268,6 +272,7 @@ export class Breadcrumbs implements Integration {
           },
           (error: Error) => {
             handlerData.endTimestamp = Date.now();
+            handlerData.requestComplete = true;
             handlerData.error = error;
             triggerHandlers(handlerData);
             throw error;
@@ -387,6 +392,7 @@ export class Breadcrumbs implements Integration {
           const handlerData: { [key: string]: any } = {
             args,
             endTimestamp: Date.now(),
+            requestComplete: false,
             startTimestamp: Date.now(),
             xhr,
           };
