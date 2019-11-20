@@ -4,11 +4,6 @@ import { getGlobalObject } from '@sentry/utils';
 /** JSDoc */
 interface TransactionActivityOptions {
   idleTimeout: number;
-  patchHistory: boolean;
-  /**
-   * Called when an history change happend
-   */
-  onLocationChange(state: any): string;
   startTransactionOnLocationChange: boolean;
   tracesSampleRate: number;
 }
@@ -60,8 +55,6 @@ export class TransactionActivity implements Integration {
   public constructor(public readonly _options?: Partial<TransactionActivityOptions>) {
     const defaults = {
       idleTimeout: 500,
-      onLocationChange: () => global.location.href,
-      patchHistory: true,
       startTransactionOnLocationChange: true,
       tracesSampleRate: 1,
     };
