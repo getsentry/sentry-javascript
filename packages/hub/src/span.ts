@@ -210,9 +210,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the tag attribute on the current span
-   * @param key Tag key
-   * @param value Tag value
+   * @inheritDoc
    */
   public setTag(key: string, value: string): this {
     this.tags = { ...this.tags, [key]: value };
@@ -220,9 +218,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
+   * @inheritDoc
    */
   public setData(key: string, value: any): this {
     this.data = { ...this.data, [key]: value };
@@ -230,9 +226,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
+   * @inheritDoc
    */
   public setFailure(): this {
     this.setTag('status', 'failure');
@@ -240,9 +234,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
+   * @inheritDoc
    */
   public setSuccess(): this {
     this.setTag('status', 'success');
@@ -250,9 +242,7 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
+   * @inheritDoc
    */
   public isSuccess(): boolean {
     return this.tags.status !== 'failure';

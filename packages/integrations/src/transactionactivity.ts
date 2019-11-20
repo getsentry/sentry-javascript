@@ -214,7 +214,7 @@ export class TransactionActivity implements Integration {
   /**
    * Removes activity and finishes the span in case there is one
    */
-  public static popActivity(id: number): void {
+  public static popActivity(id: number, spanData?: { [key: string]: any }): void {
     if (!TransactionActivity._isEnabled()) {
       // Tracing is not enabled
       return;
@@ -222,8 +222,14 @@ export class TransactionActivity implements Integration {
 
     const activity = TransactionActivity._activities[id];
     if (activity) {
-      if (activity.span) {
-        activity.span.finish();
+      const span = activity.span;
+      if (span) {
+        if (spanData) {
+          Object.keys(spanData).forEach((key: string) => {
+            span.setData(key, spanData[key]);
+          });
+        }
+        span.finish();
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete TransactionActivity._activities[id];
@@ -247,7 +253,7 @@ export class TransactionActivity implements Integration {
 function xhrCallback(handlerData: { [key: string]: any }): void {
   // tslint:disable: no-unsafe-any
   if (handlerData.requestComplete && handlerData.xhr.__sentry_xhr_activity_id__) {
-    TransactionActivity.popActivity(handlerData.xhr.__sentry_xhr_activity_id__);
+    TransactionActivity.popActivity(handlerData.xhr.__sentry_xhr_activity_id__, handlerData.xhr.__sentry_xhr__);
     return;
   }
   // We only capture complete, non-sentry requests

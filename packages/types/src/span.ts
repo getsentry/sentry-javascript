@@ -8,6 +8,41 @@ export interface Span {
   getTraceContext(): object;
   /** Convert the object to JSON */
   toJSON(): object;
+
+  /**
+   * Sets the tag attribute on the current span
+   * @param key Tag key
+   * @param value Tag value
+   */
+  setTag(key: string, value: string): this;
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  setData(key: string, value: any): this;
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  setFailure(): this;
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  setSuccess(): this;
+
+  /**
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   */
+  isSuccess(): boolean;
 }
 
 /** Interface holder all properties that can be set on a Span on creation. */
