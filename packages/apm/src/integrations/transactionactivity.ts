@@ -56,6 +56,7 @@ export class TransactionActivity implements Integration {
    * @inheritDoc
    */
   public constructor(public readonly _options?: Partial<TransactionActivityOptions>) {
+    // TODO
     makeMain(new Hub());
     const defaults = {
       idleTimeout: 500,

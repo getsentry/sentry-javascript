@@ -38,6 +38,7 @@ export class Tracing implements Integration {
    * @param _options TracingOptions
    */
   public constructor(private readonly _options: TracingOptions = {}) {
+    // TODO
     makeMain(new Hub());
     if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
       const defaultTracingOrigins = ['localhost', /^\//];

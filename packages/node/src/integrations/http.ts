@@ -1,5 +1,7 @@
-import { getCurrentHub, Span } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { Hub } from '@sentry/apm';
+import { getCurrentHub } from '@sentry/core';
+import { makeMain } from '@sentry/hub';
+import { Integration, Span } from '@sentry/types';
 import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -31,6 +33,8 @@ export class Http implements Integration {
    * @inheritDoc
    */
   public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
+    // TODO
+    makeMain(new Hub());
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
   }
@@ -80,10 +84,14 @@ function createHandlerWrapper(
 
       let span: Span;
       if (tracingEnabled) {
-        span = getCurrentHub().startSpan({
-          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
-          op: 'request',
-        });
+        // TODO
+        const hub = (getCurrentHub() as unknown) as Hub;
+        if (hub.startSpan) {
+          span = hub.startSpan({
+            description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
+            op: 'request',
+          });
+        }
       }
 
       return originalHandler
@@ -93,7 +101,7 @@ function createHandlerWrapper(
             addRequestBreadcrumb('response', requestUrl, this, res);
           }
           // TODO: Mark >= 500 as failed as well?
-          if (tracingEnabled) {
+          if (tracingEnabled && span) {
             span.setSuccess();
             span.finish();
           }
@@ -102,7 +110,7 @@ function createHandlerWrapper(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('error', requestUrl, this);
           }
-          if (tracingEnabled) {
+          if (tracingEnabled && span) {
             span.setFailure();
             span.finish();
           }
