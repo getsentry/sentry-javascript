@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration, Scope, Span, SpanContext } from '@sentry/types';
+import { EventProcessor, Hub, Integration, Span, SpanContext } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 /** JSDoc */
