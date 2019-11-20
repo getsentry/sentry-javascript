@@ -96,7 +96,8 @@ export class TransactionActivity implements Integration {
       return TransactionActivity._enabled;
     }
     // This happens only in test cases where the integration isn't initalized properly
-    if (!TransactionActivity.options || isNaN(TransactionActivity.options.tracesSampleRate)) {
+    // tslint:disable-next-line: strict-type-predicates
+    if (!TransactionActivity.options || typeof TransactionActivity.options.tracesSampleRate !== 'number') {
       return false;
     }
     TransactionActivity._enabled = Math.random() > TransactionActivity.options.tracesSampleRate ? false : true;
@@ -111,6 +112,7 @@ export class TransactionActivity implements Integration {
       // Tracing is not enabled
       return undefined;
     }
+
     const activeTransaction = TransactionActivity._activeTransaction;
 
     if (activeTransaction) {
@@ -140,9 +142,11 @@ export class TransactionActivity implements Integration {
 
     TransactionActivity._activeTransaction = span;
 
-    hub.configureScope((scope: Scope) => {
-      scope.setSpan(span);
-    });
+    // We need to do this workaround here and not use configureScope
+    // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
+    // therefore configureScope wouldn't be executed and we would miss setting the transaction
+    // tslint:disable-next-line: no-unsafe-any
+    (hub as any).getScope().setSpan(span);
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -185,6 +189,10 @@ export class TransactionActivity implements Integration {
       // Tracing is not enabled
       return 0;
     }
+
+    // We want to clear the timeout also here since we push a new activity
+    clearTimeout(TransactionActivity._debounce);
+
     const _getCurrentHub = TransactionActivity._getCurrentHub;
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
@@ -211,6 +219,7 @@ export class TransactionActivity implements Integration {
       // Tracing is not enabled
       return;
     }
+
     const activity = TransactionActivity._activities[id];
     if (activity) {
       if (activity.span) {
