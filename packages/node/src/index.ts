@@ -30,8 +30,6 @@ export {
   setTag,
   setTags,
   setUser,
-  startSpan,
-  Span,
   withScope,
 } from '@sentry/core';
 

@@ -1,9 +1,10 @@
 // tslint:disable:max-classes-per-file
 
+import { getCurrentHub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
-import { getCurrentHub, Hub } from './hub';
+import { Hub } from './hub';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -54,7 +55,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub = getCurrentHub();
+  private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
 
   /**
    * @inheritDoc

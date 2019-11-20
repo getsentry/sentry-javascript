@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity, Span, SpanContext, User } from '@sentry/types';
+import { Breadcrumb, Event, Severity, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -166,14 +166,4 @@ export function withScope(callback: (scope: Scope) => void): void {
  */
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
-}
-
-/**
- * This functions starts a span. If just a `SpanContext` is passed and there is already a Span
- * on the Scope, the created Span will have a reference to the one on the Scope.
- *
- * @param spanContext Properties with which the span should be created
- */
-export function startSpan(spanContext?: SpanContext): Span {
-  return callOnHub<Span>('startSpan', spanContext);
 }

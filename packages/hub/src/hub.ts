@@ -8,7 +8,6 @@ import {
   Integration,
   IntegrationClass,
   Severity,
-  SpanContext,
   User,
 } from '@sentry/types';
 import {
@@ -23,7 +22,6 @@ import {
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
-import { Span } from './span';
 
 declare module 'domain' {
   export let active: Domain;
@@ -33,14 +31,6 @@ declare module 'domain' {
   export interface Domain {
     __SENTRY__?: Carrier;
   }
-}
-
-/**
- * Checks whether given value is instance of Span
- * @param span value to check
- */
-function isSpanInstance(span: unknown): span is Span {
-  return span instanceof Span;
 }
 
 /**
@@ -384,56 +374,6 @@ export class Hub implements HubInterface {
       logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public traceHeaders(): { [key: string]: string } {
-    const scope = this.getScope();
-    if (scope) {
-      const span = scope.getSpan();
-      if (span) {
-        return {
-          'sentry-trace': span.toTraceparent(),
-        };
-      }
-    }
-    return {};
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
-    const scope = this.getScope();
-    const client = this.getClient();
-    let span;
-
-    if (!isSpanInstance(spanOrSpanContext) && !forceNoChild) {
-      if (scope) {
-        const parentSpan = scope.getSpan();
-        if (parentSpan) {
-          span = parentSpan.child(spanOrSpanContext);
-        }
-      }
-    }
-
-    if (!isSpanInstance(span)) {
-      span = new Span(spanOrSpanContext, this);
-    }
-
-    if (span.sampled === undefined && span.transaction !== undefined) {
-      const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
-      span.sampled = Math.random() < sampleRate;
-    }
-
-    if (span.sampled) {
-      const experimentsOptions = (client && client.getOptions()._experiments) || {};
-      span.initFinishedSpans(experimentsOptions.maxSpans);
-    }
-
-    return span;
   }
 }
 

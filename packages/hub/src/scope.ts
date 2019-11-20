@@ -1,7 +1,14 @@
-import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
+import {
+  Breadcrumb,
+  Event,
+  EventHint,
+  EventProcessor,
+  Scope as ScopeInterface,
+  Severity,
+  Span,
+  User,
+} from '@sentry/types';
 import { getGlobalObject, isThenable, normalize, SyncPromise, timestampWithMs } from '@sentry/utils';
-
-import { Span } from './span';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be

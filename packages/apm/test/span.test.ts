@@ -1,4 +1,6 @@
-import { Hub, Scope, Span, TRACEPARENT_REGEXP } from '../src';
+import { Scope } from '@sentry/hub';
+
+import { Hub, Span, TRACEPARENT_REGEXP } from '../src';
 
 describe('Span', () => {
   let hub: Hub;

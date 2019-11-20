@@ -1,7 +1,9 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { EventProcessor, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+
+import { Hub } from '../hub';
 
 /**
  * Express integration
@@ -37,7 +39,7 @@ export class Express implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._app) {
-      logger.error('ExpressIntegration is missing an Express instancex');
+      logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
     instrumentMiddlewares(this._app, getCurrentHub);

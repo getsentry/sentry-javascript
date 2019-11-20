@@ -18,6 +18,7 @@
     "yarn": "1.13.0"
   },
   "workspaces": [
+    "packages/apm",
     "packages/browser",
     "packages/core",
     "packages/hub",

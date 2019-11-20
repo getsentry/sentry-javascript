@@ -1092,6 +1092,37 @@
     universal-user-agent "^2.0.0"
     url-template "^2.0.8"
 
+"@sentry/hub@5.10.0-beta.3":
+  version "5.10.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@sentry/hub/-/hub-5.10.0-beta.3.tgz#12ac48561411ca8be6be3191b8b43e73a7eda68c"
+  integrity sha512-zCw/lOaNskP4bDUBSMK5h5Mvb9cYAZI0LmlCGNHLpd+82R5+VUCzZBMlcAnaQHfXoTc2hPITK+A29YeC8PvJxQ==
+  dependencies:
+    "@sentry/types" "5.10.0-beta.3"
+    "@sentry/utils" "5.10.0-beta.3"
+    tslib "^1.9.3"
+
+"@sentry/minimal@5.10.0-beta.3":
+  version "5.10.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@sentry/minimal/-/minimal-5.10.0-beta.3.tgz#51d0ecff4863a04082f2b4d907016edfa5a85d69"
+  integrity sha512-V+Ln8QHkGJeEWEVXqjD8wrfR5vBcdlOcUmDXOq60UDbBF8i6PsPoKsO8xHnIY8wQUmN4/aV301tc0r2uaswX5g==
+  dependencies:
+    "@sentry/hub" "5.10.0-beta.3"
+    "@sentry/types" "5.10.0-beta.3"
+    tslib "^1.9.3"
+
+"@sentry/types@5.10.0-beta.3":
+  version "5.10.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.10.0-beta.3.tgz#f34b81e5b1286147e5ba173baea23897f2def6e3"
+  integrity sha512-4CmlpvuUkhPc4JLrxp4z8W/N4XP6xTbsDx9rNYbUebWDgbHfz+vbbTJihMWzpZU7V4/YM+P8ik2Dgaflb5uAdw==
+
+"@sentry/utils@5.10.0-beta.3":
+  version "5.10.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-5.10.0-beta.3.tgz#a327e4e5d90b547b918e2ed743ae51ef1a11fadf"
+  integrity sha512-frcC6C94LTXa8M8aiAjJ9mebhY1N90/VY+ouHwYcivUQRlz3zKdfEOPO9+uEeZP3hhddvljk3Ke0K9z8JgDTFQ==
+  dependencies:
+    "@sentry/types" "5.10.0-beta.3"
+    tslib "^1.9.3"
+
 "@sinonjs/commons@^1", "@sinonjs/commons@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.4.0.tgz#7b3ec2d96af481d7a0321252e7b1c94724ec5a78"

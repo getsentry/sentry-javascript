@@ -1,4 +1,4 @@
-import { TransactionActivity } from '../src/transactionactivity';
+import { TransactionActivity } from '../src/integrations/transactionactivity';
 
 const transactionActivity: TransactionActivity = new TransactionActivity();
 
