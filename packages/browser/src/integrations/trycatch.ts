@@ -1,5 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getGlobalObject } from '@sentry/utils';
+import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
@@ -171,18 +171,5 @@ export class TryCatch implements Integration {
       'XMLHttpRequestEventTarget',
       'XMLHttpRequestUpload',
     ].forEach(this._wrapEventTarget.bind(this));
-  }
-}
-
-/**
- * Safely extract function name from itself
- */
-function getFunctionName(fn: any): string {
-  try {
-    return (fn && fn.name) || '<anonymous>';
-  } catch (e) {
-    // Just accessing custom props in some Selenium environments
-    // can cause a "Permission denied" exception (see raven-js#495).
-    return '<anonymous>';
   }
 }

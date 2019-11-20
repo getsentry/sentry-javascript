@@ -3,7 +3,15 @@
 
 import { API, getCurrentHub } from '@sentry/core';
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getGlobalObject, isString, logger, supportsHistory, supportsNativeFetch } from '@sentry/utils';
+import {
+  fill,
+  getFunctionName,
+  getGlobalObject,
+  isString,
+  logger,
+  supportsHistory,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 import { breadcrumbEventHandler, keypressEventHandler, wrap } from '../helpers';
@@ -113,8 +121,9 @@ export class Breadcrumbs implements Integration {
         handler(data);
       } catch (e) {
         logger.error(
-          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${handler.name ||
-            '<anonymous>'}\nError: ${e}`,
+          `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(
+            handler,
+          )}\nError: ${e}`,
         );
       }
     }
@@ -346,7 +355,7 @@ export class Breadcrumbs implements Integration {
             mechanism: {
               data: {
                 function: prop,
-                handler: (original && original.name) || '<anonymous>',
+                handler: getFunctionName(original),
               },
               handled: true,
               type: 'instrument',
@@ -432,7 +441,7 @@ export class Breadcrumbs implements Integration {
                   mechanism: {
                     data: {
                       function: 'onreadystatechange',
-                      handler: (original && original.name) || '<anonymous>',
+                      handler: getFunctionName(original),
                     },
                     handled: true,
                     type: 'instrument',
