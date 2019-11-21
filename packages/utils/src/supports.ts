@@ -179,4 +179,3 @@ export function supportsHistory(): boolean {
 
   return !isChromePackagedApp && hasHistoryApi;
 }
-3
