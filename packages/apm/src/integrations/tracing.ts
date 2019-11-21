@@ -432,7 +432,8 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
 
   handlerData.xhr.__sentry_xhr_activity_id__ = Tracing.pushActivity('xhr', {
     data: {
-      request_data: xhr.data,
+      ...xhr.data,
+      type: 'xhr',
     },
     description: `${xhr.method} ${xhr.url}`,
     op: 'http',
@@ -443,58 +444,30 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
 /**
  * Creates breadcrumbs from fetch API calls
  */
-// function fetchHandler(handlerData: { [key: string]: any }): void {
-//   // We only capture complete fetch requests
-//   if (!handlerData.requestComplete) {
-//     return;
-//   }
+function fetchCallback(handlerData: { [key: string]: any }): void {
+  // tslint:disable: no-unsafe-any
+  if (!Tracing.options.traceFetch) {
+    return;
+  }
 
-// const client = getCurrentHub().getClient<BrowserClient>();
-// const dsn = client && client.getDsn();
+  if (handlerData.requestComplete && handlerData.__activity) {
+    Tracing.popActivity(handlerData.__activity, handlerData.fetchData);
+  } else {
+    handlerData.__activity = Tracing.pushActivity('fetch', {
+      data: {
+        ...handlerData.fetchData,
+        type: 'fetch',
+      },
+      description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
+      op: 'http',
+    });
+  }
 
-// if (dsn) {
-//   const filterUrl = new API(dsn).getStoreEndpoint();
-//   // if Sentry key appears in URL, don't capture it as a request
-//   // but rather as our own 'sentry' type breadcrumb
-//   if (
-//     filterUrl &&
-//     handlerData.fetchData.url.indexOf(filterUrl) !== -1 &&
-//     handlerData.fetchData.method === 'POST' &&
-//     handlerData.args[1] &&
-//     handlerData.args[1].body
-//   ) {
-//     addSentryBreadcrumb(handlerData.args[1].body);
-//     return;
-//   }
-// }
-
-// if (handlerData.error) {
-//   getCurrentHub().addBreadcrumb(
-//     {
-//       category: 'fetch',
-//       data: handlerData.fetchData,
-//       level: Severity.Error,
-//       type: 'http',
-//     },
-//     {
-//       data: handlerData.error,
-//       input: handlerData.args,
-//     },
-//   );
-// } else {
-//   getCurrentHub().addBreadcrumb(
-//     {
-//       category: 'fetch',
-//       data: handlerData.fetchData,
-//       type: 'http',
-//     },
-//     {
-//       input: handlerData.args,
-//       response: handlerData.response,
-//     },
-//   );
-// }
-// }
+  // if (handlerData.error) {
+  // } else {
+  // }
+  // tslint:enable: no-unsafe-any
+}
 
 /**
  * Creates transaction from navigation changes
@@ -518,5 +491,10 @@ const xhrHandler = {
   type: 'xhr',
 };
 
+const fetchHandler = {
+  callback: fetchCallback,
+  type: 'fetch',
+};
+
 // tslint:disable-next-line: variable-name
-export const TracingHandlers = [historyHandler, xhrHandler];
+export const TracingHandlers = [historyHandler, xhrHandler, fetchHandler];
