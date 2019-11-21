@@ -1,7 +1,5 @@
-import { EventProcessor, Integration, Span, SpanContext } from '@sentry/types';
+import { EventProcessor, Hub, Integration, Span, SpanContext } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
-
-import { Hub, makeApmHubMain } from '../hub';
 
 /** JSDoc */
 interface TransactionActivityOptions {
@@ -55,7 +53,6 @@ export class TransactionActivity implements Integration {
    * @inheritDoc
    */
   public constructor(public readonly _options?: Partial<TransactionActivityOptions>) {
-    makeApmHubMain();
     const defaults = {
       idleTimeout: 500,
       startTransactionOnLocationChange: true,

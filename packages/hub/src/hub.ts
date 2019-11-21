@@ -8,6 +8,8 @@ import {
   Integration,
   IntegrationClass,
   Severity,
+  Span,
+  SpanContext,
   User,
 } from '@sentry/types';
 import {
@@ -375,12 +377,41 @@ export class Hub implements HubInterface {
       return null;
     }
   }
+
+  /**
+   * @inheritdoc
+   */
+  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
+    return this._callExtensionMethod<Span>('startSpan', spanOrSpanContext, forceNoChild);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public traceHeaders(): { [key: string]: string } {
+    return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
+  }
+
+  /**
+   * Calls global extension method and binding current instance to the function call
+   */
+  // @ts-ignore
+  private _callExtensionMethod<T>(method: string, ...args: any[]): T {
+    const carrier = getMainCarrier();
+    const sentry = carrier.__SENTRY__;
+    // tslint:disable-next-line: strict-type-predicates
+    if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+      return sentry.extensions[method].apply(this, args);
+    }
+    logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
+  }
 }
 
 /** Returns the global shim registry. */
 export function getMainCarrier(): Carrier {
   const carrier = getGlobalObject();
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
+    extensions: {},
     hub: undefined,
   };
   return carrier;

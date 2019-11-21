@@ -1,5 +1,8 @@
+import { addExtensionMethods } from './hubextensions';
 import * as ApmIntegrations from './integrations';
 
-export { Hub, makeApmHubMain as makeMain } from './hub';
 export { ApmIntegrations as Integrations };
 export { Span, TRACEPARENT_REGEXP } from './span';
+
+// We are patching the global object with our hub extension methods
+addExtensionMethods();

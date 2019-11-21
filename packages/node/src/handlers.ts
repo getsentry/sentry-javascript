@@ -1,4 +1,4 @@
-import { Hub, Span } from '@sentry/apm';
+import { Span } from '@sentry/apm';
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event } from '@sentry/types';
 import { forget, isString, logger, normalize } from '@sentry/utils';
@@ -31,24 +31,23 @@ export function tracingHandler(): (
     // but `req.path` or `req.url` should do the job as well. We could unify this here.
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = req.url;
-    // TODO
-    const hub = (getCurrentHub() as unknown) as Hub;
-    if (hub.startSpan) {
-      const transaction = hub.startSpan({
-        transaction: `${reqMethod}|${reqUrl}`,
-      });
-      hub.configureScope(scope => {
-        scope.setSpan(transaction);
-      });
-      res.once('finish', () => {
-        if (res.statusCode >= 500) {
-          transaction.setFailure();
-        } else {
-          transaction.setSuccess();
-        }
-        transaction.finish();
-      });
-    }
+
+    const hub = getCurrentHub();
+    const transaction = hub.startSpan({
+      transaction: `${reqMethod}|${reqUrl}`,
+    });
+    hub.configureScope(scope => {
+      scope.setSpan(transaction);
+    });
+    res.once('finish', () => {
+      if (res.statusCode >= 500) {
+        transaction.setFailure();
+      } else {
+        transaction.setSuccess();
+      }
+      transaction.finish();
+    });
+
     next();
   };
 }

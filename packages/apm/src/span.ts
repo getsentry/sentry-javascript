@@ -1,10 +1,8 @@
 // tslint:disable:max-classes-per-file
 
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { logger, timestampWithMs, uuid4 } from '@sentry/utils';
-
-import { Hub } from './hub';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace

@@ -1,6 +1,4 @@
-import { Hub } from '@sentry/apm';
 import { getCurrentHub } from '@sentry/core';
-import { makeMain } from '@sentry/hub';
 import { Integration, Span } from '@sentry/types';
 import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
@@ -33,8 +31,6 @@ export class Http implements Integration {
    * @inheritDoc
    */
   public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
-    // TODO
-    makeMain(new Hub());
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
   }
@@ -85,13 +81,11 @@ function createHandlerWrapper(
       let span: Span;
       if (tracingEnabled) {
         // TODO
-        const hub = (getCurrentHub() as unknown) as Hub;
-        if (hub.startSpan) {
-          span = hub.startSpan({
-            description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
-            op: 'request',
-          });
-        }
+        const hub = getCurrentHub();
+        span = hub.startSpan({
+          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
+          op: 'request',
+        });
       }
 
       return originalHandler

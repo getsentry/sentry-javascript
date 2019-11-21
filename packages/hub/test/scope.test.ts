@@ -1,7 +1,7 @@
 import { Event, EventHint, Severity } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
-import { addGlobalEventProcessor, Scope, Span } from '../src';
+import { addGlobalEventProcessor, Scope } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {
@@ -111,13 +111,13 @@ describe('Scope', () => {
   describe('span', () => {
     test('set', () => {
       const scope = new Scope();
-      const span = new Span({});
+      const span = { fake: 'span' } as any;
       scope.setSpan(span);
       expect((scope as any)._span).toEqual(span);
     });
     test('unset', () => {
       const scope = new Scope();
-      scope.setSpan(new Span({}));
+      scope.setSpan({ fake: 'span' } as any);
       scope.setSpan();
       expect((scope as any)._span).toEqual(undefined);
     });

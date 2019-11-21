@@ -19,5 +19,9 @@ export interface Layer {
 export interface Carrier {
   __SENTRY__?: {
     hub?: Hub;
+    /**
+     * These are extension methods for the hub, the current instance of the hub will be bound to it
+     */
+    extensions?: { [key: string]: Function };
   };
 }
