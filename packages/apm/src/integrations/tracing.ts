@@ -1,8 +1,7 @@
-import { makeMain } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, getGlobalObject, isMatchingPattern, logger, supportsNativeFetch } from '@sentry/utils';
 
-import { Hub } from '../hub';
+import { Hub, makeApmHubMain } from '../hub';
 
 /** JSDoc */
 interface TracingOptions {
@@ -38,8 +37,7 @@ export class Tracing implements Integration {
    * @param _options TracingOptions
    */
   public constructor(private readonly _options: TracingOptions = {}) {
-    // TODO
-    makeMain(new Hub());
+    makeApmHubMain();
     if (!Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
       const defaultTracingOrigins = ['localhost', /^\//];
       logger.warn(

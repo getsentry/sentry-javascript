@@ -1,4 +1,4 @@
-import { Hub as BaseHub } from '@sentry/hub';
+import { getCurrentHub, Hub as BaseHub, makeMain } from '@sentry/hub';
 import { Hub as BaseHubInterface, SpanContext } from '@sentry/types';
 
 import { Span } from './span';
@@ -81,4 +81,12 @@ export class Hub extends BaseHub implements ApmHubInterface {
 
     return span;
   }
+}
+
+/**
+ * This will make the APM Hub the main one while maintaining the client and scope of the current hub
+ */
+export function makeApmHubMain(): void {
+  const hub = getCurrentHub();
+  makeMain(new Hub(hub.getClient(), hub.getScope()));
 }

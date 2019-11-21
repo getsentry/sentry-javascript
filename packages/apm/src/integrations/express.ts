@@ -3,7 +3,7 @@ import { logger } from '@sentry/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
 
-import { Hub } from '../hub';
+import { Hub, makeApmHubMain } from '../hub';
 
 /**
  * Express integration
@@ -32,6 +32,7 @@ export class Express implements Integration {
    */
   public constructor(options: { app?: Application } = {}) {
     this._app = options.app;
+    makeApmHubMain();
   }
 
   /**
