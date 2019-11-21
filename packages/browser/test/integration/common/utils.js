@@ -20,28 +20,7 @@ function supportsNativeFetch() {
     return false;
   }
 
-  function isNativeFunc(func) {
-    return func.toString().indexOf("native") !== -1;
-  }
-
-  var result = null;
-  if (window.document) {
-    var sandbox = window.document.createElement("iframe");
-    sandbox.hidden = true;
-    try {
-      window.document.head.appendChild(sandbox);
-      if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
-        result = isNativeFunc(sandbox.contentWindow.fetch);
-      }
-      window.document.head.removeChild(sandbox);
-    } catch (o_O) {}
-  }
-
-  if (result === null) {
-    result = isNativeFunc(window.fetch);
-  }
-
-  return result;
+  return /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(window.fetch.toString());
 }
 
 function supportsOnunhandledRejection() {
