@@ -6,6 +6,13 @@ interface TracingOptions {
   tracingOrigins: Array<string | RegExp>;
   traceFetch: boolean;
   traceXHR: boolean;
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * By default it uses the `tracingOrigins` options as a url match.
+   */
+  shouldCreateSpanForRequest(url: string): boolean;
   idleTimeout: number;
   startTransactionOnLocationChange: boolean;
   tracesSampleRate: number;
@@ -70,6 +77,10 @@ export class Tracing implements Integration {
     const defaultTracingOrigins = ['localhost', /^\//];
     const defaults = {
       idleTimeout: 500,
+      shouldCreateSpanForRequest(url: string): boolean {
+        const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
+        return origins.some((origin: string | RegExp) => isMatchingPattern(url, origin));
+      },
       startTransactionOnLocationChange: true,
       traceFetch: true,
       traceXHR: true,
@@ -393,17 +404,32 @@ export class Tracing implements Integration {
  * Creates breadcrumbs from XHR API calls
  */
 function xhrCallback(handlerData: { [key: string]: any }): void {
-  // tslint:disable: no-unsafe-any
-  if (handlerData.requestComplete && handlerData.xhr.__sentry_xhr_activity_id__) {
-    Tracing.popActivity(handlerData.xhr.__sentry_xhr_activity_id__, handlerData.xhr.__sentry_xhr__);
+  if (!Tracing.options.traceXHR) {
     return;
   }
+
+  // tslint:disable-next-line: no-unsafe-any
+  if (!handlerData || !handlerData.xhr || !handlerData.xhr.__sentry_xhr__) {
+    return;
+  }
+
+  // tslint:disable: no-unsafe-any
+  const xhr = handlerData.xhr.__sentry_xhr__;
+
+  if (!Tracing.options.shouldCreateSpanForRequest(xhr.url)) {
+    return;
+  }
+
   // We only capture complete, non-sentry requests
   if (handlerData.xhr.__sentry_own_request__) {
     return;
   }
 
-  const xhr = handlerData.xhr.__sentry_xhr__;
+  if (handlerData.requestComplete && handlerData.xhr.__sentry_xhr_activity_id__) {
+    Tracing.popActivity(handlerData.xhr.__sentry_xhr_activity_id__, handlerData.xhr.__sentry_xhr__);
+    return;
+  }
+
   handlerData.xhr.__sentry_xhr_activity_id__ = Tracing.pushActivity('xhr', {
     data: {
       request_data: xhr.data,
