@@ -37,7 +37,6 @@ export function wrap(
   fn: WrappedFunction,
   options: {
     mechanism?: Mechanism;
-    capture?: boolean;
   } = {},
   before?: WrappedFunction,
 ): any {
@@ -64,15 +63,15 @@ export function wrap(
   }
 
   const sentryWrapped: WrappedFunction = function(this: any): void {
-    // tslint:disable-next-line:strict-type-predicates
-    if (before && typeof before === 'function') {
-      before.apply(this, arguments);
-    }
-
     const args = Array.prototype.slice.call(arguments);
 
     // tslint:disable:no-unsafe-any
     try {
+      // tslint:disable-next-line:strict-type-predicates
+      if (before && typeof before === 'function') {
+        before.apply(this, arguments);
+      }
+
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
@@ -82,7 +81,6 @@ export function wrap(
         //       is expected behavior and NOT indicative of a bug with sentry.javascript.
         return fn.handleEvent.apply(this, wrappedArguments);
       }
-
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means the sentry.javascript SDK caught an error invoking your application code. This

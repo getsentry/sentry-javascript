@@ -14,7 +14,7 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
-import { breadcrumbEventHandler, keypressEventHandler, wrap } from '../helpers';
+import { breadcrumbEventHandler, keypressEventHandler } from '../helpers';
 
 import {
   defaultHandlers,
@@ -48,8 +48,6 @@ interface BreadcrumbIntegrations {
   xhr?: boolean;
   handlers?: InstrumentHandler[];
 }
-
-type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
 
 /**
  * Default Breadcrumbs instrumentations
@@ -343,121 +341,81 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
+    const xhrproto = XMLHttpRequest.prototype;
     const triggerHandlers = this._triggerHandlers.bind(this, 'xhr');
 
-    /**
-     * @hidden
-     */
-    function wrapProp(prop: XMLHttpRequestProp, xhr: XMLHttpRequest): void {
-      if (prop in xhr && typeof xhr[prop] === 'function') {
-        fill(xhr, prop, original =>
-          wrap(original, {
-            mechanism: {
-              data: {
-                function: prop,
-                handler: getFunctionName(original),
-              },
-              handled: true,
-              type: 'instrument',
-            },
-          }),
-        );
-      }
-    }
+    fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
+      return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+        const url = args[1];
+        this.__sentry_xhr__ = {
+          method: isString(args[0]) ? args[0].toUpperCase() : args[0],
+          url: args[1],
+        };
 
-    const xhrproto = XMLHttpRequest.prototype;
-    fill(
-      xhrproto,
-      'open',
-      originalOpen =>
-        function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-          const url = args[1];
-          this.__sentry_xhr__ = {
-            method: isString(args[0]) ? args[0].toUpperCase() : args[0],
-            url: args[1],
-          };
-
-          const client = getCurrentHub().getClient<BrowserClient>();
-          const dsn = client && client.getDsn();
-          if (dsn) {
-            const filterUrl = new API(dsn).getStoreEndpoint();
-            // if Sentry key appears in URL, don't capture it as a request
-            // but rather as our own 'sentry' type breadcrumb
-            if (isString(url) && (filterUrl && url.indexOf(filterUrl) !== -1)) {
-              this.__sentry_own_request__ = true;
-            }
+        const client = getCurrentHub().getClient<BrowserClient>();
+        const dsn = client && client.getDsn();
+        if (dsn) {
+          const filterUrl = new API(dsn).getStoreEndpoint();
+          // if Sentry key appears in URL, don't capture it as a request
+          // but rather as our own 'sentry' type breadcrumb
+          if (isString(url) && (filterUrl && url.indexOf(filterUrl) !== -1)) {
+            this.__sentry_own_request__ = true;
           }
+        }
 
-          return originalOpen.apply(this, args);
-        },
-    );
+        return originalOpen.apply(this, args);
+      };
+    });
 
-    fill(
-      xhrproto,
-      'send',
-      originalSend =>
-        function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-          const xhr = this; // tslint:disable-line:no-this-assignment
-          const handlerData: { [key: string]: any } = {
-            args,
-            endTimestamp: Date.now(),
-            requestComplete: false,
-            startTimestamp: Date.now(),
-            xhr,
-          };
+    fill(xhrproto, 'send', function(originalSend: () => void): () => void {
+      return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+        const xhr = this; // tslint:disable-line:no-this-assignment
+        const handlerData: { [key: string]: any } = {
+          args,
+          endTimestamp: Date.now(),
+          requestComplete: false,
+          startTimestamp: Date.now(),
+          xhr,
+        };
 
-          triggerHandlers(handlerData);
+        triggerHandlers(handlerData);
 
-          /**
-           * @hidden
-           */
-          function onreadystatechangeHandler(): void {
-            if (xhr.readyState === 4) {
-              try {
-                // touching statusCode in some platforms throws
-                // an exception
-                if (xhr.__sentry_xhr__) {
-                  xhr.__sentry_xhr__.status_code = xhr.status;
-                }
-              } catch (e) {
-                /* do nothing */
+        /**
+         * @hidden
+         */
+        function onreadystatechangeHandler(): void {
+          if (xhr.readyState === 4) {
+            try {
+              // touching statusCode in some platforms throws
+              // an exception
+              if (xhr.__sentry_xhr__) {
+                xhr.__sentry_xhr__.status_code = xhr.status;
               }
-              handlerData.endTimestamp = Date.now();
-              handlerData.requestComplete = true;
-              triggerHandlers(handlerData);
+            } catch (e) {
+              /* do nothing */
             }
+            handlerData.endTimestamp = Date.now();
+            handlerData.requestComplete = true;
+            triggerHandlers(handlerData);
           }
+        }
 
-          const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress'];
-          xmlHttpRequestProps.forEach(prop => {
-            wrapProp(prop, xhr);
+        if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+          fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
+            return function(...readyStateArgs: any[]): void {
+              onreadystatechangeHandler();
+              return original.apply(xhr, readyStateArgs);
+            };
           });
+        } else {
+          // if onreadystatechange wasn't actually set by the page on this xhr, we
+          // are free to set our own and capture the breadcrumb
+          xhr.onreadystatechange = onreadystatechangeHandler;
+        }
 
-          if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-            fill(xhr, 'onreadystatechange', function(original: () => void): Function {
-              return wrap(
-                original,
-                {
-                  mechanism: {
-                    data: {
-                      function: 'onreadystatechange',
-                      handler: getFunctionName(original),
-                    },
-                    handled: true,
-                    type: 'instrument',
-                  },
-                },
-                onreadystatechangeHandler,
-              );
-            });
-          } else {
-            // if onreadystatechange wasn't actually set by the page on this xhr, we
-            // are free to set our own and capture the breadcrumb
-            xhr.onreadystatechange = onreadystatechangeHandler;
-          }
-          return originalSend.apply(this, args);
-        },
-    );
+        return originalSend.apply(this, args);
+      };
+    });
   }
 
   /**

@@ -29,7 +29,11 @@ var dsn =
 function initSDK() {
   Sentry.init({
     dsn: dsn,
-    integrations: [new Sentry.Integrations.Dedupe()],
+    integrations: [
+      new Sentry.Integrations.Dedupe(),
+      new Sentry.Integrations.Breadcrumbs(),
+      new Sentry.Integrations.TryCatch(),
+    ],
     attachStacktrace: true,
     ignoreErrors: ["ignoreErrorTest"],
     blacklistUrls: ["foo.js"],
