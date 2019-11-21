@@ -1,6 +1,6 @@
-import { TransactionActivity } from '../src/integrations/transactionactivity';
+import { Tracing } from '../src/integrations/tracing';
 
-const transactionActivity: TransactionActivity = new TransactionActivity();
+const tracing: Tracing = new Tracing();
 
 const configureScope = jest.fn();
 const startSpan = jest.fn();
@@ -10,14 +10,14 @@ const getCurrentHubMock: any = () => ({
   startSpan,
 });
 
-transactionActivity.setupOnce(jest.fn(), getCurrentHubMock);
+tracing.setupOnce(jest.fn(), getCurrentHubMock);
 
 describe('TransactionActivity', () => {
   afterEach(() => {
     jest.resetAllMocks();
-    (TransactionActivity as any)._activities = {};
-    (TransactionActivity as any)._currentIndex = 0;
-    (TransactionActivity as any)._activeTransaction = undefined;
+    (Tracing as any)._activities = {};
+    (Tracing as any)._currentIndex = 0;
+    (Tracing as any)._activeTransaction = undefined;
   });
 
   // test('startSpan with transaction', () => {
@@ -38,11 +38,11 @@ describe('TransactionActivity', () => {
   // });
 
   test('multiple activities ', () => {
-    TransactionActivity.pushActivity('xhr');
-    const a = TransactionActivity.pushActivity('xhr2');
-    TransactionActivity.popActivity(a);
-    TransactionActivity.pushActivity('xhr3');
-    expect(Object.keys((TransactionActivity as any)._activities)).toHaveLength(2);
+    Tracing.pushActivity('xhr');
+    const a = Tracing.pushActivity('xhr2');
+    Tracing.popActivity(a);
+    Tracing.pushActivity('xhr3');
+    expect(Object.keys((Tracing as any)._activities)).toHaveLength(2);
   });
 
   // test('finishing a transaction after debounce', () => {
