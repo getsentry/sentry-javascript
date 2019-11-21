@@ -76,6 +76,13 @@ export function supportsFetch(): boolean {
     return false;
   }
 }
+/**
+ * isNativeFetch checks if the given function is a native implementation of fetch()
+ */
+function isNativeFetch(func: Function): boolean {
+  return func && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+}
+
 
 /**
  * Tells whether current environment supports Fetch API natively
@@ -88,9 +95,16 @@ export function supportsNativeFetch(): boolean {
     return false;
   }
 
-  const isNativeFunc = (func: Function) => func.toString().indexOf('native') !== -1;
   const global = getGlobalObject<Window>();
-  let result = null;
+
+  // Fast path to avoid DOM I/O
+  if (isNativeFetch(global.fetch)) {
+    return true;
+  }
+
+  // window.fetch is implemented, but is polyfilled or already wrapped (e.g: by a chrome extension)
+  // so create a "pure" iframe to see if that has native fetch
+  let result = false;
   const doc = global.document;
   if (doc) {
     const sandbox = doc.createElement('iframe');
@@ -98,18 +112,12 @@ export function supportsNativeFetch(): boolean {
     try {
       doc.head.appendChild(sandbox);
       if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
-        // tslint:disable-next-line no-unbound-method
-        result = isNativeFunc(sandbox.contentWindow.fetch);
+        result = isNativeFetch(sandbox.contentWindow.fetch);
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
       logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
     }
-  }
-
-  if (result === null) {
-    // tslint:disable-next-line no-unbound-method
-    result = isNativeFunc(global.fetch);
   }
 
   return result;
@@ -171,3 +179,4 @@ export function supportsHistory(): boolean {
 
   return !isChromePackagedApp && hasHistoryApi;
 }
+3
