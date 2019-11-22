@@ -262,8 +262,6 @@ export class Breadcrumbs implements Integration {
 
         triggerHandlers({
           ...commonHandlerData,
-          endTimestamp: Date.now(),
-          requestComplete: false,
         });
 
         return originalFetch.apply(global, args).then(
@@ -271,7 +269,6 @@ export class Breadcrumbs implements Integration {
             triggerHandlers({
               ...commonHandlerData,
               endTimestamp: Date.now(),
-              requestComplete: true,
               response,
             });
             return response;
@@ -281,7 +278,6 @@ export class Breadcrumbs implements Integration {
               ...commonHandlerData,
               endTimestamp: Date.now(),
               error,
-              requestComplete: true,
             });
             throw error;
           },
@@ -377,8 +373,6 @@ export class Breadcrumbs implements Integration {
 
         triggerHandlers({
           ...commonHandlerData,
-          endTimestamp: Date.now(),
-          requestComplete: false,
         });
 
         /**
@@ -398,7 +392,6 @@ export class Breadcrumbs implements Integration {
             triggerHandlers({
               ...commonHandlerData,
               endTimestamp: Date.now(),
-              requestComplete: true,
             });
           }
         }

@@ -73,7 +73,7 @@ function consoleBreadcrumb(handlerData: { [key: string]: any }): void {
  * Creates breadcrumbs from XHR API calls
  */
 function xhrBreadcrumb(handlerData: { [key: string]: any }): void {
-  if (handlerData.requestComplete) {
+  if (handlerData.endTimestamp) {
     // We only capture complete, non-sentry requests
     if (handlerData.xhr.__sentry_own_request__) {
       return;
@@ -104,7 +104,7 @@ function xhrBreadcrumb(handlerData: { [key: string]: any }): void {
  */
 function fetchBreadcrumb(handlerData: { [key: string]: any }): void {
   // We only capture complete fetch requests
-  if (!handlerData.requestComplete) {
+  if (!handlerData.endTimestamp) {
     return;
   }
 
