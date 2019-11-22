@@ -131,7 +131,10 @@ function fetchBreadcrumb(handlerData: { [key: string]: any }): void {
     getCurrentHub().addBreadcrumb(
       {
         category: 'fetch',
-        data: handlerData.fetchData,
+        data: {
+          ...handlerData.fetchData,
+          status_code: handlerData.response.status,
+        },
         level: Severity.Error,
         type: 'http',
       },
@@ -144,7 +147,10 @@ function fetchBreadcrumb(handlerData: { [key: string]: any }): void {
     getCurrentHub().addBreadcrumb(
       {
         category: 'fetch',
-        data: handlerData.fetchData,
+        data: {
+          ...handlerData.fetchData,
+          status_code: handlerData.response.status,
+        },
         type: 'http',
       },
       {

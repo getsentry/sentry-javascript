@@ -142,11 +142,7 @@ export class Breadcrumbs implements Integration {
 
       fill(global.console, level, function(originalConsoleLevel: () => any): Function {
         return function(...args: any[]): void {
-          const handlerData = {
-            args,
-            level,
-          };
-          triggerHandlers(handlerData);
+          triggerHandlers({ args, level });
 
           // this fails for some browsers. :(
           if (originalConsoleLevel) {
@@ -255,33 +251,38 @@ export class Breadcrumbs implements Integration {
 
     fill(global, 'fetch', function(originalFetch: () => void): () => void {
       return function(...args: any[]): void {
-        const handlerData: { [key: string]: any } = {
+        const commonHandlerData = {
           args,
-          endTimestamp: Date.now(),
           fetchData: {
             method: getFetchMethod(args),
             url: getFetchUrl(args),
           },
-          requestComplete: false,
           startTimestamp: Date.now(),
         };
 
-        triggerHandlers(handlerData);
+        triggerHandlers({
+          ...commonHandlerData,
+          endTimestamp: Date.now(),
+          requestComplete: false,
+        });
 
         return originalFetch.apply(global, args).then(
           (response: Response) => {
-            handlerData.endTimestamp = Date.now();
-            handlerData.requestComplete = true;
-            handlerData.response = response;
-            handlerData.fetchData.status_code = response.status;
-            triggerHandlers(handlerData);
+            triggerHandlers({
+              ...commonHandlerData,
+              endTimestamp: Date.now(),
+              requestComplete: true,
+              response,
+            });
             return response;
           },
           (error: Error) => {
-            handlerData.endTimestamp = Date.now();
-            handlerData.requestComplete = true;
-            handlerData.error = error;
-            triggerHandlers(handlerData);
+            triggerHandlers({
+              ...commonHandlerData,
+              endTimestamp: Date.now(),
+              error,
+              requestComplete: true,
+            });
             throw error;
           },
         );
@@ -300,13 +301,12 @@ export class Breadcrumbs implements Integration {
     const oldOnPopState = global.onpopstate;
     global.onpopstate = (...args: any[]) => {
       const to = global.location.href;
-      const handlerData = {
-        from: lastHref,
-        to,
-      };
       // keep track of the current URL state, as we always receive only the updated state
       lastHref = to;
-      triggerHandlers(handlerData);
+      triggerHandlers({
+        from: lastHref,
+        to,
+      });
       if (oldOnPopState) {
         return oldOnPopState.apply(this, args);
       }
@@ -319,13 +319,12 @@ export class Breadcrumbs implements Integration {
         if (url) {
           // coerce to string (this is what pushState does)
           const to = String(url);
-          const handlerData = {
-            from: lastHref,
-            to,
-          };
           // keep track of the current URL state, as we always receive only the updated state
           lastHref = to;
-          triggerHandlers(handlerData);
+          triggerHandlers({
+            from: lastHref,
+            to,
+          });
         }
         return originalHistoryFunction.apply(this, args);
       };
@@ -370,15 +369,17 @@ export class Breadcrumbs implements Integration {
     fill(xhrproto, 'send', function(originalSend: () => void): () => void {
       return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
         const xhr = this; // tslint:disable-line:no-this-assignment
-        const handlerData: { [key: string]: any } = {
+        const commonHandlerData = {
           args,
-          endTimestamp: Date.now(),
-          requestComplete: false,
           startTimestamp: Date.now(),
           xhr,
         };
 
-        triggerHandlers(handlerData);
+        triggerHandlers({
+          ...commonHandlerData,
+          endTimestamp: Date.now(),
+          requestComplete: false,
+        });
 
         /**
          * @hidden
@@ -394,9 +395,11 @@ export class Breadcrumbs implements Integration {
             } catch (e) {
               /* do nothing */
             }
-            handlerData.endTimestamp = Date.now();
-            handlerData.requestComplete = true;
-            triggerHandlers(handlerData);
+            triggerHandlers({
+              ...commonHandlerData,
+              endTimestamp: Date.now(),
+              requestComplete: true,
+            });
           }
         }
 
