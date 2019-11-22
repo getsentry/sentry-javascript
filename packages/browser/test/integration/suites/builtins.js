@@ -368,12 +368,21 @@ describe("wrapped built-ins", function() {
       if (IS_LOADER) {
         assert.ok(summary.events[0].exception.values[0].mechanism);
       } else {
+        var handler =
+          summary.events[0].exception.values[0].mechanism.data.handler;
+        delete summary.events[0].exception.values[0].mechanism.data.handler;
+
+        if (summary.window.canReadFunctionName()) {
+          assert.equal(handler, "wat");
+        } else {
+          assert.equal(handler, "<anonymous>");
+        }
+
         assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
           type: "instrument",
           handled: true,
           data: {
             function: "onreadystatechange",
-            handler: "wat",
           },
         });
       }

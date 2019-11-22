@@ -14,7 +14,6 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
-import { breadcrumbEventHandler, keypressEventHandler } from '../helpers';
 
 import {
   defaultHandlers,
@@ -24,7 +23,7 @@ import {
 } from './instrumenthandlers';
 
 const global = getGlobalObject<Window>();
-let lastHref: string | undefined;
+let lastHref: string;
 
 /**
  * @hidden
@@ -159,10 +158,12 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
+    const triggerHandlers = this._triggerHandlers.bind(this, 'dom');
+
     // Capture breadcrumbs from any click that is unhandled / bubbled up all the way
     // to the document. Do this before we instrument addEventListener.
-    global.document.addEventListener('click', breadcrumbEventHandler('click'), false);
-    global.document.addEventListener('keypress', keypressEventHandler(), false);
+    global.document.addEventListener('click', breadcrumbEventHandler('click', triggerHandlers), false);
+    global.document.addEventListener('keypress', keypressEventHandler(triggerHandlers), false);
 
     // After hooking into document bubbled up click and keypresses events, we also hook into user handled click & keypresses.
     ['EventTarget', 'Node'].forEach((target: string) => {
@@ -189,7 +190,7 @@ export class Breadcrumbs implements Integration {
             if (eventName === 'click') {
               fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
                 return function(this: any, event: Event): (event: Event) => void {
-                  breadcrumbEventHandler('click')(event);
+                  breadcrumbEventHandler('click', triggerHandlers)(event);
                   return innerOriginal.call(this, event);
                 };
               });
@@ -197,17 +198,17 @@ export class Breadcrumbs implements Integration {
             if (eventName === 'keypress') {
               fill(fn, 'handleEvent', function(innerOriginal: () => void): (caughtEvent: Event) => void {
                 return function(this: any, event: Event): (event: Event) => void {
-                  keypressEventHandler()(event);
+                  keypressEventHandler(triggerHandlers)(event);
                   return innerOriginal.call(this, event);
                 };
               });
             }
           } else {
             if (eventName === 'click') {
-              breadcrumbEventHandler('click', true)(this);
+              breadcrumbEventHandler('click', triggerHandlers, true)(this);
             }
             if (eventName === 'keypress') {
-              keypressEventHandler()(this);
+              keypressEventHandler(triggerHandlers)(this);
             }
           }
 
@@ -298,9 +299,10 @@ export class Breadcrumbs implements Integration {
     global.onpopstate = (...args: any[]) => {
       const to = global.location.href;
       // keep track of the current URL state, as we always receive only the updated state
+      const from = lastHref;
       lastHref = to;
       triggerHandlers({
-        from: lastHref,
+        from,
         to,
       });
       if (oldOnPopState) {
@@ -314,11 +316,12 @@ export class Breadcrumbs implements Integration {
         const url = args.length > 2 ? args[2] : undefined;
         if (url) {
           // coerce to string (this is what pushState does)
+          const from = lastHref;
           const to = String(url);
           // keep track of the current URL state, as we always receive only the updated state
           lastHref = to;
           triggerHandlers({
-            from: lastHref,
+            from,
             to,
           });
         }
@@ -439,6 +442,91 @@ export class Breadcrumbs implements Integration {
       this._instrumentHistory();
     }
   }
+}
+
+const debounceDuration: number = 1000;
+let debounceTimer: number = 0;
+let keypressTimeout: number | undefined;
+let lastCapturedEvent: Event | undefined;
+
+/**
+ * Wraps addEventListener to capture UI breadcrumbs
+ * @param name the event name (e.g. "click")
+ * @param handler function that will be triggered
+ * @param debounce decides whether it should wait till another event loop
+ * @returns wrapped breadcrumb events handler
+ * @hidden
+ */
+function breadcrumbEventHandler(name: string, handler: Function, debounce: boolean = false): (event: Event) => void {
+  return (event: Event) => {
+    // reset keypress timeout; e.g. triggering a 'click' after
+    // a 'keypress' will reset the keypress debounce so that a new
+    // set of keypresses can be recorded
+    keypressTimeout = undefined;
+    // It's possible this handler might trigger multiple times for the same
+    // event (e.g. event propagation through node ancestors). Ignore if we've
+    // already captured the event.
+    if (!event || lastCapturedEvent === event) {
+      return;
+    }
+
+    lastCapturedEvent = event;
+
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    if (debounce) {
+      debounceTimer = setTimeout(() => {
+        handler({ event, name });
+      });
+    } else {
+      handler({ event, name });
+    }
+  };
+}
+
+/**
+ * Wraps addEventListener to capture keypress UI events
+ * @param handler function that will be triggered
+ * @returns wrapped keypress events handler
+ * @hidden
+ */
+function keypressEventHandler(handler: Function): (event: Event) => void {
+  // TODO: if somehow user switches keypress target before
+  //       debounce timeout is triggered, we will only capture
+  //       a single breadcrumb from the FIRST target (acceptable?)
+  return (event: Event) => {
+    let target;
+
+    try {
+      target = event.target;
+    } catch (e) {
+      // just accessing event properties can throw an exception in some rare circumstances
+      // see: https://github.com/getsentry/raven-js/issues/838
+      return;
+    }
+
+    const tagName = target && (target as HTMLElement).tagName;
+
+    // only consider keypress events on actual input elements
+    // this will disregard keypresses targeting body (e.g. tabbing
+    // through elements, hotkeys, etc)
+    if (!tagName || (tagName !== 'INPUT' && tagName !== 'TEXTAREA' && !(target as HTMLElement).isContentEditable)) {
+      return;
+    }
+
+    // record first keypress in a series, but ignore subsequent
+    // keypresses until debounce clears
+    if (!keypressTimeout) {
+      breadcrumbEventHandler('input', handler)(event);
+    }
+    clearTimeout(keypressTimeout);
+
+    keypressTimeout = (setTimeout(() => {
+      keypressTimeout = undefined;
+    }, debounceDuration) as any) as number;
+  };
 }
 
 /** Extract `method` from fetch call arguments */

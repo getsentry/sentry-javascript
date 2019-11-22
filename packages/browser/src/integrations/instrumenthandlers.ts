@@ -1,6 +1,14 @@
 import { API, getCurrentHub } from '@sentry/core';
 import { Severity } from '@sentry/types';
-import { getEventDescription, getGlobalObject, logger, normalize, parseUrl, safeJoin } from '@sentry/utils';
+import {
+  getEventDescription,
+  getGlobalObject,
+  htmlTreeAsString,
+  logger,
+  normalize,
+  parseUrl,
+  safeJoin,
+} from '@sentry/utils';
 
 import { BrowserClient } from '../client';
 
@@ -67,6 +75,37 @@ function consoleBreadcrumb(handlerData: { [key: string]: any }): void {
     input: handlerData.args,
     level: handlerData.level,
   });
+}
+
+/**
+ * Creates breadcrumbs from DOM API calls
+ */
+function domBreadcrumb(handlerData: { [key: string]: any }): void {
+  let target;
+
+  // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+  try {
+    target = handlerData.event.target
+      ? htmlTreeAsString(handlerData.event.target as Node)
+      : htmlTreeAsString((handlerData.event as unknown) as Node);
+  } catch (e) {
+    target = '<unknown>';
+  }
+
+  if (target.length === 0) {
+    return;
+  }
+
+  getCurrentHub().addBreadcrumb(
+    {
+      category: `ui.${handlerData.name}`,
+      message: target,
+    },
+    {
+      event,
+      name: handlerData.name,
+    },
+  );
 }
 
 /**
@@ -203,9 +242,7 @@ export const consoleBreadcrumbHandler: InstrumentHandler = {
 };
 
 export const domBreadcrumbHandler: InstrumentHandler = {
-  callback: () => {
-    // TODO
-  },
+  callback: domBreadcrumb,
   type: 'dom',
 };
 
