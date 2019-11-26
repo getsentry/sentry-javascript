@@ -1,6 +1,6 @@
-import { Event, Integration, WrappedFunction } from "@sentry/types";
+import { Event, Integration, WrappedFunction } from '@sentry/types';
 
-import { isString } from "./is";
+import { isString } from './is';
 
 /** Internal */
 interface SentryGlobal {
@@ -36,11 +36,7 @@ export function dynamicRequire(mod: any, request: string): any {
  */
 export function isNodeEnv(): boolean {
   // tslint:disable:strict-type-predicates
-  return (
-    Object.prototype.toString.call(
-      typeof process !== "undefined" ? process : 0
-    ) === "[object process]"
-  );
+  return Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 }
 
 const fallbackGlobalObject = {};
@@ -53,9 +49,9 @@ const fallbackGlobalObject = {};
 export function getGlobalObject<T>(): T & SentryGlobal {
   return (isNodeEnv()
     ? global
-    : typeof window !== "undefined"
+    : typeof window !== 'undefined'
     ? window
-    : typeof self !== "undefined"
+    : typeof self !== 'undefined'
     ? self
     : fallbackGlobalObject) as T & SentryGlobal;
 }
@@ -98,22 +94,15 @@ export function uuid4(): string {
     };
 
     return (
-      pad(arr[0]) +
-      pad(arr[1]) +
-      pad(arr[2]) +
-      pad(arr[3]) +
-      pad(arr[4]) +
-      pad(arr[5]) +
-      pad(arr[6]) +
-      pad(arr[7])
+      pad(arr[0]) + pad(arr[1]) + pad(arr[2]) + pad(arr[3]) + pad(arr[4]) + pad(arr[5]) + pad(arr[6]) + pad(arr[7])
     );
   }
   // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-  return "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g, c => {
+  return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
     // tslint:disable-next-line:no-bitwise
     const r = (Math.random() * 16) | 0;
     // tslint:disable-next-line:no-bitwise
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -126,7 +115,7 @@ export function uuid4(): string {
  * @returns parsed URL object
  */
 export function parseUrl(
-  url: string
+  url: string,
 ): {
   host?: string;
   path?: string;
@@ -137,22 +126,20 @@ export function parseUrl(
     return {};
   }
 
-  const match = url.match(
-    /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
-  );
+  const match = url.match(/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
 
   if (!match) {
     return {};
   }
 
   // coerce to undefined values to empty string so we don't get 'undefined'
-  const query = match[6] || "";
-  const fragment = match[8] || "";
+  const query = match[6] || '';
+  const fragment = match[8] || '';
   return {
     host: match[4],
     path: match[5],
     protocol: match[2],
-    relative: match[5] + query + fragment // everything minus origin
+    relative: match[5] + query + fragment, // everything minus origin
   };
 }
 
@@ -170,9 +157,9 @@ export function getEventDescription(event: Event): string {
     if (exception.type && exception.value) {
       return `${exception.type}: ${exception.value}`;
     }
-    return exception.type || exception.value || event.event_id || "<unknown>";
+    return exception.type || exception.value || event.event_id || '<unknown>';
   }
-  return event.event_id || "<unknown>";
+  return event.event_id || '<unknown>';
 }
 
 /** JSDoc */
@@ -183,9 +170,9 @@ interface ExtensibleConsole extends Console {
 /** JSDoc */
 export function consoleSandbox(callback: () => any): any {
   const global = getGlobalObject<Window>();
-  const levels = ["debug", "info", "warn", "error", "log", "assert"];
+  const levels = ['debug', 'info', 'warn', 'error', 'log', 'assert'];
 
-  if (!("console" in global)) {
+  if (!('console' in global)) {
     return callback();
   }
 
@@ -194,16 +181,9 @@ export function consoleSandbox(callback: () => any): any {
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (
-      level in global.console &&
-      (originalConsole[level] as WrappedFunction).__sentry__
-    ) {
-      wrappedLevels[level] = (originalConsole[
-        level
-      ] as WrappedFunction).__sentry_wrapped__;
-      originalConsole[level] = (originalConsole[
-        level
-      ] as WrappedFunction).__sentry_original__;
+    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry__) {
+      wrappedLevels[level] = (originalConsole[level] as WrappedFunction).__sentry_wrapped__;
+      originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
     }
   });
 
@@ -225,18 +205,12 @@ export function consoleSandbox(callback: () => any): any {
  * @param type Type of the exception.
  * @hidden
  */
-export function addExceptionTypeValue(
-  event: Event,
-  value?: string,
-  type?: string
-): void {
+export function addExceptionTypeValue(event: Event, value?: string, type?: string): void {
   event.exception = event.exception || {};
   event.exception.values = event.exception.values || [];
   event.exception.values[0] = event.exception.values[0] || {};
-  event.exception.values[0].value =
-    event.exception.values[0].value || value || "";
-  event.exception.values[0].type =
-    event.exception.values[0].type || type || "Error";
+  event.exception.values[0].value = event.exception.values[0].value || value || '';
+  event.exception.values[0].type = event.exception.values[0].type || type || 'Error';
 }
 
 /**
@@ -249,14 +223,13 @@ export function addExceptionMechanism(
   event: Event,
   mechanism: {
     [key: string]: any;
-  } = {}
+  } = {},
 ): void {
   // TODO: Use real type with `keyof Mechanism` thingy and maybe make it better?
   try {
     // @ts-ignore
     // tslint:disable:no-non-null-assertion
-    event.exception!.values![0].mechanism =
-      event.exception!.values![0].mechanism || {};
+    event.exception!.values![0].mechanism = event.exception!.values![0].mechanism || {};
     Object.keys(mechanism).forEach(key => {
       // @ts-ignore
       event.exception!.values![0].mechanism[key] = mechanism[key];
@@ -273,7 +246,7 @@ export function getLocationHref(): string {
   try {
     return document.location.href;
   } catch (oO) {
-    return "";
+    return '';
   }
 }
 
@@ -299,7 +272,7 @@ export function htmlTreeAsString(elem: unknown): string {
     const out = [];
     let height = 0;
     let len = 0;
-    const separator = " > ";
+    const separator = ' > ';
     const sepLength = separator.length;
     let nextStr;
 
@@ -309,11 +282,7 @@ export function htmlTreeAsString(elem: unknown): string {
       // - nextStr is the 'html' element
       // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
       //   (ignore this limit if we are on the first iteration)
-      if (
-        nextStr === "html" ||
-        (height > 1 &&
-          len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)
-      ) {
+      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
         break;
       }
 
@@ -325,7 +294,7 @@ export function htmlTreeAsString(elem: unknown): string {
 
     return out.reverse().join(separator);
   } catch (_oO) {
-    return "<unknown>";
+    return '<unknown>';
   }
 }
 
@@ -350,7 +319,7 @@ function _htmlElementAsString(el: unknown): string {
   let i;
 
   if (!elem || !elem.tagName) {
-    return "";
+    return '';
   }
 
   out.push(elem.tagName.toLowerCase());
@@ -365,7 +334,7 @@ function _htmlElementAsString(el: unknown): string {
       out.push(`.${classes[i]}`);
     }
   }
-  const attrWhitelist = ["type", "name", "title", "alt"];
+  const attrWhitelist = ['type', 'name', 'title', 'alt'];
   for (i = 0; i < attrWhitelist.length; i++) {
     key = attrWhitelist[i];
     attr = elem.getAttribute(key);
@@ -373,7 +342,7 @@ function _htmlElementAsString(el: unknown): string {
       out.push(`[${key}="${attr}"]`);
     }
   }
-  return out.join("");
+  return out.join('');
 }
 
 /**
@@ -411,7 +380,7 @@ export function parseSemver(input: string): SemVer {
     major: isNaN(major) ? undefined : major,
     minor: isNaN(minor) ? undefined : minor,
     patch: isNaN(patch) ? undefined : patch,
-    prerelease: match[4]
+    prerelease: match[4],
   };
 }
 
@@ -422,10 +391,7 @@ const defaultRetryAfter = 60 * 1000; // 60 seconds
  * @param now current unix timestamp
  * @param header string representation of 'Retry-After' header
  */
-export function parseRetryAfterHeader(
-  now: number,
-  header?: string | number | null
-): number {
+export function parseRetryAfterHeader(now: number, header?: string | number | null): number {
   if (!header) {
     return defaultRetryAfter;
   }

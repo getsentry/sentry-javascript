@@ -40,11 +40,7 @@ export function tracingHandler(): (
       scope.setSpan(transaction);
     });
     res.once('finish', () => {
-      if (res.statusCode >= 500) {
-        transaction.setFailure();
-      } else {
-        transaction.setSuccess();
-      }
+      transaction.setHttpStatus(res.statusCode);
       transaction.finish();
     });
 

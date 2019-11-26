@@ -61,7 +61,7 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean
 
   if (span.sampled) {
     const experimentsOptions = (client && client.getOptions()._experiments) || {};
-    span.initFinishedSpans(experimentsOptions.maxSpans);
+    span.initFinishedSpans(experimentsOptions.maxSpans as number);
   }
 
   return span;

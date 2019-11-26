@@ -1,4 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
+import { SpanStatus } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP } from '../src';
 
@@ -51,25 +52,26 @@ describe('Span', () => {
   });
 
   describe('status', () => {
-    test('setSuccess', () => {
+    test('setStatus', () => {
       const span = new Span({});
-      span.setSuccess();
-      expect(span.tags.status).toBe('success');
+      span.setStatus(SpanStatus.PermissionDenied);
+      expect(span.tags.status).toBe('permission_denied');
     });
 
-    test('setFailure', () => {
+    test('setHttpStatus', () => {
       const span = new Span({});
-      span.setFailure();
-      expect(span.tags.status).toBe('failure');
+      span.setHttpStatus(404);
+      expect(span.tags.status).toBe('not_found');
+      expect(span.tags['http.status_code']).toBe('404');
     });
 
     test('isSuccess', () => {
       const span = new Span({});
-      expect(span.isSuccess()).toBe(true);
-      span.setFailure();
       expect(span.isSuccess()).toBe(false);
-      span.setSuccess();
+      span.setHttpStatus(200);
       expect(span.isSuccess()).toBe(true);
+      span.setStatus(SpanStatus.PermissionDenied);
+      expect(span.isSuccess()).toBe(false);
     });
   });
 
@@ -199,16 +201,16 @@ describe('Span', () => {
 
     test('should have success status extracted from tags', () => {
       const span = new Span({});
-      span.setSuccess();
+      span.setStatus(SpanStatus.Ok);
       const context = span.getTraceContext();
-      expect((context as any).status).toBe('success');
+      expect((context as any).status).toBe('ok');
     });
 
     test('should have failure status extracted from tags', () => {
       const span = new Span({});
-      span.setFailure();
+      span.setStatus(SpanStatus.ResourceExhausted);
       const context = span.getTraceContext();
-      expect((context as any).status).toBe('failure');
+      expect((context as any).status).toBe('resource_exhausted');
     });
   });
 });

@@ -1,9 +1,10 @@
 // tslint:disable:max-classes-per-file
 
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Span as SpanInterface, SpanContext } from '@sentry/types';
+import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
 import { logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
+// TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
   '([0-9a-f]{32})?' + // trace_id
@@ -227,16 +228,17 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public setFailure(): this {
-    this.setTag('status', 'failure');
+  public setStatus(value: SpanStatus): this {
+    this.setTag('status', value);
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setSuccess(): this {
-    this.setTag('status', 'success');
+  public setHttpStatus(httpStatus: number): this {
+    this.setTag('http.status_code', String(httpStatus));
+    this.setStatus(SpanStatus.fromHttpCode(httpStatus));
     return this;
   }
 
@@ -244,7 +246,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public isSuccess(): boolean {
-    return this.tags.status !== 'failure';
+    return this.tags.status === SpanStatus.Ok;
   }
 
   /**
@@ -285,11 +287,10 @@ export class Span implements SpanInterface, SpanContext {
     }
 
     return this._hub.captureEvent({
-      // TODO: Is this necessary? We already do store contextx in in applyToEvent,
-      // so maybe we can move `getTraceContext` call there as well?
       contexts: { trace: this.getTraceContext() },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
+      tags: this.tags,
       timestamp: this.timestamp,
       transaction: this.transaction,
       type: 'transaction',

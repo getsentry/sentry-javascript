@@ -80,9 +80,7 @@ function createHandlerWrapper(
 
       let span: Span;
       if (tracingEnabled) {
-        // TODO
-        const hub = getCurrentHub();
-        span = hub.startSpan({
+        span = getCurrentHub().startSpan({
           description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
           op: 'request',
         });
@@ -94,9 +92,8 @@ function createHandlerWrapper(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('response', requestUrl, this, res);
           }
-          // TODO: Mark >= 500 as failed as well?
           if (tracingEnabled && span) {
-            span.setSuccess();
+            span.setHttpStatus(res.statusCode);
             span.finish();
           }
         })
@@ -105,7 +102,7 @@ function createHandlerWrapper(
             addRequestBreadcrumb('error', requestUrl, this);
           }
           if (tracingEnabled && span) {
-            span.setFailure();
+            span.setHttpStatus(500);
             span.finish();
           }
         });

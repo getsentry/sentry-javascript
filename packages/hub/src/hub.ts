@@ -379,14 +379,14 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
     return this._callExtensionMethod<Span>('startSpan', spanOrSpanContext, forceNoChild);
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public traceHeaders(): { [key: string]: string } {
     return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
