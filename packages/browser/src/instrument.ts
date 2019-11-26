@@ -38,26 +38,37 @@ const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 
 /** Instruments given API */
 function instrument(type: InstrumentHandlerType): void {
-  if (type === 'console') {
-    instrumentConsole();
-    instrumented[type] = true;
+  if (instrumented[type]) {
+    return;
   }
-  if (type === 'dom') {
-    instrumentDOM();
-  }
-  if (type === 'xhr') {
-    instrumentXHR();
-  }
-  if (type === 'fetch') {
-    instrumentFetch();
-  }
-  if (type === 'history') {
-    instrumentHistory();
+
+  instrumented[type] = true;
+
+  switch (type) {
+    case 'console':
+      instrumentConsole();
+      break;
+    case 'dom':
+      instrumentDOM();
+      break;
+    case 'xhr':
+      instrumentXHR();
+      break;
+    case 'fetch':
+      instrumentFetch();
+      break;
+    case 'history':
+      instrumentHistory();
+      break;
+    default:
+      logger.warn('unknown instrumentation type:', type);
   }
 }
 
 /**
- * Add handler that will be called when given type of instrumentation triggers
+ * Add handler that will be called when given type of instrumentation triggers.
+ * Use at your own risk, this might break without changelog notice, only used internally.
+ * @hidden
  */
 export function addInstrumentationHandler(handler: InstrumentHandler): void {
   // tslint:disable-next-line:strict-type-predicates
