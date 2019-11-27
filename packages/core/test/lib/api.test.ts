@@ -1,5 +1,6 @@
+import { Dsn } from '@sentry/utils';
+
 import { API } from '../../src/api';
-import { Dsn } from '../../src/dsn';
 
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const legacyDsn = 'https://abc:123@sentry.io:1234/subpath/123';

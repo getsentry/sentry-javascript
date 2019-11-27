@@ -2,10 +2,10 @@
 
 import { WrappedFunction } from '@sentry/types';
 
+import { isString } from './is';
 import { logger } from './logger';
 import { getFunctionName, getGlobalObject } from './misc';
 import { fill } from './object';
-import { isString } from './is';
 import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();

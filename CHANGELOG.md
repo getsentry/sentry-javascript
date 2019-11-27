@@ -5,6 +5,8 @@
 - [hub] feat: Add more span functions (#2161)
 - [integrations] feat: Change `Tracing` integration (#2161)
 - [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
+- [utils] feat: Move insturment to utils
+- [apm] feat: Add `@sentry/apm` package
 
 ## 5.9.1
 

@@ -1,4 +1,5 @@
 import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */

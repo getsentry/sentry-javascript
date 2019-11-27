@@ -9,9 +9,9 @@
 
 # TODO
 
-[![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
+[![npm version](https://img.shields.io/npm/v/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
 ## Links
@@ -21,7 +21,4 @@
 
 ## General
 
-This package contains interface definitions, base classes and utilities for building Sentry JavaScript SDKs, like
-`@sentry/node` or `@sentry/browser`.
-
-Please consider all classes and exported functions and interfaces `internal`.
+This package contains extensions to the `@sentry/hub` to enable APM related functionality. It also provides integrations for Browser and Node that provide a good experience out of the box.
