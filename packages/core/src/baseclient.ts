@@ -1,9 +1,8 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
+import { Dsn, isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
-import { Dsn } from './dsn';
 import { IntegrationIndex, setupIntegrations } from './integration';
 
 /**

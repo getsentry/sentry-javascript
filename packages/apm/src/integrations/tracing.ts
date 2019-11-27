@@ -1,5 +1,12 @@
 import { EventProcessor, Hub, Integration, Span, SpanContext } from '@sentry/types';
-import { fill, getGlobalObject, isMatchingPattern, logger, supportsNativeFetch } from '@sentry/utils';
+import {
+  addInstrumentationHandler,
+  fill,
+  getGlobalObject,
+  isMatchingPattern,
+  logger,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 /** JSDoc */
 interface TracingOptions {
@@ -111,11 +118,27 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: no-non-null-assertion
     if (this._options!.traceXHR !== false) {
+      addInstrumentationHandler({
+        callback: xhrCallback,
+        type: 'xhr',
+      });
       this._traceXHR(getCurrentHub);
     }
     // tslint:disable-next-line: no-non-null-assertion
     if (this._options!.traceFetch !== false) {
+      addInstrumentationHandler({
+        callback: fetchCallback,
+        type: 'fetch',
+      });
       this._traceFetch(getCurrentHub);
+    }
+
+    // tslint:disable-next-line: no-non-null-assertion
+    if (this._options!.startTransactionOnLocationChange) {
+      addInstrumentationHandler({
+        callback: historyCallback,
+        type: 'history',
+      });
     }
 
     if (global.location && global.location.href) {
@@ -419,13 +442,14 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
   if (!Tracing.options.shouldCreateSpanForRequest(xhr.url)) {
     return;
   }
-
+  console.log(handlerData.xhr);
   // We only capture complete, non-sentry requests
   if (handlerData.xhr.__sentry_own_request__) {
     return;
   }
 
-  if (handlerData.requestComplete && handlerData.xhr.__sentry_xhr_activity_id__) {
+  console.log(handlerData, handlerData.__sentry_own_request__);
+  if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_activity_id__) {
     Tracing.popActivity(handlerData.xhr.__sentry_xhr_activity_id__, handlerData.xhr.__sentry_xhr__);
     return;
   }
@@ -450,7 +474,7 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
     return;
   }
 
-  if (handlerData.requestComplete && handlerData.__activity) {
+  if (handlerData.endTimestamp && handlerData.__activity) {
     Tracing.popActivity(handlerData.__activity, handlerData.fetchData);
   } else {
     handlerData.__activity = Tracing.pushActivity('fetch', {
@@ -480,21 +504,3 @@ function historyCallback(_: { [key: string]: any }): void {
     });
   }
 }
-
-const historyHandler = {
-  callback: historyCallback,
-  type: 'history',
-};
-
-const xhrHandler = {
-  callback: xhrCallback,
-  type: 'xhr',
-};
-
-const fetchHandler = {
-  callback: fetchCallback,
-  type: 'fetch',
-};
-
-// tslint:disable-next-line: variable-name
-export const TracingHandlers = [historyHandler, xhrHandler, fetchHandler];

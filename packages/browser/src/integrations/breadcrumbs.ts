@@ -1,6 +1,7 @@
 import { API, getCurrentHub } from '@sentry/core';
 import { Integration, Severity } from '@sentry/types';
 import {
+  addInstrumentationHandler,
   getEventDescription,
   getGlobalObject,
   htmlTreeAsString,
@@ -11,7 +12,6 @@ import {
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
-import { addInstrumentationHandler } from '../instrument';
 
 /**
  * @hidden

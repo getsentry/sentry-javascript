@@ -1,8 +1,9 @@
-import { BaseBackend, Dsn, getCurrentHub } from '@sentry/core';
+import { BaseBackend, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Mechanism, Options, Severity, Transport, TransportOptions } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
+  Dsn,
   extractExceptionKeysForMessage,
   isError,
   isPlainObject,

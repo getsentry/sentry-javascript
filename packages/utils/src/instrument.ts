@@ -1,18 +1,12 @@
 /* tslint:disable:only-arrow-functions no-unsafe-any */
 
-import { API, getCurrentHub } from '@sentry/core';
 import { WrappedFunction } from '@sentry/types';
-import {
-  fill,
-  getFunctionName,
-  getGlobalObject,
-  isString,
-  logger,
-  supportsHistory,
-  supportsNativeFetch,
-} from '@sentry/utils';
 
-import { BrowserClient } from './client';
+import { logger } from './logger';
+import { getFunctionName, getGlobalObject } from './misc';
+import { fill } from './object';
+import { isString } from './is';
+import { supportsHistory, supportsNativeFetch } from './supports';
 
 const global = getGlobalObject<Window>();
 
@@ -214,15 +208,9 @@ function instrumentXHR(): void {
         url: args[1],
       };
 
-      const client = getCurrentHub().getClient<BrowserClient>();
-      const dsn = client && client.getDsn();
-      if (dsn) {
-        const filterUrl = new API(dsn).getStoreEndpoint();
-        // if Sentry key appears in URL, don't capture it as a request
-        // but rather as our own 'sentry' type breadcrumb
-        if (isString(url) && (filterUrl && url.indexOf(filterUrl) !== -1)) {
-          this.__sentry_own_request__ = true;
-        }
+      // if Sentry key appears in URL, don't capture it as a request
+      if (isString(url) && this.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
+        this.__sentry_own_request__ = true;
       }
 
       return originalOpen.apply(this, args);

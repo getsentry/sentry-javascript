@@ -1,7 +1,5 @@
 import { DsnLike } from '@sentry/types';
-import { timestampWithMs, urlEncode } from '@sentry/utils';
-
-import { Dsn } from './dsn';
+import { Dsn, timestampWithMs, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
