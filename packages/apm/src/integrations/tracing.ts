@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration, Span, SpanContext } from '@sentry/types';
+import { EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
 import {
   addInstrumentationHandler,
   fill,
@@ -289,14 +289,10 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    const activeTransaction = Tracing._activeTransaction;
-
-    if (activeTransaction) {
-      // If we already have an active transaction it means one of two things
-      // a) The user did rapid navigation changes and didn't wait until the transaction was finished
-      // b) A activity wasn't popped correctly and therefore the transaction is stalling
-      activeTransaction.finish();
-    }
+    // If we already have an active transaction it means one of two things
+    // a) The user did rapid navigation changes and didn't wait until the transaction was finished
+    // b) A activity wasn't popped correctly and therefore the transaction is stalling
+    Tracing.finishIdleTransaction();
 
     const _getCurrentHub = Tracing._getCurrentHub;
     if (!_getCurrentHub) {
@@ -358,6 +354,16 @@ export class Tracing implements Integration {
   }
 
   /**
+   * Sets the status of the current active transaction (if there is one)
+   */
+  public static setTransactionStatus(status: SpanStatus): void {
+    const active = Tracing._activeTransaction;
+    if (active) {
+      active.setStatus(status);
+    }
+  }
+
+  /**
    * Starts tracking for a specifc activity
    */
   public static pushActivity(name: string, spanContext?: SpanContext): number {
@@ -403,6 +409,9 @@ export class Tracing implements Integration {
         if (spanData) {
           Object.keys(spanData).forEach((key: string) => {
             span.setData(key, spanData[key]);
+            if (key === 'status_code') {
+              span.setHttpStatus(spanData[key] as number);
+            }
           });
         }
         span.finish();
@@ -442,13 +451,12 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
   if (!Tracing.options.shouldCreateSpanForRequest(xhr.url)) {
     return;
   }
-  console.log(handlerData.xhr);
+
   // We only capture complete, non-sentry requests
   if (handlerData.xhr.__sentry_own_request__) {
     return;
   }
 
-  console.log(handlerData, handlerData.__sentry_own_request__);
   if (handlerData.endTimestamp && handlerData.xhr.__sentry_xhr_activity_id__) {
     Tracing.popActivity(handlerData.xhr.__sentry_xhr_activity_id__, handlerData.xhr.__sentry_xhr__);
     return;
