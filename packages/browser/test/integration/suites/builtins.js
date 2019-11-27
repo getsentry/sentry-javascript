@@ -354,7 +354,7 @@ describe("wrapped built-ins", function() {
       var xhr = new XMLHttpRequest();
       xhr.open("GET", "/base/subjects/example.json");
       // intentionally assign event handlers *after* open, since this is what jQuery does
-      xhr.onreadystatechange = function() {
+      xhr.onreadystatechange = function wat() {
         window.finalizeManualTest();
         // replace onreadystatechange with no-op so exception doesn't
         // fire more than once as XHR changes loading state
@@ -364,6 +364,28 @@ describe("wrapped built-ins", function() {
       xhr.send();
     }).then(function(summary) {
       assert.match(summary.events[0].exception.values[0].value, /baz/);
+
+      if (IS_LOADER) {
+        assert.ok(summary.events[0].exception.values[0].mechanism);
+      } else {
+        var handler =
+          summary.events[0].exception.values[0].mechanism.data.handler;
+        delete summary.events[0].exception.values[0].mechanism.data.handler;
+
+        if (summary.window.canReadFunctionName()) {
+          assert.equal(handler, "wat");
+        } else {
+          assert.equal(handler, "<anonymous>");
+        }
+
+        assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
+          type: "instrument",
+          handled: true,
+          data: {
+            function: "onreadystatechange",
+          },
+        });
+      }
     });
   });
 

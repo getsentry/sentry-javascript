@@ -1,10 +1,7 @@
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
+import { captureException, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, htmlTreeAsString, normalize } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue, normalize } from '@sentry/utils';
 
-const debounceDuration: number = 1000;
-let keypressTimeout: number | undefined;
-let lastCapturedEvent: Event | undefined;
 let ignoreOnError: number = 0;
 
 /**
@@ -37,7 +34,6 @@ export function wrap(
   fn: WrappedFunction,
   options: {
     mechanism?: Mechanism;
-    capture?: boolean;
   } = {},
   before?: WrappedFunction,
 ): any {
@@ -64,15 +60,15 @@ export function wrap(
   }
 
   const sentryWrapped: WrappedFunction = function(this: any): void {
-    // tslint:disable-next-line:strict-type-predicates
-    if (before && typeof before === 'function') {
-      before.apply(this, arguments);
-    }
-
     const args = Array.prototype.slice.call(arguments);
 
     // tslint:disable:no-unsafe-any
     try {
+      // tslint:disable-next-line:strict-type-predicates
+      if (before && typeof before === 'function') {
+        before.apply(this, arguments);
+      }
+
       const wrappedArguments = args.map((arg: any) => wrap(arg, options));
 
       if (fn.handleEvent) {
@@ -82,7 +78,6 @@ export function wrap(
         //       is expected behavior and NOT indicative of a bug with sentry.javascript.
         return fn.handleEvent.apply(this, wrappedArguments);
       }
-
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
       //       means the sentry.javascript SDK caught an error invoking your application code. This
@@ -162,107 +157,4 @@ export function wrap(
   }
 
   return sentryWrapped;
-}
-
-let debounceTimer: number = 0;
-
-/**
- * Wraps addEventListener to capture UI breadcrumbs
- * @param eventName the event name (e.g. "click")
- * @returns wrapped breadcrumb events handler
- * @hidden
- */
-export function breadcrumbEventHandler(eventName: string, debounce: boolean = false): (event: Event) => void {
-  return (event: Event) => {
-    // reset keypress timeout; e.g. triggering a 'click' after
-    // a 'keypress' will reset the keypress debounce so that a new
-    // set of keypresses can be recorded
-    keypressTimeout = undefined;
-    // It's possible this handler might trigger multiple times for the same
-    // event (e.g. event propagation through node ancestors). Ignore if we've
-    // already captured the event.
-    if (!event || lastCapturedEvent === event) {
-      return;
-    }
-
-    lastCapturedEvent = event;
-
-    const captureBreadcrumb = () => {
-      let target;
-
-      // Accessing event.target can throw (see getsentry/raven-js#838, #768)
-      try {
-        target = event.target ? htmlTreeAsString(event.target as Node) : htmlTreeAsString((event as unknown) as Node);
-      } catch (e) {
-        target = '<unknown>';
-      }
-
-      if (target.length === 0) {
-        return;
-      }
-
-      getCurrentHub().addBreadcrumb(
-        {
-          category: `ui.${eventName}`, // e.g. ui.click, ui.input
-          message: target,
-        },
-        {
-          event,
-          name: eventName,
-        },
-      );
-    };
-
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    if (debounce) {
-      debounceTimer = setTimeout(captureBreadcrumb);
-    } else {
-      captureBreadcrumb();
-    }
-  };
-}
-
-/**
- * Wraps addEventListener to capture keypress UI events
- * @returns wrapped keypress events handler
- * @hidden
- */
-export function keypressEventHandler(): (event: Event) => void {
-  // TODO: if somehow user switches keypress target before
-  //       debounce timeout is triggered, we will only capture
-  //       a single breadcrumb from the FIRST target (acceptable?)
-  return (event: Event) => {
-    let target;
-
-    try {
-      target = event.target;
-    } catch (e) {
-      // just accessing event properties can throw an exception in some rare circumstances
-      // see: https://github.com/getsentry/raven-js/issues/838
-      return;
-    }
-
-    const tagName = target && (target as HTMLElement).tagName;
-
-    // only consider keypress events on actual input elements
-    // this will disregard keypresses targeting body (e.g. tabbing
-    // through elements, hotkeys, etc)
-    if (!tagName || (tagName !== 'INPUT' && tagName !== 'TEXTAREA' && !(target as HTMLElement).isContentEditable)) {
-      return;
-    }
-
-    // record first keypress in a series, but ignore subsequent
-    // keypresses until debounce clears
-    if (!keypressTimeout) {
-      breadcrumbEventHandler('input')(event);
-    }
-    clearTimeout(keypressTimeout);
-
-    keypressTimeout = (setTimeout(() => {
-      keypressTimeout = undefined;
-    }, debounceDuration) as any) as number;
-  };
 }
