@@ -382,7 +382,7 @@ describe('normalize()', () => {
         normalize(() => {
           /* no-empty */
         }),
-      ).toEqual('[Function: <unknown-function-name>]');
+      ).toEqual('[Function: <anonymous>]');
       const foo = () => {
         /* no-empty */
       };

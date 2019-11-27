@@ -2,7 +2,7 @@ import { ExtendedError, WrappedFunction } from '@sentry/types';
 
 import { isElement, isError, isEvent, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
-import { htmlTreeAsString } from './misc';
+import { getFunctionName, htmlTreeAsString } from './misc';
 import { truncate } from './string';
 
 /**
@@ -246,7 +246,7 @@ function normalizeValue<T>(value: T, key?: any): T | string {
   }
 
   if (typeof value === 'function') {
-    return `[Function: ${value.name || '<unknown-function-name>'}]`;
+    return `[Function: ${getFunctionName(value)}]`;
   }
 
   return value;

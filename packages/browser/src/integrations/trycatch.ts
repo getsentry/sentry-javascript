@@ -1,7 +1,9 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getGlobalObject } from '@sentry/utils';
+import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
 
 import { wrap } from '../helpers';
+
+type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
@@ -127,6 +129,57 @@ export class TryCatch implements Integration {
     });
   }
 
+  /** JSDoc */
+  private _wrapXHR(originalSend: () => void): () => void {
+    return function(this: XMLHttpRequest, ...args: any[]): void {
+      const xhr = this; // tslint:disable-line:no-this-assignment
+      const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress'];
+
+      xmlHttpRequestProps.forEach(prop => {
+        if (prop in this && typeof this[prop] === 'function') {
+          fill(this, prop, original =>
+            wrap(original, {
+              mechanism: {
+                data: {
+                  function: prop,
+                  handler: getFunctionName(original),
+                },
+                handled: true,
+                type: 'instrument',
+              },
+            }),
+          );
+        }
+      });
+
+      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
+          const wrapOptions = {
+            mechanism: {
+              data: {
+                function: 'onreadystatechange',
+                handler: getFunctionName(original),
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          };
+          // If Instrument integration has been called before TryCatch
+          // use it as "before" callback in the wrap and use the original instead
+          if (original.__sentry__ && original.__sentry_original__) {
+            wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
+            return wrap(original.__sentry_original__, wrapOptions, original.__sentry_wrapped__);
+          }
+
+          // Otherwise wrap directly
+          return wrap(original, wrapOptions);
+        });
+      }
+
+      return originalSend.apply(this, args);
+    };
+  }
+
   /**
    * Wrap timer functions and event targets to catch errors
    * and provide better metadata.
@@ -139,6 +192,10 @@ export class TryCatch implements Integration {
     fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
     fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
     fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
+
+    if ('XMLHttpRequest' in global) {
+      fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
+    }
 
     [
       'EventTarget',
@@ -171,18 +228,5 @@ export class TryCatch implements Integration {
       'XMLHttpRequestEventTarget',
       'XMLHttpRequestUpload',
     ].forEach(this._wrapEventTarget.bind(this));
-  }
-}
-
-/**
- * Safely extract function name from itself
- */
-function getFunctionName(fn: any): string {
-  try {
-    return (fn && fn.name) || '<anonymous>';
-  } catch (e) {
-    // Just accessing custom props in some Selenium environments
-    // can cause a "Permission denied" exception (see raven-js#495).
-    return '<anonymous>';
   }
 }
