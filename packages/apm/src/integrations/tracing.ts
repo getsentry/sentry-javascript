@@ -8,10 +8,28 @@ import {
   supportsNativeFetch,
 } from '@sentry/utils';
 
-/** JSDoc */
+/**
+ * Options for Tracing integration
+ */
 interface TracingOptions {
+  /**
+   * List of strings / regex where the integration should create Spans out of. Additionally this will be used
+   * to define which outgoing requests the `sentry-trace` header will be attached to.
+   *
+   * Default: ['localhost', /^\//]
+   */
   tracingOrigins: Array<string | RegExp>;
+  /**
+   * Flag to disable patching all together for fetch requests.
+   *
+   * Default: true
+   */
   traceFetch: boolean;
+  /**
+   * Flag to disable patching all together for xhr requests.
+   *
+   * Default: true
+   */
   traceXHR: boolean;
   /**
    * This function will be called before creating a span for a request with the given url.
@@ -20,8 +38,28 @@ interface TracingOptions {
    * By default it uses the `tracingOrigins` options as a url match.
    */
   shouldCreateSpanForRequest(url: string): boolean;
+  /**
+   * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
+   * the last finished span as the endtime for the transaction.
+   *
+   * Default: 500
+   */
   idleTimeout: number;
+  /**
+   * Flag to enable/disable creation of `navigation` transaction on history changes. Useful for react applications with
+   * a router.
+   *
+   * Default: true
+   */
   startTransactionOnLocationChange: boolean;
+  /**
+   * Sample to determine if the Integration should instrument anything. The decision will be taken once per load
+   * on initalization.
+   * 0 = 0% chance of instrumenting
+   * 1 = 100% change of instrumenting
+   *
+   * Default: 1
+   */
   tracesSampleRate: number;
 }
 
