@@ -1,5 +1,5 @@
+import { Span } from '@sentry/apm';
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { Span } from '@sentry/hub';
 import { Event } from '@sentry/types';
 import { forget, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -12,6 +12,41 @@ import { NodeClient } from './client';
 import { flush } from './sdk';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
+
+/**
+ * Express compatible tracing handler.
+ * @see Exposed as `Handlers.tracingHandler`
+ */
+export function tracingHandler(): (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  next: (error?: any) => void,
+) => void {
+  return function sentryTracingMiddleware(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    next: (error?: any) => void,
+  ): void {
+    // TODO: At this point req.route.path we use in `extractTransaction` is not available
+    // but `req.path` or `req.url` should do the job as well. We could unify this here.
+    const reqMethod = (req.method || '').toUpperCase();
+    const reqUrl = req.url;
+
+    const hub = getCurrentHub();
+    const transaction = hub.startSpan({
+      transaction: `${reqMethod}|${reqUrl}`,
+    });
+    hub.configureScope(scope => {
+      scope.setSpan(transaction);
+    });
+    res.once('finish', () => {
+      transaction.setHttpStatus(res.statusCode);
+      transaction.finish();
+    });
+
+    next();
+  };
+}
 
 type TransactionTypes = 'path' | 'methodPath' | 'handler';
 
@@ -321,20 +356,20 @@ export function errorHandler(options?: {
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
-    _res: http.ServerResponse,
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
       withScope(scope => {
-        if (_req.headers && isString(_req.headers['sentry-trace'])) {
-          const span = Span.fromTraceparent(_req.headers['sentry-trace'] as string);
+        if (req.headers && isString(req.headers['sentry-trace'])) {
+          const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
           scope.setSpan(span);
         }
         const eventId = captureException(error);
-        (_res as any).sentry = eventId;
+        (res as any).sentry = eventId;
         next(error);
       });
 

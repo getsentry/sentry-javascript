@@ -345,6 +345,45 @@ function _htmlElementAsString(el: unknown): string {
   return out.join('');
 }
 
+/**
+ * Returns a timestamp in seconds with milliseconds precision.
+ */
+export function timestampWithMs(): number {
+  return new Date().getTime() / 1000;
+}
+
+// https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+const SEMVER_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+/**
+ * Represents Semantic Versioning object
+ */
+interface SemVer {
+  major?: number;
+  minor?: number;
+  patch?: number;
+  prerelease?: string;
+  buildmetadata?: string;
+}
+
+/**
+ * Parses input into a SemVer interface
+ * @param input string representation of a semver version
+ */
+export function parseSemver(input: string): SemVer {
+  const match = input.match(SEMVER_REGEXP) || [];
+  const major = parseInt(match[1], 10);
+  const minor = parseInt(match[2], 10);
+  const patch = parseInt(match[3], 10);
+  return {
+    buildmetadata: match[5],
+    major: isNaN(major) ? undefined : major,
+    minor: isNaN(minor) ? undefined : minor,
+    patch: isNaN(patch) ? undefined : patch,
+    prerelease: match[4],
+  };
+}
+
 const defaultRetryAfter = 60 * 1000; // 60 seconds
 
 /**

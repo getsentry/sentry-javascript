@@ -7,6 +7,5 @@ export { ExtraErrorData } from './extraerrordata';
 export { ReportingObserver } from './reportingobserver';
 export { RewriteFrames } from './rewriteframes';
 export { SessionTiming } from './sessiontiming';
-export { Tracing } from './tracing';
 export { Transaction } from './transaction';
 export { Vue } from './vue';

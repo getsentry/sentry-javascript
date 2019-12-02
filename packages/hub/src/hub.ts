@@ -8,9 +8,19 @@ import {
   Integration,
   IntegrationClass,
   Severity,
+  Span,
+  SpanContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dynamicRequire, getGlobalObject, isNodeEnv, logger, uuid4 } from '@sentry/utils';
+import {
+  consoleSandbox,
+  dynamicRequire,
+  getGlobalObject,
+  isNodeEnv,
+  logger,
+  timestampWithMs,
+  uuid4,
+} from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -251,7 +261,7 @@ export class Hub implements HubInterface {
       return;
     }
 
-    const timestamp = new Date().getTime() / 1000;
+    const timestamp = timestampWithMs();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
     const finalBreadcrumb = beforeBreadcrumb
       ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
@@ -371,17 +381,29 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
+    return this._callExtensionMethod<Span>('startSpan', spanOrSpanContext, forceNoChild);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public traceHeaders(): { [key: string]: string } {
-    const top = this.getStackTop();
-    if (top.scope && top.client) {
-      const span = top.scope.getSpan();
-      if (span) {
-        return {
-          'sentry-trace': span.toTraceparent(),
-        };
-      }
+    return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
+  }
+
+  /**
+   * Calls global extension method and binding current instance to the function call
+   */
+  // @ts-ignore
+  private _callExtensionMethod<T>(method: string, ...args: any[]): T {
+    const carrier = getMainCarrier();
+    const sentry = carrier.__SENTRY__;
+    // tslint:disable-next-line: strict-type-predicates
+    if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+      return sentry.extensions[method].apply(this, args);
     }
-    return {};
+    logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 
@@ -389,6 +411,7 @@ export class Hub implements HubInterface {
 export function getMainCarrier(): Carrier {
   const carrier = getGlobalObject();
   carrier.__SENTRY__ = carrier.__SENTRY__ || {
+    extensions: {},
     hub: undefined,
   };
   return carrier;

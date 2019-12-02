@@ -32,33 +32,57 @@ describe('Hub', () => {
     expect(hub.isOlderThan(0)).toBeFalsy();
   });
 
-  test('pushScope', () => {
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub(undefined, localScope);
-    hub.pushScope();
-    expect(hub.getStack()).toHaveLength(2);
-    expect(hub.getStack()[1].scope).not.toBe(localScope);
-    expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
-  });
+  describe('pushScope', () => {
+    test('simple', () => {
+      const localScope = new Scope();
+      localScope.setExtra('a', 'b');
+      const hub = new Hub(undefined, localScope);
+      hub.pushScope();
+      expect(hub.getStack()).toHaveLength(2);
+      expect(hub.getStack()[1].scope).not.toBe(localScope);
+      expect(((hub.getStack()[1].scope as Scope) as any)._extra).toEqual({ a: 'b' });
+    });
 
-  test('pushScope inherit client', () => {
-    const testClient: any = { bla: 'a' };
-    const hub = new Hub(testClient);
-    hub.pushScope();
-    expect(hub.getStack()).toHaveLength(2);
-    expect(hub.getStack()[1].client).toBe(testClient);
-  });
+    test('inherit client', () => {
+      const testClient: any = { bla: 'a' };
+      const hub = new Hub(testClient);
+      hub.pushScope();
+      expect(hub.getStack()).toHaveLength(2);
+      expect(hub.getStack()[1].client).toBe(testClient);
+    });
 
-  test('pushScope bindClient', () => {
-    const testClient: any = { bla: 'a' };
-    const hub = new Hub(testClient);
-    const ndClient: any = { foo: 'bar' };
-    hub.pushScope();
-    hub.bindClient(ndClient);
-    expect(hub.getStack()).toHaveLength(2);
-    expect(hub.getStack()[0].client).toBe(testClient);
-    expect(hub.getStack()[1].client).toBe(ndClient);
+    test('bindClient', () => {
+      const testClient: any = { bla: 'a' };
+      const hub = new Hub(testClient);
+      const ndClient: any = { foo: 'bar' };
+      hub.pushScope();
+      hub.bindClient(ndClient);
+      expect(hub.getStack()).toHaveLength(2);
+      expect(hub.getStack()[0].client).toBe(testClient);
+      expect(hub.getStack()[1].client).toBe(ndClient);
+    });
+
+    test('inherit processors', () => {
+      expect.assertions(1);
+      const event: Event = {
+        extra: { b: 3 },
+      };
+      const localScope = new Scope();
+      localScope.setExtra('a', 'b');
+      const hub = new Hub({ a: 'b' } as any, localScope);
+
+      localScope.addEventProcessor(async (processedEvent: Event) => {
+        processedEvent.dist = '1';
+        return processedEvent;
+      });
+
+      hub.pushScope();
+      const pushedScope = hub.getStackTop().scope;
+
+      return pushedScope!.applyToEvent(event).then(final => {
+        expect(final!.dist).toEqual('1');
+      });
+    });
   });
 
   test('popScope', () => {
@@ -69,23 +93,25 @@ describe('Hub', () => {
     expect(hub.getStack()).toHaveLength(1);
   });
 
-  test('withScope', () => {
-    const hub = new Hub();
-    hub.withScope(() => {
-      expect(hub.getStack()).toHaveLength(2);
+  describe('withScope', () => {
+    test('simple', () => {
+      const hub = new Hub();
+      hub.withScope(() => {
+        expect(hub.getStack()).toHaveLength(2);
+      });
+      expect(hub.getStack()).toHaveLength(1);
     });
-    expect(hub.getStack()).toHaveLength(1);
-  });
 
-  test('withScope bindClient', () => {
-    const hub = new Hub();
-    const testClient: any = { bla: 'a' };
-    hub.withScope(() => {
-      hub.bindClient(testClient);
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[1].client).toBe(testClient);
+    test('bindClient', () => {
+      const hub = new Hub();
+      const testClient: any = { bla: 'a' };
+      hub.withScope(() => {
+        hub.bindClient(testClient);
+        expect(hub.getStack()).toHaveLength(2);
+        expect(hub.getStack()[1].client).toBe(testClient);
+      });
+      expect(hub.getStack()).toHaveLength(1);
     });
-    expect(hub.getStack()).toHaveLength(1);
   });
 
   test('getCurrentClient', () => {
@@ -109,98 +135,103 @@ describe('Hub', () => {
     expect(hub.getStackTop().client).toEqual({ bla: 'a' });
   });
 
-  test('captureException', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureException('a');
-    expect(spy).toHaveBeenCalled();
-    expect(spy.mock.calls[0][0]).toBe('captureException');
-    expect(spy.mock.calls[0][1]).toBe('a');
-  });
+  describe('configureScope', () => {
+    test('no client, should not invoke configureScope', () => {
+      expect.assertions(0);
+      const hub = new Hub();
+      hub.configureScope(_ => {
+        expect(true).toBeFalsy();
+      });
+    });
 
-  test('captureMessage', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureMessage('a');
-    expect(spy).toHaveBeenCalled();
-    expect(spy.mock.calls[0][0]).toBe('captureMessage');
-    expect(spy.mock.calls[0][1]).toBe('a');
-  });
-
-  test('captureEvent', () => {
-    const event: Event = {
-      extra: { b: 3 },
-    };
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureEvent(event);
-    expect(spy).toHaveBeenCalled();
-    expect(spy.mock.calls[0][0]).toBe('captureEvent');
-    expect(spy.mock.calls[0][1]).toBe(event);
-  });
-
-  test('configureScope', () => {
-    expect.assertions(0);
-    const hub = new Hub();
-    hub.configureScope(_ => {
-      expect(true).toBeFalsy();
+    test('no client, should not invoke configureScope', () => {
+      expect.assertions(1);
+      const localScope = new Scope();
+      localScope.setExtra('a', 'b');
+      const hub = new Hub({ a: 'b' } as any, localScope);
+      hub.configureScope(confScope => {
+        expect((confScope as any)._extra).toEqual({ a: 'b' });
+      });
     });
   });
 
-  test('configureScope', () => {
-    expect.assertions(1);
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' } as any, localScope);
-    hub.configureScope(confScope => {
-      expect((confScope as any)._extra).toEqual({ a: 'b' });
+  describe('captureException', () => {
+    test('simple', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureException('a');
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.calls[0][0]).toBe('captureException');
+      expect(spy.mock.calls[0][1]).toBe('a');
+    });
+
+    test('should set event_id in hint', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureException('a');
+      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
+    });
+
+    test('should generate hint if not provided in the call', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      const ex = new Error('foo');
+      hub.captureException(ex);
+      expect(spy.mock.calls[0][2].originalException).toBe(ex);
+      expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
+      expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
     });
   });
 
-  test('pushScope inherit processors', () => {
-    expect.assertions(1);
-    const event: Event = {
-      extra: { b: 3 },
-    };
-    const localScope = new Scope();
-    localScope.setExtra('a', 'b');
-    const hub = new Hub({ a: 'b' } as any, localScope);
-
-    localScope.addEventProcessor(async (processedEvent: Event) => {
-      processedEvent.dist = '1';
-      return processedEvent;
+  describe('captureMessage', () => {
+    test('simple', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureMessage('a');
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.calls[0][0]).toBe('captureMessage');
+      expect(spy.mock.calls[0][1]).toBe('a');
     });
 
-    hub.pushScope();
-    const pushedScope = hub.getStackTop().scope;
+    test('should set event_id in hint', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureMessage('a');
+      expect(spy.mock.calls[0][3].event_id).toBeTruthy();
+    });
 
-    return pushedScope!.applyToEvent(event).then(final => {
-      expect(final!.dist).toEqual('1');
+    test('should generate hint if not provided in the call', () => {
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureMessage('foo');
+      expect(spy.mock.calls[0][3].originalException).toBe('foo');
+      expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
+      expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
     });
   });
 
-  test('captureException should set event_id in hint', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureException('a');
-    expect(spy.mock.calls[0][2].event_id).toBeTruthy();
-  });
+  describe('captureEvent', () => {
+    test('simple', () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureEvent(event);
+      expect(spy).toHaveBeenCalled();
+      expect(spy.mock.calls[0][0]).toBe('captureEvent');
+      expect(spy.mock.calls[0][1]).toBe(event);
+    });
 
-  test('captureMessage should set event_id in hint', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureMessage('a');
-    expect(spy.mock.calls[0][3].event_id).toBeTruthy();
-  });
-
-  test('captureEvent should set event_id in hint', () => {
-    const event: Event = {
-      extra: { b: 3 },
-    };
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureEvent(event);
-    expect(spy.mock.calls[0][2].event_id).toBeTruthy();
+    test('should set event_id in hint', () => {
+      const event: Event = {
+        extra: { b: 3 },
+      };
+      const hub = new Hub();
+      const spy = jest.spyOn(hub as any, '_invokeClient');
+      hub.captureEvent(event);
+      expect(spy.mock.calls[0][2].event_id).toBeTruthy();
+    });
   });
 
   test('lastEventId should be the same as last created', () => {
@@ -210,25 +241,6 @@ describe('Hub', () => {
     const hub = new Hub();
     const eventId = hub.captureEvent(event);
     expect(eventId).toBe(hub.lastEventId());
-  });
-
-  test('captureException should generate hint if not provided in the call', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    const ex = new Error('foo');
-    hub.captureException(ex);
-    expect(spy.mock.calls[0][2].originalException).toBe(ex);
-    expect(spy.mock.calls[0][2].syntheticException).toBeInstanceOf(Error);
-    expect(spy.mock.calls[0][2].syntheticException.message).toBe('Sentry syntheticException');
-  });
-
-  test('captureMessage should generate hint if not provided in the call', () => {
-    const hub = new Hub();
-    const spy = jest.spyOn(hub as any, '_invokeClient');
-    hub.captureMessage('foo');
-    expect(spy.mock.calls[0][3].originalException).toBe('foo');
-    expect(spy.mock.calls[0][3].syntheticException).toBeInstanceOf(Error);
-    expect(spy.mock.calls[0][3].syntheticException.message).toBe('foo');
   });
 
   test('run', () => {

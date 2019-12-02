@@ -73,9 +73,6 @@ describe('Scope', () => {
       scope.addBreadcrumb({ message: 'test' }, 100);
       expect((scope as any)._breadcrumbs[0]).toHaveProperty('message', 'test');
     });
-  });
-
-  describe('level', () => {
     test('set', () => {
       const scope = new Scope();
       scope.setLevel(Severity.Critical);
@@ -108,6 +105,21 @@ describe('Scope', () => {
       scope.setContext('os', { id: '1' });
       scope.setContext('os', null);
       expect((scope as any)._user).toEqual({});
+    });
+  });
+
+  describe('span', () => {
+    test('set', () => {
+      const scope = new Scope();
+      const span = { fake: 'span' } as any;
+      scope.setSpan(span);
+      expect((scope as any)._span).toEqual(span);
+    });
+    test('unset', () => {
+      const scope = new Scope();
+      scope.setSpan({ fake: 'span' } as any);
+      scope.setSpan();
+      expect((scope as any)._span).toEqual(undefined);
     });
   });
 

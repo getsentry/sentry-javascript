@@ -1,18 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { Integration, Span } from '@sentry/types';
+import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
-import * as util from 'util';
+import * as https from 'https';
 
-let lastResponse: http.ServerResponse | undefined;
-
-/**
- * Request interface which can carry around unified url
- * independently of used framework
- */
-interface SentryRequest extends http.IncomingMessage {
-  __ravenBreadcrumbUrl?: string;
-}
+const NODE_VERSION = parseSemver(process.versions.node);
 
 /** http module integration */
 export class Http implements Integration {
@@ -28,16 +20,120 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
-    const nativeModule = require('module');
-    fill(nativeModule, '_load', loadWrapper(nativeModule));
-    // observation: when the https module does its own require('http'), it *does not* hit our hooked require to instrument http on the fly
-    // but if we've previously instrumented http, https *does* get our already-instrumented version
-    // this is because raven's transports are required before this instrumentation takes place, which loads https (and http)
-    // so module cache will have uninstrumented http; proactively loading it here ensures instrumented version is in module cache
-    // alternatively we could refactor to load our transports later, but this is easier and doesn't have much drawback
-    require('http');
+  private readonly _breadcrumbs: boolean;
+
+  /**
+   * @inheritDoc
+   */
+  private readonly _tracing: boolean;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
+    this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
+    this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
   }
+
+  /**
+   * @inheritDoc
+   */
+  public setupOnce(): void {
+    // No need to instrument if we don't want to track anything
+    if (!this._breadcrumbs && !this._tracing) {
+      return;
+    }
+
+    const handlerWrapper = createHandlerWrapper(this._breadcrumbs, this._tracing);
+
+    const httpModule = require('http');
+    fill(httpModule, 'get', handlerWrapper);
+    fill(httpModule, 'request', handlerWrapper);
+
+    // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
+    // If we do, we'd get double breadcrumbs and double spans for `https` calls.
+    // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
+    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+      const httpsModule = require('https');
+      fill(httpsModule, 'get', handlerWrapper);
+      fill(httpsModule, 'request', handlerWrapper);
+    }
+  }
+}
+
+/**
+ * Wrapper function for internal `request` and `get` calls within `http` and `https` modules
+ */
+function createHandlerWrapper(
+  breadcrumbsEnabled: boolean,
+  tracingEnabled: boolean,
+): (originalHandler: () => http.ClientRequest) => (options: string | http.ClientRequestArgs) => http.ClientRequest {
+  return function handlerWrapper(
+    originalHandler: () => http.ClientRequest,
+  ): (options: string | http.ClientRequestArgs) => http.ClientRequest {
+    return function(this: typeof http | typeof https, options: string | http.ClientRequestArgs): http.ClientRequest {
+      const requestUrl = extractUrl(options);
+
+      if (isSentryRequest(requestUrl)) {
+        return originalHandler.apply(this, arguments);
+      }
+
+      let span: Span;
+      if (tracingEnabled) {
+        span = getCurrentHub().startSpan({
+          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
+          op: 'request',
+        });
+      }
+
+      return originalHandler
+        .apply(this, arguments)
+        .once('response', function(this: http.IncomingMessage, res: http.ServerResponse): void {
+          if (breadcrumbsEnabled) {
+            addRequestBreadcrumb('response', requestUrl, this, res);
+          }
+          if (tracingEnabled && span) {
+            span.setHttpStatus(res.statusCode);
+            span.finish();
+          }
+        })
+        .once('error', function(this: http.IncomingMessage): void {
+          if (breadcrumbsEnabled) {
+            addRequestBreadcrumb('error', requestUrl, this);
+          }
+          if (tracingEnabled && span) {
+            span.setHttpStatus(500);
+            span.finish();
+          }
+        });
+    };
+  };
+}
+
+/**
+ * Captures Breadcrumb based on provided request/response pair
+ */
+function addRequestBreadcrumb(event: string, url: string, req: http.IncomingMessage, res?: http.ServerResponse): void {
+  if (!getCurrentHub().getIntegration(Http)) {
+    return;
+  }
+
+  getCurrentHub().addBreadcrumb(
+    {
+      category: 'http',
+      data: {
+        method: req.method,
+        status_code: res && res.statusCode,
+        url,
+      },
+      type: 'http',
+    },
+    {
+      event,
+      request: req,
+      response: res,
+    },
+  );
 }
 
 /**
@@ -46,10 +142,7 @@ export class Http implements Integration {
  * @param options url that should be returned or an object containing it's parts.
  * @returns constructed url
  */
-function createBreadcrumbUrl(options: string | http.ClientRequestArgs): string {
-  // We could just always reconstruct this from this.agent, this._headers, this.path, etc
-  // but certain other http-instrumenting libraries (like nock, which we use for tests) fail to
-  // maintain the guarantee that after calling origClientRequest, those fields will be populated
+function extractUrl(options: string | http.ClientRequestArgs): string {
   if (typeof options === 'string') {
     return options;
   }
@@ -62,108 +155,19 @@ function createBreadcrumbUrl(options: string | http.ClientRequestArgs): string {
 }
 
 /**
- * Wrapper function for internal _load calls within `require`
+ * Checks whether given url points to Sentry server
+ * @param url url to verify
  */
-function loadWrapper(nativeModule: any): any {
-  // We need to use some functional-style currying to pass values around
-  // as we cannot rely on `bind`, because this has to preserve correct
-  // context for native calls
-  return function(originalLoad: () => any): any {
-    return function(this: SentryRequest, moduleId: string): any {
-      const originalModule = originalLoad.apply(nativeModule, arguments);
+function isSentryRequest(url: string): boolean {
+  const client = getCurrentHub().getClient();
+  if (!url || !client) {
+    return false;
+  }
 
-      if (moduleId !== 'http' || originalModule.__sentry__) {
-        return originalModule;
-      }
+  const dsn = client.getDsn();
+  if (!dsn) {
+    return false;
+  }
 
-      const origClientRequest = originalModule.ClientRequest;
-      const clientRequest = function(
-        this: SentryRequest,
-        options: http.ClientRequestArgs | string,
-        callback: () => void,
-      ): any {
-        // Note: this won't capture a breadcrumb if a response never comes
-        // It would be useful to know if that was the case, though, so
-        // TODO: revisit to see if we can capture sth indicating response never came
-        // possibility: capture one breadcrumb for "req sent" and one for "res recvd"
-        // seems excessive but solves the problem and *is* strictly more information
-        // could be useful for weird response sequencing bug scenarios
-
-        origClientRequest.call(this, options, callback);
-        this.__ravenBreadcrumbUrl = createBreadcrumbUrl(options);
-      };
-
-      util.inherits(clientRequest, origClientRequest);
-
-      fill(clientRequest.prototype, 'emit', emitWrapper);
-
-      fill(originalModule, 'ClientRequest', function(): any {
-        return clientRequest;
-      });
-
-      // http.request orig refs module-internal ClientRequest, not exported one, so
-      // it still points at orig ClientRequest after our monkeypatch; these reimpls
-      // just get that reference updated to use our new ClientRequest
-      fill(originalModule, 'request', function(): any {
-        return function(options: http.ClientRequestArgs, callback: () => void): any {
-          return new originalModule.ClientRequest(options, callback) as http.IncomingMessage;
-        };
-      });
-
-      fill(originalModule, 'get', function(): any {
-        return function(options: http.ClientRequestArgs, callback: () => void): any {
-          const req = originalModule.request(options, callback);
-          req.end();
-          return req;
-        };
-      });
-
-      originalModule.__sentry__ = true;
-      return originalModule;
-    };
-  };
-}
-
-/**
- * Wrapper function for request's `emit` calls
- */
-function emitWrapper(origEmit: EventListener): (event: string, response: http.ServerResponse) => EventListener {
-  return function(this: SentryRequest, event: string, response: http.ServerResponse): any {
-    // I'm not sure why but Node.js (at least in v8.X)
-    // is emitting all events twice :|
-    if (lastResponse === undefined || lastResponse !== response) {
-      lastResponse = response;
-    } else {
-      return origEmit.apply(this, arguments);
-    }
-
-    const client = getCurrentHub().getClient();
-    if (client) {
-      const dsn = client.getDsn();
-
-      const isInterestingEvent = event === 'response' || event === 'error';
-      const isNotSentryRequest = dsn && this.__ravenBreadcrumbUrl && this.__ravenBreadcrumbUrl.indexOf(dsn.host) === -1;
-
-      if (isInterestingEvent && isNotSentryRequest && getCurrentHub().getIntegration(Http)) {
-        getCurrentHub().addBreadcrumb(
-          {
-            category: 'http',
-            data: {
-              method: this.method,
-              status_code: response.statusCode,
-              url: this.__ravenBreadcrumbUrl,
-            },
-            type: 'http',
-          },
-          {
-            event,
-            request: this,
-            response,
-          },
-        );
-      }
-    }
-
-    return origEmit.apply(this, arguments);
-  };
+  return url.indexOf(dsn.host) !== -1;
 }

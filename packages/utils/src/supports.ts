@@ -83,7 +83,6 @@ function isNativeFetch(func: Function): boolean {
   return func && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
 }
 
-
 /**
  * Tells whether current environment supports Fetch API natively
  * {@link supportsNativeFetch}.
@@ -98,6 +97,7 @@ export function supportsNativeFetch(): boolean {
   const global = getGlobalObject<Window>();
 
   // Fast path to avoid DOM I/O
+  // tslint:disable-next-line:no-unbound-method
   if (isNativeFetch(global.fetch)) {
     return true;
   }
@@ -112,6 +112,7 @@ export function supportsNativeFetch(): boolean {
     try {
       doc.head.appendChild(sandbox);
       if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
+        // tslint:disable-next-line:no-unbound-method
         result = isNativeFetch(sandbox.contentWindow.fetch);
       }
       doc.head.removeChild(sandbox);

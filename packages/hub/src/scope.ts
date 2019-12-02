@@ -1,7 +1,14 @@
-import { Breadcrumb, Event, EventHint, EventProcessor, Scope as ScopeInterface, Severity, User } from '@sentry/types';
-import { getGlobalObject, isThenable, normalize, SyncPromise } from '@sentry/utils';
-
-import { Span } from './span';
+import {
+  Breadcrumb,
+  Event,
+  EventHint,
+  EventProcessor,
+  Scope as ScopeInterface,
+  Severity,
+  Span,
+  User,
+} from '@sentry/types';
+import { getGlobalObject, isThenable, normalize, SyncPromise, timestampWithMs } from '@sentry/utils';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -201,16 +208,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
-   */
-  public startSpan(parentSpan?: Span): Span {
-    const span = new Span();
-    span.setParent(parentSpan);
-    this.setSpan(span);
-    return span;
-  }
-
-  /**
    * Internal getter for Span, used in Hub.
    * @hidden
    */
@@ -260,7 +257,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const timestamp = new Date().getTime() / 1000;
+    const timestamp = timestampWithMs();
     const mergedBreadcrumb = { timestamp, ...breadcrumb };
 
     this._breadcrumbs =
@@ -332,7 +329,7 @@ export class Scope implements ScopeInterface {
     }
     if (this._span) {
       event.contexts = event.contexts || {};
-      event.contexts.trace = this._span;
+      event.contexts.trace = this._span.getTraceContext();
     }
 
     this._applyFingerprint(event);

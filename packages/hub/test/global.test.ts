@@ -15,8 +15,23 @@ describe('global', () => {
   });
 
   test('getGlobalHub', () => {
-    const newestHub = new Hub(undefined, [], 999999);
+    const newestHub = new Hub(undefined, undefined, 999999);
     (global as any).__SENTRY__.hub = newestHub;
     expect(getCurrentHub()).toBe(newestHub);
   });
+
+  test('hub extension methods receive correct hub instance', () => {
+    const newestHub = new Hub(undefined, undefined, 999999);
+    (global as any).__SENTRY__.hub = newestHub;
+    // tslint:disable-next-line: typedef
+    const fn = jest.fn().mockImplementation(function(...args: []) {
+      expect(this).toBe(newestHub);
+      expect(args).toEqual([1, 2, 3]);
+    });
+    (global as any).__SENTRY__.extensions = {};
+    (global as any).__SENTRY__.extensions.testy = fn;
+    (getCurrentHub() as any)._callExtensionMethod('testy', 1, 2, 3);
+    expect(fn).toBeCalled();
+  });
+  // (global as any).__SENTRY__
 });

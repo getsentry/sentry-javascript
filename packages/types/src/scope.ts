@@ -76,11 +76,6 @@ export interface Scope {
    */
   setSpan(span?: Span): this;
 
-  /**
-   * Starts a new Span.
-   */
-  startSpan(): Span;
-
   /** Clears the current scope and resets its properties. */
   clear(): this;
 

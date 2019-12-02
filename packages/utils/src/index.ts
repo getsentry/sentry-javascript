@@ -10,3 +10,5 @@ export * from './promisebuffer';
 export * from './string';
 export * from './supports';
 export * from './syncpromise';
+export * from './instrument';
+export * from './dsn';

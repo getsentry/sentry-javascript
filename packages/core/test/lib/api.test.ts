@@ -1,5 +1,6 @@
+import { Dsn } from '@sentry/utils';
+
 import { API } from '../../src/api';
-import { Dsn } from '../../src/dsn';
 
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const legacyDsn = 'https://abc:123@sentry.io:1234/subpath/123';
@@ -16,14 +17,14 @@ describe('API', () => {
     expect(new API(dsnPublic).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
-        /^Sentry sentry_version=\d, sentry_timestamp=\d+, sentry_client=a\/1\.0, sentry_key=abc$/,
+        /^Sentry sentry_version=\d, sentry_timestamp=\d+\.\d+, sentry_client=a\/1\.0, sentry_key=abc$/,
       ),
     });
 
     expect(new API(legacyDsn).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
-        /^Sentry sentry_version=\d, sentry_timestamp=\d+, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
+        /^Sentry sentry_version=\d, sentry_timestamp=\d+\.\d+, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
       ),
     });
   });

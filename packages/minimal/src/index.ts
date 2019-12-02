@@ -162,6 +162,7 @@ export function withScope(callback: (scope: Scope) => void): void {
  *
  * @param method The method to call on the client/client.
  * @param args Arguments to pass to the client/fontend.
+ * @hidden
  */
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);

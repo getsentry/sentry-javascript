@@ -1,7 +1,5 @@
 import { DsnLike } from '@sentry/types';
-import { urlEncode } from '@sentry/utils';
-
-import { Dsn } from './dsn';
+import { Dsn, timestampWithMs, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
@@ -28,7 +26,7 @@ export class API {
   public getStoreEndpointWithUrlEncodedAuth(): string {
     const dsn = this._dsnObject;
     const auth = {
-      sentry_key: dsn.user,
+      sentry_key: dsn.user, // sentry_key is currently used in tracing integration to identify internal sentry requests
       sentry_version: SENTRY_API_VERSION,
     };
     // Auth is intentionally sent as part of query string (NOT as custom HTTP header)
@@ -54,7 +52,7 @@ export class API {
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
     const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
-    header.push(`sentry_timestamp=${new Date().getTime()}`);
+    header.push(`sentry_timestamp=${timestampWithMs()}`); // TODO: This can be removed
     header.push(`sentry_client=${clientName}/${clientVersion}`);
     header.push(`sentry_key=${dsn.user}`);
     if (dsn.pass) {
