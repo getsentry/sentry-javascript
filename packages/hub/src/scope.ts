@@ -329,7 +329,7 @@ export class Scope implements ScopeInterface {
     }
     if (this._span) {
       event.contexts = event.contexts || {};
-      event.contexts.trace = this._span;
+      event.contexts.trace = this._span.getTraceContext();
     }
 
     this._applyFingerprint(event);

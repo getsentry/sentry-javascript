@@ -287,7 +287,6 @@ export class Span implements SpanInterface, SpanContext {
     }
 
     return this._hub.captureEvent({
-      contexts: { trace: this.getTraceContext() },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
       tags: this.tags,
@@ -312,22 +311,17 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public getTraceContext(): object {
-    const context = {
+    return {
       data: this.data,
       description: this.description,
       op: this.op,
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
+      // Undefined status will be dropped by `JSON.stringify` anyway so it's safe to read it directly like that
+      status: this.tags.status,
       tags: this.tags,
       trace_id: this._traceId,
     };
-
-    if (this.tags.status) {
-      // TODO: Fixme, just use better typings
-      (context as any).status = this.tags.status;
-    }
-
-    return context;
   }
 
   /**
