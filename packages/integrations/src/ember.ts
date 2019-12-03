@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, isInstanceOf, logger } from '@sentry/utils';
 
 /** JSDoc */
 export class Ember implements Integration {
@@ -55,7 +55,7 @@ export class Ember implements Integration {
       (reason: any): void => {
         if (getCurrentHub().getIntegration(Ember)) {
           getCurrentHub().withScope(scope => {
-            if (reason instanceof Error) {
+            if (isInstanceOf(reason, Error)) {
               scope.setExtra('context', 'Unhandled Promise error detected');
               getCurrentHub().captureException(reason, { originalException: reason });
             } else {

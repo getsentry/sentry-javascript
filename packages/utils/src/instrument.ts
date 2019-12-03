@@ -2,7 +2,7 @@
 
 import { WrappedFunction } from '@sentry/types';
 
-import { isString } from './is';
+import { isInstanceOf, isString } from './is';
 import { logger } from './logger';
 import { getFunctionName, getGlobalObject } from './misc';
 import { fill } from './object';
@@ -172,7 +172,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 
 /** Extract `method` from fetch call arguments */
 function getFetchMethod(fetchArgs: any[] = []): string {
-  if ('Request' in global && fetchArgs[0] instanceof Request && fetchArgs[0].method) {
+  if ('Request' in global && isInstanceOf(fetchArgs[0], Request) && fetchArgs[0].method) {
     return String(fetchArgs[0].method).toUpperCase();
   }
   if (fetchArgs[1] && fetchArgs[1].method) {
@@ -186,7 +186,7 @@ function getFetchUrl(fetchArgs: any[] = []): string {
   if (typeof fetchArgs[0] === 'string') {
     return fetchArgs[0];
   }
-  if ('Request' in global && fetchArgs[0] instanceof Request) {
+  if ('Request' in global && isInstanceOf(fetchArgs[0], Request)) {
     return fetchArgs[0].url;
   }
   return String(fetchArgs[0]);

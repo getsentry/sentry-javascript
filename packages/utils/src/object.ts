@@ -1,6 +1,6 @@
 import { ExtendedError, WrappedFunction } from '@sentry/types';
 
-import { isElement, isError, isEvent, isPrimitive, isSyntheticEvent } from './is';
+import { isElement, isError, isEvent, isInstanceOf, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
 import { getFunctionName, htmlTreeAsString } from './misc';
 import { truncate } from './string';
@@ -135,7 +135,7 @@ function getWalkSource(
     }
 
     // tslint:disable-next-line:strict-type-predicates
-    if (typeof CustomEvent !== 'undefined' && value instanceof CustomEvent) {
+    if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
       source.detail = event.detail;
     }
 

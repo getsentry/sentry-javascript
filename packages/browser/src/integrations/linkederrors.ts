@@ -1,5 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
+import { isInstanceOf } from '@sentry/utils';
 
 import { exceptionFromStacktrace } from '../parsers';
 import { computeStackTrace } from '../tracekit';
@@ -54,10 +55,10 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   private _handler(event: Event, hint?: EventHint): Event | null {
-    if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
+    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
       return event;
     }
-    const linkedErrors = this._walkErrorTree(hint.originalException, this._key);
+    const linkedErrors = this._walkErrorTree(hint.originalException as ExtendedError, this._key);
     event.exception.values = [...linkedErrors, ...event.exception.values];
     return event;
   }
@@ -66,7 +67,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   private _walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): Exception[] {
-    if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
+    if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
       return stack;
     }
     const stacktrace = computeStackTrace(error[key]);

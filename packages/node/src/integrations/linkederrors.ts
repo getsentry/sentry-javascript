@@ -1,6 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, ExtendedError, Integration } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
+import { isInstanceOf, SyncPromise } from '@sentry/utils';
 
 import { getExceptionFromError } from '../parsers';
 
@@ -53,12 +53,12 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public handler(event: Event, hint?: EventHint): PromiseLike<Event> {
-    if (!event.exception || !event.exception.values || !hint || !(hint.originalException instanceof Error)) {
+    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
       return SyncPromise.resolve(event);
     }
 
     return new SyncPromise<Event>(resolve => {
-      this.walkErrorTree(hint.originalException as ExtendedError, this._key)
+      this.walkErrorTree(hint.originalException as Error, this._key)
         .then((linkedErrors: Exception[]) => {
           if (event && event.exception && event.exception.values) {
             event.exception.values = [...linkedErrors, ...event.exception.values];
@@ -75,7 +75,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public walkErrorTree(error: ExtendedError, key: string, stack: Exception[] = []): PromiseLike<Exception[]> {
-    if (!(error[key] instanceof Error) || stack.length + 1 >= this._limit) {
+    if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
       return SyncPromise.resolve(stack);
     }
     return new SyncPromise<Exception[]>((resolve, reject) => {
