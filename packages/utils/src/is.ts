@@ -150,6 +150,7 @@ export function isSyntheticEvent(wat: any): boolean {
  */
 export function isInstanceOf(wat: any, base: any): boolean {
   try {
+    // tslint:disable-next-line:no-unsafe-any
     return wat instanceof base;
   } catch (_e) {
     return false;

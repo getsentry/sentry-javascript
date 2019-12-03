@@ -1,4 +1,4 @@
-import { isDOMError, isDOMException, isError, isErrorEvent, isPrimitive, isThenable } from '../src/is';
+import { isDOMError, isDOMException, isError, isErrorEvent, isInstanceOf, isPrimitive, isThenable } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { SyncPromise } from '../src/syncpromise';
 
@@ -87,5 +87,26 @@ describe('isThenable()', () => {
     expect(isThenable([])).toEqual(false);
     expect(isThenable(new Error('foo'))).toEqual(false);
     expect(isThenable(new Date())).toEqual(false);
+  });
+});
+
+describe('isInstanceOf()', () => {
+  test('should work as advertised', () => {
+    function Foo(): void {
+      /* no-empty */
+    }
+    expect(isInstanceOf(new Error('wat'), Error)).toEqual(true);
+    expect(isInstanceOf(new Date(), Date)).toEqual(true);
+    expect(isInstanceOf(new Foo(), Foo)).toEqual(true);
+
+    expect(isInstanceOf(new Error('wat'), Foo)).toEqual(false);
+    expect(isInstanceOf(new Date('wat'), Error)).toEqual(false);
+  });
+
+  test('should not break with incorrect input', () => {
+    expect(isInstanceOf(new Error('wat'), 1)).toEqual(false);
+    expect(isInstanceOf(new Error('wat'), 'wat')).toEqual(false);
+    expect(isInstanceOf(new Error('wat'), null)).toEqual(false);
+    expect(isInstanceOf(new Error('wat'), undefined)).toEqual(false);
   });
 });
