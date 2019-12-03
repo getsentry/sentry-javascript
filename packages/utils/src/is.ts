@@ -14,7 +14,7 @@ export function isError(wat: any): boolean {
     case '[object DOMException]':
       return true;
     default:
-      return wat instanceof Error;
+      return isInstanceOf(wat, Error);
   }
 }
 
@@ -93,7 +93,7 @@ export function isPlainObject(wat: any): boolean {
  */
 export function isEvent(wat: any): boolean {
   // tslint:disable-next-line:strict-type-predicates
-  return typeof Event !== 'undefined' && wat instanceof Event;
+  return typeof Event !== 'undefined' && isInstanceOf(wat, Event);
 }
 
 /**
@@ -105,7 +105,7 @@ export function isEvent(wat: any): boolean {
  */
 export function isElement(wat: any): boolean {
   // tslint:disable-next-line:strict-type-predicates
-  return typeof Element !== 'undefined' && wat instanceof Element;
+  return typeof Element !== 'undefined' && isInstanceOf(wat, Element);
 }
 
 /**
@@ -139,4 +139,20 @@ export function isThenable(wat: any): boolean {
 export function isSyntheticEvent(wat: any): boolean {
   // tslint:disable-next-line:no-unsafe-any
   return isPlainObject(wat) && 'nativeEvent' in wat && 'preventDefault' in wat && 'stopPropagation' in wat;
+}
+/**
+ * Checks whether given value's type is an instance of provided constructor.
+ * {@link isInstanceOf}.
+ *
+ * @param wat A value to be checked.
+ * @param base A constructor to be used in a check.
+ * @returns A boolean representing the result.
+ */
+export function isInstanceOf(wat: any, base: any): boolean {
+  try {
+    // tslint:disable-next-line:no-unsafe-any
+    return wat instanceof base;
+  } catch (_e) {
+    return false;
+  }
 }

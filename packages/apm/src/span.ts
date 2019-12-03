@@ -2,7 +2,7 @@
 
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
-import { logger, timestampWithMs, uuid4 } from '@sentry/utils';
+import { isInstanceOf, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 // TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -117,8 +117,8 @@ export class Span implements SpanInterface, SpanContext {
   public spanRecorder?: SpanRecorder;
 
   public constructor(spanContext?: SpanContext, hub?: Hub) {
-    if (hub instanceof Hub) {
-      this._hub = hub;
+    if (isInstanceOf(hub, Hub)) {
+      this._hub = hub as Hub;
     }
 
     if (!spanContext) {

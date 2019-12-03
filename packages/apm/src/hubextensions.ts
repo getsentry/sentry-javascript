@@ -1,5 +1,6 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext } from '@sentry/types';
+import { isInstanceOf } from '@sentry/utils';
 
 import { Span } from './span';
 
@@ -8,7 +9,7 @@ import { Span } from './span';
  * @param span value to check
  */
 function isSpanInstance(span: unknown): span is Span {
-  return span instanceof Span;
+  return isInstanceOf(span, Span);
 }
 
 /** Returns all trace headers that are currently on the top scope. */

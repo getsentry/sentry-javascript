@@ -7,6 +7,7 @@
 - [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
 - [utils] feat: Move insturment to utils
 - [apm] feat: Add `@sentry/apm` package
+- [utils] feat: Add `isInstanceOf` util for safety reasons
 
 ## 5.9.1
 
