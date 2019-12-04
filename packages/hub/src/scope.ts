@@ -262,8 +262,8 @@ export class Scope implements ScopeInterface {
 
     this._breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-        ? [...this._breadcrumbs, normalize(mergedBreadcrumb)].slice(-maxBreadcrumbs)
-        : [...this._breadcrumbs, normalize(mergedBreadcrumb)];
+        ? [...this._breadcrumbs, normalize(mergedBreadcrumb, 3)].slice(-maxBreadcrumbs)
+        : [...this._breadcrumbs, normalize(mergedBreadcrumb, 3)];
     this._notifyScopeListeners();
     return this;
   }

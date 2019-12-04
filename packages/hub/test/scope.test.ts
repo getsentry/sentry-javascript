@@ -431,4 +431,16 @@ describe('Scope', () => {
     expect(listener).toHaveBeenCalled();
     expect(listener.mock.calls[0][0]._extra).toEqual({ a: 2 });
   });
+
+  test('addBreadcrumb limit data depth', () => {
+    expect.assertions(2);
+    const scope = new Scope();
+
+    const deepObject = { a: { b: { c: { d: { e: 'f' } } } } };
+
+    scope.addBreadcrumb({ message: 'test', data: deepObject });
+    const breadcrumb = (scope as any)._breadcrumbs[0];
+    expect(breadcrumb).toHaveProperty('message', 'test');
+    expect(breadcrumb).toHaveProperty('data', { a: { b: '[Object]' } });
+  });
 });
