@@ -1,6 +1,6 @@
 {
   "name": "@sentry/typescript",
-  "version": "5.8.0-beta.1",
+  "version": "5.10.0",
   "description": "Typescript configuration used at Sentry",
   "repository": "git://github.com/getsentry/raven-js.git",
   "homepage": "https://github.com/getsentry/raven-js/tree/master/packages/typescript",
