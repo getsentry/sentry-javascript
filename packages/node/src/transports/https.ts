@@ -15,7 +15,7 @@ export class HTTPSTransport extends BaseTransport {
       const HttpsProxyAgent = require('https-proxy-agent');
       this.client = (new HttpsProxyAgent(proxy) as https.Agent);
     } else {
-      this.client = new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+      this.client = new https.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
     }
   }
 
