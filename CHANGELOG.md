@@ -2,11 +2,15 @@
 
 ## Unreleased
 
-- [hub] feat: Add more span functions (#2161)
-- [integrations] feat: Change `Tracing` integration (#2161)
-- [browser] feat: Refactor breadcrumbs integration to allow for custom handlers
-- [utils] feat: Move insturment to utils
+Coming soon...
+
+## 5.10.0 
+
+- [hub] feat: Update `span` implementation (#2161)
 - [apm] feat: Add `@sentry/apm` package
+- [integrations] feat: Change `Tracing` integration (#2161)
+- [utils] feat: Introduce `instrument` util to allow for custom handlers
+- [utils] Optimize `supportsNativeFetch` with a fast path that avoids DOM I/O (#2326)
 - [utils] feat: Add `isInstanceOf` util for safety reasons
 
 ## 5.9.1
