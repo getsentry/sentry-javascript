@@ -1,7 +1,6 @@
 import { Event, Response, TransportOptions } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as https from 'https';
-import * as HttpsProxyAgent from 'https-proxy-agent';
 
 import { BaseTransport } from './base';
 
@@ -12,10 +11,12 @@ export class HTTPSTransport extends BaseTransport {
     super(options);
     this.module = https;
     const proxy = options.httpsProxy || options.httpProxy || process.env.https_proxy || process.env.http_proxy;
-    this.client = proxy
-      ? // tslint:disable-next-line:no-unsafe-any
-        (new HttpsProxyAgent(proxy) as https.Agent)
-      : new https.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+    if(proxy){
+      const HttpsProxyAgent = require('https-proxy-agent');
+      this.client = (new HttpsProxyAgent(proxy) as https.Agent);
+    } else {
+      this.client = new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+    }
   }
 
   /**
