@@ -63,10 +63,11 @@ describe("breadcrumbs", function() {
           "//" +
           document.location.hostname +
           (document.location.port ? ":" + document.location.port : "") +
-          "/api/1/store/";
+          "/api/1/store/" +
+          "?sentry_key=1337";
 
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", store);
+        xhr.open("POST", store);
         xhr.send('{"message":"someMessage","level":"warning"}');
         waitForXHR(xhr, function() {
           Sentry.captureMessage("test");
