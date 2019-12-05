@@ -4,7 +4,11 @@
 
 Coming soon...
 
-- [apm] fix: Sent correct span id with outgoing requests
+## 5.10.1
+
+- [apm] fix: Sent correct span id with outgoing requests (#2341)
+- [utils] fix: Make `fill` and `wrap` work nicely together to prevent double-triggering instrumentations (#2343)
+- [node] ref: Require `https-proxy-agent` only when actually needed (#2334)
 
 ## 5.10.0
 
