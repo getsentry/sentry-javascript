@@ -389,6 +389,22 @@ describe("wrapped built-ins", function() {
     });
   });
 
+  it("should not call XMLHttpRequest onreadystatechange more than once", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      window.calls = 0;
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/base/subjects/example.json");
+      xhr.onreadystatechange = function wat() {
+        window.finalizeManualTest();
+        window.calls += 1;
+      };
+      xhr.send();
+    }).then(function(summary) {
+      assert.equal(summary.window.calls, 3);
+      delete summary.window.calls;
+    });
+  });
+
   it(
     optional(
       "should capture built-in's mechanism type as instrument",

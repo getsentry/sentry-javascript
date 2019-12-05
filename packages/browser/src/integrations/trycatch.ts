@@ -164,11 +164,10 @@ export class TryCatch implements Integration {
               type: 'instrument',
             },
           };
-          // If Instrument integration has been called before TryCatch
-          // use it as "before" callback in the wrap and use the original instead
-          if (original.__sentry__ && original.__sentry_original__) {
+
+          // If Instrument integration has been called before TryCatch, get the name of original function
+          if (original.__sentry_original__) {
             wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
-            return wrap(original.__sentry_original__, wrapOptions, original.__sentry_wrapped__);
           }
 
           // Otherwise wrap directly

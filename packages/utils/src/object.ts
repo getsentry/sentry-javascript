@@ -28,17 +28,9 @@ export function fill(source: { [key: string]: any }, name: string, replacement: 
     try {
       wrapped.prototype = wrapped.prototype || {};
       Object.defineProperties(wrapped, {
-        __sentry__: {
-          enumerable: false,
-          value: true,
-        },
         __sentry_original__: {
           enumerable: false,
           value: original,
-        },
-        __sentry_wrapped__: {
-          enumerable: false,
-          value: wrapped,
         },
       });
     } catch (_Oo) {
