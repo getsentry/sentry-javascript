@@ -4,7 +4,9 @@
 
 Coming soon...
 
-## 5.10.0 
+- [apm] fix: Sent correct span id with outgoing requests
+
+## 5.10.0
 
 - [hub] feat: Update `span` implementation (#2161)
 - [apm] feat: Add `@sentry/apm` package
