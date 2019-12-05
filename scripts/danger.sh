@@ -10,6 +10,6 @@ if [[ ! -z $DANGER_GITHUB_API_TOKEN ]]; then
   yarn codecov
   yarn danger ci || true # for external PRs danger will fail because of token
 else
-  yarn lint:json
+  yarn lint
   yarn test
 fi
