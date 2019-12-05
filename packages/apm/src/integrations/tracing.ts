@@ -1,12 +1,5 @@
 import { EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
-import {
-  addInstrumentationHandler,
-  fill,
-  getGlobalObject,
-  isMatchingPattern,
-  logger,
-  supportsNativeFetch,
-} from '@sentry/utils';
+import { addInstrumentationHandler, getGlobalObject, isMatchingPattern, logger } from '@sentry/utils';
 
 /**
  * Options for Tracing integration
@@ -163,7 +156,6 @@ export class Tracing implements Integration {
         callback: fetchCallback,
         type: 'fetch',
       });
-      this._traceFetch(getCurrentHub);
     }
 
     // tslint:disable-next-line: no-non-null-assertion
@@ -181,61 +173,6 @@ export class Tracing implements Integration {
         sampled: true,
       });
     }
-  }
-
-  /**
-   * JSDoc
-   */
-  private _traceFetch(getCurrentHub: () => Hub): void {
-    if (!supportsNativeFetch()) {
-      return;
-    }
-
-    // tslint:disable: only-arrow-functions
-    fill(getGlobalObject<Window>(), 'fetch', function(originalFetch: () => void): () => void {
-      return function(...args: any[]): void {
-        // @ts-ignore
-        const hub = getCurrentHub();
-        const self = hub.getIntegration(Tracing);
-        // tslint:disable-next-line: no-non-null-assertion
-        if (self && self._options!.tracingOrigins) {
-          const url = args[0] as string;
-          const options = (args[1] = (args[1] as { [key: string]: any }) || {});
-
-          let isWhitelisted = false;
-          // tslint:disable-next-line: no-non-null-assertion
-          self._options!.tracingOrigins.forEach((whiteListUrl: string | RegExp) => {
-            if (!isWhitelisted) {
-              isWhitelisted = isMatchingPattern(url, whiteListUrl);
-            }
-          });
-
-          if (isMatchingPattern(url, 'sentry_key')) {
-            // If sentry_key is in the url, it's an internal store request to sentry
-            // we do not want to add the trace header to store requests
-            isWhitelisted = false;
-          }
-
-          if (isWhitelisted) {
-            if (options.headers) {
-              if (Array.isArray(options.headers)) {
-                options.headers = [...options.headers, ...Object.entries(hub.traceHeaders())];
-              } else {
-                options.headers = {
-                  ...options.headers,
-                  ...hub.traceHeaders(),
-                };
-              }
-            } else {
-              options.headers = hub.traceHeaders();
-            }
-          }
-        }
-        // tslint:disable-next-line: no-unsafe-any
-        return originalFetch.apply(getGlobalObject<Window>(), args);
-      };
-    });
-    // tslint:enable: only-arrow-functions
   }
 
   /**
@@ -480,11 +417,27 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
       op: 'http',
     });
-  }
 
-  // if (handlerData.error) {
-  // } else {
-  // }
+    const activity = Tracing._activities[handlerData.fetchData.__activity];
+    if (activity) {
+      const span = activity.span;
+      if (span) {
+        const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
+        if (options.headers) {
+          if (Array.isArray(options.headers)) {
+            options.headers = [...options.headers, { 'sentry-trace': span.toTraceparent() }];
+          } else {
+            options.headers = {
+              ...options.headers,
+              'sentry-trace': span.toTraceparent(),
+            };
+          }
+        } else {
+          options.headers = { 'sentry-trace': span.toTraceparent() };
+        }
+      }
+    }
+  }
   // tslint:enable: no-unsafe-any
 }
 
