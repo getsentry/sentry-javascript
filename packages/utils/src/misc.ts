@@ -181,8 +181,8 @@ export function consoleSandbox(callback: () => any): any {
 
   // Restore all wrapped console methods
   levels.forEach(level => {
-    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry__) {
-      wrappedLevels[level] = (originalConsole[level] as WrappedFunction).__sentry_wrapped__;
+    if (level in global.console && (originalConsole[level] as WrappedFunction).__sentry_original__) {
+      wrappedLevels[level] = originalConsole[level] as WrappedFunction;
       originalConsole[level] = (originalConsole[level] as WrappedFunction).__sentry_original__;
     }
   });
