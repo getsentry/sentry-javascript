@@ -22,16 +22,12 @@ To run the test suite and run our code linter, node.js and yarn are required.
 
 Since this is a mono repo containing several packages, we use `lerna` to manage them.
 
-To get started call:
+To get started, install all dependencies, bootstrap the workspace and perform initial build, so TypeScript can read all the linked type definitions from a monorepo.
 
 ```
 $ yarn
-```
-
-After that you need to setup the workspace with:
-
-```
 $ yarn lerna bootstrap
+$ yarn build
 ```
 
 With that, the repo is fully setup and you are ready to run all commands.
