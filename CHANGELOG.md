@@ -4,6 +4,13 @@
 
 Coming soon...
 
+## 5.10.2
+
+- [browser] fix: Always trigger default browser onerror handler (#2348)
+- [browser] fix: Restore correct `functionToString` behavior for updated `fill` method (#2346)
+- [integrations] ref: Allow for backslashes in unix paths (#2319)
+- [integrations] feat: Support Windows-style path in RewriteFrame iteratee (#2319)
+
 ## 5.10.1
 
 - [apm] fix: Sent correct span id with outgoing requests (#2341)
