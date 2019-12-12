@@ -287,6 +287,9 @@ export class Span implements SpanInterface, SpanContext {
     }
 
     return this._hub.captureEvent({
+      contexts: {
+        trace: this.getTraceContext(),
+      },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
       tags: this.tags,
