@@ -4,6 +4,8 @@
 
 - [apm] fix: Always attach `contexts.trace` to finished transaction (#2353)
 
+- [integrations] fix: Make RewriteFrame integration process all exceptions (#2362)
+
 ## 5.10.2
 
 - [browser] fix: Always trigger default browser onerror handler (#2348)
