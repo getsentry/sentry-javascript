@@ -46,6 +46,9 @@ export class XHRTransport extends BaseTransport {
         };
 
         request.open('POST', this.url);
+        for (const header in this.options.headers) {
+          request.setRequestHeader(header, this.options.headers[header]);
+        }
         request.send(JSON.stringify(event));
       }),
     );
