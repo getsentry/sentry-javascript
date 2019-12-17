@@ -164,31 +164,48 @@ describe('Span', () => {
       expect(span.timestamp).toBeGreaterThan(1);
     });
 
-    test('finish a scope span without transaction', () => {
+    test('finish a span without transaction', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent');
       const span = new Span({}, hub);
       span.finish();
       expect(spy).not.toHaveBeenCalled();
     });
 
-    test('finish a scope span with transaction', () => {
+    test('finish a span with transaction', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const span = new Span({ transaction: 'test', sampled: false }, hub);
       span.initFinishedSpans();
       span.finish();
-      expect(spy).toHaveBeenCalled();
       expect(spy.mock.calls[0][0].spans).toHaveLength(0);
+      expect(spy.mock.calls[0][0].contexts.trace).toEqual(span.getTraceContext());
     });
 
-    test('finish a scope span with transaction + child span', () => {
+    test('finish a span with transaction + child span', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const parentSpan = new Span({ transaction: 'test', sampled: false }, hub);
       parentSpan.initFinishedSpans();
       const childSpan = parentSpan.child();
       childSpan.finish();
       parentSpan.finish();
-      expect(spy).toHaveBeenCalled();
       expect(spy.mock.calls[0][0].spans).toHaveLength(1);
+      expect(spy.mock.calls[0][0].contexts.trace).toEqual(parentSpan.getTraceContext());
+    });
+
+    test('finish a span with another one on the scope shouldnt override contexts.trace', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+
+      const spanOne = new Span({ transaction: 'testOne', sampled: false }, hub);
+      spanOne.initFinishedSpans();
+      const childSpanOne = spanOne.child();
+      childSpanOne.finish();
+      hub.configureScope((scope) => { scope.setSpan(spanOne) })
+
+      const spanTwo = new Span({ transaction: 'testTwo', sampled: false }, hub);
+      spanTwo.initFinishedSpans();
+      spanTwo.finish();
+
+      expect(spy.mock.calls[0][0].spans).toHaveLength(0);
+      expect(spy.mock.calls[0][0].contexts.trace).toEqual(spanTwo.getTraceContext());
     });
   });
 

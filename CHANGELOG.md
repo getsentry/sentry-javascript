@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Coming soon...
+- [apm] fix: Always attach `contexts.trace` to finished transaction (#2353)
 
 - [integrations] fix: Make RewriteFrame integration process all exceptions (#2362)
 
