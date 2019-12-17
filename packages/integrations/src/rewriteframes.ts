@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -69,29 +69,54 @@ export class RewriteFrames implements Integration {
 
   /** JSDoc */
   public process(event: Event): Event {
-    const frames = this._getFramesFromEvent(event);
-    if (frames) {
-      for (const i in frames) {
-        // tslint:disable-next-line
-        frames[i] = this._iteratee(frames[i]);
-      }
+    if (event.exception && Array.isArray(event.exception.values)) {
+      return this._processExceptionsEvent(event);
     }
+
+    if (event.stacktrace) {
+      return this._processStacktraceEvent(event);
+    }
+
     return event;
   }
 
   /** JSDoc */
-  private _getFramesFromEvent(event: Event): StackFrame[] | undefined {
-    const exception = event.exception;
-
-    if (exception) {
-      try {
-        return exception.values && exception.values[0].stacktrace && exception.values[0].stacktrace.frames;
-      } catch (_oO) {
-        return undefined;
-      }
-    } else if (event.stacktrace) {
-      return event.stacktrace.frames;
+  private _processExceptionsEvent(event: Event): Event {
+    try {
+      return {
+        ...event,
+        exception: {
+          ...event.exception,
+          // The check for this is performed inside `process` call itself, safe to skip here
+          // tslint:disable-next-line:no-non-null-assertion
+          values: event.exception!.values!.map(value => ({
+            ...value,
+            stacktrace: this._processStacktrace(value.stacktrace),
+          })),
+        },
+      };
+    } catch (_oO) {
+      return event;
     }
-    return undefined;
+  }
+
+  /** JSDoc */
+  private _processStacktraceEvent(event: Event): Event {
+    try {
+      return {
+        ...event,
+        stacktrace: this._processStacktrace(event.stacktrace),
+      };
+    } catch (_oO) {
+      return event;
+    }
+  }
+
+  /** JSDoc */
+  private _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
+    return {
+      ...stacktrace,
+      frames: stacktrace && stacktrace.frames && stacktrace.frames.map(f => this._iteratee(f)),
+    };
   }
 }
