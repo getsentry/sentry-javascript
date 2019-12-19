@@ -49,7 +49,7 @@ export const API_VERSION = 3;
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
  * with {@link Options.maxBreadcrumbs}.
  */
-const DEFAULT_BREADCRUMBS = 30;
+const DEFAULT_BREADCRUMBS = 100;
 
 /**
  * Absolute maximum number of breadcrumbs added to an event. The
