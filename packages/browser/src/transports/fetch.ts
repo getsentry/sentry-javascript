@@ -32,6 +32,10 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
+    if (this.options.headers !== undefined) {
+      defaultOptions.headers = this.options.headers;
+    }
+
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
         global

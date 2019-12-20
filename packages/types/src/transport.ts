@@ -27,7 +27,7 @@ export interface TransportOptions {
   /** Sentry DSN */
   dsn: DsnLike;
   /** Define custom headers */
-  headers?: object;
+  headers?: { [key: string]: string };
   /** Set a HTTP proxy that should be used for outbound requests. */
   httpProxy?: string;
   /** Set a HTTPS proxy that should be used for outbound requests. */

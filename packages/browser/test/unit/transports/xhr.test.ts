@@ -102,5 +102,23 @@ describe('XHRTransport', () => {
 
       dateStub.restore();
     });
+
+    it('passes in headers', async () => {
+      transport = new Transports.XHRTransport({
+        dsn: testDsn,
+        headers: {
+          Authorization: 'Basic GVzdDp0ZXN0Cg==',
+        },
+      });
+
+      server.respondWith('POST', transportUrl, [200, {}, '']);
+      const res = await transport.sendEvent(payload);
+      const request = server.requests[0];
+
+      expect(res.status).equal(Status.Success);
+      const requestHeaders: { [key: string]: string } = request.requestHeaders as { [key: string]: string };
+      const authHeaderLabel: string = 'Authorization';
+      expect(requestHeaders[authHeaderLabel]).equal('Basic GVzdDp0ZXN0Cg==');
+    });
   });
 });

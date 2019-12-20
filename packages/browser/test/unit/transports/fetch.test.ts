@@ -129,5 +129,31 @@ describe('FetchTransport', () => {
 
       dateStub.restore();
     });
+
+    it('passes in headers', async () => {
+      transport = new Transports.FetchTransport({
+        dsn: testDsn,
+        headers: {
+          Authorization: 'Basic GVzdDp0ZXN0Cg==',
+        },
+      });
+      const response = { status: 200 };
+
+      fetch.returns(Promise.resolve(response));
+
+      const res = await transport.sendEvent(payload);
+
+      expect(res.status).equal(Status.Success);
+      expect(
+        fetch.calledWith(transportUrl, {
+          body: JSON.stringify(payload),
+          headers: {
+            Authorization: 'Basic GVzdDp0ZXN0Cg==',
+          },
+          method: 'POST',
+          referrerPolicy: 'origin',
+        }),
+      ).equal(true);
+    });
   });
 });

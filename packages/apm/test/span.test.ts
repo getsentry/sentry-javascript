@@ -198,7 +198,9 @@ describe('Span', () => {
       spanOne.initFinishedSpans();
       const childSpanOne = spanOne.child();
       childSpanOne.finish();
-      hub.configureScope((scope) => { scope.setSpan(spanOne) })
+      hub.configureScope(scope => {
+        scope.setSpan(spanOne);
+      });
 
       const spanTwo = new Span({ transaction: 'testTwo', sampled: false }, hub);
       spanTwo.initFinishedSpans();
