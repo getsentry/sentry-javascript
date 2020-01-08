@@ -2,9 +2,12 @@
 
 ## Unreleased
 
-- [apm] fix: Always attach `contexts.trace` to finished transaction (#2353)
+## 5.11.0
 
+- [apm] fix: Always attach `contexts.trace` to finished transaction (#2353)
 - [integrations] fix: Make RewriteFrame integration process all exceptions (#2362)
+- [node] ref: Update agent-base to 5.0 to remove http/s patching (#2355)
+- [browser] feat: Set headers from options in XHR/fetch transport (#2363)
 
 ## 5.10.2
 
