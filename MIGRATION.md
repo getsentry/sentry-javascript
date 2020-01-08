@@ -133,7 +133,7 @@ that you can await it also **disables** the client so it will not send any futur
 
 # Migrating from `raven-js` to `@sentry/browser`
 
-`@sentry/browser` needs polyfills to work in IE 11 or older, see: https://docs.sentry.io/platforms/javascript/#browser-table
+https://docs.sentry.io/platforms/javascript/#browser-table
 Here are some examples of how the new SDKs work. Please note that the API for all JavaScript SDKs is the same.
 
 #### Installation
