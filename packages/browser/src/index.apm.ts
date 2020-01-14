@@ -1,5 +1,6 @@
 export * from './exports';
 
+import * as Apm from '@sentry/apm';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { getGlobalObject } from '@sentry/utils';
 
@@ -20,6 +21,7 @@ const INTEGRATIONS = {
   ...windowIntegrations,
   ...CoreIntegrations,
   ...BrowserIntegrations,
+  Tracing: Apm.Integrations.Tracing,
 };
 
 export { INTEGRATIONS as Integrations, Transports };

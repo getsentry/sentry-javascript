@@ -16,6 +16,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/apm": "5.11.0",
     "@sentry/core": "5.11.0",
     "@sentry/types": "5.11.0",
     "@sentry/utils": "5.11.0",

@@ -67,6 +67,7 @@ const bundleConfig = {
 };
 
 export default [
+  // ES5 Browser Bundle
   {
     ...bundleConfig,
     output: {
@@ -86,6 +87,44 @@ export default [
       .concat(terserInstance)
       .concat(bundleConfig.plugins.slice(-1)),
   },
+  // ------------------
+  // ES5 Browser APM Bundle
+  {
+    ...bundleConfig,
+    input: 'src/index.apm.ts',
+    output: {
+      ...bundleConfig.output,
+      file: 'build/bundle.apm.js',
+    },
+    plugins: [
+      ...plugins,
+      license({
+        sourcemap: true,
+        banner: `/*! @sentry/browser & @sentry/apm <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
+      }),
+    ],
+  },
+  {
+    ...bundleConfig,
+    input: 'src/index.apm.ts',
+    output: {
+      ...bundleConfig.output,
+      file: 'build/bundle.apm.min.js',
+    },
+    // Uglify has to be at the end of compilation, BUT before the license banner
+    plugins: [
+      ...plugins,
+      license({
+        sourcemap: true,
+        banner: `/*! @sentry/browser & @sentry/apm <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
+      }),
+    ]
+      .slice(0, -1)
+      .concat(terserInstance)
+      .concat(bundleConfig.plugins.slice(-1)),
+  },
+  // ------------------
+  // ES6 Browser Bundle
   {
     ...bundleConfig,
     output: {
@@ -136,4 +175,5 @@ export default [
         .concat(bundleConfig.plugins.slice(-1)),
     ],
   },
+  // ------------------
 ];

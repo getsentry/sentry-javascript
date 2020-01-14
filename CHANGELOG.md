@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [browser] feat: Add build bundle including @sentry/apm
 - [utils] ref: Extract adding source context incl. tests
 
 ## 5.11.0
