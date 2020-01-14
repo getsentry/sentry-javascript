@@ -1,5 +1,5 @@
 import { Event, Exception, ExtendedError, StackFrame } from '@sentry/types';
-import { basename, dirname, snipLine, SyncPromise } from '@sentry/utils';
+import { addContextToFrame, basename, dirname, SyncPromise } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
@@ -203,15 +203,7 @@ function addPrePostContext(
           try {
             const lines = (sourceFiles[frame.filename] as string).split('\n');
 
-            frame.pre_context = lines
-              .slice(Math.max(0, (frame.lineno || 0) - (linesOfContext + 1)), (frame.lineno || 0) - 1)
-              .map((line: string) => snipLine(line, 0));
-
-            frame.context_line = snipLine(lines[(frame.lineno || 0) - 1], frame.colno || 0);
-
-            frame.post_context = lines
-              .slice(frame.lineno || 0, (frame.lineno || 0) + linesOfContext)
-              .map((line: string) => snipLine(line, 0));
+            addContextToFrame(lines, frame, linesOfContext);
           } catch (e) {
             // anomaly, being defensive in case
             // unlikely to ever happen in practice but can definitely happen in theory

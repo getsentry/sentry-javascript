@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [utils] ref: Extract adding source context incl. tests
+
 ## 5.11.0
 
 - [apm] fix: Always attach `contexts.trace` to finished transaction (#2353)

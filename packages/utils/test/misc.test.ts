@@ -1,4 +1,6 @@
-import { getEventDescription, getGlobalObject, parseRetryAfterHeader } from '../src/misc';
+import { StackFrame } from '@sentry/types';
+
+import { addContextToFrame, getEventDescription, getGlobalObject, parseRetryAfterHeader } from '../src/misc';
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -137,5 +139,74 @@ describe('parseRetryAfterHeader', () => {
     expect(
       parseRetryAfterHeader(new Date('Wed, 21 Oct 2015 07:28:00 GMT').getTime(), 'Wed, 21 Oct 2015 07:28:13 GMT'),
     ).toEqual(13 * 1000);
+  });
+});
+
+describe('addContextToFrame', () => {
+  const lines = [
+    '1: a',
+    '2: b',
+    '3: c',
+    '4: d',
+    '5: e',
+    '6: f',
+    '7: g',
+    '8: h',
+    '9: i',
+    '10: j',
+    '11: k',
+    '12: l',
+    '13: m',
+    '14: n',
+  ];
+
+  test('start of file', () => {
+    const frame: StackFrame = {
+      lineno: 0,
+    };
+    addContextToFrame(lines, frame);
+    expect(frame.pre_context).toEqual([]);
+    expect(frame.context_line).toEqual('1: a');
+    expect(frame.post_context).toEqual(['2: b', '3: c', '4: d', '5: e', '6: f']);
+  });
+
+  test('mid of file', () => {
+    const frame: StackFrame = {
+      lineno: 4,
+    };
+    addContextToFrame(lines, frame);
+    expect(frame.pre_context).toEqual(['1: a', '2: b', '3: c']);
+    expect(frame.context_line).toEqual('4: d');
+    expect(frame.post_context).toEqual(['5: e', '6: f', '7: g', '8: h', '9: i']);
+  });
+
+  test('end of file', () => {
+    const frame: StackFrame = {
+      lineno: 14,
+    };
+    addContextToFrame(lines, frame);
+    expect(frame.pre_context).toEqual(['9: i', '10: j', '11: k', '12: l', '13: m']);
+    expect(frame.context_line).toEqual('14: n');
+    expect(frame.post_context).toEqual([]);
+  });
+
+  test('negative', () => {
+    const frame: StackFrame = {
+      lineno: -1,
+    };
+    addContextToFrame(lines, frame);
+    expect(frame.pre_context).toEqual([]);
+    expect(frame.context_line).toEqual('1: a');
+    expect(frame.post_context).toEqual(['2: b', '3: c', '4: d', '5: e', '6: f']);
+  });
+
+  test('overshoot', () => {
+    const frame: StackFrame = {
+      lineno: 999,
+    };
+    addContextToFrame(lines, frame);
+    expect(frame.pre_context).toEqual(['10: j', '11: k', '12: l', '13: m', '14: n']);
+    expect(frame.context_line).toEqual('14: n');
+    expect(frame.post_context).toEqual([]);
   });
 });

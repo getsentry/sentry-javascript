@@ -1,6 +1,7 @@
-import { Event, Integration, WrappedFunction } from '@sentry/types';
+import { Event, Integration, StackFrame, WrappedFunction } from '@sentry/types';
 
 import { isString } from './is';
+import { snipLine } from './string';
 
 /** Internal */
 interface SentryGlobal {
@@ -425,4 +426,27 @@ export function getFunctionName(fn: unknown): string {
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
   }
+}
+
+/**
+ * This function adds context (pre/post/line) lines to the provided frame
+ *
+ * @param lines string[] containing all lines
+ * @param frame StackFrame that will be mutated
+ * @param linesOfContext number of context lines we want to add pre/post
+ */
+export function addContextToFrame(lines: string[], frame: StackFrame, linesOfContext: number = 5): void {
+  const lineno = frame.lineno || 0;
+  const maxLines = lines.length;
+  const sourceLine = Math.max(Math.min(maxLines, lineno - 1), 0);
+
+  frame.pre_context = lines
+    .slice(Math.max(0, sourceLine - linesOfContext), sourceLine)
+    .map((line: string) => snipLine(line, 0));
+
+  frame.context_line = snipLine(lines[Math.min(maxLines - 1, sourceLine)], frame.colno || 0);
+
+  frame.post_context = lines
+    .slice(Math.min(sourceLine + 1, maxLines), sourceLine + 1 + linesOfContext)
+    .map((line: string) => snipLine(line, 0));
 }
