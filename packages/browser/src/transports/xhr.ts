@@ -48,6 +48,8 @@ export class XHRTransport extends BaseTransport {
         request.open('POST', this.url);
         for (const header in this.options.headers) {
           if (this.options.headers.hasOwnProperty(header)) {
+            // @ts-ignore
+            // tslint:disable-next-line: no-unsafe-any
             request.setRequestHeader(header, this.options.headers[header]);
           }
         }

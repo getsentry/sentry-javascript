@@ -25,9 +25,9 @@ class HappyTransport extends Sentry.Transports.BaseTransport {
       event,
     );
 
-    return {
+    return Promise.resolve({
       status: 'success',
-    };
+    });
   }
 }
 
