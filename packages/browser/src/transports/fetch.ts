@@ -33,7 +33,7 @@ export class FetchTransport extends BaseTransport {
     };
 
     if (this.options.headers !== undefined) {
-      (defaultOptions as any).headers = this.options.headers;
+      defaultOptions.headers = this.options.headers as Record<string, string>;
     }
 
     return this._buffer.add(
