@@ -17,6 +17,8 @@ node scripts/package-and-upload-to-zeus.js
 zeus upload -t "application/javascript" ./packages/browser/build/bundle*
 # Upload "integrations" bundles
 zeus upload -t "application/javascript" ./packages/integrations/build/*
+# Upload "apm" bundles
+zeus upload -t "application/javascript" ./packages/apm/build/*
 
 # Upload docs
 make build-docs

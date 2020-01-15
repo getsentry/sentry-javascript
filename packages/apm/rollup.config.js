@@ -61,25 +61,28 @@ const bundleConfig = {
     ...plugins,
     license({
       sourcemap: true,
-      banner: `/*! @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
+      banner: `/*! @sentry/apm & @sentry/browser <%= pkg.version %> (${commitHash}) | https://github.com/getsentry/sentry-javascript */`,
     }),
   ],
 };
 
 export default [
-  // ES5 Browser Bundle
+  // ES5 Browser APM Bundle
   {
     ...bundleConfig,
+    input: 'src/index.bundle.ts',
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.js',
+      file: 'build/bundle.apm.js',
     },
+    plugins: bundleConfig.plugins,
   },
   {
     ...bundleConfig,
+    input: 'src/index.bundle.ts',
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.min.js',
+      file: 'build/bundle.apm.min.js',
     },
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
@@ -87,57 +90,4 @@ export default [
       .concat(terserInstance)
       .concat(bundleConfig.plugins.slice(-1)),
   },
-  // ------------------
-  // ES6 Browser Bundle
-  {
-    ...bundleConfig,
-    output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.es6.js',
-    },
-    plugins: [
-      typescript({
-        tsconfig: 'tsconfig.build.json',
-        tsconfigOverride: {
-          compilerOptions: {
-            declaration: false,
-            declarationMap: false,
-            module: 'ES2015',
-            paths,
-            target: 'es6',
-          },
-        },
-        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-      }),
-      ...plugins.slice(1),
-    ],
-  },
-  {
-    ...bundleConfig,
-    output: {
-      ...bundleConfig.output,
-      file: 'build/bundle.es6.min.js',
-    },
-    plugins: [
-      typescript({
-        tsconfig: 'tsconfig.build.json',
-        tsconfigOverride: {
-          compilerOptions: {
-            declaration: false,
-            declarationMap: false,
-            module: 'ES2015',
-            paths,
-            target: 'es6',
-          },
-        },
-        include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-      }),
-      ...plugins
-        .slice(1)
-        .slice(0, -1)
-        .concat(terserInstance)
-        .concat(bundleConfig.plugins.slice(-1)),
-    ],
-  },
-  // ------------------
 ];
