@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+source ~/.nvm/nvm.sh
 
 # We need this check to skip engines check for typescript-tslint-plugin package
 if [[ "$(cut -d. -f1 <<< "$TRAVIS_NODE_VERSION")" -le 6 ]]; then
