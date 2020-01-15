@@ -4,6 +4,7 @@ set -eux
 yarn global add @zeus-ci/cli
 yarn
 yarn build
+yarn build:bundle --scope="@sentry/apm"
 
 # Sanity Check
 yarn lerna changed --include-merged-tags -p
