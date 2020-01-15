@@ -16,7 +16,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/apm": "5.11.0",
     "@sentry/core": "5.11.0",
     "@sentry/types": "5.11.0",
     "@sentry/utils": "5.11.0",
@@ -44,7 +43,6 @@
     "rollup": "^1.10.1",
     "rollup-plugin-commonjs": "^9.3.4",
     "rollup-plugin-license": "^0.8.1",
-    "rollup-plugin-modify": "^3.0.0",
     "rollup-plugin-node-resolve": "^4.2.3",
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.21.0",

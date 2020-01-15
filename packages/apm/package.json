@@ -16,6 +16,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/browser": "5.11.0",
     "@sentry/hub": "5.11.0",
     "@sentry/minimal": "5.11.0",
     "@sentry/types": "5.11.0",
@@ -29,11 +30,19 @@
     "prettier": "^1.17.0",
     "prettier-check": "^2.0.0",
     "rimraf": "^2.6.3",
+    "rollup": "^1.10.1",
+    "rollup-plugin-commonjs": "^9.3.4",
+    "rollup-plugin-license": "^0.8.1",
+    "rollup-plugin-node-resolve": "^4.2.3",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-typescript2": "^0.21.0",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
+    "build": "run-p build:es5 build:esm build:bundle",
+    "build:bundle": "rollup --config",
+    "build:bundle:watch": "rollup --config --watch",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:watch:es5 build:watch:esm",
