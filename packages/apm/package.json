@@ -40,7 +40,7 @@
     "typescript": "^3.4.5"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm",
+    "build": "run-p build:es5 build:esm build:bundle",
     "build:bundle": "rollup --config",
     "build:bundle:watch": "rollup --config --watch",
     "build:es5": "tsc -p tsconfig.build.json",
