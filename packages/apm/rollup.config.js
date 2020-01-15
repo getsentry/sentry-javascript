@@ -73,7 +73,7 @@ export default [
     input: 'src/index.bundle.ts',
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.js',
+      file: 'build/bundle.apm.js',
     },
     plugins: bundleConfig.plugins,
   },
@@ -82,7 +82,7 @@ export default [
     input: 'src/index.bundle.ts',
     output: {
       ...bundleConfig.output,
-      file: 'build/bundle.min.js',
+      file: 'build/bundle.apm.min.js',
     },
     // Uglify has to be at the end of compilation, BUT before the license banner
     plugins: bundleConfig.plugins
