@@ -1,5 +1,11 @@
 import { EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
-import { addInstrumentationHandler, getGlobalObject, isMatchingPattern, logger } from '@sentry/utils';
+import {
+  addInstrumentationHandler,
+  getGlobalObject,
+  isMatchingPattern,
+  logger,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 /**
  * Options for Tracing integration
@@ -151,7 +157,7 @@ export class Tracing implements Integration {
       });
     }
     // tslint:disable-next-line: no-non-null-assertion
-    if (this._options!.traceFetch !== false) {
+    if (this._options!.traceFetch !== false && supportsNativeFetch()) {
       addInstrumentationHandler({
         callback: fetchCallback,
         type: 'fetch',

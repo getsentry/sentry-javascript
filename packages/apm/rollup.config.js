@@ -75,7 +75,7 @@ export default [
       ...bundleConfig.output,
       file: 'build/bundle.js',
     },
-    plugins,
+    plugins: bundleConfig.plugins,
   },
   {
     ...bundleConfig,
