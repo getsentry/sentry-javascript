@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [apm] fix: Add new option to `Tracing` `maxTransactionTimeout` determines the max length of a transaction
+
 ## 5.11.1
 
 - [apm] feat: Add build bundle including @sentry/browser + @sentry/apm
