@@ -24,6 +24,31 @@ describe('Tracekit - Custom Tests', () => {
     ]);
   });
 
+  it('should parse exceptions for react-native-v8', () => {
+    const REACT_NATIVE_V8_EXCEPTION = {
+      message: 'Manually triggered crash to test Sentry reporting',
+      name: 'Error',
+      stack: `Error: Manually triggered crash to test Sentry reporting
+          at Object.onPress(index.android.bundle:2342:3773)
+          at s.touchableHandlePress(index.android.bundle:214:2048)
+          at s._performSideEffectsForTransition(index.android.bundle:198:9608)
+          at s._receiveSignal(index.android.bundle:198:8309)
+          at s.touchableHandleResponderRelease(index.android.bundle:198:5615)
+          at Object.y(index.android.bundle:93:571)
+          at P(index.android.bundle:93:714)`,
+    };
+    const stacktrace = computeStackTrace(REACT_NATIVE_V8_EXCEPTION);
+    expect(stacktrace.stack).deep.equal([
+      { url: 'index.android.bundle', func: 'Object.onPress', args: [], line: 2342, column: 3773 },
+      { url: 'index.android.bundle', func: 's.touchableHandlePress', args: [], line: 214, column: 2048 },
+      { url: 'index.android.bundle', func: 's._performSideEffectsForTransition', args: [], line: 198, column: 9608 },
+      { url: 'index.android.bundle', func: 's._receiveSignal', args: [], line: 198, column: 8309 },
+      { url: 'index.android.bundle', func: 's.touchableHandleResponderRelease', args: [], line: 198, column: 5615 },
+      { url: 'index.android.bundle', func: 'Object.y', args: [], line: 93, column: 571 },
+      { url: 'index.android.bundle', func: 'P', args: [], line: 93, column: 714 },
+    ]);
+  });
+
   describe('should parse exceptions with native code frames', () => {
     it('in Chrome 73', () => {
       const CHROME73_NATIVE_CODE_EXCEPTION = {
