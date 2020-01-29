@@ -5,7 +5,10 @@ import {
   isMatchingPattern,
   logger,
   supportsNativeFetch,
+  timestampWithMs,
 } from '@sentry/utils';
+
+import { Span as SpanClass } from '../span';
 
 /**
  * Options for Tracing integration
@@ -60,6 +63,15 @@ interface TracingOptions {
    * Default: 1
    */
   tracesSampleRate: number;
+
+  /**
+   * The maximum time a transaction can be before it will be dropped. This is for some edge cases where a browser
+   * completely freezes the JS state and picks it up later. So after this timeout, the SDK will not send the event.
+   * Time is in ms.
+   *
+   * Default: 120000
+   */
+  maxTransactionTimeout: number;
 }
 
 /** JSDoc */
@@ -114,6 +126,7 @@ export class Tracing implements Integration {
     const defaultTracingOrigins = ['localhost', /^\//];
     const defaults = {
       idleTimeout: 500,
+      maxTransactionTimeout: 120000,
       shouldCreateSpanForRequest(url: string): boolean {
         const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
         return (
@@ -249,24 +262,39 @@ export class Tracing implements Integration {
 
   /**
    * Update transaction
+   * @deprecated
    */
   public static updateTransactionName(name: string): void {
-    const activeTransaction = Tracing._activeTransaction;
-    if (!activeTransaction) {
-      return;
+    // const activeTransaction = Tracing._activeTransaction;
+    // if (!activeTransaction) {
+    //   return;
+    // }
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (_getCurrentHub) {
+      const hub = _getCurrentHub();
+      if (hub) {
+        hub.configureScope(scope => {
+          scope.setTransaction(name);
+        });
+      }
     }
     // TODO
-    (activeTransaction as any).transaction = name;
+    // (activeTransaction as any).transaction = name;
   }
 
   /**
    * Finshes the current active transaction
    */
   public static finishIdleTransaction(): void {
-    const active = Tracing._activeTransaction;
+    const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      // true = use timestamp of last span
-      active.finish(true);
+      if (timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout) {
+        // If we reached the max timeout of the transaction, we will just not finish it and therefore discard it.
+        Tracing._activeTransaction = undefined;
+      } else {
+        // true = use timestamp of last span
+        active.finish(true);
+      }
     }
   }
 

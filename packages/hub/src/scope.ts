@@ -185,6 +185,9 @@ export class Scope implements ScopeInterface {
    */
   public setTransaction(transaction?: string): this {
     this._transaction = transaction;
+    if (this._span) {
+      (this._span as any).transaction = transaction;
+    }
     this._notifyScopeListeners();
     return this;
   }

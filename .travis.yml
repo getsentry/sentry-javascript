@@ -8,8 +8,8 @@ branches:
     - /^major\/.+$/
     - 4.x
 
-install: true
-sudo: required
+install: yarn
+os: linux
 
 language: node_js
 dist: bionic
@@ -18,9 +18,6 @@ cache:
   yarn: true
   directories:
     - node_modules
-
-matrix:
-  fast_finish: true
 
 stages:
   - Test
