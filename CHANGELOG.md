@@ -3,6 +3,7 @@
 ## Unreleased
 
 - [apm] fix: Add new option to `Tracing` `maxTransactionTimeout` determines the max length of a transaction
+- [hub] ref: Always also set transaction name on the top span in the scope
 
 ## 5.11.1
 
