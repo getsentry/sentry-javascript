@@ -234,6 +234,17 @@ describe('BaseClient', () => {
       });
     });
 
+    test('adds event_id from hint if available', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
+      expect(TestBackend.instance!.event!).toEqual({
+        event_id: 'wat',
+        message: 'message',
+      });
+    });
+
     test('adds the configured environment', () => {
       expect.assertions(1);
       const client = new TestClient({

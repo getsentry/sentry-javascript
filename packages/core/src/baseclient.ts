@@ -143,6 +143,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         logger.error(reason);
         this._processing = false;
       });
+
     return eventId;
   }
 
@@ -284,7 +285,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     if (prepared.event_id === undefined) {
-      prepared.event_id = uuid4();
+      prepared.event_id = hint && hint.event_id ? hint.event_id : uuid4();
     }
 
     this._addIntegrations(prepared.sdk);
