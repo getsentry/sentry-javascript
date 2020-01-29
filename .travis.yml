@@ -9,7 +9,7 @@ branches:
     - 4.x
 
 install: yarn
-sudo: required
+os: linux
 
 language: node_js
 dist: bionic
