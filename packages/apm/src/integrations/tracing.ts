@@ -262,14 +262,24 @@ export class Tracing implements Integration {
 
   /**
    * Update transaction
+   * @deprecated
    */
   public static updateTransactionName(name: string): void {
-    const activeTransaction = Tracing._activeTransaction;
-    if (!activeTransaction) {
-      return;
+    // const activeTransaction = Tracing._activeTransaction;
+    // if (!activeTransaction) {
+    //   return;
+    // }
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (_getCurrentHub) {
+      const hub = _getCurrentHub();
+      if (hub) {
+        hub.configureScope(scope => {
+          scope.setTransaction(name);
+        });
+      }
     }
     // TODO
-    (activeTransaction as any).transaction = name;
+    // (activeTransaction as any).transaction = name;
   }
 
   /**
