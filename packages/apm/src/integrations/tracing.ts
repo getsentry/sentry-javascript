@@ -265,10 +265,6 @@ export class Tracing implements Integration {
    * @deprecated
    */
   public static updateTransactionName(name: string): void {
-    // const activeTransaction = Tracing._activeTransaction;
-    // if (!activeTransaction) {
-    //   return;
-    // }
     const _getCurrentHub = Tracing._getCurrentHub;
     if (_getCurrentHub) {
       const hub = _getCurrentHub();
@@ -278,8 +274,6 @@ export class Tracing implements Integration {
         });
       }
     }
-    // TODO
-    // (activeTransaction as any).transaction = name;
   }
 
   /**
