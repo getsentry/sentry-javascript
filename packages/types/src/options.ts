@@ -88,6 +88,17 @@ export interface Options {
   maxValueLength?: number;
 
   /**
+   * Maximum number of levels that normalization algorithm will traverse in objects and arrays.
+   * Used when normalizing an event before sending, on all of the listed attributes:
+   * - `breadcrumbs.data`
+   * - `user`
+   * - `contexts`
+   * - `extra`
+   * Defaults to `3`. Set to `0` to disable.
+   */
+  normalizeDepth?: number;
+
+  /**
    * A callback invoked during event submission, allowing to optionally modify
    * the event before it is sent to Sentry.
    *

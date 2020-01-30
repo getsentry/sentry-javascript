@@ -329,6 +329,143 @@ describe('BaseClient', () => {
       });
     });
 
+    test('normalizes event with default depth of 3', () => {
+      expect.assertions(1);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const fourLevelsObject = {
+        a: {
+          b: {
+            c: 'wat',
+            d: {
+              e: 'wat',
+            },
+          },
+        },
+      };
+      const normalizedObject = {
+        a: {
+          b: {
+            c: 'wat',
+            d: '[Object]',
+          },
+        },
+      };
+      const fourLevelBreadcrumb = {
+        data: fourLevelsObject,
+        message: 'wat',
+      };
+      const normalizedBreadcrumb = {
+        data: normalizedObject,
+        message: 'wat',
+      };
+      client.captureEvent({
+        breadcrumbs: [fourLevelBreadcrumb, fourLevelBreadcrumb, fourLevelBreadcrumb],
+        contexts: fourLevelsObject,
+        extra: fourLevelsObject,
+        user: fourLevelsObject,
+      });
+      expect(TestBackend.instance!.event!).toEqual({
+        breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
+        contexts: normalizedObject,
+        event_id: '42',
+        extra: normalizedObject,
+        user: normalizedObject,
+      });
+    });
+
+    test('normalization respects `normalizeDepth` option', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        normalizeDepth: 2,
+      });
+      const fourLevelsObject = {
+        a: {
+          b: {
+            c: 'wat',
+            d: {
+              e: 'wat',
+            },
+          },
+        },
+      };
+      const normalizedObject = {
+        a: {
+          b: '[Object]',
+        },
+      };
+      const fourLevelBreadcrumb = {
+        data: fourLevelsObject,
+        message: 'wat',
+      };
+      const normalizedBreadcrumb = {
+        data: normalizedObject,
+        message: 'wat',
+      };
+      client.captureEvent({
+        breadcrumbs: [fourLevelBreadcrumb, fourLevelBreadcrumb, fourLevelBreadcrumb],
+        contexts: fourLevelsObject,
+        extra: fourLevelsObject,
+        user: fourLevelsObject,
+      });
+      expect(TestBackend.instance!.event!).toEqual({
+        breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
+        contexts: normalizedObject,
+        event_id: '42',
+        extra: normalizedObject,
+        user: normalizedObject,
+      });
+    });
+
+    test('skips normalization when `normalizeDepth: 0`', () => {
+      expect.assertions(1);
+      const client = new TestClient({
+        dsn: PUBLIC_DSN,
+        normalizeDepth: 0,
+      });
+      const fourLevelsObject = {
+        a: {
+          b: {
+            c: 'wat',
+            d: {
+              e: 'wat',
+            },
+          },
+        },
+      };
+      const normalizedObject = {
+        a: {
+          b: {
+            c: 'wat',
+            d: {
+              e: 'wat',
+            },
+          },
+        },
+      };
+      const fourLevelBreadcrumb = {
+        data: fourLevelsObject,
+        message: 'wat',
+      };
+      const normalizedBreadcrumb = {
+        data: normalizedObject,
+        message: 'wat',
+      };
+      client.captureEvent({
+        breadcrumbs: [fourLevelBreadcrumb, fourLevelBreadcrumb, fourLevelBreadcrumb],
+        contexts: fourLevelsObject,
+        extra: fourLevelsObject,
+        user: fourLevelsObject,
+      });
+      expect(TestBackend.instance!.event!).toEqual({
+        breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
+        contexts: normalizedObject,
+        event_id: '42',
+        extra: normalizedObject,
+        user: normalizedObject,
+      });
+    });
+
     test('calls beforeSend and uses original event without any changes', () => {
       expect.assertions(1);
       const beforeSend = jest.fn(event => event);

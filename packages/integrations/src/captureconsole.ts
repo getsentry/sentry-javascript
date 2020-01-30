@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration, Severity } from '@sentry/types';
-import { fill, getGlobalObject, normalize, safeJoin } from '@sentry/utils';
+import { fill, getGlobalObject, safeJoin } from '@sentry/utils';
 
 const global = getGlobalObject<Window | NodeJS.Global>();
 
@@ -48,7 +48,7 @@ export class CaptureConsole implements Integration {
         if (hub.getIntegration(CaptureConsole)) {
           hub.withScope(scope => {
             scope.setLevel(Severity.fromString(level));
-            scope.setExtra('arguments', normalize(args, 3));
+            scope.setExtra('arguments', args);
             scope.addEventProcessor(event => {
               event.logger = 'console';
               return event;
@@ -58,7 +58,7 @@ export class CaptureConsole implements Integration {
             if (level === 'assert') {
               if (args[0] === false) {
                 message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-                scope.setExtra('arguments', normalize(args.slice(1), 3));
+                scope.setExtra('arguments', args.slice(1));
                 hub.captureMessage(message);
               }
             } else {

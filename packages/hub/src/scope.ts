@@ -8,7 +8,7 @@ import {
   Span,
   User,
 } from '@sentry/types';
-import { getGlobalObject, isThenable, normalize, SyncPromise, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -115,7 +115,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): this {
-    this._user = normalize(user);
+    this._user = user || {};
     this._notifyScopeListeners();
     return this;
   }
@@ -126,7 +126,7 @@ export class Scope implements ScopeInterface {
   public setTags(tags: { [key: string]: string }): this {
     this._tags = {
       ...this._tags,
-      ...normalize(tags),
+      ...tags,
     };
     this._notifyScopeListeners();
     return this;
@@ -136,7 +136,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setTag(key: string, value: string): this {
-    this._tags = { ...this._tags, [key]: normalize(value) };
+    this._tags = { ...this._tags, [key]: value };
     this._notifyScopeListeners();
     return this;
   }
@@ -144,10 +144,10 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setExtras(extra: { [key: string]: any }): this {
+  public setExtras(extras: { [key: string]: any }): this {
     this._extra = {
       ...this._extra,
-      ...normalize(extra),
+      ...extras,
     };
     this._notifyScopeListeners();
     return this;
@@ -157,7 +157,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setExtra(key: string, extra: any): this {
-    this._extra = { ...this._extra, [key]: normalize(extra) };
+    this._extra = { ...this._extra, [key]: extra };
     this._notifyScopeListeners();
     return this;
   }
@@ -166,7 +166,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setFingerprint(fingerprint: string[]): this {
-    this._fingerprint = normalize(fingerprint);
+    this._fingerprint = fingerprint;
     this._notifyScopeListeners();
     return this;
   }
@@ -175,7 +175,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setLevel(level: Severity): this {
-    this._level = normalize(level);
+    this._level = level;
     this._notifyScopeListeners();
     return this;
   }
@@ -195,8 +195,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setContext(name: string, context: { [key: string]: any } | null): this {
-    this._context[name] = context ? normalize(context) : undefined;
+  public setContext(key: string, context: { [key: string]: any } | null): this {
+    this._context = { ...this._context, [key]: context };
     this._notifyScopeListeners();
     return this;
   }
@@ -260,13 +260,15 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const timestamp = timestampWithMs();
-    const mergedBreadcrumb = { timestamp, ...breadcrumb };
+    const mergedBreadcrumb = {
+      timestamp: timestampWithMs(),
+      ...breadcrumb,
+    };
 
     this._breadcrumbs =
       maxBreadcrumbs !== undefined && maxBreadcrumbs >= 0
-        ? [...this._breadcrumbs, normalize(mergedBreadcrumb)].slice(-maxBreadcrumbs)
-        : [...this._breadcrumbs, normalize(mergedBreadcrumb)];
+        ? [...this._breadcrumbs, mergedBreadcrumb].slice(-maxBreadcrumbs)
+        : [...this._breadcrumbs, mergedBreadcrumb];
     this._notifyScopeListeners();
     return this;
   }
