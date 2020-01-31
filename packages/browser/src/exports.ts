@@ -3,6 +3,7 @@ export {
   Request,
   SdkInfo,
   Event,
+  EventHint,
   Exception,
   Response,
   Severity,
