@@ -115,7 +115,7 @@ function computeStackTraceFromStackProp(ex: any): StackTrace | null {
       element = {
         // working with the regexp above is super painful. it is quite a hack, but just stripping the `address at `
         // prefix here seems like the quickest solution for now.
-        url: (parts[2] && parts[2].indexOf('address at ') == 0) ? parts[2].substr('address at '.length) : parts[2],
+        url: parts[2] && parts[2].indexOf('address at ') === 0 ? parts[2].substr('address at '.length) : parts[2],
         func: parts[1] || UNKNOWN_FUNCTION,
         args: isNative ? [parts[2]] : [],
         line: parts[3] ? +parts[3] : null,

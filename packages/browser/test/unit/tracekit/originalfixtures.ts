@@ -494,5 +494,5 @@ export const ANDROID_REACT_NATIVE_HERMES = {
     'at loadModuleImplementation (address at unknown:1:2608)\n' +
     'at guardedLoadModule (address at unknown:1:1973)\n' +
     'at metroRequire (address at unknown:1:1494)\n' +
-    'at global (address at unknown:1:508)'
-}
+    'at global (address at unknown:1:508)',
+};

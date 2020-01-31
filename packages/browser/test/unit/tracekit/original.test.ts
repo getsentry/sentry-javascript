@@ -8,6 +8,7 @@ import { computeStackTrace } from '../../../src/tracekit';
 
 import {
   ANDROID_REACT_NATIVE,
+  ANDROID_REACT_NATIVE_HERMES,
   ANDROID_REACT_NATIVE_PROD,
   CHROME_15,
   CHROME_36,
@@ -33,7 +34,6 @@ import {
   SAFARI_7,
   SAFARI_8,
   SAFARI_8_EVAL,
-  ANDROID_REACT_NATIVE_HERMES,
 } from './originalfixtures';
 
 describe('Tracekit - Original Tests', () => {
