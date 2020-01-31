@@ -482,3 +482,17 @@ export const ANDROID_REACT_NATIVE_PROD = {
     'value@index.android.bundle:29:927\n' +
     '[native code]',
 };
+
+// NOTE: this was obtained by creating a metro+hermes bundle manually and running it through hermes on the command line.
+// not sure how different it is when actually running it in react-native properly.
+export const ANDROID_REACT_NATIVE_HERMES = {
+  message: 'Error: lets throw!',
+  name: 'Error',
+  stack:
+    'at foo (address at unknown:1:11939)\n' +
+    'at anonymous (address at unknown:1:11857)\n' +
+    'at loadModuleImplementation (address at unknown:1:2608)\n' +
+    'at guardedLoadModule (address at unknown:1:1973)\n' +
+    'at metroRequire (address at unknown:1:1494)\n' +
+    'at global (address at unknown:1:508)'
+}

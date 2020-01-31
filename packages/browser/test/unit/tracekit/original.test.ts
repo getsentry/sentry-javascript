@@ -33,6 +33,7 @@ import {
   SAFARI_7,
   SAFARI_8,
   SAFARI_8_EVAL,
+  ANDROID_REACT_NATIVE_HERMES,
 } from './originalfixtures';
 
 describe('Tracekit - Original Tests', () => {
@@ -920,6 +921,26 @@ describe('Tracekit - Original Tests', () => {
       args: [],
       line: null,
       column: null,
+    });
+  });
+
+  it('should parse React Native errors on Android Hermes', () => {
+    const stackFrames = computeStackTrace(ANDROID_REACT_NATIVE_HERMES);
+    expect(stackFrames).to.be.ok;
+    expect(stackFrames.stack.length).to.equal(6);
+    expect(stackFrames.stack[0]).to.deep.equal({
+      url: 'unknown',
+      func: 'foo',
+      args: [],
+      line: 1,
+      column: 11939,
+    });
+    expect(stackFrames.stack[5]).to.deep.equal({
+      url: 'unknown',
+      func: 'global',
+      args: [],
+      line: 1,
+      column: 508,
     });
   });
 });
