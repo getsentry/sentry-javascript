@@ -927,20 +927,20 @@ describe('Tracekit - Original Tests', () => {
   it('should parse React Native errors on Android Hermes', () => {
     const stackFrames = computeStackTrace(ANDROID_REACT_NATIVE_HERMES);
     expect(stackFrames).to.be.ok;
-    expect(stackFrames.stack.length).to.equal(6);
+    expect(stackFrames.stack.length).to.equal(26);
     expect(stackFrames.stack[0]).to.deep.equal({
-      url: 'unknown',
-      func: 'foo',
+      url: 'index.android.bundle',
+      func: 'onPress',
       args: [],
       line: 1,
-      column: 11939,
+      column: 452701,
     });
-    expect(stackFrames.stack[5]).to.deep.equal({
-      url: 'unknown',
-      func: 'global',
-      args: [],
-      line: 1,
-      column: 508,
+    expect(stackFrames.stack[3]).to.deep.equal({
+      url: 'native',
+      func: '_receiveSignal',
+      args: ['native'],
+      line: null,
+      column: null,
     });
   });
 });
