@@ -67,6 +67,7 @@ interface TracingOptions {
   /**
    * The maximum time a transaction can be before it will be dropped. This is for some edge cases where a browser
    * completely freezes the JS state and picks it up later. So after this timeout, the SDK will not send the event.
+   * If you want to have an unlimited timeout set it to 0.
    * Time is in ms.
    *
    * Default: 600000 = 10min
@@ -203,6 +204,7 @@ export class Tracing implements Integration {
       if (
         event.type === 'transaction' &&
         event.timestamp &&
+        Tracing.options.maxTransactionTimeout !== 0 &&
         timestampWithMs() > event.timestamp + Tracing.options.maxTransactionTimeout
       ) {
         return null;
@@ -300,7 +302,10 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      if (timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout) {
+      if (
+        Tracing.options.maxTransactionTimeout !== 0 &&
+        timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout
+      ) {
         // If we reached the max timeout of the transaction, we will just not finish it and therefore discard it.
         Tracing._activeTransaction = undefined;
       } else {
