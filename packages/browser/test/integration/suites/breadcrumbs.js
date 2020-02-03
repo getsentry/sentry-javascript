@@ -729,21 +729,21 @@ describe("breadcrumbs", function() {
       } else {
         if ("assert" in console) {
           assert.lengthOf(summary.breadcrumbs, 4);
-          assert.deepEqual(summary.breadcrumbs[3].data.extra.arguments, [
+          assert.deepEqual(summary.breadcrumbs[3].data.arguments, [
             "math broke",
           ]);
         } else {
           assert.lengthOf(summary.breadcrumbs, 3);
         }
 
-        assert.deepEqual(summary.breadcrumbs[0].data.extra.arguments, ["One"]);
-        assert.deepEqual(summary.breadcrumbs[1].data.extra.arguments, [
+        assert.deepEqual(summary.breadcrumbs[0].data.arguments, ["One"]);
+        assert.deepEqual(summary.breadcrumbs[1].data.arguments, [
           "Two",
           { a: 1 },
         ]);
-        assert.deepEqual(summary.breadcrumbs[2].data.extra.arguments, [
+        assert.deepEqual(summary.breadcrumbs[2].data.arguments, [
           "Error 2",
-          { b: { c: "[Array]" } },
+          { b: { c: [] } },
         ]);
       }
     });
