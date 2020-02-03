@@ -6,7 +6,6 @@ import {
   getGlobalObject,
   htmlTreeAsString,
   logger,
-  normalize,
   parseUrl,
   safeJoin,
 } from '@sentry/utils';
@@ -75,9 +74,7 @@ export class Breadcrumbs implements Integration {
     const breadcrumb = {
       category: 'console',
       data: {
-        extra: {
-          arguments: normalize(handlerData.args, 3),
-        },
+        arguments: handlerData.args,
         logger: 'console',
       },
       level: Severity.fromString(handlerData.level),
@@ -87,7 +84,7 @@ export class Breadcrumbs implements Integration {
     if (handlerData.level === 'assert') {
       if (handlerData.args[0] === false) {
         breadcrumb.message = `Assertion failed: ${safeJoin(handlerData.args.slice(1), ' ') || 'console.assert'}`;
-        breadcrumb.data.extra.arguments = normalize(handlerData.args.slice(1), 3);
+        breadcrumb.data.arguments = handlerData.args.slice(1);
       } else {
         // Don't capture a breadcrumb for passed assertions
         return;

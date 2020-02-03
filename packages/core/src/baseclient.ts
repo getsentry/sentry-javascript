@@ -1,6 +1,6 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { Dsn, isPrimitive, isThenable, logger, SyncPromise, truncate, uuid4 } from '@sentry/utils';
+import { Dsn, isPrimitive, isThenable, logger, normalize, SyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
@@ -256,7 +256,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
+    const { environment, release, dist, maxValueLength = 250, normalizeDepth = 3 } = this.getOptions();
 
     const prepared: Event = { ...event };
     if (prepared.environment === undefined && environment !== undefined) {
@@ -300,7 +300,51 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       result = scope.applyToEvent(prepared, hint);
     }
 
-    return result;
+    return result.then(evt => {
+      // tslint:disable-next-line:strict-type-predicates
+      if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
+        return this._normalizeEvent(evt, normalizeDepth);
+      }
+      return evt;
+    });
+  }
+
+  /**
+   * Applies `normalize` function on necessary `Event` attributes to make them safe for serialization.
+   * Normalized keys:
+   * - `breadcrumbs.data`
+   * - `user`
+   * - `contexts`
+   * - `extra`
+   * @param event Event
+   * @returns Normalized event
+   */
+  protected _normalizeEvent(event: Event | null, depth: number): Event | null {
+    if (!event) {
+      return null;
+    }
+
+    // tslint:disable:no-unsafe-any
+    return {
+      ...event,
+      ...(event.breadcrumbs && {
+        breadcrumbs: event.breadcrumbs.map(b => ({
+          ...b,
+          ...(b.data && {
+            data: normalize(b.data, depth),
+          }),
+        })),
+      }),
+      ...(event.user && {
+        user: normalize(event.user, depth),
+      }),
+      ...(event.contexts && {
+        contexts: normalize(event.contexts, depth),
+      }),
+      ...(event.extra && {
+        extra: normalize(event.extra, depth),
+      }),
+    };
   }
 
   /**

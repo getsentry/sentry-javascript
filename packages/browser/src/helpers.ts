@@ -1,6 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
 import { Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, addExceptionTypeValue, normalize } from '@sentry/utils';
+import { addExceptionMechanism, addExceptionTypeValue } from '@sentry/utils';
 
 let ignoreOnError: number = 0;
 
@@ -98,7 +98,7 @@ export function wrap(
 
           processedEvent.extra = {
             ...processedEvent.extra,
-            arguments: normalize(args, 3),
+            arguments: args,
           };
 
           return processedEvent;

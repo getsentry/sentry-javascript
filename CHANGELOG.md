@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+- [core] feat: Provide `normalizeDepth` option and sensible default for scope methods (#2404)
+- [browser] fix: Export `EventHint` type (#2407)
+
 ## 5.11.2
 
 - [apm] fix: Add new option to `Tracing` `maxTransactionTimeout` determines the max length of a transaction
 - [hub] ref: Always also set transaction name on the top span in the scope
-- [core] fix: Use event_id from hint given by top-level hub calls
+- [core] fix: Use `event_id` from hint given by top-level hub calls
 
 ## 5.11.1
 

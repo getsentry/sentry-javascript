@@ -35,7 +35,7 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setExtra('a', 1);
       scope.setExtras({ a: undefined });
-      expect((scope as any)._extra).toEqual({ a: '[undefined]' });
+      expect((scope as any)._extra).toEqual({ a: undefined });
     });
   });
 
@@ -63,7 +63,7 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setUser({ id: '1' });
       scope.setUser(null);
-      expect((scope as any)._user).toEqual(null);
+      expect((scope as any)._user).toEqual({});
     });
   });
 
