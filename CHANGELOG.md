@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 5.12.0
+
 - [core] feat: Provide `normalizeDepth` option and sensible default for scope methods (#2404)
 - [browser] fix: Export `EventHint` type (#2407)
 
