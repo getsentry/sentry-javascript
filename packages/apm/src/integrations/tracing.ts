@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -67,9 +67,10 @@ interface TracingOptions {
   /**
    * The maximum time a transaction can be before it will be dropped. This is for some edge cases where a browser
    * completely freezes the JS state and picks it up later. So after this timeout, the SDK will not send the event.
+   * If you want to have an unlimited timeout set it to 0.
    * Time is in ms.
    *
-   * Default: 120000
+   * Default: 600000 = 10min
    */
   maxTransactionTimeout: number;
 }
@@ -126,7 +127,7 @@ export class Tracing implements Integration {
     const defaultTracingOrigins = ['localhost', /^\//];
     const defaults = {
       idleTimeout: 500,
-      maxTransactionTimeout: 120000,
+      maxTransactionTimeout: 600000,
       shouldCreateSpanForRequest(url: string): boolean {
         const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
         return (
@@ -155,7 +156,7 @@ export class Tracing implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     Tracing._getCurrentHub = getCurrentHub;
 
     if (!Tracing._isEnabled()) {
@@ -192,6 +193,25 @@ export class Tracing implements Integration {
         sampled: true,
       });
     }
+
+    // This EventProcessor makes sure that we never send an transaction that is older than maxTransactionTimeout
+    addGlobalEventProcessor((event: Event) => {
+      const self = getCurrentHub().getIntegration(Tracing);
+      if (!self) {
+        return event;
+      }
+
+      if (
+        event.type === 'transaction' &&
+        event.timestamp &&
+        Tracing.options.maxTransactionTimeout !== 0 &&
+        timestampWithMs() > event.timestamp + Tracing.options.maxTransactionTimeout
+      ) {
+        return null;
+      }
+
+      return event;
+    });
   }
 
   /**
@@ -282,7 +302,10 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      if (timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout) {
+      if (
+        Tracing.options.maxTransactionTimeout !== 0 &&
+        timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout
+      ) {
         // If we reached the max timeout of the transaction, we will just not finish it and therefore discard it.
         Tracing._activeTransaction = undefined;
       } else {

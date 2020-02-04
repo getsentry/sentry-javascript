@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 5.12.1
+
+- [apm] ref: If `maxTransactionTimeout` = `0` there is no timeout
+- [apm] fix: Make sure that the `maxTransactionTimeout` is always enforced on transaction events
+
 ## 5.12.0
 
 - [core] feat: Provide `normalizeDepth` option and sensible default for scope methods (#2404)
