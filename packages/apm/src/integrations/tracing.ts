@@ -42,6 +42,7 @@ interface TracingOptions {
   /**
    * The time to wait in ms until the transaction will be finished. The transaction will use the end timestamp of
    * the last finished span as the endtime for the transaction.
+   * Time is in ms.
    *
    * Default: 500
    */
@@ -64,14 +65,15 @@ interface TracingOptions {
   tracesSampleRate: number;
 
   /**
-   * The maximum time a transaction can be before it will be dropped. This is for some edge cases where a browser
-   * completely freezes the JS state and picks it up later. So after this timeout, the SDK will not send the event.
-   * If you want to have an unlimited timeout set it to 0.
-   * Time is in ms.
+   * The maximum duration of a transaction before it will be discarded. This is for some edge cases where a browser
+   * completely freezes the JS state and picks it up later (background tabs).
+   * So after this duration, the SDK will not send the event.
+   * If you want to have an unlimited duration set it to 0.
+   * Time is in seconds.
    *
-   * Default: 600000 = 10min
+   * Default: 600
    */
-  maxTransactionTimeout: number;
+  maxTransactionDuration: number;
 }
 
 /** JSDoc */
@@ -126,7 +128,7 @@ export class Tracing implements Integration {
     const defaultTracingOrigins = ['localhost', /^\//];
     const defaults = {
       idleTimeout: 500,
-      maxTransactionTimeout: 600000,
+      maxTransactionDuration: 600,
       shouldCreateSpanForRequest(url: string): boolean {
         const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
         return (
@@ -193,7 +195,7 @@ export class Tracing implements Integration {
       });
     }
 
-    // This EventProcessor makes sure that we never send an transaction that is older than maxTransactionTimeout
+    // This EventProcessor makes sure that we never send an transaction that is older than maxTransactionDuration
     addGlobalEventProcessor((event: Event) => {
       const self = getCurrentHub().getIntegration(Tracing);
       if (!self) {
@@ -201,12 +203,12 @@ export class Tracing implements Integration {
       }
 
       if (
-        Tracing.options.maxTransactionTimeout !== 0 &&
+        Tracing.options.maxTransactionDuration !== 0 &&
         Tracing._isEnabled() &&
         event.type === 'transaction' &&
         event.timestamp &&
         event.start_timestamp &&
-        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionTimeout ||
+        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
           event.timestamp - event.start_timestamp < 0)
       ) {
         return null;
