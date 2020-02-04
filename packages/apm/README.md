@@ -7,8 +7,6 @@
 
 # Sentry APM Extensions
 
-# TODO
-
 [![npm version](https://img.shields.io/npm/v/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/apm.svg)](https://www.npmjs.com/package/@sentry/apm)

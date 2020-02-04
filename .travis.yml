@@ -6,9 +6,8 @@ branches:
     - master
     - /^release\/.+$/
     - /^major\/.+$/
-    - 4.x
 
-install: yarn
+install: yarn --ignore-engines
 os: linux
 
 language: node_js
@@ -39,32 +38,9 @@ jobs:
     - name: '@sentry/browser - browserstack integration tests'
       node_js: '10'
       script: scripts/browser-integration.sh
-    - name: 'raven-node [node v4]'
-      if: branch = 4.x
-      node_js: '4'
-      script: scripts/raven-node.sh
-    - name: 'raven-node [node v6]'
-      if: branch = 4.x
-      node_js: '6'
-      script: scripts/raven-node.sh
-    - name: 'raven-node [node v8]'
-      if: branch = 4.x
-      node_js: '8'
-      script: scripts/raven-node.sh
-    - name: 'raven-node [node v10]'
-      if: branch = 4.x
-      node_js: '10'
-      script: scripts/raven-node.sh
-    - name: 'raven-js - unit and integration tests'
-      if: branch = 4.x
-      node_js: '8'
-      addons:
-        chrome: stable
-        firefox: latest
-      script: scripts/raven-js.sh
     - stage: Deploy
       name: '@sentry/packages - pack and zeus upload'
-      node_js: '10'
+      node_js: '12'
       script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
 
 notifications:
