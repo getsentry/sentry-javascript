@@ -195,7 +195,7 @@ export class Tracing implements Integration {
       });
     }
 
-    // This EventProcessor makes sure the the transaction is not longer than maxTransactionDuration
+    // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
     addGlobalEventProcessor((event: Event) => {
       const self = getCurrentHub().getIntegration(Tracing);
       if (!self) {
