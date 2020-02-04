@@ -1,6 +1,6 @@
 {
   "name": "@sentry/apm",
-  "version": "5.12.0",
+  "version": "5.12.1",
   "description": "Extensions for APM",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -16,7 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "5.12.0",
+    "@sentry/browser": "5.12.1",
     "@sentry/hub": "5.12.0",
     "@sentry/minimal": "5.12.0",
     "@sentry/types": "5.12.0",
