@@ -6,6 +6,7 @@
 
 - [apm] ref: If `maxTransactionTimeout` = `0` there is no timeout
 - [apm] fix: Make sure that the `maxTransactionTimeout` is always enforced on transaction events
+- [browser] fix: Support for Hermes stacktraces
 
 ## 5.12.0
 
