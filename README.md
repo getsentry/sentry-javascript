@@ -37,6 +37,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
   including integrations for React, Angular, Ember, Vue and Backbone
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
   integrations for Express, Koa, Loopback, Sails and Connect
+- [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for native crashes
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable
   integrations that can be used to enhance JS SDKs
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
@@ -77,7 +78,8 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
-
+- [`@sentry/apm`](https://github.com/getsentry/sentry-javascript/tree/master/packages/apm): Provides Integrations and
+extensions for APM
 - [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
   SDKs
 - [`@sentry/minimal`](https://github.com/getsentry/sentry-javascript/tree/master/packages/minimal): Minimal SDK for

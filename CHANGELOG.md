@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 5.12.2
+
+- [apm] ref: Check if Tracing integration is enabled before dropping transaction
+
 ## 5.12.1
 
 - [apm] ref: If `maxTransactionTimeout` = `0` there is no timeout
