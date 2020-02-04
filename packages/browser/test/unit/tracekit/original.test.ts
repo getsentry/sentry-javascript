@@ -8,6 +8,7 @@ import { computeStackTrace } from '../../../src/tracekit';
 
 import {
   ANDROID_REACT_NATIVE,
+  ANDROID_REACT_NATIVE_HERMES,
   ANDROID_REACT_NATIVE_PROD,
   CHROME_15,
   CHROME_36,
@@ -918,6 +919,26 @@ describe('Tracekit - Original Tests', () => {
       url: '[native code]',
       func: '?',
       args: [],
+      line: null,
+      column: null,
+    });
+  });
+
+  it('should parse React Native errors on Android Hermes', () => {
+    const stackFrames = computeStackTrace(ANDROID_REACT_NATIVE_HERMES);
+    expect(stackFrames).to.be.ok;
+    expect(stackFrames.stack.length).to.equal(26);
+    expect(stackFrames.stack[0]).to.deep.equal({
+      url: 'index.android.bundle',
+      func: 'onPress',
+      args: [],
+      line: 1,
+      column: 452701,
+    });
+    expect(stackFrames.stack[3]).to.deep.equal({
+      url: 'native',
+      func: '_receiveSignal',
+      args: ['native'],
       line: null,
       column: null,
     });

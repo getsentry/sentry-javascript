@@ -482,3 +482,35 @@ export const ANDROID_REACT_NATIVE_PROD = {
     'value@index.android.bundle:29:927\n' +
     '[native code]',
 };
+
+export const ANDROID_REACT_NATIVE_HERMES = {
+  message: 'Error: lets throw!',
+  name: 'Error',
+  stack:
+    'at onPress (address at index.android.bundle:1:452701)\n' +
+    'at anonymous (address at index.android.bundle:1:224280)\n' +
+    'at _performSideEffectsForTransition (address at index.android.bundle:1:230843)\n' +
+    'at _receiveSignal (native)\n' +
+    'at touchableHandleResponderRelease (native)\n' +
+    'at onResponderRelease (native)\n' +
+    'at apply (native)\n' +
+    'at b (address at index.android.bundle:1:74037)\n' +
+    'at apply (native)\n' +
+    'at k (address at index.android.bundle:1:74094)\n' +
+    'at apply (native)\n' +
+    'at C (address at index.android.bundle:1:74126)\n' +
+    'at N (address at index.android.bundle:1:74267)\n' +
+    'at A (address at index.android.bundle:1:74709)\n' +
+    'at forEach (native)\n' +
+    'at z (address at index.android.bundle:1:74642)\n' +
+    'at anonymous (address at index.android.bundle:1:77747)\n' +
+    'at _e (address at index.android.bundle:1:127755)\n' +
+    'at Ne (address at index.android.bundle:1:77238)\n' +
+    'at Ue (address at index.android.bundle:1:77571)\n' +
+    'at receiveTouches (address at index.android.bundle:1:122512)\n' +
+    'at apply (native)\n' +
+    'at value (address at index.android.bundle:1:33176)\n' +
+    'at anonymous (address at index.android.bundle:1:31603)\n' +
+    'at value (address at index.android.bundle:1:32776)\n' +
+    'at value (address at index.android.bundle:1:31561)',
+};
