@@ -314,35 +314,43 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public getTraceContext(): object {
-    return {
-      data: this.data,
-      description: this.description,
-      op: this.op,
-      parent_span_id: this._parentSpanId,
-      span_id: this._spanId,
-      // Undefined status will be dropped by `JSON.stringify` anyway so it's safe to read it directly like that
-      status: this.tags.status,
-      tags: this.tags,
-      trace_id: this._traceId,
-    };
+    // JSON.parse + JSON.stringify to remove undefined values
+    // tslint:disable-next-line: no-unsafe-any
+    return JSON.parse(
+      JSON.stringify({
+        data: this.data,
+        description: this.description,
+        op: this.op,
+        parent_span_id: this._parentSpanId,
+        span_id: this._spanId,
+        // Undefined status will be dropped by `JSON.stringify` anyway so it's safe to read it directly like that
+        status: this.tags.status,
+        tags: this.tags,
+        trace_id: this._traceId,
+      }),
+    );
   }
 
   /**
    * @inheritDoc
    */
   public toJSON(): object {
-    return {
-      data: this.data,
-      description: this.description,
-      op: this.op,
-      parent_span_id: this._parentSpanId,
-      sampled: this.sampled,
-      span_id: this._spanId,
-      start_timestamp: this.startTimestamp,
-      tags: this.tags,
-      timestamp: this.timestamp,
-      trace_id: this._traceId,
-      transaction: this.transaction,
-    };
+    // JSON.parse + JSON.stringify to remove undefined values
+    // tslint:disable-next-line: no-unsafe-any
+    return JSON.parse(
+      JSON.stringify({
+        data: this.data,
+        description: this.description,
+        op: this.op,
+        parent_span_id: this._parentSpanId,
+        sampled: this.sampled,
+        span_id: this._spanId,
+        start_timestamp: this.startTimestamp,
+        tags: this.tags,
+        timestamp: this.timestamp,
+        trace_id: this._traceId,
+        transaction: this.transaction,
+      }),
+    );
   }
 }

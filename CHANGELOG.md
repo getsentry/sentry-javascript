@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 5.12.3
+
+- [apm] fix: Remove undefined keys from trace.context
+
 ## 5.12.2
 
 - [apm] ref: Check if Tracing integration is enabled before dropping transaction
