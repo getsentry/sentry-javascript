@@ -5,7 +5,6 @@ import {
   isMatchingPattern,
   logger,
   supportsNativeFetch,
-  timestampWithMs,
 } from '@sentry/utils';
 
 import { Span as SpanClass } from '../span';
@@ -202,10 +201,13 @@ export class Tracing implements Integration {
       }
 
       if (
+        Tracing.options.maxTransactionTimeout !== 0 &&
+        Tracing._isEnabled() &&
         event.type === 'transaction' &&
         event.timestamp &&
-        Tracing.options.maxTransactionTimeout !== 0 &&
-        timestampWithMs() > event.timestamp + Tracing.options.maxTransactionTimeout
+        event.start_timestamp &&
+        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionTimeout ||
+          event.timestamp - event.start_timestamp < 0)
       ) {
         return null;
       }
@@ -302,16 +304,8 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      if (
-        Tracing.options.maxTransactionTimeout !== 0 &&
-        timestampWithMs() > active.startTimestamp + Tracing.options.maxTransactionTimeout
-      ) {
-        // If we reached the max timeout of the transaction, we will just not finish it and therefore discard it.
-        Tracing._activeTransaction = undefined;
-      } else {
-        // true = use timestamp of last span
-        active.finish(true);
-      }
+      // true = use timestamp of last span
+      active.finish(true);
     }
   }
 
