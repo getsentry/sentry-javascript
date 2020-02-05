@@ -1,4 +1,4 @@
-import { extractExceptionKeysForMessage, fill, normalize, urlEncode } from '../src/object';
+import { dropUndefinedKeys, extractExceptionKeysForMessage, fill, normalize, urlEncode } from '../src/object';
 
 describe('fill()', () => {
   test('wraps a method by calling a replacement function on it', () => {
@@ -549,5 +549,69 @@ describe('extractExceptionKeysForMessage()', () => {
 
   test('multiple keys should truncate first key if its too long', () => {
     expect(extractExceptionKeysForMessage({ barbazquxfoo: '_', baz: '_', qux: '_' }, 10)).toEqual('barbazquxf...');
+  });
+});
+
+describe('dropUndefinedKeys()', () => {
+  test('simple case', () => {
+    expect(
+      dropUndefinedKeys({
+        a: 1,
+        b: undefined,
+        c: null,
+        d: 'd',
+      }),
+    ).toStrictEqual({
+      a: 1,
+      c: null,
+      d: 'd',
+    });
+  });
+
+  test('arrays', () => {
+    expect(
+      dropUndefinedKeys({
+        a: [
+          1,
+          undefined,
+          {
+            a: 1,
+            b: undefined,
+          },
+        ],
+      }),
+    ).toStrictEqual({
+      a: [
+        1,
+        undefined,
+        {
+          a: 1,
+        },
+      ],
+    });
+  });
+
+  test('nested objects', () => {
+    expect(
+      dropUndefinedKeys({
+        a: 1,
+        b: {
+          c: 2,
+          d: undefined,
+          e: {
+            f: 3,
+            g: undefined,
+          },
+        },
+      }),
+    ).toStrictEqual({
+      a: 1,
+      b: {
+        c: 2,
+        e: {
+          f: 3,
+        },
+      },
+    });
   });
 });

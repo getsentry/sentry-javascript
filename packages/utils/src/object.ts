@@ -1,6 +1,6 @@
 import { ExtendedError, WrappedFunction } from '@sentry/types';
 
-import { isElement, isError, isEvent, isInstanceOf, isPrimitive, isSyntheticEvent } from './is';
+import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive, isSyntheticEvent } from './is';
 import { Memo } from './memo';
 import { getFunctionName, htmlTreeAsString } from './misc';
 import { truncate } from './string';
@@ -350,4 +350,27 @@ export function extractExceptionKeysForMessage(exception: any, maxLength: number
   }
 
   return '';
+}
+
+/**
+ * Given any object, return the new object with removed keys that value was `undefined`.
+ * Works recursively on objects and arrays.
+ */
+export function dropUndefinedKeys<T>(val: T): T {
+  if (isPlainObject(val)) {
+    const obj = val as { [key: string]: any };
+    const rv: { [key: string]: any } = {};
+    for (const key of Object.keys(obj)) {
+      if (typeof obj[key] !== 'undefined') {
+        rv[key] = dropUndefinedKeys(obj[key]);
+      }
+    }
+    return rv as T;
+  }
+
+  if (Array.isArray(val)) {
+    return val.map(dropUndefinedKeys) as any;
+  }
+
+  return val;
 }
