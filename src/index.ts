@@ -9,9 +9,9 @@ type RrwebEvent = {
   delay?: number;
 };
 
-class SentryRrweb {
-  public readonly name: string = SentryRrweb.id;
-  public static id: string = 'SentryRrweb';
+export default class SentryRRWeb {
+  public readonly name: string = SentryRRWeb.id;
+  public static id: string = 'SentryRRWeb';
   public events: Array<RrwebEvent> = [];
 
   attachmentUrlFromDsn(dsn: Dsn, eventId: string) {
@@ -24,24 +24,25 @@ class SentryRrweb {
   setupOnce() {
     rrweb.record({
       emit(event: RrwebEvent, isCheckout?: boolean) {
-        this.rrwebEvents.push(event);
+        const self = Sentry.getCurrentHub().getIntegration(SentryRRWeb);
+        self.events.push(event);
       }
     });
 
     Sentry.addGlobalEventProcessor((event: Event) => {
-      // const self = Sentry.getCurrentHub().getIntegration(SentryRrweb);
+      const self = Sentry.getCurrentHub().getIntegration(SentryRRWeb);
       try {
         // short circuit if theres no events to replay
-        if (!this.events.length) return;
+        if (!self.events.length) return;
         const client = Sentry.getCurrentHub().getClient();
-        const endpoint = this.attachmentUrlFromDsn(
+        const endpoint = self.attachmentUrlFromDsn(
           client.getDsn(),
           event.event_id
         );
         const formData = new FormData();
         formData.append(
           'rrweb',
-          new Blob([JSON.stringify({ events: this.events })], {
+          new Blob([JSON.stringify({ events: self.events })], {
             type: 'application/json'
           }),
           'rrweb.json'
@@ -60,5 +61,3 @@ class SentryRrweb {
     });
   }
 }
-
-export default SentryRrweb;
