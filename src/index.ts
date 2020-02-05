@@ -1,23 +1,29 @@
-import { record } from "rrweb";
-import { EventType as RrwebEvent } from "rrweb/types";
-import * as Sentry from "@sentry/browser";
-import { Dsn, Event } from "@sentry/types";
+import * as rrweb from 'rrweb';
+import * as Sentry from '@sentry/browser';
+import { Dsn, Event } from '@sentry/types';
+
+type RrwebEvent = {
+  type: rrweb.EventType;
+  data: {};
+  timestamp: number;
+  delay?: number;
+};
 
 class SentryRrweb {
   public readonly name: string = SentryRrweb.id;
-  public static id: string = "SentryRrweb";
+  public static id: string = 'SentryRrweb';
   public events: Array<RrwebEvent> = [];
 
   attachmentUrlFromDsn(dsn: Dsn, eventId: string) {
     const { host, path, projectId, port, protocol, user } = dsn;
-    return `${protocol}://${host}${port !== "" ? `:${port}` : ""}${
-      path !== "" ? `/${path}` : ""
+    return `${protocol}://${host}${port !== '' ? `:${port}` : ''}${
+      path !== '' ? `/${path}` : ''
     }/api/${projectId}/events/${eventId}/attachments/?sentry_key=${user}&sentry_version=7&sentry_client=rrweb`;
   }
 
   setupOnce() {
-    record({
-      emit(event: RrwebEvent) {
+    rrweb.record({
+      emit(event: RrwebEvent, isCheckout?: boolean) {
         this.rrwebEvents.push(event);
       }
     });
@@ -34,14 +40,14 @@ class SentryRrweb {
         );
         const formData = new FormData();
         formData.append(
-          "rrweb",
+          'rrweb',
           new Blob([JSON.stringify({ events: this.events })], {
-            type: "application/json"
+            type: 'application/json'
           }),
-          "rrweb.json"
+          'rrweb.json'
         );
         fetch(endpoint, {
-          method: "POST",
+          method: 'POST',
           body: formData
         }).catch(ex => {
           // we have to catch this otherwise it throws an infinite loop in Sentry
