@@ -154,6 +154,27 @@ describe('Span', () => {
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
     });
+
+    test('should drop all `undefined` values', () => {
+      const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new Span({
+        parentSpanId: spanA._spanId,
+        sampled: false,
+        spanId: 'd',
+        traceId: 'c',
+      });
+      const serialized = spanB.toJSON();
+      expect(serialized).toHaveProperty('start_timestamp');
+      delete (serialized as { start_timestamp: number }).start_timestamp;
+      expect(serialized).toStrictEqual({
+        data: {},
+        parent_span_id: 'b',
+        sampled: false,
+        span_id: 'd',
+        tags: {},
+        trace_id: 'c',
+      });
+    });
   });
 
   describe('finish', () => {
@@ -230,6 +251,17 @@ describe('Span', () => {
       span.setStatus(SpanStatus.ResourceExhausted);
       const context = span.getTraceContext();
       expect((context as any).status).toBe('resource_exhausted');
+    });
+
+    test('should drop all `undefined` values', () => {
+      const spanB = new Span({ spanId: 'd', traceId: 'c' });
+      const context = spanB.getTraceContext();
+      expect(context).toStrictEqual({
+        data: {},
+        span_id: 'd',
+        tags: {},
+        trace_id: 'c',
+      });
     });
   });
 });
