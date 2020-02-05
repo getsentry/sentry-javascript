@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/browser';
 import SentryRRWeb from '@sentry/rrweb';
 
 Sentry.init({
-  dsn: 'https://375821616abb4d8c94f43726ed08e27f@sentry.io/2273529',
+  dsn: 'https://375821616abb4d8c94f43726ed08e27f@ingest.sentry.io/2273529',
   environment: 'demo',
   integrations: [new SentryRRWeb()]
 });
