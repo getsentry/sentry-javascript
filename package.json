@@ -16,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/getsentry/sentry-rrweb.git"
   },
-  "author": "Stephen Cefali",
+  "author": "David Cramer",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/getsentry/sentry-rrweb/issues"
