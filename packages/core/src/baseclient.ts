@@ -394,45 +394,43 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
           let finalEvent: Event | null = prepared;
 
-          try {
-            const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-            if (isInternalException || !beforeSend) {
-              this._getBackend().sendEvent(finalEvent);
-              resolve(finalEvent);
+          const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
+          if (isInternalException || !beforeSend) {
+            this._getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
+            return;
+          }
+
+          const beforeSendResult = beforeSend(prepared, hint);
+          // tslint:disable-next-line:strict-type-predicates
+          if (typeof beforeSendResult === 'undefined') {
+            logger.error('`beforeSend` method has to return `null` or a valid event.');
+          } else if (isThenable(beforeSendResult)) {
+            this._handleAsyncBeforeSend(beforeSendResult as PromiseLike<Event | null>, resolve, reject);
+          } else {
+            finalEvent = beforeSendResult as Event | null;
+
+            if (finalEvent === null) {
+              logger.log('`beforeSend` returned `null`, will not send event.');
+              resolve(null);
               return;
             }
 
-            const beforeSendResult = beforeSend(prepared, hint);
-            // tslint:disable-next-line:strict-type-predicates
-            if (typeof beforeSendResult === 'undefined') {
-              logger.error('`beforeSend` method has to return `null` or a valid event.');
-            } else if (isThenable(beforeSendResult)) {
-              this._handleAsyncBeforeSend(beforeSendResult as PromiseLike<Event | null>, resolve, reject);
-            } else {
-              finalEvent = beforeSendResult as Event | null;
-
-              if (finalEvent === null) {
-                logger.log('`beforeSend` returned `null`, will not send event.');
-                resolve(null);
-                return;
-              }
-
-              // From here on we are really async
-              this._getBackend().sendEvent(finalEvent);
-              resolve(finalEvent);
-            }
-          } catch (exception) {
-            this.captureException(exception, {
-              data: {
-                __sentry__: true,
-              },
-              originalException: exception as Error,
-            });
-            reject('`beforeSend` threw an error, will not send event.');
+            // From here on we are really async
+            this._getBackend().sendEvent(finalEvent);
+            resolve(finalEvent);
           }
         })
-        .then(null, () => {
-          reject('`beforeSend` threw an error, will not send event.');
+        .then(null, reason => {
+          this.captureException(reason, {
+            data: {
+              __sentry__: true,
+            },
+            originalException: reason as Error,
+          });
+          reject(
+            `Event processing pipeline threw an error, original event will not be sent. Details has been sent as a new event.\nReason: ${reason}`,
+          );
         });
     });
   }
