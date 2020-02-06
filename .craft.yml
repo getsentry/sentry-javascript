@@ -2,7 +2,7 @@
 github:
   owner: getsentry
   repo: sentry-rrweb
-changelogPolicy: simple
+changelogPolicy: none
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: npm
