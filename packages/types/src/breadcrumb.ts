@@ -7,7 +7,7 @@ export interface Breadcrumb {
   event_id?: string;
   category?: string;
   message?: string;
-  data?: { [key: string]: any };
+  data?: Record<string, string>;
   timestamp?: number;
 }
 
