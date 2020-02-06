@@ -1,6 +1,6 @@
 {
   "name": "@sentry/rrweb",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Integration between sentry and rrweb.",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
