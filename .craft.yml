@@ -6,6 +6,7 @@ changelogPolicy: none
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   - name: npm
+    access: public
   - name: github
     tagPrefix: v
     access: public
