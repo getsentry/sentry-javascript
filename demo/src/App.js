@@ -1,31 +1,44 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 
 function App() {
   return (
     <div className='App'>
       <header className='App-header'>
-        <img src={logo} className='App-logo' alt='logo' />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className='App-link'
-          href='https://reactjs.org'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          Learn React
-        </a>
-        <button
-          onClick={() => {
-            throw new Error('Example Error');
-          }}
-        >
-          Break Me
-        </button>
+        <h1>Our cool React app</h1>
       </header>
+
+      <form>
+        <div>
+          <label>Email:</label>
+          <input type='email' name='email' placehodler='email' />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input type='password' name='password' placehodler='password' />
+        </div>
+        <div>
+          <label>Secret:</label>
+          <input
+            type='email'
+            name='email'
+            placehodler='email'
+            className='rr-ignore'
+          />
+        </div>
+
+        <div className='rr-block'>
+          <p>Secret Block</p>
+        </div>
+      </form>
+
+      <button
+        onClick={() => {
+          throw new Error('Example Error');
+        }}
+      >
+        Break Me
+      </button>
     </div>
   );
 }
