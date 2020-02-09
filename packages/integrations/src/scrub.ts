@@ -1,5 +1,5 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
-import { isPlainObject, isRegExp } from '@sentry/utils';
+import { isPlainObject, isRegExp, normalize } from '@sentry/utils';
 
 /** JSDoc */
 interface ScrubOptions {
@@ -54,7 +54,7 @@ export class Scrub implements Integration {
       return event;
     }
 
-    return this._sanitize(event) as Event;
+    return this._sanitize(normalize(event)) as Event;
   }
 
   /**
