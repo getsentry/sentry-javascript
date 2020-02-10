@@ -76,7 +76,9 @@ export const defaultIntegrations = [
  *
  * @see {@link NodeOptions} for documentation on configuration options.
  */
-export function init(options: NodeOptions = {}): void {
+export function init(originalOptions: NodeOptions = {}): void {
+  const options: NodeOptions = { ...originalOptions };
+
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
