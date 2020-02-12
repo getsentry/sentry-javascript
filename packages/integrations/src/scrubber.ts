@@ -2,31 +2,31 @@ import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/type
 import { isPlainObject, isRegExp, normalize } from '@sentry/utils';
 
 /** JSDoc */
-interface ScrubOptions {
+interface ScrubberOptions {
   sanitizeKeys: Array<string | RegExp>;
 }
 
 /** JSDoc */
-export class Scrub implements Integration {
+export class Scrubber implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Scrub.id;
+  public name: string = Scrubber.id;
 
   /**
    * @inheritDoc
    */
-  public static id: string = 'Scrub';
+  public static id: string = 'Scrubber';
 
   /** JSDoc */
-  private readonly _options: ScrubOptions;
+  private readonly _options: ScrubberOptions;
   private readonly _sanitizeMask: string;
   private _lazySanitizeRegExp?: RegExp;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: ScrubOptions) {
+  public constructor(options: ScrubberOptions) {
     this._options = {
       sanitizeKeys: [],
       ...options,
@@ -39,7 +39,7 @@ export class Scrub implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event, _hint?: EventHint) => {
-      const self = getCurrentHub().getIntegration(Scrub);
+      const self = getCurrentHub().getIntegration(Scrubber);
       if (self) {
         return self.process(event);
       }
