@@ -1,4 +1,4 @@
-import { Scrub } from '../src/scrub';
+import { Scrub } from '../src/scrubber';
 
 /** JSDoc */
 function clone<T>(data: T): T {
