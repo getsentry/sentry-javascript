@@ -152,7 +152,6 @@ export class GlobalHandlers implements Integration {
         // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
         // https://github.com/getsentry/sentry-javascript/issues/2380
         else if ('detail' in e && 'reason' in e.detail) {
-          console.log('HERE');
           error = e.detail.reason;
         }
       } catch (_oO) {
