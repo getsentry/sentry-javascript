@@ -1,4 +1,4 @@
-describe("unhandledrejection", function() {
+describe("window.onunhandledrejection", function() {
   it("should capture unhandledrejection with error", function() {
     return runInSandbox(sandbox, function() {
       if (supportsOnunhandledRejection()) {
