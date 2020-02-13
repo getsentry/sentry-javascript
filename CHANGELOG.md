@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- [browser] fix: Handle PromiseRejectionEvent-like CustomEvents
+
 ## 5.12.3
 
 - [apm] fix: Remove undefined keys from trace.context
