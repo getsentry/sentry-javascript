@@ -200,9 +200,9 @@
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function(exception) {
+  _window[_onunhandledrejection] = function(e) {
     queue({
-      p: exception.reason
+      p: 'reason' in e ? e.reason : 'detail' in e && 'reason' in e.detail ? e.detail.reason : e
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };

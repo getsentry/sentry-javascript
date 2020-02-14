@@ -138,8 +138,22 @@ export class GlobalHandlers implements Integration {
 
     this._global.onunhandledrejection = function(e: any): boolean {
       let error = e;
+
+      // dig the object of the rejection out of known event types
       try {
-        error = e && 'reason' in e ? e.reason : e;
+        // PromiseRejectionEvents store the object of the rejection under 'reason'
+        // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
+        if ('reason' in e) {
+          error = e.reason;
+        }
+        // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+        // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+        // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+        // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+        // https://github.com/getsentry/sentry-javascript/issues/2380
+        else if ('detail' in e && 'reason' in e.detail) {
+          error = e.detail.reason;
+        }
       } catch (_oO) {
         // no-empty
       }

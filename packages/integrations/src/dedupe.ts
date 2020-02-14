@@ -61,7 +61,7 @@ export class Dedupe implements Integration {
     const currentMessage = currentEvent.message;
     const previousMessage = previousEvent.message;
 
-    // If no event has a message, they were both exceptions, so bail out
+    // If neither event has a message property, they were both exceptions, so bail out
     if (!currentMessage && !previousMessage) {
       return false;
     }
@@ -108,7 +108,7 @@ export class Dedupe implements Integration {
     let currentFrames = this._getFramesFromEvent(currentEvent);
     let previousFrames = this._getFramesFromEvent(previousEvent);
 
-    // If no event has a fingerprint, they are assumed to be the same
+    // If neither event has a stacktrace, they are assumed to be the same
     if (!currentFrames && !previousFrames) {
       return true;
     }
@@ -178,7 +178,7 @@ export class Dedupe implements Integration {
     let currentFingerprint = currentEvent.fingerprint;
     let previousFingerprint = previousEvent.fingerprint;
 
-    // If no event has a fingerprint, they are assumed to be the same
+    // If neither event has a fingerprint, they are assumed to be the same
     if (!currentFingerprint && !previousFingerprint) {
       return true;
     }
