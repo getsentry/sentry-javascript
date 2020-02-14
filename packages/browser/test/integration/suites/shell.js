@@ -25,6 +25,7 @@ function runVariant(variant) {
     {{ suites/config.js }} // prettier-ignore
     {{ suites/api.js }} // prettier-ignore
     {{ suites/onerror.js }} // prettier-ignore
+    {{ suites/onunhandledrejection.js }} // prettier-ignore
     {{ suites/builtins.js }} // prettier-ignore
     {{ suites/breadcrumbs.js }} // prettier-ignore
     {{ suites/loader.js }} // prettier-ignore
