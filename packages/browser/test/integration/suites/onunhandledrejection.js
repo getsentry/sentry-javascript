@@ -75,6 +75,9 @@ describe("window.onunhandledrejection", function() {
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
         );
+        // even though it's a regular Event (rather than a PRE) it should sill only
+        // come through this channel
+        assert.equal(summary.events.length, 1);
       }
     });
   });
@@ -85,7 +88,6 @@ describe("window.onunhandledrejection", function() {
     return runInSandbox(sandbox, function() {
       if (supportsOnunhandledRejection()) {
         window.dispatchEvent(new Event("unhandledrejection"));
-        Promise.reject();
       } else {
         window.resolveTest({ window: window });
       }
@@ -105,6 +107,9 @@ describe("window.onunhandledrejection", function() {
           summary.events[0].exception.values[0].mechanism.type,
           "onunhandledrejection"
         );
+        // even though it's a regular Event (rather than a PRE) it should sill only
+        // come through this channel
+        assert.equal(summary.events.length, 1);
       }
     });
   });
