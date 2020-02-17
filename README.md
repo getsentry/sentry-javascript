@@ -18,8 +18,12 @@ convenient interface and improved consistency between various JavaScript environ
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+- [![TypeDoc](https://img.shields.io/badge/documentation-TypeDoc-green.svg)](http://getsentry.github.io/sentry-javascript/)
+- [![Documentation](https://img.shields.io/badge/documentation-sentry.io-green.svg)](https://docs.sentry.io/quickstart/)
+- [![Forum](https://img.shields.io/badge/forum-sentry-green.svg)](https://forum.sentry.io/c/sdks)
+- [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
+- [![Stack Overflow](https://img.shields.io/badge/stack%20overflow-sentry-green.svg)](http://stackoverflow.com/questions/tagged/sentry)
+- [![Twitter Follow](https://img.shields.io/twitter/follow/getsentry?label=getsentry&style=social)](https://twitter.com/intent/follow?screen_name=getsentry)
 
 ## Contents
 
