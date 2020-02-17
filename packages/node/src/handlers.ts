@@ -207,8 +207,18 @@ function extractUserData(
 }
 
 /**
+ * Options deciding what parts of the request to use when enhancing an event
+ */
+interface ParseRequestOptions {
+  request?: boolean | string[];
+  serverName?: boolean;
+  transaction?: boolean | TransactionTypes;
+  user?: boolean | string[];
+  version?: boolean;
+}
+
+/**
  * Enriches passed event with request data.
- *
  *
  * @param event Will be mutated and enriched with req data
  * @param req Request object
@@ -220,13 +230,7 @@ export function parseRequest(
   req: {
     [key: string]: any;
   },
-  options?: {
-    request?: boolean | string[];
-    serverName?: boolean;
-    transaction?: boolean | TransactionTypes;
-    user?: boolean | string[];
-    version?: boolean;
-  },
+  options?: ParseRequestOptions,
 ): Event {
   // tslint:disable-next-line:no-parameter-reassignment
   options = {
@@ -277,14 +281,11 @@ export function parseRequest(
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
-export function requestHandler(options?: {
-  request?: boolean;
-  serverName?: boolean;
-  transaction?: boolean | TransactionTypes;
-  user?: boolean | string[];
-  version?: boolean;
-  flushTimeout?: number;
-}): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
+export function requestHandler(
+  options?: ParseRequestOptions & {
+    flushTimeout?: number;
+  },
+): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
