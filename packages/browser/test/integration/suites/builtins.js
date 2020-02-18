@@ -118,18 +118,28 @@ describe("wrapped built-ins", function() {
     });
   });
 
-  it("should not call XMLHttpRequest onreadystatechange more than once", function() {
+  it("should not call XMLHttpRequest onreadystatechange more than once per state", function() {
     return runInSandbox(sandbox, { manual: true }, function() {
-      window.calls = 0;
+      window.calls = {};
       var xhr = new XMLHttpRequest();
       xhr.open("GET", "/base/subjects/example.json");
       xhr.onreadystatechange = function wat() {
-        window.finalizeManualTest();
-        window.calls += 1;
+        window.calls[xhr.readyState] = window.calls[xhr.readyState]
+          ? window.calls[xhr.readyState] + 1
+          : 1;
+        if (xhr.readyState === 4) {
+          window.finalizeManualTest();
+        }
       };
       xhr.send();
     }).then(function(summary) {
-      assert.equal(summary.window.calls, 3);
+      for (var state in summary.window.calls) {
+        assert.equal(summary.window.calls[state], 1);
+      }
+      // IE Triggers all states (1-4), including 1 (open), despite it being assigned before
+      // the `onreadystatechange` handler.
+      assert.isAtLeast(Object.keys(summary.window.calls).length, 3);
+      assert.isAtMost(Object.keys(summary.window.calls).length, 4);
       delete summary.window.calls;
     });
   });
