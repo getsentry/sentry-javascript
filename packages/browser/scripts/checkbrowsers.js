@@ -1,23 +1,21 @@
-// script which checks all browsers in browser.js against supported BrowserStack browsers
-// meant to be run manually, by running `node checkbrowsers.js` from the command line
+// Script which checks all browsers in test/integration/browser.js against supported BrowserStack browsers
+// Meant to be run manually, by running `yarn test:integration:checkbrowsers` from the command line
 
-const btoa = require("btoa");
-const fetch = require("node-fetch");
-const localConfigs = require("./browsers.js");
+const btoa = require('btoa');
+const fetch = require('node-fetch');
+const localConfigs = require('../test/integration/browsers.js');
 
 const browserstackUsername = process.env.BROWSERSTACK_USERNAME;
 const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY;
 
 const hasCreds = () => {
-  return (
-    browserstackUsername !== undefined && browserstackAccessKey !== undefined
-  );
+  return browserstackUsername !== undefined && browserstackAccessKey !== undefined;
 };
 
 const fetchCurrentData = (username, key) => {
   const authKey = btoa(`${username}:${key}`);
 
-  return fetch("https://api.browserstack.com/5/browsers?flat=true", {
+  return fetch('https://api.browserstack.com/5/browsers?flat=true', {
     headers: {
       Authorization: `Basic ${authKey}`,
     },
@@ -25,11 +23,7 @@ const fetchCurrentData = (username, key) => {
     if (response.status >= 200 && response.status < 300) {
       return response.json();
     } else {
-      throw new Error(
-        `Unable to fetch data. Status: ${response.status} ${
-          response.statusText
-        }`
-      );
+      throw new Error(`Unable to fetch data. Status: ${response.status} ${response.statusText}`);
     }
   });
 };
@@ -49,7 +43,7 @@ const isMatchingEntry = (key, localConfig, bsConfig) => {
   if (localValue === bsValue) {
     return true;
   }
-  if (key === "browser_version" && localValue === "latest") {
+  if (key === 'browser_version' && localValue === 'latest') {
     return true;
   }
 
@@ -57,13 +51,7 @@ const isMatchingEntry = (key, localConfig, bsConfig) => {
 };
 
 const isMatchingConfig = (localConfig, bsConfig) => {
-  const checkKeys = [
-    "os",
-    "os_version",
-    "browser",
-    "device",
-    "browser_version",
-  ];
+  const checkKeys = ['os', 'os_version', 'browser', 'device', 'browser_version'];
 
   for (const key of checkKeys) {
     if (!isMatchingEntry(key, localConfig, bsConfig)) {
@@ -82,9 +70,7 @@ const isMatchingConfig = (localConfig, bsConfig) => {
 };
 
 const isSupported = (localConfig, supportedConfigs) => {
-  return supportedConfigs.some(supportedConfig =>
-    isMatchingConfig(localConfig, supportedConfig)
-  );
+  return supportedConfigs.some(supportedConfig => isMatchingConfig(localConfig, supportedConfig));
 };
 
 const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
@@ -98,40 +84,34 @@ const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
     console.log(`\nChecking ${configName}`);
 
     if (!isSupported(localConfig, bsConfigs)) {
-      console.log("  UNSUPPORTED");
+      console.log('  UNSUPPORTED');
       unsupportedConfigs.push(configName);
     } else if (localConfig.real_mobile_updated) {
-      console.log("  Supported (but needs real_mobile update)");
+      console.log('  Supported (but needs real_mobile update)');
       realMobileUpdates.push(configName);
     } else {
-      console.log("  Supported!");
+      console.log('  Supported!');
     }
   }
 
   // report on unsupported configs
   if (unsupportedConfigs.length) {
-    console.log("\nFound unsupported browser configurations:");
+    console.log('\nFound unsupported browser configurations:');
     for (const configName of unsupportedConfigs) {
       console.log(`\n${configName}: `, localConfigs[configName]);
     }
     console.log(
-      "\nPlease visit https://api.browserstack.com/5/browsers or https://api.browserstack.com/5/browsers?flat=true to choose new configurations."
+      '\nPlease visit https://api.browserstack.com/5/browsers or https://api.browserstack.com/5/browsers?flat=true to choose new configurations.',
     );
   } else {
-    console.log("\nAll configurations supported!\n");
+    console.log('\nAll configurations supported!\n');
   }
 
   // report on real_mobile updates
   if (realMobileUpdates.length) {
-    console.log(
-      "\nFound supported browser configurations which need real_mobile updated:\n"
-    );
+    console.log('\nFound supported browser configurations which need real_mobile updated:\n');
     for (const configName of realMobileUpdates) {
-      console.log(
-        configName,
-        "new real_mobile value: ",
-        localConfigs[configName].real_mobile
-      );
+      console.log(configName, 'new real_mobile value: ', localConfigs[configName].real_mobile);
     }
   }
 };
@@ -139,7 +119,7 @@ const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
 const findUnsupportedConfigs = localConfigs => {
   if (!hasCreds()) {
     console.warn(
-      "Unable to find API credentials in env. Please export them as BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY."
+      'Unable to find API credentials in env. Please export them as BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY.',
     );
     return;
   }

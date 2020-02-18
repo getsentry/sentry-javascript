@@ -1,3 +1,6 @@
+// To check if all of these browsers are still viable, run
+// yarn test:integration:checkbrowsers
+
 module.exports = {
   bs_android_4: {
     base: "BrowserStack",
