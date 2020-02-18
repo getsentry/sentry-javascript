@@ -32,7 +32,8 @@ const isMatchingEntry = (key, localConfig, bsConfig) => {
   let localValue = localConfig[key];
   let bsValue = bsConfig[key];
 
-  // all values are either null, undefined, or strings, so this should only catch strings
+  // all values are either null, undefined, or strings, so checking truthiness should
+  // save us from trying to lowercase anything that can't handle it
   if (localValue) {
     localValue = localValue.toLowerCase();
   }
@@ -53,10 +54,9 @@ const isMatchingEntry = (key, localConfig, bsConfig) => {
 const isMatchingConfig = (localConfig, bsConfig) => {
   const checkKeys = ['os', 'os_version', 'browser', 'device', 'browser_version'];
 
-  for (const key of checkKeys) {
-    if (!isMatchingEntry(key, localConfig, bsConfig)) {
-      return false;
-    }
+  // bail on the first non-matching entry
+  if (checkKeys.some(key => !isMatchingEntry(key, localConfig, bsConfig))) {
+    return false;
   }
 
   // while we're here, if we've found a match on everything else, make sure
