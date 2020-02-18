@@ -230,10 +230,7 @@ function instrumentXHR(): void {
         ...commonHandlerData,
       });
 
-      /**
-       * @hidden
-       */
-      function onreadystatechangeHandler(): void {
+      xhr.addEventListener('readystatechange', function() {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
@@ -249,20 +246,7 @@ function instrumentXHR(): void {
             endTimestamp: Date.now(),
           });
         }
-      }
-
-      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
-          return function(...readyStateArgs: any[]): void {
-            onreadystatechangeHandler();
-            return original.apply(xhr, readyStateArgs);
-          };
-        });
-      } else {
-        // if onreadystatechange wasn't actually set by the page on this xhr, we
-        // are free to set our own and capture the breadcrumb
-        xhr.onreadystatechange = onreadystatechangeHandler;
-      }
+      });
 
       return originalSend.apply(this, args);
     };

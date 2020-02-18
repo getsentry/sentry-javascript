@@ -83,6 +83,7 @@ interface Activity {
 }
 
 const global = getGlobalObject<Window>();
+const defaultTracingOrigins = ['localhost', /^\//];
 
 /**
  * Tracing Integration
@@ -119,13 +120,14 @@ export class Tracing implements Integration {
 
   private static _debounce: number = 0;
 
+  private readonly _emitOptionsWarning: boolean = false;
+
   /**
    * Constructor for Tracing
    *
    * @param _options TracingOptions
    */
   public constructor(private readonly _options?: Partial<TracingOptions>) {
-    const defaultTracingOrigins = ['localhost', /^\//];
     const defaults = {
       idleTimeout: 500,
       maxTransactionDuration: 600,
@@ -142,11 +144,9 @@ export class Tracing implements Integration {
       tracesSampleRate: 1,
       tracingOrigins: defaultTracingOrigins,
     };
+    // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
     if (!_options || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
-      logger.warn(
-        'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-      );
-      logger.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+      this._emitOptionsWarning = true;
     }
     Tracing.options = this._options = {
       ...defaults,
@@ -159,6 +159,13 @@ export class Tracing implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     Tracing._getCurrentHub = getCurrentHub;
+
+    if (this._emitOptionsWarning) {
+      logger.warn(
+        'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+      );
+      logger.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+    }
 
     if (!Tracing._isEnabled()) {
       return;

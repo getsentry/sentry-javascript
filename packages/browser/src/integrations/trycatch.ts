@@ -3,7 +3,7 @@ import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
-type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress';
+type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
@@ -133,12 +133,12 @@ export class TryCatch implements Integration {
   private _wrapXHR(originalSend: () => void): () => void {
     return function(this: XMLHttpRequest, ...args: any[]): void {
       const xhr = this; // tslint:disable-line:no-this-assignment
-      const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress'];
+      const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
 
       xmlHttpRequestProps.forEach(prop => {
-        if (prop in this && typeof this[prop] === 'function') {
-          fill(this, prop, original =>
-            wrap(original, {
+        if (prop in xhr && typeof xhr[prop] === 'function') {
+          fill(xhr, prop, function(original: WrappedFunction): Function {
+            const wrapOptions = {
               mechanism: {
                 data: {
                   function: prop,
@@ -147,33 +147,18 @@ export class TryCatch implements Integration {
                 handled: true,
                 type: 'instrument',
               },
-            }),
-          );
+            };
+
+            // If Instrument integration has been called before TryCatch, get the name of original function
+            if (original.__sentry_original__) {
+              wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
+            }
+
+            // Otherwise wrap directly
+            return wrap(original, wrapOptions);
+          });
         }
       });
-
-      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
-          const wrapOptions = {
-            mechanism: {
-              data: {
-                function: 'onreadystatechange',
-                handler: getFunctionName(original),
-              },
-              handled: true,
-              type: 'instrument',
-            },
-          };
-
-          // If Instrument integration has been called before TryCatch, get the name of original function
-          if (original.__sentry_original__) {
-            wrapOptions.mechanism.data.handler = getFunctionName(original.__sentry_original__);
-          }
-
-          // Otherwise wrap directly
-          return wrap(original, wrapOptions);
-        });
-      }
 
       return originalSend.apply(this, args);
     };
