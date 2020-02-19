@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-- [browser] fix: Handle PromiseRejectionEvent-like CustomEvents
+- tbd
+
+## 5.12.4
+
+- [browser] ref: Rework XHR wrapping logic to make sure it always triggers
+- [browser] fix: Handle PromiseRejectionEvent-like CustomEvents (#2429)
+- [core] ref: Notify user when event failed to deliver because of digestion pipeline issue (#2416)
+- [node] fix: Improve incorrect `ParseRequest` typing (#2433)
+- [apm] fix: Remove auto unknown_error transaction status (#2440)
+- [apm] fix: Properly remove undefined keys from apm payload (#2414)
 
 ## 5.12.3
 
