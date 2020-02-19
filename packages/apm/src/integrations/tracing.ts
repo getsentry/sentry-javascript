@@ -202,16 +202,16 @@ export class Tracing implements Integration {
         return event;
       }
 
-      if (
-        Tracing.options.maxTransactionDuration !== 0 &&
-        Tracing._isEnabled() &&
-        event.type === 'transaction' &&
-        event.timestamp &&
-        event.start_timestamp &&
-        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
-          event.timestamp - event.start_timestamp < 0)
-      ) {
-        return null;
+      if (Tracing._isEnabled()) {
+        const isOutdatedTransaction =
+          event.timestamp &&
+          event.start_timestamp &&
+          (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
+            event.timestamp - event.start_timestamp < 0);
+
+        if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+          return null;
+        }
       }
 
       return event;

@@ -238,7 +238,10 @@ export class Span implements SpanInterface, SpanContext {
    */
   public setHttpStatus(httpStatus: number): this {
     this.setTag('http.status_code', String(httpStatus));
-    this.setStatus(SpanStatus.fromHttpCode(httpStatus));
+    const spanStatus = SpanStatus.fromHttpCode(httpStatus);
+    if (spanStatus !== SpanStatus.UnknownError) {
+      this.setStatus(spanStatus);
+    }
     return this;
   }
 
