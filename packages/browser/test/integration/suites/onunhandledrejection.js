@@ -44,7 +44,7 @@ describe("window.onunhandledrejection", function() {
         window.dispatchEvent(
           new CustomEvent("unhandledrejection", {
             detail: {
-              promise: new Promise(() => {}),
+              promise: new Promise(function() {}),
               // we're testing with an error here but it could be anything - really
               // all we're testing is that it gets dug out correctly
               reason: new Error("test2"),
