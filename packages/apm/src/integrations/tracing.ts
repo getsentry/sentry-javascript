@@ -203,21 +203,14 @@ export class Tracing implements Integration {
       }
 
       if (Tracing._isEnabled()) {
-        if (
-          Tracing.options.maxTransactionDuration !== 0 &&
-          event.type === 'transaction' &&
+        const isOutdatedTransaction =
           event.timestamp &&
           event.start_timestamp &&
           (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
-            event.timestamp - event.start_timestamp < 0)
-        ) {
-          return null;
-        }
+            event.timestamp - event.start_timestamp < 0);
 
-        // TODO: Once we have session this should change
-        // If an event is level fatal we consider the transaction failed
-        if (event.type !== 'transaction' && event.level === 'fatal') {
-          Tracing.setTransactionStatus(SpanStatus.InternalError);
+        if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+          return null;
         }
       }
 
