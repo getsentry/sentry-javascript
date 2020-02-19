@@ -8,6 +8,16 @@ const isLocalRun =
 const customLaunchers = isLocalRun ? {} : require("./browsers.js");
 const browsers = isLocalRun ? ["ChromeHeadless"] : Object.keys(customLaunchers);
 
+// NOTE: It "should" work as a global `build` config option, but it doesn't, so setting it up
+// for each browser here, so that we have a nice distinction of when the tests were run exactly.
+if (!isLocalRun) {
+  for (const browser in customLaunchers) {
+    customLaunchers[browser].build = process.env.TRAVIS_BUILD_NUMBER
+      ? `Travis: ${process.env.TRAVIS_BUILD_NUMBER}`
+      : `Manual: ${new Date().toLocaleString()}`;
+  }
+}
+
 const plugins = [
   "karma-mocha",
   "karma-chai",
@@ -76,7 +86,6 @@ module.exports = config => {
         ui: "bdd",
       },
     },
-    build: process.env.TRAVIS_BUILD_NUMBER || Date.now(),
     concurrency: isLocalRun ? 1 : 2,
     retryLimit: 5,
     browserDisconnectTolerance: 5,
