@@ -230,7 +230,7 @@ function instrumentXHR(): void {
         ...commonHandlerData,
       });
 
-      xhr.addEventListener('readystatechange', function() {
+      xhr.addEventListener('readystatechange', function(): void {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws

@@ -26,6 +26,39 @@ describe("breadcrumbs", function() {
 
   it(
     optional(
+      "should record an XMLHttpRequest with a handler attached after send was called",
+      IS_LOADER
+    ),
+    function() {
+      return runInSandbox(sandbox, { manual: true }, function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/base/subjects/example.json");
+        xhr.send();
+        xhr.onreadystatechange = function() {
+          window.handlerCalled = true;
+        };
+        waitForXHR(xhr, function() {
+          Sentry.captureMessage("test");
+          window.finalizeManualTest();
+        });
+      }).then(function(summary) {
+        // The async loader doesn't wrap XHR
+        if (IS_LOADER) {
+          return;
+        }
+        assert.equal(summary.breadcrumbs.length, 1);
+        assert.equal(summary.breadcrumbs[0].type, "http");
+        assert.equal(summary.breadcrumbs[0].category, "xhr");
+        assert.equal(summary.breadcrumbs[0].data.method, "GET");
+        assert.typeOf(summary.breadcrumbs[0].timestamp, "number");
+        assert.isTrue(summary.window.handlerCalled);
+        delete summary.window.handlerCalled;
+      });
+    }
+  );
+
+  it(
+    optional(
       "should record an XMLHttpRequest without any handlers set",
       IS_LOADER
     ),

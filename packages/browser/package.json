@@ -77,7 +77,7 @@
     "test:integration": "test/integration/run.js",
     "test:integration:watch": "test/integration/run.js --watch",
     "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
-    "test:manual": "node test/manual/npm-build.js && rm test/manual/tmp.js",
+    "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
     "size:check": "run-p size:check:es5 size:check:es6",
     "size:check:es5": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
     "size:check:es6": "cat build/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
