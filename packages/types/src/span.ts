@@ -91,7 +91,7 @@ export enum SpanStatus {
   /** The operation completed successfully. */
   Ok = 'ok',
   /** Deadline expired before operation could complete. */
-  DealineExceeded = 'deadline_exceeded',
+  DeadlineExceeded = 'deadline_exceeded',
   /** 401 Unauthorized (actually does mean unauthenticated according to RFC 7235) */
   Unauthenticated = 'unauthenticated',
   /** 403 Forbidden */
@@ -164,7 +164,7 @@ export namespace SpanStatus {
         case 503:
           return SpanStatus.Unavailable;
         case 504:
-          return SpanStatus.DealineExceeded;
+          return SpanStatus.DeadlineExceeded;
         default:
           return SpanStatus.InternalError;
       }
