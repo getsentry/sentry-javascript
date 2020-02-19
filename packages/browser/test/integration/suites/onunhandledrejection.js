@@ -30,6 +30,90 @@ describe("window.onunhandledrejection", function() {
     });
   });
 
+  // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+  // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+  // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+  // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+  // https://github.com/getsentry/sentry-javascript/issues/2380
+  it("should capture PromiseRejectionEvent cast to CustomEvent with type unhandledrejection", function() {
+    return runInSandbox(sandbox, function() {
+      if (supportsOnunhandledRejection()) {
+        // this isn't how it happens in real life, in that the promise and reason
+        // values come from an actual PromiseRejectionEvent, but it's enough to test
+        // how the SDK handles the structure
+        window.dispatchEvent(
+          new CustomEvent("unhandledrejection", {
+            detail: {
+              promise: new Promise(() => {}),
+              // we're testing with an error here but it could be anything - really
+              // all we're testing is that it gets dug out correctly
+              reason: new Error("test2"),
+            },
+          })
+        );
+        Promise.reject();
+      } else {
+        window.resolveTest({ window: window });
+      }
+    }).then(function(summary) {
+      if (summary.window.supportsOnunhandledRejection()) {
+        assert.equal(summary.events[0].exception.values[0].value, "test2");
+        assert.equal(summary.events[0].exception.values[0].type, "Error");
+
+        // Of course Safari had to screw up here...
+        if (!/Version\/\d.+Safari\/\d/.test(window.navigator.userAgent)) {
+          assert.isAtLeast(
+            summary.events[0].exception.values[0].stacktrace.frames.length,
+            1
+          );
+        }
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+        // even though it's a regular Event (rather than a PRE) it should still only
+        // come through this channel
+        assert.equal(summary.events.length, 1);
+      }
+    });
+  });
+
+  // there's no evidence that this actually happens, but it could, and our code correctly
+  // handles it, so might as well prevent future regression on that score
+  it("should capture a random Event with type unhandledrejection", function() {
+    return runInSandbox(sandbox, function() {
+      if (supportsOnunhandledRejection()) {
+        window.dispatchEvent(new Event("unhandledrejection"));
+      } else {
+        window.resolveTest({ window: window });
+      }
+    }).then(function(summary) {
+      if (summary.window.supportsOnunhandledRejection()) {
+        // non-error rejections don't provide stacktraces so we can skip that assertion
+        assert.equal(
+          summary.events[0].exception.values[0].value,
+          "Non-Error promise rejection captured with keys: currentTarget, isTrusted, target, type"
+        );
+        assert.equal(summary.events[0].exception.values[0].type, "Event");
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+        // even though it's a regular Event (rather than a PRE) it should sill only
+        // come through this channel
+        assert.equal(summary.events.length, 1);
+      }
+    });
+  });
+
   it("should capture unhandledrejection with a string", function() {
     return runInSandbox(sandbox, function() {
       if (supportsOnunhandledRejection()) {
@@ -39,7 +123,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with value: test"
@@ -69,7 +153,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(summary.events[0].exception.values[0].value.length, 253);
         assert.include(
           summary.events[0].exception.values[0].value,
@@ -100,7 +184,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with keys: a, b, c"
@@ -137,7 +221,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with keys: a, b, c, d, e"
@@ -167,7 +251,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with value: 1337"
@@ -197,7 +281,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with value: null"
@@ -227,7 +311,7 @@ describe("window.onunhandledrejection", function() {
       }
     }).then(function(summary) {
       if (summary.window.supportsOnunhandledRejection()) {
-        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
           "Non-Error promise rejection captured with value: undefined"
