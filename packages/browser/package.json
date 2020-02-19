@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@types/md5": "2.1.33",
+    "btoa": "^1.2.1",
     "chai": "^4.1.2",
     "chokidar": "^3.0.2",
     "jest": "^24.7.1",
@@ -36,6 +37,7 @@
     "karma-sinon": "^1.0.5",
     "karma-typescript": "^4.0.0",
     "karma-typescript-es6-transform": "^4.0.0",
+    "node-fetch": "^2.6.0",
     "npm-run-all": "^4.1.2",
     "prettier": "^1.17.0",
     "prettier-check": "^2.0.0",
@@ -74,6 +76,7 @@
     "test:unit:watch": "karma start test/unit/karma.conf.js --auto-watch --no-single-run",
     "test:integration": "test/integration/run.js",
     "test:integration:watch": "test/integration/run.js --watch",
+    "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
     "test:manual": "node test/manual/npm-build.js && rm test/manual/tmp.js",
     "size:check": "run-p size:check:es5 size:check:es6",
     "size:check:es5": "cat build/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
