@@ -51,7 +51,6 @@ describe("window.onunhandledrejection", function() {
             },
           })
         );
-        Promise.reject();
       } else {
         window.resolveTest({ window: window });
       }
