@@ -1,5 +1,5 @@
 import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
-import { isPlainObject, isRegExp, normalize } from '@sentry/utils';
+import { isPlainObject, isRegExp, Memo } from '@sentry/utils';
 
 /** JSDoc */
 interface ScrubberOptions {
@@ -54,7 +54,7 @@ export class Scrubber implements Integration {
       return event;
     }
 
-    return this._sanitize(normalize(event)) as Event;
+    return this._sanitize(event) as Event;
   }
 
   /**
@@ -85,18 +85,32 @@ export class Scrubber implements Integration {
   /**
    * sanitize event data recursively
    */
-  private _sanitize(input: unknown): unknown {
-    if (Array.isArray(input)) {
-      return input.map(value => this._sanitize(value));
+  private _sanitize(input: unknown, memo: Memo = new Memo()): unknown {
+    const inputIsArray = Array.isArray(input);
+    const inputIsPlainObject = isPlainObject(input);
+
+    if (!inputIsArray && !inputIsPlainObject) {
+      return input;
     }
 
-    if (isPlainObject(input)) {
+    // Avoid circular references
+    if (memo.memoize(input)) {
+      return input;
+    }
+
+    let sanitizedValue;
+    if (inputIsArray) {
+      sanitizedValue = (input as any[]).map(value => this._sanitize(value, memo));
+    } else if (inputIsPlainObject) {
       const inputVal = input as { [key: string]: unknown };
-      return Object.keys(inputVal).reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = this._sanitizeRegExp().test(key) ? this._sanitizeMask : this._sanitize(inputVal[key]);
+      sanitizedValue = Object.keys(inputVal).reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = this._sanitizeRegExp().test(key) ? this._sanitizeMask : this._sanitize(inputVal[key], memo);
         return acc;
       }, {});
     }
-    return input;
+
+    memo.unmemoize(input);
+
+    return sanitizedValue;
   }
 }

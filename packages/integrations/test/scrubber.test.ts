@@ -122,7 +122,7 @@ describe('Scrubber', () => {
       });
     });
 
-    it('should not show call stack size exceeded', () => {
+    it('should not show call stack size exceeded when circular reference in object', () => {
       const event: any = {
         contexts: {},
         extra: {
@@ -131,11 +131,21 @@ describe('Scrubber', () => {
       };
       event.contexts.circular = event.contexts;
 
-      const actual = scrubber.process(event);
-      expect(actual).toEqual({
-        contexts: { circular: '[Circular ~]' },
-        extra: { message: sanitizeMask },
-      });
+      const actual: any = scrubber.process(event);
+      expect(actual.extra.message).toEqual(sanitizeMask);
+    });
+
+    it('should not show call stack size exceeded when circular reference in Array', () => {
+      const event: any = {
+        contexts: [],
+        extra: {
+          message: 'do not show',
+        },
+      };
+      event.contexts[0] = event.contexts;
+
+      const actual: any = scrubber.process(event);
+      expect(actual.extra.message).toEqual(sanitizeMask);
     });
   });
 });
