@@ -429,7 +429,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             originalException: reason as Error,
           });
           reject(
-            `Event processing pipeline threw an error, original event will not be sent. Details has been sent as a new event.\nReason: ${reason}`,
+            `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
           );
         });
     });
