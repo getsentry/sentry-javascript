@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- tbd
+- [utils] ref: Move creation of iframe in try/catch
 
 ## 5.12.4
 
