@@ -6,7 +6,7 @@ var loaderVariants = [
 for (var idx in loaderVariants) {
   (function() {
     describe(loaderVariants[idx], function() {
-      this.timeout(5000);
+      this.timeout(60000);
       this.retries(3);
 
       var sandbox;
