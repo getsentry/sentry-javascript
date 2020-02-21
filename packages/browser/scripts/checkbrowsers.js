@@ -102,7 +102,9 @@ const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
     }
     console.log(
       '\nPlease visit https://api.browserstack.com/5/browsers or https://api.browserstack.com/5/browsers?flat=true to choose new configurations.',
+      "\n\n(If you're sure one of the reported browsers is supported, check to make sure the local config contains all keys (even if they have a null value) and that the values match exactly the ones given by the API.)\n",
     );
+    process.exit(-1);
   } else {
     console.log('\nAll configurations supported!\n');
   }
@@ -119,9 +121,14 @@ const checkLocalConfigsVsBrowserStack = (localConfigs, bsConfigs) => {
 const findUnsupportedConfigs = localConfigs => {
   if (!hasCreds()) {
     console.warn(
-      'Unable to find API credentials in env. Please export them as BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY.',
+      'Unable to find API credentials in env. Please export them as BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY.\n',
     );
-    return;
+    process.exit(-1);
+  }
+
+  if (!localConfigs) {
+    console.warn('Unable to load local browser configurations.\n');
+    process.exit(-1);
   }
 
   fetchCurrentData(browserstackUsername, browserstackAccessKey)
