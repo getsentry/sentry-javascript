@@ -4,7 +4,7 @@
 module.exports = {
   bs_android_4: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy Note 4",
     os: "android",
     os_version: "4.4",
@@ -13,7 +13,7 @@ module.exports = {
   },
   bs_android_5: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy S6",
     os: "android",
     os_version: "5.0",
@@ -22,7 +22,7 @@ module.exports = {
   },
   bs_android_6: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy Note 4",
     os: "android",
     os_version: "6.0",
@@ -31,7 +31,7 @@ module.exports = {
   },
   bs_android_7: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy Note 8",
     os: "android",
     os_version: "7.1",
@@ -40,7 +40,7 @@ module.exports = {
   },
   bs_android_8: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy Note 9",
     os: "android",
     os_version: "8.1",
@@ -49,7 +49,7 @@ module.exports = {
   },
   bs_android_9: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Samsung Galaxy Note 10 Plus",
     os: "android",
     os_version: "9.0",
@@ -58,11 +58,12 @@ module.exports = {
   },
   bs_android_10: {
     base: "BrowserStack",
-    browser: "Android",
+    browser: "Android Browser",
     device: "Google Pixel 4 XL",
     os: "android",
     os_version: "10.0",
     real_mobile: true,
+    browser_version: null,
   },
   bs_ios_12: {
     base: "BrowserStack",
@@ -106,6 +107,8 @@ module.exports = {
     browser_version: "latest",
     os: "OS X",
     os_version: "Catalina",
+    device: null,
+    real_mobile: null,
   },
   bs_edge: {
     base: "BrowserStack",
