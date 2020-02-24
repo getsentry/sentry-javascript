@@ -256,7 +256,7 @@ export function parseRequest(
     };
   }
 
-  if (options.serverName) {
+  if (options.serverName && !event.server_name) {
     event.server_name = global.process.env.SENTRY_NAME || os.hostname();
   }
 
