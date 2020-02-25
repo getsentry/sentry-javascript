@@ -86,7 +86,7 @@ describe("breadcrumbs", function() {
 
   it(
     optional(
-      "should transform XMLHttpRequests to the Sentry store endpoint as sentry type breadcrumb",
+      "should transform XMLHttpRequests with events to the Sentry store endpoint as sentry.event type breadcrumb",
       IS_LOADER
     ),
     function() {
@@ -112,7 +112,44 @@ describe("breadcrumbs", function() {
           return;
         }
         assert.equal(summary.breadcrumbs.length, 1);
-        assert.equal(summary.breadcrumbs[0].category, "sentry");
+        assert.equal(summary.breadcrumbs[0].category, "sentry.event");
+        assert.equal(summary.breadcrumbs[0].level, "warning");
+        assert.equal(summary.breadcrumbs[0].message, "someMessage");
+      });
+    }
+  );
+
+  it(
+    optional(
+      "should transform XMLHttpRequests with transactions to the Sentry store endpoint as sentry.transaction type breadcrumb",
+      IS_LOADER
+    ),
+    function() {
+      return runInSandbox(sandbox, { manual: true }, function() {
+        var store =
+          document.location.protocol +
+          "//" +
+          document.location.hostname +
+          (document.location.port ? ":" + document.location.port : "") +
+          "/api/1/store/" +
+          "?sentry_key=1337";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", store);
+        xhr.send(
+          '{"message":"someMessage","transaction":"wat","level":"warning"}'
+        );
+        waitForXHR(xhr, function() {
+          Sentry.captureMessage("test");
+          window.finalizeManualTest();
+        });
+      }).then(function(summary) {
+        // The async loader doesn't wrap XHR
+        if (IS_LOADER) {
+          return;
+        }
+        assert.equal(summary.breadcrumbs.length, 1);
+        assert.equal(summary.breadcrumbs[0].category, "sentry.transaction");
         assert.equal(summary.breadcrumbs[0].level, "warning");
         assert.equal(summary.breadcrumbs[0].message, "someMessage");
       });
