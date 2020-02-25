@@ -107,9 +107,9 @@ export function supportsNativeFetch(): boolean {
   let result = false;
   const doc = global.document;
   if (doc) {
-    const sandbox = doc.createElement('iframe');
-    sandbox.hidden = true;
     try {
+      const sandbox = doc.createElement('iframe');
+      sandbox.hidden = true;
       doc.head.appendChild(sandbox);
       if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
         // tslint:disable-next-line:no-unbound-method

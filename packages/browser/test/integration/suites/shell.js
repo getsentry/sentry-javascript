@@ -6,7 +6,7 @@ function runVariant(variant) {
   var IS_SYNC_LOADER = !!variant.match(/^loader-lazy-no$/);
 
   describe(variant, function() {
-    this.timeout(5000);
+    this.timeout(60000);
     this.retries(3);
 
     var sandbox;
