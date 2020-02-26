@@ -2,11 +2,17 @@
 
 ## Unreleased
 
-- [utils] ref: Move creation of iframe in try/catch
+- none
+
+## 5.12.5
+
+- [browser] ref: Mark transactions as event.transaction in breadcrumbs (#2450)
+- [node] fix: Dont overwrite servername in requestHandler (#2449)
+- [utils] ref: Move creation of iframe into try/catch in fetch support check (#2447)
 
 ## 5.12.4
 
-- [browser] ref: Rework XHR wrapping logic to make sure it always triggers
+- [browser] ref: Rework XHR wrapping logic to make sure it always triggers (#2438)
 - [browser] fix: Handle PromiseRejectionEvent-like CustomEvents (#2429)
 - [core] ref: Notify user when event failed to deliver because of digestion pipeline issue (#2416)
 - [node] fix: Improve incorrect `ParseRequest` typing (#2433)
@@ -15,7 +21,7 @@
 
 ## 5.12.3
 
-- [apm] fix: Remove undefined keys from trace.context
+- [apm] fix: Remove undefined keys from trace.context (#2413)
 
 ## 5.12.2
 
@@ -23,9 +29,9 @@
 
 ## 5.12.1
 
-- [apm] ref: If `maxTransactionTimeout` = `0` there is no timeout
-- [apm] fix: Make sure that the `maxTransactionTimeout` is always enforced on transaction events
-- [browser] fix: Support for Hermes stacktraces
+- [apm] ref: If `maxTransactionTimeout` = `0` there is no timeout (#2410)
+- [apm] fix: Make sure that the `maxTransactionTimeout` is always enforced on transaction events (#2410)
+- [browser] fix: Support for Hermes stacktraces (#2406)
 
 ## 5.12.0
 
@@ -34,7 +40,7 @@
 
 ## 5.11.2
 
-- [apm] fix: Add new option to `Tracing` `maxTransactionTimeout` determines the max length of a transaction
+- [apm] fix: Add new option to `Tracing` `maxTransactionTimeout` determines the max length of a transaction (#2399)
 - [hub] ref: Always also set transaction name on the top span in the scope
 - [core] fix: Use `event_id` from hint given by top-level hub calls
 
