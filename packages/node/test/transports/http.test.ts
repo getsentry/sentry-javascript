@@ -28,7 +28,6 @@ function createTransport(options: TransportOptions): HTTPTransport {
 
 function assertBasicOptions(options: any): void {
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_version');
-  expect(options.headers['X-Sentry-Auth']).toContain('sentry_timestamp');
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_client');
   expect(options.headers['X-Sentry-Auth']).toContain('sentry_key');
   expect(options.port).toEqual('8989');

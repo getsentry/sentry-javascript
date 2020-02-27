@@ -16,15 +16,13 @@ describe('API', () => {
   test('getRequestHeaders', () => {
     expect(new API(dsnPublic).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
-      'X-Sentry-Auth': expect.stringMatching(
-        /^Sentry sentry_version=\d, sentry_timestamp=\d+\.\d+, sentry_client=a\/1\.0, sentry_key=abc$/,
-      ),
+      'X-Sentry-Auth': expect.stringMatching(/^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc$/),
     });
 
     expect(new API(legacyDsn).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
-        /^Sentry sentry_version=\d, sentry_timestamp=\d+\.\d+, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
+        /^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc, sentry_secret=123$/,
       ),
     });
   });

@@ -1,5 +1,5 @@
 import { DsnLike } from '@sentry/types';
-import { Dsn, timestampWithMs, urlEncode } from '@sentry/utils';
+import { Dsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
 
@@ -52,7 +52,6 @@ export class API {
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
     const dsn = this._dsnObject;
     const header = [`Sentry sentry_version=${SENTRY_API_VERSION}`];
-    header.push(`sentry_timestamp=${timestampWithMs()}`); // TODO: This can be removed
     header.push(`sentry_client=${clientName}/${clientVersion}`);
     header.push(`sentry_key=${dsn.user}`);
     if (dsn.pass) {
