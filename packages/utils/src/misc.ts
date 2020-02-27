@@ -350,7 +350,7 @@ function _htmlElementAsString(el: unknown): string {
  * Returns a timestamp in seconds with milliseconds precision.
  */
 export function timestampWithMs(): number {
-  return new Date().getTime() / 1000;
+  return Date.now() / 1000;
 }
 
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string

@@ -104,9 +104,11 @@ describe('HTTPSTransport', () => {
     const now = Date.now();
     const mock = jest
       .spyOn(Date, 'now')
+      // Initialize _disabledUntil attribute
+      .mockReturnValueOnce(now)
       // Check for first event
       .mockReturnValueOnce(now)
-      // Setting disableUntil
+      // Setting disabledUntil
       .mockReturnValueOnce(now)
       // Check for second event
       .mockReturnValueOnce(now + (retryAfterSeconds / 2) * 1000)
