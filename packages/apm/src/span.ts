@@ -13,14 +13,18 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-const global = getGlobalObject<Window>();
-
-const performanceNow = (() => {
+const crossPlatformPerformance: Pick<Performance, 'now'> = (() => {
   if (isNodeEnv()) {
-    const { performance } = dynamicRequire(module, 'perf_hooks');
-    return performance.now;
+    const { performance } = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
+    return performance;
   }
-  return global.performance.now.bind(global.performance);
+  return (
+    getGlobalObject<Window>().performance || {
+      now(): number {
+        return Date.now();
+      },
+    }
+  );
 })();
 
 // TODO: Should this be exported?
@@ -109,7 +113,7 @@ export class Span implements SpanInterface, SpanContext {
    * Works with Node.js v8.5.0 or higher.
    * https://nodejs.org/api/perf_hooks.html#perf_hooks_performance_now
    */
-  private readonly _startTimestampMonotonic: number = performanceNow();
+  private readonly _startTimestampMonotonic: number = crossPlatformPerformance.now();
 
   /**
    * Finish timestamp of the span.
@@ -291,7 +295,7 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    const durationSeconds = (performanceNow() - this._startTimestampMonotonic) / 1000;
+    const durationSeconds = (crossPlatformPerformance.now() - this._startTimestampMonotonic) / 1000;
     this.timestamp = this.startTimestamp + durationSeconds;
 
     if (this.spanRecorder === undefined) {

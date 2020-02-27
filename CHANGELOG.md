@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- none
+- [core] ref: Remove unused `sentry_timestamp` header (#2458)
+- [node] ref: Drop Node v6, add Node v12 to test matrix, move all scripts to Node v12 (#2455)
+- [apm] fix: Use monotonic clock to compute durations (#2441)
+- [utils] ref: Prevent instantiating unnecessary Date objects in `timestampWithMs` (#2442)
 
 ## 5.12.5
 
