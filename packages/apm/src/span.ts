@@ -2,7 +2,26 @@
 
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
-import { dropUndefinedKeys, isInstanceOf, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+import {
+  dropUndefinedKeys,
+  dynamicRequire,
+  getGlobalObject,
+  isInstanceOf,
+  isNodeEnv,
+  logger,
+  timestampWithMs,
+  uuid4,
+} from '@sentry/utils';
+
+const global = getGlobalObject<Window>();
+
+const performanceNow = (() => {
+  if (isNodeEnv()) {
+    const { performance } = dynamicRequire(module, 'perf_hooks');
+    return performance.now;
+  }
+  return global.performance.now.bind(global.performance);
+})();
 
 // TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -80,6 +99,17 @@ export class Span implements SpanInterface, SpanContext {
    * Timestamp when the span was created.
    */
   public readonly startTimestamp: number = timestampWithMs();
+
+  /**
+   * Internal start time tracked with a monotonic clock.
+   *
+   * Works with mostly any browser version released since 2012.
+   * https://caniuse.com/#search=performance.now
+   *
+   * Works with Node.js v8.5.0 or higher.
+   * https://nodejs.org/api/perf_hooks.html#perf_hooks_performance_now
+   */
+  private readonly _startTimestampMonotonic: number = performanceNow();
 
   /**
    * Finish timestamp of the span.
@@ -261,7 +291,8 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    this.timestamp = timestampWithMs();
+    const durationSeconds = (performanceNow() - this._startTimestampMonotonic) / 1000;
+    this.timestamp = this.startTimestamp + durationSeconds;
 
     if (this.spanRecorder === undefined) {
       return undefined;
