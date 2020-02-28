@@ -317,7 +317,7 @@ function addSentryBreadcrumb(serializedData: string): void {
     const event = JSON.parse(serializedData);
     getCurrentHub().addBreadcrumb(
       {
-        category: `sentry.${event.transaction ? 'transaction' : 'event'}`,
+        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
         event_id: event.event_id,
         level: event.level || Severity.fromString('error'),
         message: getEventDescription(event),
