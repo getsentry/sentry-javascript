@@ -2,11 +2,15 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.13.0
+
+- [apm] feat: Add `options.autoPopAfter` parameter to `pushActivity` to prevent never-ending spans (#2459)
+- [apm] fix: Use monotonic clock to compute durations (#2441)
 - [core] ref: Remove unused `sentry_timestamp` header (#2458)
 - [node] ref: Drop Node v6, add Node v12 to test matrix, move all scripts to Node v12 (#2455)
-- [apm] fix: Use monotonic clock to compute durations (#2441)
 - [utils] ref: Prevent instantiating unnecessary Date objects in `timestampWithMs` (#2442)
-- [apm] feat: Add `options.autoPopAfter` parameter to `pushActivity` to prevent never-ending spans (#2459)
 - [browser] fix: Mark transactions as event.transaction in breadcrumbs correctly
 
 ## 5.12.5
