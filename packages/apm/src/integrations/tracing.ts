@@ -378,7 +378,7 @@ export class Tracing implements Integration {
       setTimeout(() => {
         Tracing.popActivity(index, {
           autopop: true,
-          status: SpanStatus.ResourceExhausted,
+          status: SpanStatus.DeadlineExceeded,
         });
       }, options.autoPopAfter);
     }
