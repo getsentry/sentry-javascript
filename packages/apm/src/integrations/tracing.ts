@@ -162,9 +162,9 @@ export class Tracing implements Integration {
 
     if (this._emitOptionsWarning) {
       logger.warn(
-        'Sentry: You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
+        '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
       );
-      logger.warn(`Sentry: We added a reasonable default for you: ${defaultTracingOrigins}`);
+      logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
     if (!Tracing._isEnabled()) {
@@ -255,6 +255,8 @@ export class Tracing implements Integration {
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
     Tracing.finishIdleTransaction();
 
+    logger.log('[Tracing] startIdleTransaction, name:', name);
+
     const _getCurrentHub = Tracing._getCurrentHub;
     if (!_getCurrentHub) {
       return undefined;
@@ -296,6 +298,7 @@ export class Tracing implements Integration {
    * @deprecated
    */
   public static updateTransactionName(name: string): void {
+    logger.log('[Tracing] DEPRECATED, use Sentry.configureScope => scope.setTransaction instead', name);
     const _getCurrentHub = Tracing._getCurrentHub;
     if (_getCurrentHub) {
       const hub = _getCurrentHub();
@@ -313,6 +316,7 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
+      logger.log('[Tracing] finishIdleTransaction', active.transaction);
       // true = use timestamp of last span
       active.finish(true);
     }
@@ -324,14 +328,25 @@ export class Tracing implements Integration {
   public static setTransactionStatus(status: SpanStatus): void {
     const active = Tracing._activeTransaction;
     if (active) {
+      logger.log('[Tracing] setTransactionStatus', status);
       active.setStatus(status);
     }
   }
 
   /**
    * Starts tracking for a specifc activity
+   *
+   * @param name Name of the activity, can be any string (Only used internally to identify the activity)
+   * @param spanContext If provided a Span with the SpanContext will be created.
+   * @param options _autoPopAfter_ | Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
    */
-  public static pushActivity(name: string, spanContext?: SpanContext): number {
+  public static pushActivity(
+    name: string,
+    spanContext?: SpanContext,
+    options?: {
+      autoPopAfter?: number;
+    },
+  ): number {
     if (!Tracing._isEnabled()) {
       // Tracing is not enabled
       return 0;
@@ -355,6 +370,18 @@ export class Tracing implements Integration {
       };
     }
 
+    logger.log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
+    logger.log('[Tracing] activies count', Object.keys(Tracing._activities).length);
+    if (options && typeof options.autoPopAfter === 'number') {
+      logger.log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
+      const index = Tracing._currentIndex;
+      setTimeout(() => {
+        Tracing.popActivity(index, {
+          autoPop: true,
+          status: SpanStatus.DeadlineExceeded,
+        });
+      }, options.autoPopAfter);
+    }
     return Tracing._currentIndex++;
   }
 
@@ -368,7 +395,9 @@ export class Tracing implements Integration {
     }
 
     const activity = Tracing._activities[id];
+
     if (activity) {
+      logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
       const span = activity.span;
       if (span) {
         if (spanData) {
@@ -376,6 +405,9 @@ export class Tracing implements Integration {
             span.setData(key, spanData[key]);
             if (key === 'status_code') {
               span.setHttpStatus(spanData[key] as number);
+            }
+            if (key === 'status') {
+              span.setStatus(spanData[key] as SpanStatus);
             }
           });
         }
@@ -388,8 +420,11 @@ export class Tracing implements Integration {
     const count = Object.keys(Tracing._activities).length;
     clearTimeout(Tracing._debounce);
 
+    logger.log('[Tracing] activies count', count);
+
     if (count === 0) {
       const timeout = Tracing.options && Tracing.options.idleTimeout;
+      logger.log(`[Tracing] Flushing Transaction in ${timeout}ms`);
       Tracing._debounce = (setTimeout(() => {
         Tracing.finishIdleTransaction();
       }, timeout) as any) as number;
