@@ -335,8 +335,12 @@ export class Tracing implements Integration {
 
   /**
    * Starts tracking for a specifc activity
+   *
+   * @param name Name of the activity, can be any string (Only used internally to identify the activity)
+   * @param spanContext If provided a Span with the SpanContext will be created.
+   * @param autoPopAfter Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
    */
-  public static pushActivity(name: string, spanContext?: SpanContext, autoPopAfterMs?: number): number {
+  public static pushActivity(name: string, spanContext?: SpanContext, autoPopAfter?: number): number {
     if (!Tracing._isEnabled()) {
       // Tracing is not enabled
       return 0;
@@ -362,15 +366,15 @@ export class Tracing implements Integration {
 
     logger.log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
     logger.log('[Tracing] activies count', Object.keys(Tracing._activities).length);
-    if (autoPopAfterMs) {
-      logger.log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${autoPopAfterMs}ms`);
+    if (autoPopAfter) {
+      logger.log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${autoPopAfter}ms`);
       const index = Tracing._currentIndex;
       setTimeout(() => {
         Tracing.popActivity(index, {
           autopop: true,
           status: SpanStatus.ResourceExhausted,
         });
-      }, autoPopAfterMs);
+      }, autoPopAfter);
     }
     return Tracing._currentIndex++;
   }
