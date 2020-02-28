@@ -3,6 +3,7 @@ import {
   addInstrumentationHandler,
   getGlobalObject,
   isMatchingPattern,
+  isNumber,
   logger,
   supportsNativeFetch,
 } from '@sentry/utils';
@@ -372,12 +373,12 @@ export class Tracing implements Integration {
 
     logger.log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
     logger.log('[Tracing] activies count', Object.keys(Tracing._activities).length);
-    if (options && options.autoPopAfter) {
+    if (options && options.autoPopAfter !== undefined && !isNaN(options.autoPopAfter)) {
       logger.log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
       const index = Tracing._currentIndex;
       setTimeout(() => {
         Tracing.popActivity(index, {
-          autopop: true,
+          autoPop: true,
           status: SpanStatus.DeadlineExceeded,
         });
       }, options.autoPopAfter);
