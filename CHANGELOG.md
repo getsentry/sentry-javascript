@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.13.1
+
+- [node] fix: Restore engines back to `>= 6`
+
 ## 5.13.0
 
 - [apm] feat: Add `options.autoPopAfter` parameter to `pushActivity` to prevent never-ending spans (#2459)
