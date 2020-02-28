@@ -13,18 +13,24 @@ import {
   uuid4,
 } from '@sentry/utils';
 
+const INITIAL_TIME = Date.now();
+
+const performanceFallback: Pick<Performance, 'now'> = {
+  now(): number {
+    return INITIAL_TIME - Date.now();
+  },
+};
+
 const crossPlatformPerformance: Pick<Performance, 'now'> = (() => {
   if (isNodeEnv()) {
-    const { performance } = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
-    return performance;
-  }
-  return (
-    getGlobalObject<Window>().performance || {
-      now(): number {
-        return Date.now();
-      },
+    try {
+      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
+      return perfHooks.performance;
+    } catch (_) {
+      return performanceFallback;
     }
-  );
+  }
+  return getGlobalObject<Window>().performance || performanceFallback;
 })();
 
 // TODO: Should this be exported?

@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
-    "node": ">=8"
+    "node": ">=6"
   },
   "main": "dist/index.js",
   "module": "esm/index.js",
