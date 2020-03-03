@@ -122,7 +122,7 @@ export class Breadcrumbs implements Integration {
         message: target,
       },
       {
-        event,
+        event: handlerData.event,
         name: handlerData.name,
       },
     );
