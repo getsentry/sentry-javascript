@@ -174,42 +174,28 @@ const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
 
 /** JSDoc */
 function extractUserData(
-  req: {
-    ip?: string;
-    connection?: {
-      remoteAddress?: string;
-    };
-    user?: {
-      [key: string]: any;
-    };
+  user: {
+    [key: string]: any;
   },
   keys: boolean | string[],
 ): { [key: string]: any } {
-  const user: { [key: string]: any } = {};
+  const extractedUser: { [key: string]: any } = {};
   const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_KEYS;
 
   attributes.forEach(key => {
-    if (req.user && key in req.user) {
-      user[key] = req.user[key];
+    if (user && key in user) {
+      extractedUser[key] = user[key];
     }
   });
 
-  // client ip:
-  //   node: req.connection.remoteAddress
-  //   express, koa: req.ip
-  const ip = req.ip || (req.connection && req.connection.remoteAddress);
-
-  if (ip) {
-    user.ip_address = ip;
-  }
-
-  return user;
+  return extractedUser;
 }
 
 /**
  * Options deciding what parts of the request to use when enhancing an event
  */
 interface ParseRequestOptions {
+  ip?: boolean;
   request?: boolean | string[];
   serverName?: boolean;
   transaction?: boolean | TransactionTypes;
@@ -229,11 +215,19 @@ export function parseRequest(
   event: Event,
   req: {
     [key: string]: any;
+    user?: {
+      [key: string]: any;
+    };
+    ip?: string;
+    connection?: {
+      remoteAddress?: string;
+    };
   },
   options?: ParseRequestOptions,
 ): Event {
   // tslint:disable-next-line:no-parameter-reassignment
   options = {
+    ip: false,
     request: true,
     serverName: true,
     transaction: true,
@@ -260,11 +254,28 @@ export function parseRequest(
     event.server_name = global.process.env.SENTRY_NAME || os.hostname();
   }
 
-  if (options.user && req.user) {
-    event.user = {
-      ...event.user,
-      ...extractUserData(req, options.user),
-    };
+  if (options.user) {
+    const extractedUser = req.user ? extractUserData(req.user, options.user) : {};
+
+    if (Object.keys(extractedUser)) {
+      event.user = {
+        ...event.user,
+        ...extractedUser,
+      };
+    }
+  }
+
+  // client ip:
+  //   node: req.connection.remoteAddress
+  //   express, koa: req.ip
+  if (options.ip) {
+    const ip = req.ip || (req.connection && req.connection.remoteAddress);
+    if (ip) {
+      event.user = {
+        ...event.user,
+        ip_address: ip,
+      };
+    }
   }
 
   if (options.transaction && !event.transaction) {
