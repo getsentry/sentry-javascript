@@ -42,7 +42,9 @@ function runInSandbox(sandbox, options, code) {
   var finalize = function() {
     var summary = {
       events: events,
+      eventHints: eventHints,
       breadcrumbs: breadcrumbs,
+      breadcrumbHints: breadcrumbHints,
       window: window,
     };
 

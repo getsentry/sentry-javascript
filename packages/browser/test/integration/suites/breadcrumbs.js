@@ -330,6 +330,28 @@ describe("breadcrumbs", function() {
     });
   });
 
+  it("should provide a hint for dom events that includes event name and event itself", function() {
+    return runInSandbox(sandbox, function() {
+      var input = document.getElementsByTagName("input")[0];
+      var clickHandler = function() {};
+      input.addEventListener("click", clickHandler);
+      var click = new MouseEvent("click");
+      input.dispatchEvent(click);
+      Sentry.captureMessage("test");
+    }).then(function(summary) {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap event listeners, but we should receive the event without breadcrumbs
+        assert.lengthOf(summary.events, 1);
+      } else {
+        assert.equal(summary.breadcrumbHints.length, 1);
+        assert.equal(summary.breadcrumbHints[0].name, "click");
+        assert.equal(summary.breadcrumbHints[0].event.target.tagName, "INPUT");
+        // There should be no expection, if there is one it means we threw it
+        assert.isUndefined(summary.events[0].exception);
+      }
+    });
+  });
+
   it("should not fail with click or keypress handler with no callback", function() {
     return runInSandbox(sandbox, function() {
       var input = document.getElementsByTagName("input")[0];

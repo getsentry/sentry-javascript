@@ -16,7 +16,9 @@ var originalBuiltIns = {
 };
 
 var events = [];
+var eventHints = [];
 var breadcrumbs = [];
+var breadcrumbHints = [];
 
 // Oh dear IE10...
 var dsn =
@@ -33,11 +35,12 @@ function initSDK() {
     attachStacktrace: true,
     ignoreErrors: ["ignoreErrorTest"],
     blacklistUrls: ["foo.js"],
-    beforeSend: function(event) {
+    beforeSend: function(event, eventHint) {
       events.push(event);
+      eventHints.push(eventHint);
       return event;
     },
-    beforeBreadcrumb: function(breadcrumb) {
+    beforeBreadcrumb: function(breadcrumb, breadcrumbHint) {
       // Filter console logs as we use them for debugging *a lot* and they are not *that* important
       // But allow then if we explicitly say so (for one of integration tests)
       if (
@@ -69,6 +72,7 @@ function initSDK() {
       }
 
       breadcrumbs.push(breadcrumb);
+      breadcrumbHints.push(breadcrumbHint);
       return breadcrumb;
     },
   });
