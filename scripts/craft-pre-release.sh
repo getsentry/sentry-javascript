@@ -16,4 +16,4 @@ export npm_config_git_tag_version=false
 # --no-push - don't push committed and tagged changes.
 # --include-merged-tags - include tags from merged branches when detecting changed packages.
 # --yes - skip all confirmation prompts
-yarn lerna version --force-publish --exact --no-git-tag-version --no-push --include-merged-tags -yes "${NEW_VERSION}"
+yarn lerna version --force-publish --exact --no-git-tag-version --no-push --include-merged-tags --yes "${NEW_VERSION}"
