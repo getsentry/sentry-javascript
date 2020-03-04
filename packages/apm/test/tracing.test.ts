@@ -37,13 +37,13 @@ describe('TransactionActivity', () => {
   //   expect(spy).toBeCalledTimes(3);
   // });
 
-  test('multiple activities ', () => {
-    Tracing.pushActivity('xhr');
-    const a = Tracing.pushActivity('xhr2');
-    Tracing.popActivity(a);
-    Tracing.pushActivity('xhr3');
-    expect(Object.keys((Tracing as any)._activities)).toHaveLength(2);
-  });
+  // test('multiple activities ', () => {
+  //   Tracing.pushActivity('xhr');
+  //   const a = Tracing.pushActivity('xhr2');
+  //   Tracing.popActivity(a);
+  //   Tracing.pushActivity('xhr3');
+  //   expect(Object.keys((Tracing as any)._activities)).toHaveLength(2);
+  // });
 
   // test('finishing a transaction after debounce', () => {
   //   jest.useFakeTimers();
