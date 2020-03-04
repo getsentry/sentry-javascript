@@ -74,6 +74,16 @@ interface TracingOptions {
    * Default: 600
    */
   maxTransactionDuration: number;
+
+  /**
+   * Flag to discard all spans that occur in background. This includes transactions. Browser background tab timing is
+   * not suited towards doing precise measurements of operations. That's why this option discards any active transaction
+   * and also doesn't add any spans that happen in the background. Background spans/transaction can mess up your
+   * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
+   *
+   * Default: true
+   */
+  discardBackgroundSpans: boolean;
 }
 
 /** JSDoc */
@@ -114,7 +124,7 @@ export class Tracing implements Integration {
 
   private static _activeTransaction?: Span;
 
-  private static _currentIndex: number = 0;
+  private static _currentIndex: number = 1;
 
   public static readonly _activities: { [key: number]: Activity } = {};
 
@@ -129,6 +139,7 @@ export class Tracing implements Integration {
    */
   public constructor(private readonly _options?: Partial<TracingOptions>) {
     const defaults = {
+      discardBackgroundSpans: true,
       idleTimeout: 500,
       maxTransactionDuration: 600,
       shouldCreateSpanForRequest(url: string): boolean {
@@ -199,6 +210,16 @@ export class Tracing implements Integration {
       Tracing.startIdleTransaction(global.location.href, {
         op: 'pageload',
         sampled: true,
+      });
+    }
+
+    // tslint:disable-next-line: no-non-null-assertion
+    if (this._options!.discardBackgroundSpans && global.document) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          logger.log('[Tracing] Discarded active transaction since tab moved to the background');
+          Tracing._activeTransaction = undefined;
+        }
       });
     }
 
@@ -351,6 +372,10 @@ export class Tracing implements Integration {
       // Tracing is not enabled
       return 0;
     }
+    if (!Tracing._activeTransaction) {
+      logger.log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
+      return 0;
+    }
 
     // We want to clear the timeout also here since we push a new activity
     clearTimeout(Tracing._debounce);
@@ -389,7 +414,7 @@ export class Tracing implements Integration {
    * Removes activity and finishes the span in case there is one
    */
   public static popActivity(id: number, spanData?: { [key: string]: any }): void {
-    if (!Tracing._isEnabled()) {
+    if (!Tracing._isEnabled() || !id) {
       // Tracing is not enabled
       return;
     }
