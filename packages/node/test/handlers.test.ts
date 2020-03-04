@@ -22,52 +22,66 @@ describe('parseRequest', () => {
     const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
     const CUSTOM_USER_KEYS = ['custom_property'];
 
-    test('parseRequest.user only contains the default properties from the user', done => {
-      const fakeEvent: Event = {};
-      const parsedRequest: Event = parseRequest(fakeEvent, mockReq);
-      const userKeys = Object.keys(parsedRequest.user);
-
-      expect(userKeys).toEqual(DEFAULT_USER_KEYS);
-      expect(userKeys).not.toEqual(expect.arrayContaining(CUSTOM_USER_KEYS));
-      done();
+    test('parseRequest.user only contains the default properties from the user', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq, {
+        user: DEFAULT_USER_KEYS,
+      });
+      expect(Object.keys(parsedRequest.user as any[])).toEqual(DEFAULT_USER_KEYS);
     });
 
-    test('parseRequest.user only contains the custom properties specified in the options.user array', done => {
-      const options = {
+    test('parseRequest.user only contains the custom properties specified in the options.user array', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq, {
         user: CUSTOM_USER_KEYS,
-      };
-      const fakeEvent: Event = {};
-      const parsedRequest: Event = parseRequest(fakeEvent, mockReq, options);
-      const userKeys = Object.keys(parsedRequest.user);
+      });
+      expect(Object.keys(parsedRequest.user as any[])).toEqual(CUSTOM_USER_KEYS);
+    });
+  });
 
-      expect(userKeys).toEqual(CUSTOM_USER_KEYS);
-      expect(userKeys).not.toEqual(expect.arrayContaining(DEFAULT_USER_KEYS));
-      done();
+  describe('parseRequest.ip property', () => {
+    test('can be extracted from req.ip', () => {
+      const parsedRequest: Event = parseRequest(
+        {},
+        {
+          ...mockReq,
+          ip: '123',
+        },
+        {
+          ip: true,
+        },
+      );
+      expect(parsedRequest.user!.ip_address).toEqual('123');
+    });
+
+    test('can extract from req.connection.remoteAddress', () => {
+      const parsedRequest: Event = parseRequest(
+        {},
+        {
+          ...mockReq,
+          connection: {
+            remoteAddress: '321',
+          },
+        },
+        {
+          ip: true,
+        },
+      );
+      expect(parsedRequest.user!.ip_address).toEqual('321');
     });
   });
 
   describe('parseRequest.request properties', () => {
-    test('parseRequest.request only contains the default set of properties from the request', done => {
+    test('parseRequest.request only contains the default set of properties from the request', () => {
       const DEFAULT_REQUEST_PROPERTIES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-      const fakeEvent: Event = {};
-      const parsedRequest: Event = parseRequest(fakeEvent, mockReq, {});
-      expect(Object.keys(parsedRequest.request)).toEqual(DEFAULT_REQUEST_PROPERTIES);
-      done();
+      const parsedRequest: Event = parseRequest({}, mockReq, {});
+      expect(Object.keys(parsedRequest.request as any[])).toEqual(DEFAULT_REQUEST_PROPERTIES);
     });
 
-    test('parseRequest.request only contains the specified properties in the options.request array', done => {
-      const EXCLUDED_PROPERTIES = ['cookies', 'method'];
+    test('parseRequest.request only contains the specified properties in the options.request array', () => {
       const INCLUDED_PROPERTIES = ['data', 'headers', 'query_string', 'url'];
-      const options = {
+      const parsedRequest: Event = parseRequest({}, mockReq, {
         request: INCLUDED_PROPERTIES,
-      };
-      const fakeEvent: Event = {};
-      const parsedRequest: Event = parseRequest(fakeEvent, mockReq, options);
-      const requestKeys = Object.keys(parsedRequest.request);
-
-      expect(requestKeys).toEqual(INCLUDED_PROPERTIES);
-      expect(requestKeys).not.toEqual(expect.arrayContaining(EXCLUDED_PROPERTIES));
-      done();
+      });
+      expect(Object.keys(parsedRequest.request as any[])).toEqual(['data', 'headers', 'query_string', 'url']);
     });
   });
 });
