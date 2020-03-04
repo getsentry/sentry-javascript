@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] feat: Add `discardBackgroundSpans` to discard background spans by default
+
 ## 5.13.1
 
 - [node] fix: Restore engines back to `>= 6`
