@@ -132,6 +132,8 @@ export class Tracing implements Integration {
 
   private readonly _emitOptionsWarning: boolean = false;
 
+  private static _performanceCursor: number = 0;
+
   /**
    * Constructor for Tracing
    *
@@ -299,6 +301,7 @@ export class Tracing implements Integration {
     );
 
     Tracing._activeTransaction = span;
+    Tracing._addOffsetToSpan(`idleTransactionStarted-${Tracing._currentIndex}`, span as SpanClass);
 
     // We need to do this workaround here and not use configureScope
     // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
@@ -340,14 +343,22 @@ export class Tracing implements Integration {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
       logger.log('[Tracing] finishIdleTransaction', active.transaction);
-      Tracing._addPerformance(active);
+      Tracing._addPerformanceEntries(active);
       // true = use timestamp of last span
       active.finish(true);
     }
   }
 
   /** Adds spans for performamce TODO */
-  private static _addPerformance(transactionSpan: SpanClass): void {
+  private static _addPerformanceEntries(transactionSpan: SpanClass): void {
+    let navigationOffset = 0;
+    if (
+      transactionSpan.op === 'navigation' &&
+      transactionSpan.data &&
+      typeof transactionSpan.data.offset === 'number'
+    ) {
+      navigationOffset = transactionSpan.data.offset;
+    }
     // tslint:disable-next-line: completed-docs
     function addSpan(span: SpanClass): void {
       // tslint:disable-next-line: no-non-null-assertion
@@ -361,8 +372,8 @@ export class Tracing implements Integration {
         op: 'browser',
       });
       // tslint:disable: no-unsafe-any
-      span.startTimestamp = parent.startTimestamp + (entry[`${event}Start`] as number) / 1000;
-      span.timestamp = parent.startTimestamp + (entry[`${event}End`] as number) / 1000;
+      span.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}Start`] as number);
+      span.timestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}End`] as number);
       // tslint:enable: no-unsafe-any
       addSpan(span);
     }
@@ -374,8 +385,8 @@ export class Tracing implements Integration {
         op: 'browser',
       });
       // tslint:disable: no-unsafe-any
-      request.startTimestamp = parent.startTimestamp + (entry.requestStart as number) / 1000;
-      request.timestamp = parent.startTimestamp + (entry.responseEnd as number) / 1000;
+      request.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.requestStart as number);
+      request.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd as number);
       // tslint:enable: no-unsafe-any
       addSpan(request);
       const response = parent.child({
@@ -383,8 +394,8 @@ export class Tracing implements Integration {
         op: 'browser',
       });
       // tslint:disable: no-unsafe-any
-      response.startTimestamp = parent.startTimestamp + (entry.responseStart as number) / 1000;
-      response.timestamp = parent.startTimestamp + (entry.responseEnd as number) / 1000;
+      response.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.responseStart as number);
+      response.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd as number);
       // tslint:enable: no-unsafe-any
       addSpan(response);
     }
@@ -394,6 +405,9 @@ export class Tracing implements Integration {
     if (global.document) {
       // tslint:disable-next-line: prefer-for-of
       for (let i = 0; i < document.scripts.length; i++) {
+        // We go through all scripts on the page and look for 'data-entry'
+        // We remember the name and measure the time between this script finished loading and
+        // our mark 'sentry-tracing-init'
         if (document.scripts[i].getAttribute('data-entry') === 'true') {
           entryScriptSrc = document.scripts[i].src;
           break;
@@ -405,59 +419,69 @@ export class Tracing implements Integration {
     let tracingInitMarkStartTime: number | undefined;
 
     // tslint:disable: no-unsafe-any
-    performance.getEntries().forEach((entry: any) => {
-      switch (entry.entryType) {
-        case 'navigation':
-          addPerformanceNavigationTiming(transactionSpan, entry, 'unloadEvent');
-          addPerformanceNavigationTiming(transactionSpan, entry, 'domContentLoadedEvent');
-          addPerformanceNavigationTiming(transactionSpan, entry, 'loadEvent');
-          addPerformanceNavigationTiming(transactionSpan, entry, 'connect');
-          addPerformanceNavigationTiming(transactionSpan, entry, 'domainLookup');
-          addRequest(transactionSpan, entry);
-          break;
-        case 'mark':
-        case 'paint':
-        case 'measure':
-          const mark = transactionSpan.child({
-            description: entry.name,
-            op: 'mark',
-          });
-          mark.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
-          mark.timestamp = mark.startTimestamp + (entry.duration as number) / 1000;
-          if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
-            tracingInitMarkStartTime = mark.startTimestamp;
-          }
-          addSpan(mark);
-          break;
-        case 'resource':
-          const resourceName = entry.name.replace(window.location.origin, '');
-          if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
-            // We need to update existing spans with new timing info
-            // tslint:disable-next-line: no-non-null-assertion
-            transactionSpan.spanRecorder!.finishedSpans.map((finishedSpan: SpanClass) => {
-              if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                finishedSpan.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
-                finishedSpan.timestamp = finishedSpan.startTimestamp + (entry.duration as number) / 1000;
-              }
+    performance
+      .getEntries()
+      .slice(Tracing._performanceCursor)
+      .forEach((entry: any) => {
+        const startTime = Tracing._msToSec(entry.startTime as number);
+        const duration = Tracing._msToSec(entry.duration as number);
+
+        switch (entry.entryType) {
+          case 'navigation':
+            addPerformanceNavigationTiming(transactionSpan, entry, 'unloadEvent');
+            addPerformanceNavigationTiming(transactionSpan, entry, 'domContentLoadedEvent');
+            addPerformanceNavigationTiming(transactionSpan, entry, 'loadEvent');
+            addPerformanceNavigationTiming(transactionSpan, entry, 'connect');
+            addPerformanceNavigationTiming(transactionSpan, entry, 'domainLookup');
+            addRequest(transactionSpan, entry);
+            break;
+          case 'mark':
+          case 'paint':
+          case 'measure':
+            const mark = transactionSpan.child({
+              description: `${entry.entryType} ${entry.name}`,
+              op: 'mark',
             });
-          } else {
-            const resource = transactionSpan.child({
-              description: `${entry.initiatorType} ${resourceName}`,
-              op: `resource`,
-            });
-            resource.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
-            resource.timestamp = resource.startTimestamp + (entry.duration as number) / 1000;
-            // We remeber the entry script end time to calculate the difference to the first init mark
-            if (entryScriptStartEndTime === undefined && entryScriptSrc && entryScriptSrc.indexOf(resourceName) > -1) {
-              entryScriptStartEndTime = resource.timestamp;
+            mark.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+            mark.timestamp = mark.startTimestamp + duration;
+            if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
+              tracingInitMarkStartTime = mark.startTimestamp;
             }
-            addSpan(resource);
-          }
-          break;
-        default:
-        // Yo
-      }
-    });
+            addSpan(mark);
+            break;
+          case 'resource':
+            const resourceName = entry.name.replace(window.location.origin, '');
+            if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
+              // We need to update existing spans with new timing info
+              // tslint:disable-next-line: no-non-null-assertion
+              transactionSpan.spanRecorder!.finishedSpans.map((finishedSpan: SpanClass) => {
+                if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
+                  finishedSpan.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+                  finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
+                }
+              });
+            } else {
+              const resource = transactionSpan.child({
+                description: `${entry.initiatorType} ${resourceName}`,
+                op: `resource`,
+              });
+              resource.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+              resource.timestamp = resource.startTimestamp + duration;
+              // We remeber the entry script end time to calculate the difference to the first init mark
+              if (
+                entryScriptStartEndTime === undefined &&
+                entryScriptSrc &&
+                entryScriptSrc.indexOf(resourceName) > -1
+              ) {
+                entryScriptStartEndTime = resource.timestamp;
+              }
+              addSpan(resource);
+            }
+            break;
+          default:
+          // Yo
+        }
+      });
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
       const evaluation = transactionSpan.child({
@@ -467,6 +491,12 @@ export class Tracing implements Integration {
       evaluation.startTimestamp = entryScriptStartEndTime;
       evaluation.timestamp = tracingInitMarkStartTime;
       addSpan(evaluation);
+    }
+    if (global.performance) {
+      performance.clearMarks();
+      performance.clearMeasures();
+      performance.clearResourceTimings();
+      Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
     }
 
     // tslint:enable: no-unsafe-any
@@ -481,6 +511,32 @@ export class Tracing implements Integration {
       logger.log('[Tracing] setTransactionStatus', status);
       active.setStatus(status);
     }
+  }
+
+  /**
+   * Adds offset to the span
+   *
+   * @param measureName name of the performance measure
+   * @param span Span to add data.offset to
+   */
+  private static _addOffsetToSpan(measureName: string, span: SpanClass): void {
+    if (global.performance) {
+      const name = `#sentry-${measureName}`;
+      performance.measure(name);
+      const measure = performance.getEntriesByName(name).pop();
+      if (measure) {
+        span.setData('offset', Tracing._msToSec(measure.duration));
+      }
+      performance.clearMeasures(name);
+    }
+  }
+
+  /**
+   * Converys ms time to s with ms precison
+   * @param time time in ms
+   */
+  private static _msToSec(time: number): number {
+    return time / 1000;
   }
 
   /**
@@ -514,15 +570,7 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = hub.startSpan(spanContext);
-        if (global.performance) {
-          const measureName = `#sentry-${name}${Tracing._currentIndex}`;
-          performance.measure(measureName);
-          const measure = performance.getEntriesByName(measureName).pop();
-          if (measure) {
-            span.setData('offset', measure.duration / 1000);
-          }
-          performance.clearMeasures(measureName);
-        }
+        Tracing._addOffsetToSpan(`${name}${Tracing._currentIndex}`, span as SpanClass);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
