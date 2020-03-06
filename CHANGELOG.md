@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] feat: Make use of the `performance` browser API to provide better instrumentation (#2474)
+
 ## 5.13.2
 
 - [apm] feat: Add `discardBackgroundSpans` to discard background spans by default

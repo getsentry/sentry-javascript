@@ -349,7 +349,13 @@ export class Tracing implements Integration {
     }
   }
 
-  /** Adds spans for performamce TODO */
+  /**
+   * This uses `performance.getEntries()` to add additional spans to the active transaction.
+   * Also, we update our timings since we consider the timings in this API to be more correct than our manual
+   * measurements.
+   *
+   * @param transactionSpan The transaction span
+   */
   private static _addPerformanceEntries(transactionSpan: SpanClass): void {
     let navigationOffset = 0;
     if (
