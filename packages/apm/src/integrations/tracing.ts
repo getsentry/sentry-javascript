@@ -138,6 +138,9 @@ export class Tracing implements Integration {
    * @param _options TracingOptions
    */
   public constructor(_options?: Partial<TracingOptions>) {
+    if (global.performance) {
+      global.performance.mark('sentry-tracing-init');
+    }
     const defaults = {
       discardBackgroundSpans: true,
       idleTimeout: 500,
@@ -236,6 +239,7 @@ export class Tracing implements Integration {
             event.timestamp - event.start_timestamp < 0);
 
         if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+          logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
           return null;
         }
       }
@@ -336,9 +340,131 @@ export class Tracing implements Integration {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
       logger.log('[Tracing] finishIdleTransaction', active.transaction);
+      Tracing._addPerformance(active);
       // true = use timestamp of last span
       active.finish(true);
     }
+  }
+
+  /** Adds spans for performamce TODO */
+  private static _addPerformance(transactionSpan: SpanClass): void {
+    // tslint:disable-next-line: completed-docs
+    function addSpan(span: SpanClass): void {
+      // tslint:disable-next-line: no-non-null-assertion
+      transactionSpan.spanRecorder!.finishSpan(span);
+    }
+
+    // tslint:disable-next-line: completed-docs
+    function addPerformanceNavigationTiming(parent: SpanClass, entry: any, op: string): void {
+      const span = parent.child({
+        op,
+      });
+      // tslint:disable: no-unsafe-any
+      span.startTimestamp = parent.startTimestamp + (entry[`${op}Start`] as number) / 1000;
+      span.timestamp = parent.startTimestamp + (entry[`${op}End`] as number) / 1000;
+      // tslint:enable: no-unsafe-any
+      addSpan(span);
+    }
+
+    // tslint:disable-next-line: completed-docs
+    function addRequest(parent: SpanClass, entry: any): void {
+      const request = parent.child({
+        op: 'request',
+      });
+      // tslint:disable: no-unsafe-any
+      request.startTimestamp = parent.startTimestamp + (entry.requestStart as number) / 1000;
+      request.timestamp = parent.startTimestamp + (entry.responseEnd as number) / 1000;
+      // tslint:enable: no-unsafe-any
+      addSpan(request);
+      const response = parent.child({
+        op: 'response',
+      });
+      // tslint:disable: no-unsafe-any
+      response.startTimestamp = parent.startTimestamp + (entry.responseStart as number) / 1000;
+      response.timestamp = parent.startTimestamp + (entry.responseEnd as number) / 1000;
+      // tslint:enable: no-unsafe-any
+      addSpan(response);
+    }
+
+    let entryScriptSrc: string | undefined;
+
+    if (global.document) {
+      // tslint:disable-next-line: prefer-for-of
+      for (let i = 0; i < document.scripts.length; i++) {
+        if (document.scripts[i].getAttribute('data-entry') === 'true') {
+          entryScriptSrc = document.scripts[i].src;
+          break;
+        }
+      }
+    }
+
+    let entryScriptStartEndTime: number | undefined;
+    let tracingInitMarkStartTime: number | undefined;
+
+    // tslint:disable: no-unsafe-any
+    performance.getEntries().forEach((entry: any) => {
+      switch (entry.entryType) {
+        case 'navigation':
+          addPerformanceNavigationTiming(transactionSpan, entry, 'unloadEvent');
+          addPerformanceNavigationTiming(transactionSpan, entry, 'domContentLoadedEvent');
+          addPerformanceNavigationTiming(transactionSpan, entry, 'loadEvent');
+          addPerformanceNavigationTiming(transactionSpan, entry, 'connect');
+          addPerformanceNavigationTiming(transactionSpan, entry, 'domainLookup');
+          addRequest(transactionSpan, entry);
+          break;
+        case 'mark':
+        case 'paint':
+        case 'measure':
+          const mark = transactionSpan.child({
+            description: entry.name,
+            op: 'mark',
+          });
+          mark.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
+          mark.timestamp = mark.startTimestamp + (entry.duration as number) / 1000;
+          if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
+            tracingInitMarkStartTime = mark.startTimestamp;
+          }
+          addSpan(mark);
+          break;
+        case 'resource':
+          const resourceName = entry.name.replace(window.location.origin, '');
+          if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
+            // We need to update existing spans with new timing info
+            // tslint:disable-next-line: no-non-null-assertion
+            transactionSpan.spanRecorder!.finishedSpans.map((finishedSpan: SpanClass) => {
+              if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
+                finishedSpan.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
+                finishedSpan.timestamp = finishedSpan.startTimestamp + (entry.duration as number) / 1000;
+              }
+            });
+          } else {
+            const resource = transactionSpan.child({
+              description: `${resourceName}`,
+              op: `resource.${entry.initiatorType}`,
+            });
+            resource.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
+            resource.timestamp = resource.startTimestamp + (entry.duration as number) / 1000;
+            // We remeber the entry script end time to calculate the difference to the first init mark
+            if (entryScriptStartEndTime === undefined && entryScriptSrc && entryScriptSrc.indexOf(resourceName) > -1) {
+              entryScriptStartEndTime = resource.timestamp;
+            }
+            addSpan(resource);
+          }
+          break;
+        default:
+        // Yo
+      }
+    });
+    if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
+      const evaluation = transactionSpan.child({
+        op: `script.evaluation`,
+      });
+      evaluation.startTimestamp = entryScriptStartEndTime;
+      evaluation.timestamp = tracingInitMarkStartTime;
+      addSpan(evaluation);
+    }
+
+    // tslint:enable: no-unsafe-any
   }
 
   /**
