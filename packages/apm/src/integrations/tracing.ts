@@ -355,13 +355,14 @@ export class Tracing implements Integration {
     }
 
     // tslint:disable-next-line: completed-docs
-    function addPerformanceNavigationTiming(parent: SpanClass, entry: any, op: string): void {
+    function addPerformanceNavigationTiming(parent: SpanClass, entry: any, event: string): void {
       const span = parent.child({
-        op,
+        description: event,
+        op: 'browser',
       });
       // tslint:disable: no-unsafe-any
-      span.startTimestamp = parent.startTimestamp + (entry[`${op}Start`] as number) / 1000;
-      span.timestamp = parent.startTimestamp + (entry[`${op}End`] as number) / 1000;
+      span.startTimestamp = parent.startTimestamp + (entry[`${event}Start`] as number) / 1000;
+      span.timestamp = parent.startTimestamp + (entry[`${event}End`] as number) / 1000;
       // tslint:enable: no-unsafe-any
       addSpan(span);
     }
@@ -369,7 +370,8 @@ export class Tracing implements Integration {
     // tslint:disable-next-line: completed-docs
     function addRequest(parent: SpanClass, entry: any): void {
       const request = parent.child({
-        op: 'request',
+        description: 'request',
+        op: 'browser',
       });
       // tslint:disable: no-unsafe-any
       request.startTimestamp = parent.startTimestamp + (entry.requestStart as number) / 1000;
@@ -377,7 +379,8 @@ export class Tracing implements Integration {
       // tslint:enable: no-unsafe-any
       addSpan(request);
       const response = parent.child({
-        op: 'response',
+        description: 'response',
+        op: 'browser',
       });
       // tslint:disable: no-unsafe-any
       response.startTimestamp = parent.startTimestamp + (entry.responseStart as number) / 1000;
@@ -439,8 +442,8 @@ export class Tracing implements Integration {
             });
           } else {
             const resource = transactionSpan.child({
-              description: `${resourceName}`,
-              op: `resource.${entry.initiatorType}`,
+              description: `${entry.initiatorType} ${resourceName}`,
+              op: `resource`,
             });
             resource.startTimestamp = transactionSpan.startTimestamp + (entry.startTime as number) / 1000;
             resource.timestamp = resource.startTimestamp + (entry.duration as number) / 1000;
@@ -455,9 +458,11 @@ export class Tracing implements Integration {
         // Yo
       }
     });
+
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
       const evaluation = transactionSpan.child({
-        op: `script.evaluation`,
+        description: 'evaluation',
+        op: `script`,
       });
       evaluation.startTimestamp = entryScriptStartEndTime;
       evaluation.timestamp = tracingInitMarkStartTime;
@@ -508,9 +513,19 @@ export class Tracing implements Integration {
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
       if (hub) {
+        const span = hub.startSpan(spanContext);
+        if (global.performance) {
+          const measureName = `#sentry-${name}${Tracing._currentIndex}`;
+          performance.measure(measureName);
+          const measure = performance.getEntriesByName(measureName).pop();
+          if (measure) {
+            span.setData('offset', measure.duration / 1000);
+          }
+          performance.clearMeasures(measureName);
+        }
         Tracing._activities[Tracing._currentIndex] = {
           name,
-          span: hub.startSpan(spanContext),
+          span,
         };
       }
     } else {
@@ -550,7 +565,7 @@ export class Tracing implements Integration {
 
     if (activity) {
       logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
-      const span = activity.span;
+      const span = activity.span as SpanClass;
       if (span) {
         if (spanData) {
           Object.keys(spanData).forEach((key: string) => {
@@ -564,6 +579,12 @@ export class Tracing implements Integration {
           });
         }
         span.finish();
+        // If there is an offset in data, we need to shift timestamps towards it
+        if (span.data && typeof span.data.offset === 'number') {
+          span.startTimestamp += span.data.offset;
+          // tslint:disable-next-line: no-non-null-assertion
+          span.timestamp! += span.data.offset;
+        }
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete Tracing._activities[id];
