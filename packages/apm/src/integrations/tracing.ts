@@ -367,42 +367,37 @@ export class Tracing implements Integration {
     }
     // tslint:disable-next-line: completed-docs
     function addSpan(span: SpanClass): void {
-      // tslint:disable-next-line: no-non-null-assertion
-      transactionSpan.spanRecorder!.finishSpan(span);
+      if (transactionSpan.spanRecorder) {
+        transactionSpan.spanRecorder.finishSpan(span);
+      }
     }
 
     // tslint:disable-next-line: completed-docs
-    function addPerformanceNavigationTiming(parent: SpanClass, entry: any, event: string): void {
+    function addPerformanceNavigationTiming(parent: SpanClass, entry: { [key: string]: number }, event: string): void {
       const span = parent.child({
         description: event,
         op: 'browser',
       });
-      // tslint:disable: no-unsafe-any
-      span.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}Start`] as number);
-      span.timestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}End`] as number);
-      // tslint:enable: no-unsafe-any
+      span.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}Start`]);
+      span.timestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}End`]);
       addSpan(span);
     }
 
     // tslint:disable-next-line: completed-docs
-    function addRequest(parent: SpanClass, entry: any): void {
+    function addRequest(parent: SpanClass, entry: { [key: string]: number }): void {
       const request = parent.child({
         description: 'request',
         op: 'browser',
       });
-      // tslint:disable: no-unsafe-any
-      request.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.requestStart as number);
-      request.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd as number);
-      // tslint:enable: no-unsafe-any
+      request.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.requestStart);
+      request.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd);
       addSpan(request);
       const response = parent.child({
         description: 'response',
         op: 'browser',
       });
-      // tslint:disable: no-unsafe-any
-      response.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.responseStart as number);
-      response.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd as number);
-      // tslint:enable: no-unsafe-any
+      response.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.responseStart);
+      response.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd);
       addSpan(response);
     }
 
@@ -414,7 +409,7 @@ export class Tracing implements Integration {
         // We go through all scripts on the page and look for 'data-entry'
         // We remember the name and measure the time between this script finished loading and
         // our mark 'sentry-tracing-init'
-        if (document.scripts[i].getAttribute('data-entry') === 'true') {
+        if (document.scripts[i].dataset.entry === 'true') {
           entryScriptSrc = document.scripts[i].src;
           break;
         }
@@ -459,13 +454,14 @@ export class Tracing implements Integration {
             const resourceName = entry.name.replace(window.location.origin, '');
             if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
               // We need to update existing spans with new timing info
-              // tslint:disable-next-line: no-non-null-assertion
-              transactionSpan.spanRecorder!.finishedSpans.map((finishedSpan: SpanClass) => {
-                if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                  finishedSpan.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
-                  finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
-                }
-              });
+              if (transactionSpan.spanRecorder) {
+                transactionSpan.spanRecorder.finishedSpans.map((finishedSpan: SpanClass) => {
+                  if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
+                    finishedSpan.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+                    finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
+                  }
+                });
+              }
             } else {
               const resource = transactionSpan.child({
                 description: `${entry.initiatorType} ${resourceName}`,
@@ -474,18 +470,14 @@ export class Tracing implements Integration {
               resource.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
               resource.timestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
-              if (
-                entryScriptStartEndTime === undefined &&
-                entryScriptSrc &&
-                entryScriptSrc.indexOf(resourceName) > -1
-              ) {
+              if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
                 entryScriptStartEndTime = resource.timestamp;
               }
               addSpan(resource);
             }
             break;
           default:
-            // Ignore other entry types.
+          // Ignore other entry types.
         }
       });
 
@@ -634,10 +626,9 @@ export class Tracing implements Integration {
         }
         span.finish();
         // If there is an offset in data, we need to shift timestamps towards it
-        if (span.data && typeof span.data.offset === 'number') {
+        if (span.data && typeof span.data.offset === 'number' && typeof span.timestamp === 'number') {
           span.startTimestamp += span.data.offset;
-          // tslint:disable-next-line: no-non-null-assertion
-          span.timestamp! += span.data.offset;
+          span.timestamp += span.data.offset;
         }
       }
       // tslint:disable-next-line: no-dynamic-delete
