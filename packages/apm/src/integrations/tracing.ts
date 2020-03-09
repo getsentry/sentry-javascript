@@ -473,7 +473,7 @@ export class Tracing implements Integration {
               });
               resource.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
               resource.timestamp = resource.startTimestamp + duration;
-              // We remeber the entry script end time to calculate the difference to the first init mark
+              // We remember the entry script end time to calculate the difference to the first init mark
               if (
                 entryScriptStartEndTime === undefined &&
                 entryScriptSrc &&
@@ -485,7 +485,7 @@ export class Tracing implements Integration {
             }
             break;
           default:
-          // Yo
+            // Ignore other entry types.
         }
       });
 
@@ -538,7 +538,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Converys ms time to s with ms precison
+   * Converts from milliseconds to seconds
    * @param time time in ms
    */
   private static _msToSec(time: number): number {
