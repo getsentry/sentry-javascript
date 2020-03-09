@@ -322,7 +322,7 @@ export class Tracing implements Integration {
     );
 
     Tracing._activeTransaction = span;
-    Tracing._addOffsetToSpan(`idleTransactionStarted-${Tracing._currentIndex}`, span as SpanClass);
+    Tracing._addOffsetToSpan(span as SpanClass);
 
     // We need to do this workaround here and not use configureScope
     // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
@@ -543,15 +543,9 @@ export class Tracing implements Integration {
    * @param measureName name of the performance measure
    * @param span Span to add data.offset to
    */
-  private static _addOffsetToSpan(measureName: string, span: SpanClass): void {
+  private static _addOffsetToSpan(span: SpanClass): void {
     if (global.performance) {
-      const name = `#sentry-${measureName}`;
-      performance.measure(name);
-      const measure = performance.getEntriesByName(name).pop();
-      if (measure) {
-        span.setData('offset', Tracing._msToSec(measure.duration));
-      }
-      performance.clearMeasures(name);
+      span.setData('offset', Tracing._msToSec(performance.now()));
     }
   }
 
@@ -594,7 +588,7 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = hub.startSpan(spanContext);
-        Tracing._addOffsetToSpan(`${name}${Tracing._currentIndex}`, span as SpanClass);
+        Tracing._addOffsetToSpan(span as SpanClass);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
