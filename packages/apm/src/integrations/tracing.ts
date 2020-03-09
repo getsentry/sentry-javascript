@@ -95,6 +95,19 @@ interface Activity {
 const global = getGlobalObject<Window>();
 const defaultTracingOrigins = ['localhost', /^\//];
 
+if (global.performance) {
+  // Polyfill for performance.timeOrigin.
+  //
+  // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
+  // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
+  // tslint:disable-next-line:strict-type-predicates
+  if (performance.timeOrigin === undefined) {
+    // @ts-ignore
+    // tslint:disable-next-line:deprecation
+    performance.timeOrigin = performance.timing.navigationStart;
+  }
+}
+
 /**
  * Tracing Integration
  */
@@ -402,7 +415,7 @@ export class Tracing implements Integration {
     );
 
     Tracing._activeTransaction = span;
-    Tracing._addOffsetToSpan(`idleTransactionStarted-${Tracing._currentIndex}`, span as SpanClass);
+    Tracing._addOffsetToSpan(span as SpanClass);
 
     // We need to do this workaround here and not use configureScope
     // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
@@ -462,15 +475,11 @@ export class Tracing implements Integration {
       // Gatekeeper if performance API not available
       return;
     }
+
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
-    let navigationOffset = 0;
-    if (
-      transactionSpan.op === 'navigation' &&
-      transactionSpan.data &&
-      typeof transactionSpan.data.offset === 'number'
-    ) {
-      navigationOffset = transactionSpan.data.offset;
-    }
+
+    const timeOrigin = Tracing._msToSec(performance.timeOrigin);
+
     // tslint:disable-next-line: completed-docs
     function addSpan(span: SpanClass): void {
       if (transactionSpan.spanRecorder) {
@@ -484,8 +493,8 @@ export class Tracing implements Integration {
         description: event,
         op: 'browser',
       });
-      span.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}Start`]);
-      span.timestamp = parent.startTimestamp + Tracing._msToSec(entry[`${event}End`]);
+      span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
+      span.timestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
       addSpan(span);
     }
 
@@ -495,15 +504,15 @@ export class Tracing implements Integration {
         description: 'request',
         op: 'browser',
       });
-      request.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.requestStart);
-      request.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd);
+      request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
+      request.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
       addSpan(request);
       const response = parent.child({
         description: 'response',
         op: 'browser',
       });
-      response.startTimestamp = parent.startTimestamp + Tracing._msToSec(entry.responseStart);
-      response.timestamp = parent.startTimestamp + Tracing._msToSec(entry.responseEnd);
+      response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
+      response.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
       addSpan(response);
     }
 
@@ -549,7 +558,7 @@ export class Tracing implements Integration {
               description: `${entry.entryType} ${entry.name}`,
               op: 'mark',
             });
-            mark.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+            mark.startTimestamp = timeOrigin + startTime;
             mark.timestamp = mark.startTimestamp + duration;
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
@@ -563,7 +572,7 @@ export class Tracing implements Integration {
               if (transactionSpan.spanRecorder) {
                 transactionSpan.spanRecorder.finishedSpans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
-                    finishedSpan.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+                    finishedSpan.startTimestamp = timeOrigin + startTime;
                     finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
                   }
                 });
@@ -573,7 +582,7 @@ export class Tracing implements Integration {
                 description: `${entry.initiatorType} ${resourceName}`,
                 op: `resource`,
               });
-              resource.startTimestamp = transactionSpan.startTimestamp + startTime - navigationOffset;
+              resource.startTimestamp = timeOrigin + startTime;
               resource.timestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
@@ -597,8 +606,11 @@ export class Tracing implements Integration {
       addSpan(evaluation);
     }
 
-    logger.log(`[Tracing] Clearing most performance marks`);
-
+    // The Performance object has a limited buffer size, often 150 entries. At some point the buffer may overflow, in
+    // which case we would not be able to use it to create/update spans. Therefore, after we have processed entries to
+    // report to Sentry, we clear the buffer in an attempt to allow for more entries to be added in the future.
+    // https://developer.mozilla.org/en-US/docs/Web/API/Performance
+    logger.log('[Tracing] Clearing most performance marks');
     performance.clearMarks();
     performance.clearMeasures();
     performance.clearResourceTimings();
@@ -624,15 +636,9 @@ export class Tracing implements Integration {
    * @param measureName name of the performance measure
    * @param span Span to add data.offset to
    */
-  private static _addOffsetToSpan(measureName: string, span: SpanClass): void {
+  private static _addOffsetToSpan(span: SpanClass): void {
     if (global.performance) {
-      const name = `#sentry-${measureName}`;
-      performance.measure(name);
-      const measure = performance.getEntriesByName(name).pop();
-      if (measure) {
-        span.setData('offset', Tracing._msToSec(measure.duration));
-      }
-      performance.clearMeasures(name);
+      span.setData('offset', Tracing._msToSec(performance.now()));
     }
   }
 
@@ -675,7 +681,7 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = hub.startSpan(spanContext);
-        Tracing._addOffsetToSpan(`${name}${Tracing._currentIndex}`, span as SpanClass);
+        Tracing._addOffsetToSpan(span as SpanClass);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -732,10 +738,17 @@ export class Tracing implements Integration {
           });
         }
         span.finish();
-        // If there is an offset in data, we need to shift timestamps towards it
-        if (span.data && typeof span.data.offset === 'number' && typeof span.timestamp === 'number') {
-          span.startTimestamp += span.data.offset;
-          span.timestamp += span.data.offset;
+        // If there is an offset in data, update timestamps accordingly
+        if (
+          global.performance &&
+          span.data &&
+          typeof span.data.offset === 'number' &&
+          typeof span.timestamp === 'number'
+        ) {
+          const timeOrigin = Tracing._msToSec(performance.timeOrigin);
+          const duration = span.timestamp - span.startTimestamp;
+          span.startTimestamp = timeOrigin + span.data.offset;
+          span.timestamp = timeOrigin + duration;
         }
       }
       // tslint:disable-next-line: no-dynamic-delete
