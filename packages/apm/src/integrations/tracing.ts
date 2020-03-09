@@ -147,6 +147,12 @@ export class Tracing implements Integration {
 
   private static _performanceCursor: number = 0;
 
+  private static _heartbeatTimer: number = 0;
+
+  private static _prevHeartbeatString: string | undefined;
+
+  private static _heartbeatCounter: number = 0;
+
   /**
    * Constructor for Tracing
    *
@@ -200,27 +206,7 @@ export class Tracing implements Integration {
       return;
     }
 
-    if (Tracing.options.traceXHR) {
-      addInstrumentationHandler({
-        callback: xhrCallback,
-        type: 'xhr',
-      });
-    }
-
-    if (Tracing.options.traceFetch && supportsNativeFetch()) {
-      addInstrumentationHandler({
-        callback: fetchCallback,
-        type: 'fetch',
-      });
-    }
-
-    if (Tracing.options.startTransactionOnLocationChange) {
-      addInstrumentationHandler({
-        callback: historyCallback,
-        type: 'history',
-      });
-    }
-
+    // Starting our inital pageload transaction
     if (global.location && global.location.href) {
       // `${global.location.href}` will be used a temp transaction name
       Tracing.startIdleTransaction(global.location.href, {
@@ -229,36 +215,17 @@ export class Tracing implements Integration {
       });
     }
 
-    /**
-     * If an error or unhandled promise occurs, we mark the active transaction as failed
-     */
-    // tslint:disable-next-line: completed-docs
-    function errorCallback(): void {
-      if (Tracing._activeTransaction) {
-        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
-        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
-      }
-    }
+    this._setupXHRTracing();
 
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'error',
-    });
+    this._setupFetchTracing();
 
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'unhandledrejection',
-    });
+    this._setupHistory();
 
-    if (Tracing.options.discardBackgroundSpans && global.document) {
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden && Tracing._activeTransaction) {
-          logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
-          Tracing._activeTransaction = undefined;
-          Tracing._activities = {};
-        }
-      });
-    }
+    this._setupErrorHandling();
+
+    this._setupBackgroundTabDetection();
+
+    Tracing._pingHeartbeat();
 
     // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
     addGlobalEventProcessor((event: Event) => {
@@ -281,6 +248,119 @@ export class Tracing implements Integration {
       }
 
       return event;
+    });
+  }
+
+  /**
+   * Pings the heartbeat
+   */
+  private static _pingHeartbeat(): void {
+    Tracing._heartbeatTimer = (setTimeout(() => {
+      Tracing._beat();
+    }, 5000) as any) as number;
+  }
+
+  /**
+   * Checks when entries of Tracing._activities are not changing for 3 beats. If this occurs we finish the transaction
+   *
+   */
+  private static _beat(): void {
+    clearTimeout(Tracing._heartbeatTimer);
+    const keys = Object.keys(Tracing._activities);
+    if (keys.length) {
+      const heartbeatString = keys.reduce((prev: string, current: string) => prev + current);
+      if (heartbeatString === Tracing._prevHeartbeatString) {
+        Tracing._heartbeatCounter++;
+      } else {
+        Tracing._heartbeatCounter = 0;
+      }
+      if (Tracing._heartbeatCounter >= 3) {
+        if (Tracing._activeTransaction) {
+          logger.log(
+            "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activities content hasn't changed for 3 beats",
+          );
+          Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
+          Tracing._activeTransaction.setTag('heartbeat', 'failed');
+          Tracing.finishIdleTransaction();
+        }
+      }
+      Tracing._prevHeartbeatString = heartbeatString;
+    }
+    Tracing._pingHeartbeat();
+  }
+
+  /**
+   * Discards active transactions if tab moves to background
+   */
+  private _setupBackgroundTabDetection(): void {
+    if (Tracing.options.discardBackgroundSpans && global.document) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && Tracing._activeTransaction) {
+          logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
+          Tracing._activeTransaction = undefined;
+          Tracing._activities = {};
+        }
+      });
+    }
+  }
+
+  /**
+   * Registers to History API to detect navigation changes
+   */
+  private _setupHistory(): void {
+    if (Tracing.options.startTransactionOnLocationChange) {
+      addInstrumentationHandler({
+        callback: historyCallback,
+        type: 'history',
+      });
+    }
+  }
+
+  /**
+   * Attaches to fetch to add sentry-trace header + creating spans
+   */
+  private _setupFetchTracing(): void {
+    if (Tracing.options.traceFetch && supportsNativeFetch()) {
+      addInstrumentationHandler({
+        callback: fetchCallback,
+        type: 'fetch',
+      });
+    }
+  }
+
+  /**
+   * Attaches to XHR to add sentry-trace header + creating spans
+   */
+  private _setupXHRTracing(): void {
+    if (Tracing.options.traceXHR) {
+      addInstrumentationHandler({
+        callback: xhrCallback,
+        type: 'xhr',
+      });
+    }
+  }
+
+  /**
+   * Configures global error listeners
+   */
+  private _setupErrorHandling(): void {
+    // tslint:disable-next-line: completed-docs
+    function errorCallback(): void {
+      if (Tracing._activeTransaction) {
+        /**
+         * If an error or unhandled promise occurs, we mark the active transaction as failed
+         */
+        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
+      }
+    }
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'error',
+    });
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'unhandledrejection',
     });
   }
 
@@ -376,8 +456,8 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      logger.log('[Tracing] finishIdleTransaction', active.transaction);
       Tracing._addPerformanceEntries(active);
+      logger.log('[Tracing] finishIdleTransaction', active.transaction);
       // true = use timestamp of last span
       active.finish(true);
     }
