@@ -4,6 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] feat: Make use of the `performance` browser API to provide better instrumentation (#2474)
 - [browser] ref: Move global error handler + unhandled promise rejection to instrument
 
 ## 5.13.2

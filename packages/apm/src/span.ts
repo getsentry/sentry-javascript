@@ -108,7 +108,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Timestamp when the span was created.
    */
-  public readonly startTimestamp: number = timestampWithMs();
+  public startTimestamp: number = timestampWithMs();
 
   /**
    * Internal start time tracked with a monotonic clock.
