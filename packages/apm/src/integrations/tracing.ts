@@ -187,27 +187,7 @@ export class Tracing implements Integration {
       return;
     }
 
-    if (Tracing.options.traceXHR) {
-      addInstrumentationHandler({
-        callback: xhrCallback,
-        type: 'xhr',
-      });
-    }
-
-    if (Tracing.options.traceFetch && supportsNativeFetch()) {
-      addInstrumentationHandler({
-        callback: fetchCallback,
-        type: 'fetch',
-      });
-    }
-
-    if (Tracing.options.startTransactionOnLocationChange) {
-      addInstrumentationHandler({
-        callback: historyCallback,
-        type: 'history',
-      });
-    }
-
+    // Starting our inital pageload transaction
     if (global.location && global.location.href) {
       // `${global.location.href}` will be used a temp transaction name
       Tracing.startIdleTransaction(global.location.href, {
@@ -216,36 +196,15 @@ export class Tracing implements Integration {
       });
     }
 
-    /**
-     * If an error or unhandled promise occurs, we mark the active transaction as failed
-     */
-    // tslint:disable-next-line: completed-docs
-    function errorCallback(): void {
-      if (Tracing._activeTransaction) {
-        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
-        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
-      }
-    }
+    this._setupXHRTracing();
 
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'error',
-    });
+    this._setupFetchTracing();
 
-    addInstrumentationHandler({
-      callback: errorCallback,
-      type: 'unhandledrejection',
-    });
+    this._setupHistory();
 
-    if (Tracing.options.discardBackgroundSpans && global.document) {
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden && Tracing._activeTransaction) {
-          logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
-          Tracing._activeTransaction = undefined;
-          Tracing._activities = {};
-        }
-      });
-    }
+    this._setupErrorHandling();
+
+    this._setupBackgroundTabDetection();
 
     // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
     addGlobalEventProcessor((event: Event) => {
@@ -268,6 +227,81 @@ export class Tracing implements Integration {
       }
 
       return event;
+    });
+  }
+
+  /**
+   * Discards active transactions if tab moves to background
+   */
+  private _setupBackgroundTabDetection(): void {
+    if (Tracing.options.discardBackgroundSpans && global.document) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && Tracing._activeTransaction) {
+          logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
+          Tracing._activeTransaction = undefined;
+          Tracing._activities = {};
+        }
+      });
+    }
+  }
+
+  /**
+   * Registers to History API to detect navigation changes
+   */
+  private _setupHistory(): void {
+    if (Tracing.options.startTransactionOnLocationChange) {
+      addInstrumentationHandler({
+        callback: historyCallback,
+        type: 'history',
+      });
+    }
+  }
+
+  /**
+   * Attaches to fetch to add sentry-trace header + creating spans
+   */
+  private _setupFetchTracing(): void {
+    if (Tracing.options.traceFetch && supportsNativeFetch()) {
+      addInstrumentationHandler({
+        callback: fetchCallback,
+        type: 'fetch',
+      });
+    }
+  }
+
+  /**
+   * Attaches to XHR to add sentry-trace header + creating spans
+   */
+  private _setupXHRTracing(): void {
+    if (Tracing.options.traceXHR) {
+      addInstrumentationHandler({
+        callback: xhrCallback,
+        type: 'xhr',
+      });
+    }
+  }
+
+  /**
+   * Configures global error listeners
+   */
+  private _setupErrorHandling(): void {
+    // tslint:disable-next-line: completed-docs
+    function errorCallback(): void {
+      if (Tracing._activeTransaction) {
+        /**
+         * If an error or unhandled promise occurs, we mark the active transaction as failed
+         */
+        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
+      }
+    }
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'error',
+    });
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'unhandledrejection',
     });
   }
 
