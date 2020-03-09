@@ -2,7 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { Event, Integration, Severity } from '@sentry/types';
 import {
   addExceptionMechanism,
-  getGlobalObject,
+  addInstrumentationHandler,
   getLocationHref,
   isErrorEvent,
   isPrimitive,
@@ -33,15 +33,6 @@ export class GlobalHandlers implements Integration {
 
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
-
-  /** JSDoc */
-  private readonly _global: Window = getGlobalObject();
-
-  /** JSDoc */
-  private _oldOnErrorHandler: OnErrorEventHandler = null;
-
-  /** JSDoc */
-  private _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
 
   /** JSDoc */
   private _onErrorHandlerInstalled: boolean = false;
@@ -80,49 +71,41 @@ export class GlobalHandlers implements Integration {
       return;
     }
 
-    const self = this; // tslint:disable-line:no-this-assignment
-    this._oldOnErrorHandler = this._global.onerror;
+    addInstrumentationHandler({
+      callback: (data: { msg: any; url: any; line: any; column: any; error: any }) => {
+        const error = data.error;
+        const currentHub = getCurrentHub();
+        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
+        const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
 
-    this._global.onerror = function(msg: any, url: any, line: any, column: any, error: any): boolean {
-      const currentHub = getCurrentHub();
-      const hasIntegration = currentHub.getIntegration(GlobalHandlers);
-      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
-
-      if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
-        if (self._oldOnErrorHandler) {
-          return self._oldOnErrorHandler.apply(this, arguments);
+        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+          return;
         }
-        return false;
-      }
 
-      const client = currentHub.getClient();
-      const event = isPrimitive(error)
-        ? self._eventFromIncompleteOnError(msg, url, line, column)
-        : self._enhanceEventWithInitialFrame(
-            eventFromUnknownInput(error, undefined, {
-              attachStacktrace: client && client.getOptions().attachStacktrace,
-              rejection: false,
-            }),
-            url,
-            line,
-            column,
-          );
+        const client = currentHub.getClient();
+        const event = isPrimitive(error)
+          ? this._eventFromIncompleteOnError(data.msg, data.url, data.line, data.column)
+          : this._enhanceEventWithInitialFrame(
+              eventFromUnknownInput(error, undefined, {
+                attachStacktrace: client && client.getOptions().attachStacktrace,
+                rejection: false,
+              }),
+              data.url,
+              data.line,
+              data.column,
+            );
 
-      addExceptionMechanism(event, {
-        handled: false,
-        type: 'onerror',
-      });
+        addExceptionMechanism(event, {
+          handled: false,
+          type: 'onerror',
+        });
 
-      currentHub.captureEvent(event, {
-        originalException: error,
-      });
-
-      if (self._oldOnErrorHandler) {
-        return self._oldOnErrorHandler.apply(this, arguments);
-      }
-
-      return false;
-    };
+        currentHub.captureEvent(event, {
+          originalException: error,
+        });
+      },
+      type: 'error',
+    });
 
     this._onErrorHandlerInstalled = true;
   }
@@ -133,67 +116,60 @@ export class GlobalHandlers implements Integration {
       return;
     }
 
-    const self = this; // tslint:disable-line:no-this-assignment
-    this._oldOnUnhandledRejectionHandler = this._global.onunhandledrejection;
+    addInstrumentationHandler({
+      callback: (e: any) => {
+        let error = e;
 
-    this._global.onunhandledrejection = function(e: any): boolean {
-      let error = e;
-
-      // dig the object of the rejection out of known event types
-      try {
-        // PromiseRejectionEvents store the object of the rejection under 'reason'
-        // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
-        if ('reason' in e) {
-          error = e.reason;
+        // dig the object of the rejection out of known event types
+        try {
+          // PromiseRejectionEvents store the object of the rejection under 'reason'
+          // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
+          if ('reason' in e) {
+            error = e.reason;
+          }
+          // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+          // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+          // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+          // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+          // https://github.com/getsentry/sentry-javascript/issues/2380
+          else if ('detail' in e && 'reason' in e.detail) {
+            error = e.detail.reason;
+          }
+        } catch (_oO) {
+          // no-empty
         }
-        // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
-        // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
-        // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
-        // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
-        // https://github.com/getsentry/sentry-javascript/issues/2380
-        else if ('detail' in e && 'reason' in e.detail) {
-          error = e.detail.reason;
+
+        const currentHub = getCurrentHub();
+        const hasIntegration = currentHub.getIntegration(GlobalHandlers);
+        const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
+
+        if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
+          return true;
         }
-      } catch (_oO) {
-        // no-empty
-      }
 
-      const currentHub = getCurrentHub();
-      const hasIntegration = currentHub.getIntegration(GlobalHandlers);
-      const isFailedOwnDelivery = error && error.__sentry_own_request__ === true;
+        const client = currentHub.getClient();
+        const event = isPrimitive(error)
+          ? this._eventFromIncompleteRejection(error)
+          : eventFromUnknownInput(error, undefined, {
+              attachStacktrace: client && client.getOptions().attachStacktrace,
+              rejection: true,
+            });
 
-      if (!hasIntegration || shouldIgnoreOnError() || isFailedOwnDelivery) {
-        if (self._oldOnUnhandledRejectionHandler) {
-          return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
-        }
-        return true;
-      }
+        event.level = Severity.Error;
 
-      const client = currentHub.getClient();
-      const event = isPrimitive(error)
-        ? self._eventFromIncompleteRejection(error)
-        : eventFromUnknownInput(error, undefined, {
-            attachStacktrace: client && client.getOptions().attachStacktrace,
-            rejection: true,
-          });
+        addExceptionMechanism(event, {
+          handled: false,
+          type: 'onunhandledrejection',
+        });
 
-      event.level = Severity.Error;
+        currentHub.captureEvent(event, {
+          originalException: error,
+        });
 
-      addExceptionMechanism(event, {
-        handled: false,
-        type: 'onunhandledrejection',
-      });
-
-      currentHub.captureEvent(event, {
-        originalException: error,
-      });
-
-      if (self._oldOnUnhandledRejectionHandler) {
-        return self._oldOnUnhandledRejectionHandler.apply(this, arguments);
-      }
-
-      return true;
-    };
+        return;
+      },
+      type: 'unhandledrejection',
+    });
 
     this._onUnhandledRejectionHandlerInstalled = true;
   }
