@@ -134,6 +134,12 @@ export class Tracing implements Integration {
 
   private static _performanceCursor: number = 0;
 
+  private static _heartbeat: number = 0;
+
+  private static _prevHeartbeatString: string | undefined;
+
+  private static _heartbeatCounter: number = 0;
+
   /**
    * Constructor for Tracing
    *
@@ -206,6 +212,8 @@ export class Tracing implements Integration {
 
     this._setupBackgroundTabDetection();
 
+    Tracing._pingHeartbeat();
+
     // This EventProcessor makes sure that the transaction is not longer than maxTransactionDuration
     addGlobalEventProcessor((event: Event) => {
       const self = getCurrentHub().getIntegration(Tracing);
@@ -228,6 +236,44 @@ export class Tracing implements Integration {
 
       return event;
     });
+  }
+
+  /**
+   * Pings the heartbeat
+   */
+  private static _pingHeartbeat(): void {
+    Tracing._heartbeat = (setTimeout(() => {
+      Tracing._beat();
+    }, 5000) as any) as number;
+  }
+
+  /**
+   * Checks when entries of Tracing._activities are not changing for 3 beats. If this occurs we finish the transaction
+   *
+   */
+  private static _beat(): void {
+    clearTimeout(Tracing._heartbeat);
+    const keys = Object.keys(Tracing._activities);
+    if (keys.length) {
+      const heartbeatString = keys.reduce((prev: string, current: string) => prev + current);
+      if (heartbeatString === Tracing._prevHeartbeatString) {
+        Tracing._heartbeatCounter++;
+      } else {
+        Tracing._heartbeatCounter = 0;
+      }
+      if (Tracing._heartbeatCounter >= 3) {
+        if (Tracing._activeTransaction) {
+          logger.log(
+            "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activies content hasn't changed for 3 beats",
+          );
+          Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
+          Tracing._activeTransaction.setData('heartbeat', 'failed');
+          Tracing.finishIdleTransaction();
+        }
+      }
+      Tracing._prevHeartbeatString = heartbeatString;
+    }
+    Tracing._pingHeartbeat();
   }
 
   /**
@@ -397,8 +443,8 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(): void {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
-      logger.log('[Tracing] finishIdleTransaction', active.transaction);
       Tracing._addPerformanceEntries(active);
+      logger.log('[Tracing] finishIdleTransaction', active.transaction);
       // true = use timestamp of last span
       active.finish(true);
     }
