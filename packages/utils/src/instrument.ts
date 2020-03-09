@@ -15,7 +15,15 @@ interface InstrumentHandler {
   type: InstrumentHandlerType;
   callback: InstrumentHandlerCallback;
 }
-type InstrumentHandlerType = 'console' | 'dom' | 'fetch' | 'history' | 'sentry' | 'xhr';
+type InstrumentHandlerType =
+  | 'console'
+  | 'dom'
+  | 'fetch'
+  | 'history'
+  | 'sentry'
+  | 'xhr'
+  | 'error'
+  | 'unhandledrejection';
 type InstrumentHandlerCallback = (data: any) => void;
 
 /**
@@ -25,6 +33,8 @@ type InstrumentHandlerCallback = (data: any) => void;
  *  - XHR API
  *  - History API
  *  - DOM API (click/typing)
+ *  - Error API
+ *  - UnhandledRejection API
  */
 
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};
@@ -53,6 +63,12 @@ function instrument(type: InstrumentHandlerType): void {
       break;
     case 'history':
       instrumentHistory();
+      break;
+    case 'error':
+      instrumentError();
+      break;
+    case 'unhandledrejection':
+      instrumentUnhandledRejection();
       break;
     default:
       logger.warn('unknown instrumentation type:', type);
@@ -469,5 +485,43 @@ function keypressEventHandler(handler: Function): (event: Event) => void {
     keypressTimeout = (setTimeout(() => {
       keypressTimeout = undefined;
     }, debounceDuration) as any) as number;
+  };
+}
+
+let _oldOnErrorHandler: OnErrorEventHandler = null;
+/** JSDoc */
+function instrumentError(): void {
+  _oldOnErrorHandler = global.onerror;
+
+  global.onerror = function(msg: any, url: any, line: any, column: any, error: any): boolean {
+    triggerHandlers('error', {
+      column,
+      error,
+      line,
+      msg,
+      url,
+    });
+
+    if (_oldOnErrorHandler) {
+      return _oldOnErrorHandler.apply(this, arguments);
+    }
+
+    return false;
+  };
+}
+
+let _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
+/** JSDoc */
+function instrumentUnhandledRejection(): void {
+  _oldOnUnhandledRejectionHandler = global.onunhandledrejection;
+
+  global.onunhandledrejection = function(e: any): boolean {
+    triggerHandlers('unhandledrejection', e);
+
+    if (_oldOnUnhandledRejectionHandler) {
+      return _oldOnUnhandledRejectionHandler.apply(this, arguments);
+    }
+
+    return true;
   };
 }

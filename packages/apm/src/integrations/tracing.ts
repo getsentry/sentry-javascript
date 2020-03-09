@@ -211,6 +211,27 @@ export class Tracing implements Integration {
       });
     }
 
+    /**
+     * If an error or unhandled promise occurs, we mark the active transaction as failed
+     */
+    // tslint:disable-next-line: completed-docs
+    function errorCallback(): void {
+      if (Tracing._activeTransaction) {
+        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
+      }
+    }
+
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'error',
+    });
+
+    addInstrumentationHandler({
+      callback: errorCallback,
+      type: 'unhandledrejection',
+    });
+
     if (Tracing.options.discardBackgroundSpans && global.document) {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && Tracing._activeTransaction) {
