@@ -517,6 +517,10 @@ export class Tracing implements Integration {
       addSpan(evaluation);
     }
 
+    // The Performance object has a limited buffer size, often 150 entries. At some point the buffer may overflow, in
+    // which case we would not be able to use it to create/update spans. Therefore, after we have processed entries to
+    // report to Sentry, we clear the buffer in an attempt to allow for more entries to be added in the future.
+    // https://developer.mozilla.org/en-US/docs/Web/API/Performance
     logger.log('[Tracing] Clearing most performance marks');
     performance.clearMarks();
     performance.clearMeasures();
