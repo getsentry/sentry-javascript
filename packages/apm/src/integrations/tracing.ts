@@ -267,7 +267,7 @@ export class Tracing implements Integration {
             "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activities content hasn't changed for 3 beats",
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
-          Tracing._activeTransaction.setData('heartbeat', 'failed');
+          Tracing._activeTransaction.setTag('heartbeat', 'failed');
           Tracing.finishIdleTransaction();
         }
       }
