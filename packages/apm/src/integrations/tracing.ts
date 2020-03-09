@@ -357,6 +357,11 @@ export class Tracing implements Integration {
    * @param transactionSpan The transaction span
    */
   private static _addPerformanceEntries(transactionSpan: SpanClass): void {
+    if (!global.performance) {
+      // Gatekeeper if performance API not available
+      return;
+    }
+    logger.log('[Tracing] Adding & adjusting spans using Performance API');
     let navigationOffset = 0;
     if (
       transactionSpan.op === 'navigation' &&
@@ -490,12 +495,12 @@ export class Tracing implements Integration {
       evaluation.timestamp = tracingInitMarkStartTime;
       addSpan(evaluation);
     }
-    if (global.performance) {
-      performance.clearMarks();
-      performance.clearMeasures();
-      performance.clearResourceTimings();
-      Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
-    }
+
+    logger.log('[Tracing] Clearing most performance marks');
+    performance.clearMarks();
+    performance.clearMeasures();
+    performance.clearResourceTimings();
+    Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
     // tslint:enable: no-unsafe-any
   }
