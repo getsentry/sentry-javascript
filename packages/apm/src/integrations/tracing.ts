@@ -134,7 +134,7 @@ export class Tracing implements Integration {
 
   private static _performanceCursor: number = 0;
 
-  private static _heartbeat: number = 0;
+  private static _heartbeatTimer: number = 0;
 
   private static _prevHeartbeatString: string | undefined;
 
@@ -242,7 +242,7 @@ export class Tracing implements Integration {
    * Pings the heartbeat
    */
   private static _pingHeartbeat(): void {
-    Tracing._heartbeat = (setTimeout(() => {
+    Tracing._heartbeatTimer = (setTimeout(() => {
       Tracing._beat();
     }, 5000) as any) as number;
   }
@@ -252,7 +252,7 @@ export class Tracing implements Integration {
    *
    */
   private static _beat(): void {
-    clearTimeout(Tracing._heartbeat);
+    clearTimeout(Tracing._heartbeatTimer);
     const keys = Object.keys(Tracing._activities);
     if (keys.length) {
       const heartbeatString = keys.reduce((prev: string, current: string) => prev + current);
@@ -597,7 +597,8 @@ export class Tracing implements Integration {
       addSpan(evaluation);
     }
 
-    logger.log('[Tracing] Clearing most performance marks');
+    logger.log(`[Tracing] Clearing most performance marks`);
+
     performance.clearMarks();
     performance.clearMeasures();
     performance.clearResourceTimings();
