@@ -253,9 +253,13 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the finish timestamp on the current span
+   * Sets the finish timestamp on the current span.
+   * @param trimEnd If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
+   * the duration of the transaction span. This is useful to discard extra time in the transaction span that is not
+   * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
+   * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
-  public finish(useLastSpanTimestamp: boolean = false): string | undefined {
+  public finish(trimEnd: boolean = false): string | undefined {
     // This transaction is already finished, so we should not flush it again.
     if (this.timestamp !== undefined) {
       return undefined;
@@ -286,12 +290,7 @@ export class Span implements SpanInterface, SpanContext {
 
     const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
 
-    // The reason we do `useLastSpanTimestamp` is that if we use the Tracing integration with an idle transaction.
-    // The idea is that after e.g. 500ms idle time, we finish the transaction
-    // But we don't want the "idle time" taking into account for the end timestamp of the transaction
-    // instead we search for the timestamp of the last finished span and change the end timestamp to the same
-    // timestamp of the last finished span
-    if (useLastSpanTimestamp && finishedSpans.length > 0) {
+    if (trimEnd && finishedSpans.length > 0) {
       this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
         if (prev.timestamp && current.timestamp) {
           return prev.timestamp > current.timestamp ? prev : current;
