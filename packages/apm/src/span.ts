@@ -2,36 +2,7 @@
 
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
-import {
-  dropUndefinedKeys,
-  dynamicRequire,
-  getGlobalObject,
-  isInstanceOf,
-  isNodeEnv,
-  logger,
-  timestampWithMs,
-  uuid4,
-} from '@sentry/utils';
-
-const INITIAL_TIME = Date.now();
-
-const performanceFallback: Pick<Performance, 'now'> = {
-  now(): number {
-    return INITIAL_TIME - Date.now();
-  },
-};
-
-const crossPlatformPerformance: Pick<Performance, 'now'> = (() => {
-  if (isNodeEnv()) {
-    try {
-      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
-      return perfHooks.performance;
-    } catch (_) {
-      return performanceFallback;
-    }
-  }
-  return getGlobalObject<Window>().performance || performanceFallback;
-})();
+import { dropUndefinedKeys, isInstanceOf, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 // TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -106,20 +77,9 @@ export class Span implements SpanInterface, SpanContext {
   public sampled?: boolean;
 
   /**
-   * Timestamp when the span was created.
+   * Timestamp in seconds when the span was created.
    */
   public startTimestamp: number = timestampWithMs();
-
-  /**
-   * Internal start time tracked with a monotonic clock.
-   *
-   * Works with mostly any browser version released since 2012.
-   * https://caniuse.com/#search=performance.now
-   *
-   * Works with Node.js v8.5.0 or higher.
-   * https://nodejs.org/api/perf_hooks.html#perf_hooks_performance_now
-   */
-  private readonly _startTimestampMonotonic: number = crossPlatformPerformance.now();
 
   /**
    * Finish timestamp of the span.
@@ -301,8 +261,7 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    const durationSeconds = (crossPlatformPerformance.now() - this._startTimestampMonotonic) / 1000;
-    this.timestamp = this.startTimestamp + durationSeconds;
+    this.timestamp = timestampWithMs();
 
     if (this.spanRecorder === undefined) {
       return undefined;
@@ -324,10 +283,21 @@ export class Span implements SpanInterface, SpanContext {
       logger.warn('Discarding transaction Span without sampling decision');
       return undefined;
     }
+
     const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
 
+    // The reason we do `useLastSpanTimestamp` is that if we use the Tracing integration with an idle transaction.
+    // The idea is that after e.g. 500ms idle time, we finish the transaction
+    // But we don't want the "idle time" taking into account for the end timestamp of the transaction
+    // instead we search for the timestamp of the last finished span and change the end timestamp to the same
+    // timestamp of the last finished span
     if (useLastSpanTimestamp && finishedSpans.length > 0) {
-      this.timestamp = finishedSpans[finishedSpans.length - 1].timestamp;
+      this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
+        if (prev.timestamp && current.timestamp) {
+          return prev.timestamp > current.timestamp ? prev : current;
+        }
+        return prev;
+      }).timestamp;
     }
 
     return this._hub.captureEvent({

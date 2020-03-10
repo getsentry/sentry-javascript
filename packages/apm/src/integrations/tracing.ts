@@ -95,19 +95,6 @@ interface Activity {
 const global = getGlobalObject<Window>();
 const defaultTracingOrigins = ['localhost', /^\//];
 
-if (global.performance) {
-  // Polyfill for performance.timeOrigin.
-  //
-  // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
-  // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
-  // tslint:disable-next-line:strict-type-predicates
-  if (performance.timeOrigin === undefined) {
-    // @ts-ignore
-    // tslint:disable-next-line:deprecation
-    performance.timeOrigin = performance.timing.navigationStart;
-  }
-}
-
 /**
  * Tracing Integration
  */
@@ -297,11 +284,18 @@ export class Tracing implements Integration {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && Tracing._activeTransaction) {
           logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
-          Tracing._activeTransaction = undefined;
-          Tracing._activities = {};
+          Tracing._resetActiveTransaction();
         }
       });
     }
+  }
+
+  /**
+   * Unsets the current active transaction + activities
+   */
+  private static _resetActiveTransaction(): void {
+    Tracing._activeTransaction = undefined;
+    Tracing._activities = {};
   }
 
   /**
@@ -415,7 +409,6 @@ export class Tracing implements Integration {
     );
 
     Tracing._activeTransaction = span;
-    Tracing._addOffsetToSpan(span as SpanClass);
 
     // We need to do this workaround here and not use configureScope
     // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
@@ -460,6 +453,7 @@ export class Tracing implements Integration {
       logger.log('[Tracing] finishIdleTransaction', active.transaction);
       // true = use timestamp of last span
       active.finish(true);
+      Tracing._resetActiveTransaction();
     }
   }
 
@@ -541,6 +535,11 @@ export class Tracing implements Integration {
       .forEach((entry: any) => {
         const startTime = Tracing._msToSec(entry.startTime as number);
         const duration = Tracing._msToSec(entry.duration as number);
+
+        if (transactionSpan.op === 'navigation' && timeOrigin + startTime < transactionSpan.startTimestamp) {
+          logger.log('[Tracing] Discarded performance entry because of navigation');
+          return;
+        }
 
         switch (entry.entryType) {
           case 'navigation':
@@ -631,18 +630,6 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Adds offset to the span
-   *
-   * @param measureName name of the performance measure
-   * @param span Span to add data.offset to
-   */
-  private static _addOffsetToSpan(span: SpanClass): void {
-    if (global.performance) {
-      span.setData('offset', Tracing._msToSec(performance.now()));
-    }
-  }
-
-  /**
    * Converts from milliseconds to seconds
    * @param time time in ms
    */
@@ -681,7 +668,6 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = hub.startSpan(spanContext);
-        Tracing._addOffsetToSpan(span as SpanClass);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -738,18 +724,6 @@ export class Tracing implements Integration {
           });
         }
         span.finish();
-        // If there is an offset in data, update timestamps accordingly
-        if (
-          global.performance &&
-          span.data &&
-          typeof span.data.offset === 'number' &&
-          typeof span.timestamp === 'number'
-        ) {
-          const timeOrigin = Tracing._msToSec(performance.timeOrigin);
-          const duration = span.timestamp - span.startTimestamp;
-          span.startTimestamp = timeOrigin + span.data.offset;
-          span.timestamp = timeOrigin + duration;
-        }
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete Tracing._activities[id];
