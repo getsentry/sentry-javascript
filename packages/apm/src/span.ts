@@ -82,7 +82,7 @@ export class Span implements SpanInterface, SpanContext {
   public startTimestamp: number = timestampWithMs();
 
   /**
-   * Finish timestamp of the span.
+   * Timestamp in seconds when the span ended.
    */
   public timestamp?: number;
 
