@@ -536,7 +536,6 @@ export class Tracing implements Integration {
         const duration = Tracing._msToSec(entry.duration as number);
 
         if (transactionSpan.op === 'navigation' && timeOrigin + startTime < transactionSpan.startTimestamp) {
-          logger.log('[Tracing] Discarded performance entry because of navigation');
           return;
         }
 
