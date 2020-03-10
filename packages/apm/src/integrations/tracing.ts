@@ -451,8 +451,7 @@ export class Tracing implements Integration {
     if (active) {
       Tracing._addPerformanceEntries(active);
       logger.log('[Tracing] finishIdleTransaction', active.transaction);
-      // true = use timestamp of last span
-      active.finish(true);
+      active.finish(/*trimEnd*/ true);
       Tracing._resetActiveTransaction();
     }
   }
