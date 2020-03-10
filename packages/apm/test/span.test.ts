@@ -167,11 +167,9 @@ describe('Span', () => {
       expect(serialized).toHaveProperty('start_timestamp');
       delete (serialized as { start_timestamp: number }).start_timestamp;
       expect(serialized).toStrictEqual({
-        data: {},
         parent_span_id: 'b',
         sampled: false,
         span_id: 'd',
-        tags: {},
         trace_id: 'c',
       });
     });
@@ -257,9 +255,7 @@ describe('Span', () => {
       const spanB = new Span({ spanId: 'd', traceId: 'c' });
       const context = spanB.getTraceContext();
       expect(context).toStrictEqual({
-        data: {},
         span_id: 'd',
-        tags: {},
         trace_id: 'c',
       });
     });
