@@ -346,11 +346,52 @@ function _htmlElementAsString(el: unknown): string {
   return out.join('');
 }
 
+const INITIAL_TIME = Date.now();
+let prevNow = 0;
+
+const performanceFallback: Pick<Performance, 'now' | 'timeOrigin'> = {
+  now(): number {
+    let now = Date.now() - INITIAL_TIME;
+    if (now < prevNow) {
+      now = prevNow;
+    }
+    prevNow = now;
+    return now;
+  },
+  timeOrigin: INITIAL_TIME,
+};
+
+export const crossPlatformPerformance: Pick<Performance, 'now' | 'timeOrigin'> = (() => {
+  if (isNodeEnv()) {
+    try {
+      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
+      return perfHooks.performance;
+    } catch (_) {
+      return performanceFallback;
+    }
+  }
+
+  if (getGlobalObject<Window>().performance) {
+    // Polyfill for performance.timeOrigin.
+    //
+    // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
+    // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
+    // tslint:disable-next-line:strict-type-predicates
+    if (performance.timeOrigin === undefined) {
+      // @ts-ignore
+      // tslint:disable-next-line:deprecation
+      performance.timeOrigin = performance.timing.navigationStart;
+    }
+  }
+
+  return getGlobalObject<Window>().performance || performanceFallback;
+})();
+
 /**
- * Returns a timestamp in seconds with milliseconds precision.
+ * Returns a timestamp in seconds with milliseconds precision since the UNIX epoch calculated with the monotonic clock.
  */
 export function timestampWithMs(): number {
-  return Date.now() / 1000;
+  return (crossPlatformPerformance.timeOrigin + crossPlatformPerformance.now()) / 1000;
 }
 
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string

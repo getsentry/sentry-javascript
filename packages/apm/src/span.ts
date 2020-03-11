@@ -2,36 +2,7 @@
 
 import { getCurrentHub, Hub } from '@sentry/hub';
 import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
-import {
-  dropUndefinedKeys,
-  dynamicRequire,
-  getGlobalObject,
-  isInstanceOf,
-  isNodeEnv,
-  logger,
-  timestampWithMs,
-  uuid4,
-} from '@sentry/utils';
-
-const INITIAL_TIME = Date.now();
-
-const performanceFallback: Pick<Performance, 'now'> = {
-  now(): number {
-    return INITIAL_TIME - Date.now();
-  },
-};
-
-const crossPlatformPerformance: Pick<Performance, 'now'> = (() => {
-  if (isNodeEnv()) {
-    try {
-      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
-      return perfHooks.performance;
-    } catch (_) {
-      return performanceFallback;
-    }
-  }
-  return getGlobalObject<Window>().performance || performanceFallback;
-})();
+import { dropUndefinedKeys, isInstanceOf, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 // TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -106,23 +77,12 @@ export class Span implements SpanInterface, SpanContext {
   public sampled?: boolean;
 
   /**
-   * Timestamp when the span was created.
+   * Timestamp in seconds when the span was created.
    */
   public startTimestamp: number = timestampWithMs();
 
   /**
-   * Internal start time tracked with a monotonic clock.
-   *
-   * Works with mostly any browser version released since 2012.
-   * https://caniuse.com/#search=performance.now
-   *
-   * Works with Node.js v8.5.0 or higher.
-   * https://nodejs.org/api/perf_hooks.html#perf_hooks_performance_now
-   */
-  private readonly _startTimestampMonotonic: number = crossPlatformPerformance.now();
-
-  /**
-   * Finish timestamp of the span.
+   * Timestamp in seconds when the span ended.
    */
   public timestamp?: number;
 
@@ -293,16 +253,19 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
-   * Sets the finish timestamp on the current span
+   * Sets the finish timestamp on the current span.
+   * @param trimEnd If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
+   * the duration of the transaction span. This is useful to discard extra time in the transaction span that is not
+   * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
+   * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
-  public finish(useLastSpanTimestamp: boolean = false): string | undefined {
+  public finish(trimEnd: boolean = false): string | undefined {
     // This transaction is already finished, so we should not flush it again.
     if (this.timestamp !== undefined) {
       return undefined;
     }
 
-    const durationSeconds = (crossPlatformPerformance.now() - this._startTimestampMonotonic) / 1000;
-    this.timestamp = this.startTimestamp + durationSeconds;
+    this.timestamp = timestampWithMs();
 
     if (this.spanRecorder === undefined) {
       return undefined;
@@ -324,10 +287,16 @@ export class Span implements SpanInterface, SpanContext {
       logger.warn('Discarding transaction Span without sampling decision');
       return undefined;
     }
+
     const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
 
-    if (useLastSpanTimestamp && finishedSpans.length > 0) {
-      this.timestamp = finishedSpans[finishedSpans.length - 1].timestamp;
+    if (trimEnd && finishedSpans.length > 0) {
+      this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
+        if (prev.timestamp && current.timestamp) {
+          return prev.timestamp > current.timestamp ? prev : current;
+        }
+        return prev;
+      }).timestamp;
     }
 
     return this._hub.captureEvent({
