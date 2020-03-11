@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.14.0
+
 - [apm] feat: Add a simple heartbeat check, if activities don't change in 3 beats, finish the transaction (#2478)
 - [apm] feat: Make use of the `performance` browser API to provide better instrumentation (#2474)
 - [browser] ref: Move global error handler + unhandled promise rejection to instrument (#2475)
