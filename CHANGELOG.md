@@ -8,6 +8,7 @@
 - [apm] feat: Make use of the `performance` browser API to provide better instrumentation (#2474)
 - [browser] ref: Move global error handler + unhandled promise rejection to instrument (#2475)
 - [apm] ref: Always use monotonic clock for time calculations (#2485)
+- [apm] fix: Add trace context to all events (#2486)
 
 ## 5.13.2
 

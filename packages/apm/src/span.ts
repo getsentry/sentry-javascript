@@ -328,13 +328,13 @@ export class Span implements SpanInterface, SpanContext {
    */
   public getTraceContext(): object {
     return dropUndefinedKeys({
-      data: this.data,
+      data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
       op: this.op,
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       status: this.tags.status,
-      tags: this.tags,
+      tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       trace_id: this._traceId,
     });
   }
@@ -344,14 +344,14 @@ export class Span implements SpanInterface, SpanContext {
    */
   public toJSON(): object {
     return dropUndefinedKeys({
-      data: this.data,
+      data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
       op: this.op,
       parent_span_id: this._parentSpanId,
       sampled: this.sampled,
       span_id: this._spanId,
       start_timestamp: this.startTimestamp,
-      tags: this.tags,
+      tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this.timestamp,
       trace_id: this._traceId,
       transaction: this.transaction,
