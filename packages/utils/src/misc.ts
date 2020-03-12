@@ -372,21 +372,22 @@ export const crossPlatformPerformance: Pick<Performance, 'now' | 'timeOrigin'> =
   }
 
   if (getGlobalObject<Window>().performance) {
-    // tslint:disable-next-line:deprecation
-    if (!performance.timing) {
-      return performanceFallback;
-    }
-    // tslint:disable-next-line:deprecation
-    if (!performance.timing.navigationStart) {
-      return performanceFallback;
-    }
-
     // Polyfill for performance.timeOrigin.
     //
     // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
     // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
     // tslint:disable-next-line:strict-type-predicates
     if (performance.timeOrigin === undefined) {
+      // For webworkers it could mean we don't have performance.timing then we fallback
+      // tslint:disable-next-line:deprecation
+      if (!performance.timing) {
+        return performanceFallback;
+      }
+      // tslint:disable-next-line:deprecation
+      if (!performance.timing.navigationStart) {
+        return performanceFallback;
+      }
+
       // @ts-ignore
       // tslint:disable-next-line:deprecation
       performance.timeOrigin = performance.timing.navigationStart;
