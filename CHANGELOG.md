@@ -4,6 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] fix: Check for performance.timing in webworkers (#2491)
 - [apm] ref: Remove performance clear entry calls (#2490)
 
 ## 5.14.0
