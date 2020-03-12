@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] fix: Check for performance.timing in webworkers #2491
+
 ## 5.14.0
 
 - [apm] feat: Add a simple heartbeat check, if activities don't change in 3 beats, finish the transaction (#2478)
