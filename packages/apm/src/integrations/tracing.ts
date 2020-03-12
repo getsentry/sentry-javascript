@@ -189,7 +189,7 @@ export class Tracing implements Integration {
       const oldCallback = performance.onresourcetimingbufferfull;
       performance.onresourcetimingbufferfull = function(_event: unknown): void {
         logger.warn('[Tracing]: Resource Timing Buffer is FULL! Increasing it to 300');
-        performance.setResourceTimingBufferSize(300);
+        performance.setResourceTimingBufferSize(Tracing._performanceCursor * 2);
         if (oldCallback) {
           oldCallback.apply(this, arguments);
         }
