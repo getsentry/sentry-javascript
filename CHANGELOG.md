@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- [apm] ref: Use `onresourcetimingbufferfull` and don't delete measurements
+- [apm] ref: Use `onresourcetimingbufferfull` and don't delete measurements (#2490)
 
 ## 5.14.0
 
