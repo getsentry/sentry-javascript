@@ -182,20 +182,6 @@ export class Tracing implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     Tracing._getCurrentHub = getCurrentHub;
 
-    if (global.performance) {
-      // The Performance object has a limited buffer size, often 150 entries. At some point the buffer may overflow, in
-      // which case we would not be able to use it to create/update spans.
-      // https://developer.mozilla.org/en-US/docs/Web/API/Performance
-      const oldCallback = performance.onresourcetimingbufferfull;
-      performance.onresourcetimingbufferfull = function(_event: unknown): void {
-        logger.warn('[Tracing]: Resource Timing Buffer is FULL! Increasing it to 300');
-        performance.setResourceTimingBufferSize(Tracing._performanceCursor * 2);
-        if (oldCallback) {
-          oldCallback.apply(this, arguments);
-        }
-      };
-    }
-
     if (this._emitOptionsWarning) {
       logger.warn(
         '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
