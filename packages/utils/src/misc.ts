@@ -372,6 +372,15 @@ export const crossPlatformPerformance: Pick<Performance, 'now' | 'timeOrigin'> =
   }
 
   if (getGlobalObject<Window>().performance) {
+    // tslint:disable-next-line:deprecation
+    if (!performance.timing) {
+      return performanceFallback;
+    }
+    // tslint:disable-next-line:deprecation
+    if (!performance.timing.navigationStart) {
+      return performanceFallback;
+    }
+
     // Polyfill for performance.timeOrigin.
     //
     // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
