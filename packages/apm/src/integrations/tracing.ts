@@ -182,6 +182,20 @@ export class Tracing implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     Tracing._getCurrentHub = getCurrentHub;
 
+    if (global.performance) {
+      // The Performance object has a limited buffer size, often 150 entries. At some point the buffer may overflow, in
+      // which case we would not be able to use it to create/update spans.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Performance
+      const oldCallback = performance.onresourcetimingbufferfull;
+      performance.onresourcetimingbufferfull = function(_event: unknown): void {
+        logger.warn('[Tracing]: Resource Timing Buffer is FULL! Increasing it to 300');
+        performance.setResourceTimingBufferSize(300);
+        if (oldCallback) {
+          oldCallback.apply(this, arguments);
+        }
+      };
+    }
+
     if (this._emitOptionsWarning) {
       logger.warn(
         '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
@@ -603,14 +617,6 @@ export class Tracing implements Integration {
       addSpan(evaluation);
     }
 
-    // The Performance object has a limited buffer size, often 150 entries. At some point the buffer may overflow, in
-    // which case we would not be able to use it to create/update spans. Therefore, after we have processed entries to
-    // report to Sentry, we clear the buffer in an attempt to allow for more entries to be added in the future.
-    // https://developer.mozilla.org/en-US/docs/Web/API/Performance
-    logger.log('[Tracing] Clearing most performance marks');
-    performance.clearMarks();
-    performance.clearMeasures();
-    performance.clearResourceTimings();
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
 
     // tslint:enable: no-unsafe-any
