@@ -375,9 +375,7 @@ const performanceFallback: CrossPlatformPerformance = {
 export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
   if (isNodeEnv()) {
     try {
-      // tslint:disable-next-line: no-unsafe-any
-      const perfHooks = dynamicRequire(module, 'perf_hooks');
-      // tslint:disable-next-line: no-unsafe-any
+      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: CrossPlatformPerformance };
       return perfHooks.performance;
     } catch (_) {
       return performanceFallback;
