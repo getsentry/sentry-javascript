@@ -349,7 +349,18 @@ function _htmlElementAsString(el: unknown): string {
 const INITIAL_TIME = Date.now();
 let prevNow = 0;
 
-const performanceFallback: Pick<Performance, 'now' | 'timeOrigin'> = {
+/**
+ * Cross platform compatible partial performance implementation
+ */
+interface CrossPlatformPerformance {
+  /**
+   * Returns the current timestamp in ms
+   */
+  now(): number;
+  timeOrigin: number;
+}
+
+const performanceFallback: CrossPlatformPerformance = {
   now(): number {
     let now = Date.now() - INITIAL_TIME;
     if (now < prevNow) {
@@ -361,10 +372,10 @@ const performanceFallback: Pick<Performance, 'now' | 'timeOrigin'> = {
   timeOrigin: INITIAL_TIME,
 };
 
-export const crossPlatformPerformance: Pick<Performance, 'now' | 'timeOrigin'> = (() => {
+export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
   if (isNodeEnv()) {
     try {
-      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
+      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: CrossPlatformPerformance };
       return perfHooks.performance;
     } catch (_) {
       return performanceFallback;
