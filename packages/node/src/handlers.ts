@@ -34,11 +34,14 @@ export function tracingHandler(): (
 
     const hub = getCurrentHub();
     const transaction = hub.startSpan({
-      transaction: `${reqMethod}|${reqUrl}`,
+      op: 'http.server',
+      transaction: `${reqMethod} ${reqUrl}`,
     });
+
     hub.configureScope(scope => {
       scope.setSpan(transaction);
     });
+
     res.once('finish', () => {
       transaction.setHttpStatus(res.statusCode);
       transaction.finish();
