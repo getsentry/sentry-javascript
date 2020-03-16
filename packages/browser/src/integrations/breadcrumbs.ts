@@ -153,7 +153,7 @@ export class Breadcrumbs implements Integration {
     }
 
     // We only capture issued sentry requests
-    if (handlerData.xhr.__sentry_own_request__) {
+    if (this._options.sentry && handlerData.xhr.__sentry_own_request__) {
       addSentryBreadcrumb(handlerData.args[0]);
     }
   }
@@ -169,8 +169,7 @@ export class Breadcrumbs implements Integration {
 
     const client = getCurrentHub().getClient<BrowserClient>();
     const dsn = client && client.getDsn();
-
-    if (dsn) {
+    if (this._options.sentry && dsn) {
       const filterUrl = new API(dsn).getStoreEndpoint();
       // if Sentry key appears in URL, don't capture it as a request
       // but rather as our own 'sentry' type breadcrumb
