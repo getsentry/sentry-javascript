@@ -55,13 +55,13 @@ describe('Span', () => {
     test('setStatus', () => {
       const span = new Span({});
       span.setStatus(SpanStatus.PermissionDenied);
-      expect(span.tags.status).toBe('permission_denied');
+      expect((span.getTraceContext() as any).status).toBe('permission_denied');
     });
 
     test('setHttpStatus', () => {
       const span = new Span({});
       span.setHttpStatus(404);
-      expect(span.tags.status).toBe('not_found');
+      expect((span.getTraceContext() as any).status).toBe('not_found');
       expect(span.tags['http.status_code']).toBe('404');
     });
 

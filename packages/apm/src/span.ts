@@ -72,6 +72,11 @@ export class Span implements SpanInterface, SpanContext {
   private readonly _parentSpanId?: string;
 
   /**
+   * Internal keeper of the status
+   */
+  private _status?: SpanStatus;
+
+  /**
    * @inheritDoc
    */
   public sampled?: boolean;
@@ -153,6 +158,9 @@ export class Span implements SpanInterface, SpanContext {
     if (spanContext.tags) {
       this.tags = spanContext.tags;
     }
+    if (spanContext.status) {
+      this._status = spanContext.status;
+    }
   }
 
   /**
@@ -229,7 +237,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public setStatus(value: SpanStatus): this {
-    this.setTag('status', value);
+    this._status = value;
     return this;
   }
 
@@ -249,7 +257,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public isSuccess(): boolean {
-    return this.tags.status === SpanStatus.Ok;
+    return this._status === SpanStatus.Ok;
   }
 
   /**
@@ -333,7 +341,7 @@ export class Span implements SpanInterface, SpanContext {
       op: this.op,
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
-      status: this.tags.status,
+      status: this._status,
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       trace_id: this._traceId,
     });
