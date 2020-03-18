@@ -39,7 +39,7 @@ export interface Span {
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
    * Also the `sampled` decision will be inherited.
    */
-  child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span;
+  child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
 
   /**
    * Determines whether span was successful (HTTP200)
