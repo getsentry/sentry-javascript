@@ -21,8 +21,9 @@ class SpanRecorder {
   private _openSpanCount: number = 0;
   public finishedSpans: Span[] = [];
 
-  public constructor(maxlen: number) {
-    this._maxlen = maxlen;
+  public constructor(maxlen?: number) {
+    // tslint:disable-next-line: strict-type-predicates
+    this._maxlen = typeof maxlen !== 'number' ? 1000 : maxlen;
   }
 
   /**
