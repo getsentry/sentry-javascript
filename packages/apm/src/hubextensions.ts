@@ -34,21 +34,19 @@ function traceHeaders(): { [key: string]: string } {
  * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
  *
  * @param span Already constructed span which should be started or properties with which the span should be created
+ * @param makeRoot This will just create the span as it is and will not attach it to the span on the scope (if there is one)
  */
-function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
+function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = false): Span {
   // @ts-ignore
   const that = this as Hub;
   const scope = that.getScope();
   const client = that.getClient();
   let span;
 
-  if (!isSpanInstance(spanOrSpanContext) && !forceNoChild) {
+  if (!isSpanInstance(spanOrSpanContext) && !makeRoot) {
     if (scope) {
       const parentSpan = scope.getSpan() as Span;
-      // If we have a span on the scope, it means we want to create a child on this span
-      // but only if there is no timestamp set. This means that this span has already be finished.
-      // And it's not valid that you set another span as a child.
-      if (parentSpan && parentSpan.timestamp === undefined) {
+      if (parentSpan) {
         span = parentSpan.child(spanOrSpanContext);
       }
     }

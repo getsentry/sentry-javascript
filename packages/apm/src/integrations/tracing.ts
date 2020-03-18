@@ -108,7 +108,7 @@ export class Tracing implements Integration {
    */
   private static _getCurrentHub?: () => Hub;
 
-  private static _activeTransaction?: SpanClass;
+  private static _activeTransaction?: Span;
 
   private static _currentIndex: number = 1;
 
@@ -363,13 +363,7 @@ export class Tracing implements Integration {
         transaction: name,
       },
       true,
-    ) as SpanClass;
-
-    // We need to do this workaround here and not use configureScope
-    // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
-    // therefore configureScope wouldn't be executed and we would miss setting the transaction
-    // tslint:disable-next-line: no-unsafe-any
-    (hub as any).getScope().setSpan(Tracing._activeTransaction);
+    );
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -634,7 +628,7 @@ export class Tracing implements Integration {
 
     if (activity) {
       logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
-      const span = activity.span as SpanClass;
+      const span = activity.span as Span;
       if (span) {
         if (spanData) {
           Object.keys(spanData).forEach((key: string) => {

@@ -36,6 +36,12 @@ export interface Span {
   setHttpStatus(httpStatus: number): this;
 
   /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   */
+  child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span;
+
+  /**
    * Determines whether span was successful (HTTP200)
    */
   isSuccess(): boolean;
