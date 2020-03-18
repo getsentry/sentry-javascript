@@ -79,7 +79,7 @@ export interface Options {
   sampleRate?: number;
 
   /**
-   * Sample rate to determine transaction/span sampling.
+   * Sample rate to determine trace sampling.
    *
    * 0 = 0% chance of instrumenting
    * 1 = 100% change of instrumenting
