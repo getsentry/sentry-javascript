@@ -81,8 +81,8 @@ export interface Options {
   /**
    * Sample rate to determine trace sampling.
    *
-   * 0 = 0% chance of instrumenting
-   * 1 = 100% change of instrumenting
+   * 0.0 = 0% chance of instrumenting
+   * 1.0 = 100% chance of instrumenting
    *
    * Default: 0.0
    */
