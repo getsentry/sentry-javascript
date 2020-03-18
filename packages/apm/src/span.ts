@@ -289,7 +289,7 @@ export class Span implements SpanInterface, SpanContext {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      logger.warn('Discarding transaction Span without sampling decision');
+      logger.warn('Discarding transaction Span because it was sampled == false || undefined');
       return undefined;
     }
 
