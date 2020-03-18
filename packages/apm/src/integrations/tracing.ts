@@ -108,7 +108,7 @@ export class Tracing implements Integration {
    */
   private static _getCurrentHub?: () => Hub;
 
-  private static _activeTransaction?: Span;
+  private static _activeTransaction?: SpanClass;
 
   private static _currentIndex: number = 1;
 
@@ -323,7 +323,7 @@ export class Tracing implements Integration {
          * If an error or unhandled promise occurs, we mark the active transaction as failed
          */
         logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
-        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
+        Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
       }
     }
     addInstrumentationHandler({
@@ -357,21 +357,19 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    const span = hub.startSpan(
+    Tracing._activeTransaction = hub.startSpan(
       {
         ...spanContext,
         transaction: name,
       },
       true,
-    );
-
-    Tracing._activeTransaction = span;
+    ) as SpanClass;
 
     // We need to do this workaround here and not use configureScope
     // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
     // therefore configureScope wouldn't be executed and we would miss setting the transaction
     // tslint:disable-next-line: no-unsafe-any
-    (hub as any).getScope().setSpan(span);
+    (hub as any).getScope().setSpan(Tracing._activeTransaction);
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -380,7 +378,7 @@ export class Tracing implements Integration {
       Tracing.popActivity(id);
     }, (Tracing.options && Tracing.options.idleTimeout) || 100);
 
-    return span;
+    return Tracing._activeTransaction;
   }
 
   /**
@@ -589,11 +587,13 @@ export class Tracing implements Integration {
     // We want to clear the timeout also here since we push a new activity
     clearTimeout(Tracing._debounce);
 
+    const activeTransaction = Tracing._activeTransaction;
+
     const _getCurrentHub = Tracing._getCurrentHub;
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
       if (hub) {
-        const span = hub.startSpan(spanContext);
+        const span = activeTransaction.child(spanContext);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -712,7 +712,11 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
   if (activity) {
     const span = activity.span;
     if (span && handlerData.xhr.setRequestHeader) {
-      handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+      try {
+        handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+      } catch (_) {
+        // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
+      }
     }
   }
   // tslint:enable: no-unsafe-any

@@ -81,7 +81,7 @@ function createHandlerWrapper(
       let span: Span;
       if (tracingEnabled) {
         span = getCurrentHub().startSpan({
-          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method}|${requestUrl}`,
+          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
           op: 'request',
         });
       }
