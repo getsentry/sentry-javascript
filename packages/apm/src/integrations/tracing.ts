@@ -573,15 +573,15 @@ export class Tracing implements Integration {
       autoPopAfter?: number;
     },
   ): number {
-    if (!Tracing._activeTransaction) {
+    const activeTransaction = Tracing._activeTransaction;
+
+    if (!activeTransaction) {
       logger.log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
       return 0;
     }
 
     // We want to clear the timeout also here since we push a new activity
     clearTimeout(Tracing._debounce);
-
-    const activeTransaction = Tracing._activeTransaction;
 
     const _getCurrentHub = Tracing._getCurrentHub;
     if (spanContext && _getCurrentHub) {
@@ -628,7 +628,7 @@ export class Tracing implements Integration {
 
     if (activity) {
       logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
-      const span = activity.span as Span;
+      const span = activity.span;
       if (span) {
         if (spanData) {
           Object.keys(spanData).forEach((key: string) => {
