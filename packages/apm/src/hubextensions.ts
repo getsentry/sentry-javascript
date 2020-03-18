@@ -60,7 +60,9 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean
     span.sampled = Math.random() < sampleRate;
   }
 
-  // We always want to record spans independent from the sample rate
+  // We always want to record spans independent from the sample rate.
+  // The Span tree should be built regardless and the top level sample rate shouldn't determine if we create
+  // child spans.
   const experimentsOptions = (client && client.getOptions()._experiments) || {};
   span.initFinishedSpans(experimentsOptions.maxSpans as number);
 
