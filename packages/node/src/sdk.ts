@@ -128,7 +128,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  return Promise.reject(false);
+  return Promise.reject(new Error('No client found'));
 }
 
 /**
@@ -142,5 +142,5 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  return Promise.reject(false);
+  return Promise.reject(new Error('No client found'));
 }
