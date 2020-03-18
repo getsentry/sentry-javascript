@@ -84,7 +84,7 @@ export interface Options {
    * 0 = 0% chance of instrumenting
    * 1 = 100% change of instrumenting
    *
-   * Default: 1
+   * Default: 0.0
    */
   tracesSampleRate?: number;
 
