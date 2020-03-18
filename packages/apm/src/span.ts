@@ -178,7 +178,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public child(
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid' | 'parentSpanId'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
     const span = new Span({
       ...spanContext,
@@ -205,7 +205,7 @@ export class Span implements SpanInterface, SpanContext {
    */
   public static fromTraceparent(
     traceparent: string,
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid' | 'parentSpanId'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
