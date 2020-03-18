@@ -64,11 +64,6 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean
   const experimentsOptions = (client && client.getOptions()._experiments) || {};
   span.initFinishedSpans(experimentsOptions.maxSpans as number);
 
-  // If we do not have an op by now by default we set a name otherwise the server will discard the transaction/span
-  if (span.op === undefined) {
-    span.op = 'op';
-  }
-
   return span;
 }
 
