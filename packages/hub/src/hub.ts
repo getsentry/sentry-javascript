@@ -105,6 +105,9 @@ export class Hub implements HubInterface {
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
     top.client = client;
+    if (client) {
+      client.setupIntegrations();
+    }
   }
 
   /**

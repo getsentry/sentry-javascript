@@ -19,5 +19,4 @@ export function initAndBind<F extends Client, O extends Options>(clientClass: Cl
   const hub = getCurrentHub();
   const client = new clientClass(options);
   hub.bindClient(client);
-  client.setupIntegrations();
 }
