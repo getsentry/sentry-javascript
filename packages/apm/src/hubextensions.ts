@@ -33,7 +33,7 @@ function traceHeaders(): { [key: string]: string } {
  * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
  * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
  *
- * @param span Already constructed span which should be started or properties with which the span should be created
+ * @param spanOrSpanContext Already constructed span which should be started or properties with which the span should be created
  * @param makeRoot This will just create the span as it is and will not attach it to the span on the scope (if there is one)
  */
 function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = false): Span {
