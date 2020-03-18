@@ -59,7 +59,7 @@ interface TracingOptions {
    * @deprecated Use tracesSampleRate in the SDK options
    * Sample to determine if the Integration should instrument anything. The decision will be taken once per load
    * on initalization.
-   * 0 = 0% chance of instrumenting
+   * 0 = 0% change of instrumenting
    * 1 = 100% change of instrumenting
    *
    * Default: 1
