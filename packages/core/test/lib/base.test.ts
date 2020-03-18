@@ -571,7 +571,7 @@ describe('BaseClient', () => {
         dsn: PUBLIC_DSN,
         integrations: [new TestIntegration()],
       });
-      expect(Object.keys(client.getIntegrations()).length).toBe(1);
+      expect(Object.keys((client as any)._integrations).length).toBe(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
 
@@ -580,7 +580,7 @@ describe('BaseClient', () => {
       const client = new TestClient({
         integrations: [new TestIntegration()],
       });
-      expect(Object.keys(client.getIntegrations()).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toBe(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
@@ -591,7 +591,7 @@ describe('BaseClient', () => {
         enabled: false,
         integrations: [new TestIntegration()],
       });
-      expect(Object.keys(client.getIntegrations()).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toBe(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
   });
