@@ -39,6 +39,11 @@ export interface Span {
    * Determines whether span was successful (HTTP200)
    */
   isSuccess(): boolean;
+
+  /**
+   * Determines if the span is a child of another span
+   */
+  isChildSpan(): boolean;
 }
 
 /** Interface holder all properties that can be set on a Span on creation. */

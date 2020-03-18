@@ -193,6 +193,13 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
+   * @inheritDoc
+   */
+  public isChildSpan(): boolean {
+    return this._parentSpanId !== undefined;
+  }
+
+  /**
    * Continues a trace from a string (usually the header).
    * @param traceparent Traceparent string
    */
@@ -282,12 +289,6 @@ export class Span implements SpanInterface, SpanContext {
 
     this.spanRecorder.finishSpan(this);
 
-    if (this.transaction === undefined) {
-      // If this has no transaction set we assume there's a parent
-      // transaction for this span that would be flushed out eventually.
-      return undefined;
-    }
-
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
       logger.warn('Discarding transaction Span because it was sampled == false || undefined');
@@ -303,6 +304,11 @@ export class Span implements SpanInterface, SpanContext {
         }
         return prev;
       }).timestamp;
+    }
+
+    // We will not send any child spans
+    if (this.isChildSpan()) {
+      return undefined;
     }
 
     return this._hub.captureEvent({

@@ -45,7 +45,10 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean
   if (!isSpanInstance(spanOrSpanContext) && !forceNoChild) {
     if (scope) {
       const parentSpan = scope.getSpan() as Span;
-      if (parentSpan) {
+      // If we have a span on the scope, it means we want to create a child on this span
+      // but only if there is no timestamp set. This means that this span has already be finished.
+      // And it's not valid that you set another span as a child.
+      if (parentSpan && parentSpan.timestamp === undefined) {
         span = parentSpan.child(spanOrSpanContext);
       }
     }
@@ -55,7 +58,8 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean
     span = new Span(spanOrSpanContext, that);
   }
 
-  if (span.sampled === undefined && span.transaction !== undefined) {
+  // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
+  if (span.sampled === undefined && !span.isChildSpan()) {
     const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
     span.sampled = Math.random() < sampleRate;
   }
