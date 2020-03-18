@@ -54,7 +54,9 @@ interface TracingOptions {
    * Default: true
    */
   startTransactionOnLocationChange: boolean;
+
   /**
+   * @deprecated Use tracesSampleRate in the SDK options
    * Sample to determine if the Integration should instrument anything. The decision will be taken once per load
    * on initalization.
    * 0 = 0% chance of instrumenting
@@ -62,7 +64,7 @@ interface TracingOptions {
    *
    * Default: 1
    */
-  tracesSampleRate: number;
+  tracesSampleRate?: number;
 
   /**
    * The maximum duration of a transaction before it will be discarded. This is for some edge cases where a browser
@@ -108,11 +110,6 @@ export class Tracing implements Integration {
    * @inheritDoc
    */
   public static id: string = 'Tracing';
-
-  /**
-   * Is Tracing enabled, this will be determined once per pageload.
-   */
-  private static _enabled?: boolean;
 
   /** JSDoc */
   public static options: TracingOptions;
@@ -163,7 +160,6 @@ export class Tracing implements Integration {
       startTransactionOnLocationChange: true,
       traceFetch: true,
       traceXHR: true,
-      tracesSampleRate: 1,
       tracingOrigins: defaultTracingOrigins,
     };
     // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
@@ -189,16 +185,11 @@ export class Tracing implements Integration {
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
-    if (!Tracing._isEnabled()) {
-      return;
-    }
-
     // Starting our inital pageload transaction
     if (global.location && global.location.href) {
       // `${global.location.href}` will be used a temp transaction name
       Tracing.startIdleTransaction(global.location.href, {
         op: 'pageload',
-        sampled: true,
       });
     }
 
@@ -221,17 +212,15 @@ export class Tracing implements Integration {
         return event;
       }
 
-      if (Tracing._isEnabled()) {
-        const isOutdatedTransaction =
-          event.timestamp &&
-          event.start_timestamp &&
-          (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
-            event.timestamp - event.start_timestamp < 0);
+      const isOutdatedTransaction =
+        event.timestamp &&
+        event.start_timestamp &&
+        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
+          event.timestamp - event.start_timestamp < 0);
 
-        if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-          logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
-          return null;
-        }
+      if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+        logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
+        return null;
       }
 
       return event;
@@ -359,30 +348,9 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Is tracing enabled
-   */
-  private static _isEnabled(): boolean {
-    if (Tracing._enabled !== undefined) {
-      return Tracing._enabled;
-    }
-    // This happens only in test cases where the integration isn't initalized properly
-    // tslint:disable-next-line: strict-type-predicates
-    if (!Tracing.options || typeof Tracing.options.tracesSampleRate !== 'number') {
-      return false;
-    }
-    Tracing._enabled = Math.random() > Tracing.options.tracesSampleRate ? false : true;
-    return Tracing._enabled;
-  }
-
-  /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
-    if (!Tracing._isEnabled()) {
-      // Tracing is not enabled
-      return undefined;
-    }
-
     // If we already have an active transaction it means one of two things
     // a) The user did rapid navigation changes and didn't wait until the transaction was finished
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
@@ -402,8 +370,6 @@ export class Tracing implements Integration {
 
     const span = hub.startSpan(
       {
-        op: 'operation',
-        sampled: true,
         ...spanContext,
         transaction: name,
       },
@@ -643,10 +609,6 @@ export class Tracing implements Integration {
       autoPopAfter?: number;
     },
   ): number {
-    if (!Tracing._isEnabled()) {
-      // Tracing is not enabled
-      return 0;
-    }
     if (!Tracing._activeTransaction) {
       logger.log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
       return 0;
@@ -691,10 +653,8 @@ export class Tracing implements Integration {
    */
   public static popActivity(id: number, spanData?: { [key: string]: any }): void {
     // The !id is on purpose to also fail with 0
-    // Since 0 is returned by push activity in case tracing is not enabled
-    // or there is no active transaction
-    if (!Tracing._isEnabled() || !id) {
-      // Tracing is not enabled
+    // Since 0 is returned by push activity in case there is no active transaction
+    if (!id) {
       return;
     }
 
@@ -841,7 +801,6 @@ function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
     Tracing.startIdleTransaction(global.location.href, {
       op: 'navigation',
-      sampled: true,
     });
   }
 }

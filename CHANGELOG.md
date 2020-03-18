@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- [apm] fix: Set sampled and op by default (#2500)
+- [apm] fix: Sampling of traces (#2500)
 - [apm] ref: Remove status from tags in transaction (#2497)
 - [browser] fix: Respect breadcrumbs sentry:false option (#2499)
 
