@@ -8,6 +8,7 @@ import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/path';
+declare var global: any;
 
 jest.mock('@sentry/utils', () => {
   const original = jest.requireActual('@sentry/utils');
@@ -565,12 +566,17 @@ describe('BaseClient', () => {
   });
 
   describe('integrations', () => {
-    test('setup each one of them on ctor', () => {
+    beforeEach(() => {
+      global.__SENTRY__ = {};
+    });
+
+    test('setup each one of them on setupIntegration call', () => {
       expect.assertions(2);
       const client = new TestClient({
         dsn: PUBLIC_DSN,
         integrations: [new TestIntegration()],
       });
+      client.setupIntegrations();
       expect(Object.keys((client as any)._integrations).length).toBe(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
@@ -580,6 +586,7 @@ describe('BaseClient', () => {
       const client = new TestClient({
         integrations: [new TestIntegration()],
       });
+      client.setupIntegrations();
       expect(Object.keys((client as any)._integrations).length).toBe(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
@@ -591,6 +598,7 @@ describe('BaseClient', () => {
         enabled: false,
         integrations: [new TestIntegration()],
       });
+      client.setupIntegrations();
       expect(Object.keys((client as any)._integrations).length).toBe(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
