@@ -21,9 +21,8 @@ class SpanRecorder {
   private _openSpanCount: number = 0;
   public finishedSpans: Span[] = [];
 
-  public constructor(maxlen?: number) {
-    // tslint:disable-next-line: strict-type-predicates
-    this._maxlen = typeof maxlen !== 'number' ? 1000 : maxlen;
+  public constructor(maxlen: number) {
+    this._maxlen = maxlen;
   }
 
   /**
@@ -178,7 +177,9 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
+  public child(
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid' | 'parentSpanId'>>,
+  ): Span {
     const span = new Span({
       ...spanContext,
       parentSpanId: this._spanId,
@@ -204,7 +205,7 @@ export class Span implements SpanInterface, SpanContext {
    */
   public static fromTraceparent(
     traceparent: string,
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid' | 'parentSpanId'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {

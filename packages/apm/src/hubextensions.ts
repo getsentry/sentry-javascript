@@ -33,27 +33,26 @@ function traceHeaders(): { [key: string]: string } {
  * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
  * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
  *
- * @param spanOrSpanContext Already constructed span which should be started or properties with which the span should be created
- * @param makeRoot This will just create the span as it is and will not attach it to the span on the scope (if there is one)
+ * @param spanOrSpanContext Already constructed span or properties with which the span should be created
+ * @param makeRoot This will just create the span as it is and will not attach it to the span on the scope (if there is one).
+ * Under some circumstances, in internal integrations, for example, this is used to make sure they are not interfering with each other.
  */
 function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = false): Span {
   // @ts-ignore
-  const that = this as Hub;
-  const scope = that.getScope();
-  const client = that.getClient();
+  const hub = this as Hub;
+  const scope = hub.getScope();
+  const client = hub.getClient();
   let span;
 
-  if (!isSpanInstance(spanOrSpanContext) && !makeRoot) {
-    if (scope) {
-      const parentSpan = scope.getSpan() as Span;
-      if (parentSpan) {
-        span = parentSpan.child(spanOrSpanContext);
-      }
+  if (!isSpanInstance(spanOrSpanContext) && !makeRoot && scope) {
+    const parentSpan = scope.getSpan() as Span;
+    if (parentSpan) {
+      span = parentSpan.child(spanOrSpanContext);
     }
   }
 
   if (!isSpanInstance(span)) {
-    span = new Span(spanOrSpanContext, that);
+    span = new Span(spanOrSpanContext, hub);
   }
 
   // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
