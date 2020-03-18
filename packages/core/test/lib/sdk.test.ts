@@ -10,14 +10,15 @@ const PUBLIC_DSN = 'https://username@domain/path';
 
 jest.mock('@sentry/hub', () => ({
   getCurrentHub(): {
-    bindClient(): boolean;
+    bindClient(client: any): boolean;
     getClient(): boolean;
   } {
     return {
       getClient(): boolean {
         return false;
       },
-      bindClient(): boolean {
+      bindClient(client: any): boolean {
+        client.setupIntegrations();
         return true;
       },
     };
