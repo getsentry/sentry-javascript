@@ -287,11 +287,8 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    if (this.sampled === undefined) {
-      // At this point a `sampled === undefined` should have already been
-      // resolved to a concrete decision. If `sampled` is `undefined`, it's
-      // likely that somebody used `Sentry.startSpan(...)` on a
-      // non-transaction span and later decided to make it a transaction.
+    if (this.sampled !== true) {
+      // At this point if `sampled !== true` we want to discard the transaction.
       logger.warn('Discarding transaction Span without sampling decision');
       return undefined;
     }
