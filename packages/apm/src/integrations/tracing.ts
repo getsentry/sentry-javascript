@@ -56,12 +56,6 @@ interface TracingOptions {
   startTransactionOnLocationChange: boolean;
 
   /**
-   * @deprecated Use tracesSampleRate in the SDK options
-   * This is a noop
-   */
-  tracesSampleRate?: number;
-
-  /**
    * The maximum duration of a transaction before it will be discarded. This is for some edge cases where a browser
    * completely freezes the JS state and picks it up later (background tabs).
    * So after this duration, the SDK will not send the event.
@@ -387,23 +381,6 @@ export class Tracing implements Integration {
     }, (Tracing.options && Tracing.options.idleTimeout) || 100);
 
     return span;
-  }
-
-  /**
-   * Update transaction
-   * @deprecated
-   */
-  public static updateTransactionName(name: string): void {
-    logger.log('[Tracing] DEPRECATED, use Sentry.configureScope => scope.setTransaction instead', name);
-    const _getCurrentHub = Tracing._getCurrentHub;
-    if (_getCurrentHub) {
-      const hub = _getCurrentHub();
-      if (hub) {
-        hub.configureScope(scope => {
-          scope.setTransaction(name);
-        });
-      }
-    }
   }
 
   /**
