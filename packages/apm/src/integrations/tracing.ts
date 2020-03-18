@@ -402,6 +402,8 @@ export class Tracing implements Integration {
 
     const span = hub.startSpan(
       {
+        op: 'operation',
+        sampled: true,
         ...spanContext,
         transaction: name,
       },
