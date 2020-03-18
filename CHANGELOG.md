@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] fix: Set sampled and op by default (#2500)
+- [apm] ref: Remove status from tags in transaction (#2497)
+- [browser] fix: Respect breadcrumbs sentry:false option (#2499)
+
 ## 5.14.2
 
 - [apm] fix: Use Performance API for timings when available, including Web Workers (#2492)
