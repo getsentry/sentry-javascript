@@ -62,5 +62,6 @@
   },
   "resolutions": {
     "**/agent-base": "5"
-  }
+  },
+  "version": "0.0.0"
 }
