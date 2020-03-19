@@ -70,9 +70,9 @@ export interface Span {
   isSuccess(): boolean;
 
   /**
-   * Determines if the span is a child of another span
+   * Determines if the span is transaction (root)
    */
-  isChildSpan(): boolean;
+  isRootSpan(): boolean;
 }
 
 /** Interface holder all properties that can be set on a Span on creation. */

@@ -1,16 +1,7 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext } from '@sentry/types';
-import { isInstanceOf } from '@sentry/utils';
 
 import { Span } from './span';
-
-/**
- * Checks whether given value is instance of Span
- * @param span value to check
- */
-function isSpanInstance(span: unknown): span is Span {
-  return isInstanceOf(span, Span);
-}
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(): { [key: string]: string } {
@@ -33,11 +24,9 @@ function traceHeaders(): { [key: string]: string } {
  * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
  * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
  *
- * @param spanOrSpanContext Already constructed span or properties with which the span should be created
- * @param makeRoot This will just create the span as it is and will not attach it to the span on the scope (if there is one).
- * Under some circumstances, in internal integrations, for example, this is used to make sure they are not interfering with each other.
+ * @param spanContext Already constructed span or properties with which the span should be created
  */
-function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = false): Span {
+function startSpan(spanContext?: SpanContext): Span {
   // @ts-ignore
   const hub = this as Hub;
   const scope = hub.getScope();
@@ -48,20 +37,20 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = f
   // If we do not have this, we will add it later on twice to the span recorder and therefore have too many spans
   let addedAsChild = false;
 
-  if (!isSpanInstance(spanOrSpanContext) && !makeRoot && scope) {
+  if (scope) {
     const parentSpan = scope.getSpan() as Span;
     if (parentSpan) {
-      span = parentSpan.child(spanOrSpanContext);
+      span = parentSpan.child(spanContext);
       addedAsChild = true;
     }
   }
 
-  if (!isSpanInstance(span)) {
-    span = new Span(spanOrSpanContext, hub);
+  if (!span) {
+    span = new Span(spanContext, hub);
   }
 
   // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
-  if (span.sampled === undefined && !span.isChildSpan()) {
+  if (span.sampled === undefined && span.isRootSpan()) {
     const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
     span.sampled = Math.random() < sampleRate;
   }

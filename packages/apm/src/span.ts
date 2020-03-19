@@ -195,8 +195,8 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public isChildSpan(): boolean {
-    return this._parentSpanId !== undefined;
+  public isRootSpan(): boolean {
+    return this._parentSpanId === undefined;
   }
 
   /**
@@ -283,6 +283,11 @@ export class Span implements SpanInterface, SpanContext {
 
     this.timestamp = timestampWithMs();
 
+    // We will not send any child spans
+    if (!this.isRootSpan()) {
+      return undefined;
+    }
+
     // This happens if a span was initiated outside of `hub.startSpan`
     // Also if the span was sampled (sampled = false) in `hub.startSpan` already
     if (this.spanRecorder === undefined) {
@@ -304,11 +309,6 @@ export class Span implements SpanInterface, SpanContext {
         }
         return prev;
       }).timestamp;
-    }
-
-    // We will not send any child spans
-    if (this.isChildSpan()) {
-      return undefined;
     }
 
     return this._hub.captureEvent({

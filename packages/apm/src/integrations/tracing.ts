@@ -371,13 +371,10 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    Tracing._activeTransaction = hub.startSpan(
-      {
-        ...spanContext,
-        transaction: name,
-      },
-      true,
-    );
+    Tracing._activeTransaction = hub.startSpan({
+      ...spanContext,
+      transaction: name,
+    });
 
     // We set the transaction on the scope so if there are any other spans started outside of this integration
     // we also add them to this transaction.

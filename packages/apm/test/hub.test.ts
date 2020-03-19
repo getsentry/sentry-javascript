@@ -35,6 +35,7 @@ describe('Hub', () => {
         expect(child.sampled).toBeFalsy();
       });
     });
+
     describe('start', () => {
       test('simple', () => {
         const hub = new Hub(new BrowserClient());
