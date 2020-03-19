@@ -174,7 +174,7 @@ export interface Hub {
 
   /**
    * This functions starts a span. If argument passed is of type `Span`, it'll run sampling on it if configured
-   * and attach a `SpanList`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
+   * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
    * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
    *
    * @param span Already constructed span which should be started or properties with which the span should be created

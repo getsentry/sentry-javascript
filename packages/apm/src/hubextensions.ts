@@ -30,7 +30,7 @@ function traceHeaders(): { [key: string]: string } {
 
 /**
  * This functions starts a span. If argument passed is of type `Span`, it'll run sampling on it if configured
- * and attach a `SpanList`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
+ * and attach a `SpanRecorder`. If it's of type `SpanContext` and there is already a `Span` on the Scope,
  * the created Span will have a reference to it and become it's child. Otherwise it'll crete a new `Span`.
  *
  * @param spanOrSpanContext Already constructed span or properties with which the span should be created
@@ -65,7 +65,7 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = f
   // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
   if (span.sampled) {
     const experimentsOptions = (client && client.getOptions()._experiments) || {};
-    span.initSpanList(experimentsOptions.maxSpans as number);
+    span.initSpanRecorder(experimentsOptions.maxSpans as number);
   }
 
   return span;

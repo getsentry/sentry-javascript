@@ -96,8 +96,8 @@ describe('Span', () => {
       const span2 = span.child();
       const span3 = span.child();
       span3.finish();
-      expect(span.spanList).toBe(span2.spanList);
-      expect(span.spanList).toBe(span3.spanList);
+      expect(span.spanRecorder).toBe(span2.spanRecorder);
+      expect(span.spanRecorder).toBe(span3.spanRecorder);
     });
   });
 
@@ -238,7 +238,7 @@ describe('Span', () => {
         spanTwo.finish();
 
         expect(spy).not.toHaveBeenCalled();
-        expect((spanOne as any).spanList.finishedSpans).toHaveLength(2);
+        expect((spanOne as any).spanRecorder.finishedSpans).toHaveLength(2);
       });
 
       test("finish a span with another one on the scope shouldn't override contexts.trace", () => {
@@ -291,7 +291,7 @@ describe('Span', () => {
           child.finish();
         }
         span.finish();
-        expect((span as any).spanList).toBeUndefined();
+        expect((span as any).spanRecorder).toBeUndefined();
         expect(spy).not.toHaveBeenCalled();
       });
     });

@@ -407,8 +407,8 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addSpan(span: SpanClass): void {
-      if (transactionSpan.spanList) {
-        transactionSpan.spanList.finishSpan(span);
+      if (transactionSpan.spanRecorder) {
+        transactionSpan.spanRecorder.finishSpan(span);
       }
     }
 
@@ -498,8 +498,8 @@ export class Tracing implements Integration {
             const resourceName = entry.name.replace(window.location.origin, '');
             if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
               // We need to update existing spans with new timing info
-              if (transactionSpan.spanList) {
-                transactionSpan.spanList.finishedSpans.map((finishedSpan: SpanClass) => {
+              if (transactionSpan.spanRecorder) {
+                transactionSpan.spanRecorder.finishedSpans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
                     finishedSpan.startTimestamp = timeOrigin + startTime;
                     finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
