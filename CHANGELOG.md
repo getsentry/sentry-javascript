@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] fix: Sampling of traces work now only depending on the client option `tracesSampleRate` (#2500)
+- [apm] fix: Remove internal `forceNoChild` parameter from `hub.startSpan` (#2500)
+- [apm] fix: Made constructor of `Span` internal, only use `hub.startSpan` (#2500)
+- [apm] ref: Remove status from tags in transaction (#2497)
+- [browser] fix: Respect breadcrumbs sentry:false option (#2499)
+
 ## 5.14.2
 
 - [apm] fix: Use Performance API for timings when available, including Web Workers (#2492)

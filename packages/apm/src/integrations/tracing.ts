@@ -1,4 +1,5 @@
-import { Event, EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
+import { Hub, Scope } from '@sentry/hub';
+import { Event, EventProcessor, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -54,15 +55,6 @@ interface TracingOptions {
    * Default: true
    */
   startTransactionOnLocationChange: boolean;
-  /**
-   * Sample to determine if the Integration should instrument anything. The decision will be taken once per load
-   * on initalization.
-   * 0 = 0% chance of instrumenting
-   * 1 = 100% change of instrumenting
-   *
-   * Default: 1
-   */
-  tracesSampleRate: number;
 
   /**
    * The maximum duration of a transaction before it will be discarded. This is for some edge cases where a browser
@@ -108,11 +100,6 @@ export class Tracing implements Integration {
    * @inheritDoc
    */
   public static id: string = 'Tracing';
-
-  /**
-   * Is Tracing enabled, this will be determined once per pageload.
-   */
-  private static _enabled?: boolean;
 
   /** JSDoc */
   public static options: TracingOptions;
@@ -163,7 +150,6 @@ export class Tracing implements Integration {
       startTransactionOnLocationChange: true,
       traceFetch: true,
       traceXHR: true,
-      tracesSampleRate: 1,
       tracingOrigins: defaultTracingOrigins,
     };
     // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
@@ -189,16 +175,11 @@ export class Tracing implements Integration {
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
-    if (!Tracing._isEnabled()) {
-      return;
-    }
-
     // Starting our inital pageload transaction
     if (global.location && global.location.href) {
       // `${global.location.href}` will be used a temp transaction name
       Tracing.startIdleTransaction(global.location.href, {
         op: 'pageload',
-        sampled: true,
       });
     }
 
@@ -221,17 +202,15 @@ export class Tracing implements Integration {
         return event;
       }
 
-      if (Tracing._isEnabled()) {
-        const isOutdatedTransaction =
-          event.timestamp &&
-          event.start_timestamp &&
-          (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
-            event.timestamp - event.start_timestamp < 0);
+      const isOutdatedTransaction =
+        event.timestamp &&
+        event.start_timestamp &&
+        (event.timestamp - event.start_timestamp > Tracing.options.maxTransactionDuration ||
+          event.timestamp - event.start_timestamp < 0);
 
-        if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-          logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
-          return null;
-        }
+      if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
+        logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
+        return null;
       }
 
       return event;
@@ -294,6 +273,19 @@ export class Tracing implements Integration {
    * Unsets the current active transaction + activities
    */
   private static _resetActiveTransaction(): void {
+    // We want to clean up after ourselves
+    // If there is still the active transaction on the scope we remove it
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (_getCurrentHub) {
+      const hub = _getCurrentHub();
+      const scope = hub.getScope();
+      if (scope) {
+        if (scope.getSpan() === Tracing._activeTransaction) {
+          scope.setSpan(undefined);
+        }
+      }
+    }
+    // ------------------------------------------------------------------
     Tracing._activeTransaction = undefined;
     Tracing._activities = {};
   }
@@ -345,7 +337,7 @@ export class Tracing implements Integration {
          * If an error or unhandled promise occurs, we mark the active transaction as failed
          */
         logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
-        (Tracing._activeTransaction as SpanClass).setStatus(SpanStatus.InternalError);
+        Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
       }
     }
     addInstrumentationHandler({
@@ -359,30 +351,9 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Is tracing enabled
-   */
-  private static _isEnabled(): boolean {
-    if (Tracing._enabled !== undefined) {
-      return Tracing._enabled;
-    }
-    // This happens only in test cases where the integration isn't initalized properly
-    // tslint:disable-next-line: strict-type-predicates
-    if (!Tracing.options || typeof Tracing.options.tracesSampleRate !== 'number') {
-      return false;
-    }
-    Tracing._enabled = Math.random() > Tracing.options.tracesSampleRate ? false : true;
-    return Tracing._enabled;
-  }
-
-  /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
-    if (!Tracing._isEnabled()) {
-      // Tracing is not enabled
-      return undefined;
-    }
-
     // If we already have an active transaction it means one of two things
     // a) The user did rapid navigation changes and didn't wait until the transaction was finished
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
@@ -400,21 +371,17 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    const span = hub.startSpan(
-      {
-        ...spanContext,
-        transaction: name,
-      },
-      true,
-    );
+    Tracing._activeTransaction = hub.startSpan({
+      ...spanContext,
+      transaction: name,
+    });
 
-    Tracing._activeTransaction = span;
-
-    // We need to do this workaround here and not use configureScope
-    // Reason being at the time we start the inital transaction we do not have a client bound on the hub yet
-    // therefore configureScope wouldn't be executed and we would miss setting the transaction
-    // tslint:disable-next-line: no-unsafe-any
-    (hub as any).getScope().setSpan(span);
+    // We set the transaction on the scope so if there are any other spans started outside of this integration
+    // we also add them to this transaction.
+    // Once the idle transaction is finished, we make sure to remove it again.
+    hub.configureScope((scope: Scope) => {
+      scope.setSpan(Tracing._activeTransaction);
+    });
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -423,24 +390,7 @@ export class Tracing implements Integration {
       Tracing.popActivity(id);
     }, (Tracing.options && Tracing.options.idleTimeout) || 100);
 
-    return span;
-  }
-
-  /**
-   * Update transaction
-   * @deprecated
-   */
-  public static updateTransactionName(name: string): void {
-    logger.log('[Tracing] DEPRECATED, use Sentry.configureScope => scope.setTransaction instead', name);
-    const _getCurrentHub = Tracing._getCurrentHub;
-    if (_getCurrentHub) {
-      const hub = _getCurrentHub();
-      if (hub) {
-        hub.configureScope(scope => {
-          scope.setTransaction(name);
-        });
-      }
-    }
+    return Tracing._activeTransaction;
   }
 
   /**
@@ -474,13 +424,6 @@ export class Tracing implements Integration {
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 
     // tslint:disable-next-line: completed-docs
-    function addSpan(span: SpanClass): void {
-      if (transactionSpan.spanRecorder) {
-        transactionSpan.spanRecorder.finishSpan(span);
-      }
-    }
-
-    // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: SpanClass, entry: { [key: string]: number }, event: string): void {
       const span = parent.child({
         description: event,
@@ -488,7 +431,6 @@ export class Tracing implements Integration {
       });
       span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
       span.timestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
-      addSpan(span);
     }
 
     // tslint:disable-next-line: completed-docs
@@ -499,14 +441,13 @@ export class Tracing implements Integration {
       });
       request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
       request.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
-      addSpan(request);
+
       const response = parent.child({
         description: 'response',
         op: 'browser',
       });
       response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
       response.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
-      addSpan(response);
     }
 
     let entryScriptSrc: string | undefined;
@@ -560,14 +501,13 @@ export class Tracing implements Integration {
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
-            addSpan(mark);
             break;
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
             if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
               // We need to update existing spans with new timing info
               if (transactionSpan.spanRecorder) {
-                transactionSpan.spanRecorder.finishedSpans.map((finishedSpan: SpanClass) => {
+                transactionSpan.spanRecorder.spans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
                     finishedSpan.startTimestamp = timeOrigin + startTime;
                     finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
@@ -585,7 +525,6 @@ export class Tracing implements Integration {
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
                 entryScriptStartEndTime = resource.timestamp;
               }
-              addSpan(resource);
             }
             break;
           default:
@@ -600,7 +539,6 @@ export class Tracing implements Integration {
       });
       evaluation.startTimestamp = entryScriptStartEndTime;
       evaluation.timestamp = tracingInitMarkStartTime;
-      addSpan(evaluation);
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
@@ -641,11 +579,9 @@ export class Tracing implements Integration {
       autoPopAfter?: number;
     },
   ): number {
-    if (!Tracing._isEnabled()) {
-      // Tracing is not enabled
-      return 0;
-    }
-    if (!Tracing._activeTransaction) {
+    const activeTransaction = Tracing._activeTransaction;
+
+    if (!activeTransaction) {
       logger.log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
       return 0;
     }
@@ -657,7 +593,7 @@ export class Tracing implements Integration {
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
       if (hub) {
-        const span = hub.startSpan(spanContext);
+        const span = activeTransaction.child(spanContext);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -689,10 +625,8 @@ export class Tracing implements Integration {
    */
   public static popActivity(id: number, spanData?: { [key: string]: any }): void {
     // The !id is on purpose to also fail with 0
-    // Since 0 is returned by push activity in case tracing is not enabled
-    // or there is no active transaction
-    if (!Tracing._isEnabled() || !id) {
-      // Tracing is not enabled
+    // Since 0 is returned by push activity in case there is no active transaction
+    if (!id) {
       return;
     }
 
@@ -700,7 +634,7 @@ export class Tracing implements Integration {
 
     if (activity) {
       logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
-      const span = activity.span as SpanClass;
+      const span = activity.span;
       if (span) {
         if (spanData) {
           Object.keys(spanData).forEach((key: string) => {
@@ -778,7 +712,11 @@ function xhrCallback(handlerData: { [key: string]: any }): void {
   if (activity) {
     const span = activity.span;
     if (span && handlerData.xhr.setRequestHeader) {
-      handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+      try {
+        handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+      } catch (_) {
+        // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
+      }
     }
   }
   // tslint:enable: no-unsafe-any
@@ -839,7 +777,6 @@ function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
     Tracing.startIdleTransaction(global.location.href, {
       op: 'navigation',
-      sampled: true,
     });
   }
 }

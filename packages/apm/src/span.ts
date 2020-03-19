@@ -18,10 +18,9 @@ export const TRACEPARENT_REGEXP = new RegExp(
  */
 class SpanRecorder {
   private readonly _maxlen: number;
-  private _openSpanCount: number = 0;
-  public finishedSpans: Span[] = [];
+  public spans: Span[] = [];
 
-  public constructor(maxlen: number) {
+  public constructor(maxlen: number = 1000) {
     this._maxlen = maxlen;
   }
 
@@ -31,19 +30,12 @@ class SpanRecorder {
    * trace tree (i.e.the first n spans with the smallest
    * start_timestamp).
    */
-  public startSpan(span: Span): void {
-    this._openSpanCount += 1;
-    if (this._openSpanCount > this._maxlen) {
+  public add(span: Span): void {
+    if (this.spans.length > this._maxlen) {
       span.spanRecorder = undefined;
+    } else {
+      this.spans.push(span);
     }
-  }
-
-  /**
-   * Appends a span to finished spans table
-   * @param span Span to be added
-   */
-  public finishSpan(span: Span): void {
-    this.finishedSpans.push(span);
   }
 }
 
@@ -121,6 +113,12 @@ export class Span implements SpanInterface, SpanContext {
    */
   public spanRecorder?: SpanRecorder;
 
+  /**
+   * You should never call the custructor manually, always use `hub.startSpan()`.
+   * @internal
+   * @hideconstructor
+   * @hidden
+   */
   public constructor(spanContext?: SpanContext, hub?: Hub) {
     if (isInstanceOf(hub, Hub)) {
       this._hub = hub as Hub;
@@ -167,18 +165,19 @@ export class Span implements SpanInterface, SpanContext {
    * Attaches SpanRecorder to the span itself
    * @param maxlen maximum number of spans that can be recorded
    */
-  public initFinishedSpans(maxlen: number = 1000): void {
+  public initSpanRecorder(maxlen: number = 1000): void {
     if (!this.spanRecorder) {
       this.spanRecorder = new SpanRecorder(maxlen);
     }
-    this.spanRecorder.startSpan(this);
+    this.spanRecorder.add(this);
   }
 
   /**
-   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
-   * Also the `sampled` decision will be inherited.
+   * @inheritDoc
    */
-  public child(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId'>>): Span {
+  public child(
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
+  ): Span {
     const span = new Span({
       ...spanContext,
       parentSpanId: this._spanId,
@@ -187,8 +186,18 @@ export class Span implements SpanInterface, SpanContext {
     });
 
     span.spanRecorder = this.spanRecorder;
+    if (span.spanRecorder) {
+      span.spanRecorder.add(span);
+    }
 
     return span;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public isRootSpan(): boolean {
+    return this._parentSpanId === undefined;
   }
 
   /**
@@ -197,7 +206,7 @@ export class Span implements SpanInterface, SpanContext {
    */
   public static fromTraceparent(
     traceparent: string,
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceid'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span | undefined {
     const matches = traceparent.match(TRACEPARENT_REGEXP);
     if (matches) {
@@ -275,28 +284,24 @@ export class Span implements SpanInterface, SpanContext {
 
     this.timestamp = timestampWithMs();
 
+    // We will not send any child spans
+    if (!this.isRootSpan()) {
+      return undefined;
+    }
+
+    // This happens if a span was initiated outside of `hub.startSpan`
+    // Also if the span was sampled (sampled = false) in `hub.startSpan` already
     if (this.spanRecorder === undefined) {
       return undefined;
     }
 
-    this.spanRecorder.finishSpan(this);
-
-    if (this.transaction === undefined) {
-      // If this has no transaction set we assume there's a parent
-      // transaction for this span that would be flushed out eventually.
+    if (this.sampled !== true) {
+      // At this point if `sampled !== true` we want to discard the transaction.
+      logger.warn('Discarding transaction Span because it was span.sampled !== true');
       return undefined;
     }
 
-    if (this.sampled === undefined) {
-      // At this point a `sampled === undefined` should have already been
-      // resolved to a concrete decision. If `sampled` is `undefined`, it's
-      // likely that somebody used `Sentry.startSpan(...)` on a
-      // non-transaction span and later decided to make it a transaction.
-      logger.warn('Discarding transaction Span without sampling decision');
-      return undefined;
-    }
-
-    const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
+    const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.timestamp) : [];
 
     if (trimEnd && finishedSpans.length > 0) {
       this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
@@ -334,7 +339,16 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public getTraceContext(): object {
+  public getTraceContext(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    span_id: string;
+    status?: string;
+    tags?: { [key: string]: string };
+    trace_id: string;
+  } {
     return dropUndefinedKeys({
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
@@ -350,7 +364,19 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public toJSON(): object {
+  public toJSON(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    sampled?: boolean;
+    span_id: string;
+    start_timestamp: number;
+    tags?: { [key: string]: string };
+    timestamp?: number;
+    trace_id: string;
+    transaction?: string;
+  } {
     return dropUndefinedKeys({
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,

@@ -5,9 +5,30 @@ export interface Span {
   /** Return a traceparent compatible header string */
   toTraceparent(): string;
   /** Convert the object to JSON for w. spans array info only */
-  getTraceContext(): object;
+  getTraceContext(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    span_id: string;
+    status?: string;
+    tags?: { [key: string]: string };
+    trace_id: string;
+  };
   /** Convert the object to JSON */
-  toJSON(): object;
+  toJSON(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    sampled?: boolean;
+    span_id: string;
+    start_timestamp: number;
+    tags?: { [key: string]: string };
+    timestamp?: number;
+    trace_id: string;
+    transaction?: string;
+  };
 
   /**
    * Sets the tag attribute on the current span
@@ -36,9 +57,22 @@ export interface Span {
   setHttpStatus(httpStatus: number): this;
 
   /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   */
+  child(
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
+  ): Span;
+
+  /**
    * Determines whether span was successful (HTTP200)
    */
   isSuccess(): boolean;
+
+  /**
+   * Determines if the span is transaction (root)
+   */
+  isRootSpan(): boolean;
 }
 
 /** Interface holder all properties that can be set on a Span on creation. */

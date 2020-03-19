@@ -78,7 +78,14 @@ export interface Options {
   /** A global sample rate to apply to all events (0 - 1). */
   sampleRate?: number;
 
-  /** A global sample rate to apply to all transactions (0 - 1). */
+  /**
+   * Sample rate to determine trace sampling.
+   *
+   * 0.0 = 0% chance of instrumenting
+   * 1.0 = 100% chance of instrumenting
+   *
+   * Default: 0.0
+   */
   tracesSampleRate?: number;
 
   /** Attaches stacktraces to pure capture message / log integrations */
