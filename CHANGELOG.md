@@ -4,7 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- [apm] fix: Sampling of traces (#2500)
+- [apm] fix: Sampling of traces work now only depending on the client option `tracesSampleRate` (#2500)
+- [apm] fix: Remove internal `makeRoot` parameter from `hub.startSpan` (#2500)
+- [apm] fix: Made constructor of `Span` internal, only use `hub.startSpan` or `Sentry.startSpan` in the future (#2500)
+- [apm] ref: Refactored SpanRecorder to work correctly when recording child spans (#2500)
+- [apm] feat: Now individual transaction can be sent without relying on the Scope (#2500)
 - [apm] ref: Remove status from tags in transaction (#2497)
 - [browser] fix: Respect breadcrumbs sentry:false option (#2499)
 

@@ -117,6 +117,7 @@ export class Span implements SpanInterface, SpanContext {
    * You should never call the custructor manually, always use `hub.startSpan()`.
    * @internal
    * @hideconstructor
+   * @hidden
    */
   public constructor(spanContext?: SpanContext, hub?: Hub) {
     if (isInstanceOf(hub, Hub)) {
