@@ -13,20 +13,26 @@ describe('Hub', () => {
 
   describe('spans', () => {
     describe('sampling', () => {
-      test('set tracesSampleRate 0', () => {
+      test('set tracesSampleRate 0 root span', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
         const span = hub.startSpan() as any;
-        expect(span.sampled).toBeUndefined();
+        expect(span.sampled).toBe(false);
       });
       test('set tracesSampleRate 0 on transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
         const span = hub.startSpan({ transaction: 'foo' }) as any;
         expect(span.sampled).toBe(false);
       });
-      test('set tracesSampleRate 1', () => {
+      test('set tracesSampleRate 1 on transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
         const span = hub.startSpan({ transaction: 'foo' }) as any;
         expect(span.sampled).toBeTruthy();
+      });
+      test('set tracesSampleRate should be propergated to children', () => {
+        const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
+        const span = hub.startSpan() as any;
+        const child = span.child({ op: 1 });
+        expect(child.sampled).toBeFalsy();
       });
     });
     describe('start', () => {

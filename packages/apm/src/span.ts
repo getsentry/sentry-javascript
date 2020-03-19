@@ -16,12 +16,12 @@ export const TRACEPARENT_REGEXP = new RegExp(
 /**
  * Keeps track of finished spans for a given transaction
  */
-class SpanRecorder {
+class SpanList {
   private readonly _maxlen: number;
   private _openSpanCount: number = 0;
   public finishedSpans: Span[] = [];
 
-  public constructor(maxlen: number) {
+  public constructor(maxlen: number = 1000) {
     this._maxlen = maxlen;
   }
 
@@ -31,11 +31,11 @@ class SpanRecorder {
    * trace tree (i.e.the first n spans with the smallest
    * start_timestamp).
    */
-  public startSpan(span: Span): void {
-    this._openSpanCount += 1;
+  public add(span: Span): void {
     if (this._openSpanCount > this._maxlen) {
-      span.spanRecorder = undefined;
+      span.spanList = undefined;
     }
+    this._openSpanCount++;
   }
 
   /**
@@ -119,8 +119,13 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * List of spans that were finalized
    */
-  public spanRecorder?: SpanRecorder;
+  public spanList?: SpanList;
 
+  /**
+   * You should never call the custructor manually, always use `hub.startSpan()`.
+   * @internal
+   * @hideconstructor
+   */
   public constructor(spanContext?: SpanContext, hub?: Hub) {
     if (isInstanceOf(hub, Hub)) {
       this._hub = hub as Hub;
@@ -167,11 +172,11 @@ export class Span implements SpanInterface, SpanContext {
    * Attaches SpanRecorder to the span itself
    * @param maxlen maximum number of spans that can be recorded
    */
-  public initFinishedSpans(maxlen: number = 1000): void {
-    if (!this.spanRecorder) {
-      this.spanRecorder = new SpanRecorder(maxlen);
+  public initSpanList(maxlen: number = 1000): void {
+    if (!this.spanList) {
+      this.spanList = new SpanList(maxlen);
     }
-    this.spanRecorder.startSpan(this);
+    this.spanList.add(this);
   }
 
   /**
@@ -187,7 +192,10 @@ export class Span implements SpanInterface, SpanContext {
       traceId: this._traceId,
     });
 
-    span.spanRecorder = this.spanRecorder;
+    span.spanList = this.spanList;
+    if (span.spanList) {
+      span.spanList.add(span);
+    }
 
     return span;
   }
@@ -283,11 +291,13 @@ export class Span implements SpanInterface, SpanContext {
 
     this.timestamp = timestampWithMs();
 
-    if (this.spanRecorder === undefined) {
+    // This happens if a span was initiated outside of `hub.startSpan`
+    // Also if the span was sampled (sampled = false) in `hub.startSpan` already
+    if (this.spanList === undefined) {
       return undefined;
     }
 
-    this.spanRecorder.finishSpan(this);
+    this.spanList.finishSpan(this);
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
@@ -295,7 +305,7 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
+    const finishedSpans = this.spanList ? this.spanList.finishedSpans.filter(s => s !== this) : [];
 
     if (trimEnd && finishedSpans.length > 0) {
       this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
