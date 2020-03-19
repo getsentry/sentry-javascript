@@ -148,19 +148,14 @@ function extractRequestData(req: { [key: string]: any }, keys: boolean | string[
         request.query_string = url.parse(originalUrl || '', false).query;
         break;
       case 'data':
+        if (method === 'GET' || method === 'HEAD') {
+          break;
+        }
         // body data:
         //   node, express, koa: req.body
-        let data = req.body;
-        if (method === 'GET' || method === 'HEAD') {
-          if (typeof data === 'undefined') {
-            data = '<unavailable>';
-          }
+        if (req.body !== undefined) {
+          request.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
         }
-        if (data && !isString(data)) {
-          // Make sure the request body is a string
-          data = JSON.stringify(normalize(data));
-        }
-        request.data = data;
         break;
       default:
         if ({}.hasOwnProperty.call(req, key)) {
