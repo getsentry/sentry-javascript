@@ -1,4 +1,5 @@
-import { Event, EventProcessor, Hub, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
+import { Hub, Scope } from '@sentry/hub';
+import { Event, EventProcessor, Integration, Span, SpanContext, SpanStatus } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -272,6 +273,19 @@ export class Tracing implements Integration {
    * Unsets the current active transaction + activities
    */
   private static _resetActiveTransaction(): void {
+    // We want to clean up after ourselves
+    // If there is still the active transaction on the scope we remove it
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (_getCurrentHub) {
+      const hub = _getCurrentHub();
+      const scope = hub.getScope();
+      if (scope) {
+        if (scope.getSpan() === Tracing._activeTransaction) {
+          scope.setSpan(undefined);
+        }
+      }
+    }
+    // ------------------------------------------------------------------
     Tracing._activeTransaction = undefined;
     Tracing._activities = {};
   }
@@ -365,6 +379,13 @@ export class Tracing implements Integration {
       true,
     );
 
+    // We set the transaction on the scope so if there are any other spans started outside of this integration
+    // we also add them to this transaction.
+    // Once the idle transaction is finished, we make sure to remove it again.
+    hub.configureScope((scope: Scope) => {
+      scope.setSpan(Tracing._activeTransaction);
+    });
+
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
     const id = Tracing.pushActivity('idleTransactionStarted');
@@ -406,13 +427,6 @@ export class Tracing implements Integration {
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 
     // tslint:disable-next-line: completed-docs
-    function addSpan(span: SpanClass): void {
-      if (transactionSpan.spanRecorder) {
-        transactionSpan.spanRecorder.finishSpan(span);
-      }
-    }
-
-    // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: SpanClass, entry: { [key: string]: number }, event: string): void {
       const span = parent.child({
         description: event,
@@ -420,7 +434,6 @@ export class Tracing implements Integration {
       });
       span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
       span.timestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
-      addSpan(span);
     }
 
     // tslint:disable-next-line: completed-docs
@@ -431,14 +444,13 @@ export class Tracing implements Integration {
       });
       request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
       request.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
-      addSpan(request);
+
       const response = parent.child({
         description: 'response',
         op: 'browser',
       });
       response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
       response.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
-      addSpan(response);
     }
 
     let entryScriptSrc: string | undefined;
@@ -492,14 +504,13 @@ export class Tracing implements Integration {
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
-            addSpan(mark);
             break;
           case 'resource':
             const resourceName = entry.name.replace(window.location.origin, '');
             if (entry.initiatorType === 'xmlhttprequest' || entry.initiatorType === 'fetch') {
               // We need to update existing spans with new timing info
               if (transactionSpan.spanRecorder) {
-                transactionSpan.spanRecorder.finishedSpans.map((finishedSpan: SpanClass) => {
+                transactionSpan.spanRecorder.spans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
                     finishedSpan.startTimestamp = timeOrigin + startTime;
                     finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
@@ -517,7 +528,6 @@ export class Tracing implements Integration {
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
                 entryScriptStartEndTime = resource.timestamp;
               }
-              addSpan(resource);
             }
             break;
           default:
@@ -532,7 +542,6 @@ export class Tracing implements Integration {
       });
       evaluation.startTimestamp = entryScriptStartEndTime;
       evaluation.timestamp = tracingInitMarkStartTime;
-      addSpan(evaluation);
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);

@@ -18,8 +18,7 @@ export const TRACEPARENT_REGEXP = new RegExp(
  */
 class SpanRecorder {
   private readonly _maxlen: number;
-  private _openSpanCount: number = 0;
-  public finishedSpans: Span[] = [];
+  public spans: Span[] = [];
 
   public constructor(maxlen: number = 1000) {
     this._maxlen = maxlen;
@@ -31,19 +30,12 @@ class SpanRecorder {
    * trace tree (i.e.the first n spans with the smallest
    * start_timestamp).
    */
-  public startSpan(span: Span): void {
-    if (this._openSpanCount > this._maxlen) {
+  public add(span: Span): void {
+    if (this.spans.length > this._maxlen) {
       span.spanRecorder = undefined;
+    } else {
+      this.spans.push(span);
     }
-    this._openSpanCount++;
-  }
-
-  /**
-   * Appends a span to finished spans table
-   * @param span Span to be added
-   */
-  public finishSpan(span: Span): void {
-    this.finishedSpans.push(span);
   }
 }
 
@@ -176,7 +168,7 @@ export class Span implements SpanInterface, SpanContext {
     if (!this.spanRecorder) {
       this.spanRecorder = new SpanRecorder(maxlen);
     }
-    this.spanRecorder.startSpan(this);
+    this.spanRecorder.add(this);
   }
 
   /**
@@ -194,7 +186,7 @@ export class Span implements SpanInterface, SpanContext {
 
     span.spanRecorder = this.spanRecorder;
     if (span.spanRecorder) {
-      span.spanRecorder.startSpan(span);
+      span.spanRecorder.add(span);
     }
 
     return span;
@@ -297,15 +289,13 @@ export class Span implements SpanInterface, SpanContext {
       return undefined;
     }
 
-    this.spanRecorder.finishSpan(this);
-
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
       logger.warn('Discarding transaction Span because it was span.sampled !== true');
       return undefined;
     }
 
-    const finishedSpans = this.spanRecorder ? this.spanRecorder.finishedSpans.filter(s => s !== this) : [];
+    const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.timestamp) : [];
 
     if (trimEnd && finishedSpans.length > 0) {
       this.timestamp = finishedSpans.reduce((prev: Span, current: Span) => {
@@ -348,7 +338,16 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public getTraceContext(): object {
+  public getTraceContext(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    span_id: string;
+    status?: string;
+    tags?: { [key: string]: string };
+    trace_id: string;
+  } {
     return dropUndefinedKeys({
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
@@ -364,7 +363,19 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public toJSON(): object {
+  public toJSON(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    sampled?: boolean;
+    span_id: string;
+    start_timestamp: number;
+    tags?: { [key: string]: string };
+    timestamp?: number;
+    trace_id: string;
+    transaction?: string;
+  } {
     return dropUndefinedKeys({
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,

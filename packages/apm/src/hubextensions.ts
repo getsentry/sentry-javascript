@@ -44,10 +44,15 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = f
   const client = hub.getClient();
   let span;
 
+  // This flag determines if we already added the span as a child to the span that currently lives on the scope
+  // If we do not have this, we will add it later on twice to the span recorder and therefore have too many spans
+  let addedAsChild = false;
+
   if (!isSpanInstance(spanOrSpanContext) && !makeRoot && scope) {
     const parentSpan = scope.getSpan() as Span;
     if (parentSpan) {
       span = parentSpan.child(spanOrSpanContext);
+      addedAsChild = true;
     }
   }
 
@@ -63,7 +68,7 @@ function startSpan(spanOrSpanContext?: Span | SpanContext, makeRoot: boolean = f
 
   // We only want to create a span list if we sampled the transaction
   // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
-  if (span.sampled) {
+  if (span.sampled && !addedAsChild) {
     const experimentsOptions = (client && client.getOptions()._experiments) || {};
     span.initSpanRecorder(experimentsOptions.maxSpans as number);
   }
