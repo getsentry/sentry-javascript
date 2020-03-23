@@ -17,6 +17,7 @@ enum States {
 class SyncPromise<T> implements PromiseLike<T> {
   private _state: States = States.PENDING;
   private _handlers: Array<{
+    done: boolean;
     onfulfilled?: ((value: T) => T | PromiseLike<T>) | null;
     onrejected?: ((reason: any) => any) | null;
   }> = [];
@@ -90,6 +91,7 @@ class SyncPromise<T> implements PromiseLike<T> {
   ): PromiseLike<TResult1 | TResult2> {
     return new SyncPromise((resolve, reject) => {
       this._attachHandler({
+        done: false,
         onfulfilled: result => {
           if (!onfulfilled) {
             // TODO: ¯\_(ツ)_/¯
@@ -156,8 +158,7 @@ class SyncPromise<T> implements PromiseLike<T> {
           return;
         }
 
-        // tslint:disable-next-line:no-unsafe-any
-        resolve(val);
+        resolve((val as unknown) as any);
       });
     });
   }
@@ -193,6 +194,8 @@ class SyncPromise<T> implements PromiseLike<T> {
   /** JSDoc */
   private readonly _attachHandler = (handler: {
     /** JSDoc */
+    done: boolean;
+    /** JSDoc */
     onfulfilled?(value: T): any;
     /** JSDoc */
     onrejected?(reason: any): any;
@@ -207,22 +210,28 @@ class SyncPromise<T> implements PromiseLike<T> {
       return;
     }
 
-    if (this._state === States.REJECTED) {
-      this._handlers.forEach(handler => {
+    const cachedHandlers = this._handlers.slice();
+    this._handlers = [];
+
+    cachedHandlers.forEach(handler => {
+      if (handler.done) {
+        return;
+      }
+
+      if (this._state === States.RESOLVED) {
+        if (handler.onfulfilled) {
+          handler.onfulfilled((this._value as unknown) as any);
+        }
+      }
+
+      if (this._state === States.REJECTED) {
         if (handler.onrejected) {
           handler.onrejected(this._value);
         }
-      });
-    } else {
-      this._handlers.forEach(handler => {
-        if (handler.onfulfilled) {
-          // tslint:disable-next-line:no-unsafe-any
-          handler.onfulfilled(this._value);
-        }
-      });
-    }
+      }
 
-    this._handlers = [];
+      handler.done = true;
+    });
   };
 }
 
