@@ -18,6 +18,25 @@ describe('parseRequest', () => {
     },
   };
 
+  describe('parseRequest.contexts runtime', () => {
+    test('runtime name must contain node', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq);
+      expect(parsedRequest.contexts.runtime.name).toEqual('node');
+    });
+
+    test('runtime version must contain current node version', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq);
+      expect(parsedRequest.contexts.runtime.version).toEqual(process.version);
+    });
+
+    test('runtime disbaled by options', () => {
+      const parsedRequest: Event = parseRequest({}, mockReq, {
+        version: false,
+      });
+      expect(parsedRequest).not.toHaveProperty('contexts.runtime');
+    });
+  });
+
   describe('parseRequest.user properties', () => {
     const DEFAULT_USER_KEYS = ['id', 'username', 'email'];
     const CUSTOM_USER_KEYS = ['custom_property'];

@@ -235,9 +235,12 @@ export function parseRequest(
   };
 
   if (options.version) {
-    event.extra = {
-      ...event.extra,
-      node: global.process.version,
+    event.contexts = {
+      ...event.contexts,
+      runtime: {
+        name: 'node',
+        version: global.process.version,
+      },
     };
   }
 
