@@ -106,7 +106,7 @@ export function supportsNativeFetch(): boolean {
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
   const doc = global.document;
-  if (doc && typeof doc.createElement === 'function') {
+  if (doc && typeof (doc as object).createElement === 'function') {
     try {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;
