@@ -1,7 +1,7 @@
 import { Span } from '@sentry/apm';
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { Event } from '@sentry/types';
-import { forget, isString, logger, normalize } from '@sentry/utils';
+import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -256,7 +256,7 @@ export function parseRequest(
   }
 
   if (options.user) {
-    const extractedUser = req.user ? extractUserData(req.user, options.user) : {};
+    const extractedUser = req.user && isPlainObject(req.user) ? extractUserData(req.user, options.user) : {};
 
     if (Object.keys(extractedUser)) {
       event.user = {
