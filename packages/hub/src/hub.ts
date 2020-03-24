@@ -12,15 +12,7 @@ import {
   SpanContext,
   User,
 } from '@sentry/types';
-import {
-  consoleSandbox,
-  dynamicRequire,
-  getGlobalObject,
-  isNodeEnv,
-  logger,
-  timestampWithMs,
-  uuid4,
-} from '@sentry/utils';
+import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
@@ -462,10 +454,7 @@ export function getCurrentHub(): Hub {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    // We need to use `dynamicRequire` because `require` on it's own will be optimized by webpack.
-    // We do not want this to happen, we need to try to `require` the domain node module and fail if we are in browser
-    // for example so we do not have to shim it and use `getCurrentHub` universally.
-    const domain = dynamicRequire(module, 'domain');
+    const domain = require('domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
