@@ -66,7 +66,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Internal keeper of the status
    */
-  private _status?: SpanStatus;
+  private _status?: SpanStatus = SpanStatus.Ok;
 
   /**
    * @inheritDoc
