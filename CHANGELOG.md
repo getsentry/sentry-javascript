@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] ref: Make `SpanStatus.Ok` default value (#2516)
+
 ## 5.15.0
 
 - [apm] fix: Sampling of traces work now only depending on the client option `tracesSampleRate` (#2500)
