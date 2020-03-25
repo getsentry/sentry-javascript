@@ -21,7 +21,7 @@ interface SentryGlobal {
 }
 
 /**
- * Requires a module which is protected _against bundler minification.
+ * Requires a module which is protected against bundler minification.
  *
  * @param request The module path to resolve
  */
