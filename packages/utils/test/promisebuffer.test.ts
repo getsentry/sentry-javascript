@@ -1,4 +1,5 @@
 import { PromiseBuffer } from '../src/promisebuffer';
+import { SyncPromise } from '../src/syncpromise';
 
 // tslint:disable:no-floating-promises
 
@@ -10,15 +11,15 @@ describe('PromiseBuffer', () => {
   describe('add()', () => {
     test('no limit', () => {
       const q = new PromiseBuffer<void>();
-      const p = new Promise<void>(resolve => setTimeout(resolve, 1));
+      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
       q.add(p);
       expect(q.length()).toBe(1);
     });
     test('with limit', () => {
       const q = new PromiseBuffer<void>(1);
-      const p = new Promise<void>(resolve => setTimeout(resolve, 1));
+      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
       expect(q.add(p)).toEqual(p);
-      expect(q.add(new Promise<void>(resolve => setTimeout(resolve, 1)))).rejects.toThrowError();
+      expect(q.add(new SyncPromise<void>(resolve => setTimeout(resolve, 1)))).rejects.toThrowError();
       expect(q.length()).toBe(1);
     });
   });
@@ -26,7 +27,7 @@ describe('PromiseBuffer', () => {
   test('resolved promises should not show up in buffer length', async () => {
     expect.assertions(2);
     const q = new PromiseBuffer<void>();
-    const p = new Promise<void>(resolve => setTimeout(resolve, 1));
+    const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
     q.add(p).then(() => {
       expect(q.length()).toBe(0);
     });
@@ -37,7 +38,7 @@ describe('PromiseBuffer', () => {
   test('receive promise result outside and from buffer', async () => {
     expect.assertions(4);
     const q = new PromiseBuffer<string>();
-    const p = new Promise<string>(resolve =>
+    const p = new SyncPromise<string>(resolve =>
       setTimeout(() => {
         resolve('test');
       }, 1),
@@ -57,7 +58,7 @@ describe('PromiseBuffer', () => {
     expect.assertions(3);
     const q = new PromiseBuffer<void>();
     for (let i = 0; i < 5; i++) {
-      const p = new Promise<void>(resolve => setTimeout(resolve, 1));
+      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 1));
       q.add(p);
     }
     expect(q.length()).toBe(5);
@@ -72,7 +73,7 @@ describe('PromiseBuffer', () => {
     expect.assertions(2);
     const q = new PromiseBuffer<void>();
     for (let i = 0; i < 5; i++) {
-      const p = new Promise<void>(resolve => setTimeout(resolve, 100));
+      const p = new SyncPromise<void>(resolve => setTimeout(resolve, 100));
       q.add(p);
     }
     expect(q.length()).toBe(5);
@@ -96,7 +97,7 @@ describe('PromiseBuffer', () => {
   test('rejecting', async () => {
     expect.assertions(1);
     const q = new PromiseBuffer<void>();
-    const p = new Promise<void>((_, reject) => setTimeout(reject, 1));
+    const p = new SyncPromise<void>((_, reject) => setTimeout(reject, 1));
     jest.runAllTimers();
     return q.add(p).then(null, () => {
       expect(true).toBe(true);
