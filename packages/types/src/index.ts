@@ -13,6 +13,7 @@ export { Options } from './options';
 export { Package } from './package';
 export { Request } from './request';
 export { Response } from './response';
+export { Runtime } from './runtime';
 export { Scope } from './scope';
 export { SdkInfo } from './sdkinfo';
 export { Severity } from './severity';
