@@ -30,7 +30,9 @@ export interface Event {
   };
   stacktrace?: Stacktrace;
   breadcrumbs?: Breadcrumb[];
-  contexts?: { [key: string]: object };
+  contexts?: {
+    [key: string]: object;
+  };
   tags?: { [key: string]: string };
   extra?: { [key: string]: any };
   user?: User;
