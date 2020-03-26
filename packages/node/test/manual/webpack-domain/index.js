@@ -22,7 +22,7 @@ Sentry.init({
   transport: DummyTransport,
   beforeSend(event) {
     if (event.message === 'inside') {
-      if (event.tags.a !== 'x') {
+      if (event.tags.a !== 'x' && event.tags.b !== 'c') {
         console.error('FAILED: Scope contains incorrect tags');
         process.exit(1);
       }
@@ -45,6 +45,7 @@ const d = require('domain').create();
 d.run(() => {
   Sentry.configureScope(scope => {
     scope.setTag('a', 'x');
+    scope.setTag('b', 'c');
   });
   Sentry.captureMessage('inside');
 });
