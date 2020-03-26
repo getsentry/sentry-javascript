@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.15.1
+
+- [browser] fix: Prevent crash for react native instrumenting fetch (#2510)
+- [node] fix: Remove the no longer required dynamicRequire hack to fix scope memory leak (#2515)
+- [node] fix: Guard against invalid req.user input (#2512)
+- [node] ref: Move node version to runtime context (#2507)
+- [utils] fix: Make sure that SyncPromise handler is called only once (#2511)
+
 ## 5.15.0
 
 - [apm] fix: Sampling of traces work now only depending on the client option `tracesSampleRate` (#2500)
