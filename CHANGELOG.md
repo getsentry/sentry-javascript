@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.15.2
+
+- [hub] fix: Remove dynamicRequire, Fix require call (#2521)
+
 ## 5.15.1
 
 - [browser] fix: Prevent crash for react native instrumenting fetch (#2510)
