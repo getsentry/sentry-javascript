@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+const Sentry = require('../../../dist');
 
 let remaining = 2;
 
