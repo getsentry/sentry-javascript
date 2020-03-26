@@ -454,7 +454,8 @@ export function getCurrentHub(): Hub {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const domain = require('domain');
+    const req = require;
+    const domain = req('domain');
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
