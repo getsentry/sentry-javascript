@@ -101,7 +101,7 @@ export function init(options: NodeOptions = {}): void {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
 
-  if (domain.active) {
+  if ((domain as any).active) {
     setHubOnCarrier(getMainCarrier(), getCurrentHub());
   }
 
