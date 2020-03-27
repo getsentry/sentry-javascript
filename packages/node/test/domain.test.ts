@@ -1,6 +1,10 @@
 import { getCurrentHub, Hub } from '@sentry/core';
 import * as domain from 'domain';
 
+import * as Sentry from '../src';
+
+console.log(Sentry.SDK_NAME);
+
 describe('domains', () => {
   test('without domain', () => {
     expect(domain.active).toBeFalsy();

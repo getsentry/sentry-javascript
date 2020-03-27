@@ -454,8 +454,14 @@ export function getCurrentHub(): Hub {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const req = require;
-    const domain = req('domain');
+    const property = 'domain';
+    const carrier = getMainCarrier();
+    const sentry = carrier.__SENTRY__;
+    // tslint:disable-next-line: strict-type-predicates
+    if (!sentry || !sentry.extensions || !sentry.extensions[property]) {
+      return getHubFromCarrier(registry);
+    }
+    const domain = sentry.extensions[property] as any;
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub
