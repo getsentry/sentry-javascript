@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.15.3
+
+- [hub] fix: Restore dynamicRequire, but for `perf_hooks` only (#2524)
+
 ## 5.15.2
 
 - [hub] fix: Remove dynamicRequire, Fix require call (#2521)
