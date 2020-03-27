@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const { JSDOM } = require('jsdom');
-// runTests();
+
 webpack(
   {
     entry: path.join(__dirname, 'test-code.js'),
@@ -10,9 +10,6 @@ webpack(
       path: __dirname,
       filename: 'tmp.js',
     },
-    // resolve: {
-    //   mainFields: ['main'],
-    // },
     mode: 'development',
   },
   (err, stats) => {
@@ -28,10 +25,12 @@ webpack(
 
     if (stats.hasErrors()) {
       console.error(info.errors);
+      process.exit(1);
     }
 
     if (stats.hasWarnings()) {
       console.warn(info.warnings);
+      process.exit(1);
     }
 
     runTests();
