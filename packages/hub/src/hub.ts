@@ -17,16 +17,6 @@ import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uu
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
-declare module 'domain' {
-  export let active: Domain;
-  /**
-   * Extension for domain interface
-   */
-  export interface Domain {
-    __SENTRY__?: Carrier;
-  }
-}
-
 /**
  * API compatibility version of this hub.
  *
