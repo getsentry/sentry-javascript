@@ -17,16 +17,6 @@ import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uu
 import { Carrier, Layer } from './interfaces';
 import { Scope } from './scope';
 
-declare module 'domain' {
-  export let active: Domain;
-  /**
-   * Extension for domain interface
-   */
-  export interface Domain {
-    __SENTRY__?: Carrier;
-  }
-}
-
 /**
  * API compatibility version of this hub.
  *
@@ -454,8 +444,14 @@ export function getCurrentHub(): Hub {
  */
 function getHubFromActiveDomain(registry: Carrier): Hub {
   try {
-    const req = require;
-    const domain = req('domain');
+    const property = 'domain';
+    const carrier = getMainCarrier();
+    const sentry = carrier.__SENTRY__;
+    // tslint:disable-next-line: strict-type-predicates
+    if (!sentry || !sentry.extensions || !sentry.extensions[property]) {
+      return getHubFromCarrier(registry);
+    }
+    const domain = sentry.extensions[property] as any;
     const activeDomain = domain.active;
 
     // If there no active domain, just return global hub

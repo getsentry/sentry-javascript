@@ -1,6 +1,12 @@
 import { getCurrentHub, Hub } from '@sentry/core';
 import * as domain from 'domain';
 
+// We need this import here to patch domain on the global object
+import * as Sentry from '../src';
+
+// tslint:disable-next-line: no-console
+console.log(Sentry.SDK_NAME);
+
 describe('domains', () => {
   test('without domain', () => {
     expect(domain.active).toBeFalsy();
