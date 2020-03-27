@@ -21,6 +21,16 @@ interface SentryGlobal {
 }
 
 /**
+ * Requires a module which is protected against bundler minification.
+ *
+ * @param request The module path to resolve
+ */
+export function dynamicRequire(mod: any, request: string): any {
+  // tslint:disable-next-line: no-unsafe-any
+  return mod.require(request);
+}
+
+/**
  * Checks whether we're in the Node.js or Browser environment
  *
  * @returns Answer to given question
@@ -365,8 +375,7 @@ const performanceFallback: CrossPlatformPerformance = {
 export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
   if (isNodeEnv()) {
     try {
-      const req = require;
-      const perfHooks = req('perf_hooks') as { performance: CrossPlatformPerformance };
+      const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: CrossPlatformPerformance };
       return perfHooks.performance;
     } catch (_) {
       return performanceFallback;
