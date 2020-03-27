@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const { execSync } = require('child_process');
 
+// prettier-ignore
 webpack(
   {
     entry: './index.js',
@@ -12,7 +13,7 @@ webpack(
     target: 'node',
     mode: 'development',
   },
-  (err, stats) => {
+  function(err, stats) {
     if (err) {
       console.error(err.stack || err);
       if (err.details) {
@@ -32,14 +33,13 @@ webpack(
       console.warn(info.warnings);
       process.exit(1);
     }
-
     runTests();
-  },
+  }
 );
 
 function runTests() {
   try {
-    execSync(`node ${path.resolve(__dirname, 'dist', 'bundle.js')}`);
+    execSync('node ' + path.resolve(__dirname, 'dist', 'bundle.js'));
   } catch (_) {
     process.exit(1);
   }
