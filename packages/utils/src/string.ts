@@ -1,4 +1,4 @@
-import { isRegExp } from './is';
+import { isRegExp, isString } from './is';
 
 /**
  * Truncates given string to the maximum characters count
@@ -89,6 +89,10 @@ export function safeJoin(input: any[], delimiter?: string): string {
  * @param pattern Either a regex or a string that must be contained in value
  */
 export function isMatchingPattern(value: string, pattern: RegExp | string): boolean {
+  if (!isString(value)) {
+    return false;
+  }
+
   if (isRegExp(pattern)) {
     return (pattern as RegExp).test(value);
   }
