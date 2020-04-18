@@ -1,8 +1,10 @@
 export {
   Breadcrumb,
+  BreadcrumbHint,
   Request,
   SdkInfo,
   Event,
+  EventHint,
   Exception,
   Response,
   Severity,

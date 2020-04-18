@@ -1,5 +1,6 @@
 export {
   Breadcrumb,
+  BreadcrumbHint,
   Request,
   SdkInfo,
   Event,
