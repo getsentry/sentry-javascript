@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.15.5
+
+- [browser/node] Add missing `BreadcrumbHint` and `EventHint` types exports (#2545)
+- [utils] fix: Prevent `isMatchingPattern` from failing on invalid input (#2543)
+
 ## 5.15.4
 
 - [node] fix: Path domain onto global extension method to not use require (#2527)
