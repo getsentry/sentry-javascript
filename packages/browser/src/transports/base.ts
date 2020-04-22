@@ -5,15 +5,20 @@ import { PromiseBuffer, SentryError } from '@sentry/utils';
 /** Base Transport class implementation */
 export abstract class BaseTransport implements Transport {
   /**
-   * @inheritDoc
+   * @deprecated
    */
   public url: string;
+
+  /** Helper to get Sentry API endpoints. */
+  protected readonly _api: API;
 
   /** A simple buffer holding all requests. */
   protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
 
   public constructor(public options: TransportOptions) {
-    this.url = new API(this.options.dsn).getStoreEndpointWithUrlEncodedAuth();
+    this._api = new API(this.options.dsn);
+    // tslint:disable-next-line:deprecation
+    this.url = this._api.getStoreEndpointWithUrlEncodedAuth();
   }
 
   /**

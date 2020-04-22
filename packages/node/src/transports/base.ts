@@ -1,12 +1,12 @@
-import { API } from '@sentry/core';
+import { API, eventToSentryRequest } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError, isString } from '@sentry/utils';
+import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
 
-import { SDK_NAME, SDK_VERSION } from '../version';
+// import { SDK_NAME, SDK_VERSION } from '../version';
 
 /**
  * Internal used interface for typescript.
@@ -23,7 +23,9 @@ export interface HTTPRequest {
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
 
-  // This is the new type for versions that handle URL argument correctly, but it's most likely not needed here just yet
+  // This is the type for nodejs versions that handle the URL argument
+  // (v10.9.0+), but we do not use it just yet because we support older node
+  // versions:
 
   // request(
   //   url: string | url.URL,
@@ -55,23 +57,22 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(address: string | url.URL): http.RequestOptions | https.RequestOptions {
-    if (!isString(address) || !(address instanceof url.URL)) {
-      throw new SentryError(`Incorrect transport url: ${address}`);
-    }
-
+  protected _getRequestOptions(uri: url.URL): http.RequestOptions | https.RequestOptions {
     const headers = {
-      ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
+      // The auth headers are not included because auth is done via query string to match @sentry/browser.
+      //
+      // ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION)
       ...this.options.headers,
     };
-    const addr = address instanceof url.URL ? address : new url.URL(address);
-    const { hostname, pathname: path, port, protocol } = addr;
+    const { hostname, pathname, port, protocol, search } = uri;
+    // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
+    const path = `${pathname}${search}`;
 
     return {
       agent: this.client,
-      method: 'POST',
       headers,
       hostname,
+      method: 'POST',
       path,
       port,
       protocol,
@@ -92,7 +93,10 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const req = httpModule.request(this._getRequestOptions('http://foo.com/123'), (res: http.IncomingMessage) => {
+        const sentryReq = eventToSentryRequest(event, this._api);
+        const options = this._getRequestOptions(new url.URL(sentryReq.url));
+
+        const req = httpModule.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
 
@@ -126,7 +130,7 @@ export abstract class BaseTransport implements Transport {
           });
         });
         req.on('error', reject);
-        req.end(JSON.stringify(event));
+        req.end(sentryReq.body);
       }),
     );
   }

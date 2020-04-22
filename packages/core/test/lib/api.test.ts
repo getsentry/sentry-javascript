@@ -16,11 +16,13 @@ describe('API', () => {
   });
 
   test('getRequestHeaders', () => {
+    // tslint:disable-next-line:deprecation
     expect(new API(dsnPublic).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(/^Sentry sentry_version=\d, sentry_client=a\/1\.0, sentry_key=abc$/),
     });
 
+    // tslint:disable-next-line:deprecation
     expect(new API(legacyDsn).getRequestHeaders('a', '1.0')).toMatchObject({
       'Content-Type': 'application/json',
       'X-Sentry-Auth': expect.stringMatching(
