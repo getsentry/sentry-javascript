@@ -25,7 +25,7 @@ export interface NodeOptions extends Options {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
-  /** Maximum time to wait to drain the request queue, before the process is allowed to exit. */
+  /** Maximum time in milliseconds to wait to drain the request queue, before the process is allowed to exit. */
   shutdownTimeout?: number;
 
   /** Set a HTTP proxy that should be used for outbound requests. */
