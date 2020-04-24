@@ -194,6 +194,20 @@ export class Span implements SpanInterface, SpanContext {
   }
 
   /**
+   * Create a child with a async callback
+   */
+  public async withChild(
+    spanContext: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>> = {},
+    callback?: (span: Span) => Promise<void>,
+  ): Promise<void> {
+    const child = this.child(spanContext);
+    if (callback) {
+      await callback(child);
+    }
+    child.finish();
+  }
+
+  /**
    * @inheritDoc
    */
   public isRootSpan(): boolean {

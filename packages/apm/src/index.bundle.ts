@@ -56,6 +56,7 @@ import { addExtensionMethods } from './hubextensions';
 import * as ApmIntegrations from './integrations';
 
 export { Span, TRACEPARENT_REGEXP } from './span';
+export { withSpan, withTransaction } from './helper';
 
 let windowIntegrations = {};
 
