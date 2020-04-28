@@ -175,9 +175,9 @@ export class Tracing implements Integration {
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
-    // Starting our inital pageload transaction
+    // Starting pageload transaction
     if (global.location && global.location.href) {
-      // `${global.location.href}` will be used a temp transaction name
+      // Use `${global.location.href}` as transaction name
       Tracing.startIdleTransaction(global.location.href, {
         op: 'pageload',
       });
