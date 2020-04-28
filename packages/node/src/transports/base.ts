@@ -1,6 +1,6 @@
 import { API } from '@sentry/core';
 import { Event, Response, Status, Transport, TransportOptions } from '@sentry/types';
-import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError } from '@sentry/utils';
+import { logger, parseRetryAfterHeader, PromiseBuffer, SentryError, isString } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -22,6 +22,14 @@ export interface HTTPRequest {
     options: http.RequestOptions | https.RequestOptions | string | url.URL,
     callback?: (res: http.IncomingMessage) => void,
   ): http.ClientRequest;
+
+  // This is the new type for versions that handle URL argument correctly, but it's most likely not needed here just yet
+
+  // request(
+  //   url: string | url.URL,
+  //   options: http.RequestOptions | https.RequestOptions,
+  //   callback?: (res: http.IncomingMessage) => void,
+  // ): http.ClientRequest;
 }
 
 /** Base Transport class implementation */
@@ -47,30 +55,30 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(address: string | url.URL): http.RequestOptions | https.RequestOptions {
+    if (!isString(address) || !(address instanceof url.URL)) {
+      throw new SentryError(`Incorrect transport url: ${address}`);
+    }
+
     const headers = {
       ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const dsn = this._api.getDsn();
+    const addr = address instanceof url.URL ? address : new url.URL(address);
+    const { hostname, pathname: path, port, protocol } = addr;
 
-    const options: {
-      [key: string]: any;
-    } = {
+    return {
       agent: this.client,
-      headers,
-      hostname: dsn.host,
       method: 'POST',
-      path: this._api.getStoreEndpointPath(),
-      port: dsn.port,
-      protocol: `${dsn.protocol}:`,
+      headers,
+      hostname,
+      path,
+      port,
+      protocol,
+      ...(this.options.caCerts && {
+        ca: fs.readFileSync(this.options.caCerts),
+      }),
     };
-
-    if (this.options.caCerts) {
-      options.ca = fs.readFileSync(this.options.caCerts);
-    }
-
-    return options;
   }
 
   /** JSDoc */
@@ -84,7 +92,7 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const req = httpModule.request(this._getRequestOptions(), (res: http.IncomingMessage) => {
+        const req = httpModule.request(this._getRequestOptions('http://foo.com/123'), (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
           const status = Status.fromHttpCode(statusCode);
 
