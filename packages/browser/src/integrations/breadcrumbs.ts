@@ -189,10 +189,7 @@ export class Breadcrumbs implements Integration {
       getCurrentHub().addBreadcrumb(
         {
           category: 'fetch',
-          data: {
-            ...handlerData.fetchData,
-            status_code: handlerData.response.status,
-          },
+          data: handlerData.fetchData,
           level: Severity.Error,
           type: 'http',
         },
