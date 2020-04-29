@@ -4,21 +4,38 @@ import { API } from './api';
 
 /** A generic client request. */
 interface SentryRequest {
-  body: string;
   url: string;
-  // headers would contain auth & content-type headers for @sentry/node, but
-  // since @sentry/browser avoids custom headers to prevent CORS preflight
-  // requests, we can use the same approach for @sentry/browser and @sentry/node
-  // for simplicity -- no headers involved.
-  // headers: { [key: string]: string };
+  headers: { [key: string]: string };
+  body: string;
 }
 
 /** Creates a SentryRequest from an event. */
-export function eventToSentryRequest(event: Event, api: API): SentryRequest {
+export function eventToSentryRequest(event: Event, api: API, extraHeaders?: { [key: string]: string }): SentryRequest {
   const useEnvelope = event.type === 'transaction';
 
   const req: SentryRequest = {
     body: JSON.stringify(event),
+    headers: {
+      // To simplify maintenance, eventToSentryRequest is used by both
+      // @sentry/browser and @sentry/node.
+      //
+      // In @sentry/browser we want to avoid CORS preflight requests and thus we
+      // want to ensure outgoing requests are "simple requests" as explained in
+      // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#Simple_requests.
+      //
+      // Therefore, we do not include any custom headers (auth goes in the query
+      // string instead) and we are limited in the values of Content-Type. If we
+      // were to not set the Content-Type header, browsers fill it in as
+      // `text/plain`, which is rejected by Relay for envelopes. If we set it to
+      // the empty string, current versions of mainstream browsers seem to
+      // respect it and despite empty string not being in the list of accepted
+      // values for "simple requests", empirically browsers do not send
+      // preflight requests in that case.
+      //
+      // 'Content-Type': useEnvelope ? 'application/x-sentry-envelope' : 'application/json',
+      'Content-Type': '',
+      ...extraHeaders,
+    },
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };
 

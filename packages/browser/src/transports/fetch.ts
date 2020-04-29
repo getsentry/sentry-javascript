@@ -23,7 +23,7 @@ export class FetchTransport extends BaseTransport {
       });
     }
 
-    const sentryReq = eventToSentryRequest(event, this._api);
+    const sentryReq = eventToSentryRequest(event, this._api, this.options.headers);
 
     const options: RequestInit = {
       body: sentryReq.body,
@@ -33,11 +33,8 @@ export class FetchTransport extends BaseTransport {
       // It doesn't. And it throw exception instead of ignoring this parameter...
       // REF: https://github.com/getsentry/raven-js/issues/1233
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
+      headers: sentryReq.headers,
     };
-
-    if (this.options.headers !== undefined) {
-      options.headers = this.options.headers;
-    }
 
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {

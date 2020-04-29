@@ -21,7 +21,7 @@ export class XHRTransport extends BaseTransport {
       });
     }
 
-    const sentryReq = eventToSentryRequest(event, this._api);
+    const sentryReq = eventToSentryRequest(event, this._api, this.options.headers);
 
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
@@ -49,9 +49,9 @@ export class XHRTransport extends BaseTransport {
         };
 
         request.open('POST', sentryReq.url);
-        for (const header in this.options.headers) {
-          if (this.options.headers.hasOwnProperty(header)) {
-            request.setRequestHeader(header, this.options.headers[header]);
+        for (const header in sentryReq.headers) {
+          if (sentryReq.headers.hasOwnProperty(header)) {
+            request.setRequestHeader(header, sentryReq.headers[header]);
           }
         }
         request.send(sentryReq.body);
