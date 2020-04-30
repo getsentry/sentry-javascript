@@ -57,10 +57,13 @@ export abstract class BaseTransport implements Transport {
   }
 
   /** Returns a build request option object used by request */
-  protected _getRequestOptions(
-    uri: url.URL,
-    headers: { [key: string]: string },
-  ): http.RequestOptions | https.RequestOptions {
+  protected _getRequestOptions(uri: url.URL): http.RequestOptions | https.RequestOptions {
+    const headers = {
+      // The auth headers are not included because auth is done via query string to match @sentry/browser.
+      //
+      // ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION)
+      ...this.options.headers,
+    };
     const { hostname, pathname, port, protocol, search } = uri;
     // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
     const path = `${pathname}${search}`;
@@ -90,8 +93,8 @@ export abstract class BaseTransport implements Transport {
     }
     return this._buffer.add(
       new Promise<Response>((resolve, reject) => {
-        const sentryReq = eventToSentryRequest(event, this._api, this.options.headers);
-        const options = this._getRequestOptions(new url.URL(sentryReq.url), sentryReq.headers);
+        const sentryReq = eventToSentryRequest(event, this._api);
+        const options = this._getRequestOptions(new url.URL(sentryReq.url));
 
         const req = httpModule.request(options, (res: http.IncomingMessage) => {
           const statusCode = res.statusCode || 500;
