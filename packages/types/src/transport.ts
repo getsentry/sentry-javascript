@@ -34,4 +34,6 @@ export interface TransportOptions {
   httpsProxy?: string;
   /** HTTPS proxy certificates path */
   caCerts?: string;
+  /** Fetch API init parameters */
+  fetchParameters?: { [key: string]: string };
 }
