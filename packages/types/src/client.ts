@@ -69,7 +69,7 @@ export interface Client<O extends Options = Options> {
   flush(timeout?: number): PromiseLike<boolean>;
 
   /** Returns an array of installed integrations on the client. */
-  getIntegration<T extends Integration>(integartion: IntegrationClass<T>): T | null;
+  getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /** This is an internal function to setup all integrations that should run on the client */
   setupIntegrations(): void;
