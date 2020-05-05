@@ -4,6 +4,7 @@ import * as Parsers from '../src/parsers';
 import * as stacktrace from '../src/stacktrace';
 
 import { getError } from './helper/error';
+import { StackFrame } from '../src/stacktrace';
 
 describe('parsers.ts', () => {
   let frames: stacktrace.StackFrame[];
@@ -68,6 +69,42 @@ describe('parsers.ts', () => {
         .then(null, () => {
           // no-empty
         });
+    });
+  });
+
+  test('parseStack with duplicate files', async () => {
+    expect.assertions(1);
+    const frames: StackFrame[] = [
+      {
+        columnNumber: 1,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn1',
+        lineNumber: 1,
+        methodName: 'fxn1',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+      {
+        columnNumber: 2,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn2',
+        lineNumber: 2,
+        methodName: 'fxn2',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+      {
+        columnNumber: 3,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn3',
+        lineNumber: 3,
+        methodName: 'fxn3',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+    ];
+    return Parsers.parseStack(frames).then(_ => {
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
