@@ -4,7 +4,6 @@ import * as Parsers from '../src/parsers';
 import * as stacktrace from '../src/stacktrace';
 
 import { getError } from './helper/error';
-import { StackFrame } from '../src/stacktrace';
 
 describe('parsers.ts', () => {
   let frames: stacktrace.StackFrame[];
@@ -74,7 +73,7 @@ describe('parsers.ts', () => {
 
   test('parseStack with duplicate files', async () => {
     expect.assertions(1);
-    const frames: StackFrame[] = [
+    const framesWithDuplicateFiles: stacktrace.StackFrame[] = [
       {
         columnNumber: 1,
         fileName: '/var/task/index.js',
@@ -103,7 +102,7 @@ describe('parsers.ts', () => {
         typeName: 'module.exports../src/index.ts',
       },
     ];
-    return Parsers.parseStack(frames).then(_ => {
+    return Parsers.parseStack(framesWithDuplicateFiles).then(_ => {
       expect(spy).toHaveBeenCalledTimes(1);
     });
   });
