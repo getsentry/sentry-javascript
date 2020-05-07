@@ -1,6 +1,16 @@
 import { Scope } from '@sentry/hub';
 import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
-import { Dsn, isPrimitive, isThenable, logger, normalize, SyncPromise, truncate, uuid4 } from '@sentry/utils';
+import {
+  Dsn,
+  isPrimitive,
+  isThenable,
+  logger,
+  normalize,
+  SyncPromise,
+  timestampWithMs,
+  truncate,
+  uuid4,
+} from '@sentry/utils';
 
 import { Backend, BackendClass } from './basebackend';
 import { IntegrationIndex, setupIntegrations } from './integration';
@@ -257,9 +267,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     const { environment, release, dist, maxValueLength = 250, normalizeDepth = 3 } = this.getOptions();
 
     const prepared: Event = { ...event };
+
+    if (!prepared.timestamp) {
+      prepared.timestamp = timestampWithMs();
+    }
+
     if (prepared.environment === undefined && environment !== undefined) {
       prepared.environment = environment;
     }
+
     if (prepared.release === undefined && release !== undefined) {
       prepared.release = release;
     }
