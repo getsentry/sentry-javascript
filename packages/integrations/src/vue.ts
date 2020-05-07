@@ -2,25 +2,52 @@ import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
 import { Integrations as APMIntegrations, Span as SpanClass } from '@sentry/apm';
 
+interface VueInstance {
+  config?: {
+    errorHandler(error: Error, vm?: ViewModel, info?: string): void;
+  };
+  mixin(opts: { [key: string]: () => void }): void;
+  util: {
+    warn(...input: any): void;
+  };
+}
+
 interface IntegrationOptions {
-  Vue: any;
+  /** Vue instance to be used inside the integration */
+  Vue: VueInstance;
+
   /**
-   * When set to false, Sentry will suppress reporting of all props data
+   * When set to `false`, Sentry will suppress reporting of all props data
    * from your Vue components for privacy concerns.
    */
   attachProps: boolean;
   /**
-   * When set to true, original Vue's `logError` will be called as well.
+   * When set to `true`, original Vue's `logError` will be called as well.
    * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
    */
   logErrors: boolean;
+
+  /** When set to `true`, enables tracking of components lifecycle performance. */
   tracing: boolean;
+
+  /** {@link TracingOptions} */
   tracingOptions: TracingOptions;
 }
 
+/** Vue specific configuration for Tracing Integration  */
 interface TracingOptions {
-  track: boolean | Array<string>;
+  /**
+   * Decides whether to track components by hooking into its lifecycle methods.
+   * Can be either set to `boolean` to enable/disable tracking for all of them.
+   * Or to an array of specific component names (case-sensitive).
+   */
+  trackComponents: boolean | Array<string>;
+  /** How long to wait until the tracked root activity is marked as finished and sent of to Sentry */
   timeout: number;
+  /**
+   * List of hooks to keep track of during component lifecycle.
+   * Available hooks: https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
+   */
   hooks: Array<Hook>;
 }
 
@@ -38,7 +65,6 @@ interface ViewModel {
   $once: (hook: string, cb: () => void) => void;
 }
 
-/** JSDoc */
 interface Metadata {
   [key: string]: any;
   componentName?: string;
@@ -59,9 +85,11 @@ type Hook =
   | 'beforeDestroy'
   | 'destroyed';
 
+type Operation = 'create' | 'mount' | 'update' | 'activate' | 'destroy';
+
 // Mappings from lifecycle hook to corresponding operation,
 // used to track already started measurements.
-const OPERATIONS = {
+const OPERATIONS: { [key in Hook]: Operation } = {
   beforeCreate: 'create',
   created: 'create',
   beforeMount: 'mount',
@@ -111,7 +139,7 @@ export class Vue implements Integration {
       tracing: false,
       ...options,
       tracingOptions: {
-        track: false,
+        trackComponents: false,
         hooks: ['beforeMount', 'mounted', 'beforeUpdate', 'updated'],
         timeout: 2000,
         ...options.tracingOptions,
@@ -190,9 +218,9 @@ export class Vue implements Integration {
 
     const childHandler = (hook: Hook) => {
       // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
-      const shouldTrack = Array.isArray(this._options.tracingOptions.track)
-        ? this._options.tracingOptions.track.includes(name)
-        : this._options.tracingOptions.track;
+      const shouldTrack = Array.isArray(this._options.tracingOptions.trackComponents)
+        ? this._options.tracingOptions.trackComponents.includes(name)
+        : this._options.tracingOptions.trackComponents;
 
       if (!this.rootSpan || !shouldTrack) {
         return;
@@ -272,7 +300,7 @@ export class Vue implements Integration {
 
     const currentErrorHandler = this._options.Vue.config.errorHandler;
 
-    this._options.Vue.config.errorHandler = (error: Error, vm: ViewModel, info: string): void => {
+    this._options.Vue.config.errorHandler = (error: Error, vm?: ViewModel, info?: string): void => {
       const metadata: Metadata = {};
 
       if (vm) {
