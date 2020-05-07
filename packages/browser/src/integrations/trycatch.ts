@@ -38,16 +38,19 @@ export class TryCatch implements Integration {
   /** JSDoc */
   private _wrapRAF(original: any): (callback: () => void) => any {
     return function(this: any, callback: () => void): () => void {
-      return original.call(this, wrap(callback, {
-        mechanism: {
-          data: {
-            function: 'requestAnimationFrame',
-            handler: getFunctionName(original),
+      return original.call(
+        this,
+        wrap(callback, {
+          mechanism: {
+            data: {
+              function: 'requestAnimationFrame',
+              handler: getFunctionName(original),
+            },
+            handled: true,
+            type: 'instrument',
           },
-          handled: true,
-          type: 'instrument',
-        },
-      }));
+        }),
+      );
     };
   }
 
