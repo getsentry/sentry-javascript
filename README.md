@@ -35,8 +35,8 @@ Sentry.init({
   integrations: [
     new SentryRRWeb({
       // ...options
-    })
-  ]
+    }),
+  ],
   // ...
 });
 ```
@@ -54,9 +54,11 @@ Sentry.init({
       // default is empty
       checkoutEveryNth: 100,
       // default is 5 minutes
-      checkoutEveryNms: 15 * 60 * 1000
-    })
-  ]
+      checkoutEveryNms: 15 * 60 * 1000,
+      // on by default
+      maskAllInputs: false,
+    }),
+  ],
   // ...
 });
 ```

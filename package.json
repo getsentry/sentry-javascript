@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/getsentry/sentry-rrweb#readme",
   "peerDependencies": {
-    "rrweb": ">=0.7.0",
+    "rrweb": ">=0.8.0",
     "@sentry/browser": ">=4.0.0"
   },
   "dependencies": {},
