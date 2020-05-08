@@ -22,7 +22,7 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
     url: useEnvelope ? api.getEnvelopeEndpointWithUrlEncodedAuth() : api.getStoreEndpointWithUrlEncodedAuth(),
   };
 
-  // https://docs.sentry.io/development/sdk-dev/envelopes/
+  // https://develop.sentry.dev/sdk/envelopes/
 
   // Since we don't need to manipulate envelopes nor store them, there is no
   // exported concept of an Envelope with operations including serialization and
