@@ -23,13 +23,13 @@
   },
   "homepage": "https://github.com/getsentry/sentry-rrweb#readme",
   "peerDependencies": {
-    "rrweb": ">=0.8.0",
+    "rrweb": ">=0.7.0",
     "@sentry/browser": ">=4.0.0"
   },
   "dependencies": {},
   "devDependencies": {
     "@babel/core": "^7.7.2",
-    "rrweb": "^0.7.27",
+    "rrweb": "^0.7.33",
     "@sentry/browser": "^5.10.2",
     "@sentry/types": "^5.10.0",
     "rimraf": "^3.0.0",
