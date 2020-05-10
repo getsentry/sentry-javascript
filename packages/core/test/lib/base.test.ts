@@ -39,6 +39,9 @@ jest.mock('@sentry/utils', () => {
     truncate(str: string): string {
       return str;
     },
+    timestampWithMs(): number {
+      return 2020;
+    },
   };
 });
 
@@ -175,6 +178,7 @@ describe('BaseClient', () => {
             },
           ],
         },
+        timestamp: 2020,
       });
     });
 
@@ -185,6 +189,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
         message: 'test message',
+        timestamp: 2020,
       });
     });
 
@@ -232,6 +237,20 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
         message: 'message',
+        timestamp: 2020,
+      });
+    });
+
+    test('does not overwrite existing timestamp', () => {
+      expect.assertions(2);
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
+      expect(TestBackend.instance!.event!.message).toBe('message');
+      expect(TestBackend.instance!.event).toEqual({
+        event_id: '42',
+        message: 'message',
+        timestamp: 1234,
       });
     });
 
@@ -243,6 +262,7 @@ describe('BaseClient', () => {
       expect(TestBackend.instance!.event!).toEqual({
         event_id: 'wat',
         message: 'message',
+        timestamp: 2020,
       });
     });
 
@@ -258,6 +278,7 @@ describe('BaseClient', () => {
         environment: 'env',
         event_id: '42',
         message: 'message',
+        timestamp: 2020,
       });
     });
 
@@ -273,6 +294,7 @@ describe('BaseClient', () => {
         event_id: '42',
         message: 'message',
         release: 'v1.0.0',
+        timestamp: 2020,
       });
     });
 
@@ -313,6 +335,7 @@ describe('BaseClient', () => {
         extra: { b: 'b' },
         message: 'message',
         tags: { a: 'a' },
+        timestamp: 2020,
         user: { id: 'user' },
       });
     });
@@ -327,6 +350,7 @@ describe('BaseClient', () => {
         event_id: '42',
         fingerprint: ['abcd'],
         message: 'message',
+        timestamp: 2020,
       });
     });
 
@@ -370,6 +394,7 @@ describe('BaseClient', () => {
         contexts: normalizedObject,
         event_id: '42',
         extra: normalizedObject,
+        timestamp: 2020,
         user: normalizedObject,
       });
     });
@@ -414,6 +439,7 @@ describe('BaseClient', () => {
         contexts: normalizedObject,
         event_id: '42',
         extra: normalizedObject,
+        timestamp: 2020,
         user: normalizedObject,
       });
     });
@@ -463,6 +489,7 @@ describe('BaseClient', () => {
         contexts: normalizedObject,
         event_id: '42',
         extra: normalizedObject,
+        timestamp: 2020,
         user: normalizedObject,
       });
     });

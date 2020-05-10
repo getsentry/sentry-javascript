@@ -38,7 +38,8 @@ export class TryCatch implements Integration {
   /** JSDoc */
   private _wrapRAF(original: any): (callback: () => void) => any {
     return function(this: any, callback: () => void): () => void {
-      return original(
+      return original.call(
+        this,
         wrap(callback, {
           mechanism: {
             data: {
