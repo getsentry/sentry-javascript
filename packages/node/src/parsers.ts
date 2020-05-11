@@ -163,7 +163,7 @@ export function parseStack(stack: stacktrace.StackFrame[], options?: NodeOptions
     if (parsedFrame.filename) {
       parsedFrame.module = getModule(parsedFrame.filename);
 
-      if (!isInternal && linesOfContext > 0) {
+      if (!isInternal && linesOfContext > 0 && filesToRead.indexOf(parsedFrame.filename) === -1) {
         filesToRead.push(parsedFrame.filename);
       }
     }
