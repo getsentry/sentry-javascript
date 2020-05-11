@@ -1,3 +1,4 @@
+import { eventToSentryRequest } from '@sentry/core';
 import { Event, Response, Status } from '@sentry/types';
 import { logger, parseRetryAfterHeader, SyncPromise } from '@sentry/utils';
 
@@ -19,6 +20,8 @@ export class XHRTransport extends BaseTransport {
         status: 429,
       });
     }
+
+    const sentryReq = eventToSentryRequest(event, this._api);
 
     return this._buffer.add(
       new SyncPromise<Response>((resolve, reject) => {
@@ -45,13 +48,13 @@ export class XHRTransport extends BaseTransport {
           reject(request);
         };
 
-        request.open('POST', this.url);
+        request.open('POST', sentryReq.url);
         for (const header in this.options.headers) {
           if (this.options.headers.hasOwnProperty(header)) {
             request.setRequestHeader(header, this.options.headers[header]);
           }
         }
-        request.send(JSON.stringify(event));
+        request.send(sentryReq.body);
       }),
     );
   }

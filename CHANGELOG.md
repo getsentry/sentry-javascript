@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [core] feat: Send transactions in envelopes (#2553)
+
 ## 5.15.5
 
 - [browser/node] Add missing `BreadcrumbHint` and `EventHint` types exports (#2545)
