@@ -87,7 +87,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): void {
 /**
  * Sets context data with the given name.
  * @param name of the context
- * @param context Any kind of data. This data will be normailzed.
+ * @param context Any kind of data. This data will be normalized.
  */
 export function setContext(name: string, context: { [key: string]: any } | null): void {
   callOnHub<void>('setContext', name, context);
@@ -112,7 +112,7 @@ export function setTags(tags: { [key: string]: string }): void {
 /**
  * Set key:value that will be sent as extra data with the event.
  * @param key String of extra
- * @param extra Any kind of data. This data will be normailzed.
+ * @param extra Any kind of data. This data will be normalized.
  */
 
 export function setExtra(key: string, extra: any): void {

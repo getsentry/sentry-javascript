@@ -49,7 +49,7 @@ import { IntegrationIndex, setupIntegrations } from './integration';
  */
 export abstract class BaseClient<B extends Backend, O extends Options> implements Client<O> {
   /**
-   * The backend used to physically interact in the enviornment. Usually, this
+   * The backend used to physically interact in the environment. Usually, this
    * will correspond to the client. When composing SDKs, however, the Backend
    * from the root SDK will be used.
    */
@@ -259,7 +259,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * nested objects, such as the context, keys are merged.
    *
    * @param event The original event.
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
@@ -381,7 +381,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    *
    *
    * @param event The event to send to Sentry.
-   * @param hint May contain additional informartion about the original exception.
+   * @param hint May contain additional information about the original exception.
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
