@@ -170,7 +170,7 @@ export class Breadcrumbs implements Integration {
     const client = getCurrentHub().getClient<BrowserClient>();
     const dsn = client && client.getDsn();
     if (this._options.sentry && dsn) {
-      const filterUrl = new API(dsn).getStoreEndpoint();
+      const filterUrl = new API(dsn).getBaseApiEndpoint();
       // if Sentry key appears in URL, don't capture it as a request
       // but rather as our own 'sentry' type breadcrumb
       if (

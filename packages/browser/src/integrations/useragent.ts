@@ -26,7 +26,6 @@ export class UserAgent implements Integration {
           return event;
         }
 
-        // Request Interface: https://docs.sentry.io/development/sdk-dev/event-payloads/request/
         const request = event.request || {};
         request.url = request.url || global.location.href;
         request.headers = request.headers || {};

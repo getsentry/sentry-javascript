@@ -28,6 +28,7 @@ describe('XHRTransport', () => {
   });
 
   it('inherits composeEndpointUrl() implementation', () => {
+    // tslint:disable-next-line:deprecation
     expect(transport.url).equal(transportUrl);
   });
 

@@ -135,7 +135,7 @@ export interface Hub {
   /**
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
-   * @param extra Any kind of data. This data will be normailzed.
+   * @param extra Any kind of data. This data will be normalized.
    */
   setExtra(key: string, extra: any): void;
 
@@ -148,7 +148,7 @@ export interface Hub {
   /**
    * Sets context data with the given name.
    * @param name of the context
-   * @param context Any kind of data. This data will be normailzed.
+   * @param context Any kind of data. This data will be normalized.
    */
   setContext(name: string, context: { [key: string]: any } | null): void;
 

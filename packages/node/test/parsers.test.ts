@@ -71,6 +71,42 @@ describe('parsers.ts', () => {
     });
   });
 
+  test('parseStack with duplicate files', async () => {
+    expect.assertions(1);
+    const framesWithDuplicateFiles: stacktrace.StackFrame[] = [
+      {
+        columnNumber: 1,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn1',
+        lineNumber: 1,
+        methodName: 'fxn1',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+      {
+        columnNumber: 2,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn2',
+        lineNumber: 2,
+        methodName: 'fxn2',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+      {
+        columnNumber: 3,
+        fileName: '/var/task/index.js',
+        functionName: 'module.exports../src/index.ts.fxn3',
+        lineNumber: 3,
+        methodName: 'fxn3',
+        native: false,
+        typeName: 'module.exports../src/index.ts',
+      },
+    ];
+    return Parsers.parseStack(framesWithDuplicateFiles).then(_ => {
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   test('parseStack with no context', async () => {
     expect.assertions(1);
     return Parsers.parseStack(frames, { frameContextLines: 0 }).then(_ => {
