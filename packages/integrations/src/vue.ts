@@ -1,6 +1,13 @@
-import { Integrations as APMIntegrations, Span as SpanClass } from '@sentry/apm';
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { EventProcessor, Hub, Integration, IntegrationClass, Span } from '@sentry/types';
 import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/utils';
+
+/**
+ * Used to extract Tracing integration from the current client,
+ * without the need to import `Tracing` itself from the @sentry/apm package.
+ */
+const TRACING_GETTER = {
+  id: 'Tracing',
+} as IntegrationClass<Integration>;
 
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
@@ -46,7 +53,10 @@ interface IntegrationOptions {
    */
   logErrors: boolean;
 
-  /** When set to `true`, enables tracking of components lifecycle performance. */
+  /**
+   * When set to `false`, disables tracking of components lifecycle performance.
+   * By default, it tracks only when `Tracing` integration is also enabled.
+   */
   tracing: boolean;
 
   /** {@link TracingOptions} */
@@ -130,7 +140,7 @@ export class Vue implements Integration {
    * Cache holding already processed component names
    */
   private readonly _componentsCache: { [key: string]: string } = {};
-  private _rootSpan?: SpanClass;
+  private _rootSpan?: Span;
   private _rootSpanTimer?: ReturnType<typeof setTimeout>;
   private _tracingActivity?: number;
 
@@ -142,7 +152,7 @@ export class Vue implements Integration {
       Vue: getGlobalObject<any>().Vue, // tslint:disable-line:no-unsafe-any
       attachProps: true,
       logErrors: false,
-      tracing: false,
+      tracing: true,
       ...options,
       tracingOptions: {
         hooks: ['beforeMount', 'mounted', 'beforeUpdate', 'updated'],
@@ -203,7 +213,7 @@ export class Vue implements Integration {
 
     const name = this._getComponentName(vm);
     const rootMount = name === ROOT_COMPONENT_NAME;
-    const spans: { [key: string]: SpanClass } = {};
+    const spans: { [key: string]: Span } = {};
 
     // Render hook starts after once event is emitted,
     // but it ends before the second event of the same type.
@@ -216,16 +226,22 @@ export class Vue implements Integration {
       // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
       // However, on the second call (after), it'll be already in place.
       if (this._rootSpan) {
-        this._finishRootSpan(now);
+        this._finishRootSpan(now, getCurrentHub);
       } else {
         vm.$once(`hook:${hook}`, () => {
           // Create an activity on the first event call. There'll be no second call, as rootSpan will be in place,
           // thus new event handler won't be attached.
-          this._tracingActivity = APMIntegrations.Tracing.pushActivity('Vue Application Render');
+
+          // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
+          // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
+          const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+          if (tracingIntegration) {
+            this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
+          }
           this._rootSpan = getCurrentHub().startSpan({
             description: 'Application Render',
             op: 'Vue',
-          }) as SpanClass;
+          });
         });
       }
     };
@@ -248,7 +264,7 @@ export class Vue implements Integration {
       // However, on the second call (after), it'll be already in place.
       if (span) {
         span.finish();
-        this._finishRootSpan(now);
+        this._finishRootSpan(now, getCurrentHub);
       } else {
         vm.$once(`hook:${hook}`, () => {
           if (this._rootSpan) {
@@ -277,17 +293,22 @@ export class Vue implements Integration {
   };
 
   /** Finish top-level span and activity with a debounce configured using `timeout` option */
-  private _finishRootSpan(timestamp: number): void {
+  private _finishRootSpan(timestamp: number, getCurrentHub: () => Hub): void {
     if (this._rootSpanTimer) {
       clearTimeout(this._rootSpanTimer);
     }
 
     this._rootSpanTimer = setTimeout(() => {
       if (this._rootSpan) {
-        this._rootSpan.timestamp = timestamp;
+        ((this._rootSpan as unknown) as { timestamp: number }).timestamp = timestamp;
       }
       if (this._tracingActivity) {
-        APMIntegrations.Tracing.popActivity(this._tracingActivity);
+        // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
+        // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
+        const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+        if (tracingIntegration) {
+          (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
+        }
       }
     }, this._options.tracingOptions.timeout);
   }
@@ -298,8 +319,7 @@ export class Vue implements Integration {
 
     this._options.Vue.mixin({
       beforeCreate(this: ViewModel): void {
-        // TODO: Move this check to `setupOnce` when we rework integrations initialization in v6
-        if (getCurrentHub().getIntegration(APMIntegrations.Tracing)) {
+        if (getCurrentHub().getIntegration(TRACING_GETTER)) {
           // `this` points to currently rendered component
           applyTracingHooks(this, getCurrentHub);
         } else {

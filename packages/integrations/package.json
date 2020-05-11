@@ -16,7 +16,6 @@
   "module": "esm/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@sentry/apm": "5.15.5",
     "@sentry/types": "5.15.5",
     "@sentry/utils": "5.15.5",
     "tslib": "^1.9.3"
