@@ -2,10 +2,15 @@
 
 ## Unreleased
 
-- [integrations/vue] feat: Vue performance monitoring (#2571)
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.16.0
+
 - [core] feat: Send transactions in envelopes (#2553)
+- [core] fix: Send event timestamp (#2575)
+- [browser] fix: Call wrapped `RequestAnimationFrame` with correct context (#2570)
+- [node] fix: Prevent reading the same source file multiple times (#2569)
+- [integrations] feat: Vue performance monitoring (#2571)
 
 ## 5.15.5
 
