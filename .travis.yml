@@ -44,7 +44,7 @@ jobs:
     - name: '@sentry/browser - browserstack integration tests'
       node_js: '12'
       script: scripts/browser-integration.sh
-      if: env(TRAVIS_SECURE_ENV_VARS) = true
+      if: fork = false
     - stage: Deploy
       name: '@sentry/packages - pack and zeus upload'
       node_js: '12'
