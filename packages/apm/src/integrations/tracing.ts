@@ -493,7 +493,7 @@ export class Tracing implements Integration {
           case 'paint':
           case 'measure':
             const mark = transactionSpan.child({
-              description: `${entry.name}`,
+              description: entry.name,
               op: entry.entryType,
             });
             mark.startTimestamp = timeOrigin + startTime;
