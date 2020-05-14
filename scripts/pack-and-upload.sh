@@ -20,7 +20,3 @@ zeus upload -t "application/javascript" ./packages/integrations/build/*
 # Upload "apm" bundles
 zeus upload -t "application/javascript" ./packages/apm/build/*
 
-# Upload docs
-make build-docs
-zip -r gh-pages ./docs/
-zeus upload -t "application/zip+docs" ./gh-pages.zip
