@@ -11,7 +11,8 @@
     "lint": "lerna run --stream --concurrency 1 lint",
     "lint:json": "lerna run --stream --concurrency 1 lint:tslint:json",
     "test": "lerna run --stream --concurrency 1 --sort test",
-    "codecov": "codecov"
+    "codecov": "codecov",
+    "postpublish": "make publish-docs"
   },
   "volta": {
     "node": "10.15.3",
