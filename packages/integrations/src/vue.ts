@@ -5,9 +5,9 @@ import { basename, getGlobalObject, logger, timestampWithMs } from '@sentry/util
  * Used to extract Tracing integration from the current client,
  * without the need to import `Tracing` itself from the @sentry/apm package.
  */
-const TRACING_GETTER = {
+const TRACING_GETTER = ({
   id: 'Tracing',
-} as IntegrationClass<Integration>;
+} as any) as IntegrationClass<Integration>;
 
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
@@ -236,6 +236,7 @@ export class Vue implements Integration {
           // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
           const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
           if (tracingIntegration) {
+            // tslint:disable-next-line:no-unsafe-any
             this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
           }
           this._rootSpan = getCurrentHub().startSpan({
@@ -307,6 +308,7 @@ export class Vue implements Integration {
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
         const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
         if (tracingIntegration) {
+          // tslint:disable-next-line:no-unsafe-any
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
         }
       }
