@@ -1,8 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, Scope } from '@sentry/hub';
-import { SpanStatus } from '@sentry/types';
 
-import { Span, TRACEPARENT_REGEXP } from '../src';
+import { Span, SpanStatus, TRACEPARENT_REGEXP } from '../src';
 
 describe('Span', () => {
   let hub: Hub;
