@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- [apm] fix: Use proper type name for op #2584
+
 ## 5.16.0
 
 - [core] feat: Send transactions in envelopes (#2553)
