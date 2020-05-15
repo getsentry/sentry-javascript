@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/hub';
 import { Event } from '@sentry/types';
 
 import { API } from './api';
@@ -15,7 +16,9 @@ interface SentryRequest {
 
 /** Creates a SentryRequest from an event. */
 export function eventToSentryRequest(event: Event, api: API): SentryRequest {
-  const useEnvelope = event.type === 'transaction';
+  const client = getCurrentHub().getClient();
+  const experimentsOptions = (client && client.getOptions()._experiments) || {};
+  const useEnvelope = event.type === 'transaction' && experimentsOptions.useEnvelope;
 
   const req: SentryRequest = {
     body: JSON.stringify(event),
