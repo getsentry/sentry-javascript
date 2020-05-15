@@ -46,6 +46,7 @@ import * as domain from 'domain';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
+import * as Parsers from './parsers';
 import * as Transports from './transports';
 
 const INTEGRATIONS = {
@@ -53,7 +54,7 @@ const INTEGRATIONS = {
   ...NodeIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Transports, Handlers };
+export { INTEGRATIONS as Integrations, Transports, Parsers, Handlers };
 
 // We need to patch domain on the global __SENTRY__ object to make it work for node
 // if we don't do this, browser bundlers will have troubles resolving require('domain')
