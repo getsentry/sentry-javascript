@@ -43,7 +43,8 @@ jobs:
     - stage: Deploy
       name: '@sentry/packages - pack and zeus upload'
       node_js: '12'
-      script: scripts/pack-and-upload.sh || [[ ! "$TRAVIS_BRANCH" =~ ^release/ ]]
+      if: branch =~ ^release/
+      script: scripts/pack-and-upload.sh
 
 notifications:
   webhooks:
