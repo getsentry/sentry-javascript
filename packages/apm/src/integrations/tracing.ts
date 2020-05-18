@@ -627,18 +627,18 @@ export class Tracing implements Integration {
    */
   private static _addSpanDebugInfo(span: Span): void {
     if (global.performance) {
-      span.setData('performance', true);
-      span.setData('performance.timeOrigin', global.performance.timeOrigin);
-      span.setData('performance.now', global.performance.now());
+      span.setData('sentry:performance', true);
+      span.setData('sentry:performance.timeOrigin', global.performance.timeOrigin);
+      span.setData('sentry:performance.now', global.performance.now());
       // tslint:disable-next-line: deprecation
       if (global.performance.timing) {
         // tslint:disable-next-line: deprecation
-        span.setData('performance.timing.navigationStart', performance.timing.navigationStart);
+        span.setData('sentry:performance.timing.navigationStart', performance.timing.navigationStart);
       }
     } else {
-      span.setData('performance', false);
+      span.setData('sentry:performance', false);
     }
-    span.setData('Date.now()', Date.now());
+    span.setData('sentry:Date.now()', Date.now());
   }
 
   /**
@@ -671,7 +671,7 @@ export class Tracing implements Integration {
       if (hub) {
         const span = activeTransaction.child(spanContext);
         if (options && typeof options.durationLimit === 'number') {
-          span.setData('durationLimit', options.durationLimit);
+          span.setData('sentry:durationLimit', options.durationLimit);
         }
         Tracing._activities[Tracing._currentIndex] = {
           name,
