@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/hub';
 import { Event } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
@@ -34,7 +35,9 @@ export function eventToSentryRequest(event: Event, api: API): SentryRequest {
   if (useEnvelope) {
     const envelopeHeaders = JSON.stringify({
       event_id: event.event_id,
-      sent_at: new Date().toISOString(),
+      // We need to add * 1000 since we devide it by 1000 by default but JS works with ms precision
+      // The reason we use timestampWithMs here is that all clocks across the SDK use the same clock
+      sent_at: new Date(timestampWithMs() * 1000).toISOString(),
     });
     const itemHeaders = JSON.stringify({
       type: event.type,
