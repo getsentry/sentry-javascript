@@ -1,5 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event, EventProcessor, Integration, Severity, Span, SpanContext, SpanStatus } from '@sentry/types';
+import { Event, EventProcessor, Integration, Severity, Span, SpanContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -10,6 +10,7 @@ import {
 } from '@sentry/utils';
 
 import { Span as SpanClass } from '../span';
+import { SpanStatus } from '../spanstatus';
 
 /**
  * Options for Tracing integration
