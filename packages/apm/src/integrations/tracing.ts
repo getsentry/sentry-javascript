@@ -5,6 +5,7 @@ import {
   getGlobalObject,
   isMatchingPattern,
   logger,
+  safeJoin,
   supportsNativeFetch,
 } from '@sentry/utils';
 
@@ -396,7 +397,7 @@ export class Tracing implements Integration {
         _getCurrentHub().addBreadcrumb({
           category: 'tracing',
           level: Severity.Debug,
-          message: args.join(' '),
+          message: safeJoin(args, ' '),
           type: 'debug',
         });
         return;
