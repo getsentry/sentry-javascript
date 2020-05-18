@@ -630,7 +630,7 @@ export class Tracing implements Integration {
       span.setData('performance.timeOrigin', global.performance.timeOrigin);
       span.setData('performance.now', global.performance.now());
       // tslint:disable-next-line: deprecation
-      if (global.performance.timing && global.performance.timing.navigationStart) {
+      if (global.performance.timing) {
         // tslint:disable-next-line: deprecation
         span.setData('performance.timing.navigationStart', performance.timing.navigationStart);
       }
