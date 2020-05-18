@@ -726,7 +726,6 @@ export class Tracing implements Integration {
         span.finish();
         const serializedSpan = span.toJSON();
         if (serializedSpan.data && serializedSpan.data.durationLimit) {
-          // tslint:disable-next-line: one-variable-per-declaration
           const duration = (serializedSpan.timestamp as number) - serializedSpan.start_timestamp;
           if (duration > (serializedSpan.data.durationLimit as number)) {
             span.setStatus(SpanStatus.DeadlineExceeded);
