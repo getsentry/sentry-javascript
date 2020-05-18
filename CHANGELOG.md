@@ -5,6 +5,7 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 - [apm] fix: Use proper type name for op #2584
+- [apm] fix: Improve bundle size by moving span status to @sentry/apm #2589
 
 ## 5.16.0
 
