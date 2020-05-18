@@ -656,7 +656,7 @@ export class Tracing implements Integration {
     name: string,
     spanContext?: SpanContext,
     options?: {
-      durationLimit?: number;
+      autoPopAfter?: number;
     },
   ): number {
     const activeTransaction = Tracing._activeTransaction;
@@ -674,9 +674,6 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = activeTransaction.child(spanContext);
-        if (options && typeof options.durationLimit === 'number') {
-          span.setData('sentry:durationLimit', options.durationLimit);
-        }
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -690,6 +687,16 @@ export class Tracing implements Integration {
 
     Tracing._log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
     Tracing._log('[Tracing] activies count', Object.keys(Tracing._activities).length);
+    if (options && typeof options.autoPopAfter === 'number') {
+      Tracing._log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
+      const index = Tracing._currentIndex;
+      setTimeout(() => {
+        Tracing.popActivity(index, {
+          autoPop: true,
+          status: SpanStatus.DeadlineExceeded,
+        });
+      }, options.autoPopAfter);
+    }
     return Tracing._currentIndex++;
   }
 
@@ -724,17 +731,6 @@ export class Tracing implements Integration {
           Tracing._addSpanDebugInfo(span);
         }
         span.finish();
-        const serializedSpan = span.toJSON();
-        if (serializedSpan.data && serializedSpan.data.durationLimit) {
-          const duration = (serializedSpan.timestamp as number) - serializedSpan.start_timestamp;
-          if (duration > (serializedSpan.data.durationLimit as number)) {
-            span.setStatus(SpanStatus.DeadlineExceeded);
-            if (Tracing._activeTransaction) {
-              Tracing._log(`[Tracing] Setting Transaction 'DeadlineExceeded' since Span exceeded deadline.`);
-              Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
-            }
-          }
-        }
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete Tracing._activities[id];
