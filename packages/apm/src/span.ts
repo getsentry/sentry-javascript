@@ -1,8 +1,10 @@
 // tslint:disable:max-classes-per-file
 
 import { getCurrentHub, Hub } from '@sentry/hub';
-import { Span as SpanInterface, SpanContext, SpanStatus } from '@sentry/types';
+import { Span as SpanInterface, SpanContext } from '@sentry/types';
 import { dropUndefinedKeys, isInstanceOf, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+
+import { SpanStatus } from './spanstatus';
 
 // TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -66,7 +68,7 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * Internal keeper of the status
    */
-  private _status?: SpanStatus;
+  private _status?: SpanStatus | string;
 
   /**
    * @inheritDoc
