@@ -5,7 +5,7 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 - [apm] fix: Use proper type name for op #2584
-- [core[ fix: sent_at for envelope headers to use same clock #2597
+- [core] fix: sent_at for envelope headers to use same clock #2597
 
 ## 5.16.0
 
