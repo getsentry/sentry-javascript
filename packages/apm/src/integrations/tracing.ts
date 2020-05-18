@@ -626,19 +626,23 @@ export class Tracing implements Integration {
    * Adds debug data to the span
    */
   private static _addSpanDebugInfo(span: Span): void {
+    // tslint:disable: no-unsafe-any
+    const debugData: any = {};
     if (global.performance) {
-      span.setData('sentry:performance', true);
-      span.setData('sentry:performance.timeOrigin', global.performance.timeOrigin);
-      span.setData('sentry:performance.now', global.performance.now());
+      debugData.performance = true;
+      debugData['performance.timeOrigin'] = global.performance.timeOrigin;
+      debugData['performance.now'] = global.performance.now();
       // tslint:disable-next-line: deprecation
       if (global.performance.timing) {
         // tslint:disable-next-line: deprecation
-        span.setData('sentry:performance.timing.navigationStart', performance.timing.navigationStart);
+        debugData['performance.timing.navigationStart'] = performance.timing.navigationStart;
       }
     } else {
-      span.setData('sentry:performance', false);
+      debugData.performance = false;
     }
-    span.setData('sentry:Date.now()', Date.now());
+    debugData['Date.now()'] = Date.now();
+    span.setData('sentry_debug', debugData);
+    // tslint:enable: no-unsafe-any
   }
 
   /**
