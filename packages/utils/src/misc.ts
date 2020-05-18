@@ -400,11 +400,22 @@ export const crossPlatformPerformance: CrossPlatformPerformance = (() => {
   return getGlobalObject<Window>().performance || performanceFallback;
 })();
 
+let FIRST_CLOCK_READ: number | undefined;
+
+/**
+ * This returns a timestamp of the first time we look at the clock
+ */
+function getFirstClockRead(): number {
+  if (!FIRST_CLOCK_READ) {
+    FIRST_CLOCK_READ = crossPlatformPerformance.timeOrigin;
+  }
+  return FIRST_CLOCK_READ;
+}
 /**
  * Returns a timestamp in seconds with milliseconds precision since the UNIX epoch calculated with the monotonic clock.
  */
 export function timestampWithMs(): number {
-  return (crossPlatformPerformance.timeOrigin + crossPlatformPerformance.now()) / 1000;
+  return (getFirstClockRead() + crossPlatformPerformance.now()) / 1000;
 }
 
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
