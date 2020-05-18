@@ -78,13 +78,25 @@ interface TracingOptions {
   discardBackgroundSpans: boolean;
 
   /**
-   * This is only if you want to debug in prod. Instead of having console.log statements we log messages to breadcrumbs
+   * This is only if you want to debug in prod.
+   * writeAsBreadcrumbs: Instead of having console.log statements we log messages to breadcrumbs
    * so you can investigate whats happening in production with your users to figure why things might not appear the
-   * way you expect them to. You shouldn't care about this.
+   * way you expect them to.
    *
-   * Default: false
+   * spanDebugTimingInfo: Add timing info to spans at the point where we create them to figure out browser timing
+   * issues.
+   *
+   * You shouldn't care about this.
+   *
+   * Default: {
+   *   writeAsBreadcrumbs: false;
+   *   spanDebugTimingInfo: false;
+   * }
    */
-  writeInternalDebugLogsAsBreadcrumbs: boolean;
+  debug: {
+    writeAsBreadcrumbs: boolean;
+    spanDebugTimingInfo: boolean;
+  };
 }
 
 /** JSDoc */
@@ -146,6 +158,10 @@ export class Tracing implements Integration {
       global.performance.mark('sentry-tracing-init');
     }
     const defaults = {
+      debug: {
+        spanDebugTimingInfo: false,
+        writeAsBreadcrumbs: false,
+      },
       discardBackgroundSpans: true,
       idleTimeout: 500,
       maxTransactionDuration: 600,
@@ -160,7 +176,6 @@ export class Tracing implements Integration {
       traceFetch: true,
       traceXHR: true,
       tracingOrigins: defaultTracingOrigins,
-      writeInternalDebugLogsAsBreadcrumbs: false,
     };
     // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
     if (!_options || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
@@ -375,7 +390,7 @@ export class Tracing implements Integration {
    * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
    */
   private static _log(...args: any[]): void {
-    if (Tracing.options.writeInternalDebugLogsAsBreadcrumbs) {
+    if (Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
       const _getCurrentHub = Tracing._getCurrentHub;
       if (_getCurrentHub) {
         _getCurrentHub().addBreadcrumb({
@@ -606,6 +621,25 @@ export class Tracing implements Integration {
   }
 
   /**
+   * Adds debug data to the span
+   */
+  private static _addSpanDebugInfo(span: Span): void {
+    if (global.performance) {
+      span.setData('performance', true);
+      span.setData('performance.timeOrigin', global.performance.timeOrigin);
+      span.setData('performance.now', global.performance.now());
+      // tslint:disable-next-line: deprecation
+      if (global.performance.timing && global.performance.timing.navigationStart) {
+        // tslint:disable-next-line: deprecation
+        span.setData('performance.timing.navigationStart', performance.timing.navigationStart);
+      }
+    } else {
+      span.setData('performance', false);
+    }
+    span.setData('Date.now()', Date.now());
+  }
+
+  /**
    * Starts tracking for a specifc activity
    *
    * @param name Name of the activity, can be any string (Only used internally to identify the activity)
@@ -679,6 +713,9 @@ export class Tracing implements Integration {
               span.setStatus(spanData[key] as SpanStatus);
             }
           });
+        }
+        if (Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
+          Tracing._addSpanDebugInfo(span);
         }
         span.finish();
         const serializedSpan = span.toJSON();
