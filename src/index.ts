@@ -28,7 +28,7 @@ export default class SentryRRWeb {
     checkoutEveryNms?: number;
     checkoutEveryNth?: number;
     maskAllInputs?: boolean;
-  }) {
+  } = {}) {
     // default checkout time of 5 minutes
     this.checkoutEveryNms = checkoutEveryNms || 5 * 60 * 1000;
     this.checkoutEveryNth = checkoutEveryNth;
