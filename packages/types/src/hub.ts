@@ -6,6 +6,7 @@ import { Scope } from './scope';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
 import { User } from './user';
+import { TransactionContext } from './transaction';
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -178,6 +179,7 @@ export interface Hub {
    * Otherwise it'll crete a new `Span`.
    *
    * @param spanContext Properties with which the span should be created
+   * TODO
    */
-  startSpan(spanContext?: SpanContext): Span;
+  startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span;
 }

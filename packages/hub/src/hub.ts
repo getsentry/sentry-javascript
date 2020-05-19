@@ -11,6 +11,7 @@ import {
   Span,
   SpanContext,
   User,
+  TransactionContext,
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
@@ -366,8 +367,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanOrSpanContext?: Span | SpanContext, forceNoChild: boolean = false): Span {
-    return this._callExtensionMethod<Span>('startSpan', spanOrSpanContext, forceNoChild);
+  public startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span {
+    return this._callExtensionMethod<Span>('startSpan', spanOrTransactionContext);
   }
 
   /**

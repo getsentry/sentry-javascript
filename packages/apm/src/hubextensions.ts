@@ -1,7 +1,8 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
-import { SpanContext } from '@sentry/types';
+import { SpanContext, TransactionContext } from '@sentry/types';
 
 import { Span } from './span';
+import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(): { [key: string]: string } {
@@ -26,43 +27,51 @@ function traceHeaders(): { [key: string]: string } {
  *
  * @param spanContext Properties with which the span should be created
  */
-function startSpan(spanContext?: SpanContext): Span {
+function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span {
   // @ts-ignore
   const hub = this as Hub;
   const scope = hub.getScope();
   const client = hub.getClient();
-  let span;
 
-  // This flag determines if we already added the span as a child to the span that currently lives on the scope
-  // If we do not have this, we will add it later on twice to the span recorder and therefore have too many spans
-  let addedAsChild = false;
+  let newSpanContext = spanOrTransactionContext;
 
+  // We create an empty Span always in case there is nothing on the scope
+  let parentSpan = new Span();
   if (scope) {
-    const parentSpan = scope.getSpan() as Span;
+    // If there is a Span on the Scope we use the span_id / trace_id
+    // To define the parent <-> child relationship
+    parentSpan = scope.getSpan() as Span;
     if (parentSpan) {
-      span = parentSpan.child(spanContext);
-      addedAsChild = true;
+      const { span_id, trace_id } = parentSpan.getTraceContext();
+      newSpanContext = {
+        parentSpanId: span_id,
+        traceId: trace_id,
+        ...spanOrTransactionContext,
+      };
     }
   }
 
-  if (!span) {
-    span = new Span(spanContext, hub);
+  // We are dealing with a Transaction
+  if ((newSpanContext as TransactionContext).name) {
+    const transaction = new Transaction(newSpanContext as TransactionContext, hub);
+
+    // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
+    if (transaction.sampled === undefined) {
+      const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
+      transaction.sampled = Math.random() < sampleRate;
+    }
+
+    // We only want to create a span list if we sampled the transaction
+    // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
+    if (transaction.sampled) {
+      const experimentsOptions = (client && client.getOptions()._experiments) || {};
+      transaction.initSpanRecorder(experimentsOptions.maxSpans as number);
+    }
+
+    return transaction;
   }
 
-  // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
-  if (span.sampled === undefined && span.isRootSpan()) {
-    const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
-    span.sampled = Math.random() < sampleRate;
-  }
-
-  // We only want to create a span list if we sampled the transaction
-  // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
-  if (span.sampled && !addedAsChild) {
-    const experimentsOptions = (client && client.getOptions()._experiments) || {};
-    span.initSpanRecorder(experimentsOptions.maxSpans as number);
-  }
-
-  return span;
+  return new Span(newSpanContext);
 }
 
 /**

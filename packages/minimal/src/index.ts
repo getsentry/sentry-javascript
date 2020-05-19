@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity, User } from '@sentry/types';
+import { Breadcrumb, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -166,4 +166,11 @@ export function withScope(callback: (scope: Scope) => void): void {
  */
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
+}
+
+/**
+ * JSDoc TODO
+ */
+export function startTransaction(transactionContext: TransactionContext): Transaction {
+  return callOnHub<Transaction>('startSpan', transactionContext);
 }

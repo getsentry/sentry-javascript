@@ -11,6 +11,7 @@ import {
 
 import { Span as SpanClass } from '../span';
 import { SpanStatus } from '../spanstatus';
+import { Transaction } from '../transaction';
 
 /**
  * Options for Tracing integration
@@ -132,7 +133,7 @@ export class Tracing implements Integration {
    */
   private static _getCurrentHub?: () => Hub;
 
-  private static _activeTransaction?: Span;
+  private static _activeTransaction?: Transaction;
 
   private static _currentIndex: number = 1;
 
@@ -201,6 +202,8 @@ export class Tracing implements Integration {
       );
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
+
+    Tracing._startTrace();
 
     // Starting pageload transaction
     if (global.location && global.location.href) {
@@ -408,6 +411,26 @@ export class Tracing implements Integration {
   }
 
   /**
+   * TODO
+   */
+  private static _startTrace(): void {
+    const _getCurrentHub = Tracing._getCurrentHub;
+    if (!_getCurrentHub) {
+      return;
+    }
+
+    const hub = _getCurrentHub();
+    if (!hub) {
+      return;
+    }
+
+    const trace = hub.startSpan({});
+    hub.configureScope((scope: Scope) => {
+      scope.setSpan(trace);
+    });
+  }
+
+  /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
@@ -430,15 +453,8 @@ export class Tracing implements Integration {
 
     Tracing._activeTransaction = hub.startSpan({
       ...spanContext,
-      transaction: name,
-    });
-
-    // We set the transaction on the scope so if there are any other spans started outside of this integration
-    // we also add them to this transaction.
-    // Once the idle transaction is finished, we make sure to remove it again.
-    hub.configureScope((scope: Scope) => {
-      scope.setSpan(Tracing._activeTransaction);
-    });
+      name,
+    }) as Transaction;
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -454,11 +470,11 @@ export class Tracing implements Integration {
    * Finshes the current active transaction
    */
   public static finishIdleTransaction(): void {
-    const active = Tracing._activeTransaction as SpanClass;
+    const active = Tracing._activeTransaction;
     if (active) {
       Tracing._addPerformanceEntries(active);
-      Tracing._log('[Tracing] finishIdleTransaction', active.transaction);
-      active.finish(/*trimEnd*/ true);
+      Tracing._log('[Tracing] finishIdleTransaction', active.name);
+      active.finish(undefined, /*trimEnd*/ true);
       Tracing._resetActiveTransaction();
     }
   }
@@ -487,7 +503,7 @@ export class Tracing implements Integration {
         op: 'browser',
       });
       span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
-      span.timestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
+      span.endTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
     }
 
     // tslint:disable-next-line: completed-docs
@@ -497,14 +513,14 @@ export class Tracing implements Integration {
         op: 'browser',
       });
       request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
-      request.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
+      request.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
 
       const response = parent.child({
         description: 'response',
         op: 'browser',
       });
       response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
-      response.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
+      response.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
     }
 
     let entryScriptSrc: string | undefined;
@@ -554,7 +570,7 @@ export class Tracing implements Integration {
               op: entry.entryType,
             });
             mark.startTimestamp = timeOrigin + startTime;
-            mark.timestamp = mark.startTimestamp + duration;
+            mark.endTimestamp = mark.startTimestamp + duration;
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
@@ -567,7 +583,7 @@ export class Tracing implements Integration {
                 transactionSpan.spanRecorder.spans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
                     finishedSpan.startTimestamp = timeOrigin + startTime;
-                    finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
+                    finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
                   }
                 });
               }
@@ -577,10 +593,10 @@ export class Tracing implements Integration {
                 op: `resource`,
               });
               resource.startTimestamp = timeOrigin + startTime;
-              resource.timestamp = resource.startTimestamp + duration;
+              resource.endTimestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
-                entryScriptStartEndTime = resource.timestamp;
+                entryScriptStartEndTime = resource.endTimestamp;
               }
             }
             break;
@@ -595,7 +611,7 @@ export class Tracing implements Integration {
         op: `script`,
       });
       evaluation.startTimestamp = entryScriptStartEndTime;
-      evaluation.timestamp = tracingInitMarkStartTime;
+      evaluation.endTimestamp = tracingInitMarkStartTime;
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);

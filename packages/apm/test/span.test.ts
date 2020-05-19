@@ -186,9 +186,9 @@ describe('Span', () => {
   describe('finish', () => {
     test('simple', () => {
       const span = new Span({});
-      expect(span.timestamp).toBeUndefined();
+      expect(span.endTimestamp).toBeUndefined();
       span.finish();
-      expect(span.timestamp).toBeGreaterThan(1);
+      expect(span.endTimestamp).toBeGreaterThan(1);
     });
 
     describe('hub.startSpan', () => {
@@ -239,7 +239,7 @@ describe('Span', () => {
         expect(spy).not.toHaveBeenCalled();
         expect((spanOne as any).spanRecorder.spans).toHaveLength(3);
         // We only want two finished spans
-        expect((spanOne as any).spanRecorder.spans.filter((s: Span) => !!s.timestamp)).toHaveLength(2);
+        expect((spanOne as any).spanRecorder.spans.filter((s: Span) => !!s.endTimestamp)).toHaveLength(2);
       });
 
       test("finish a span with another one on the scope shouldn't override contexts.trace", () => {
