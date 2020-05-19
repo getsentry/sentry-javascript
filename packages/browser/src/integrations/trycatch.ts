@@ -38,10 +38,10 @@ const DEFAULT_EVENT_TARGET = [
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
 
 interface TryCatchOptions {
-  setTimeout?: boolean;
-  setInterval?: boolean;
-  requestAnimationFrame?: boolean;
-  XMLHttpRequest?: boolean;
+  setTimeout: boolean;
+  setInterval: boolean;
+  requestAnimationFrame: boolean;
+  XMLHttpRequest: boolean;
   eventTarget: boolean | string[];
 }
 
@@ -63,7 +63,7 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public constructor(options?: TryCatchOptions) {
+  public constructor(options?: Partial<TryCatchOptions>) {
     this._options = {
       setTimeout: true,
       setInterval: true,
