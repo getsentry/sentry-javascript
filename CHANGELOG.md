@@ -4,15 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- [apm] fix: Use proper type name for op #2584
-
 ## 5.16.0
 
 - [core] feat: Send transactions in envelopes (#2553)
 - [core] fix: Send event timestamp (#2575)
+- [browser] feat: Allow for configuring TryCatch integration (#2601)
 - [browser] fix: Call wrapped `RequestAnimationFrame` with correct context (#2570)
 - [node] fix: Prevent reading the same source file multiple times (#2569)
 - [integrations] feat: Vue performance monitoring (#2571)
+- [apm] fix: Use proper type name for op #2584
+- [core] fix: sent_at for envelope headers to use same clock #2597
+- [apm] fix: Improve bundle size by moving span status to @sentry/apm #2589
+- [apm] feat: No longer discard transactions instead mark them deadline exceeded #2588
 
 ## 5.15.5
 
