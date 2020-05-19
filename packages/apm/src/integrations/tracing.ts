@@ -743,7 +743,7 @@ export class Tracing implements Integration {
             }
           });
         }
-        if (Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
+        if (Tracing.options && Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
           Tracing._addSpanDebugInfo(span);
         }
         span.finish();
