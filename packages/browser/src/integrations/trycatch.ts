@@ -39,8 +39,8 @@ type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatecha
 
 /** JSDoc */
 interface TryCatchOptions {
-  setInterval: boolean;
   setTimeout: boolean;
+  setInterval: boolean;
   requestAnimationFrame: boolean;
   XMLHttpRequest: boolean;
   eventTarget: boolean | string[];
@@ -66,11 +66,11 @@ export class TryCatch implements Integration {
    */
   public constructor(options?: Partial<TryCatchOptions>) {
     this._options = {
-      setInterval: true,
-      setTimeout: true,
-      requestAnimationFrame: true,
       XMLHttpRequest: true,
       eventTarget: true,
+      requestAnimationFrame: true,
+      setInterval: true,
+      setTimeout: true,
       ...options,
     };
   }
@@ -227,12 +227,14 @@ export class TryCatch implements Integration {
   public setupOnce(): void {
     const global = getGlobalObject();
 
-    if (this._options.setInterval) {
-      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
-    }
     if (this._options.setTimeout) {
       fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
     }
+
+    if (this._options.setInterval) {
+      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
+    }
+
     if (this._options.requestAnimationFrame) {
       fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
     }
