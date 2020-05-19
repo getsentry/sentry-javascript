@@ -1,10 +1,11 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event, EventProcessor, Integration, Span, SpanContext } from '@sentry/types';
+import { Event, EventProcessor, Integration, Severity, Span, SpanContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
   isMatchingPattern,
   logger,
+  safeJoin,
   supportsNativeFetch,
 } from '@sentry/utils';
 
@@ -77,6 +78,27 @@ interface TracingOptions {
    * Default: true
    */
   discardBackgroundSpans: boolean;
+
+  /**
+   * This is only if you want to debug in prod.
+   * writeAsBreadcrumbs: Instead of having console.log statements we log messages to breadcrumbs
+   * so you can investigate whats happening in production with your users to figure why things might not appear the
+   * way you expect them to.
+   *
+   * spanDebugTimingInfo: Add timing info to spans at the point where we create them to figure out browser timing
+   * issues.
+   *
+   * You shouldn't care about this.
+   *
+   * Default: {
+   *   writeAsBreadcrumbs: false;
+   *   spanDebugTimingInfo: false;
+   * }
+   */
+  debug: {
+    writeAsBreadcrumbs: boolean;
+    spanDebugTimingInfo: boolean;
+  };
 }
 
 /** JSDoc */
@@ -138,6 +160,10 @@ export class Tracing implements Integration {
       global.performance.mark('sentry-tracing-init');
     }
     const defaults = {
+      debug: {
+        spanDebugTimingInfo: false,
+        writeAsBreadcrumbs: false,
+      },
       discardBackgroundSpans: true,
       idleTimeout: 500,
       maxTransactionDuration: 600,
@@ -210,8 +236,17 @@ export class Tracing implements Integration {
           event.timestamp - event.start_timestamp < 0);
 
       if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-        logger.log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
-        return null;
+        Tracing._log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
+        if (event.contexts && event.contexts.trace) {
+          event.contexts.trace = {
+            ...event.contexts.trace,
+            status: SpanStatus.DeadlineExceeded,
+          };
+          event.tags = {
+            ...event.tags,
+            maxTransactionDurationExceeded: 'true',
+          };
+        }
       }
 
       return event;
@@ -243,7 +278,7 @@ export class Tracing implements Integration {
       }
       if (Tracing._heartbeatCounter >= 3) {
         if (Tracing._activeTransaction) {
-          logger.log(
+          Tracing._log(
             "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activities content hasn't changed for 3 beats",
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
@@ -263,8 +298,10 @@ export class Tracing implements Integration {
     if (Tracing.options.discardBackgroundSpans && global.document) {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && Tracing._activeTransaction) {
-          logger.log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
-          Tracing._resetActiveTransaction();
+          Tracing._log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
+          Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
+          Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
+          Tracing.finishIdleTransaction();
         }
       });
     }
@@ -337,7 +374,7 @@ export class Tracing implements Integration {
         /**
          * If an error or unhandled promise occurs, we mark the active transaction as failed
          */
-        logger.log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        Tracing._log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
         Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
       }
     }
@@ -352,6 +389,25 @@ export class Tracing implements Integration {
   }
 
   /**
+   * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
+   */
+  private static _log(...args: any[]): void {
+    if (Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
+      const _getCurrentHub = Tracing._getCurrentHub;
+      if (_getCurrentHub) {
+        _getCurrentHub().addBreadcrumb({
+          category: 'tracing',
+          level: Severity.Debug,
+          message: safeJoin(args, ' '),
+          type: 'debug',
+        });
+        return;
+      }
+    }
+    logger.log(args);
+  }
+
+  /**
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
@@ -360,7 +416,7 @@ export class Tracing implements Integration {
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
     Tracing.finishIdleTransaction();
 
-    logger.log('[Tracing] startIdleTransaction, name:', name);
+    Tracing._log('[Tracing] startIdleTransaction, name:', name);
 
     const _getCurrentHub = Tracing._getCurrentHub;
     if (!_getCurrentHub) {
@@ -401,7 +457,7 @@ export class Tracing implements Integration {
     const active = Tracing._activeTransaction as SpanClass;
     if (active) {
       Tracing._addPerformanceEntries(active);
-      logger.log('[Tracing] finishIdleTransaction', active.transaction);
+      Tracing._log('[Tracing] finishIdleTransaction', active.transaction);
       active.finish(/*trimEnd*/ true);
       Tracing._resetActiveTransaction();
     }
@@ -420,7 +476,7 @@ export class Tracing implements Integration {
       return;
     }
 
-    logger.log('[Tracing] Adding & adjusting spans using Performance API');
+    Tracing._log('[Tracing] Adding & adjusting spans using Performance API');
 
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 
@@ -553,7 +609,7 @@ export class Tracing implements Integration {
   public static setTransactionStatus(status: SpanStatus): void {
     const active = Tracing._activeTransaction;
     if (active) {
-      logger.log('[Tracing] setTransactionStatus', status);
+      Tracing._log('[Tracing] setTransactionStatus', status);
       active.setStatus(status);
     }
   }
@@ -564,6 +620,29 @@ export class Tracing implements Integration {
    */
   private static _msToSec(time: number): number {
     return time / 1000;
+  }
+
+  /**
+   * Adds debug data to the span
+   */
+  private static _addSpanDebugInfo(span: Span): void {
+    // tslint:disable: no-unsafe-any
+    const debugData: any = {};
+    if (global.performance) {
+      debugData.performance = true;
+      debugData['performance.timeOrigin'] = global.performance.timeOrigin;
+      debugData['performance.now'] = global.performance.now();
+      // tslint:disable-next-line: deprecation
+      if (global.performance.timing) {
+        // tslint:disable-next-line: deprecation
+        debugData['performance.timing.navigationStart'] = performance.timing.navigationStart;
+      }
+    } else {
+      debugData.performance = false;
+    }
+    debugData['Date.now()'] = Date.now();
+    span.setData('sentry_debug', debugData);
+    // tslint:enable: no-unsafe-any
   }
 
   /**
@@ -583,7 +662,7 @@ export class Tracing implements Integration {
     const activeTransaction = Tracing._activeTransaction;
 
     if (!activeTransaction) {
-      logger.log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
+      Tracing._log(`[Tracing] Not pushing activity ${name} since there is no active transaction`);
       return 0;
     }
 
@@ -606,10 +685,10 @@ export class Tracing implements Integration {
       };
     }
 
-    logger.log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
-    logger.log('[Tracing] activies count', Object.keys(Tracing._activities).length);
+    Tracing._log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
+    Tracing._log('[Tracing] activies count', Object.keys(Tracing._activities).length);
     if (options && typeof options.autoPopAfter === 'number') {
-      logger.log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
+      Tracing._log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
       const index = Tracing._currentIndex;
       setTimeout(() => {
         Tracing.popActivity(index, {
@@ -634,7 +713,7 @@ export class Tracing implements Integration {
     const activity = Tracing._activities[id];
 
     if (activity) {
-      logger.log(`[Tracing] popActivity ${activity.name}#${id}`);
+      Tracing._log(`[Tracing] popActivity ${activity.name}#${id}`);
       const span = activity.span;
       if (span) {
         if (spanData) {
@@ -648,6 +727,9 @@ export class Tracing implements Integration {
             }
           });
         }
+        if (Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
+          Tracing._addSpanDebugInfo(span);
+        }
         span.finish();
       }
       // tslint:disable-next-line: no-dynamic-delete
@@ -657,11 +739,11 @@ export class Tracing implements Integration {
     const count = Object.keys(Tracing._activities).length;
     clearTimeout(Tracing._debounce);
 
-    logger.log('[Tracing] activies count', count);
+    Tracing._log('[Tracing] activies count', count);
 
     if (count === 0 && Tracing._activeTransaction) {
       const timeout = Tracing.options && Tracing.options.idleTimeout;
-      logger.log(`[Tracing] Flushing Transaction in ${timeout}ms`);
+      Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
       Tracing._debounce = (setTimeout(() => {
         Tracing.finishIdleTransaction();
       }, timeout) as any) as number;
