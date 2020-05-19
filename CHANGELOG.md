@@ -6,6 +6,7 @@
 
 - [apm] fix: Use proper type name for op #2584
 - [apm] fix: Improve bundle size by moving span status to @sentry/apm #2589
+- [apm] feat: No longer discard transactions instead mark them deadline exceeded #2588
 
 ## 5.16.0
 
