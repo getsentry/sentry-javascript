@@ -8,6 +8,7 @@
 
 - [core] feat: Send transactions in envelopes (#2553)
 - [core] fix: Send event timestamp (#2575)
+- [browser] feat: Allow for configuring TryCatch integration (#2601)
 - [browser] fix: Call wrapped `RequestAnimationFrame` with correct context (#2570)
 - [node] fix: Prevent reading the same source file multiple times (#2569)
 - [integrations] feat: Vue performance monitoring (#2571)

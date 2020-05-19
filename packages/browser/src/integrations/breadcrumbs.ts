@@ -25,13 +25,13 @@ export interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 }
 
 /** JSDoc */
-interface BreadcrumbIntegrations {
-  console?: boolean;
-  dom?: boolean;
-  fetch?: boolean;
-  history?: boolean;
-  sentry?: boolean;
-  xhr?: boolean;
+interface BreadcrumbsOptions {
+  console: boolean;
+  dom: boolean;
+  fetch: boolean;
+  history: boolean;
+  sentry: boolean;
+  xhr: boolean;
 }
 
 /**
@@ -50,12 +50,12 @@ export class Breadcrumbs implements Integration {
   public static id: string = 'Breadcrumbs';
 
   /** JSDoc */
-  private readonly _options: BreadcrumbIntegrations;
+  private readonly _options: BreadcrumbsOptions;
 
   /**
    * @inheritDoc
    */
-  public constructor(options?: BreadcrumbIntegrations) {
+  public constructor(options?: Partial<BreadcrumbsOptions>) {
     this._options = {
       console: true,
       dom: true,

@@ -3,13 +3,51 @@ import { fill, getFunctionName, getGlobalObject } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
+const DEFAULT_EVENT_TARGET = [
+  'EventTarget',
+  'Window',
+  'Node',
+  'ApplicationCache',
+  'AudioTrackList',
+  'ChannelMergerNode',
+  'CryptoOperation',
+  'EventSource',
+  'FileReader',
+  'HTMLUnknownElement',
+  'IDBDatabase',
+  'IDBRequest',
+  'IDBTransaction',
+  'KeyOperation',
+  'MediaController',
+  'MessagePort',
+  'ModalWindow',
+  'Notification',
+  'SVGElementInstance',
+  'Screen',
+  'TextTrack',
+  'TextTrackCue',
+  'TextTrackList',
+  'WebSocket',
+  'WebSocketWorker',
+  'Worker',
+  'XMLHttpRequest',
+  'XMLHttpRequestEventTarget',
+  'XMLHttpRequestUpload',
+];
+
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
+
+/** JSDoc */
+interface TryCatchOptions {
+  setTimeout: boolean;
+  setInterval: boolean;
+  requestAnimationFrame: boolean;
+  XMLHttpRequest: boolean;
+  eventTarget: boolean | string[];
+}
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 export class TryCatch implements Integration {
-  /** JSDoc */
-  private _ignoreOnError: number = 0;
-
   /**
    * @inheritDoc
    */
@@ -19,6 +57,23 @@ export class TryCatch implements Integration {
    * @inheritDoc
    */
   public static id: string = 'TryCatch';
+
+  /** JSDoc */
+  private readonly _options: TryCatchOptions;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(options?: Partial<TryCatchOptions>) {
+    this._options = {
+      XMLHttpRequest: true,
+      eventTarget: true,
+      requestAnimationFrame: true,
+      setInterval: true,
+      setTimeout: true,
+      ...options,
+    };
+  }
 
   /** JSDoc */
   private _wrapTimeFunction(original: () => void): () => number {
@@ -170,48 +225,27 @@ export class TryCatch implements Integration {
    * and provide better metadata.
    */
   public setupOnce(): void {
-    this._ignoreOnError = this._ignoreOnError;
-
     const global = getGlobalObject();
 
-    fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
-    fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
-    fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
+    if (this._options.setTimeout) {
+      fill(global, 'setTimeout', this._wrapTimeFunction.bind(this));
+    }
 
-    if ('XMLHttpRequest' in global) {
+    if (this._options.setInterval) {
+      fill(global, 'setInterval', this._wrapTimeFunction.bind(this));
+    }
+
+    if (this._options.requestAnimationFrame) {
+      fill(global, 'requestAnimationFrame', this._wrapRAF.bind(this));
+    }
+
+    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in global) {
       fill(XMLHttpRequest.prototype, 'send', this._wrapXHR.bind(this));
     }
 
-    [
-      'EventTarget',
-      'Window',
-      'Node',
-      'ApplicationCache',
-      'AudioTrackList',
-      'ChannelMergerNode',
-      'CryptoOperation',
-      'EventSource',
-      'FileReader',
-      'HTMLUnknownElement',
-      'IDBDatabase',
-      'IDBRequest',
-      'IDBTransaction',
-      'KeyOperation',
-      'MediaController',
-      'MessagePort',
-      'ModalWindow',
-      'Notification',
-      'SVGElementInstance',
-      'Screen',
-      'TextTrack',
-      'TextTrackCue',
-      'TextTrackList',
-      'WebSocket',
-      'WebSocketWorker',
-      'Worker',
-      'XMLHttpRequest',
-      'XMLHttpRequestEventTarget',
-      'XMLHttpRequestUpload',
-    ].forEach(this._wrapEventTarget.bind(this));
+    if (this._options.eventTarget) {
+      const eventTarget = Array.isArray(this._options.eventTarget) ? this._options.eventTarget : DEFAULT_EVENT_TARGET;
+      eventTarget.forEach(this._wrapEventTarget.bind(this));
+    }
   }
 }
