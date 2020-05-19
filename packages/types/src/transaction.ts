@@ -1,4 +1,4 @@
-import { SpanContext } from './span';
+import { Span, SpanContext } from './span';
 
 /**
  * JSDoc TODO
@@ -10,7 +10,7 @@ export interface TransactionContext extends SpanContext {
 /**
  * JSDoc TODO
  */
-export interface Transaction extends TransactionContext {
+export interface Transaction extends TransactionContext, Span {
   /**
    * JSDoc TODO
    */
