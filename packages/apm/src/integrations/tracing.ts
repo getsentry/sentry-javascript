@@ -80,6 +80,14 @@ interface TracingOptions {
   markBackgroundTransactions: boolean;
 
   /**
+   * Tells the integration set a Span on the scope that is considered the "trace". All succeeding Transactions/Span
+   * will be part of the same Trace. Turn this off if you want the every Transaction is it's own Trace.
+   *
+   * Default: true
+   */
+  startTraceForUserSession: boolean;
+
+  /**
    * This is only if you want to debug in prod.
    * writeAsBreadcrumbs: Instead of having console.log statements we log messages to breadcrumbs
    * so you can investigate whats happening in production with your users to figure why things might not appear the
@@ -174,6 +182,7 @@ export class Tracing implements Integration {
           !isMatchingPattern(url, 'sentry_key')
         );
       },
+      startTraceForUserSession: true,
       startTransactionOnLocationChange: true,
       traceFetch: true,
       traceXHR: true,
