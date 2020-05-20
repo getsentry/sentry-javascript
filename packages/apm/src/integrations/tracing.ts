@@ -71,14 +71,13 @@ interface TracingOptions {
   maxTransactionDuration: number;
 
   /**
-   * Flag to discard all spans that occur in background. This includes transactions. Browser background tab timing is
-   * not suited towards doing precise measurements of operations. That's why this option discards any active transaction
-   * and also doesn't add any spans that happen in the background. Background spans/transaction can mess up your
+   * Flag Transactions where tabs moved to background with "cancelled".Browser background tab timing is
+   * not suited towards doing precise measurements of operations. Background transaction can mess up your
    * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
    *
    * Default: true
    */
-  discardBackgroundSpans: boolean;
+  markBackgroundTransactions: boolean;
 
   /**
    * This is only if you want to debug in prod.
@@ -165,8 +164,8 @@ export class Tracing implements Integration {
         spanDebugTimingInfo: false,
         writeAsBreadcrumbs: false,
       },
-      discardBackgroundSpans: true,
       idleTimeout: 500,
+      markBackgroundTransactions: true,
       maxTransactionDuration: 600,
       shouldCreateSpanForRequest(url: string): boolean {
         const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
@@ -239,7 +238,7 @@ export class Tracing implements Integration {
           event.timestamp - event.start_timestamp < 0);
 
       if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-        Tracing._log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} since it maxed out maxTransactionDuration`);
         if (event.contexts && event.contexts.trace) {
           event.contexts.trace = {
             ...event.contexts.trace,
@@ -282,7 +281,9 @@ export class Tracing implements Integration {
       if (Tracing._heartbeatCounter >= 3) {
         if (Tracing._activeTransaction) {
           Tracing._log(
-            "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activities content hasn't changed for 3 beats",
+            `[Tracing] Transaction: ${
+              SpanStatus.Cancelled
+            } -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
           Tracing._activeTransaction.setTag('heartbeat', 'failed');
@@ -298,10 +299,10 @@ export class Tracing implements Integration {
    * Discards active transactions if tab moves to background
    */
   private _setupBackgroundTabDetection(): void {
-    if (Tracing.options.discardBackgroundSpans && global.document) {
+    if (Tracing.options && Tracing.options.markBackgroundTransactions && global.document) {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && Tracing._activeTransaction) {
-          Tracing._log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
+          Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background`);
           Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
           Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
           Tracing.finishIdleTransaction();
@@ -377,7 +378,7 @@ export class Tracing implements Integration {
         /**
          * If an error or unhandled promise occurs, we mark the active transaction as failed
          */
-        Tracing._log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.InternalError} -> Global error occured`);
         Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
       }
     }
