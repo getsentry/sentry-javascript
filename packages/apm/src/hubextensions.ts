@@ -35,7 +35,7 @@ function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): 
 
   let newSpanContext = spanOrTransactionContext;
 
-  // We create an empty Span always in case there is nothing on the scope
+  // We create an empty Span in case there is no scope on the hub
   let parentSpan = new Span();
   if (scope) {
     // If there is a Span on the Scope we use the span_id / trace_id
@@ -55,14 +55,14 @@ function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): 
   if ((newSpanContext as TransactionContext).name) {
     const transaction = new Transaction(newSpanContext as TransactionContext, hub);
 
-    // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
+    // We only roll the dice on sampling for root spans of transactions because all child spans inherit this state
     if (transaction.sampled === undefined) {
       const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
       transaction.sampled = Math.random() < sampleRate;
     }
 
     // We only want to create a span list if we sampled the transaction
-    // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
+    // If sampled == false, we will discard the span anyway, so we can save memory by not storing child spans
     if (transaction.sampled) {
       const experimentsOptions = (client && client.getOptions()._experiments) || {};
       transaction.initSpanRecorder(experimentsOptions.maxSpans as number);

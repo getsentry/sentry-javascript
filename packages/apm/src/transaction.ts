@@ -44,7 +44,7 @@ export class Transaction extends SpanClass {
   public name?: string;
 
   /**
-   * You should never call the custructor manually, always use `hub.startSpan()`.
+   * This constructor should never be called manually. Those instrumenting tracing should use `Stentry.startTransaction()`, and internal methods should use `hub.startSpan()`.
    * @internal
    * @hideconstructor
    * @hidden
@@ -82,7 +82,7 @@ export class Transaction extends SpanClass {
   /**
    * Sets the finish timestamp on the current span.
    * @param trimEnd If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
-   * the duration of the transaction span. This is useful to discard extra time in the transaction span that is not
+   * the duration of the transaction. This is useful to discard extra time in the transaction that is not
    * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
    * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
@@ -96,7 +96,7 @@ export class Transaction extends SpanClass {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      logger.warn('Discarding transaction Span because it was span.sampled !== true');
+      logger.warn('Discarding transaction because it was not chosen to be sampled.);
       return undefined;
     }
 

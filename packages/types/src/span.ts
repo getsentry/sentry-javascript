@@ -1,4 +1,4 @@
-/** Interface holder all properties that can be set on a Span on creation. */
+/** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
    * Description of the Span.
@@ -18,7 +18,7 @@ export interface SpanContext {
    */
   parentSpanId?: string;
   /**
-   * Has the sampling decision been made?
+   * Was this span chosen to be sent as part of the sample?
    */
   sampled?: boolean;
   /**
@@ -41,7 +41,7 @@ export interface SpanContext {
   data?: { [key: string]: any };
 
   /**
-   * Timestamp in seconds when the span started.
+   * Timestamp in seconds (epoch time) indicating when the span started.
    */
   startTimestamp?: number;
 
