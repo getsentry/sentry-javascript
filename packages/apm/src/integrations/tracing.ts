@@ -395,7 +395,7 @@ export class Tracing implements Integration {
    * Uses logger.log to log things in the SDK or as breadcrumbs if defined in options
    */
   private static _log(...args: any[]): void {
-    if (Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
+    if (Tracing.options && Tracing.options.debug && Tracing.options.debug.writeAsBreadcrumbs) {
       const _getCurrentHub = Tracing._getCurrentHub;
       if (_getCurrentHub) {
         _getCurrentHub().addBreadcrumb({
