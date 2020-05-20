@@ -1,9 +1,0 @@
-{
-  "include": ["typescript/raven-tests.ts"],
-  "compilerOptions": {
-    "baseUrl": "./typescript",
-    "types": [],
-    "noEmit": true,
-    "noImplicitAny": true
-  }
-}
