@@ -83,7 +83,7 @@ interface TracingOptions {
    * Tells the integration set a Span on the scope that is considered the "trace". All succeeding Transactions/Span
    * will be part of the same Trace. Turn this off if you want the every Transaction is it's own Trace.
    *
-   * Default: true
+   * Default: false
    */
   startTraceForUserSession: boolean;
 
@@ -182,7 +182,6 @@ export class Tracing implements Integration {
           !isMatchingPattern(url, 'sentry_key')
         );
       },
-      startTraceForUserSession: true,
       startTransactionOnLocationChange: true,
       traceFetch: true,
       traceXHR: true,
@@ -211,7 +210,9 @@ export class Tracing implements Integration {
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
     }
 
-    Tracing._startTrace();
+    if (Tracing.options && Tracing.options.startTraceForUserSession) {
+      Tracing._startTrace();
+    }
 
     // Starting pageload transaction
     if (global.location && global.location.href) {
@@ -435,6 +436,7 @@ export class Tracing implements Integration {
     }
 
     const trace = hub.startSpan({});
+    Tracing._log(`[Tracing] Starting Trace with id: ${trace.traceId}`);
     hub.configureScope((scope: Scope) => {
       scope.setSpan(trace);
     });

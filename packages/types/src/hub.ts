@@ -5,8 +5,8 @@ import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
+import { Transaction, TransactionContext } from './transaction';
 import { User } from './user';
-import { TransactionContext } from './transaction';
 
 /**
  * Internal class used to make sure we always have the latest internal functions
@@ -179,5 +179,5 @@ export interface Hub {
    *
    * @param spanOrTransactionContext Properties with which the Transaction/Span should be created
    */
-  startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span;
+  startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Transaction | Span;
 }

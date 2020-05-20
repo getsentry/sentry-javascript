@@ -10,8 +10,9 @@ import {
   Severity,
   Span,
   SpanContext,
-  User,
+  Transaction,
   TransactionContext,
+  User,
 } from '@sentry/types';
 import { consoleSandbox, getGlobalObject, isNodeEnv, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
@@ -367,8 +368,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span {
-    return this._callExtensionMethod<Span>('startSpan', spanOrTransactionContext);
+  public startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Transaction | Span {
+    return this._callExtensionMethod('startSpan', spanOrTransactionContext);
   }
 
   /**

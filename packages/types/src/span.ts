@@ -4,27 +4,33 @@ export interface SpanContext {
    * Description of the Span.
    */
   description?: string;
+
   /**
    * Operation of the Span.
    */
   op?: string;
+
   /**
    * Completion status of the Span.
    * See: {@sentry/apm SpanStatus} for possible values
    */
   status?: string;
+
   /**
    * Parent Span ID
    */
   parentSpanId?: string;
+
   /**
    * Was this span chosen to be sent as part of the sample?
    */
   sampled?: boolean;
+
   /**
    * Span ID
    */
   spanId?: string;
+
   /**
    * Trace ID
    */

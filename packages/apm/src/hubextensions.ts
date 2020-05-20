@@ -27,7 +27,7 @@ function traceHeaders(): { [key: string]: string } {
  *
  * @param spanContext Properties with which the span should be created
  */
-function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Span {
+function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Transaction | Span {
   // @ts-ignore
   const hub = this as Hub;
   const scope = hub.getScope();

@@ -19,22 +19,22 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  private readonly _traceId: string = uuid4();
+  public traceId: string = uuid4();
 
   /**
    * @inheritDoc
    */
-  private readonly _spanId: string = uuid4().substring(16);
+  public spanId: string = uuid4().substring(16);
 
   /**
    * @inheritDoc
    */
-  private readonly _parentSpanId?: string;
+  public parentSpanId?: string;
 
   /**
    * Internal keeper of the status
    */
-  private _status?: SpanStatus | string;
+  public status?: SpanStatus | string;
 
   /**
    * @inheritDoc
@@ -87,13 +87,13 @@ export class Span implements SpanInterface, SpanContext {
       return this;
     }
     if (spanContext.traceId) {
-      this._traceId = spanContext.traceId;
+      this.traceId = spanContext.traceId;
     }
     if (spanContext.spanId) {
-      this._spanId = spanContext.spanId;
+      this.spanId = spanContext.spanId;
     }
     if (spanContext.parentSpanId) {
-      this._parentSpanId = spanContext.parentSpanId;
+      this.parentSpanId = spanContext.parentSpanId;
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
@@ -112,7 +112,7 @@ export class Span implements SpanInterface, SpanContext {
       this.tags = spanContext.tags;
     }
     if (spanContext.status) {
-      this._status = spanContext.status;
+      this.status = spanContext.status;
     }
     if (spanContext.startTimestamp) {
       this.startTimestamp = spanContext.startTimestamp;
@@ -130,9 +130,9 @@ export class Span implements SpanInterface, SpanContext {
   ): Span {
     const span = new Span({
       ...spanContext,
-      parentSpanId: this._spanId,
+      parentSpanId: this.spanId,
       sampled: this.sampled,
-      traceId: this._traceId,
+      traceId: this.traceId,
     });
 
     span.spanRecorder = this.spanRecorder;
@@ -189,7 +189,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public setStatus(value: SpanStatus): this {
-    this._status = value;
+    this.status = value;
     return this;
   }
 
@@ -209,7 +209,7 @@ export class Span implements SpanInterface, SpanContext {
    * @inheritDoc
    */
   public isSuccess(): boolean {
-    return this._status === SpanStatus.Ok;
+    return this.status === SpanStatus.Ok;
   }
 
   /**
@@ -227,7 +227,7 @@ export class Span implements SpanInterface, SpanContext {
     if (this.sampled !== undefined) {
       sampledString = this.sampled ? '-1' : '-0';
     }
-    return `${this._traceId}-${this._spanId}${sampledString}`;
+    return `${this.traceId}-${this.spanId}${sampledString}`;
   }
 
   /**
@@ -247,11 +247,11 @@ export class Span implements SpanInterface, SpanContext {
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
       op: this.op,
-      parent_span_id: this._parentSpanId,
-      span_id: this._spanId,
-      status: this._status,
+      parent_span_id: this.parentSpanId,
+      span_id: this.spanId,
+      status: this.status,
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
-      trace_id: this._traceId,
+      trace_id: this.traceId,
     });
   }
 
@@ -274,13 +274,13 @@ export class Span implements SpanInterface, SpanContext {
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,
       op: this.op,
-      parent_span_id: this._parentSpanId,
+      parent_span_id: this.parentSpanId,
       sampled: this.sampled,
-      span_id: this._spanId,
+      span_id: this.spanId,
       start_timestamp: this.startTimestamp,
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this.endTimestamp,
-      trace_id: this._traceId,
+      trace_id: this.traceId,
     });
   }
 }

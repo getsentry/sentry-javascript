@@ -96,7 +96,7 @@ export class Transaction extends SpanClass {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      logger.warn('Discarding transaction because it was not chosen to be sampled.);
+      logger.warn('Discarding transaction because it was not chosen to be sampled.');
       return undefined;
     }
 
