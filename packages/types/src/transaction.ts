@@ -1,18 +1,18 @@
 import { Span, SpanContext } from './span';
 
 /**
- * JSDoc TODO
+ * Interface holding Transaction specific properties
  */
 export interface TransactionContext extends SpanContext {
   name: string;
 }
 
 /**
- * JSDoc TODO
+ * Transaction "Class", inherits Span only has `setName`
  */
 export interface Transaction extends TransactionContext, Span {
   /**
-   * JSDoc TODO
+   * Set the name of the transaction
    */
   setName(name: string): void;
 }

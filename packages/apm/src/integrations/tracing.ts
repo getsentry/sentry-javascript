@@ -412,7 +412,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * TODO
+   * Puts a span on the Scope as the "trace"
    */
   private static _startTrace(): void {
     const _getCurrentHub = Tracing._getCurrentHub;

@@ -4,7 +4,6 @@ import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 import { SpanStatus } from './spanstatus';
 import { SpanRecorder } from './transaction';
 
-// TODO: Should this be exported?
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
   '([0-9a-f]{32})?' + // trace_id

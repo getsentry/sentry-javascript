@@ -42,9 +42,8 @@ function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): 
     // To define the parent <-> child relationship
     parentSpan = scope.getSpan() as Span;
     if (parentSpan) {
-      const { span_id, trace_id } = parentSpan.getTraceContext();
+      const { trace_id } = parentSpan.getTraceContext();
       newSpanContext = {
-        parentSpanId: span_id,
         traceId: trace_id,
         ...spanOrTransactionContext,
       };
