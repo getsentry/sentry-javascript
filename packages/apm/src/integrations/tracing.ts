@@ -80,14 +80,6 @@ interface TracingOptions {
   markBackgroundTransactions: boolean;
 
   /**
-   * Tells the integration set a Span on the scope that is considered the "trace". All succeeding Transactions/Span
-   * will be part of the same Trace. Turn this off if you want the every Transaction is it's own Trace.
-   *
-   * Default: false
-   */
-  startTraceForUserSession: boolean;
-
-  /**
    * This is only if you want to debug in prod.
    * writeAsBreadcrumbs: Instead of having console.log statements we log messages to breadcrumbs
    * so you can investigate whats happening in production with your users to figure why things might not appear the
@@ -208,10 +200,6 @@ export class Tracing implements Integration {
         '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
       );
       logger.warn(`[Tracing] We added a reasonable default for you: ${defaultTracingOrigins}`);
-    }
-
-    if (Tracing.options && Tracing.options.startTraceForUserSession) {
-      Tracing._startTrace();
     }
 
     // Starting pageload transaction
@@ -419,27 +407,6 @@ export class Tracing implements Integration {
       }
     }
     logger.log(args);
-  }
-
-  /**
-   * Puts a span on the Scope as the "trace"
-   */
-  private static _startTrace(): void {
-    const _getCurrentHub = Tracing._getCurrentHub;
-    if (!_getCurrentHub) {
-      return;
-    }
-
-    const hub = _getCurrentHub();
-    if (!hub) {
-      return;
-    }
-
-    const trace = hub.startSpan({});
-    Tracing._log(`[Tracing] Starting Trace with id: ${trace.traceId}`);
-    hub.configureScope((scope: Scope) => {
-      scope.setSpan(trace);
-    });
   }
 
   /**
