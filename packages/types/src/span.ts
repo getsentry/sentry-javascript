@@ -52,7 +52,7 @@ export interface SpanContext {
   startTimestamp?: number;
 
   /**
-   * Timestamp in seconds when the span ended.
+   * Timestamp in seconds (epoch time) indicating when the span ended.
    */
   endTimestamp?: number;
 }
