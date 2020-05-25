@@ -329,9 +329,6 @@ export class Scope implements ScopeInterface {
     if (this._transaction) {
       event.transaction = this._transaction;
     }
-    if (this._span && event.type === 'transaction') {
-      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-    }
 
     this._applyFingerprint(event);
 
