@@ -73,6 +73,7 @@ module.exports = config => {
       "/base/variants/123": "/base/subjects/123",
       // Supresses warnings
       "/api/1/store/": "/",
+      "/api/1/envelope/": "/",
     },
     frameworks: ["mocha", "chai", "sinon"],
     files,

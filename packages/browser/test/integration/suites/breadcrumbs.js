@@ -174,20 +174,7 @@ describe("breadcrumbs", function() {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", envelope);
         xhr.send(
-          `
-{
-  "event_id": "aa3ff046696b4bc6b609ce6d28fde9e2",
-  "sent_at": "2020-05-19T15:44:49.028Z"
-}
-{
-  "type": "transaction"
-}
-{
-  "message":"someMessage",
-  "transaction":"wat",
-  "level":"warning",
-}
-          `.trim()
+          '{"event_id": "aa3ff046696b4bc6b609ce6d28fde9e2","sent_at": "2020-05-19T15:44:49.028Z"}\n{"type": "transaction"}\n{"message":"someMessage","transaction":"wat","level":"warning"}'
         );
         waitForXHR(xhr, function() {
           Sentry.captureMessage("test");
