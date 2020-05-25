@@ -81,6 +81,9 @@ export class Transaction extends SpanClass {
 
   /**
    * Sets the finish timestamp on the current span.
+   *
+   * @inheritdoc
+   *
    * @param trimEnd If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
    * the duration of the transaction. This is useful to discard extra time in the transaction that is not
    * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
