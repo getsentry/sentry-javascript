@@ -305,9 +305,6 @@ export class Vue implements Integration {
     }
 
     this._rootSpanTimer = setTimeout(() => {
-      if (this._rootSpan) {
-        ((this._rootSpan as unknown) as { timestamp: number }).timestamp = timestamp;
-      }
       if (this._tracingActivity) {
         // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
@@ -315,6 +312,9 @@ export class Vue implements Integration {
         if (tracingIntegration) {
           // tslint:disable-next-line:no-unsafe-any
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
+          if (this._rootSpan) {
+            this._rootSpan.finish(timestamp);
+          }
         }
       }
     }, this._options.tracingOptions.timeout);

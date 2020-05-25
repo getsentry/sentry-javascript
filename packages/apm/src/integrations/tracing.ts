@@ -406,7 +406,7 @@ export class Tracing implements Integration {
         return;
       }
     }
-    logger.log(args);
+    logger.log(...args);
   }
 
   /**
