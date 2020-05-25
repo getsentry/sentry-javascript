@@ -238,11 +238,16 @@ export class Vue implements Integration {
           if (tracingIntegration) {
             // tslint:disable-next-line:no-unsafe-any
             this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
+            // tslint:disable-next-line:no-unsafe-any
+            const transaction = (tracingIntegration as any).constructor.getTransaction();
+            if (transaction) {
+              // tslint:disable-next-line:no-unsafe-any
+              this._rootSpan = transaction.startChild({
+                description: 'Application Render',
+                op: 'Vue',
+              });
+            }
           }
-          this._rootSpan = getCurrentHub().startSpan({
-            description: 'Application Render',
-            op: 'Vue',
-          });
         });
       }
     };
@@ -269,7 +274,7 @@ export class Vue implements Integration {
       } else {
         vm.$once(`hook:${hook}`, () => {
           if (this._rootSpan) {
-            spans[op] = this._rootSpan.child({
+            spans[op] = this._rootSpan.startChild({
               description: `Vue <${name}>`,
               op,
             });

@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
@@ -35,12 +35,12 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (!this._app) {
       logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
-    instrumentMiddlewares(this._app, getCurrentHub);
+    instrumentMiddlewares(this._app);
   }
 }
 
@@ -56,42 +56,66 @@ export class Express implements Integration {
  * // error handler
  * app.use(function (err, req, res, next) { ... })
  */
-function wrap(fn: Function, getCurrentHub: () => Hub): RequestHandler | ErrorRequestHandler {
+function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
   const arrity = fn.length;
 
   switch (arrity) {
     case 2: {
       return function(this: NodeJS.Global, _req: Request, res: Response): any {
-        const span = getCurrentHub().startSpan({
-          description: fn.name,
-          op: 'middleware',
-        });
-        res.once('finish', () => span.finish());
+        // tslint:disable: no-unsafe-any
+        const transaction = (res as any).getTransaction && (res as any).getTransaction();
+        if (transaction) {
+          const span = transaction.startChild({
+            description: fn.name,
+            op: 'middleware',
+          });
+          res.once('finish', () => {
+            span.finish();
+          });
+        }
+        // tslint:enable: no-unsafe-any
         return fn.apply(this, arguments);
       };
     }
     case 3: {
       return function(this: NodeJS.Global, req: Request, res: Response, next: NextFunction): any {
-        const span = getCurrentHub().startSpan({
-          description: fn.name,
-          op: 'middleware',
-        });
-        fn.call(this, req, res, function(this: NodeJS.Global): any {
-          span.finish();
-          return next.apply(this, arguments);
-        });
+        // tslint:disable: no-unsafe-any
+        const transaction = (res as any).getTransaction && (res as any).getTransaction();
+        if (transaction) {
+          const span = transaction.startChild({
+            description: fn.name,
+            op: 'middleware',
+          });
+          fn.call(this, req, res, function(this: NodeJS.Global): any {
+            span.finish();
+            return next.apply(this, arguments);
+          });
+        } else {
+          fn.call(this, req, res, function(this: NodeJS.Global): any {
+            return next.apply(this, arguments);
+          });
+        }
+        // tslint:enable: no-unsafe-any
       };
     }
     case 4: {
       return function(this: NodeJS.Global, err: any, req: Request, res: Response, next: NextFunction): any {
-        const span = getCurrentHub().startSpan({
-          description: fn.name,
-          op: 'middleware',
-        });
-        fn.call(this, err, req, res, function(this: NodeJS.Global): any {
-          span.finish();
-          return next.apply(this, arguments);
-        });
+        // tslint:disable: no-unsafe-any
+        const transaction = (res as any).getTransaction && (res as any).getTransaction();
+        if (transaction) {
+          const span = transaction.startChild({
+            description: fn.name,
+            op: 'middleware',
+          });
+          fn.call(this, err, req, res, function(this: NodeJS.Global): any {
+            span.finish();
+            return next.apply(this, arguments);
+          });
+        } else {
+          fn.call(this, err, req, res, function(this: NodeJS.Global): any {
+            return next.apply(this, arguments);
+          });
+        }
       };
     }
     default: {
@@ -110,16 +134,16 @@ function wrap(fn: Function, getCurrentHub: () => Hub): RequestHandler | ErrorReq
  * app.use([<path>], <fn>, ...<fn>)
  * app.use([<path>], ...<fn>[])
  */
-function wrapUseArgs(args: IArguments, getCurrentHub: () => Hub): unknown[] {
+function wrapUseArgs(args: IArguments): unknown[] {
   return Array.from(args).map((arg: unknown) => {
     if (typeof arg === 'function') {
-      return wrap(arg, getCurrentHub);
+      return wrap(arg);
     }
 
     if (Array.isArray(arg)) {
       return arg.map((a: unknown) => {
         if (typeof a === 'function') {
-          return wrap(a, getCurrentHub);
+          return wrap(a);
         }
         return a;
       });
@@ -132,10 +156,10 @@ function wrapUseArgs(args: IArguments, getCurrentHub: () => Hub): unknown[] {
 /**
  * Patches original app.use to utilize our tracing functionality
  */
-function instrumentMiddlewares(app: Application, getCurrentHub: () => Hub): Application {
+function instrumentMiddlewares(app: Application): Application {
   const originalAppUse = app.use;
   app.use = function(): any {
-    return originalAppUse.apply(this, wrapUseArgs(arguments, getCurrentHub));
+    return originalAppUse.apply(this, wrapUseArgs(arguments));
   };
   return app;
 }

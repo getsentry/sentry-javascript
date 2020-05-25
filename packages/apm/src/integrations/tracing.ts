@@ -477,7 +477,7 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: SpanClass, entry: { [key: string]: number }, event: string): void {
-      const span = parent.child({
+      const span = parent.startChild({
         description: event,
         op: 'browser',
       });
@@ -487,14 +487,14 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addRequest(parent: SpanClass, entry: { [key: string]: number }): void {
-      const request = parent.child({
+      const request = parent.startChild({
         description: 'request',
         op: 'browser',
       });
       request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
       request.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
 
-      const response = parent.child({
+      const response = parent.startChild({
         description: 'response',
         op: 'browser',
       });
@@ -544,7 +544,7 @@ export class Tracing implements Integration {
           case 'mark':
           case 'paint':
           case 'measure':
-            const mark = transactionSpan.child({
+            const mark = transactionSpan.startChild({
               description: entry.name,
               op: entry.entryType,
             });
@@ -567,7 +567,7 @@ export class Tracing implements Integration {
                 });
               }
             } else {
-              const resource = transactionSpan.child({
+              const resource = transactionSpan.startChild({
                 description: `${entry.initiatorType} ${resourceName}`,
                 op: `resource`,
               });
@@ -585,7 +585,7 @@ export class Tracing implements Integration {
       });
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
-      const evaluation = transactionSpan.child({
+      const evaluation = transactionSpan.startChild({
         description: 'evaluation',
         op: `script`,
       });
@@ -607,6 +607,13 @@ export class Tracing implements Integration {
       Tracing._log('[Tracing] setTransactionStatus', status);
       active.setStatus(status);
     }
+  }
+
+  /**
+   * Returns the current active idle transaction if there is one
+   */
+  public static getTransaction(): Transaction | undefined {
+    return Tracing._activeTransaction;
   }
 
   /**
@@ -668,7 +675,7 @@ export class Tracing implements Integration {
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
       if (hub) {
-        const span = activeTransaction.child(spanContext);
+        const span = activeTransaction.startChild(spanContext);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
