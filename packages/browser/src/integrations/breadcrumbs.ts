@@ -313,18 +313,38 @@ export class Breadcrumbs implements Integration {
 function addSentryBreadcrumb(serializedData: string): void {
   // There's always something that can go wrong with deserialization...
   try {
-    const event = JSON.parse(serializedData);
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-        event_id: event.event_id,
-        level: event.level || Severity.fromString('error'),
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
+    try {
+      const event = JSON.parse(serializedData);
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+          event_id: event.event_id,
+          level: event.level || Severity.fromString('error'),
+          message: getEventDescription(event),
+        },
+        {
+          event,
+        },
+      );
+    } catch (_oO) {
+      // We are dealing with an envelope here
+      // For simplicity we only deal with transactions
+      const envelopeLines = serializedData.split('\n');
+      const envelopeHeader = JSON.parse(envelopeLines[0]);
+      const itemHeader = JSON.parse(envelopeLines[1]);
+      const item = JSON.parse(envelopeLines[2]);
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `sentry.${itemHeader.type}`,
+          event_id: envelopeHeader.event_id,
+          level: item.level,
+          message: getEventDescription(item),
+        },
+        {
+          item,
+        },
+      );
+    }
   } catch (_oO) {
     logger.error('Error while adding sentry type breadcrumb');
   }
