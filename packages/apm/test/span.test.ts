@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, Scope } from '@sentry/hub';
 
-import { Span, SpanStatus, TRACEPARENT_REGEXP } from '../src';
+import { Span, SpanStatus, TRACEPARENT_REGEXP, Transaction } from '../src';
 
 describe('Span', () => {
   let hub: Hub;
@@ -11,20 +11,37 @@ describe('Span', () => {
     hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }), myScope);
   });
 
-  describe('newSpan', () => {
+  describe('new Span', () => {
     test('simple', () => {
       const span = new Span({ sampled: true });
-      const span2 = span.child();
-      expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
-      expect((span2 as any)._traceId).toBe((span as any)._traceId);
+      const span2 = span.startChild();
+      expect((span2 as any).parentSpanId).toBe((span as any).spanId);
+      expect((span2 as any).traceId).toBe((span as any).traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
+    });
+  });
+
+  describe('new Transaction', () => {
+    test('simple', () => {
+      const transaction = new Transaction({ name: 'test', sampled: true });
+      const span2 = transaction.startChild();
+      expect((span2 as any).parentSpanId).toBe((transaction as any).spanId);
+      expect((span2 as any).traceId).toBe((transaction as any).traceId);
+      expect((span2 as any).sampled).toBe((transaction as any).sampled);
     });
 
     test('gets currentHub', () => {
-      const span = new Span({});
-      const span2 = span.child();
-      expect((span as any)._hub).toBeInstanceOf(Hub);
-      expect((span2 as any)._hub).toBeInstanceOf(Hub);
+      const transaction = new Transaction({ name: 'test' });
+      expect((transaction as any)._hub).toBeInstanceOf(Hub);
+    });
+
+    test('inherit span list', () => {
+      const transaction = new Transaction({ name: 'test', sampled: true });
+      const span2 = transaction.startChild();
+      const span3 = span2.startChild();
+      span3.finish();
+      expect(transaction.spanRecorder).toBe(span2.spanRecorder);
+      expect(transaction.spanRecorder).toBe(span3.spanRecorder);
     });
   });
 
@@ -74,32 +91,6 @@ describe('Span', () => {
     });
   });
 
-  describe('newSpan', () => {
-    test('simple', () => {
-      const span = new Span({ sampled: true });
-      const span2 = span.child();
-      expect((span2 as any)._parentSpanId).toBe((span as any)._spanId);
-      expect((span2 as any)._traceId).toBe((span as any)._traceId);
-      expect((span2 as any).sampled).toBe((span as any).sampled);
-    });
-
-    test('gets currentHub', () => {
-      const span = new Span({});
-      const span2 = span.child();
-      expect((span as any)._hub).toBeInstanceOf(Hub);
-      expect((span2 as any)._hub).toBeInstanceOf(Hub);
-    });
-
-    test('inherit span list', () => {
-      const span = new Span({ sampled: true });
-      const span2 = span.child();
-      const span3 = span.child();
-      span3.finish();
-      expect(span.spanRecorder).toBe(span2.spanRecorder);
-      expect(span.spanRecorder).toBe(span3.spanRecorder);
-    });
-  });
-
   describe('toTraceparent', () => {
     test('simple', () => {
       expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
@@ -113,9 +104,9 @@ describe('Span', () => {
     test('no sample', () => {
       const from = Span.fromTraceparent('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb') as any;
 
-      expect(from._parentSpanId).toEqual('bbbbbbbbbbbbbbbb');
-      expect(from._traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-      expect(from._spanId).not.toEqual('bbbbbbbbbbbbbbbb');
+      expect(from.parentSpanId).toEqual('bbbbbbbbbbbbbbbb');
+      expect(from.traceId).toEqual('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+      expect(from.spanId).not.toEqual('bbbbbbbbbbbbbbbb');
       expect(from.sampled).toBeUndefined();
     });
     test('sample true', () => {
@@ -130,13 +121,13 @@ describe('Span', () => {
 
     test('just sample rate', () => {
       const from = Span.fromTraceparent('0') as any;
-      expect(from._traceId).toHaveLength(32);
-      expect(from._spanId).toHaveLength(16);
+      expect(from.traceId).toHaveLength(32);
+      expect(from.spanId).toHaveLength(16);
       expect(from.sampled).toBeFalsy();
 
       const from2 = Span.fromTraceparent('1') as any;
-      expect(from2._traceId).toHaveLength(32);
-      expect(from2._spanId).toHaveLength(16);
+      expect(from2.traceId).toHaveLength(32);
+      expect(from2.spanId).toHaveLength(16);
       expect(from2.sampled).toBeTruthy();
     });
 
@@ -156,7 +147,7 @@ describe('Span', () => {
 
     test('with parent', () => {
       const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
-      const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA._spanId });
+      const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
       const serialized = JSON.parse(JSON.stringify(spanB));
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
@@ -166,7 +157,7 @@ describe('Span', () => {
     test('should drop all `undefined` values', () => {
       const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
       const spanB = new Span({
-        parentSpanId: spanA._spanId,
+        parentSpanId: spanA.spanId,
         sampled: false,
         spanId: 'd',
         traceId: 'c',
@@ -192,74 +183,54 @@ describe('Span', () => {
     });
 
     describe('hub.startSpan', () => {
-      test('finish a span', () => {
+      test('finish a transaction', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const span = hub.startSpan();
-        span.finish();
+        const transaction = hub.startSpan({ name: 'test' });
+        transaction.finish();
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(0);
         expect(spy.mock.calls[0][0].timestamp).toBeTruthy();
         expect(spy.mock.calls[0][0].start_timestamp).toBeTruthy();
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(span.getTraceContext());
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
       });
 
-      test('finish a span with transaction + child span', () => {
+      test('finish a transaction + child span', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const parentSpan = hub.startSpan();
-        const childSpan = parentSpan.child();
+        const transaction = hub.startSpan({ name: 'test' });
+        const childSpan = transaction.startChild();
         childSpan.finish();
-        parentSpan.finish();
+        transaction.finish();
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(1);
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(parentSpan.getTraceContext());
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
       });
 
       test("finish a child span shouldn't trigger captureEvent", () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const parentSpan = hub.startSpan();
-        const childSpan = parentSpan.child();
+        const transaction = hub.startSpan({ name: 'test' });
+        const childSpan = transaction.startChild();
         childSpan.finish();
         expect(spy).not.toHaveBeenCalled();
-      });
-
-      test('finish a span with another one on the scope should add the span and not call captureEvent', () => {
-        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-
-        const spanOne = hub.startSpan();
-        const childSpanOne = spanOne.child();
-        childSpanOne.finish();
-
-        hub.configureScope(scope => {
-          scope.setSpan(spanOne);
-        });
-
-        const spanTwo = hub.startSpan();
-        spanTwo.finish();
-
-        expect(spy).not.toHaveBeenCalled();
-        expect((spanOne as any).spanRecorder.spans).toHaveLength(3);
-        // We only want two finished spans
-        expect((spanOne as any).spanRecorder.spans.filter((s: Span) => !!s.endTimestamp)).toHaveLength(2);
       });
 
       test("finish a span with another one on the scope shouldn't override contexts.trace", () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
 
-        const spanOne = hub.startSpan();
-        const childSpanOne = spanOne.child();
+        const transaction = hub.startSpan({ name: 'test' });
+        const childSpanOne = transaction.startChild();
         childSpanOne.finish();
 
         hub.configureScope(scope => {
-          scope.setSpan(spanOne);
+          scope.setSpan(childSpanOne);
         });
 
-        const spanTwo = hub.startSpan();
+        const spanTwo = transaction.startChild();
         spanTwo.finish();
-        spanOne.finish();
+        transaction.finish();
 
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(2);
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(spanOne.getTraceContext());
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
       });
 
       test('span child limit', () => {
@@ -270,33 +241,33 @@ describe('Span', () => {
           }),
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const span = _hub.startSpan();
+        const transaction = _hub.startSpan({ name: 'test' });
         for (let i = 0; i < 10; i++) {
-          const child = span.child();
+          const child = transaction.startChild();
           child.finish();
         }
-        span.finish();
+        transaction.finish();
         expect(spy.mock.calls[0][0].spans).toHaveLength(3);
       });
 
-      test('if we sampled the parent (transaction) we do not want any childs', () => {
+      test('if we sampled the transaction we do not want any children', () => {
         const _hub = new Hub(
           new BrowserClient({
             tracesSampleRate: 0,
           }),
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const span = _hub.startSpan();
+        const transaction = _hub.startSpan({ name: 'test' });
         for (let i = 0; i < 10; i++) {
-          const child = span.child();
+          const child = transaction.startChild();
           child.finish();
         }
-        span.finish();
-        expect((span as any).spanRecorder).toBeUndefined();
+        transaction.finish();
+        expect((transaction as any).spanRecorder).toBeUndefined();
         expect(spy).not.toHaveBeenCalled();
       });
 
-      test('mixing hub.startSpan + span.child + maxSpans', () => {
+      test('mixing hub.startSpan(transaction) + span.startChild + maxSpans', () => {
         const _hub = new Hub(
           new BrowserClient({
             _experiments: { maxSpans: 2 },
@@ -305,21 +276,21 @@ describe('Span', () => {
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
 
-        const spanOne = _hub.startSpan();
-        const childSpanOne = spanOne.child({ op: '1' });
+        const transaction = _hub.startSpan({ name: 'test' });
+        const childSpanOne = transaction.startChild({ op: '1' });
         childSpanOne.finish();
 
         _hub.configureScope(scope => {
-          scope.setSpan(spanOne);
+          scope.setSpan(transaction);
         });
 
-        const spanTwo = _hub.startSpan({ op: '2' });
+        const spanTwo = transaction.startChild({ op: '2' });
         spanTwo.finish();
 
-        const spanThree = _hub.startSpan({ op: '3' });
+        const spanThree = transaction.startChild({ op: '3' });
         spanThree.finish();
 
-        spanOne.finish();
+        transaction.finish();
 
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(2);
@@ -328,28 +299,28 @@ describe('Span', () => {
       test('tree structure of spans should be correct when mixing it with span on scope', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
 
-        const spanOne = hub.startSpan();
-        const childSpanOne = spanOne.child();
+        const transaction = hub.startSpan({ name: 'test' });
+        const childSpanOne = transaction.startChild();
 
-        const childSpanTwo = childSpanOne.child();
+        const childSpanTwo = childSpanOne.startChild();
         childSpanTwo.finish();
 
         childSpanOne.finish();
 
         hub.configureScope(scope => {
-          scope.setSpan(spanOne);
+          scope.setSpan(transaction);
         });
 
-        const spanTwo = hub.startSpan();
+        const spanTwo = transaction.startChild({});
         spanTwo.finish();
-        spanOne.finish();
+        transaction.finish();
 
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(3);
-        expect(spy.mock.calls[0][0].contexts.trace).toEqual(spanOne.getTraceContext());
-        expect(childSpanOne.toJSON().parent_span_id).toEqual(spanOne.toJSON().span_id);
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
+        expect(childSpanOne.toJSON().parent_span_id).toEqual(transaction.toJSON().span_id);
         expect(childSpanTwo.toJSON().parent_span_id).toEqual(childSpanOne.toJSON().span_id);
-        expect(spanTwo.toJSON().parent_span_id).toEqual(spanOne.toJSON().span_id);
+        expect(spanTwo.toJSON().parent_span_id).toEqual(transaction.toJSON().span_id);
       });
     });
   });
