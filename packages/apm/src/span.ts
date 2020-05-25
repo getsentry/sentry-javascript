@@ -124,8 +124,18 @@ export class Span implements SpanInterface, SpanContext {
 
   /**
    * @inheritDoc
+   * @deprecated
    */
   public child(
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
+  ): Span {
+    return this.startChild(spanContext);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
     const span = new Span({
