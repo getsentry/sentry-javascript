@@ -47,10 +47,10 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
 - [`sentry-cordova`](https://github.com/getsentry/sentry-cordova): SDK for Cordova Apps and Ionic with support for
   native crashes
-- [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/master/packages/raven-js): Our old stable JavaScript
+- [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-js): Our old stable JavaScript
   SDK, we still support and release bug fixes for the SDK but all new features will be implemented in `@sentry/browser`
   which is the successor.
-- [`raven`](https://github.com/getsentry/sentry-javascript/tree/master/packages/raven-node): Our old stable Node SDK,
+- [`raven`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-node): Our old stable Node SDK,
   same as for `raven-js` we still support and release bug fixes for the SDK but all new features will be implemented in
   `@sentry/node` which is the successor.
 
