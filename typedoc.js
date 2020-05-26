@@ -11,8 +11,6 @@ module.exports = {
     '**/build/**/*',
     '**/packages/opentracing/**/*',
     '**/packages/typescript/**/*',
-    '**/packages/raven-js/**/*',
-    '**/packages/raven/**/*',
     '**/dangerfile.ts',
   ],
   mode: 'modules',
