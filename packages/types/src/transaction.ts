@@ -12,6 +12,13 @@ export interface TransactionContext extends SpanContext {
    * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
   trimEnd?: boolean;
+
+  /**
+   * This flag is internally used by {@link Sentry.startTransaction} and set there to determine this is really a
+   * Transaction. Since there is no type safety in JS we set it in the top level function to true to check later
+   * if the user really wanted to create a Transaction and we can log a warning if they forgot to set the name property.
+   */
+  _isTransaction?: boolean;
 }
 
 /**

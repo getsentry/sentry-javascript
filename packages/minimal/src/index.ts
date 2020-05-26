@@ -175,5 +175,8 @@ export function _callOnClient(method: string, ...args: any[]): void {
  * a transaction it will be sent to Sentry.
  */
 export function startTransaction(transactionContext: TransactionContext): Transaction {
-  return callOnHub<Transaction>('startSpan', transactionContext);
+  return callOnHub<Transaction>('startSpan', {
+    ...transactionContext,
+    _isTransaction: true,
+  });
 }
