@@ -28,12 +28,7 @@ function traceHeaders(): { [key: string]: string } {
  *
  * @param context Properties with which the span should be created
  */
-function startSpan(context: SpanContext | TransactionContext): Transaction | Span {
-  // @ts-ignore
-  const hub = this as Hub;
-  const scope = hub.getScope();
-  const client = hub.getClient();
-
+function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
   // This is our safeguard so people always get a Transaction in return.
   // We set `_isTransaction: true` in {@link Sentry.startTransaction} to have a runtime check
   // if the user really wanted to create a Transaction.
@@ -45,8 +40,9 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
 
   if ((context as TransactionContext).name) {
     // We are dealing with a Transaction
-    const transaction = new Transaction(context as TransactionContext, hub);
+    const transaction = new Transaction(context as TransactionContext, this);
 
+    const client = this.getClient();
     // We only roll the dice on sampling for root spans of transactions because all child spans inherit this state
     if (transaction.sampled === undefined) {
       const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
@@ -66,6 +62,7 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
     return transaction;
   }
 
+  const scope = this.getScope();
   if (scope) {
     // If there is a Span on the Scope we start a child and return that instead
     const parentSpan = scope.getSpan();
