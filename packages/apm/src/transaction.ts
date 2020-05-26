@@ -26,7 +26,7 @@ export class SpanRecorder {
    * start_timestamp).
    */
   public add(span: SpanClass): void {
-    if (this.spans.length >= this._maxlen) {
+    if (this.spans.length > this._maxlen) {
       span.spanRecorder = undefined;
     } else {
       this.spans.push(span);
