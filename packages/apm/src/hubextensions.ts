@@ -34,21 +34,6 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
   const scope = hub.getScope();
   const client = hub.getClient();
 
-  let newSpanContext = context;
-
-  if (scope) {
-    // If there is a Span on the Scope we use the span_id / trace_id
-    // To define the parent <-> child relationship
-    const parentSpan = scope.getSpan();
-    if (parentSpan) {
-      const { trace_id } = parentSpan.getTraceContext();
-      newSpanContext = {
-        traceId: trace_id,
-        ...context,
-      };
-    }
-  }
-
   // This is our safeguard so people always get a Transaction in return.
   // We set `_isTransaction: true` in {@link Sentry.startTransaction} to have a runtime check
   // if the user really wanted to create a Transaction.
@@ -57,14 +42,17 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
     logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
   }
 
-  if ((newSpanContext as TransactionContext).name) {
+  if ((context as TransactionContext).name) {
     // We are dealing with a Transaction
-    const transaction = new Transaction(newSpanContext as TransactionContext, hub);
+    const transaction = new Transaction(context as TransactionContext, hub);
 
     // We only roll the dice on sampling for root spans of transactions because all child spans inherit this state
     if (transaction.sampled === undefined) {
       const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
-      transaction.sampled = Math.random() <= sampleRate;
+      // if true = we want to have the transaction
+      // if false = we don't want to have it
+      // Math.random (inclusive of 0, but not 1)
+      transaction.sampled = Math.random() < sampleRate;
     }
 
     // We only want to create a span list if we sampled the transaction
@@ -77,7 +65,16 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
     return transaction;
   }
 
-  return new Span(newSpanContext);
+  if (scope) {
+    // If there is a Span on the Scope we start a child and return that instead
+    const parentSpan = scope.getSpan();
+    if (parentSpan) {
+      return parentSpan.startChild(context);
+    }
+  }
+
+  // Otherwise we return a new Span
+  return new Span(context);
 }
 
 /**

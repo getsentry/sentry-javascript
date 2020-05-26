@@ -3,6 +3,10 @@ import { logger } from '@sentry/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
 
+/**
+ * Internal helper for `__sentry_transaction`
+ * @hidden
+ */
 interface SentryTracingResponse {
   __sentry_transaction?: Transaction;
 }
@@ -73,9 +77,7 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
             op: 'middleware',
           });
           res.once('finish', () => {
-            if (span) {
-              span.finish();
-            }
+            span.finish();
           });
         }
         return fn.apply(this, arguments);

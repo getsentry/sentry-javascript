@@ -40,9 +40,8 @@ export function tracingHandler(): (
     if (req.headers && isString(req.headers['sentry-trace'])) {
       const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
       if (span) {
-        const spanData = span.toJSON();
-        traceId = spanData.trace_id;
-        parentSpanId = spanData.span_id;
+        traceId = span.traceId;
+        parentSpanId = span.parentSpanId;
       }
     }
 
@@ -57,6 +56,7 @@ export function tracingHandler(): (
     getCurrentHub().configureScope(scope => {
       scope.setSpan(transaction);
     });
+
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
     (res as any).__sentry_transaction = transaction;
