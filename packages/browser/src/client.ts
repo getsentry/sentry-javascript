@@ -3,7 +3,7 @@ import { DsnLike, Event, EventHint } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 
 import { BrowserBackend, BrowserOptions } from './backend';
-import { Breadcrumbs } from './integrations/index';
+import { Breadcrumbs } from './integrations';
 import { SDK_NAME, SDK_VERSION } from './version';
 
 /**
