@@ -80,10 +80,10 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
     this._processEvent(event, hint, scope)
       .then(finalEvent => {
         // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
         // We do this here to not parse any requests if they are outgoing to Sentry
         // We log breadcrumbs if the integration has them enabled
         if (finalEvent) {
+          eventId = finalEvent.event_id;
           const integration = this.getIntegration(Breadcrumbs);
           if (integration) {
             integration.addSentryBreadcrumb(finalEvent);
