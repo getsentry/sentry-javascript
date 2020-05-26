@@ -33,5 +33,4 @@ docs
 lint-results.json
 
 # legacy
-!/packages/raven-js/dist
 tmp.js
