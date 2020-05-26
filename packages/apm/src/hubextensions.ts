@@ -40,6 +40,7 @@ function startSpan(context: SpanContext | TransactionContext): Transaction | Spa
   if ((context as TransactionContext)._isTransaction && !(context as TransactionContext).name) {
     logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
     logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
+    (context as TransactionContext).name = '<unlabeled transaction>';
   }
 
   if ((context as TransactionContext).name) {
