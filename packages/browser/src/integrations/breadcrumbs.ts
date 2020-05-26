@@ -1,16 +1,13 @@
-import { API, getCurrentHub } from '@sentry/core';
-import { Integration, Severity } from '@sentry/types';
+import { getCurrentHub } from '@sentry/core';
+import { Event, Integration, Severity } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
   getGlobalObject,
   htmlTreeAsString,
-  logger,
   parseUrl,
   safeJoin,
 } from '@sentry/utils';
-
-import { BrowserClient } from '../client';
 
 /**
  * @hidden
@@ -65,6 +62,26 @@ export class Breadcrumbs implements Integration {
       xhr: true,
       ...options,
     };
+  }
+
+  /**
+   * Create a breadcrumb of `sentry` from the events themselves
+   */
+  public addSentryBreadcrumb(event: Event): void {
+    if (!this._options.sentry) {
+      return;
+    }
+    getCurrentHub().addBreadcrumb(
+      {
+        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+        event_id: event.event_id,
+        level: event.level,
+        message: getEventDescription(event),
+      },
+      {
+        event,
+      },
+    );
   }
 
   /**
@@ -151,11 +168,6 @@ export class Breadcrumbs implements Integration {
 
       return;
     }
-
-    // We only capture issued sentry requests
-    if (this._options.sentry && handlerData.xhr.__sentry_own_request__) {
-      addSentryBreadcrumb(handlerData.args[0]);
-    }
   }
 
   /**
@@ -165,24 +177,6 @@ export class Breadcrumbs implements Integration {
     // We only capture complete fetch requests
     if (!handlerData.endTimestamp) {
       return;
-    }
-
-    const client = getCurrentHub().getClient<BrowserClient>();
-    const dsn = client && client.getDsn();
-    if (this._options.sentry && dsn) {
-      const filterUrl = new API(dsn).getBaseApiEndpoint();
-      // if Sentry key appears in URL, don't capture it as a request
-      // but rather as our own 'sentry' type breadcrumb
-      if (
-        filterUrl &&
-        handlerData.fetchData.url.indexOf(filterUrl) !== -1 &&
-        handlerData.fetchData.method === 'POST' &&
-        handlerData.args[1] &&
-        handlerData.args[1].body
-      ) {
-        addSentryBreadcrumb(handlerData.args[1].body);
-        return;
-      }
     }
 
     if (handlerData.error) {
@@ -304,28 +298,5 @@ export class Breadcrumbs implements Integration {
         type: 'history',
       });
     }
-  }
-}
-
-/**
- * Create a breadcrumb of `sentry` from the events themselves
- */
-function addSentryBreadcrumb(serializedData: string): void {
-  // There's always something that can go wrong with deserialization...
-  try {
-    const event = JSON.parse(serializedData);
-    getCurrentHub().addBreadcrumb(
-      {
-        category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-        event_id: event.event_id,
-        level: event.level || Severity.fromString('error'),
-        message: getEventDescription(event),
-      },
-      {
-        event,
-      },
-    );
-  } catch (_oO) {
-    logger.error('Error while adding sentry type breadcrumb');
   }
 }
