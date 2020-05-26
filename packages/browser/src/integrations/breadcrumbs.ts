@@ -179,6 +179,11 @@ export class Breadcrumbs implements Integration {
       return;
     }
 
+    if (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST') {
+      // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
+      return;
+    }
+
     if (handlerData.error) {
       getCurrentHub().addBreadcrumb(
         {
