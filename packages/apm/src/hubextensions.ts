@@ -25,27 +25,25 @@ function traceHeaders(): { [key: string]: string } {
  * the created Span with the SpanContext will have a reference to it and become it's child.
  * Otherwise it'll crete a new `Span`.
  *
- * @param spanContext Properties with which the span should be created
+ * @param context Properties with which the span should be created
  */
-function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Transaction | Span {
+function startSpan(context: SpanContext | TransactionContext): Transaction | Span {
   // @ts-ignore
   const hub = this as Hub;
   const scope = hub.getScope();
   const client = hub.getClient();
 
-  let newSpanContext = spanOrTransactionContext;
+  let newSpanContext = context;
 
-  // We create an empty Span in case there is no scope on the hub
-  let parentSpan = new Span();
   if (scope) {
     // If there is a Span on the Scope we use the span_id / trace_id
     // To define the parent <-> child relationship
-    parentSpan = scope.getSpan() as Span;
+    const parentSpan = scope.getSpan();
     if (parentSpan) {
       const { trace_id } = parentSpan.getTraceContext();
       newSpanContext = {
         traceId: trace_id,
-        ...spanOrTransactionContext,
+        ...context,
       };
     }
   }
@@ -57,7 +55,7 @@ function startSpan(spanOrTransactionContext: SpanContext | TransactionContext): 
     // We only roll the dice on sampling for root spans of transactions because all child spans inherit this state
     if (transaction.sampled === undefined) {
       const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
-      transaction.sampled = Math.random() < sampleRate;
+      transaction.sampled = Math.random() <= sampleRate;
     }
 
     // We only want to create a span list if we sampled the transaction

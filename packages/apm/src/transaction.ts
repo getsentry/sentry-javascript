@@ -26,7 +26,7 @@ export class SpanRecorder {
    * start_timestamp).
    */
   public add(span: SpanClass): void {
-    if (this.spans.length > this._maxlen) {
+    if (this.spans.length >= this._maxlen) {
       span.spanRecorder = undefined;
     } else {
       this.spans.push(span);
@@ -42,6 +42,8 @@ export class Transaction extends SpanClass {
   private readonly _hub: Hub = (getCurrentHub() as unknown) as Hub;
 
   public name?: string;
+
+  private readonly _trimEnd?: boolean;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use `Stentry.startTransaction()`, and internal methods should use `hub.startSpan()`.
@@ -59,6 +61,8 @@ export class Transaction extends SpanClass {
     if (transactionContext.name) {
       this.name = transactionContext.name;
     }
+
+    this._trimEnd = transactionContext.trimEnd;
   }
 
   /**
@@ -80,16 +84,9 @@ export class Transaction extends SpanClass {
   }
 
   /**
-   * Sets the finish timestamp on the current span.
-   *
-   * @inheritdoc
-   *
-   * @param trimEnd If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
-   * the duration of the transaction. This is useful to discard extra time in the transaction that is not
-   * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
-   * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
+   * @inheritDoc
    */
-  public finish(endTimestamp?: number, trimEnd: boolean = false): string | undefined {
+  public finish(endTimestamp?: number): string | undefined {
     // This transaction is already finished, so we should not flush it again.
     if (this.endTimestamp !== undefined) {
       return undefined;
@@ -105,7 +102,7 @@ export class Transaction extends SpanClass {
 
     const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.endTimestamp) : [];
 
-    if (trimEnd && finishedSpans.length > 0) {
+    if (this._trimEnd && finishedSpans.length > 0) {
       this.endTimestamp = finishedSpans.reduce((prev: SpanClass, current: SpanClass) => {
         if (prev.endTimestamp && current.endTimestamp) {
           return prev.endTimestamp > current.endTimestamp ? prev : current;

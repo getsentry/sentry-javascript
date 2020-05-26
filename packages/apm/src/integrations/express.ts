@@ -1,7 +1,11 @@
-import { Integration } from '@sentry/types';
+import { Integration, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 // tslint:disable-next-line:no-implicit-dependencies
 import { Application, ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+
+interface SentryTracingResponse {
+  __sentry_transaction?: Transaction;
+}
 
 /**
  * Express integration
@@ -61,61 +65,65 @@ function wrap(fn: Function): RequestHandler | ErrorRequestHandler {
 
   switch (arrity) {
     case 2: {
-      return function(this: NodeJS.Global, _req: Request, res: Response): any {
-        // tslint:disable: no-unsafe-any
-        const transaction = (res as any).getTransaction && (res as any).getTransaction();
+      return function(this: NodeJS.Global, _req: Request, res: Response & SentryTracingResponse): any {
+        const transaction = res.__sentry_transaction;
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
             op: 'middleware',
           });
           res.once('finish', () => {
-            span.finish();
+            if (span) {
+              span.finish();
+            }
           });
         }
-        // tslint:enable: no-unsafe-any
         return fn.apply(this, arguments);
       };
     }
     case 3: {
-      return function(this: NodeJS.Global, req: Request, res: Response, next: NextFunction): any {
-        // tslint:disable: no-unsafe-any
-        const transaction = (res as any).getTransaction && (res as any).getTransaction();
-        if (transaction) {
-          const span = transaction.startChild({
+      return function(
+        this: NodeJS.Global,
+        req: Request,
+        res: Response & SentryTracingResponse,
+        next: NextFunction,
+      ): any {
+        const transaction = res.__sentry_transaction;
+        const span =
+          transaction &&
+          transaction.startChild({
             description: fn.name,
             op: 'middleware',
           });
-          fn.call(this, req, res, function(this: NodeJS.Global): any {
+        fn.call(this, req, res, function(this: NodeJS.Global): any {
+          if (span) {
             span.finish();
-            return next.apply(this, arguments);
-          });
-        } else {
-          fn.call(this, req, res, function(this: NodeJS.Global): any {
-            return next.apply(this, arguments);
-          });
-        }
-        // tslint:enable: no-unsafe-any
+          }
+          return next.apply(this, arguments);
+        });
       };
     }
     case 4: {
-      return function(this: NodeJS.Global, err: any, req: Request, res: Response, next: NextFunction): any {
-        // tslint:disable: no-unsafe-any
-        const transaction = (res as any).getTransaction && (res as any).getTransaction();
-        if (transaction) {
-          const span = transaction.startChild({
+      return function(
+        this: NodeJS.Global,
+        err: any,
+        req: Request,
+        res: Response & SentryTracingResponse,
+        next: NextFunction,
+      ): any {
+        const transaction = res.__sentry_transaction;
+        const span =
+          transaction &&
+          transaction.startChild({
             description: fn.name,
             op: 'middleware',
           });
-          fn.call(this, err, req, res, function(this: NodeJS.Global): any {
+        fn.call(this, err, req, res, function(this: NodeJS.Global): any {
+          if (span) {
             span.finish();
-            return next.apply(this, arguments);
-          });
-        } else {
-          fn.call(this, err, req, res, function(this: NodeJS.Global): any {
-            return next.apply(this, arguments);
-          });
-        }
+          }
+          return next.apply(this, arguments);
+        });
       };
     }
     default: {

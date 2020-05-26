@@ -1,5 +1,5 @@
 import { Hub } from '@sentry/hub';
-import { Event, EventProcessor, Integration, Severity, Span, SpanContext } from '@sentry/types';
+import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -71,7 +71,7 @@ interface TracingOptions {
   maxTransactionDuration: number;
 
   /**
-   * Flag Transactions where tabs moved to background with "cancelled".Browser background tab timing is
+   * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
    * not suited towards doing precise measurements of operations. Background transaction can mess up your
    * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
    *
@@ -205,7 +205,8 @@ export class Tracing implements Integration {
     // Starting pageload transaction
     if (global.location && global.location.href) {
       // Use `${global.location.href}` as transaction name
-      Tracing.startIdleTransaction(global.location.href, {
+      Tracing.startIdleTransaction({
+        name: global.location.href,
         op: 'pageload',
       });
     }
@@ -412,13 +413,13 @@ export class Tracing implements Integration {
   /**
    * Starts a Transaction waiting for activity idle to finish
    */
-  public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
+  public static startIdleTransaction(transactionContext: TransactionContext): Transaction | undefined {
     // If we already have an active transaction it means one of two things
     // a) The user did rapid navigation changes and didn't wait until the transaction was finished
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
     Tracing.finishIdleTransaction();
 
-    Tracing._log('[Tracing] startIdleTransaction, name:', name);
+    Tracing._log('[Tracing] startIdleTransaction, name:', transactionContext.name);
 
     const _getCurrentHub = Tracing._getCurrentHub;
     if (!_getCurrentHub) {
@@ -431,8 +432,8 @@ export class Tracing implements Integration {
     }
 
     Tracing._activeTransaction = hub.startSpan({
-      ...spanContext,
-      name,
+      trimEnd: true,
+      ...transactionContext,
     }) as Transaction;
 
     // The reason we do this here is because of cached responses
@@ -453,7 +454,7 @@ export class Tracing implements Integration {
     if (active) {
       Tracing._addPerformanceEntries(active);
       Tracing._log('[Tracing] finishIdleTransaction', active.name);
-      active.finish(undefined, /*trimEnd*/ true);
+      active.finish();
       Tracing._resetActiveTransaction();
     }
   }
@@ -860,7 +861,8 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
  */
 function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
-    Tracing.startIdleTransaction(global.location.href, {
+    Tracing.startIdleTransaction({
+      name: global.location.href,
       op: 'navigation',
     });
   }

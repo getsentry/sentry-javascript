@@ -177,7 +177,7 @@ export interface Hub {
    * This functions starts either a Span or a Transaction (depending on the argument passed).
    * If there is a Span on the Scope we use the `trace_id` for all other created Transactions / Spans as a reference.
    *
-   * @param spanOrTransactionContext Properties with which the Transaction/Span should be created
+   * @param context Properties with which the Transaction/Span should be created
    */
-  startSpan(spanOrTransactionContext: SpanContext | TransactionContext): Transaction | Span;
+  startSpan(context: SpanContext | TransactionContext): Transaction | Span;
 }

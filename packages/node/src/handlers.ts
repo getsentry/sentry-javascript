@@ -53,21 +53,17 @@ export function tracingHandler(): (
       traceId,
     });
 
-    if (transaction) {
-      // We put the transaction on the scope so users can attach children to it
-      getCurrentHub().configureScope(scope => {
-        scope.setSpan(transaction);
-      });
-      // We also set a function getTransaction on the response so people can grab the transaction there to add
-      // spans to it
-      (res as any).getTransaction = () => transaction;
-    }
+    // We put the transaction on the scope so users can attach children to it
+    getCurrentHub().configureScope(scope => {
+      scope.setSpan(transaction);
+    });
+    // We also set __sentry_transaction on the response so people can grab the transaction there to add
+    // spans to it later.
+    (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
-      if (transaction) {
-        transaction.setHttpStatus(res.statusCode);
-        transaction.finish();
-      }
+      transaction.setHttpStatus(res.statusCode);
+      transaction.finish();
     });
 
     next();
@@ -303,7 +299,6 @@ export function parseRequest(
   }
 
   if (options.transaction && !event.transaction) {
-    // TODO: Use the real transaction here
     const transaction = extractTransaction(req, options.transaction);
     if (transaction) {
       event.transaction = transaction;

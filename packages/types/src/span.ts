@@ -60,38 +60,35 @@ export interface SpanContext {
 /** Span holding trace_id, span_id */
 export interface Span extends SpanContext {
   /**
+   * @inheritDoc
+   */
+  spanId: string;
+
+  /**
+   * @inheritDoc
+   */
+  traceId: string;
+
+  /**
+   * @inheritDoc
+   */
+  startTimestamp: number;
+
+  /**
+   * @inheritDoc
+   */
+  tags: { [key: string]: string };
+
+  /**
+   * @inheritDoc
+   */
+  data: { [key: string]: any };
+
+  /**
    * Sets the finish timestamp on the current span.
    * @param endTimestamp Takes an endTimestamp if the end should not be the time when you call this function.
    */
   finish(endTimestamp?: number): void;
-
-  /** Return a traceparent compatible header string */
-  toTraceparent(): string;
-
-  /** Convert the object to JSON for w. spans array info only */
-  getTraceContext(): {
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    status?: string;
-    tags?: { [key: string]: string };
-    trace_id: string;
-  };
-  /** Convert the object to JSON */
-  toJSON(): {
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    sampled?: boolean;
-    span_id: string;
-    start_timestamp: number;
-    tags?: { [key: string]: string };
-    timestamp?: number;
-    trace_id: string;
-  };
 
   /**
    * Sets the tag attribute on the current span
@@ -140,4 +137,32 @@ export interface Span extends SpanContext {
    * Determines whether span was successful (HTTP200)
    */
   isSuccess(): boolean;
+
+  /** Return a traceparent compatible header string */
+  toTraceparent(): string;
+
+  /** Convert the object to JSON for w. spans array info only */
+  getTraceContext(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    span_id: string;
+    status?: string;
+    tags?: { [key: string]: string };
+    trace_id: string;
+  };
+  /** Convert the object to JSON */
+  toJSON(): {
+    data?: { [key: string]: any };
+    description?: string;
+    op?: string;
+    parent_span_id?: string;
+    sampled?: boolean;
+    span_id: string;
+    start_timestamp: number;
+    tags?: { [key: string]: string };
+    timestamp?: number;
+    trace_id: string;
+  };
 }
