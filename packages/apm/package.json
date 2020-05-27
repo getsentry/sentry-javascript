@@ -3,7 +3,7 @@
   "version": "5.16.0-beta.3",
   "description": "Extensions for APM",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/apm",
   "author": "Sentry",
   "license": "BSD-3-Clause",
   "engines": {
