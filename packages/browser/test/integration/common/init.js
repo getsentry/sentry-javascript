@@ -51,7 +51,11 @@ function initSDK() {
       }
 
       // One of the tests use manually created breadcrumb without eventId and we want to let it through
-      if (breadcrumb.category.indexOf("sentry" === 0) && breadcrumb.event_id) {
+      if (
+        breadcrumb.category.indexOf("sentry" === 0) &&
+        breadcrumb.event_id &&
+        !window.allowSentryBreadcrumbs
+      ) {
         return null;
       }
 

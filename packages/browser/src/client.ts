@@ -73,30 +73,12 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
-    let eventId: string | undefined = hint && hint.event_id;
-    this._processing = true;
-
-    this._processEvent(event, hint, scope)
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        // We do this here to not parse any requests if they are outgoing to Sentry
-        // We log breadcrumbs if the integration has them enabled
-        if (finalEvent) {
-          eventId = finalEvent.event_id;
-          const integration = this.getIntegration(Breadcrumbs);
-          if (integration) {
-            integration.addSentryBreadcrumb(finalEvent);
-          }
-        }
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
-      });
-
-    return eventId;
+  protected _sendEvent(event: Event): void {
+    const integration = this.getIntegration(Breadcrumbs);
+    if (integration) {
+      integration.addSentryBreadcrumb(event);
+    }
+    super._sendEvent(event);
   }
 
   /**
