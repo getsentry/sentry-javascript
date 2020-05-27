@@ -74,11 +74,9 @@ export class BrowserClient extends BaseClient<BrowserBackend, BrowserOptions> {
    * @inheritDoc
    */
   protected _sendEvent(event: Event): void {
-    if (event) {
-      const integration = this.getIntegration(Breadcrumbs);
-      if (integration) {
-        integration.addSentryBreadcrumb(event);
-      }
+    const integration = this.getIntegration(Breadcrumbs);
+    if (integration) {
+      integration.addSentryBreadcrumb(event);
     }
     super._sendEvent(event);
   }
