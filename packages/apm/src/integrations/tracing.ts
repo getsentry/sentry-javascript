@@ -460,7 +460,7 @@ export class Tracing implements Integration {
           const keepSpan = finishedSpan.startTimestamp < Tracing._idleTransactionEndTimestamp + timeout;
           if (!keepSpan) {
             Tracing._log(
-              '[Tracing] discarding span since this happens after Transaction was flushed',
+              '[Tracing] discarding Span since it happened after Transaction was finished',
               finishedSpan.toJSON(),
             );
           }
