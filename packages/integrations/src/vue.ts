@@ -238,11 +238,16 @@ export class Vue implements Integration {
           if (tracingIntegration) {
             // tslint:disable-next-line:no-unsafe-any
             this._tracingActivity = (tracingIntegration as any).constructor.pushActivity('Vue Application Render');
+            // tslint:disable-next-line:no-unsafe-any
+            const transaction = (tracingIntegration as any).constructor.getTransaction();
+            if (transaction) {
+              // tslint:disable-next-line:no-unsafe-any
+              this._rootSpan = transaction.startChild({
+                description: 'Application Render',
+                op: 'Vue',
+              });
+            }
           }
-          this._rootSpan = getCurrentHub().startSpan({
-            description: 'Application Render',
-            op: 'Vue',
-          });
         });
       }
     };
@@ -269,7 +274,7 @@ export class Vue implements Integration {
       } else {
         vm.$once(`hook:${hook}`, () => {
           if (this._rootSpan) {
-            spans[op] = this._rootSpan.child({
+            spans[op] = this._rootSpan.startChild({
               description: `Vue <${name}>`,
               op,
             });
@@ -300,9 +305,6 @@ export class Vue implements Integration {
     }
 
     this._rootSpanTimer = setTimeout(() => {
-      if (this._rootSpan) {
-        ((this._rootSpan as unknown) as { timestamp: number }).timestamp = timestamp;
-      }
       if (this._tracingActivity) {
         // We do this whole dance with `TRACING_GETTER` to prevent `@sentry/apm` from becoming a peerDependency.
         // We also need to ask for the `.constructor`, as `pushActivity` and `popActivity` are static, not instance methods.
@@ -310,6 +312,9 @@ export class Vue implements Integration {
         if (tracingIntegration) {
           // tslint:disable-next-line:no-unsafe-any
           (tracingIntegration as any).constructor.popActivity(this._tracingActivity);
+          if (this._rootSpan) {
+            this._rootSpan.finish(timestamp);
+          }
         }
       }
     }, this._options.tracingOptions.timeout);

@@ -4,6 +4,7 @@ export {
   captureEvent,
   captureMessage,
   configureScope,
+  startTransaction,
   setContext,
   setExtra,
   setExtras,

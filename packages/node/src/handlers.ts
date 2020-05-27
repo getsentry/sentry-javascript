@@ -1,5 +1,5 @@
 import { Span } from '@sentry/apm';
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
+import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import { Event } from '@sentry/types';
 import { forget, isPlainObject, isString, logger, normalize } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -32,15 +32,34 @@ export function tracingHandler(): (
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = req.url;
 
-    const hub = getCurrentHub();
-    const transaction = hub.startSpan({
+    let traceId;
+    let parentSpanId;
+
+    // If there is a trace header set, we extract the data from it and set the span on the scope
+    // to be the origin an created transaction set the parent_span_id / trace_id
+    if (req.headers && isString(req.headers['sentry-trace'])) {
+      const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
+      if (span) {
+        traceId = span.traceId;
+        parentSpanId = span.parentSpanId;
+      }
+    }
+
+    const transaction = startTransaction({
+      name: `${reqMethod} ${reqUrl}`,
       op: 'http.server',
-      transaction: `${reqMethod} ${reqUrl}`,
+      parentSpanId,
+      traceId,
     });
 
-    hub.configureScope(scope => {
+    // We put the transaction on the scope so users can attach children to it
+    getCurrentHub().configureScope(scope => {
       scope.setSpan(transaction);
     });
+
+    // We also set __sentry_transaction on the response so people can grab the transaction there to add
+    // spans to it later.
+    (res as any).__sentry_transaction = transaction;
 
     res.once('finish', () => {
       transaction.setHttpStatus(res.statusCode);
@@ -369,18 +388,14 @@ export function errorHandler(options?: {
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    req: http.IncomingMessage,
+    _req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      withScope(scope => {
-        if (req.headers && isString(req.headers['sentry-trace'])) {
-          const span = Span.fromTraceparent(req.headers['sentry-trace'] as string);
-          scope.setSpan(span);
-        }
+      withScope(_scope => {
         const eventId = captureException(error);
         (res as any).sentry = eventId;
         next(error);

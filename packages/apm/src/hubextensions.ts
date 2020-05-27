@@ -1,13 +1,13 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
-import { SpanContext } from '@sentry/types';
+import { SpanContext, TransactionContext } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { Span } from './span';
+import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
-function traceHeaders(): { [key: string]: string } {
-  // @ts-ignore
-  const that = this as Hub;
-  const scope = that.getScope();
+function traceHeaders(this: Hub): { [key: string]: string } {
+  const scope = this.getScope();
   if (scope) {
     const span = scope.getSpan();
     if (span) {
@@ -24,45 +24,53 @@ function traceHeaders(): { [key: string]: string } {
  * the created Span with the SpanContext will have a reference to it and become it's child.
  * Otherwise it'll crete a new `Span`.
  *
- * @param spanContext Properties with which the span should be created
+ * @param context Properties with which the span should be created
  */
-function startSpan(spanContext?: SpanContext): Span {
-  // @ts-ignore
-  const hub = this as Hub;
-  const scope = hub.getScope();
-  const client = hub.getClient();
-  let span;
+function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
+  // This is our safeguard so people always get a Transaction in return.
+  // We set `_isTransaction: true` in {@link Sentry.startTransaction} to have a runtime check
+  // if the user really wanted to create a Transaction.
+  if ((context as TransactionContext)._isTransaction && !(context as TransactionContext).name) {
+    logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
+    logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
+    (context as TransactionContext).name = '<unlabeled transaction>';
+  }
 
-  // This flag determines if we already added the span as a child to the span that currently lives on the scope
-  // If we do not have this, we will add it later on twice to the span recorder and therefore have too many spans
-  let addedAsChild = false;
+  if ((context as TransactionContext).name) {
+    // We are dealing with a Transaction
+    const transaction = new Transaction(context as TransactionContext, this);
 
+    const client = this.getClient();
+    // We only roll the dice on sampling for root spans of transactions because all child spans inherit this state
+    if (transaction.sampled === undefined) {
+      const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
+      // if true = we want to have the transaction
+      // if false = we don't want to have it
+      // Math.random (inclusive of 0, but not 1)
+      transaction.sampled = Math.random() < sampleRate;
+    }
+
+    // We only want to create a span list if we sampled the transaction
+    // If sampled == false, we will discard the span anyway, so we can save memory by not storing child spans
+    if (transaction.sampled) {
+      const experimentsOptions = (client && client.getOptions()._experiments) || {};
+      transaction.initSpanRecorder(experimentsOptions.maxSpans as number);
+    }
+
+    return transaction;
+  }
+
+  const scope = this.getScope();
   if (scope) {
-    const parentSpan = scope.getSpan() as Span;
+    // If there is a Span on the Scope we start a child and return that instead
+    const parentSpan = scope.getSpan();
     if (parentSpan) {
-      span = parentSpan.child(spanContext);
-      addedAsChild = true;
+      return parentSpan.startChild(context);
     }
   }
 
-  if (!span) {
-    span = new Span(spanContext, hub);
-  }
-
-  // We only roll the dice on sampling for "root" spans (transactions) because the childs inherit this state
-  if (span.sampled === undefined && span.isRootSpan()) {
-    const sampleRate = (client && client.getOptions().tracesSampleRate) || 0;
-    span.sampled = Math.random() < sampleRate;
-  }
-
-  // We only want to create a span list if we sampled the transaction
-  // in case we will discard the span anyway because sampled == false, we safe memory and do not store child spans
-  if (span.sampled && !addedAsChild) {
-    const experimentsOptions = (client && client.getOptions()._experiments) || {};
-    span.initSpanRecorder(experimentsOptions.maxSpans as number);
-  }
-
-  return span;
+  // Otherwise we return a new Span
+  return new Span(context);
 }
 
 /**

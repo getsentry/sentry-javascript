@@ -16,6 +16,9 @@
 - [core] fix: sent_at for envelope headers to use same clock #2597
 - [apm] fix: Improve bundle size by moving span status to @sentry/apm #2589
 - [apm] feat: No longer discard transactions instead mark them deadline exceeded #2588
+- [apm] feat: Introduce `Sentry.startTransaction` and `Transaction.startChild` #2600
+- [apm] feat: Transactions no longer go through `beforeSend` #2600
+- [browser] fix: Emit Sentry Request breadcrumbs from inside the client (#2615)
 
 ## 5.15.5
 

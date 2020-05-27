@@ -1,5 +1,5 @@
-import { Hub, Scope } from '@sentry/hub';
-import { Event, EventProcessor, Integration, Severity, Span, SpanContext } from '@sentry/types';
+import { Hub } from '@sentry/hub';
+import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getGlobalObject,
@@ -11,6 +11,7 @@ import {
 
 import { Span as SpanClass } from '../span';
 import { SpanStatus } from '../spanstatus';
+import { Transaction } from '../transaction';
 
 /**
  * Options for Tracing integration
@@ -70,14 +71,13 @@ interface TracingOptions {
   maxTransactionDuration: number;
 
   /**
-   * Flag to discard all spans that occur in background. This includes transactions. Browser background tab timing is
-   * not suited towards doing precise measurements of operations. That's why this option discards any active transaction
-   * and also doesn't add any spans that happen in the background. Background spans/transaction can mess up your
+   * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
+   * not suited towards doing precise measurements of operations. Background transaction can mess up your
    * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
    *
    * Default: true
    */
-  discardBackgroundSpans: boolean;
+  markBackgroundTransactions: boolean;
 
   /**
    * This is only if you want to debug in prod.
@@ -132,7 +132,7 @@ export class Tracing implements Integration {
    */
   private static _getCurrentHub?: () => Hub;
 
-  private static _activeTransaction?: Span;
+  private static _activeTransaction?: Transaction;
 
   private static _currentIndex: number = 1;
 
@@ -164,8 +164,8 @@ export class Tracing implements Integration {
         spanDebugTimingInfo: false,
         writeAsBreadcrumbs: false,
       },
-      discardBackgroundSpans: true,
       idleTimeout: 500,
+      markBackgroundTransactions: true,
       maxTransactionDuration: 600,
       shouldCreateSpanForRequest(url: string): boolean {
         const origins = (_options && _options.tracingOrigins) || defaultTracingOrigins;
@@ -205,7 +205,8 @@ export class Tracing implements Integration {
     // Starting pageload transaction
     if (global.location && global.location.href) {
       // Use `${global.location.href}` as transaction name
-      Tracing.startIdleTransaction(global.location.href, {
+      Tracing.startIdleTransaction({
+        name: global.location.href,
         op: 'pageload',
       });
     }
@@ -236,7 +237,7 @@ export class Tracing implements Integration {
           event.timestamp - event.start_timestamp < 0);
 
       if (Tracing.options.maxTransactionDuration !== 0 && event.type === 'transaction' && isOutdatedTransaction) {
-        Tracing._log('[Tracing] Discarded transaction since it maxed out maxTransactionDuration');
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} since it maxed out maxTransactionDuration`);
         if (event.contexts && event.contexts.trace) {
           event.contexts.trace = {
             ...event.contexts.trace,
@@ -279,7 +280,9 @@ export class Tracing implements Integration {
       if (Tracing._heartbeatCounter >= 3) {
         if (Tracing._activeTransaction) {
           Tracing._log(
-            "[Tracing] Heartbeat safeguard kicked in, finishing transaction since activities content hasn't changed for 3 beats",
+            `[Tracing] Transaction: ${
+              SpanStatus.Cancelled
+            } -> Heartbeat safeguard kicked in since content hasn't changed for 3 beats`,
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
           Tracing._activeTransaction.setTag('heartbeat', 'failed');
@@ -295,10 +298,10 @@ export class Tracing implements Integration {
    * Discards active transactions if tab moves to background
    */
   private _setupBackgroundTabDetection(): void {
-    if (Tracing.options.discardBackgroundSpans && global.document) {
+    if (Tracing.options && Tracing.options.markBackgroundTransactions && global.document) {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && Tracing._activeTransaction) {
-          Tracing._log('[Tracing] Discarded active transaction incl. activities since tab moved to the background');
+          Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background`);
           Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
           Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
           Tracing.finishIdleTransaction();
@@ -374,7 +377,7 @@ export class Tracing implements Integration {
         /**
          * If an error or unhandled promise occurs, we mark the active transaction as failed
          */
-        Tracing._log(`[Tracing] Global error occured, setting status in transaction: ${SpanStatus.InternalError}`);
+        Tracing._log(`[Tracing] Transaction: ${SpanStatus.InternalError} -> Global error occured`);
         Tracing._activeTransaction.setStatus(SpanStatus.InternalError);
       }
     }
@@ -404,19 +407,19 @@ export class Tracing implements Integration {
         return;
       }
     }
-    logger.log(args);
+    logger.log(...args);
   }
 
   /**
    * Starts a Transaction waiting for activity idle to finish
    */
-  public static startIdleTransaction(name: string, spanContext?: SpanContext): Span | undefined {
+  public static startIdleTransaction(transactionContext: TransactionContext): Transaction | undefined {
     // If we already have an active transaction it means one of two things
     // a) The user did rapid navigation changes and didn't wait until the transaction was finished
     // b) A activity wasn't popped correctly and therefore the transaction is stalling
     Tracing.finishIdleTransaction();
 
-    Tracing._log('[Tracing] startIdleTransaction, name:', name);
+    Tracing._log('[Tracing] startIdleTransaction, name:', transactionContext.name);
 
     const _getCurrentHub = Tracing._getCurrentHub;
     if (!_getCurrentHub) {
@@ -429,16 +432,9 @@ export class Tracing implements Integration {
     }
 
     Tracing._activeTransaction = hub.startSpan({
-      ...spanContext,
-      transaction: name,
-    });
-
-    // We set the transaction on the scope so if there are any other spans started outside of this integration
-    // we also add them to this transaction.
-    // Once the idle transaction is finished, we make sure to remove it again.
-    hub.configureScope((scope: Scope) => {
-      scope.setSpan(Tracing._activeTransaction);
-    });
+      trimEnd: true,
+      ...transactionContext,
+    }) as Transaction;
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
@@ -454,11 +450,11 @@ export class Tracing implements Integration {
    * Finshes the current active transaction
    */
   public static finishIdleTransaction(): void {
-    const active = Tracing._activeTransaction as SpanClass;
+    const active = Tracing._activeTransaction;
     if (active) {
       Tracing._addPerformanceEntries(active);
-      Tracing._log('[Tracing] finishIdleTransaction', active.transaction);
-      active.finish(/*trimEnd*/ true);
+      Tracing._log('[Tracing] finishIdleTransaction', active.name);
+      active.finish();
       Tracing._resetActiveTransaction();
     }
   }
@@ -482,29 +478,29 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: SpanClass, entry: { [key: string]: number }, event: string): void {
-      const span = parent.child({
+      const span = parent.startChild({
         description: event,
         op: 'browser',
       });
       span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
-      span.timestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
+      span.endTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
     }
 
     // tslint:disable-next-line: completed-docs
     function addRequest(parent: SpanClass, entry: { [key: string]: number }): void {
-      const request = parent.child({
+      const request = parent.startChild({
         description: 'request',
         op: 'browser',
       });
       request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
-      request.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
+      request.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
 
-      const response = parent.child({
+      const response = parent.startChild({
         description: 'response',
         op: 'browser',
       });
       response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
-      response.timestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
+      response.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
     }
 
     let entryScriptSrc: string | undefined;
@@ -549,12 +545,12 @@ export class Tracing implements Integration {
           case 'mark':
           case 'paint':
           case 'measure':
-            const mark = transactionSpan.child({
+            const mark = transactionSpan.startChild({
               description: entry.name,
               op: entry.entryType,
             });
             mark.startTimestamp = timeOrigin + startTime;
-            mark.timestamp = mark.startTimestamp + duration;
+            mark.endTimestamp = mark.startTimestamp + duration;
             if (tracingInitMarkStartTime === undefined && entry.name === 'sentry-tracing-init') {
               tracingInitMarkStartTime = mark.startTimestamp;
             }
@@ -567,20 +563,20 @@ export class Tracing implements Integration {
                 transactionSpan.spanRecorder.spans.map((finishedSpan: SpanClass) => {
                   if (finishedSpan.description && finishedSpan.description.indexOf(resourceName) !== -1) {
                     finishedSpan.startTimestamp = timeOrigin + startTime;
-                    finishedSpan.timestamp = finishedSpan.startTimestamp + duration;
+                    finishedSpan.endTimestamp = finishedSpan.startTimestamp + duration;
                   }
                 });
               }
             } else {
-              const resource = transactionSpan.child({
+              const resource = transactionSpan.startChild({
                 description: `${entry.initiatorType} ${resourceName}`,
                 op: `resource`,
               });
               resource.startTimestamp = timeOrigin + startTime;
-              resource.timestamp = resource.startTimestamp + duration;
+              resource.endTimestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
               if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
-                entryScriptStartEndTime = resource.timestamp;
+                entryScriptStartEndTime = resource.endTimestamp;
               }
             }
             break;
@@ -590,12 +586,12 @@ export class Tracing implements Integration {
       });
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
-      const evaluation = transactionSpan.child({
+      const evaluation = transactionSpan.startChild({
         description: 'evaluation',
         op: `script`,
       });
       evaluation.startTimestamp = entryScriptStartEndTime;
-      evaluation.timestamp = tracingInitMarkStartTime;
+      evaluation.endTimestamp = tracingInitMarkStartTime;
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
@@ -612,6 +608,13 @@ export class Tracing implements Integration {
       Tracing._log('[Tracing] setTransactionStatus', status);
       active.setStatus(status);
     }
+  }
+
+  /**
+   * Returns the current active idle transaction if there is one
+   */
+  public static getTransaction(): Transaction | undefined {
+    return Tracing._activeTransaction;
   }
 
   /**
@@ -673,7 +676,7 @@ export class Tracing implements Integration {
     if (spanContext && _getCurrentHub) {
       const hub = _getCurrentHub();
       if (hub) {
-        const span = activeTransaction.child(spanContext);
+        const span = activeTransaction.startChild(spanContext);
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -858,7 +861,8 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
  */
 function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
-    Tracing.startIdleTransaction(global.location.href, {
+    Tracing.startIdleTransaction({
+      name: global.location.href,
       op: 'navigation',
     });
   }

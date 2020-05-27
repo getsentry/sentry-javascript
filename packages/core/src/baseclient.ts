@@ -392,9 +392,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       return SyncPromise.reject('SDK not enabled, will not send event.');
     }
 
+    const isTransaction = event.type === 'transaction';
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
-    if (typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    // Sampling for transaction happens somewhere else
+    if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       return SyncPromise.reject('This event has been sampled, will not send event.');
     }
 
@@ -409,7 +411,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           let finalEvent: Event | null = prepared;
 
           const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
-          if (isInternalException || !beforeSend) {
+          // We skip beforeSend in case of transactions
+          if (isInternalException || !beforeSend || isTransaction) {
             this._getBackend().sendEvent(finalEvent);
             resolve(finalEvent);
             return;
