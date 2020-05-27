@@ -49,7 +49,7 @@ export default async () => {
   schedule(async () => {
     const lines = (await promisify(exec)('cd packages/browser; yarn size:check')).stdout.split('\n');
     const es5size = lines.find(v => v.startsWith('ES5'));
-    const e65size = lines.find(v => v.startsWith('ES6'));
+    const es6size = lines.find(v => v.startsWith('ES6'));
     message(`@sentry/browser bundle gzip'ed minified size: *(${es5size}) (${es6size})*`);
   });
 };
