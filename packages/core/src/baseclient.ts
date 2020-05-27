@@ -91,15 +91,8 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     this._getBackend()
       .eventFromException(exception, hint)
-      .then(event => this._processEvent(event, hint, scope))
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
+      .then(event => {
+        eventId = this.captureEvent(event, hint, scope);
       });
 
     return eventId;
@@ -110,24 +103,15 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureMessage(message: string, level?: Severity, hint?: EventHint, scope?: Scope): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
-
     this._processing = true;
 
     const promisedEvent = isPrimitive(message)
       ? this._getBackend().eventFromMessage(`${message}`, level, hint)
       : this._getBackend().eventFromException(message, hint);
 
-    promisedEvent
-      .then(event => this._processEvent(event, hint, scope))
-      .then(finalEvent => {
-        // We need to check for finalEvent in case beforeSend returned null
-        eventId = finalEvent && finalEvent.event_id;
-        this._processing = false;
-      })
-      .then(null, reason => {
-        logger.error(reason);
-        this._processing = false;
-      });
+    promisedEvent.then(event => {
+      eventId = this.captureEvent(event, hint, scope);
+    });
 
     return eventId;
   }
@@ -373,6 +357,14 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
+   * Tells the backend to send this event
+   * @param event The Sentry event to send
+   */
+  protected _sendEvent(event: Event): void {
+    this._getBackend().sendEvent(event);
+  }
+
+  /**
    * Processes an event (either error or message) and sends it to Sentry.
    *
    * This also adds breadcrumbs and context information to the event. However,
@@ -413,7 +405,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           const isInternalException = hint && hint.data && (hint.data as { [key: string]: any }).__sentry__ === true;
           // We skip beforeSend in case of transactions
           if (isInternalException || !beforeSend || isTransaction) {
-            this._getBackend().sendEvent(finalEvent);
+            this._sendEvent(finalEvent);
             resolve(finalEvent);
             return;
           }
@@ -434,7 +426,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
             }
 
             // From here on we are really async
-            this._getBackend().sendEvent(finalEvent);
+            this._sendEvent(finalEvent);
             resolve(finalEvent);
           }
         })
@@ -467,7 +459,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
           return;
         }
         // From here on we are really async
-        this._getBackend().sendEvent(processedEvent);
+        this._sendEvent(processedEvent);
         resolve(processedEvent);
       })
       .then(null, e => {
