@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity, User } from '@sentry/types';
+import { Breadcrumb, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -166,4 +166,17 @@ export function withScope(callback: (scope: Scope) => void): void {
  */
 export function _callOnClient(method: string, ...args: any[]): void {
   callOnHub<void>('_invokeClient', method, ...args);
+}
+
+/**
+ * This starts a Transaction and is considered the entry point to do manual tracing. You can add child spans
+ * to a transactions. After that more children can be added to created spans to buld a tree structure.
+ * This function returns a Transaction and you need to keep track of the instance yourself. When you call `.finsh()` on
+ * a transaction it will be sent to Sentry.
+ */
+export function startTransaction(transactionContext: TransactionContext): Transaction {
+  return callOnHub<Transaction>('startSpan', {
+    ...transactionContext,
+    _isTransaction: true,
+  });
 }
