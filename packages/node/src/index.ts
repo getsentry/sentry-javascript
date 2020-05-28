@@ -26,6 +26,7 @@ export {
   getCurrentHub,
   Hub,
   Scope,
+  startTransaction,
   setContext,
   setExtra,
   setExtras,
