@@ -10,6 +10,8 @@ import {
   timestampWithMs,
 } from '@sentry/utils';
 
+import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
+
 import { Span as SpanClass } from '../span';
 import { SpanStatus } from '../spanstatus';
 import { Transaction } from '../transaction';
@@ -155,6 +157,9 @@ export class Tracing implements Integration {
 
   private static _heartbeatCounter: number = 0;
 
+  /** Holds Web Vitals metrics. */
+  private static _web_vitals: { [key: string]: { [key: string]: any } } = {};
+
   /**
    * Constructor for Tracing
    *
@@ -163,6 +168,40 @@ export class Tracing implements Integration {
   public constructor(_options?: Partial<TracingOptions>) {
     if (global.performance) {
       global.performance.mark('sentry-tracing-init');
+
+      // Core Web Vitals
+      getCLS(({ name, entries, value }) => {
+        Tracing._web_vitals[name] = {
+          value,
+        };
+      });
+      getFID(({ name, entries, value }) => {
+        Tracing._web_vitals[name] = {
+          value,
+        };
+      });
+      getLCP(({ name, entries, value }) => {
+        const lastEntry = entries[entries.length - 1];
+        Tracing._web_vitals[name] = {
+          // @ts-ignore
+          ...(lastEntry.id && { elementId: lastEntry.id }),
+          // @ts-ignore
+          ...(lastEntry.size && { elementSize: lastEntry.size }),
+          value,
+        };
+      }, true /* reportAllChanges, necessary to be able to send the last seen LCP before the pageload transaction is sent */);
+
+      // Other Web Vitals
+      getFCP(({ name, entries, value }) => {
+        Tracing._web_vitals[name] = {
+          value,
+        };
+      });
+      getTTFB(({ name, entries, value }) => {
+        Tracing._web_vitals[name] = {
+          value,
+        };
+      });
     }
     const defaults = {
       debug: {
@@ -447,7 +486,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Finshes the current active transaction
+   * Finishes the current active transaction
    */
   public static finishIdleTransaction(endTimestamp: number): void {
     const active = Tracing._activeTransaction;
@@ -504,6 +543,16 @@ export class Tracing implements Integration {
     }
 
     Tracing._log('[Tracing] Adding & adjusting spans using Performance API');
+
+    // FIXME: depending on the 'op' directly is brittle.
+    if (transactionSpan.op === 'pageload') {
+      if (Tracing._web_vitals) {
+        // Add the last observed Web Vitals metrics to the transaction. Note
+        // that some of the metrics may not yet be final, but we at the moment
+        // do not wait for them to become final.
+        transactionSpan.setData('_sentry_web_vitals', Tracing._web_vitals);
+      }
+    }
 
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 

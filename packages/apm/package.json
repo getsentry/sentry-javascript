@@ -21,7 +21,8 @@
     "@sentry/minimal": "5.16.1",
     "@sentry/types": "5.16.1",
     "@sentry/utils": "5.16.1",
-    "tslib": "^1.9.3"
+    "tslib": "^1.9.3",
+    "web-vitals": "^0.2.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.1",
