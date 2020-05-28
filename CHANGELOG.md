@@ -20,6 +20,7 @@
 - [apm] feat: Transactions no longer go through `beforeSend` #2600
 - [browser] fix: Emit Sentry Request breadcrumbs from inside the client (#2615)
 - [apm] fix: No longer debounce IdleTransaction #2618
+- [apm] feat: Add pageload transaction option + fixes #2623
 
 ## 5.15.5
 

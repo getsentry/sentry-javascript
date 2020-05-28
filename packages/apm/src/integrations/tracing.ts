@@ -452,7 +452,7 @@ export class Tracing implements Integration {
   public static finishIdleTransaction(endTimestamp: number): void {
     const active = Tracing._activeTransaction;
     if (active) {
-      Tracing._log('[Tracing] finishing IdleTransaction');
+      Tracing._log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString());
       Tracing._addPerformanceEntries(active);
 
       if (active.spanRecorder) {
@@ -769,7 +769,8 @@ export class Tracing implements Integration {
       const timeout = Tracing.options && Tracing.options.idleTimeout;
       Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
       // We need to add the timeout here to have the real endtimestamp of the transaction
-      const end = timestampWithMs() + timeout;
+      // Remeber timestampWithMs is in seconds, timeout is in ms
+      const end = timestampWithMs() + timeout / 1000;
       setTimeout(() => {
         Tracing.finishIdleTransaction(end);
       }, timeout);
