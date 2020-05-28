@@ -1,0 +1,83 @@
+{
+  "name": "@sentry/react",
+  "version": "5.16.0-beta.5",
+  "description": "Offical Sentry SDK for Node.js",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
+  "author": "Sentry",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "dist/index.js",
+  "module": "esm/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/browser": "5.16.0-beta.5"
+  },
+  "peerDependencies": {
+    "react": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.35",
+    "@sentry/types": "5.16.0-beta.5",
+    "jest": "^24.7.1",
+    "prettier": "^1.17.0",
+    "prettier-check": "^2.0.0",
+    "rimraf": "^2.6.3",
+    "npm-run-all": "^4.1.2",
+    "rollup": "^1.10.1",
+    "rollup-plugin-commonjs": "^9.3.4",
+    "rollup-plugin-license": "^0.8.1",
+    "rollup-plugin-node-resolve": "^4.2.3",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-typescript2": "^0.21.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  },
+  "scripts": {
+    "build": "run-p build:es5 build:esm build:bundle",
+    "build:bundle": "rollup --config",
+    "build:bundle:watch": "rollup --config --watch",
+    "build:es5": "tsc -p tsconfig.build.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "run-p build:watch:es5 build:watch:esm",
+    "build:watch:es5": "tsc -p tsconfig.build.json -w --preserveWatchOutput",
+    "build:watch:esm": "tsc -p tsconfig.esm.json -w --preserveWatchOutput",
+    "clean": "rimraf dist coverage build esm",
+    "link:yarn": "yarn link",
+    "lint": "run-s lint:prettier lint:tslint",
+    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:tslint": "tslint -t stylish -p .",
+    "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
+    "fix": "run-s fix:tslint fix:prettier",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix:tslint": "tslint --fix -t stylish -p .",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "./tsconfig.json",
+        "diagnostics": false
+      }
+    }
+  },
+  "sideEffects": false
+}
