@@ -158,7 +158,6 @@ describe('Span', () => {
       const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
       const spanB = new Span({
         parentSpanId: spanA.spanId,
-        sampled: false,
         spanId: 'd',
         traceId: 'c',
       });
@@ -167,7 +166,6 @@ describe('Span', () => {
       delete (serialized as { start_timestamp: number }).start_timestamp;
       expect(serialized).toStrictEqual({
         parent_span_id: 'b',
-        sampled: false,
         span_id: 'd',
         trace_id: 'c',
       });
