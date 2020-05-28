@@ -52,6 +52,7 @@ interface TracingOptions {
    * Default: 500
    */
   idleTimeout: number;
+
   /**
    * Flag to enable/disable creation of `navigation` transaction on history changes. Useful for react applications with
    * a router.
@@ -59,6 +60,13 @@ interface TracingOptions {
    * Default: true
    */
   startTransactionOnLocationChange: boolean;
+
+  /**
+   * Flag to enable/disable creation of `pageload` transaction on first pageload.
+   *
+   * Default: true
+   */
+  startTransactionOnPageLoad: boolean;
 
   /**
    * The maximum duration of a transaction before it will be marked as "deadline_exceeded".
@@ -137,8 +145,6 @@ export class Tracing implements Integration {
 
   public static _activities: { [key: number]: Activity } = {};
 
-  private static _idleTransactionEndTimestamp: number = 0;
-
   private readonly _emitOptionsWarning: boolean = false;
 
   private static _performanceCursor: number = 0;
@@ -174,6 +180,7 @@ export class Tracing implements Integration {
         );
       },
       startTransactionOnLocationChange: true,
+      startTransactionOnPageLoad: true,
       traceFetch: true,
       traceXHR: true,
       tracingOrigins: defaultTracingOrigins,
@@ -202,7 +209,7 @@ export class Tracing implements Integration {
     }
 
     // Starting pageload transaction
-    if (global.location && global.location.href) {
+    if (global.location && global.location.href && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
       // Use `${global.location.href}` as transaction name
       Tracing.startIdleTransaction({
         name: global.location.href,
@@ -285,7 +292,7 @@ export class Tracing implements Integration {
           );
           Tracing._activeTransaction.setStatus(SpanStatus.DeadlineExceeded);
           Tracing._activeTransaction.setTag('heartbeat', 'failed');
-          Tracing.finishIdleTransaction();
+          Tracing.finishIdleTransaction(timestampWithMs());
         }
       }
       Tracing._prevHeartbeatString = heartbeatString;
@@ -303,7 +310,7 @@ export class Tracing implements Integration {
           Tracing._log(`[Tracing] Transaction: ${SpanStatus.Cancelled} -> since tab moved to the background`);
           Tracing._activeTransaction.setStatus(SpanStatus.Cancelled);
           Tracing._activeTransaction.setTag('visibilitychange', 'document.hidden');
-          Tracing.finishIdleTransaction();
+          Tracing.finishIdleTransaction(timestampWithMs());
         }
       });
     }
@@ -403,7 +410,6 @@ export class Tracing implements Integration {
           message: safeJoin(args, ' '),
           type: 'debug',
         });
-        return;
       }
     }
     logger.log(...args);
@@ -413,11 +419,6 @@ export class Tracing implements Integration {
    * Starts a Transaction waiting for activity idle to finish
    */
   public static startIdleTransaction(transactionContext: TransactionContext): Transaction | undefined {
-    // If we already have an active transaction it means one of two things
-    // a) The user did rapid navigation changes and didn't wait until the transaction was finished
-    // b) A activity wasn't popped correctly and therefore the transaction is stalling
-    Tracing.finishIdleTransaction();
-
     Tracing._log('[Tracing] startIdleTransaction');
 
     const _getCurrentHub = Tracing._getCurrentHub;
@@ -448,27 +449,39 @@ export class Tracing implements Integration {
   /**
    * Finshes the current active transaction
    */
-  public static finishIdleTransaction(): void {
+  public static finishIdleTransaction(endTimestamp: number): void {
     const active = Tracing._activeTransaction;
     if (active) {
+      Tracing._log('[Tracing] finishing IdleTransaction');
       Tracing._addPerformanceEntries(active);
-      Tracing._log('[Tracing] finishIdleTransaction');
 
       if (active.spanRecorder) {
-        const timeout = (Tracing.options && Tracing.options.idleTimeout) || 100;
-        active.spanRecorder.spans = active.spanRecorder.spans.filter((finishedSpan: Span) => {
-          const keepSpan = finishedSpan.startTimestamp < Tracing._idleTransactionEndTimestamp + timeout;
+        active.spanRecorder.spans = active.spanRecorder.spans.filter((span: Span) => {
+          const keepSpan = span.startTimestamp < endTimestamp;
           if (!keepSpan) {
             Tracing._log(
               '[Tracing] discarding Span since it happened after Transaction was finished',
-              finishedSpan.toJSON(),
+              JSON.stringify(span, undefined, 2),
             );
           }
           return keepSpan;
         });
+
+        // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
+        active.spanRecorder.spans.map((span: Span) => {
+          // We don't want to cancel the Transaction
+          if (span.spanId !== active.spanId && !span.endTimestamp) {
+            span.endTimestamp = endTimestamp;
+            span.setStatus(SpanStatus.Cancelled);
+            Tracing._log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
+          }
+        });
       }
+      Tracing._log('[Tracing] flushing IdleTransaction');
       active.finish();
       Tracing._resetActiveTransaction();
+    } else {
+      Tracing._log('[Tracing] No active IdleTransaction');
     }
   }
 
@@ -491,29 +504,29 @@ export class Tracing implements Integration {
 
     // tslint:disable-next-line: completed-docs
     function addPerformanceNavigationTiming(parent: Span, entry: { [key: string]: number }, event: string): void {
-      const span = parent.startChild({
+      parent.startChild({
         description: event,
+        endTimestamp: timeOrigin + Tracing._msToSec(entry[`${event}End`]),
         op: 'browser',
+        startTimestamp: timeOrigin + Tracing._msToSec(entry[`${event}Start`]),
       });
-      span.startTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}Start`]);
-      span.endTimestamp = timeOrigin + Tracing._msToSec(entry[`${event}End`]);
     }
 
     // tslint:disable-next-line: completed-docs
     function addRequest(parent: Span, entry: { [key: string]: number }): void {
-      const request = parent.startChild({
+      parent.startChild({
         description: 'request',
+        endTimestamp: timeOrigin + Tracing._msToSec(entry.responseEnd),
         op: 'browser',
+        startTimestamp: timeOrigin + Tracing._msToSec(entry.requestStart),
       });
-      request.startTimestamp = timeOrigin + Tracing._msToSec(entry.requestStart);
-      request.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
 
-      const response = parent.startChild({
+      parent.startChild({
         description: 'response',
+        endTimestamp: timeOrigin + Tracing._msToSec(entry.responseEnd),
         op: 'browser',
+        startTimestamp: timeOrigin + Tracing._msToSec(entry.responseStart),
       });
-      response.startTimestamp = timeOrigin + Tracing._msToSec(entry.responseStart);
-      response.endTimestamp = timeOrigin + Tracing._msToSec(entry.responseEnd);
     }
 
     let entryScriptSrc: string | undefined;
@@ -599,16 +612,15 @@ export class Tracing implements Integration {
       });
 
     if (entryScriptStartEndTime !== undefined && tracingInitMarkStartTime !== undefined) {
-      const evaluation = transactionSpan.startChild({
+      transactionSpan.startChild({
         description: 'evaluation',
+        endTimestamp: tracingInitMarkStartTime,
         op: `script`,
+        startTimestamp: entryScriptStartEndTime,
       });
-      evaluation.startTimestamp = entryScriptStartEndTime;
-      evaluation.endTimestamp = tracingInitMarkStartTime;
     }
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
-
     // tslint:enable: no-unsafe-any
   }
 
@@ -756,9 +768,10 @@ export class Tracing implements Integration {
     if (count === 0 && Tracing._activeTransaction) {
       const timeout = Tracing.options && Tracing.options.idleTimeout;
       Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
-      Tracing._idleTransactionEndTimestamp = timestampWithMs();
+      // We need to add the timeout here to have the real endtimestamp of the transaction
+      const end = timestampWithMs() + timeout;
       setTimeout(() => {
-        Tracing.finishIdleTransaction();
+        Tracing.finishIdleTransaction(end);
       }, timeout);
     }
   }
@@ -871,6 +884,7 @@ function fetchCallback(handlerData: { [key: string]: any }): void {
  */
 function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
+    Tracing.finishIdleTransaction(timestampWithMs());
     Tracing.startIdleTransaction({
       name: global.location.href,
       op: 'navigation',
