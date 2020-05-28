@@ -457,6 +457,20 @@ export class Tracing implements Integration {
 
       if (active.spanRecorder) {
         active.spanRecorder.spans = active.spanRecorder.spans.filter((span: Span) => {
+          // If we are dealing with the transaction itself, we just return it
+          if (span.spanId === active.spanId) {
+            return span;
+          }
+
+          // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
+          if (!span.endTimestamp) {
+            span.endTimestamp = endTimestamp;
+            span.setStatus(SpanStatus.Cancelled);
+            Tracing._log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
+          }
+
+          // We remove all spans that happend after the end of the transaction
+          // This is here to prevent super long transactions and timing issues
           const keepSpan = span.startTimestamp < endTimestamp;
           if (!keepSpan) {
             Tracing._log(
@@ -466,17 +480,8 @@ export class Tracing implements Integration {
           }
           return keepSpan;
         });
-
-        // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
-        active.spanRecorder.spans.map((span: Span) => {
-          // We don't want to cancel the Transaction
-          if (span.spanId !== active.spanId && !span.endTimestamp) {
-            span.endTimestamp = endTimestamp;
-            span.setStatus(SpanStatus.Cancelled);
-            Tracing._log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
-          }
-        });
       }
+
       Tracing._log('[Tracing] flushing IdleTransaction');
       active.finish();
       Tracing._resetActiveTransaction();
