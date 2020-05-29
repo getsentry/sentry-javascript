@@ -24,8 +24,8 @@ class Tracing {
         ? Span.fromTraceparent(req.headers['sentry-trace'], {
             transaction,
           })
-        : Sentry.getCurrentHub().startSpan({
-            transaction,
+        : Sentry.startTransaction({
+            name: transaction,
           });
 
       Sentry.getCurrentHub().configureScope(scope => {

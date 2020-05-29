@@ -431,7 +431,7 @@ export class Tracing implements Integration {
       return undefined;
     }
 
-    Tracing._activeTransaction = hub.startSpan({
+    Tracing._activeTransaction = hub.startTransaction({
       trimEnd: true,
       ...transactionContext,
     }) as Transaction;
