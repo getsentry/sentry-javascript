@@ -27,6 +27,18 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * @param context Properties with which the span should be created
  */
 function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
+  /**
+   * @deprecated
+   * We have this here as a fallback to not break users upgrading to the new API
+   */
+  if ((context as any).transaction) {
+    logger.warn(
+      `Please use \`Sentry.startTransaction({name: ${(context as any).transaction}})\` to start a Transaction.`,
+    );
+    (context as TransactionContext).name = (context as any).transaction as string;
+    (context as TransactionContext)._isTransaction = true;
+  }
+
   // This is our safeguard so people always get a Transaction in return.
   // We set `_isTransaction: true` in {@link Sentry.startTransaction} to have a runtime check
   // if the user really wanted to create a Transaction.
