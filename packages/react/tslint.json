@@ -1,3 +1,9 @@
 {
-  "extends": "@sentry/typescript/tslint"
+  "extends": ["@sentry/typescript/tslint", "tslint-react"],
+  "rules": {
+    "no-implicit-dependencies": [
+      true,
+      "dev"
+    ]
+  }
 }

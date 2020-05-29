@@ -1,1 +1,1 @@
-export * as Sentry from "@sentry/browser"
+export * from '@sentry/browser';

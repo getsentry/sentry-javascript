@@ -26,7 +26,7 @@
     "packages/integrations",
     "packages/minimal",
     "packages/node",
-    "package/react",
+    "packages/react",
     "packages/types",
     "packages/typescript",
     "packages/utils"
