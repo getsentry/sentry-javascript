@@ -138,6 +138,8 @@ Here are some examples of how the new SDKs work. Please note that the API for al
 
 #### Installation
 
+> [Docs](https://docs.sentry.io/platforms/javascript/#connecting-the-sdk-to-sentry)
+
 _Old_:
 
 ```js
@@ -157,6 +159,8 @@ Sentry.init({
 
 #### Set a global tag
 
+> [Docs](https://docs.sentry.io/platforms/javascript/#tagging-events)
+
 _Old_:
 
 ```js
@@ -170,6 +174,8 @@ Sentry.setTag('key', 'value');
 ```
 
 #### Capture custom exception
+
+> A scope must now be sent around a capture to add extra information. [Docs](https://docs.sentry.io/platforms/javascript/#unsetting-context)
 
 _Old_:
 
@@ -196,22 +202,28 @@ try {
 
 #### Capture a message
 
+> A scope must now be sent around a capture to add extra information. [Docs](https://docs.sentry.io/platforms/javascript/#unsetting-context)
+
 _Old_:
 
 ```js
-Raven.captureMessage('test', 'info', { extra: { debug: false } });
+Raven.captureMessage('test1', 'info');
+Raven.captureMessage('test2', 'info', { extra: { debug: false } });
 ```
 
 _New_:
 
 ```js
+Raven.captureMessage('test1', 'info');
 Sentry.withScope(scope => {
   scope.setExtra('debug', false);
-  Sentry.captureMessage('test', 'info');
+  Sentry.captureMessage('test2', 'info');
 });
 ```
 
 #### Breadcrumbs
+
+> [Docs](https://docs.sentry.io/platforms/javascript/#breadcrumbs)
 
 _Old_:
 
@@ -239,3 +251,86 @@ Sentry.addBreadcrumb({
 });
 ```
 
+### Ignoring Urls
+
+> 'ignoreUrls' was renamed to 'blacklistUrls'. 'ignoreErrors', which has a similar name was not renamed. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#blacklist-urls) and [Decluttering Sentry](https://docs.sentry.io/platforms/javascript/#decluttering-sentry) 
+
+_Old_:
+
+```js
+Sentry.init({
+  ignoreUrls: [
+    'https://www.baddomain.com',
+    /graph\.facebook\.com/i,
+  ],
+});
+```
+
+_New_:
+
+```js
+Sentry.init({
+  blacklistUrls: [
+    'https://www.baddomain.com',
+    /graph\.facebook\.com/i,
+  ],
+});
+```
+
+### Ignoring Events (`shouldSendCallback`)
+
+> `shouldSendCallback` was renamed to `beforeSend` ([#2253](https://github.com/getsentry/sentry-javascript/issues/2253)). Instead of returning `false`, you must return `null` to omit sending the event. [Docs](https://docs.sentry.io/error-reporting/configuration/filtering/?platform=browser#before-send)
+
+_Old_:
+
+```js
+Sentry.init({
+  shouldSendCallback(event) {
+    // Modify the event here
+    if(event.user){
+      // Don't send user's email address
+      delete event.user.email;
+    } else {
+      return false; // don't send this event
+    }
+    return event;
+  }
+});
+```
+
+_New_:
+
+```js
+Sentry.init({
+  beforeSend(event) {
+    // Modify the event here
+    if(event.user){
+      // Don't send user's email address
+      delete event.user.email;
+    } else {
+      return null; // don't send this event
+    }
+    return event;
+  }
+});
+```
+
+### Attaching Stacktraces
+
+> 'stacktrace' was renamed to 'attackStacktrace'. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#attach-stacktrace)
+
+_Old_:
+
+```js
+Sentry.init({
+  stacktrace: true,
+});
+```
+
+_New_:
+
+```js
+Sentry.init({
+  attachStacktrace: true,
+});
+```
