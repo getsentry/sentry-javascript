@@ -39,32 +39,36 @@ const getInitActivity = (componentDisplayName: string, timeout = DEFAULT_DURATIO
 export const withProfiler = <P extends object>(WrappedComponent: React.ComponentType<P>, timeout?: number) => {
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
 
-  return class WithProfiler extends React.Component<Omit<P, keyof InjectedProps>>  {
+  return class extends React.Component<Omit<P, keyof InjectedProps>, { activity: number | null }> {
     public static displayName: string = `profiler(${componentDisplayName})`;
 
-    public activity: number | null = getInitActivity(componentDisplayName, timeout);
+    public constructor(props: P) {
+      super(props);
 
-    // tslint:disable-next-line: completed-docs
+      this.state = {
+        activity: getInitActivity(componentDisplayName, timeout),
+      };
+    }
+
     public componentWillUnmount(): void {
       this.finishProfile();
     }
 
     public finishProfile = () => {
-      if(!this.activity) {
+      if (!this.state.activity) {
         return;
       }
 
       const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
       if (tracingIntegration !== null) {
         // tslint:disable-next-line:no-unsafe-any
-        (tracingIntegration as any).constructor.popActivity(this.activity);
-        this.activity = null
+        (tracingIntegration as any).constructor.popActivity(this.state.activity);
+        this.setState({ activity: null });
       }
-    }
+    };
 
-    // tslint:disable-next-line: completed-docs
     public render(): React.ReactNode {
-      return <WrappedComponent {...this.props as P} finishProfile={this.finishProfile} />;
+      return <WrappedComponent {...this.props as P} />;
     }
   };
 };

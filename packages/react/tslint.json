@@ -4,6 +4,8 @@
     "no-implicit-dependencies": [
       true,
       "dev"
-    ]
+    ],
+    "variable-name": false,
+    "completed-docs": false
   }
 }
