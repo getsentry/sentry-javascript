@@ -89,6 +89,15 @@ export interface Scope {
    */
   setSpan(span?: Span): this;
 
+  /**
+   * Updates the scope with provided data. Can work in three variations:
+   * - plain object containing updatable attributes
+   * - Span instance that'll extract the attributes from
+   * - callback function that'll receive the current scope as an argument and allow for modifications
+   * @param captureContext span modifier to be used
+   */
+  update(captureContext?: CaptureContext): this;
+
   /** Clears the current scope and resets its properties. */
   clear(): this;
 

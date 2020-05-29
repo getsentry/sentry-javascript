@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/hub';
-import { Client, Event, EventHint, Integration, IntegrationClass, Options, SdkInfo, Severity } from '@sentry/types';
+import { Client, Event, EventHint, Integration, IntegrationClass, Options, Severity } from '@sentry/types';
 import {
   Dsn,
   isPrimitive,
@@ -247,47 +247,16 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  // tslint:disable-next-line:cyclomatic-complexity
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { environment, release, dist, maxValueLength = 250, normalizeDepth = 3 } = this.getOptions();
+    const { normalizeDepth = 3 } = this.getOptions();
+    const prepared: Event = {
+      ...event,
+      event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
+      timestamp: event.timestamp || timestampWithMs(),
+    };
 
-    const prepared: Event = { ...event };
-
-    if (!prepared.timestamp) {
-      prepared.timestamp = timestampWithMs();
-    }
-
-    if (prepared.environment === undefined && environment !== undefined) {
-      prepared.environment = environment;
-    }
-
-    if (prepared.release === undefined && release !== undefined) {
-      prepared.release = release;
-    }
-
-    if (prepared.dist === undefined && dist !== undefined) {
-      prepared.dist = dist;
-    }
-
-    if (prepared.message) {
-      prepared.message = truncate(prepared.message, maxValueLength);
-    }
-
-    const exception = prepared.exception && prepared.exception.values && prepared.exception.values[0];
-    if (exception && exception.value) {
-      exception.value = truncate(exception.value, maxValueLength);
-    }
-
-    const request = prepared.request;
-    if (request && request.url) {
-      request.url = truncate(request.url, maxValueLength);
-    }
-
-    if (prepared.event_id === undefined) {
-      prepared.event_id = hint && hint.event_id ? hint.event_id : uuid4();
-    }
-
-    this._addIntegrations(prepared.sdk);
+    this._applyClientOptions(prepared);
+    this._applyIntegrationsMetadata(prepared);
 
     // If we have scope given to us, use it as the base for further modifications.
     // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
@@ -354,10 +323,47 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   }
 
   /**
+   *  Enhances event using the client configuration.
+   *  It takes care of all "static" values like environment, release and `dist`,
+   *  as well as truncating overly long values.
+   * @param event event instance to be enhanced
+   */
+  protected _applyClientOptions(event: Event): void {
+    const { environment, release, dist, maxValueLength = 250 } = this.getOptions();
+
+    if (event.environment === undefined && environment !== undefined) {
+      event.environment = environment;
+    }
+
+    if (event.release === undefined && release !== undefined) {
+      event.release = release;
+    }
+
+    if (event.dist === undefined && dist !== undefined) {
+      event.dist = dist;
+    }
+
+    if (event.message) {
+      event.message = truncate(event.message, maxValueLength);
+    }
+
+    const exception = event.exception && event.exception.values && event.exception.values[0];
+    if (exception && exception.value) {
+      exception.value = truncate(exception.value, maxValueLength);
+    }
+
+    const request = event.request;
+    if (request && request.url) {
+      request.url = truncate(request.url, maxValueLength);
+    }
+  }
+
+  /**
    * This function adds all used integrations to the SDK info in the event.
    * @param sdkInfo The sdkInfo of the event that will be filled with all integrations.
    */
-  protected _addIntegrations(sdkInfo?: SdkInfo): void {
+  protected _applyIntegrationsMetadata(event: Event): void {
+    const sdkInfo = event.sdk;
     const integrationsArray = Object.keys(this._integrations);
     if (sdkInfo && integrationsArray.length > 0) {
       sdkInfo.integrations = integrationsArray;
