@@ -177,8 +177,7 @@ export function _callOnClient(method: string, ...args: any[]): void {
  */
 export function startTransaction(transactionContext: TransactionContext): Transaction {
   if (!transactionContext.name) {
-    logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
-    logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
+    logger.warn('Transaction started without name, falling back to <unlabeled transaction>.');
     transactionContext.name = '<unlabeled transaction>';
   }
   return callOnHub<Transaction>('startSpan', transactionContext);
