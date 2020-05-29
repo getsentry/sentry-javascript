@@ -89,6 +89,7 @@ export function addExtensionMethods(): void {
       carrier.__SENTRY__.extensions.startTransaction = startTransaction;
     }
     if (!carrier.__SENTRY__.extensions.startSpan) {
+      // tslint:disable-next-line: deprecation
       carrier.__SENTRY__.extensions.startSpan = startSpan;
     }
     if (!carrier.__SENTRY__.extensions.traceHeaders) {
