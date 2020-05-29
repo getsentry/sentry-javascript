@@ -4,6 +4,19 @@ import { Severity } from './severity';
 import { Span } from './span';
 import { User } from './user';
 
+/** JSDocs */
+export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => Scope);
+
+/** JSDocs */
+export interface ScopeContext {
+  user: User;
+  level: Severity;
+  extra: { [key: string]: any };
+  contexts: { [key: string]: any };
+  tags: { [key: string]: string };
+  fingerprint: string[];
+}
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.

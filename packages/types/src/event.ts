@@ -1,6 +1,7 @@
 import { Breadcrumb } from './breadcrumb';
 import { Exception } from './exception';
 import { Request } from './request';
+import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity } from './severity';
 import { Span } from './span';
@@ -46,6 +47,7 @@ export type EventType = 'transaction';
 /** JSDoc */
 export interface EventHint {
   event_id?: string;
+  captureContext?: CaptureContext;
   syntheticException?: Error | null;
   originalException?: Error | string | null;
   data?: any;

@@ -50,7 +50,19 @@ Sentry.addBreadcrumb({
 
 // Capture methods
 Sentry.captureException(new Error('foo'));
+Sentry.captureException(new Error('foo'), {
+  tags: {
+    foo: 1,
+  },
+});
+Sentry.captureException(new Error('foo'), scope => scope);
 Sentry.captureMessage('bar');
+Sentry.captureMessage('bar', {
+  tags: {
+    foo: 1,
+  },
+});
+Sentry.captureMessage('bar', scope => scope);
 
 // Scope behavior
 Sentry.withScope(scope => {

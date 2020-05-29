@@ -247,6 +247,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
+  // tslint:disable-next-line:cyclomatic-complexity
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
     const { environment, release, dist, maxValueLength = 250, normalizeDepth = 3 } = this.getOptions();
 
@@ -288,14 +289,21 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
 
     this._addIntegrations(prepared.sdk);
 
+    // If we have scope given to us, use it as the base for further modifications.
+    // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
+    let finalScope = scope;
+    if (hint && hint.captureContext) {
+      finalScope = Scope.clone(finalScope).update(hint.captureContext);
+    }
+
     // We prepare the result here with a resolved Event.
     let result = SyncPromise.resolve<Event | null>(prepared);
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
-    if (scope) {
+    if (finalScope) {
       // In case we have a hub we reassign it.
-      result = scope.applyToEvent(prepared, hint);
+      result = finalScope.applyToEvent(prepared, hint);
     }
 
     return result.then(evt => {
