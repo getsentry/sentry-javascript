@@ -20,21 +20,15 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * This functions starts a span. If there is already a `Span` on the Scope,
- * the created Span with the SpanContext will have a reference to it and become it's child.
- * Otherwise it'll crete a new `Span`.
- *
- * @param context Properties with which the span should be created
+ * {@see Hub.startSpan}
  */
 function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
   /**
    * @deprecated
    * We have this here as a fallback to not break users upgrading to the new API
    */
-  if ((context as any).transaction) {
-    logger.warn(
-      `Please use \`Sentry.startTransaction({name: ${(context as any).transaction}})\` to start a Transaction.`,
-    );
+  if ((context as any).transaction !== undefined) {
+    logger.warn(`Use \`Sentry.startTransaction({name: ${(context as any).transaction}})\` to start a Transaction.`);
     (context as TransactionContext).name = (context as any).transaction as string;
     (context as TransactionContext)._isTransaction = true;
   }
@@ -44,8 +38,9 @@ function startSpan(this: Hub, context: SpanContext | TransactionContext): Transa
   // if the user really wanted to create a Transaction.
   if ((context as TransactionContext)._isTransaction && !(context as TransactionContext).name) {
     logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
-    logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
-    (context as TransactionContext).name = '<unlabeled transaction>';
+    const name = '<unlabeled transaction>';
+    logger.warn(`Will fall back to \`${name}\``);
+    (context as TransactionContext).name = name;
   }
 
   if ((context as TransactionContext).name) {

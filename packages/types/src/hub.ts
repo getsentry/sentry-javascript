@@ -174,8 +174,8 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * This functions starts either a Span or a Transaction (depending on the argument passed).
-   * If there is a Span on the Scope we use the `trace_id` for all other created Transactions / Spans as a reference.
+   * This functions starts either a Span or a Transaction (depending on the context).
+   * If there is a Span on the Scope, the created Span will be a child.
    *
    * @param context Properties with which the Transaction/Span should be created
    */
