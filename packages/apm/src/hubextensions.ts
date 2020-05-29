@@ -51,18 +51,23 @@ function startTransaction(this: Hub, context: TransactionContext): Transaction {
 function startSpan(this: Hub, context: SpanContext): Transaction | Span {
   /**
    * @deprecated
-   * This is here to make sure we don't break users that relied on calling startSpan to create a transaction
-   * with the transaction poperty set.
+   * TODO: consider removing this in a future release.
+   *
+   * This is for backwards compatibility with releases before startTransaction
+   * existed, to allow for a smoother transition.
    */
-  if ((context as any).transaction !== undefined) {
-    logger.warn(`Use \`Sentry.startTransaction({name: ${(context as any).transaction}})\` to start a Transaction.`);
-    (context as TransactionContext).name = (context as any).transaction as string;
-  }
-
-  // We have the check of not undefined since we defined it's ok to start a transaction with an empty name
-  // tslint:disable-next-line: strict-type-predicates
-  if ((context as TransactionContext).name !== undefined) {
-    return this.startTransaction(context as TransactionContext);
+  {
+    // The `TransactionContext.name` field used to be called `transaction`.
+    const transactionContext = context as Partial<TransactionContext & { transaction: string }>;
+    if (transactionContext.transaction !== undefined) {
+      transactionContext.name = transactionContext.transaction;
+    }
+    // Check for not undefined since we defined it's ok to start a transaction
+    // with an empty name.
+    if (transactionContext.name !== undefined) {
+      logger.warn('Deprecated: Use startTransaction to start transactions and Transaction.startChild to start spans.');
+      return this.startTransaction(transactionContext as TransactionContext);
+    }
   }
 
   const scope = this.getScope();
