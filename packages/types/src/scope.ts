@@ -92,9 +92,9 @@ export interface Scope {
   /**
    * Updates the scope with provided data. Can work in three variations:
    * - plain object containing updatable attributes
-   * - Span instance that'll extract the attributes from
+   * - Scope instance that'll extract the attributes from
    * - callback function that'll receive the current scope as an argument and allow for modifications
-   * @param captureContext span modifier to be used
+   * @param captureContext scope modifier to be used
    */
   update(captureContext?: CaptureContext): this;
 
