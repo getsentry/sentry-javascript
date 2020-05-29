@@ -1,5 +1,6 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
 import { Breadcrumb, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 /**
  * This calls a function on the current hub.
@@ -175,8 +176,10 @@ export function _callOnClient(method: string, ...args: any[]): void {
  * a transaction it will be sent to Sentry.
  */
 export function startTransaction(transactionContext: TransactionContext): Transaction {
-  return callOnHub<Transaction>('startSpan', {
-    ...transactionContext,
-    _isTransaction: true,
-  });
+  if (!transactionContext.name) {
+    logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
+    logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
+    transactionContext.name = '<unlabeled transaction>';
+  }
+  return callOnHub<Transaction>('startSpan', transactionContext);
 }

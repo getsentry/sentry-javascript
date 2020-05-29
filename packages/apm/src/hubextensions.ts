@@ -1,6 +1,5 @@
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { Span } from './span';
 import { Transaction } from './transaction';
@@ -27,15 +26,6 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * @param context Properties with which the span should be created
  */
 function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
-  // This is our safeguard so people always get a Transaction in return.
-  // We set `_isTransaction: true` in {@link Sentry.startTransaction} to have a runtime check
-  // if the user really wanted to create a Transaction.
-  if ((context as TransactionContext)._isTransaction && !(context as TransactionContext).name) {
-    logger.warn('You are trying to start a Transaction but forgot to provide a `name` property.');
-    logger.warn('Will fall back to <unlabeled transaction>, use `transaction.setName()` to change it.');
-    (context as TransactionContext).name = '<unlabeled transaction>';
-  }
-
   if ((context as TransactionContext).name) {
     // We are dealing with a Transaction
     const transaction = new Transaction(context as TransactionContext, this);
