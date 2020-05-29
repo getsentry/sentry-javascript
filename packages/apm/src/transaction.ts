@@ -46,7 +46,8 @@ export class Transaction extends SpanClass {
   private readonly _trimEnd?: boolean;
 
   /**
-   * This constructor should never be called manually. Those instrumenting tracing should use `Stentry.startTransaction()`, and internal methods should use `hub.startSpan()`.
+   * This constructor should never be called manually. Those instrumenting tracing should use
+   * `Sentry.startTransaction()`, and internal methods should use `hub.startSpan()`.
    * @internal
    * @hideconstructor
    * @hidden

@@ -20,9 +20,9 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * This functions starts a span. If there is already a `Span` on the Scope,
+ * This function starts a span. If there is already a `Span` on the Scope,
  * the created Span with the SpanContext will have a reference to it and become it's child.
- * Otherwise it'll crete a new `Span`.
+ * Otherwise it'll create a new `Span`.
  *
  * @param context Properties with which the span should be created
  */
