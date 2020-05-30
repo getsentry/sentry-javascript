@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/browser';
 import { Integration, IntegrationClass } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import * as React from 'react';
 
 /** The Props Injected by the HOC */
@@ -32,10 +33,16 @@ const getInitActivity = (componentDisplayName: string, timeout = DEFAULT_DURATIO
     );
   }
 
+  logger.warn(`Unable to profile component ${componentDisplayName} due to invalid Tracing Integration`);
   return null;
 };
 
-// tslint:disable-next-line: variable-name
+/**
+ * withProfiler() is a HOC that leverages the Sentry AM tracing integration to
+ * send transactions about a React component.
+ * @param WrappedComponent The component profiled
+ * @param timeout A maximum timeout for the component render
+ */
 export const withProfiler = <P extends object>(WrappedComponent: React.ComponentType<P>, timeout?: number) => {
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
 
