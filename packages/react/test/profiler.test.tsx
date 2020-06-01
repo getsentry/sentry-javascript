@@ -34,6 +34,7 @@ describe('withProfiler', () => {
 
   describe('Tracing Integration', () => {
     beforeEach(() => {
+      jest.useFakeTimers();
       mockPushActivity.mockClear();
       mockPopActivity.mockClear();
     });
@@ -45,6 +46,8 @@ describe('withProfiler', () => {
 
       const profiler = create(<ProfiledComponent />);
       profiler.unmount();
+
+      jest.runAllTimers();
 
       expect(mockPopActivity).toHaveBeenCalledTimes(1);
       expect(mockPopActivity).toHaveBeenLastCalledWith(1);

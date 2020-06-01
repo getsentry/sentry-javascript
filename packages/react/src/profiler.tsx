@@ -62,43 +62,35 @@ interface ProfilerProps {
   componentDisplayName?: string;
 }
 
-interface ProfilerState {
-  activity: number | null;
-}
+class Profiler extends React.Component<ProfilerProps> {
+  public activity: number | null;
 
-class Profiler extends React.Component<ProfilerProps, ProfilerState> {
   public constructor(props: ProfilerProps) {
     super(props);
 
     const { componentDisplayName = UNKNOWN_COMPONENT } = this.props;
 
-    this.state = {
-      activity: getInitActivity(componentDisplayName),
-    };
+    this.activity = getInitActivity(componentDisplayName);
   }
 
   public componentDidMount(): void {
-    if (this.state.activity) {
-      afterNextFrame(this.finishProfile);
-    }
+    afterNextFrame(this.finishProfile);
   }
 
   public componentWillUnmount(): void {
-    if (this.state.activity) {
-      afterNextFrame(this.finishProfile);
-    }
+    afterNextFrame(this.finishProfile);
   }
 
   public finishProfile = () => {
-    if (!this.state.activity) {
+    if (!this.activity) {
       return;
     }
 
     const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
     if (tracingIntegration !== null) {
       // tslint:disable-next-line:no-unsafe-any
-      (tracingIntegration as any).constructor.popActivity(this.state.activity);
-      this.setState({ activity: null });
+      (tracingIntegration as any).constructor.popActivity(this.activity);
+      this.activity = null;
     }
   };
 
