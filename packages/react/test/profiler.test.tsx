@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { create } from 'react-test-renderer';
 
-import { DEFAULT_DURATION, UNKNOWN_COMPONENT, withProfiler } from '../src/profiler';
+import { UNKNOWN_COMPONENT, withProfiler } from '../src/profiler';
 
 const mockPushActivity = jest.fn().mockReturnValue(1);
 const mockPopActivity = jest.fn();
@@ -57,23 +57,10 @@ describe('withProfiler', () => {
         expect(mockPushActivity).toHaveBeenCalledTimes(0);
         create(<ProfiledComponent />);
         expect(mockPushActivity).toHaveBeenCalledTimes(1);
-        expect(mockPushActivity).toHaveBeenLastCalledWith(
-          UNKNOWN_COMPONENT,
-          {
-            data: {},
-            description: `<${UNKNOWN_COMPONENT}>`,
-            op: 'react',
-          },
-          { autoPopAfter: DEFAULT_DURATION },
-        );
-      });
-
-      it('is called with a custom timeout', () => {
-        const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>, { timeout: 32 });
-
-        create(<ProfiledComponent />);
-        expect(mockPushActivity).toHaveBeenLastCalledWith(expect.any(String), expect.any(Object), {
-          autoPopAfter: 32,
+        expect(mockPushActivity).toHaveBeenLastCalledWith(UNKNOWN_COMPONENT, {
+          data: {},
+          description: `<${UNKNOWN_COMPONENT}>`,
+          op: 'react',
         });
       });
 
@@ -81,11 +68,7 @@ describe('withProfiler', () => {
         const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>, { componentDisplayName: 'Test' });
 
         create(<ProfiledComponent />);
-        expect(mockPushActivity).toHaveBeenLastCalledWith(
-          'Test',
-          expect.objectContaining({ description: '<Test>' }),
-          expect.any(Object),
-        );
+        expect(mockPushActivity).toHaveBeenLastCalledWith('Test', expect.objectContaining({ description: '<Test>' }));
       });
     });
   });
