@@ -3,19 +3,14 @@ import { Integration, IntegrationClass } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as React from 'react';
 
-/** The Props Injected by the HOC */
-interface InjectedProps {
-  /** Called when a transaction is finished */
-  finishProfile(): void;
-}
-
-const DEFAULT_DURATION = 30000;
+export const DEFAULT_DURATION = 30000;
+export const UNKNOWN_COMPONENT = 'unknown';
 
 const TRACING_GETTER = ({
   id: 'Tracing',
 } as any) as IntegrationClass<Integration>;
 
-const getInitActivity = (componentDisplayName: string, timeout = DEFAULT_DURATION): number | null => {
+const getInitActivity = (componentDisplayName: string, timeout: number): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
   if (tracingIntegration !== null) {
@@ -37,45 +32,63 @@ const getInitActivity = (componentDisplayName: string, timeout = DEFAULT_DURATIO
   return null;
 };
 
-/**
- * withProfiler() is a HOC that leverages the Sentry AM tracing integration to
- * send transactions about a React component.
- * @param WrappedComponent The component profiled
- * @param timeout A maximum timeout for the component render
- */
-export const withProfiler = <P extends object>(WrappedComponent: React.ComponentType<P>, timeout?: number) => {
-  const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
+interface ProfilerProps {
+  componentDisplayName?: string;
+  timeout?: number;
+}
 
-  return class extends React.Component<Omit<P, keyof InjectedProps>, { activity: number | null }> {
-    public static displayName: string = `profiler(${componentDisplayName})`;
+interface ProfilerState {
+  activity: number | null;
+}
 
-    public constructor(props: P) {
-      super(props);
+class Profiler extends React.Component<ProfilerProps, ProfilerState> {
+  public constructor(props: ProfilerProps) {
+    super(props);
 
-      this.state = {
-        activity: getInitActivity(componentDisplayName, timeout),
-      };
-    }
+    const { componentDisplayName = UNKNOWN_COMPONENT, timeout = DEFAULT_DURATION } = this.props;
 
-    public componentWillUnmount(): void {
-      this.finishProfile();
-    }
-
-    public finishProfile = () => {
-      if (!this.state.activity) {
-        return;
-      }
-
-      const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-      if (tracingIntegration !== null) {
-        // tslint:disable-next-line:no-unsafe-any
-        (tracingIntegration as any).constructor.popActivity(this.state.activity);
-        this.setState({ activity: null });
-      }
+    this.state = {
+      activity: getInitActivity(componentDisplayName, timeout),
     };
+  }
 
-    public render(): React.ReactNode {
-      return <WrappedComponent {...this.props as P} />;
+  public componentWillUnmount(): void {
+    this.finishProfile();
+  }
+
+  public finishProfile = () => {
+    if (!this.state.activity) {
+      return;
+    }
+
+    const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+    if (tracingIntegration !== null) {
+      // tslint:disable-next-line:no-unsafe-any
+      (tracingIntegration as any).constructor.popActivity(this.state.activity);
+      this.setState({ activity: null });
     }
   };
-};
+
+  public render(): React.ReactNode {
+    return this.props.children;
+  }
+}
+
+function withProfiler<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  profilerProps?: ProfilerProps,
+): React.FC<P> {
+  const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+
+  const Wrapped: React.FC<P> = (props: P) => (
+    <Profiler componentDisplayName={componentDisplayName} {...profilerProps}>
+      <WrappedComponent {...props} />
+    </Profiler>
+  );
+
+  Wrapped.displayName = `profiler(${componentDisplayName})`;
+
+  return Wrapped;
+}
+
+export { withProfiler, Profiler };

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { create, ReactTestInstance } from 'react-test-renderer';
+import { create } from 'react-test-renderer';
 
-import { withProfiler } from '../src/profiler';
+import { DEFAULT_DURATION, UNKNOWN_COMPONENT, withProfiler } from '../src/profiler';
 
 const mockPushActivity = jest.fn().mockReturnValue(1);
 const mockPopActivity = jest.fn();
@@ -38,14 +38,6 @@ describe('withProfiler', () => {
       mockPopActivity.mockClear();
     });
 
-    it('is called with pushActivity() when mounted', () => {
-      const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
-
-      expect(mockPushActivity).toHaveBeenCalledTimes(0);
-      create(<ProfiledComponent />);
-      expect(mockPushActivity).toHaveBeenCalledTimes(1);
-    });
-
     it('is called with popActivity() when unmounted', () => {
       const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
 
@@ -55,20 +47,46 @@ describe('withProfiler', () => {
       profiler.unmount();
 
       expect(mockPopActivity).toHaveBeenCalledTimes(1);
+      expect(mockPopActivity).toHaveBeenLastCalledWith(1);
     });
 
-    it('calls finishProfile() when unmounting', () => {
-      const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
+    describe('pushActivity()', () => {
+      it('is called when mounted', () => {
+        const ProfiledComponent = withProfiler(() => <h1>Testing</h1>);
 
-      const mockFinishProfile = jest.fn();
-      const profiler = create(<ProfiledComponent />);
+        expect(mockPushActivity).toHaveBeenCalledTimes(0);
+        create(<ProfiledComponent />);
+        expect(mockPushActivity).toHaveBeenCalledTimes(1);
+        expect(mockPushActivity).toHaveBeenLastCalledWith(
+          UNKNOWN_COMPONENT,
+          {
+            data: {},
+            description: `<${UNKNOWN_COMPONENT}>`,
+            op: 'react',
+          },
+          { autoPopAfter: DEFAULT_DURATION },
+        );
+      });
 
-      const instance = profiler.getInstance() as ReactTestInstance & { finishProfile(): void };
-      instance.finishProfile = mockFinishProfile;
+      it('is called with a custom timeout', () => {
+        const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>, { timeout: 32 });
 
-      expect(mockFinishProfile).toHaveBeenCalledTimes(0);
-      profiler.unmount();
-      expect(mockFinishProfile).toHaveBeenCalledTimes(1);
+        create(<ProfiledComponent />);
+        expect(mockPushActivity).toHaveBeenLastCalledWith(expect.any(String), expect.any(Object), {
+          autoPopAfter: 32,
+        });
+      });
+
+      it('is called with a custom displayName', () => {
+        const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>, { componentDisplayName: 'Test' });
+
+        create(<ProfiledComponent />);
+        expect(mockPushActivity).toHaveBeenLastCalledWith(
+          'Test',
+          expect.objectContaining({ description: '<Test>' }),
+          expect.any(Object),
+        );
+      });
     });
   });
 });
