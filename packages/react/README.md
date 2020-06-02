@@ -5,4 +5,9 @@
   <br />
 </p>
 
-# Official Sentry SDK for NodeJS
+# Official Sentry SDK for ReactJS
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [TypeDoc](http://getsentry.github.io/sentry-javascript/)

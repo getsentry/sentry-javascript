@@ -1,5 +1,3 @@
 export * from '@sentry/browser';
 
-import { Profiler, withProfiler } from './profiler';
-
-export { Profiler, withProfiler };
+export { Profiler, withProfiler } from './profiler';

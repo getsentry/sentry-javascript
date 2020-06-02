@@ -54,7 +54,9 @@ const getInitActivity = (componentDisplayName: string): number | null => {
     return activity;
   }
 
-  logger.warn(`Unable to profile component ${componentDisplayName} due to invalid Tracing Integration`);
+  logger.warn(
+    `Unable to profile component ${componentDisplayName} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
+  );
   return null;
 };
 

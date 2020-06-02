@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "5.16.0-beta.5",
-    "@sentry/types": "5.16.0-beta.5",
-    "@sentry/utils": "^5.15.5",
+    "@sentry/browser": "5.16.0",
+    "@sentry/types": "5.16.0",
+    "@sentry/utils": "5.16.0",
     "hoist-non-react-statics": "^3.3.2",
     "tslib": "^1.9.3"
   },
@@ -38,20 +38,12 @@
     "react-dom": "^16.0.0",
     "react-test-renderer": "^16.13.1",
     "rimraf": "^2.6.3",
-    "rollup": "^1.10.1",
-    "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-license": "^0.8.1",
-    "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^4.0.4",
-    "rollup-plugin-typescript2": "^0.21.0",
     "tslint": "^5.16.0",
     "tslint-react": "^5.0.0",
     "typescript": "^3.5.1"
   },
   "scripts": {
-    "build": "run-p build:es5 build:esm build:bundle",
-    "build:bundle": "rollup --config",
-    "build:bundle:watch": "rollup --config --watch",
+    "build": "run-p build:es5 build:esm",
     "build:es5": "tsc -p tsconfig.build.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:watch": "run-p build:watch:es5 build:watch:esm",
@@ -60,11 +52,11 @@
     "clean": "rimraf dist coverage build esm",
     "link:yarn": "yarn link",
     "lint": "run-s lint:prettier lint:tslint",
-    "lint:prettier": "prettier-check \"{src,test}/**/*.ts\"",
+    "lint:prettier": "prettier-check \"{src,test}/**/*.{ts,tsx}\"",
     "lint:tslint": "tslint -t stylish -p .",
     "lint:tslint:json": "tslint --format json -p . | tee lint-results.json",
     "fix": "run-s fix:tslint fix:prettier",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
     "fix:tslint": "tslint --fix -t stylish -p .",
     "test": "jest",
     "test:watch": "jest --watch"
