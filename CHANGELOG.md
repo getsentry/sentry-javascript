@@ -6,6 +6,11 @@
 
 ## 5.16.0
 
+*If you are a `@sentry/apm` and did manual instrumentation using `hub.startSpan` please be aware of the changes we did
+to the API. The recommended entry point for manual instrumentation now is `Sentry.startTransaction` and creating
+child Span by calling `startChild` on it. We have internal workarounds in place so the old code should still work
+but will be removed in the future. If you are only using the `Tracing` integration there is no need for action.*
+
 - [core] feat: Send transactions in envelopes (#2553)
 - [core] fix: Send event timestamp (#2575)
 - [browser] feat: Allow for configuring TryCatch integration (#2601)
