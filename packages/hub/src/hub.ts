@@ -368,8 +368,15 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSpan(context: SpanContext | TransactionContext): Transaction | Span {
+  public startSpan(context: SpanContext): Span {
     return this._callExtensionMethod('startSpan', context);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public startTransaction(context: TransactionContext): Transaction {
+    return this._callExtensionMethod('startTransaction', context);
   }
 
   /**
