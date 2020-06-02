@@ -214,7 +214,7 @@ Raven.captureMessage('test2', 'info', { extra: { debug: false } });
 _New_:
 
 ```js
-Raven.captureMessage('test1', 'info');
+Sentry.captureMessage('test1', 'info');
 Sentry.withScope(scope => {
   scope.setExtra('debug', false);
   Sentry.captureMessage('test2', 'info');
@@ -253,12 +253,12 @@ Sentry.addBreadcrumb({
 
 ### Ignoring Urls
 
-> 'ignoreUrls' was renamed to 'blacklistUrls'. 'ignoreErrors', which has a similar name was not renamed. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#blacklist-urls) and [Decluttering Sentry](https://docs.sentry.io/platforms/javascript/#decluttering-sentry) 
+> 'ignoreUrls' was renamed to 'blacklistUrls'. 'ignoreErrors', which has a similar name was not renamed. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#blacklist-urls) and [Decluttering Sentry](https://docs.sentry.io/platforms/javascript/#decluttering-sentry)
 
 _Old_:
 
 ```js
-Sentry.init({
+Raven.config('___PUBLIC_DSN___', {
   ignoreUrls: [
     'https://www.baddomain.com',
     /graph\.facebook\.com/i,
@@ -284,7 +284,7 @@ Sentry.init({
 _Old_:
 
 ```js
-Sentry.init({
+Raven.config('___PUBLIC_DSN___', {
   shouldSendCallback(event) {
     // Modify the event here
     if(event.user){
@@ -322,7 +322,7 @@ Sentry.init({
 _Old_:
 
 ```js
-Sentry.init({
+Raven.config('___PUBLIC_DSN___', {
   stacktrace: true,
 });
 ```
