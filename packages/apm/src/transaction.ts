@@ -93,7 +93,7 @@ export class Transaction extends SpanClass {
     }
 
     if (!this.name) {
-      logger.warn('Transaction has no name, falling back to <unlabeled transaction>.');
+      logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this.name = '<unlabeled transaction>';
     }
 

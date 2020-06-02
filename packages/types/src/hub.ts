@@ -174,10 +174,18 @@ export interface Hub {
   traceHeaders(): { [key: string]: string };
 
   /**
-   * This functions starts either a Span or a Transaction (depending on the argument passed).
-   * If there is a Span on the Scope we use the `trace_id` for all other created Transactions / Spans as a reference.
-   *
-   * @param context Properties with which the Transaction/Span should be created
+   * This function starts a span. If there is already a `Span` on the Scope,
+   * the created Span with the SpanContext will have a reference to it and become it's child.
+   * Otherwise it'll create a new `Span`.
    */
-  startSpan(context: SpanContext | TransactionContext): Transaction | Span;
+  startSpan(context: SpanContext): Span;
+
+  /**
+   * Starts a Transaction.
+   * This is the entry point to do manual tracing. You can add child spans to transactions.
+   * Spans themselves can have children, building a tree structure.
+   * This function returns a Transaction and you need to keep track of the instance yourself.
+   * When you call `.finish()` on the transaction it will be sent to Sentry.
+   */
+  startTransaction(context: TransactionContext): Transaction;
 }

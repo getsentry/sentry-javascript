@@ -1,4 +1,4 @@
-import { getMainCarrier, Hub } from '@sentry/hub';
+import { getCurrentHub, getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -20,11 +20,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * Starts a Transaction. This is the entry point to do manual tracing. You can
- * add child spans to transactions. Spans themselves can have children, building
- * a tree structure. This function returns a Transaction and you need to keep
- * track of the instance yourself. When you call `.finish()` on the transaction
- * it will be sent to Sentry.
+ * {@see Hub.startTransaction}
  */
 function startTransaction(this: Hub, context: TransactionContext): Transaction {
   const transaction = new Transaction(context, this);
@@ -50,19 +46,23 @@ function startTransaction(this: Hub, context: TransactionContext): Transaction {
 }
 
 /**
- * This function starts a span. If there is already a `Span` on the Scope,
- * the created Span with the SpanContext will have a reference to it and become it's child.
- * Otherwise it'll create a new `Span`.
- *
- * @param context Properties with which the span should be created
- *
- * @deprecated Use startTransaction to start transactions and Transaction.startChild to start spans.
+ * {@see Hub.startSpan}
  */
-function startSpan(this: Hub, context: SpanContext | TransactionContext): Transaction | Span {
-  logger.warn('Deprecated: Use startTransaction to start transactions and Transaction.startChild to start spans.');
+function startSpan(this: Hub, context: SpanContext): Transaction | Span {
+  /**
+   * @deprecated
+   * This is here to make sure we don't break users that relied on calling startSpan to create a transaction
+   * with the transaction poperty set.
+   */
+  if ((context as any).transaction !== undefined) {
+    logger.warn(`Use \`Sentry.startTransaction({name: ${(context as any).transaction}})\` to start a Transaction.`);
+    (context as TransactionContext).name = (context as any).transaction as string;
+  }
 
-  if ((context as TransactionContext).name) {
-    return startTransaction(this, context as TransactionContext);
+  // We have the check of not undefined since we defined it's ok to start a transaction with an empty name
+  // tslint:disable-next-line: strict-type-predicates
+  if ((context as TransactionContext).name !== undefined) {
+    return getCurrentHub().startTransaction(context as TransactionContext);
   }
 
   const scope = this.getScope();
@@ -89,7 +89,6 @@ export function addExtensionMethods(): void {
       carrier.__SENTRY__.extensions.startTransaction = startTransaction;
     }
     if (!carrier.__SENTRY__.extensions.startSpan) {
-      // tslint:disable-next-line: deprecation
       carrier.__SENTRY__.extensions.startSpan = startSpan;
     }
     if (!carrier.__SENTRY__.extensions.traceHeaders) {
