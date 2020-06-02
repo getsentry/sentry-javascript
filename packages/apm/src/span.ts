@@ -77,7 +77,7 @@ export class Span implements SpanInterface, SpanContext {
   public spanRecorder?: SpanRecorder;
 
   /**
-   * You should never call the custructor manually, always use `hub.startSpan()`.
+   * You should never call the constructor manually, always use `hub.startSpan()`.
    * @internal
    * @hideconstructor
    * @hidden
