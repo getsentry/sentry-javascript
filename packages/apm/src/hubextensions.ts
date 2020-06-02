@@ -1,4 +1,4 @@
-import { getCurrentHub, getMainCarrier, Hub } from '@sentry/hub';
+import { getMainCarrier, Hub } from '@sentry/hub';
 import { SpanContext, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -62,7 +62,7 @@ function startSpan(this: Hub, context: SpanContext): Transaction | Span {
   // We have the check of not undefined since we defined it's ok to start a transaction with an empty name
   // tslint:disable-next-line: strict-type-predicates
   if ((context as TransactionContext).name !== undefined) {
-    return getCurrentHub().startTransaction(context as TransactionContext);
+    return this.startTransaction(context as TransactionContext);
   }
 
   const scope = this.getScope();

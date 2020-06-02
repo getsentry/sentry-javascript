@@ -180,10 +180,10 @@ describe('Span', () => {
       expect(span.endTimestamp).toBeGreaterThan(1);
     });
 
-    describe('hub.startSpan', () => {
+    describe('hub.startTransaction', () => {
       test('finish a transaction', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const transaction = hub.startSpan({ name: 'test' });
+        const transaction = hub.startTransaction({ name: 'test' });
         transaction.finish();
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(0);
@@ -194,7 +194,7 @@ describe('Span', () => {
 
       test('finish a transaction + child span', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const transaction = hub.startSpan({ name: 'test' });
+        const transaction = hub.startTransaction({ name: 'test' });
         const childSpan = transaction.startChild();
         childSpan.finish();
         transaction.finish();
@@ -205,7 +205,7 @@ describe('Span', () => {
 
       test("finish a child span shouldn't trigger captureEvent", () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-        const transaction = hub.startSpan({ name: 'test' });
+        const transaction = hub.startTransaction({ name: 'test' });
         const childSpan = transaction.startChild();
         childSpan.finish();
         expect(spy).not.toHaveBeenCalled();
@@ -213,8 +213,7 @@ describe('Span', () => {
 
       test("finish a span with another one on the scope shouldn't override contexts.trace", () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-
-        const transaction = hub.startSpan({ name: 'test' });
+        const transaction = hub.startTransaction({ name: 'test' });
         const childSpanOne = transaction.startChild();
         childSpanOne.finish();
 
@@ -239,7 +238,7 @@ describe('Span', () => {
           }),
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startSpan({ name: 'test' });
+        const transaction = _hub.startTransaction({ name: 'test' });
         for (let i = 0; i < 10; i++) {
           const child = transaction.startChild();
           child.finish();
@@ -255,7 +254,7 @@ describe('Span', () => {
           }),
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startSpan({ name: 'test' });
+        const transaction = _hub.startTransaction({ name: 'test' });
         for (let i = 0; i < 10; i++) {
           const child = transaction.startChild();
           child.finish();
@@ -274,7 +273,7 @@ describe('Span', () => {
         );
         const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
 
-        const transaction = _hub.startSpan({ name: 'test' });
+        const transaction = _hub.startTransaction({ name: 'test' });
         const childSpanOne = transaction.startChild({ op: '1' });
         childSpanOne.finish();
 
@@ -297,7 +296,7 @@ describe('Span', () => {
       test('tree structure of spans should be correct when mixing it with span on scope', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
 
-        const transaction = hub.startSpan({ name: 'test' });
+        const transaction = hub.startTransaction({ name: 'test' });
         const childSpanOne = transaction.startChild();
 
         const childSpanTwo = childSpanOne.startChild();
@@ -319,6 +318,50 @@ describe('Span', () => {
         expect(childSpanOne.toJSON().parent_span_id).toEqual(transaction.toJSON().span_id);
         expect(childSpanTwo.toJSON().parent_span_id).toEqual(childSpanOne.toJSON().span_id);
         expect(spanTwo.toJSON().parent_span_id).toEqual(transaction.toJSON().span_id);
+      });
+    });
+
+    describe('hub.startSpan', () => {
+      test('finish a transaction', () => {
+        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+        // @ts-ignore
+        const transaction = hub.startSpan({ name: 'test' });
+        transaction.finish();
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toHaveLength(0);
+        expect(spy.mock.calls[0][0].timestamp).toBeTruthy();
+        expect(spy.mock.calls[0][0].start_timestamp).toBeTruthy();
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
+      });
+
+      test('finish a transaction (deprecated way)', () => {
+        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+        // @ts-ignore
+        const transaction = hub.startSpan({ transaction: 'test' });
+        transaction.finish();
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toHaveLength(0);
+        expect(spy.mock.calls[0][0].timestamp).toBeTruthy();
+        expect(spy.mock.calls[0][0].start_timestamp).toBeTruthy();
+        expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
+      });
+
+      test('startSpan with Span on the Scope should be a child', () => {
+        const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+        const transaction = hub.startTransaction({ name: 'test' });
+        const child1 = transaction.startChild();
+        hub.configureScope(scope => {
+          scope.setSpan(child1);
+        });
+
+        const child2 = hub.startSpan({});
+        child1.finish();
+        child2.finish();
+        transaction.finish();
+
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls[0][0].spans).toHaveLength(2);
+        expect(child2.parentSpanId).toEqual(child1.spanId);
       });
     });
   });
