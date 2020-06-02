@@ -3,7 +3,6 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-- [minimal/core] feat: Allow for explicit scope through 2nd argument to `captureException/captureMessage` (#2627)
 
 ## 5.16.0
 
@@ -22,6 +21,7 @@
 - [browser] fix: Emit Sentry Request breadcrumbs from inside the client (#2615)
 - [apm] fix: No longer debounce IdleTransaction (#2618)
 - [apm] feat: Add pageload transaction option + fixes (#2623)
+- [minimal/core] feat: Allow for explicit scope through 2nd argument to `captureException/captureMessage` (#2627)
 
 ## 5.15.5
 
