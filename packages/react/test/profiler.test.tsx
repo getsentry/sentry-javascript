@@ -66,13 +66,6 @@ describe('withProfiler', () => {
           op: 'react',
         });
       });
-
-      it('is called with a custom displayName', () => {
-        const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>, { componentDisplayName: 'Test' });
-
-        create(<ProfiledComponent />);
-        expect(mockPushActivity).toHaveBeenLastCalledWith('Test', expect.objectContaining({ description: '<Test>' }));
-      });
     });
   });
 });

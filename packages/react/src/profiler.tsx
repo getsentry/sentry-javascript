@@ -66,7 +66,6 @@ interface ProfilerProps {
 
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null;
-
   public constructor(props: ProfilerProps) {
     super(props);
 
@@ -101,14 +100,11 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 }
 
-function withProfiler<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  profilerProps?: ProfilerProps,
-): React.FC<P> {
+function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>): React.FC<P> {
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
-    <Profiler componentDisplayName={componentDisplayName} {...profilerProps}>
+    <Profiler componentDisplayName={componentDisplayName}>
       <WrappedComponent {...props} />
     </Profiler>
   );
