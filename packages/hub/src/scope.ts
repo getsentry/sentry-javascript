@@ -1,14 +1,16 @@
 import {
   Breadcrumb,
+  CaptureContext,
   Event,
   EventHint,
   EventProcessor,
   Scope as ScopeInterface,
+  ScopeContext,
   Severity,
   Span,
   User,
 } from '@sentry/types';
-import { getGlobalObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
+import { getGlobalObject, isPlainObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -37,7 +39,7 @@ export class Scope implements ScopeInterface {
   protected _extra: { [key: string]: any } = {};
 
   /** Contexts */
-  protected _context: { [key: string]: any } = {};
+  protected _contexts: { [key: string]: any } = {};
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -193,7 +195,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setContext(key: string, context: { [key: string]: any } | null): this {
-    this._context = { ...this._context, [key]: context };
+    this._contexts = { ...this._contexts, [key]: context };
     this._notifyScopeListeners();
     return this;
   }
@@ -225,7 +227,7 @@ export class Scope implements ScopeInterface {
       newScope._breadcrumbs = [...scope._breadcrumbs];
       newScope._tags = { ...scope._tags };
       newScope._extra = { ...scope._extra };
-      newScope._context = { ...scope._context };
+      newScope._contexts = { ...scope._contexts };
       newScope._user = scope._user;
       newScope._level = scope._level;
       newScope._span = scope._span;
@@ -239,12 +241,58 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public update(captureContext?: CaptureContext): this {
+    if (!captureContext) {
+      return this;
+    }
+
+    if (typeof captureContext === 'function') {
+      const updatedScope = (captureContext as (<T>(scope: T) => T))(this);
+      return updatedScope instanceof Scope ? updatedScope : this;
+    }
+
+    if (captureContext instanceof Scope) {
+      this._tags = { ...this._tags, ...captureContext._tags };
+      this._extra = { ...this._extra, ...captureContext._extra };
+      this._contexts = { ...this._contexts, ...captureContext._contexts };
+      if (captureContext._user) {
+        this._user = captureContext._user;
+      }
+      if (captureContext._level) {
+        this._level = captureContext._level;
+      }
+      if (captureContext._fingerprint) {
+        this._fingerprint = captureContext._fingerprint;
+      }
+    } else if (isPlainObject(captureContext)) {
+      // tslint:disable-next-line:no-parameter-reassignment
+      captureContext = captureContext as ScopeContext;
+      this._tags = { ...this._tags, ...captureContext.tags };
+      this._extra = { ...this._extra, ...captureContext.extra };
+      this._contexts = { ...this._contexts, ...captureContext.contexts };
+      if (captureContext.user) {
+        this._user = captureContext.user;
+      }
+      if (captureContext.level) {
+        this._level = captureContext.level;
+      }
+      if (captureContext.fingerprint) {
+        this._fingerprint = captureContext.fingerprint;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public clear(): this {
     this._breadcrumbs = [];
     this._tags = {};
     this._extra = {};
     this._user = {};
-    this._context = {};
+    this._contexts = {};
     this._level = undefined;
     this._transaction = undefined;
     this._fingerprint = undefined;
@@ -320,8 +368,8 @@ export class Scope implements ScopeInterface {
     if (this._user && Object.keys(this._user).length) {
       event.user = { ...this._user, ...event.user };
     }
-    if (this._context && Object.keys(this._context).length) {
-      event.contexts = { ...this._context, ...event.contexts };
+    if (this._contexts && Object.keys(this._contexts).length) {
+      event.contexts = { ...this._contexts, ...event.contexts };
     }
     if (this._level) {
       event.level = this._level;

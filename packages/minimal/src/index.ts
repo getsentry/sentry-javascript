@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import { Breadcrumb, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -21,7 +21,7 @@ function callOnHub<T>(method: string, ...args: any[]): T {
  * @param exception An exception-like object.
  * @returns The generated eventId.
  */
-export function captureException(exception: any): string {
+export function captureException(exception: any, captureContext?: CaptureContext): string {
   let syntheticException: Error;
   try {
     throw new Error('Sentry syntheticException');
@@ -29,6 +29,7 @@ export function captureException(exception: any): string {
     syntheticException = exception as Error;
   }
   return callOnHub('captureException', exception, {
+    captureContext,
     originalException: exception,
     syntheticException,
   });
@@ -41,16 +42,23 @@ export function captureException(exception: any): string {
  * @param level Define the level of the message.
  * @returns The generated eventId.
  */
-export function captureMessage(message: string, level?: Severity): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | Severity): string {
   let syntheticException: Error;
   try {
     throw new Error(message);
   } catch (exception) {
     syntheticException = exception as Error;
   }
+
+  // This is necessary to provide explicit scopes upgrade, without changing the original
+  // arrity of the `captureMessage(message, level)` method.
+  const level = typeof captureContext === 'string' ? captureContext : undefined;
+  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+
   return callOnHub('captureMessage', message, level, {
     originalException: message,
     syntheticException,
+    ...context,
   });
 }
 

@@ -1,5 +1,5 @@
 import { Hub, Scope } from '@sentry/hub';
-import { Event } from '@sentry/types';
+import { Event, Severity } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
 import { TestBackend } from '../mocks/backend';
@@ -163,9 +163,8 @@ describe('BaseClient', () => {
     });
   });
 
-  describe('captures', () => {
+  describe('captureException', () => {
     test('captures and sends exceptions', () => {
-      expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureException(new Error('test exception'));
       expect(TestBackend.instance!.event).toEqual({
@@ -182,19 +181,69 @@ describe('BaseClient', () => {
       });
     });
 
+    test('allows for providing explicit scope', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureException(
+        new Error('test exception'),
+        {
+          captureContext: {
+            extra: {
+              bar: 'wat',
+            },
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+            foo: 'wat',
+          },
+        }),
+      );
+    });
+
+    test('allows for clearing data from existing scope if explicit one does so in a callback function', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureException(
+        new Error('test exception'),
+        {
+          captureContext: s => {
+            s.clear();
+            s.setExtra('bar', 'wat');
+            return s;
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+          },
+        }),
+      );
+    });
+  });
+
+  describe('captureMessage', () => {
     test('captures and sends messages', () => {
-      expect.assertions(1);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       client.captureMessage('test message');
       expect(TestBackend.instance!.event).toEqual({
         event_id: '42',
+        level: 'info',
         message: 'test message',
         timestamp: 2020,
       });
     });
 
     test('should call eventFromException if input to captureMessage is not a primitive', () => {
-      expect.assertions(2);
       const client = new TestClient({ dsn: PUBLIC_DSN });
       const spy = jest.spyOn(TestBackend.instance!, 'eventFromException');
 
@@ -208,6 +257,33 @@ describe('BaseClient', () => {
       client.captureMessage({} as any);
       client.captureMessage([] as any);
       expect(spy.mock.calls.length).toEqual(2);
+    });
+
+    test('allows for providing explicit scope', () => {
+      const client = new TestClient({ dsn: PUBLIC_DSN });
+      const scope = new Scope();
+      scope.setExtra('foo', 'wat');
+      client.captureMessage(
+        'test message',
+        Severity.Warning,
+        {
+          captureContext: {
+            extra: {
+              bar: 'wat',
+            },
+          },
+        },
+        scope,
+      );
+      expect(TestBackend.instance!.event).toEqual(
+        expect.objectContaining({
+          extra: {
+            bar: 'wat',
+            foo: 'wat',
+          },
+          level: 'warning',
+        }),
+      );
     });
   });
 

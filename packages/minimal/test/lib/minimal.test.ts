@@ -51,6 +51,20 @@ describe('Minimal', () => {
       });
     });
 
+    test('Exception with explicit scope', () => {
+      const client: any = {
+        captureException: jest.fn(async () => Promise.resolve()),
+      };
+      getCurrentHub().withScope(() => {
+        getCurrentHub().bindClient(client);
+        const e = new Error('test exception');
+        const captureContext = { extra: { foo: 'wat' } };
+        captureException(e, captureContext);
+        expect(client.captureException.mock.calls[0][0]).toBe(e);
+        expect(client.captureException.mock.calls[0][1].captureContext).toBe(captureContext);
+      });
+    });
+
     test('Message', () => {
       const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
       getCurrentHub().withScope(() => {
@@ -58,6 +72,33 @@ describe('Minimal', () => {
         const message = 'yo';
         captureMessage(message);
         expect(client.captureMessage.mock.calls[0][0]).toBe(message);
+      });
+    });
+
+    test('Message with explicit scope', () => {
+      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
+      getCurrentHub().withScope(() => {
+        getCurrentHub().bindClient(client);
+        const message = 'yo';
+        const captureContext = { extra: { foo: 'wat' } };
+        captureMessage(message, captureContext);
+        expect(client.captureMessage.mock.calls[0][0]).toBe(message);
+        // Skip the level if explicit content is provided
+        expect(client.captureMessage.mock.calls[0][1]).toBe(undefined);
+        expect(client.captureMessage.mock.calls[0][2].captureContext).toBe(captureContext);
+      });
+    });
+
+    // NOTE: We left custom level as 2nd argument to not break the API. Should be removed and unified in v6.
+    test('Message with custom level', () => {
+      const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
+      getCurrentHub().withScope(() => {
+        getCurrentHub().bindClient(client);
+        const message = 'yo';
+        const level = Severity.Warning;
+        captureMessage(message, level);
+        expect(client.captureMessage.mock.calls[0][0]).toBe(message);
+        expect(client.captureMessage.mock.calls[0][1]).toBe(Severity.Warning);
       });
     });
 
@@ -258,6 +299,6 @@ describe('Minimal', () => {
   test('setContext', () => {
     init({});
     setContext('test', { id: 'b' });
-    expect(global.__SENTRY__.hub._stack[0].scope._context).toEqual({ test: { id: 'b' } });
+    expect(global.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
   });
 });

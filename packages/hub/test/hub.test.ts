@@ -136,22 +136,20 @@ describe('Hub', () => {
   });
 
   describe('configureScope', () => {
-    test('no client, should not invoke configureScope', () => {
-      expect.assertions(0);
-      const hub = new Hub();
-      hub.configureScope(_ => {
-        expect(true).toBeFalsy();
-      });
-    });
-
-    test('no client, should not invoke configureScope', () => {
-      expect.assertions(1);
+    test('should have an access to provide scope', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
-      const hub = new Hub({ a: 'b' } as any, localScope);
-      hub.configureScope(confScope => {
-        expect((confScope as any)._extra).toEqual({ a: 'b' });
-      });
+      const hub = new Hub({} as any, localScope);
+      const cb = jest.fn();
+      hub.configureScope(cb);
+      expect(cb).toHaveBeenCalledWith(localScope);
+    });
+
+    test('should not invoke without client and scope', () => {
+      const hub = new Hub();
+      const cb = jest.fn();
+      hub.configureScope(cb);
+      expect(cb).not.toHaveBeenCalled();
     });
   });
 

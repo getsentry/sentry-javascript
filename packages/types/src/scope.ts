@@ -4,6 +4,19 @@ import { Severity } from './severity';
 import { Span } from './span';
 import { User } from './user';
 
+/** JSDocs */
+export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => Scope);
+
+/** JSDocs */
+export interface ScopeContext {
+  user: User;
+  level: Severity;
+  extra: { [key: string]: any };
+  contexts: { [key: string]: any };
+  tags: { [key: string]: string };
+  fingerprint: string[];
+}
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
  * called by the client before an event will be sent.
@@ -75,6 +88,15 @@ export interface Scope {
    * @param span Span
    */
   setSpan(span?: Span): this;
+
+  /**
+   * Updates the scope with provided data. Can work in three variations:
+   * - plain object containing updatable attributes
+   * - Scope instance that'll extract the attributes from
+   * - callback function that'll receive the current scope as an argument and allow for modifications
+   * @param captureContext scope modifier to be used
+   */
+  update(captureContext?: CaptureContext): this;
 
   /** Clears the current scope and resets its properties. */
   clear(): this;

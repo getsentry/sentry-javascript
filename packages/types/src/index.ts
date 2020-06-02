@@ -14,7 +14,7 @@ export { Package } from './package';
 export { Request } from './request';
 export { Response } from './response';
 export { Runtime } from './runtime';
-export { Scope } from './scope';
+export { CaptureContext, Scope, ScopeContext } from './scope';
 export { SdkInfo } from './sdkinfo';
 export { Severity } from './severity';
 export { Span, SpanContext } from './span';
