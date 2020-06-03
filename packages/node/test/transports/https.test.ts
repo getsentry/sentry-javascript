@@ -6,7 +6,7 @@ import { HTTPSTransport } from '../../src/transports/https';
 
 const mockSetEncoding = jest.fn();
 const dsn = 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622';
-const transportPath = '/mysubpath/api/50622/store/?sentry_key=9e9fd4523d784609a5fc0ebb1080592f&sentry_version=7';
+const transportPath = '/mysubpath/api/50622/store/';
 let mockReturnCode = 200;
 let mockHeaders = {};
 
@@ -34,7 +34,7 @@ function createTransport(options: TransportOptions): HTTPSTransport {
 }
 
 function assertBasicOptions(options: any): void {
-  expect(options.headers).not.toContain('X-Sentry-Auth'); // auth is part of the query string
+  expect(options.headers['X-Sentry-Auth']).toBeTruthy();
   expect(options.port).toEqual('8989');
   expect(options.path).toEqual(transportPath);
   expect(options.hostname).toEqual('sentry.io');
