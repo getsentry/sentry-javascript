@@ -72,13 +72,6 @@ export class Dsn implements DsnComponents {
       projectId = split.pop() as string;
     }
 
-    if (projectId) {
-      const projectMatch = projectId.match(/^\d+/);
-      if (projectMatch) {
-        projectId = projectMatch[0];
-      }
-    }
-
     this._fromComponents({ host, pass, path, projectId, port, protocol: protocol as DsnProtocol, user });
   }
 
@@ -97,20 +90,16 @@ export class Dsn implements DsnComponents {
   private _validate(): void {
     ['protocol', 'user', 'host', 'projectId'].forEach(component => {
       if (!this[component as keyof DsnComponents]) {
-        throw new SentryError(`${ERROR_MESSAGE}: ${component} missing`);
+        throw new SentryError(ERROR_MESSAGE);
       }
     });
 
-    if (!this.projectId.match(/^\d+$/)) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid projectId ${this.projectId}`);
-    }
-
     if (this.protocol !== 'http' && this.protocol !== 'https') {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid protocol ${this.protocol}`);
+      throw new SentryError(ERROR_MESSAGE);
     }
 
     if (this.port && isNaN(parseInt(this.port, 10))) {
-      throw new SentryError(`${ERROR_MESSAGE}: Invalid port ${this.port}`);
+      throw new SentryError(ERROR_MESSAGE);
     }
   }
 }
