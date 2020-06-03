@@ -3,6 +3,7 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- [react] feat: Add @sentry/react package (#2631)
 
 ## 5.16.1
 
