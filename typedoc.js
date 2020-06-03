@@ -9,7 +9,6 @@ module.exports = {
     '**/dist/**/*',
     '**/esm/**/*',
     '**/build/**/*',
-    '**/packages/opentracing/**/*',
     '**/packages/typescript/**/*',
     '**/dangerfile.ts',
   ],
