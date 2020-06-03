@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { create } from 'react-test-renderer';
 
 import { ErrorBoundary } from '../src/errorboundary';
 
