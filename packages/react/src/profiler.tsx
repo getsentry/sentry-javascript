@@ -45,7 +45,6 @@ const getInitActivity = (componentDisplayName: string): number | null => {
   if (tracingIntegration !== null) {
     // tslint:disable-next-line:no-unsafe-any
     const activity = (tracingIntegration as any).constructor.pushActivity(componentDisplayName, {
-      data: {},
       description: `<${componentDisplayName}>`,
       op: 'react',
     });

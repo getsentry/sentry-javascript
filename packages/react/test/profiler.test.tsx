@@ -61,7 +61,6 @@ describe('withProfiler', () => {
         create(<ProfiledComponent />);
         expect(mockPushActivity).toHaveBeenCalledTimes(1);
         expect(mockPushActivity).toHaveBeenLastCalledWith(UNKNOWN_COMPONENT, {
-          data: {},
           description: `<${UNKNOWN_COMPONENT}>`,
           op: 'react',
         });
