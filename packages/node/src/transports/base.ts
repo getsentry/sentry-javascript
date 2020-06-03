@@ -62,9 +62,10 @@ export abstract class BaseTransport implements Transport {
       ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const { hostname, pathname, port, protocol, search } = uri;
+    const { hostname, pathname, port, protocol } = uri;
     // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
-    const path = `${pathname}${search}`;
+    // We ignore the query string on purpose
+    const path = `${pathname}`;
 
     return {
       agent: this.client,

@@ -6,7 +6,7 @@
 
 ## 5.16.1
 
-- [node] fix: Requests to old `/store` endpoint need the `x-sentry-auth` header in node
+- [node] fix: Requests to old `/store` endpoint need the `x-sentry-auth` header in node (#2637)
 
 ## 5.16.0
 
