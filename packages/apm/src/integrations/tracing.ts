@@ -17,7 +17,7 @@ import { Transaction } from '../transaction';
 /**
  * Options for Tracing integration
  */
-interface TracingOptions {
+export interface TracingOptions {
   /**
    * List of strings / regex where the integration should create Spans out of. Additionally this will be used
    * to define which outgoing requests the `sentry-trace` header will be attached to.
