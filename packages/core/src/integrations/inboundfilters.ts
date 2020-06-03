@@ -8,10 +8,10 @@ const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script e
 
 /** JSDoc */
 interface InboundFiltersOptions {
-  blacklistUrls?: Array<string | RegExp>;
+  excludedUrls?: Array<string | RegExp>;
   ignoreErrors?: Array<string | RegExp>;
   ignoreInternal?: boolean;
-  whitelistUrls?: Array<string | RegExp>;
+  includedUrls?: Array<string | RegExp>;
 }
 
 /** Inbound filters configurable by the user */
@@ -61,17 +61,17 @@ export class InboundFilters implements Integration {
       );
       return true;
     }
-    if (this._isBlacklistedUrl(event, options)) {
+    if (this._isExcludedUrl(event, options)) {
       logger.warn(
-        `Event dropped due to being matched by \`blacklistUrls\` option.\nEvent: ${getEventDescription(
+        `Event dropped due to being matched by \`excludedUrls\` option.\nEvent: ${getEventDescription(
           event,
         )}.\nUrl: ${this._getEventFilterUrl(event)}`,
       );
       return true;
     }
-    if (!this._isWhitelistedUrl(event, options)) {
+    if (!this._isIncludedUrl(event, options)) {
       logger.warn(
-        `Event dropped due to not being matched by \`whitelistUrls\` option.\nEvent: ${getEventDescription(
+        `Event dropped due to not being matched by \`includedUrls\` option.\nEvent: ${getEventDescription(
           event,
         )}.\nUrl: ${this._getEventFilterUrl(event)}`,
       );
@@ -113,36 +113,36 @@ export class InboundFilters implements Integration {
   }
 
   /** JSDoc */
-  private _isBlacklistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isExcludedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
-    if (!options.blacklistUrls || !options.blacklistUrls.length) {
+    if (!options.excludedUrls || !options.excludedUrls.length) {
       return false;
     }
     const url = this._getEventFilterUrl(event);
-    return !url ? false : options.blacklistUrls.some(pattern => isMatchingPattern(url, pattern));
+    return !url ? false : options.excludedUrls.some(pattern => isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
-  private _isWhitelistedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
+  private _isIncludedUrl(event: Event, options: InboundFiltersOptions = {}): boolean {
     // TODO: Use Glob instead?
-    if (!options.whitelistUrls || !options.whitelistUrls.length) {
+    if (!options.includedUrls || !options.includedUrls.length) {
       return true;
     }
     const url = this._getEventFilterUrl(event);
-    return !url ? true : options.whitelistUrls.some(pattern => isMatchingPattern(url, pattern));
+    return !url ? true : options.includedUrls.some(pattern => isMatchingPattern(url, pattern));
   }
 
   /** JSDoc */
   private _mergeOptions(clientOptions: InboundFiltersOptions = {}): InboundFiltersOptions {
     return {
-      blacklistUrls: [...(this._options.blacklistUrls || []), ...(clientOptions.blacklistUrls || [])],
+      excludedUrls: [...(this._options.excludedUrls || []), ...(clientOptions.excludedUrls || [])],
       ignoreErrors: [
         ...(this._options.ignoreErrors || []),
         ...(clientOptions.ignoreErrors || []),
         ...DEFAULT_IGNORE_ERRORS,
       ],
       ignoreInternal: typeof this._options.ignoreInternal !== 'undefined' ? this._options.ignoreInternal : true,
-      whitelistUrls: [...(this._options.whitelistUrls || []), ...(clientOptions.whitelistUrls || [])],
+      includedUrls: [...(this._options.includedUrls || []), ...(clientOptions.includedUrls || [])],
     };
   }
 

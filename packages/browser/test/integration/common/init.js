@@ -34,13 +34,13 @@ function initSDK() {
     integrations: [new Sentry.Integrations.Dedupe()],
     attachStacktrace: true,
     ignoreErrors: ["ignoreErrorTest"],
-    blacklistUrls: ["foo.js"],
-    beforeSend: function(event, eventHint) {
+    excludedUrls: ["foo.js"],
+    beforeSend: function (event, eventHint) {
       events.push(event);
       eventHints.push(eventHint);
       return event;
     },
-    beforeBreadcrumb: function(breadcrumb, breadcrumbHint) {
+    beforeBreadcrumb: function (breadcrumb, breadcrumbHint) {
       // Filter console logs as we use them for debugging *a lot* and they are not *that* important
       // But allow then if we explicitly say so (for one of integration tests)
       if (

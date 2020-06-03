@@ -12,17 +12,17 @@ import { FetchTransport, XHRTransport } from './transports';
 export interface BrowserOptions extends Options {
   /**
    * A pattern for error URLs which should not be sent to Sentry.
-   * To whitelist certain errors instead, use {@link Options.whitelistUrls}.
+   * To include certain errors instead, use {@link Options.includedUrls}.
    * By default, all errors will be sent.
    */
-  blacklistUrls?: Array<string | RegExp>;
+  excludedUrls?: Array<string | RegExp>;
 
   /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
-   * This is the opposite of {@link Options.blacklistUrls}.
+   * This is the opposite of {@link Options.excludedUrls}.
    * By default, all errors will be sent.
    */
-  whitelistUrls?: Array<string | RegExp>;
+  includedUrls?: Array<string | RegExp>;
 }
 
 /**
