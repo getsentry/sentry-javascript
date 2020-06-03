@@ -6,7 +6,7 @@ import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
 
-// import { SDK_NAME, SDK_VERSION } from '../version';
+import { SDK_NAME, SDK_VERSION } from '../version';
 
 /**
  * Internal used interface for typescript.
@@ -59,14 +59,13 @@ export abstract class BaseTransport implements Transport {
   /** Returns a build request option object used by request */
   protected _getRequestOptions(uri: url.URL): http.RequestOptions | https.RequestOptions {
     const headers = {
-      // The auth headers are not included because auth is done via query string to match @sentry/browser.
-      //
-      // ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION)
+      ...this._api.getRequestHeaders(SDK_NAME, SDK_VERSION),
       ...this.options.headers,
     };
-    const { hostname, pathname, port, protocol, search } = uri;
+    const { hostname, pathname, port, protocol } = uri;
     // See https://github.com/nodejs/node/blob/38146e717fed2fabe3aacb6540d839475e0ce1c6/lib/internal/url.js#L1268-L1290
-    const path = `${pathname}${search}`;
+    // We ignore the query string on purpose
+    const path = `${pathname}`;
 
     return {
       agent: this.client,
