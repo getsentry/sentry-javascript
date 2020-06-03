@@ -110,6 +110,7 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="apm.tracing.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="apm.tracing.html#finishidletransaction" class="tsd-kind-icon">finish<wbr>Idle<wbr>Transaction</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="apm.tracing.html#gettransaction" class="tsd-kind-icon">get<wbr>Transaction</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="apm.tracing.html#popactivity" class="tsd-kind-icon">pop<wbr>Activity</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="apm.tracing.html#pushactivity" class="tsd-kind-icon">push<wbr>Activity</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="apm.tracing.html#settransactionstatus" class="tsd-kind-icon">set<wbr>Transaction<wbr>Status</a></li>
@@ -125,13 +126,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Tracing<span class="tsd-signature-symbol">(</span>_options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TracingOptions</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="apm.tracing.html" class="tsd-signature-type">Tracing</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Tracing<span class="tsd-signature-symbol">(</span>_options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/apm.tracingoptions.html" class="tsd-signature-type">TracingOptions</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="apm.tracing.html" class="tsd-signature-type">Tracing</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L128">apm/src/integrations/tracing.ts:128</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L156">apm/src/integrations/tracing.ts:156</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -142,7 +143,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> _options: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TracingOptions</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> _options: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/apm.tracingoptions.html" class="tsd-signature-type">TracingOptions</a><span class="tsd-signature-symbol">&gt;</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<div class="lead">
 											<p>TracingOptions</p>
@@ -164,7 +165,7 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L97">apm/src/integrations/tracing.ts:97</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L127">apm/src/integrations/tracing.ts:127</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -179,7 +180,7 @@
 					<div class="tsd-signature tsd-kind-icon">_activities<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L116">apm/src/integrations/tracing.ts:116</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L146">apm/src/integrations/tracing.ts:146</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -197,7 +198,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Tracing&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L102">apm/src/integrations/tracing.ts:102</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L132">apm/src/integrations/tracing.ts:132</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -210,10 +211,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="options" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> options</h3>
-					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TracingOptions</span></div>
+					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <a href="../interfaces/apm.tracingoptions.html" class="tsd-signature-type">TracingOptions</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L105">apm/src/integrations/tracing.ts:105</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L135">apm/src/integrations/tracing.ts:135</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -235,7 +236,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L168">apm/src/integrations/tracing.ts:168</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L201">apm/src/integrations/tracing.ts:201</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -291,13 +292,13 @@
 					<a name="finishidletransaction" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> finish<wbr>Idle<wbr>Transaction</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">finish<wbr>Idle<wbr>Transaction<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">finish<wbr>Idle<wbr>Transaction<span class="tsd-signature-symbol">(</span>endTimestamp<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L399">apm/src/integrations/tracing.ts:399</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L452">apm/src/integrations/tracing.ts:452</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -305,7 +306,38 @@
 									<p>Finshes the current active transaction</p>
 								</div>
 							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>endTimestamp: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="gettransaction" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> get<wbr>Transaction</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Transaction<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="apm.transaction.html" class="tsd-signature-type">Transaction</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L646">apm/src/integrations/tracing.ts:646</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Returns the current active idle transaction if there is one</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="apm.transaction.html" class="tsd-signature-type">Transaction</a>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">undefined</span>
+							</h4>
 						</li>
 					</ul>
 				</section>
@@ -319,7 +351,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L626">apm/src/integrations/tracing.ts:626</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L736">apm/src/integrations/tracing.ts:736</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -350,7 +382,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L575">apm/src/integrations/tracing.ts:575</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L688">apm/src/integrations/tracing.ts:688</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -387,13 +419,13 @@
 					<a name="settransactionstatus" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> set<wbr>Transaction<wbr>Status</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">set<wbr>Transaction<wbr>Status<span class="tsd-signature-symbol">(</span>status<span class="tsd-signature-symbol">: </span><a href="../enums/types.spanstatus.html" class="tsd-signature-type">SpanStatus</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Transaction<wbr>Status<span class="tsd-signature-symbol">(</span>status<span class="tsd-signature-symbol">: </span><a href="../enums/apm.spanstatus.html" class="tsd-signature-type">SpanStatus</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L552">apm/src/integrations/tracing.ts:552</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L635">apm/src/integrations/tracing.ts:635</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -404,7 +436,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>status: <a href="../enums/types.spanstatus.html" class="tsd-signature-type">SpanStatus</a></h5>
+									<h5>status: <a href="../enums/apm.spanstatus.html" class="tsd-signature-type">SpanStatus</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -415,13 +447,13 @@
 					<a name="startidletransaction" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> start<wbr>Idle<wbr>Transaction</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">start<wbr>Idle<wbr>Transaction<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, spanContext<span class="tsd-signature-symbol">?: </span><a href="../interfaces/types.spancontext.html" class="tsd-signature-type">SpanContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.span.html" class="tsd-signature-type">Span</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
+						<li class="tsd-signature tsd-kind-icon">start<wbr>Idle<wbr>Transaction<span class="tsd-signature-symbol">(</span>transactionContext<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transactioncontext.html" class="tsd-signature-type">TransactionContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="apm.transaction.html" class="tsd-signature-type">Transaction</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/apm/src/integrations/tracing.ts#L356">apm/src/integrations/tracing.ts:356</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/apm/src/integrations/tracing.ts#L421">apm/src/integrations/tracing.ts:421</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -432,13 +464,10 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>name: <span class="tsd-signature-type">string</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> spanContext: <a href="../interfaces/types.spancontext.html" class="tsd-signature-type">SpanContext</a></h5>
+									<h5>transactionContext: <a href="../interfaces/types.transactioncontext.html" class="tsd-signature-type">TransactionContext</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.span.html" class="tsd-signature-type">Span</a>
+							<h4 class="tsd-returns-title">Returns <a href="apm.transaction.html" class="tsd-signature-type">Transaction</a>
 								<span class="tsd-signature-symbol"> | </span>
 								<span class="tsd-signature-type">undefined</span>
 							</h4>
@@ -489,6 +518,9 @@
 					<li class="current tsd-kind-external-module">
 						<a href="../modules/apm.html" class="tsd-kind-icon">apm</a>
 						<ul>
+							<li class=" tsd-kind-enum tsd-parent-kind-external-module">
+								<a href="../enums/apm.spanstatus.html" class="tsd-kind-icon">Span<wbr>Status</a>
+							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-external-module">
 								<a href="apm.express.html" class="tsd-kind-icon">Express</a>
 							</li>
@@ -520,6 +552,9 @@
 										<a href="apm.tracing.html#finishidletransaction" class="tsd-kind-icon">finish<wbr>Idle<wbr>Transaction</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+										<a href="apm.tracing.html#gettransaction" class="tsd-kind-icon">get<wbr>Transaction</a>
+									</li>
+									<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 										<a href="apm.tracing.html#popactivity" class="tsd-kind-icon">pop<wbr>Activity</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
@@ -532,6 +567,12 @@
 										<a href="apm.tracing.html#startidletransaction" class="tsd-kind-icon">start<wbr>Idle<wbr>Transaction</a>
 									</li>
 								</ul>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-external-module">
+								<a href="apm.transaction.html" class="tsd-kind-icon">Transaction</a>
+							</li>
+							<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+								<a href="../interfaces/apm.tracingoptions.html" class="tsd-kind-icon">Tracing<wbr>Options</a>
 							</li>
 							<li class=" tsd-kind-variable tsd-parent-kind-external-module">
 								<a href="../modules/apm.html#traceparent_regexp" class="tsd-kind-icon">TRACEPARENT_<wbr>REGEXP</a>

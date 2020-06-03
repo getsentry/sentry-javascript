@@ -133,6 +133,7 @@ Sentry.captureEvent({
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#settag" class="tsd-kind-icon">set<wbr>Tag</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#settags" class="tsd-kind-icon">set<wbr>Tags</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#setuser" class="tsd-kind-icon">set<wbr>User</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#starttransaction" class="tsd-kind-icon">start<wbr>Transaction</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-external-module"><a href="minimal.html#withscope" class="tsd-kind-icon">with<wbr>Scope</a></li>
 							</ul>
 						</section>
@@ -151,7 +152,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L83">minimal/src/index.ts:83</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L91">minimal/src/index.ts:91</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -184,7 +185,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L63">minimal/src/index.ts:63</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L71">minimal/src/index.ts:71</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -210,13 +211,13 @@ Sentry.captureEvent({
 					<a name="captureexception" class="tsd-anchor"></a>
 					<h3>capture<wbr>Exception</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">capture<wbr>Exception<span class="tsd-signature-symbol">(</span>exception<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+						<li class="tsd-signature tsd-kind-icon">capture<wbr>Exception<span class="tsd-signature-symbol">(</span>exception<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, captureContext<span class="tsd-signature-symbol">?: </span><a href="types.html#capturecontext" class="tsd-signature-type">CaptureContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L24">minimal/src/index.ts:24</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L24">minimal/src/index.ts:24</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -232,6 +233,9 @@ Sentry.captureEvent({
 										<p>An exception-like object.</p>
 									</div>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> captureContext: <a href="types.html#capturecontext" class="tsd-signature-type">CaptureContext</a></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<p>The generated eventId.</p>
@@ -242,13 +246,13 @@ Sentry.captureEvent({
 					<a name="capturemessage" class="tsd-anchor"></a>
 					<h3>capture<wbr>Message</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
-						<li class="tsd-signature tsd-kind-icon">capture<wbr>Message<span class="tsd-signature-symbol">(</span>message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, level<span class="tsd-signature-symbol">?: </span><a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+						<li class="tsd-signature tsd-kind-icon">capture<wbr>Message<span class="tsd-signature-symbol">(</span>message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, captureContext<span class="tsd-signature-symbol">?: </span><a href="types.html#capturecontext" class="tsd-signature-type">CaptureContext</a><span class="tsd-signature-symbol"> | </span><a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L44">minimal/src/index.ts:44</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L45">minimal/src/index.ts:45</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -265,10 +269,7 @@ Sentry.captureEvent({
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> level: <a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a></h5>
-									<div class="tsd-comment tsd-typography">
-										<p>Define the level of the message.</p>
-									</div>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> captureContext: <a href="types.html#capturecontext" class="tsd-signature-type">CaptureContext</a><span class="tsd-signature-symbol"> | </span><a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
@@ -286,7 +287,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L71">minimal/src/index.ts:71</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L79">minimal/src/index.ts:79</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -335,7 +336,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L92">minimal/src/index.ts:92</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L100">minimal/src/index.ts:100</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -372,7 +373,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L118">minimal/src/index.ts:118</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L126">minimal/src/index.ts:126</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -409,7 +410,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L100">minimal/src/index.ts:100</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L108">minimal/src/index.ts:108</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -445,7 +446,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L127">minimal/src/index.ts:127</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L135">minimal/src/index.ts:135</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -482,7 +483,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L108">minimal/src/index.ts:108</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L116">minimal/src/index.ts:116</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -518,7 +519,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L136">minimal/src/index.ts:136</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L144">minimal/src/index.ts:144</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -540,6 +541,38 @@ Sentry.captureEvent({
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
+					<a name="starttransaction" class="tsd-anchor"></a>
+					<h3>start<wbr>Transaction</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
+						<li class="tsd-signature tsd-kind-icon">start<wbr>Transaction<span class="tsd-signature-symbol">(</span>context<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transactioncontext.html" class="tsd-signature-type">TransactionContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/types.transaction.html" class="tsd-signature-type">Transaction</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L186">minimal/src/index.ts:186</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Starts a Transaction. This is the entry point to do manual tracing. You can
+										add child spans to transactions. Spans themselves can have children, building
+										a tree structure. This function returns a Transaction and you need to keep
+										track of the instance yourself. When you call <code>.finish()</code> on the transaction
+									it will be sent to Sentry.</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>context: <a href="../interfaces/types.transactioncontext.html" class="tsd-signature-type">TransactionContext</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/types.transaction.html" class="tsd-signature-type">Transaction</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module">
 					<a name="withscope" class="tsd-anchor"></a>
 					<h3>with<wbr>Scope</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module">
@@ -549,7 +582,7 @@ Sentry.captureEvent({
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/minimal/src/index.ts#L153">minimal/src/index.ts:153</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/minimal/src/index.ts#L161">minimal/src/index.ts:161</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -685,6 +718,9 @@ popScope()<span class="hljs-comment">;</span></code></pre>
 							</li>
 							<li class=" tsd-kind-function tsd-parent-kind-external-module">
 								<a href="minimal.html#setuser" class="tsd-kind-icon">set<wbr>User</a>
+							</li>
+							<li class=" tsd-kind-function tsd-parent-kind-external-module">
+								<a href="minimal.html#starttransaction" class="tsd-kind-icon">start<wbr>Transaction</a>
 							</li>
 							<li class=" tsd-kind-function tsd-parent-kind-external-module">
 								<a href="minimal.html#withscope" class="tsd-kind-icon">with<wbr>Scope</a>

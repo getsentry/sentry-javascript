@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>SpanContext | Sentry JavaScript SDKs</title>
+	<title>TransactionContext | Sentry JavaScript SDKs</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -55,10 +55,10 @@
 					<a href="../modules/types.html">types</a>
 				</li>
 				<li>
-					<a href="types.spancontext.html">SpanContext</a>
+					<a href="types.transactioncontext.html">TransactionContext</a>
 				</li>
 			</ul>
-			<h1>Interface SpanContext</h1>
+			<h1>Interface TransactionContext</h1>
 		</div>
 	</div>
 </header>
@@ -68,7 +68,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>Interface holding all properties that can be set on a Span on creation.</p>
+						<p>Interface holding Transaction specific properties</p>
 					</div>
 				</div>
 			</section>
@@ -76,23 +76,18 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">SpanContext</span>
+						<a href="types.spancontext.html" class="tsd-signature-type">SpanContext</a>
 						<ul class="tsd-hierarchy">
 							<li>
-								<a href="types.span.html" class="tsd-signature-type">Span</a>
-							</li>
-							<li>
-								<a href="types.transactioncontext.html" class="tsd-signature-type">TransactionContext</a>
+								<span class="target">TransactionContext</span>
+								<ul class="tsd-hierarchy">
+									<li>
+										<a href="types.transaction.html" class="tsd-signature-type">Transaction</a>
+									</li>
+								</ul>
 							</li>
 						</ul>
 					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel">
-				<h3>Implemented by</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../classes/apm.span.html" class="tsd-signature-type">Span</a></li>
-					<li><a href="../classes/apm.transaction.html" class="tsd-signature-type">Transaction</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -102,17 +97,19 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#data" class="tsd-kind-icon">data</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#description" class="tsd-kind-icon">description</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#endtimestamp" class="tsd-kind-icon">end<wbr>Timestamp</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#op" class="tsd-kind-icon">op</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#parentspanid" class="tsd-kind-icon">parent<wbr>Span<wbr>Id</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#sampled" class="tsd-kind-icon">sampled</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#spanid" class="tsd-kind-icon">span<wbr>Id</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#starttimestamp" class="tsd-kind-icon">start<wbr>Timestamp</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#status" class="tsd-kind-icon">status</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#tags" class="tsd-kind-icon">tags</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.spancontext.html#traceid" class="tsd-kind-icon">trace<wbr>Id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#data" class="tsd-kind-icon">data</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#description" class="tsd-kind-icon">description</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#endtimestamp" class="tsd-kind-icon">end<wbr>Timestamp</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.transactioncontext.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#op" class="tsd-kind-icon">op</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#parentspanid" class="tsd-kind-icon">parent<wbr>Span<wbr>Id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#sampled" class="tsd-kind-icon">sampled</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#spanid" class="tsd-kind-icon">span<wbr>Id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#starttimestamp" class="tsd-kind-icon">start<wbr>Timestamp</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#status" class="tsd-kind-icon">status</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#tags" class="tsd-kind-icon">tags</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="types.transactioncontext.html#traceid" class="tsd-kind-icon">trace<wbr>Id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="types.transactioncontext.html#trimend" class="tsd-kind-icon">trim<wbr>End</a></li>
 							</ul>
 						</section>
 					</div>
@@ -120,11 +117,12 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="data" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> data</h3>
 					<div class="tsd-signature tsd-kind-icon">data<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#data">data</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L47">types/src/span.ts:47</a></li>
 						</ul>
@@ -135,11 +133,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="description" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> description</h3>
 					<div class="tsd-signature tsd-kind-icon">description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#description">description</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L6">types/src/span.ts:6</a></li>
 						</ul>
@@ -150,11 +149,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="endtimestamp" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> end<wbr>Timestamp</h3>
 					<div class="tsd-signature tsd-kind-icon">end<wbr>Timestamp<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#endtimestamp">endTimestamp</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L57">types/src/span.ts:57</a></li>
 						</ul>
@@ -166,10 +166,21 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/transaction.ts#L7">types/src/transaction.ts:7</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="op" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> op</h3>
 					<div class="tsd-signature tsd-kind-icon">op<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#op">op</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L11">types/src/span.ts:11</a></li>
 						</ul>
@@ -180,11 +191,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="parentspanid" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> parent<wbr>Span<wbr>Id</h3>
 					<div class="tsd-signature tsd-kind-icon">parent<wbr>Span<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#parentspanid">parentSpanId</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L22">types/src/span.ts:22</a></li>
 						</ul>
@@ -195,11 +207,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="sampled" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> sampled</h3>
 					<div class="tsd-signature tsd-kind-icon">sampled<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#sampled">sampled</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L27">types/src/span.ts:27</a></li>
 						</ul>
@@ -210,11 +223,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="spanid" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> span<wbr>Id</h3>
 					<div class="tsd-signature tsd-kind-icon">span<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#spanid">spanId</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L32">types/src/span.ts:32</a></li>
 						</ul>
@@ -225,11 +239,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="starttimestamp" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> start<wbr>Timestamp</h3>
 					<div class="tsd-signature tsd-kind-icon">start<wbr>Timestamp<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#starttimestamp">startTimestamp</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L52">types/src/span.ts:52</a></li>
 						</ul>
@@ -240,11 +255,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="status" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> status</h3>
 					<div class="tsd-signature tsd-kind-icon">status<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#status">status</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L17">types/src/span.ts:17</a></li>
 						</ul>
@@ -256,11 +272,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="tags" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> tags</h3>
 					<div class="tsd-signature tsd-kind-icon">tags<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#tags">tags</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L42">types/src/span.ts:42</a></li>
 						</ul>
@@ -271,11 +288,12 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="traceid" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> trace<wbr>Id</h3>
 					<div class="tsd-signature tsd-kind-icon">trace<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Inherited from <a href="types.spancontext.html">SpanContext</a>.<a href="types.spancontext.html#traceid">traceId</a></p>
 						<ul>
 							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/span.ts#L37">types/src/span.ts:37</a></li>
 						</ul>
@@ -283,6 +301,24 @@
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
 							<p>Trace ID</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="trimend" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> trim<wbr>End</h3>
+					<div class="tsd-signature tsd-kind-icon">trim<wbr>End<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/types/src/transaction.ts#L14">types/src/transaction.ts:14</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
+								the duration of the transaction. This is useful to discard extra time in the transaction that is not
+								accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
+							transaction after a given &quot;idle time&quot; and we don&#39;t want this &quot;idle time&quot; to be part of the transaction.</p>
 						</div>
 					</div>
 				</section>
@@ -352,40 +388,46 @@
 						<a href="../modules/types.html" class="tsd-kind-icon">types</a>
 						<ul>
 							<li class="current tsd-kind-interface tsd-parent-kind-external-module">
-								<a href="types.spancontext.html" class="tsd-kind-icon">Span<wbr>Context</a>
+								<a href="types.transactioncontext.html" class="tsd-kind-icon">Transaction<wbr>Context</a>
 								<ul>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#data" class="tsd-kind-icon">data</a>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#data" class="tsd-kind-icon">data</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#description" class="tsd-kind-icon">description</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#endtimestamp" class="tsd-kind-icon">end<wbr>Timestamp</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#description" class="tsd-kind-icon">description</a>
+										<a href="types.transactioncontext.html#name" class="tsd-kind-icon">name</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#op" class="tsd-kind-icon">op</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#parentspanid" class="tsd-kind-icon">parent<wbr>Span<wbr>Id</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#sampled" class="tsd-kind-icon">sampled</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#spanid" class="tsd-kind-icon">span<wbr>Id</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#starttimestamp" class="tsd-kind-icon">start<wbr>Timestamp</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#status" class="tsd-kind-icon">status</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#tags" class="tsd-kind-icon">tags</a>
+									</li>
+									<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+										<a href="types.transactioncontext.html#traceid" class="tsd-kind-icon">trace<wbr>Id</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#endtimestamp" class="tsd-kind-icon">end<wbr>Timestamp</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#op" class="tsd-kind-icon">op</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#parentspanid" class="tsd-kind-icon">parent<wbr>Span<wbr>Id</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#sampled" class="tsd-kind-icon">sampled</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#spanid" class="tsd-kind-icon">span<wbr>Id</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#starttimestamp" class="tsd-kind-icon">start<wbr>Timestamp</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#status" class="tsd-kind-icon">status</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#tags" class="tsd-kind-icon">tags</a>
-									</li>
-									<li class=" tsd-kind-property tsd-parent-kind-interface">
-										<a href="types.spancontext.html#traceid" class="tsd-kind-icon">trace<wbr>Id</a>
+										<a href="types.transactioncontext.html#trimend" class="tsd-kind-icon">trim<wbr>End</a>
 									</li>
 								</ul>
 							</li>

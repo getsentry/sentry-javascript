@@ -107,6 +107,7 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.breadcrumbs.html#addsentrybreadcrumb" class="tsd-kind-icon">add<wbr>Sentry<wbr>Breadcrumb</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="browser.breadcrumbs.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a></li>
 							</ul>
 						</section>
@@ -119,13 +120,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Breadcrumbs<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">BreadcrumbIntegrations</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.breadcrumbs.html" class="tsd-signature-type">Breadcrumbs</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Breadcrumbs<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">BreadcrumbsOptions</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="browser.breadcrumbs.html" class="tsd-signature-type">Breadcrumbs</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/browser/src/integrations/breadcrumbs.ts#L53">browser/src/integrations/breadcrumbs.ts:53</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/integrations/breadcrumbs.ts#L50">browser/src/integrations/breadcrumbs.ts:50</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -137,7 +138,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <span class="tsd-signature-type">BreadcrumbIntegrations</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">BreadcrumbsOptions</span><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="browser.breadcrumbs.html" class="tsd-signature-type">Breadcrumbs</a></h4>
@@ -154,7 +155,7 @@
 					<aside class="tsd-sources">
 						<p>Implementation of <a href="../interfaces/types.integration.html">Integration</a>.<a href="../interfaces/types.integration.html#name">name</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/browser/src/integrations/breadcrumbs.ts#L45">browser/src/integrations/breadcrumbs.ts:45</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/integrations/breadcrumbs.ts#L42">browser/src/integrations/breadcrumbs.ts:42</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -169,7 +170,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;Breadcrumbs&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/browser/src/integrations/breadcrumbs.ts#L50">browser/src/integrations/breadcrumbs.ts:50</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/integrations/breadcrumbs.ts#L47">browser/src/integrations/breadcrumbs.ts:47</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -183,6 +184,34 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="addsentrybreadcrumb" class="tsd-anchor"></a>
+					<h3>add<wbr>Sentry<wbr>Breadcrumb</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Sentry<wbr>Breadcrumb<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../interfaces/types.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/integrations/breadcrumbs.ts#L70">browser/src/integrations/breadcrumbs.ts:70</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Create a breadcrumb of <code>sentry</code> from the events themselves</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <a href="../interfaces/types.event.html" class="tsd-signature-type">Event</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setuponce" class="tsd-anchor"></a>
 					<h3>setup<wbr>Once</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -192,7 +221,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/browser/src/integrations/breadcrumbs.ts#L266">browser/src/integrations/breadcrumbs.ts:266</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/browser/src/integrations/breadcrumbs.ts#L262">browser/src/integrations/breadcrumbs.ts:262</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -272,6 +301,9 @@
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
 										<a href="browser.breadcrumbs.html#id" class="tsd-kind-icon">id</a>
+									</li>
+									<li class=" tsd-kind-method tsd-parent-kind-class">
+										<a href="browser.breadcrumbs.html#addsentrybreadcrumb" class="tsd-kind-icon">add<wbr>Sentry<wbr>Breadcrumb</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="browser.breadcrumbs.html#setuponce" class="tsd-kind-icon">setup<wbr>Once</a>

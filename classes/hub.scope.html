@@ -95,7 +95,7 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_breadcrumbs" class="tsd-kind-icon">_breadcrumbs</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_context" class="tsd-kind-icon">_context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_contexts" class="tsd-kind-icon">_contexts</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_eventprocessors" class="tsd-kind-icon">_event<wbr>Processors</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_extra" class="tsd-kind-icon">_extra</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="hub.scope.html#_fingerprint" class="tsd-kind-icon">_fingerprint</a></li>
@@ -127,6 +127,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="hub.scope.html#settags" class="tsd-kind-icon">set<wbr>Tags</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="hub.scope.html#settransaction" class="tsd-kind-icon">set<wbr>Transaction</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="hub.scope.html#setuser" class="tsd-kind-icon">set<wbr>User</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="hub.scope.html#update" class="tsd-kind-icon">update</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="hub.scope.html#clone" class="tsd-kind-icon">clone</a></li>
 							</ul>
 						</section>
@@ -141,7 +142,7 @@
 					<div class="tsd-signature tsd-kind-icon">_breadcrumbs<span class="tsd-signature-symbol">:</span> <a href="../interfaces/types.breadcrumb.html" class="tsd-signature-type">Breadcrumb</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L28">hub/src/scope.ts:28</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L30">hub/src/scope.ts:30</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -151,12 +152,12 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
-					<a name="_context" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagProtected">Protected</span> _context</h3>
-					<div class="tsd-signature tsd-kind-icon">_context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<a name="_contexts" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> _contexts</h3>
+					<div class="tsd-signature tsd-kind-icon">_contexts<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L40">hub/src/scope.ts:40</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L42">hub/src/scope.ts:42</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -179,7 +180,7 @@
 					<div class="tsd-signature tsd-kind-icon">_event<wbr>Processors<span class="tsd-signature-symbol">:</span> <a href="../modules/types.html#eventprocessor" class="tsd-signature-type">EventProcessor</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L25">hub/src/scope.ts:25</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L27">hub/src/scope.ts:27</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -194,7 +195,7 @@
 					<div class="tsd-signature tsd-kind-icon">_extra<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L37">hub/src/scope.ts:37</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L39">hub/src/scope.ts:39</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -217,7 +218,7 @@
 					<div class="tsd-signature tsd-kind-icon">_fingerprint<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L43">hub/src/scope.ts:43</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L45">hub/src/scope.ts:45</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -232,7 +233,7 @@
 					<div class="tsd-signature tsd-kind-icon">_level<span class="tsd-signature-symbol">:</span> <a href="../enums/types.severity.html" class="tsd-signature-type">Severity</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L46">hub/src/scope.ts:46</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L48">hub/src/scope.ts:48</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -247,7 +248,7 @@
 					<div class="tsd-signature tsd-kind-icon">_notifying<wbr>Listeners<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L19">hub/src/scope.ts:19</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L21">hub/src/scope.ts:21</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -262,7 +263,7 @@
 					<div class="tsd-signature tsd-kind-icon">_scope<wbr>Listeners<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L22">hub/src/scope.ts:22</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L24">hub/src/scope.ts:24</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -277,7 +278,7 @@
 					<div class="tsd-signature tsd-kind-icon">_span<span class="tsd-signature-symbol">:</span> <a href="../interfaces/types.span.html" class="tsd-signature-type">Span</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L52">hub/src/scope.ts:52</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L54">hub/src/scope.ts:54</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -292,7 +293,7 @@
 					<div class="tsd-signature tsd-kind-icon">_tags<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L34">hub/src/scope.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L36">hub/src/scope.ts:36</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -315,7 +316,7 @@
 					<div class="tsd-signature tsd-kind-icon">_transaction<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L49">hub/src/scope.ts:49</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L51">hub/src/scope.ts:51</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -330,7 +331,7 @@
 					<div class="tsd-signature tsd-kind-icon">_user<span class="tsd-signature-symbol">:</span> <a href="../interfaces/types.user.html" class="tsd-signature-type">User</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L31">hub/src/scope.ts:31</a></li>
+							<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L33">hub/src/scope.ts:33</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -352,7 +353,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L88">hub/src/scope.ts:88</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L90">hub/src/scope.ts:90</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -389,7 +390,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L73">hub/src/scope.ts:73</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L75">hub/src/scope.ts:75</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -412,7 +413,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#addbreadcrumb">addBreadcrumb</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L262">hub/src/scope.ts:262</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L307">hub/src/scope.ts:307</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -444,7 +445,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#addeventprocessor">addEventProcessor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L65">hub/src/scope.ts:65</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L67">hub/src/scope.ts:67</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -473,7 +474,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#clear">clear</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L245">hub/src/scope.ts:245</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L290">hub/src/scope.ts:290</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -496,7 +497,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#clearbreadcrumbs">clearBreadcrumbs</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L279">hub/src/scope.ts:279</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L324">hub/src/scope.ts:324</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -518,7 +519,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L198">hub/src/scope.ts:198</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L197">hub/src/scope.ts:197</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -551,7 +552,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#setextra">setExtra</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L159">hub/src/scope.ts:159</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L161">hub/src/scope.ts:161</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -582,7 +583,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L147">hub/src/scope.ts:147</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L149">hub/src/scope.ts:149</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -617,7 +618,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#setfingerprint">setFingerprint</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L168">hub/src/scope.ts:168</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L170">hub/src/scope.ts:170</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -646,7 +647,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#setlevel">setLevel</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L177">hub/src/scope.ts:177</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L179">hub/src/scope.ts:179</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -675,7 +676,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#setspan">setSpan</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L207">hub/src/scope.ts:207</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L206">hub/src/scope.ts:206</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -704,7 +705,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#settag">setTag</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L138">hub/src/scope.ts:138</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L140">hub/src/scope.ts:140</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -735,7 +736,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L126">hub/src/scope.ts:126</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L128">hub/src/scope.ts:128</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -770,7 +771,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#settransaction">setTransaction</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L186">hub/src/scope.ts:186</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L188">hub/src/scope.ts:188</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -799,7 +800,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#setuser">setUser</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L117">hub/src/scope.ts:117</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L119">hub/src/scope.ts:119</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -817,6 +818,40 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="update" class="tsd-anchor"></a>
+					<h3>update</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>captureContext<span class="tsd-signature-symbol">?: </span><a href="../modules/types.html#capturecontext" class="tsd-signature-type">CaptureContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/types.scope.html">Scope</a>.<a href="../interfaces/types.scope.html#update">update</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L244">hub/src/scope.ts:244</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Updates the scope with provided data. Can work in three variations:</p>
+									<ul>
+										<li>plain object containing updatable attributes</li>
+										<li>Scope instance that&#39;ll extract the attributes from</li>
+										<li>callback function that&#39;ll receive the current scope as an argument and allow for modifications</li>
+									</ul>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> captureContext: <a href="../modules/types.html#capturecontext" class="tsd-signature-type">CaptureContext</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="clone" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> clone</h3>
@@ -827,7 +862,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/49f29e1b/packages/hub/src/scope.ts#L225">hub/src/scope.ts:225</a></li>
+									<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/c82f3591/packages/hub/src/scope.ts#L224">hub/src/scope.ts:224</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -911,7 +946,7 @@
 										<a href="hub.scope.html#_breadcrumbs" class="tsd-kind-icon">_breadcrumbs</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
-										<a href="hub.scope.html#_context" class="tsd-kind-icon">_context</a>
+										<a href="hub.scope.html#_contexts" class="tsd-kind-icon">_contexts</a>
 									</li>
 									<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 										<a href="hub.scope.html#_eventprocessors" class="tsd-kind-icon">_event<wbr>Processors</a>
@@ -990,6 +1025,9 @@
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="hub.scope.html#setuser" class="tsd-kind-icon">set<wbr>User</a>
+									</li>
+									<li class=" tsd-kind-method tsd-parent-kind-class">
+										<a href="hub.scope.html#update" class="tsd-kind-icon">update</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 										<a href="hub.scope.html#clone" class="tsd-kind-icon">clone</a>
