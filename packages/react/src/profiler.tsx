@@ -39,28 +39,25 @@ function afterNextFrame(callback: Function): void {
   timeout = window.setTimeout(done, 100);
 }
 
-const getInitActivity = (componentDisplayName: string): number | null => {
+const getInitActivity = (name: string): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
   if (tracingIntegration !== null) {
     // tslint:disable-next-line:no-unsafe-any
-    const activity = (tracingIntegration as any).constructor.pushActivity(componentDisplayName, {
-      description: `<${componentDisplayName}>`,
+    return (tracingIntegration as any).constructor.pushActivity(name, {
+      description: `<${name}>`,
       op: 'react',
     });
-
-    // tslint:disable-next-line: no-unsafe-any
-    return activity;
   }
 
   logger.warn(
-    `Unable to profile component ${componentDisplayName} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
+    `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
   );
   return null;
 };
 
 interface ProfilerProps {
-  componentDisplayName?: string;
+  name: string;
 }
 
 class Profiler extends React.Component<ProfilerProps> {
@@ -68,9 +65,7 @@ class Profiler extends React.Component<ProfilerProps> {
   public constructor(props: ProfilerProps) {
     super(props);
 
-    const { componentDisplayName = UNKNOWN_COMPONENT } = this.props;
-
-    this.activity = getInitActivity(componentDisplayName);
+    this.activity = getInitActivity(this.props.name);
   }
 
   public componentDidMount(): void {
@@ -103,7 +98,7 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
-    <Profiler componentDisplayName={componentDisplayName}>
+    <Profiler name={componentDisplayName}>
       <WrappedComponent {...props} />
     </Profiler>
   );

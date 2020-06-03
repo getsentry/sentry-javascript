@@ -7,6 +7,8 @@
 
 # Official Sentry SDK for ReactJS
 
+Note this library is in active development and not ready for production usage.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
