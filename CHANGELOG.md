@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 5.16.1
+
+- [node] fix: Requests to old `/store` endpoint need the `x-sentry-auth` header in node
+
 ## 5.16.0
 
 *If you are a `@sentry/apm` and did manual instrumentation using `hub.startSpan` please be aware of the changes we did

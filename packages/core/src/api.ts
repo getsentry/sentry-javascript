@@ -80,8 +80,7 @@ export class API {
 
   /**
    * Returns an object that can be used in request headers.
-   *
-   * @deprecated in favor of `getStoreEndpointWithUrlEncodedAuth` and `getEnvelopeEndpointWithUrlEncodedAuth`.
+   * This is needed for node and the old /store endpoint in sentry
    */
   public getRequestHeaders(clientName: string, clientVersion: string): { [key: string]: string } {
     const dsn = this._dsnObject;
