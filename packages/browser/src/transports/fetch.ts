@@ -35,6 +35,10 @@ export class FetchTransport extends BaseTransport {
       referrerPolicy: (supportsReferrerPolicy() ? 'origin' : '') as ReferrerPolicy,
     };
 
+    if (this.options.fetchParameters !== undefined) {
+      Object.assign(options, this.options.fetchParameters);
+    }
+
     if (this.options.headers !== undefined) {
       options.headers = this.options.headers;
     }

@@ -7,7 +7,7 @@ import { TestClient } from '../mocks/client';
 import { TestIntegration } from '../mocks/integration';
 import { FakeTransport } from '../mocks/transport';
 
-const PUBLIC_DSN = 'https://username@domain/path';
+const PUBLIC_DSN = 'https://username@domain/123';
 declare var global: any;
 
 jest.mock('@sentry/utils', () => {

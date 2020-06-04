@@ -26,7 +26,7 @@
     "packages/integrations",
     "packages/minimal",
     "packages/node",
-    "packages/opentracing",
+    "packages/react",
     "packages/types",
     "packages/typescript",
     "packages/utils"

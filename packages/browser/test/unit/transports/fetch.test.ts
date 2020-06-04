@@ -156,5 +156,29 @@ describe('FetchTransport', () => {
         }),
       ).equal(true);
     });
+
+    it('passes in fetch parameters', async () => {
+      transport = new Transports.FetchTransport({
+        dsn: testDsn,
+        fetchParameters: {
+          credentials: 'include',
+        },
+      });
+      const response = { status: 200 };
+
+      fetch.returns(Promise.resolve(response));
+
+      const res = await transport.sendEvent(payload);
+
+      expect(res.status).equal(Status.Success);
+      expect(
+        fetch.calledWith(transportUrl, {
+          body: JSON.stringify(payload),
+          credentials: 'include',
+          method: 'POST',
+          referrerPolicy: 'origin',
+        }),
+      ).equal(true);
+    });
   });
 });
