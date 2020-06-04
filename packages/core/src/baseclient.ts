@@ -289,7 +289,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * Normalized keys:
    * - `breadcrumbs.data`
    * - `user`
-   * - `contexts`
    * - `extra`
    * @param event Event
    * @returns Normalized event
@@ -312,9 +311,6 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
       }),
       ...(event.user && {
         user: normalize(event.user, depth),
-      }),
-      ...(event.contexts && {
-        contexts: normalize(event.contexts, depth),
       }),
       ...(event.extra && {
         extra: normalize(event.extra, depth),
