@@ -248,7 +248,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, scope?: Scope, hint?: EventHint): PromiseLike<Event | null> {
-    const { normalizeDepth } = this.getOptions();
+    const { normalizeDepth = 3 } = this.getOptions();
     const prepared: Event = {
       ...event,
       event_id: event.event_id || (hint && hint.event_id ? hint.event_id : uuid4()),
