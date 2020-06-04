@@ -272,7 +272,7 @@ _New_:
 
 ```js
 Sentry.init({
-  excludedUrls: [
+  blacklistUrls: [
     'https://www.baddomain.com',
     /graph\.facebook\.com/i,
   ],

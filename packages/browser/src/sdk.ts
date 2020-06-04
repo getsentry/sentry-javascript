@@ -77,6 +77,9 @@ export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
+  // Deprecate, but still support old exclusion/inclusion types
+  options.excludedUrls = options.excludedUrls || options.blacklistedUrls;
+  options.includedUrls = options.includedUrls || options.whitelistedUrls;
   if (options.release === undefined) {
     const window = getGlobalObject<Window>();
     // This supports the variable that sentry-webpack-plugin injects
