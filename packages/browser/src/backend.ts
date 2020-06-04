@@ -16,7 +16,7 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   excludedUrls?: Array<string | RegExp>;
-  blacklistedUrls?: Array<string | RegExp>;
+  blacklistUrls?: Array<string | RegExp>;
 
   /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
@@ -24,7 +24,7 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   includedUrls?: Array<string | RegExp>;
-  whitelistedUrls?: Array<string | RegExp>;
+  whitelistfUrls?: Array<string | RegExp>;
 }
 
 /**
