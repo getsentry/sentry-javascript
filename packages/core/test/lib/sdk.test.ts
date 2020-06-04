@@ -6,7 +6,7 @@ import { TestClient } from '../mocks/client';
 
 declare var global: any;
 
-const PUBLIC_DSN = 'https://username@domain/path';
+const PUBLIC_DSN = 'https://username@domain/123';
 
 jest.mock('@sentry/hub', () => ({
   getCurrentHub(): {
