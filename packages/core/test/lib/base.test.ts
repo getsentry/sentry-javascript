@@ -467,7 +467,7 @@ describe('BaseClient', () => {
       });
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
-        contexts: normalizedObject,
+        contexts: fourLevelsObject,
         event_id: '42',
         extra: normalizedObject,
         timestamp: 2020,
@@ -512,7 +512,7 @@ describe('BaseClient', () => {
       });
       expect(TestBackend.instance!.event!).toEqual({
         breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
-        contexts: normalizedObject,
+        contexts: fourLevelsObject,
         event_id: '42',
         extra: normalizedObject,
         timestamp: 2020,
