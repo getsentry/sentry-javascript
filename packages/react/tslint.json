@@ -6,6 +6,7 @@
       "dev"
     ],
     "variable-name": false,
-    "completed-docs": false
+    "completed-docs": false,
+    "interface-over-type-literal": false
   }
 }

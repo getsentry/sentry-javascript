@@ -56,9 +56,9 @@ const getInitActivity = (name: string): number | null => {
   return null;
 };
 
-interface ProfilerProps {
+export type ProfilerProps = {
   name: string;
-}
+};
 
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null;

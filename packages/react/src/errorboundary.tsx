@@ -1,34 +1,61 @@
-import * as React from 'react';
 import * as Sentry from '@sentry/browser';
+import * as React from 'react';
 
-interface ErrorBoundaryProps {}
+export type ErrorBoundaryProps = {
+  fallback?: React.ReactNode;
+  fallbackRender?(error: Error | null, componentStack: string | null, resetErrorBoundary: () => void): React.ReactNode;
+  onError?(error: Error, componentStack: string): void;
+  onReset?(error: Error | null, componentStack: string | null): void;
+};
 
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
+type ErrorBoundaryState = {
+  error: Error | null;
+  componentStack: string | null;
+};
+
+const INITIAL_STATE = {
+  componentStack: null,
+  error: null,
+};
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-    };
+  public state: ErrorBoundaryState = INITIAL_STATE;
+
+  public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
+    Sentry.withScope(scope => {
+      scope.setExtra('componentStack', componentStack);
+      Sentry.captureException(error);
+    });
+    const { onError } = this.props;
+    if (onError) {
+      onError(error, componentStack);
+    }
+    this.setState({ error, componentStack });
   }
 
-  public static getDerivedStateFromError(_: Error): ErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    Sentry.captureException(Error);
-    console.log(error);
-    console.log(errorInfo.componentStack);
-  }
+  public resetErrorBoundary = () => {
+    const { onReset } = this.props;
+    if (onReset) {
+      onReset(this.state.error, this.state.componentStack);
+    }
+    this.setState(INITIAL_STATE);
+  };
 
   public render(): React.ReactNode {
-    if (this.state.hasError) {
-      return null;
+    const { fallback, fallbackRender } = this.props;
+    const { error, componentStack } = this.state;
+
+    if (error) {
+      if (typeof fallbackRender === 'function') {
+        return fallbackRender(error, componentStack, this.resetErrorBoundary);
+      }
+      if (React.isValidElement(fallback)) {
+        return fallback;
+      }
+
+      throw new Error('No fallback component has been set');
     }
+
     return this.props.children;
   }
 }
