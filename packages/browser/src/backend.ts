@@ -24,7 +24,7 @@ export interface BrowserOptions extends Options {
    * By default, all errors will be sent.
    */
   includedUrls?: Array<string | RegExp>;
-  whitelistfUrls?: Array<string | RegExp>;
+  whitelistUrls?: Array<string | RegExp>;
 }
 
 /**
