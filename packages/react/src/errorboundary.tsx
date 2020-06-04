@@ -1,11 +1,15 @@
 import * as Sentry from '@sentry/browser';
 import * as React from 'react';
 
+export const FALLBACK_ERR_MESSAGE = 'No fallback component has been set';
+
 export type ErrorBoundaryProps = {
   fallback?: React.ReactNode;
   fallbackRender?(error: Error | null, componentStack: string | null, resetErrorBoundary: () => void): React.ReactNode;
   onError?(error: Error, componentStack: string): void;
+  onMount?(error: Error | null, componentStack: string | null): void;
   onReset?(error: Error | null, componentStack: string | null): void;
+  onUnmount?(error: Error | null, componentStack: string | null): void;
 };
 
 type ErrorBoundaryState = {
@@ -33,6 +37,22 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     this.setState({ error, componentStack });
   }
 
+  public componentDidMount(): void {
+    const { error, componentStack } = this.state;
+    const { onMount } = this.props;
+    if (onMount) {
+      onMount(error, componentStack);
+    }
+  }
+
+  public componentWillUnmount(): void {
+    const { error, componentStack } = this.state;
+    const { onUnmount } = this.props;
+    if (onUnmount) {
+      onUnmount(error, componentStack);
+    }
+  }
+
   public resetErrorBoundary = () => {
     const { onReset } = this.props;
     if (onReset) {
@@ -53,7 +73,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         return fallback;
       }
 
-      throw new Error('No fallback component has been set');
+      throw new Error(FALLBACK_ERR_MESSAGE);
     }
 
     return this.props.children;
