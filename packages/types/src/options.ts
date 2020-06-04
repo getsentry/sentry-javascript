@@ -101,9 +101,9 @@ export interface Options {
    * - `user`
    * - `contexts`
    * - `extra`
-   * Defaults to `3`. Set to `0` to disable.
+   * Defaults to `4`. Set to `0` to disable.
    */
-  normalizeDepth?: number;
+  normalizeDepth?: number = 4;
 
   /**
    * A callback invoked during event submission, allowing to optionally modify
