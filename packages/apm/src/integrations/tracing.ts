@@ -156,7 +156,7 @@ export class Tracing implements Integration {
   private static _heartbeatCounter: number = 0;
 
   /** Holds the latest LargestContentfulPaint value (it changes during page load). */
-  private static _lcp: { [key: string]: any };
+  private static _lcp?: { [key: string]: any };
 
   /** Force any pending LargestContentfulPaint records to be dispatched. */
   private static _forceLCP = () => {
