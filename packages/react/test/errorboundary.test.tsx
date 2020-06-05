@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 
-import { ErrorBoundary, ErrorBoundaryProps, FALLBACK_ERR_MESSAGE } from '../src/errorboundary';
+import { ErrorBoundary, ErrorBoundaryProps } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
@@ -35,45 +35,43 @@ function Bam(): JSX.Element {
 }
 
 describe('ErrorBoundary', () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  jest.spyOn(console, 'error').mockImplementation();
 
   afterEach(() => {
-    consoleErrorSpy.mockClear();
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
   });
 
-  it('throws an error if not given a valid `fallbackRender` prop', () => {
-    expect(() => {
-      render(
-        // @ts-ignore
-        <ErrorBoundary fallbackRender={'ok'}>
-          <Bam />
-        </ErrorBoundary>,
-      );
-    }).toThrowError(FALLBACK_ERR_MESSAGE);
-    expect(consoleErrorSpy).toHaveBeenCalled();
+  it('renders null if not given a valid `fallbackRender` prop', () => {
+    const { container } = render(
+      // @ts-ignore
+      <ErrorBoundary fallbackRender={'ok'}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+
+    expect(container.innerHTML).toBe('');
   });
 
-  it('throws an error if not given a valid `fallback` prop', () => {
-    expect(() => {
-      render(
-        <ErrorBoundary fallback={new Error('true')}>
-          <Bam />
-        </ErrorBoundary>,
-      );
-    }).toThrowError(FALLBACK_ERR_MESSAGE);
-    expect(consoleErrorSpy).toHaveBeenCalled();
+  it('renders null if not given a valid `fallback` prop', () => {
+    const { container } = render(
+      // @ts-ignore
+      <ErrorBoundary fallback={new Error('true')}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+
+    expect(container.innerHTML).toBe('');
   });
 
-  it('does not throw an error if a fallback is given', () => {
-    expect(() => {
-      render(
-        <ErrorBoundary fallback={<h1>Error Component</h1>}>
-          <h1>children</h1>
-        </ErrorBoundary>,
-      );
-    }).not.toThrowError();
+  it('renders a fallback on error', () => {
+    const { container } = render(
+      // @ts-ignore
+      <ErrorBoundary fallback={<h1>Error Component</h1>}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+    expect(container.innerHTML).toBe('<h1>Error Component</h1>');
   });
 
   it('calls `onMount` when mounted', () => {
@@ -102,36 +100,36 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders children correctly when there is no error', () => {
-    const { baseElement } = render(
+    const { container } = render(
       <ErrorBoundary fallback={<h1>Error Component</h1>}>
         <h1>children</h1>
       </ErrorBoundary>,
     );
 
-    expect(baseElement.outerHTML).toContain('<h1>children</h1>');
+    expect(container.innerHTML).toBe('<h1>children</h1>');
   });
 
   describe('fallback', () => {
     it('renders a fallback component', async () => {
-      const { baseElement } = render(
+      const { container } = render(
         <TestApp fallback={<p>You have hit an error</p>}>
           <h1>children</h1>
         </TestApp>,
       );
 
-      expect(baseElement.outerHTML).toContain('<h1>children</h1>');
+      expect(container.innerHTML).toContain('<h1>children</h1>');
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
-      expect(baseElement.outerHTML).not.toContain('<h1>children</h1>');
-      expect(baseElement.outerHTML).toContain('<p>You have hit an error</p>');
+      expect(container.innerHTML).not.toContain('<h1>children</h1>');
+      expect(container.innerHTML).toBe('<p>You have hit an error</p>');
     });
 
     it('renders a fallbackRender component', async () => {
       let errorString = '';
       let compStack = '';
-      const { baseElement } = render(
+      const { container } = render(
         <TestApp
           fallbackRender={({ error, componentStack }) => {
             if (error && componentStack) {
@@ -145,13 +143,13 @@ describe('ErrorBoundary', () => {
         </TestApp>,
       );
 
-      expect(baseElement.outerHTML).toContain('<h1>children</h1>');
+      expect(container.innerHTML).toContain('<h1>children</h1>');
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
-      expect(baseElement.outerHTML).not.toContain('<h1>children</h1');
-      expect(baseElement.outerHTML).toContain('<div>Fallback here</div>');
+      expect(container.innerHTML).not.toContain('<h1>children</h1');
+      expect(container.innerHTML).toBe('<div>Fallback here</div>');
 
       expect(errorString).toBe('Error: boom');
       expect(compStack).toBe(`
@@ -181,7 +179,7 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-        contexts: { componentStack: expect.any(String) },
+        contexts: { react: { componentStack: expect.any(String) } },
       });
     });
 
@@ -204,7 +202,7 @@ describe('ErrorBoundary', () => {
 
     it('resets to initial state when reset', () => {
       const mockOnReset = jest.fn();
-      const { baseElement } = render(
+      const { container } = render(
         <TestApp
           onReset={mockOnReset}
           fallbackRender={({ resetError }) => <button data-testid="reset" onClick={resetError} />}
@@ -213,13 +211,13 @@ describe('ErrorBoundary', () => {
         </TestApp>,
       );
 
-      expect(baseElement.outerHTML).toContain('<h1>children</h1>');
+      expect(container.innerHTML).toContain('<h1>children</h1>');
       expect(mockOnReset).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
 
-      expect(baseElement.outerHTML).toContain('<button data-testid="reset">');
+      expect(container.innerHTML).toContain('<button data-testid="reset">');
       expect(mockOnReset).toHaveBeenCalledTimes(0);
 
       const reset = screen.getByTestId('reset');
