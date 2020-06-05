@@ -1,4 +1,5 @@
 prepare-release:
+	yarn
 	yarn clean
 	yarn build
 	yarn lint
