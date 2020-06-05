@@ -35,7 +35,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   public state: ErrorBoundaryState = INITIAL_STATE;
 
   public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
-    Sentry.captureException(error, { contexts: { componentStack } });
+    Sentry.captureException(error, { contexts: { react: { componentStack } } });
     const { onError, showDialog, dialogOptions } = this.props;
     if (onError) {
       onError(error, componentStack);
