@@ -56,6 +56,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
+  // If render key changes and there is an error, the component is reset.
+  // This provides an easy way for users to reset their error boundary.
   public componentDidUpdate(prevProps: ErrorBoundaryProps): void {
     const { error } = this.state;
     const { renderKey, onReset } = this.props;

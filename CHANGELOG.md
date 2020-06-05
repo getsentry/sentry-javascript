@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [react] feat: Add @sentry/react package (#2631)
-
+- [react] feat: Add Error Boundary component (#2647)
 
 ## 5.17.0
 
