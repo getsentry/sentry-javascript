@@ -140,9 +140,11 @@ describe('ErrorBoundary', () => {
       let compStack = '';
       const { baseElement } = render(
         <TestApp
-          fallbackRender={(error: Error, componentStack: string) => {
-            errorString = error.toString();
-            compStack = componentStack;
+          fallbackRender={({ error, componentStack }) => {
+            if (error && componentStack) {
+              errorString = error.toString();
+              compStack = componentStack;
+            }
             return <div>Fallback here</div>;
           }}
         >
@@ -209,14 +211,12 @@ describe('ErrorBoundary', () => {
       expect(mockShowReportDialog).toHaveBeenCalledWith(options);
     });
 
-    it('it resets to initial state when reset', async () => {
+    it('resets to initial state when reset', () => {
       const mockOnReset = jest.fn();
-      const { baseElement, debug } = render(
+      const { baseElement } = render(
         <TestApp
           onReset={mockOnReset}
-          fallbackRender={(_, __, resetErrorBoundary: () => void) => (
-            <button data-testid="reset" onClick={resetErrorBoundary} />
-          )}
+          fallbackRender={({ resetError }) => <button data-testid="reset" onClick={resetError} />}
         >
           <h1>children</h1>
         </TestApp>,

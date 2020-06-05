@@ -9,7 +9,12 @@ export type ErrorBoundaryProps = {
   showDialog?: boolean;
   dialogOptions?: Sentry.ReportDialogOptions;
   fallback?: React.ReactNode;
-  fallbackRender?(error: Error | null, componentStack: string | null, resetErrorBoundary: () => void): React.ReactNode;
+  renderKey?: string | number;
+  fallbackRender?(fallback: {
+    error: Error | null;
+    componentStack: string | null;
+    resetError(): void;
+  }): React.ReactNode;
   onError?(error: Error, componentStack: string): void;
   onMount?(): void;
   onReset?(error: Error | null, componentStack: string | null): void;
@@ -17,8 +22,8 @@ export type ErrorBoundaryProps = {
 };
 
 type ErrorBoundaryState = {
-  error: Error | null;
   componentStack: string | null;
+  error: Error | null;
 };
 
 const INITIAL_STATE = {
@@ -51,6 +56,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
+  public componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    const { error } = this.state;
+    const { renderKey, onReset } = this.props;
+    if (error !== null && !Object.is(renderKey, prevProps.renderKey)) {
+      if (onReset) {
+        onReset(this.state.error, this.state.componentStack);
+      }
+      this.setState(INITIAL_STATE);
+    }
+  }
+
   public componentWillUnmount(): void {
     const { error, componentStack } = this.state;
     const { onUnmount } = this.props;
@@ -73,7 +89,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
     if (error) {
       if (typeof fallbackRender === 'function') {
-        return fallbackRender(error, componentStack, this.resetErrorBoundary);
+        return fallbackRender({ error, componentStack, resetError: this.resetErrorBoundary });
       }
       if (React.isValidElement(fallback)) {
         return fallback;
