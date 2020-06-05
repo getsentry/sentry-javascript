@@ -4,10 +4,12 @@ import * as React from 'react';
 export const FALLBACK_ERR_MESSAGE = 'No fallback component has been set';
 
 export type ErrorBoundaryProps = {
+  showDialog?: boolean;
+  dialogOptions?: Sentry.ReportDialogOptions;
   fallback?: React.ReactNode;
   fallbackRender?(error: Error | null, componentStack: string | null, resetErrorBoundary: () => void): React.ReactNode;
   onError?(error: Error, componentStack: string): void;
-  onMount?(error: Error | null, componentStack: string | null): void;
+  onMount?(): void;
   onReset?(error: Error | null, componentStack: string | null): void;
   onUnmount?(error: Error | null, componentStack: string | null): void;
 };
@@ -30,18 +32,20 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       scope.setExtra('componentStack', componentStack);
       Sentry.captureException(error);
     });
-    const { onError } = this.props;
+    const { onError, showDialog, dialogOptions } = this.props;
     if (onError) {
       onError(error, componentStack);
+    }
+    if (showDialog) {
+      Sentry.showReportDialog(dialogOptions);
     }
     this.setState({ error, componentStack });
   }
 
   public componentDidMount(): void {
-    const { error, componentStack } = this.state;
     const { onMount } = this.props;
     if (onMount) {
-      onMount(error, componentStack);
+      onMount();
     }
   }
 
