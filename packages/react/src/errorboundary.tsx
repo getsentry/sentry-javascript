@@ -1,7 +1,9 @@
 import * as Sentry from '@sentry/browser';
+import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
 
 export const FALLBACK_ERR_MESSAGE = 'No fallback component has been set';
+export const UNKNOWN_COMPONENT = 'unknown';
 
 export type ErrorBoundaryProps = {
   showDialog?: boolean;
@@ -84,4 +86,24 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-export { ErrorBoundary };
+function withErrorBoundary<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  errorBoundaryOptions: ErrorBoundaryProps,
+): React.FC<P> {
+  const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+
+  const Wrapped: React.FC<P> = (props: P) => (
+    <ErrorBoundary {...errorBoundaryOptions}>
+      <WrappedComponent {...props} />
+    </ErrorBoundary>
+  );
+
+  Wrapped.displayName = `boundary(${componentDisplayName})`;
+
+  // Copy over static methods from Wrapped component to Profiler HOC
+  // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
+  hoistNonReactStatic(Wrapped, WrappedComponent);
+  return Wrapped;
+}
+
+export { ErrorBoundary, withErrorBoundary };
