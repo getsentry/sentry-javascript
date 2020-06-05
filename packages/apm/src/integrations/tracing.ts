@@ -523,7 +523,7 @@ export class Tracing implements Integration {
       Tracing._forceLCP();
       if (Tracing._lcp) {
         // Set the last observed LCP score.
-        transactionSpan.setData('_sentry_extra_metrics', { lcp: Tracing._lcp });
+        transactionSpan.setData('_sentry_extra_metrics', JSON.stringify({ lcp: Tracing._lcp }));
       }
     }
 
