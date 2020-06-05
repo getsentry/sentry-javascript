@@ -3,21 +3,15 @@ import * as React from 'react';
 
 import { ErrorBoundary, ErrorBoundaryProps, FALLBACK_ERR_MESSAGE } from '../src/errorboundary';
 
-const mockSetExtra = jest.fn();
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
 
 jest.mock('@sentry/browser', () => ({
-  captureException: (err: any) => {
-    mockCaptureException(err);
+  captureException: (err: any, ctx: any) => {
+    mockCaptureException(err, ctx);
   },
   showReportDialog: (options: any) => {
     mockShowReportDialog(options);
-  },
-  withScope: (callback: Function) => {
-    callback({
-      setExtra: mockSetExtra,
-    });
   },
 }));
 
@@ -45,7 +39,6 @@ describe('ErrorBoundary', () => {
 
   afterEach(() => {
     consoleErrorSpy.mockClear();
-    mockSetExtra.mockClear();
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
   });
@@ -179,7 +172,6 @@ describe('ErrorBoundary', () => {
 
       expect(mockOnError).toHaveBeenCalledTimes(0);
       expect(mockCaptureException).toHaveBeenCalledTimes(0);
-      expect(mockSetExtra).toHaveBeenCalledTimes(0);
 
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
@@ -188,10 +180,9 @@ describe('ErrorBoundary', () => {
       expect(mockOnError).toHaveBeenCalledWith(expect.any(Error), expect.any(String));
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error));
-
-      expect(mockSetExtra).toHaveBeenCalledTimes(1);
-      expect(mockSetExtra).toHaveBeenCalledWith('componentStack', expect.any(String));
+      expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+        contexts: { componentStack: expect.any(String) },
+      });
     });
 
     it('shows a Sentry Report Dialog with correct options', () => {
