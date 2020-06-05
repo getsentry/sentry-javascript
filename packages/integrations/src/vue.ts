@@ -11,11 +11,11 @@ const TRACING_GETTER = ({
 
 /** Global Vue object limited to the methods/attributes we require */
 interface VueInstance {
-  config?: {
+  config: {
     errorHandler?(error: Error, vm?: ViewModel, info?: string): void; // tslint:disable-line:completed-docs
   };
   mixin(hooks: { [key: string]: () => void }): void; // tslint:disable-line:completed-docs
-  util: {
+  util?: {
     warn(...input: any): void; // tslint:disable-line:completed-docs
   };
 }
@@ -338,11 +338,6 @@ export class Vue implements Integration {
 
   /** Inject Sentry's handler into owns Vue's error handler  */
   private _attachErrorHandler(getCurrentHub: () => Hub): void {
-    if (!this._options.Vue.config) {
-      logger.error('Vue instance is missing required `config` attribute');
-      return;
-    }
-
     const currentErrorHandler = this._options.Vue.config.errorHandler; // tslint:disable-line:no-unbound-method
 
     this._options.Vue.config.errorHandler = (error: Error, vm?: ViewModel, info?: string): void => {
@@ -379,7 +374,9 @@ export class Vue implements Integration {
       }
 
       if (this._options.logErrors) {
-        this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
+        if (this._options.Vue.util) {
+          this._options.Vue.util.warn(`Error in ${info}: "${error.toString()}"`, vm);
+        }
         console.error(error); // tslint:disable-line:no-console
       }
     };
