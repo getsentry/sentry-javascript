@@ -523,7 +523,7 @@ export class Tracing implements Integration {
       Tracing._forceLCP();
       if (Tracing._lcp) {
         // Set the last observed LCP score.
-        transactionSpan.setData('_sentry_extra_metrics', JSON.stringify({ lcp: Tracing._lcp }));
+        transactionSpan.setData('_sentry_web_vitals', { LCP: Tracing._lcp });
       }
     }
 
@@ -688,7 +688,7 @@ export class Tracing implements Integration {
             elementId: entry.id,
             // @ts-ignore
             elementSize: entry.size,
-            largestContentfulPaint: entry.startTime,
+            value: entry.startTime,
           };
         }
       };
