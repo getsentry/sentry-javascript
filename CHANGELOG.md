@@ -4,6 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [react] feat: Add @sentry/react package (#2631)
+- [core] feat: Remove normalization of contexts (#2649)
 
 ## 5.16.1
 
