@@ -230,7 +230,7 @@ function instrumentXHR(): void {
         xhr.__sentry_own_request__ = true;
       }
 
-      xhr.addEventListener('readystatechange', function(): void {
+      const onreadystatechangeHandler = function(): void {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
@@ -248,7 +248,18 @@ function instrumentXHR(): void {
             xhr,
           });
         }
-      });
+      };
+
+      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
+          return function(...readyStateArgs: any[]): void {
+            onreadystatechangeHandler();
+            return original.apply(xhr, readyStateArgs);
+          };
+        });
+      } else {
+        xhr.addEventListener('readystatechange', onreadystatechangeHandler);
+      }
 
       return originalOpen.apply(xhr, args);
     };
