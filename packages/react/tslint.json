@@ -1,5 +1,5 @@
 {
-  "extends": ["@sentry/typescript/tslint", "tslint-react"],
+  "extends": ["@sentry/typescript/tslint", "tslint-react", "tslint-react-hooks"],
   "rules": {
     "no-implicit-dependencies": [
       true,
