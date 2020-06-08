@@ -685,9 +685,9 @@ export class Tracing implements Integration {
           // that's loaded cross-origin without the `Timing-Allow-Origin` header.
           Tracing._lcp = {
             // @ts-ignore
-            elementId: entry.id,
+            ...(entry.id && { elementId: entry.id }),
             // @ts-ignore
-            elementSize: entry.size,
+            ...(entry.size && { elementSize: entry.size }),
             value: entry.startTime,
           };
         }
