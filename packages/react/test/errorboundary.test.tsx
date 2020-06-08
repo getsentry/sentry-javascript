@@ -42,17 +42,6 @@ describe('ErrorBoundary', () => {
     mockShowReportDialog.mockClear();
   });
 
-  it('renders null if not given a valid `fallbackRender` prop', () => {
-    const { container } = render(
-      // @ts-ignore
-      <ErrorBoundary fallbackRender={'ok'}>
-        <Bam />
-      </ErrorBoundary>,
-    );
-
-    expect(container.innerHTML).toBe('');
-  });
-
   it('renders null if not given a valid `fallback` prop', () => {
     const { container } = render(
       // @ts-ignore
@@ -126,12 +115,12 @@ describe('ErrorBoundary', () => {
       expect(container.innerHTML).toBe('<p>You have hit an error</p>');
     });
 
-    it('renders a fallbackRender component', async () => {
+    it('renders a render props component', async () => {
       let errorString = '';
       let compStack = '';
       const { container } = render(
         <TestApp
-          fallbackRender={({ error, componentStack }) => {
+          fallback={({ error, componentStack }) => {
             if (error && componentStack) {
               errorString = error.toString();
               compStack = componentStack;
@@ -205,7 +194,7 @@ describe('ErrorBoundary', () => {
       const { container } = render(
         <TestApp
           onReset={mockOnReset}
-          fallbackRender={({ resetError }) => <button data-testid="reset" onClick={resetError} />}
+          fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}
         >
           <h1>children</h1>
         </TestApp>,

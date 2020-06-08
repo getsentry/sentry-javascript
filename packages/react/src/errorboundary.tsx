@@ -4,20 +4,30 @@ import * as React from 'react';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
+export type FallbackRender = (fallback: {
+  error: Error | null;
+  componentStack: string | null;
+  resetError(): void;
+}) => React.ReactNode;
+
 export type ErrorBoundaryProps = {
   showDialog?: boolean;
   dialogOptions?: Sentry.ReportDialogOptions;
-  fallback?: React.ReactNode;
-  fallbackRender?(fallback: {
-    error: Error | null;
-    componentStack: string | null;
-    resetError(): void;
-  }): React.ReactNode;
+  // tslint:disable-next-line: no-null-undefined-union
+  fallback?: React.ReactNode | FallbackRender;
   onError?(error: Error, componentStack: string): void;
   onMount?(): void;
   onReset?(error: Error | null, componentStack: string | null): void;
   onUnmount?(error: Error | null, componentStack: string | null): void;
 };
+
+/*
+  fallbackRender?(fallback: {
+    error: Error | null;
+    componentStack: string | null;
+    resetError(): void;
+  }): React.ReactNode;
+*/
 
 type ErrorBoundaryState = {
   componentStack: string | null;
@@ -71,15 +81,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   public render(): React.ReactNode {
-    const { fallback, fallbackRender } = this.props;
+    const { fallback } = this.props;
     const { error, componentStack } = this.state;
 
     if (error) {
-      if (typeof fallbackRender === 'function') {
-        return fallbackRender({ error, componentStack, resetError: this.resetErrorBoundary });
-      }
       if (React.isValidElement(fallback)) {
         return fallback;
+      }
+      if (typeof fallback === 'function') {
+        return fallback({ error, componentStack, resetError: this.resetErrorBoundary }) as FallbackRender;
       }
 
       // Fail gracefully if no fallback provided
