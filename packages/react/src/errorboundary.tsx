@@ -21,14 +21,6 @@ export type ErrorBoundaryProps = {
   onUnmount?(error: Error | null, componentStack: string | null): void;
 };
 
-/*
-  fallbackRender?(fallback: {
-    error: Error | null;
-    componentStack: string | null;
-    resetError(): void;
-  }): React.ReactNode;
-*/
-
 type ErrorBoundaryState = {
   componentStack: string | null;
   error: Error | null;
