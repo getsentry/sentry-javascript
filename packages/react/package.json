@@ -66,9 +66,6 @@
       "^.+\\.ts$": "ts-jest",
       "^.+\\.tsx$": "ts-jest"
     },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(@testing-library)/)"
-    ],
     "moduleFileExtensions": [
       "js",
       "ts",
