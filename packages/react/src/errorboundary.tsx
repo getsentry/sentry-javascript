@@ -8,7 +8,6 @@ export type ErrorBoundaryProps = {
   showDialog?: boolean;
   dialogOptions?: Sentry.ReportDialogOptions;
   fallback?: React.ReactNode;
-  renderKey?: string | number;
   fallbackRender?(fallback: {
     error: Error | null;
     componentStack: string | null;
@@ -42,6 +41,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (showDialog) {
       Sentry.showReportDialog(dialogOptions);
     }
+
+    // componentDidCatch is used over getDerivedStateFromError
+    // so that componentStack is accessible through state.
     this.setState({ error, componentStack });
   }
 
@@ -49,19 +51,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { onMount } = this.props;
     if (onMount) {
       onMount();
-    }
-  }
-
-  // If render key changes and there is an error, the component is reset.
-  // This provides an easy way for users to reset their error boundary.
-  public componentDidUpdate(prevProps: ErrorBoundaryProps): void {
-    const { error } = this.state;
-    const { renderKey, onReset } = this.props;
-    if (error !== null && !Object.is(renderKey, prevProps.renderKey)) {
-      if (onReset) {
-        onReset(this.state.error, this.state.componentStack);
-      }
-      this.setState(INITIAL_STATE);
     }
   }
 
