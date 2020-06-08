@@ -1,4 +1,4 @@
-import { Hub, Scope } from '@sentry/hub';
+import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
