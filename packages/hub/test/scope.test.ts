@@ -265,6 +265,38 @@ describe('Scope', () => {
     });
   });
 
+  test('applyToEvent trace context', async () => {
+    expect.assertions(1);
+    const scope = new Scope();
+    const span = {
+      fake: 'span',
+      getTraceContext: () => ({ a: 'b' }),
+    } as any;
+    scope.setSpan(span);
+    const event: Event = {};
+    return scope.applyToEvent(event).then(processedEvent => {
+      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+    });
+  });
+
+  test('applyToEvent existing trace context in event should be stronger', async () => {
+    expect.assertions(1);
+    const scope = new Scope();
+    const span = {
+      fake: 'span',
+      getTraceContext: () => ({ a: 'b' }),
+    } as any;
+    scope.setSpan(span);
+    const event: Event = {
+      contexts: {
+        trace: { a: 'c' },
+      },
+    };
+    return scope.applyToEvent(event).then(processedEvent => {
+      expect((processedEvent!.contexts!.trace as any).a).toEqual('c');
+    });
+  });
+
   test('clear', () => {
     const scope = new Scope();
     scope.setExtra('a', 2);

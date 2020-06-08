@@ -5,6 +5,7 @@
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [react] feat: Add @sentry/react package (#2631)
 - [browser] Change XHR instrumentation order to handle `onreadystatechange` breadcrumbs correctly (#2643)
+- [apm] fix: Re-add TraceContext for all events (#2656)
 
 ## 5.16.1
 

@@ -436,6 +436,9 @@ export class Tracing implements Integration {
       ...transactionContext,
     }) as Transaction;
 
+    // We set the transaction here on the scope so error events pick up the trace context and attach it to the error
+    hub.configureScope(scope => scope.setSpan(Tracing._activeTransaction));
+
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity
     const id = Tracing.pushActivity('idleTransactionStarted');
