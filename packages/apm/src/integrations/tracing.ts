@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -435,6 +435,9 @@ export class Tracing implements Integration {
       trimEnd: true,
       ...transactionContext,
     }) as Transaction;
+
+    // We set the transaction here on the scope so error events pick up the trace context and attach it to the error
+    hub.configureScope(scope => scope.setSpan(Tracing._activeTransaction));
 
     // The reason we do this here is because of cached responses
     // If we start and transaction without an activity it would never finish since there is no activity

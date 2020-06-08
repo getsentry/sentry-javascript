@@ -377,6 +377,12 @@ export class Scope implements ScopeInterface {
     if (this._transaction) {
       event.transaction = this._transaction;
     }
+    // We want to set the trace context for normal events only if there isn't already
+    // a trace context on the event. There is a product feature in place where we link
+    // errors with transaction and it relys on that.
+    if (this._span) {
+      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
+    }
 
     this._applyFingerprint(event);
 
