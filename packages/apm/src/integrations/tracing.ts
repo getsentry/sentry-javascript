@@ -155,6 +155,14 @@ export class Tracing implements Integration {
 
   private static _heartbeatCounter: number = 0;
 
+  /** Holds the latest LargestContentfulPaint value (it changes during page load). */
+  private static _lcp?: { [key: string]: any };
+
+  /** Force any pending LargestContentfulPaint records to be dispatched. */
+  private static _forceLCP = () => {
+    /* No-op, replaced later if LCP API is available. */
+  };
+
   /**
    * Constructor for Tracing
    *
@@ -163,6 +171,7 @@ export class Tracing implements Integration {
   public constructor(_options?: Partial<TracingOptions>) {
     if (global.performance) {
       global.performance.mark('sentry-tracing-init');
+      Tracing._trackLCP();
     }
     const defaults = {
       debug: {
@@ -450,7 +459,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Finshes the current active transaction
+   * Finishes the current active transaction
    */
   public static finishIdleTransaction(endTimestamp: number): void {
     const active = Tracing._activeTransaction;
@@ -507,6 +516,16 @@ export class Tracing implements Integration {
     }
 
     Tracing._log('[Tracing] Adding & adjusting spans using Performance API');
+
+    // FIXME: depending on the 'op' directly is brittle.
+    if (transactionSpan.op === 'pageload') {
+      // Force any pending records to be dispatched.
+      Tracing._forceLCP();
+      if (Tracing._lcp) {
+        // Set the last observed LCP score.
+        transactionSpan.setData('_sentry_web_vitals', { LCP: Tracing._lcp });
+      }
+    }
 
     const timeOrigin = Tracing._msToSec(performance.timeOrigin);
 
@@ -630,6 +649,69 @@ export class Tracing implements Integration {
 
     Tracing._performanceCursor = Math.max(performance.getEntries().length - 1, 0);
     // tslint:enable: no-unsafe-any
+  }
+
+  /**
+   * Starts tracking the Largest Contentful Paint on the current page.
+   */
+  private static _trackLCP(): void {
+    // Based on reference implementation from https://web.dev/lcp/#measure-lcp-in-javascript.
+
+    // Use a try/catch instead of feature detecting `largest-contentful-paint`
+    // support, since some browsers throw when using the new `type` option.
+    // https://bugs.webkit.org/show_bug.cgi?id=209216
+    try {
+      // Keep track of whether (and when) the page was first hidden, see:
+      // https://github.com/w3c/page-visibility/issues/29
+      // NOTE: ideally this check would be performed in the document <head>
+      // to avoid cases where the visibility state changes before this code runs.
+      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
+      document.addEventListener(
+        'visibilitychange',
+        event => {
+          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
+        },
+        { once: true },
+      );
+
+      const updateLCP = (entry: PerformanceEntry) => {
+        // Only include an LCP entry if the page wasn't hidden prior to
+        // the entry being dispatched. This typically happens when a page is
+        // loaded in a background tab.
+        if (entry.startTime < firstHiddenTime) {
+          // NOTE: the `startTime` value is a getter that returns the entry's
+          // `renderTime` value, if available, or its `loadTime` value otherwise.
+          // The `renderTime` value may not be available if the element is an image
+          // that's loaded cross-origin without the `Timing-Allow-Origin` header.
+          Tracing._lcp = {
+            // @ts-ignore
+            ...(entry.id && { elementId: entry.id }),
+            // @ts-ignore
+            ...(entry.size && { elementSize: entry.size }),
+            value: entry.startTime,
+          };
+        }
+      };
+
+      // Create a PerformanceObserver that calls `updateLCP` for each entry.
+      const po = new PerformanceObserver(entryList => {
+        entryList.getEntries().forEach(updateLCP);
+      });
+
+      // Observe entries of type `largest-contentful-paint`, including buffered entries,
+      // i.e. entries that occurred before calling `observe()` below.
+      po.observe({
+        buffered: true,
+        // @ts-ignore
+        type: 'largest-contentful-paint',
+      });
+
+      Tracing._forceLCP = () => {
+        po.takeRecords().forEach(updateLCP);
+      };
+    } catch (e) {
+      // Do nothing if the browser doesn't support this API.
+    }
   }
 
   /**
