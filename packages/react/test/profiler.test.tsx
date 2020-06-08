@@ -1,5 +1,5 @@
+import { render } from '@testing-library/react';
 import * as React from 'react';
-import { create } from 'react-test-renderer';
 
 import { UNKNOWN_COMPONENT, withProfiler } from '../src/profiler';
 
@@ -44,7 +44,7 @@ describe('withProfiler', () => {
 
       expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
-      const profiler = create(<ProfiledComponent />);
+      const profiler = render(<ProfiledComponent />);
       profiler.unmount();
 
       jest.runAllTimers();
@@ -58,7 +58,7 @@ describe('withProfiler', () => {
         const ProfiledComponent = withProfiler(() => <h1>Testing</h1>);
 
         expect(mockPushActivity).toHaveBeenCalledTimes(0);
-        create(<ProfiledComponent />);
+        render(<ProfiledComponent />);
         expect(mockPushActivity).toHaveBeenCalledTimes(1);
         expect(mockPushActivity).toHaveBeenLastCalledWith(UNKNOWN_COMPONENT, {
           description: `<${UNKNOWN_COMPONENT}>`,
