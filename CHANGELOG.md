@@ -6,7 +6,7 @@
 - [react] feat: Add @sentry/react package (#2631)
 - [browser] Change XHR instrumentation order to handle `onreadystatechange` breadcrumbs correctly (#2643)
 - [apm] fix: Re-add TraceContext for all events (#2656)
-- [browser] feat: Report LCP metric on pageload transactions (#2624)
+- [apm] feat: Report LCP metric on pageload transactions (#2624)
 
 ## 5.16.1
 
