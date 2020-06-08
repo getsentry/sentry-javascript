@@ -177,11 +177,21 @@ export function _callOnClient(method: string, ...args: any[]): void {
 }
 
 /**
- * Starts a Transaction. This is the entry point to do manual tracing. You can
- * add child spans to transactions. Spans themselves can have children, building
- * a tree structure. This function returns a Transaction and you need to keep
- * track of the instance yourself. When you call `.finish()` on the transaction
- * it will be sent to Sentry.
+ * Starts a new `Transaction` and returns it. This is the entry point to manual
+ * tracing instrumentation.
+ *
+ * A tree structure can be built by adding child spans to the transaction, and
+ * child spans to other spans. To start a new child span within the transaction
+ * or any span, call the respective `.startChild()` method.
+ *
+ * Every child span must be finished before the transaction is finished,
+ * otherwise the unfinished spans are discarded.
+ *
+ * The transaction must be finished with a call to its `.finish()` method, at
+ * which point the transaction with all its finished child spans will be sent to
+ * Sentry.
+ *
+ * @param context Properties of the new `Transaction`.
  */
 export function startTransaction(context: TransactionContext): Transaction {
   return callOnHub('startTransaction', { ...context });

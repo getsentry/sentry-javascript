@@ -1,6 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, Scope } from '@sentry/hub';
-import { Span, Transaction } from '@sentry/types';
 
 import { addExtensionMethods } from '../src/hubextensions';
 
@@ -21,21 +20,18 @@ describe('Hub', () => {
       });
       test('set tracesSampleRate 0 on transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'foo' }) as any;
+        const transaction = hub.startTransaction({ name: 'foo' });
         expect(transaction.sampled).toBe(false);
       });
       test('set tracesSampleRate 1 on transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'foo' }) as any;
+        const transaction = hub.startTransaction({ name: 'foo' });
         expect(transaction.sampled).toBeTruthy();
       });
       test('set tracesSampleRate should be propergated to children', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 0 }));
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'foo' }) as any;
-        const child = transaction.startChild({ op: 1 });
+        const transaction = hub.startTransaction({ name: 'foo' });
+        const child = transaction.startChild({ op: 'test' });
         expect(child.sampled).toBeFalsy();
       });
     });
@@ -49,8 +45,7 @@ describe('Hub', () => {
 
       test('simple standalone Transaction', () => {
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'transaction' }) as Transaction;
+        const transaction = hub.startTransaction({ name: 'transaction' });
         expect(transaction.spanId).toBeTruthy();
         // tslint:disable-next-line: no-unbound-method
         expect(transaction.setName).toBeTruthy();
@@ -71,8 +66,7 @@ describe('Hub', () => {
       test('create a child if there is a Span already on the scope', () => {
         const myScope = new Scope();
         const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }), myScope);
-        // @ts-ignore
-        const transaction = hub.startSpan({ name: 'transaction' }) as Transaction;
+        const transaction = hub.startTransaction({ name: 'transaction' });
         hub.configureScope(scope => {
           scope.setSpan(transaction);
         });
