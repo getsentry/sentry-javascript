@@ -4,9 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 - [react] feat: Add @sentry/react package (#2631)
-- [browser] Change XHR instrumentation order to handle `onreadystatechange` breadcrumbs correctly (#2643)
-- [apm] fix: Re-add TraceContext for all events (#2656)
+
+
+## 5.17.0
+
+- [browser] feat: Support `fetchParameters` (#2567)
 - [apm] feat: Report LCP metric on pageload transactions (#2624)
+- [core] fix: Normalize Transaction and Span consistently (#2655)
+- [core] fix: Handle DSN qs and show better error messages (#2639)
+- [browser] fix: Change XHR instrumentation order to handle `onreadystatechange` breadcrumbs correctly (#2643)
+- [apm] fix: Re-add TraceContext for all events (#2656)
+- [integrations] fix: Change Vue interface to be inline with the original types (#2634)
+- [apm] ref: Use startTransaction where appropriate (#2644)
 
 ## 5.16.1
 
