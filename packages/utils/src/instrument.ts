@@ -218,35 +218,19 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function(originalOpen: () => void): () => void {
     return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      const xhr = this; // tslint:disable-line:no-this-assignment
       const url = args[1];
-      this.__sentry_xhr__ = {
+      xhr.__sentry_xhr__ = {
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
       };
 
       // if Sentry key appears in URL, don't capture it as a request
-      if (isString(url) && this.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
-        this.__sentry_own_request__ = true;
+      if (isString(url) && xhr.__sentry_xhr__.method === 'POST' && url.match(/sentry_key/)) {
+        xhr.__sentry_own_request__ = true;
       }
 
-      return originalOpen.apply(this, args);
-    };
-  });
-
-  fill(xhrproto, 'send', function(originalSend: () => void): () => void {
-    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      const xhr = this; // tslint:disable-line:no-this-assignment
-      const commonHandlerData = {
-        args,
-        startTimestamp: Date.now(),
-        xhr,
-      };
-
-      triggerHandlers('xhr', {
-        ...commonHandlerData,
-      });
-
-      xhr.addEventListener('readystatechange', function(): void {
+      const onreadystatechangeHandler = function(): void {
         if (xhr.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
@@ -258,10 +242,35 @@ function instrumentXHR(): void {
             /* do nothing */
           }
           triggerHandlers('xhr', {
-            ...commonHandlerData,
+            args,
             endTimestamp: Date.now(),
+            startTimestamp: Date.now(),
+            xhr,
           });
         }
+      };
+
+      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+        fill(xhr, 'onreadystatechange', function(original: WrappedFunction): Function {
+          return function(...readyStateArgs: any[]): void {
+            onreadystatechangeHandler();
+            return original.apply(xhr, readyStateArgs);
+          };
+        });
+      } else {
+        xhr.addEventListener('readystatechange', onreadystatechangeHandler);
+      }
+
+      return originalOpen.apply(xhr, args);
+    };
+  });
+
+  fill(xhrproto, 'send', function(originalSend: () => void): () => void {
+    return function(this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      triggerHandlers('xhr', {
+        args,
+        startTimestamp: Date.now(),
+        xhr: this,
       });
 
       return originalSend.apply(this, args);
