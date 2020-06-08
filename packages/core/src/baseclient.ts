@@ -300,7 +300,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     // tslint:disable:no-unsafe-any
-    return {
+    const normalized = {
       ...event,
       ...(event.breadcrumbs && {
         breadcrumbs: event.breadcrumbs.map(b => ({
@@ -320,6 +320,17 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
         extra: normalize(event.extra, depth),
       }),
     };
+    // event.contexts.trace stores information about a Transaction. Similarly,
+    // event.spans[] stores information about child Spans. Given that a
+    // Transaction is conceptually a Span, normalization should apply to both
+    // Transactions and Spans consistently.
+    // For now the decision is to skip normalization of Transactions and Spans,
+    // so this block overwrites the normalized event to add back the original
+    // Transaction information prior to normalization.
+    if (event.contexts && event.contexts.trace) {
+      normalized.contexts.trace = event.contexts.trace;
+    }
+    return normalized;
   }
 
   /**
