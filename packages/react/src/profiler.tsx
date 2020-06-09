@@ -113,7 +113,7 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
 
 /**
  *
- * useProfiler is React hook that profiles a React component.
+ * `useProfiler` is a React hook that profiles a React component.
  *
  * Requires React 16.8 or above.
  * @param name displayName of component being profiled
