@@ -91,11 +91,11 @@ class Profiler extends React.Component<ProfilerProps> {
     this.activity = getInitActivity(this.props.name);
   }
 
-  // public componentDidMount(): void {
-  //   if (!this.hasProfilingMode) {
-  //     afterNextFrame(this.finishProfile);
-  //   }
-  // }
+  public componentDidMount(): void {
+    if (!this.hasProfilingMode) {
+      afterNextFrame(this.finishProfile);
+    }
+  }
 
   public componentWillUnmount(): void {
     afterNextFrame(this.finishProfile);
@@ -121,34 +121,33 @@ class Profiler extends React.Component<ProfilerProps> {
     // pageload = startTime of 0
     startTime: number,
     // Timestamp when React committed the current update
-    _commitTime: number,
+    commitTime: number,
   ) => {
+    if (phase === 'mount') {
+      afterNextFrame(this.finishProfile);
+    }
+
     const componentName = this.props.name === UNKNOWN_COMPONENT ? id : this.props.name;
 
     const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
     if (tracingIntegration !== null) {
       // tslint:disable-next-line: no-unsafe-any
       const activeTransaction = (tracingIntegration as any).constructor._activeTransaction as Transaction;
-
+      console.table({ id, phase, actualDuration, _baseDuration, startTime, commitTime });
       console.log(activeTransaction);
 
       if (activeTransaction) {
-        console.log('sdfsf');
-
         const spanContext: SpanContext = {
           description: `<${componentName}>`,
-          op: `react.${phase}`,
+          op: 'react.update',
           startTimestamp: activeTransaction.startTimestamp + startTime,
         };
 
         const span = activeTransaction.startChild(spanContext);
 
-        console.log('SLDJFJSF');
-
-        span.finish(span.startTimestamp + actualDuration);
+        span.finish(activeTransaction.startTimestamp + actualDuration);
       }
     }
-    // afterNextFrame(this.finishProfile);
   };
 
   public finishProfile = () => {
