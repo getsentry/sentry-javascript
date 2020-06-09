@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/browser';
 import { Integration, IntegrationClass, SpanContext, Transaction } from '@sentry/types';
-import { parseSemver, logger, SemVer } from '@sentry/utils';
+import { parseSemver, logger, SemVer, timestampWithMs } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -119,9 +119,9 @@ class Profiler extends React.Component<ProfilerProps> {
     _baseDuration: number,
     // Timestamp when React began rendering the current update
     // pageload = startTime of 0
-    startTime: number,
+    _startTime: number,
     // Timestamp when React committed the current update
-    commitTime: number,
+    _commitTime: number,
   ) => {
     if (phase === 'mount') {
       afterNextFrame(this.finishProfile);
@@ -133,19 +133,20 @@ class Profiler extends React.Component<ProfilerProps> {
     if (tracingIntegration !== null) {
       // tslint:disable-next-line: no-unsafe-any
       const activeTransaction = (tracingIntegration as any).constructor._activeTransaction as Transaction;
-      console.table({ id, phase, actualDuration, _baseDuration, startTime, commitTime });
+      console.table({ id, phase, actualDuration, _baseDuration, _startTime, _commitTime });
       console.log(activeTransaction);
 
       if (activeTransaction) {
+        const now = timestampWithMs();
         const spanContext: SpanContext = {
           description: `<${componentName}>`,
           op: 'react.update',
-          startTimestamp: activeTransaction.startTimestamp + startTime,
+          startTimestamp: now - actualDuration,
         };
 
         const span = activeTransaction.startChild(spanContext);
 
-        span.finish(activeTransaction.startTimestamp + actualDuration);
+        span.finish(now);
       }
     }
   };
