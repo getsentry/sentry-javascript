@@ -3,6 +3,9 @@ import { Integration, IntegrationClass } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
+// tslint:disable: no-implicit-dependencies
+// @ts-ignore
+import * as kap from 'scheduler';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -39,6 +42,35 @@ function afterNextFrame(callback: Function): void {
   timeout = window.setTimeout(done, 100);
 }
 
+// This is only active in development mode and in profiling mode
+// Learn how to do that here: https://gist.github.com/bvaughn/25e6233aeb1b4f0cdb8d8366e54a3977
+function isProfilingModeOn(): boolean {
+  // function Hello() {
+  //   return /*#__PURE__*/ React.createElement('div', null);
+  // }
+
+  // @ts-ignore
+  console.log(kap);
+  // const lol = React.createElement(React.Profiler, { id: 'sdf', onRender: () => {} });
+
+  // @ts-ignore
+  // console.log(lol);
+  // function Kappa() {
+  //   return /*#__PURE__*/ React.createElement(Hello, null);
+  // }
+
+  // I wish React exposed this better
+  // tslint:disable-next-line: no-unsafe-any
+  // console.log(Kappa());
+  // tslint:disable-next-line: no-unsafe-any
+  // if (fake._owner && fake._owner.actualDuration) {
+  //   console.log('YES ITS ON');
+  //   return true;
+  // }
+
+  return false;
+}
+
 const getInitActivity = (name: string): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
@@ -62,19 +94,44 @@ export type ProfilerProps = {
 
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null;
+  public hasProfilingMode: boolean = false;
+
   public constructor(props: ProfilerProps) {
     super(props);
+
+    // TODO: Extract this out into global state
+    this.hasProfilingMode = isProfilingModeOn();
 
     this.activity = getInitActivity(this.props.name);
   }
 
   public componentDidMount(): void {
-    afterNextFrame(this.finishProfile);
+    if (!this.hasProfilingMode) {
+      afterNextFrame(this.finishProfile);
+    }
   }
 
   public componentWillUnmount(): void {
-    afterNextFrame(this.finishProfile);
+    if (!this.hasProfilingMode) {
+      afterNextFrame(this.finishProfile);
+    }
   }
+
+  // TODO: Figure out how to use these values.
+  // We should be generating spans from these!
+  // > React calls this function any time a component within the profiled tree “commits” an update
+  // See: https://reactjs.org/docs/profiler.html#onrender-callback
+  // id: string,
+  // phase: 'mount' | 'update',
+  // actualDuration: number,
+  // baseDuration: number,
+  // startTime: number,
+  // commitTime: number,
+  public handleProfilerRender = (..._args: any[]) => {
+    console.log('SDJFLSJDF');
+    console.table(_args);
+    afterNextFrame(this.finishProfile);
+  };
 
   public finishProfile = () => {
     if (!this.activity) {
@@ -90,6 +147,15 @@ class Profiler extends React.Component<ProfilerProps> {
   };
 
   public render(): React.ReactNode {
+    const { name } = this.props;
+    if (this.hasProfilingMode) {
+      return (
+        <React.Profiler id={name} onRender={this.handleProfilerRender}>
+          {this.props.children}
+        </React.Profiler>
+      );
+    }
+
     return this.props.children;
   }
 }
