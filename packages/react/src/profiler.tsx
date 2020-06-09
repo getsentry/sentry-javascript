@@ -133,7 +133,7 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
  * @param name displayName of component being profiled
  */
 function useProfiler(name: string): void {
-  const activity = getInitActivity(name);
+  const [activity] = React.useState(() => getInitActivity(name));
 
   React.useEffect(() => {
     afterNextFrame(() => {
