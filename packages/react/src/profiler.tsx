@@ -111,4 +111,25 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
   return Wrapped;
 }
 
-export { withProfiler, Profiler };
+/**
+ *
+ * `useProfiler` is a React hook that profiles a React component.
+ *
+ * Requires React 16.8 or above.
+ * @param name displayName of component being profiled
+ */
+function useProfiler(name: string): void {
+  const activity = getInitActivity(name);
+
+  React.useEffect(() => {
+    afterNextFrame(() => {
+      const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+      if (tracingIntegration !== null) {
+        // tslint:disable-next-line:no-unsafe-any
+        (tracingIntegration as any).constructor.popActivity(activity);
+      }
+    });
+  }, []);
+}
+
+export { withProfiler, Profiler, useProfiler };

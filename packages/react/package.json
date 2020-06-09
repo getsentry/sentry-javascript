@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^10.0.6",
+    "@testing-library/react-hooks": "^3.3.0",
     "@types/hoist-non-react-statics": "^3.3.1",
     "@types/react": "^16.9.35",
     "jest": "^24.7.1",
@@ -36,9 +37,11 @@
     "prettier-check": "^2.0.0",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
+    "react-test-renderer": "^16.13.1",
     "rimraf": "^2.6.3",
     "tslint": "^5.16.0",
     "tslint-react": "^5.0.0",
+    "tslint-react-hooks": "^2.2.2",
     "typescript": "^3.5.1"
   },
   "scripts": {
