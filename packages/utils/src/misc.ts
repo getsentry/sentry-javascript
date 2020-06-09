@@ -413,7 +413,7 @@ const SEMVER_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\
 /**
  * Represents Semantic Versioning object
  */
-interface SemVer {
+export interface SemVer {
   major?: number;
   minor?: number;
   patch?: number;
