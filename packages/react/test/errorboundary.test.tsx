@@ -1,14 +1,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 
-import { ErrorBoundary, ErrorBoundaryProps } from '../src/errorboundary';
+import { ErrorBoundary, ErrorBoundaryProps, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
+const EVENT_ID = 'test-id-123';
 
 jest.mock('@sentry/browser', () => ({
   captureException: (err: any, ctx: any) => {
     mockCaptureException(err, ctx);
+    return EVENT_ID;
   },
   showReportDialog: (options: any) => {
     mockShowReportDialog(options);
@@ -18,7 +20,15 @@ jest.mock('@sentry/browser', () => ({
 const TestApp: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
   const [isError, setError] = React.useState(false);
   return (
-    <ErrorBoundary {...props}>
+    <ErrorBoundary
+      {...props}
+      onReset={(err: Error, stack: string) => {
+        setError(false);
+        if (props.onReset) {
+          props.onReset(err, stack);
+        }
+      }}
+    >
       {isError ? <Bam /> : children}
       <button
         data-testid="errorBtn"
@@ -34,6 +44,20 @@ function Bam(): JSX.Element {
   throw new Error('boom');
 }
 
+describe('withErrorBoundary', () => {
+  it('sets displayName properly', () => {
+    const TestComponent = () => <h1>Hello World</h1>;
+
+    const Component = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    expect(Component.displayName).toBe('errorBoundary(TestComponent)');
+  });
+
+  it('defaults to an unknown displayName', () => {
+    const Component = withErrorBoundary(() => <h1>Hello World</h1>, { fallback: <h1>fallback</h1> });
+    expect(Component.displayName).toBe(`errorBoundary(${UNKNOWN_COMPONENT})`);
+  });
+});
+
 describe('ErrorBoundary', () => {
   jest.spyOn(console, 'error').mockImplementation();
 
@@ -44,7 +68,6 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop', () => {
     const { container } = render(
-      // @ts-ignore
       <ErrorBoundary fallback={new Error('true')}>
         <Bam />
       </ErrorBoundary>,
@@ -55,7 +78,6 @@ describe('ErrorBoundary', () => {
 
   it('renders a fallback on error', () => {
     const { container } = render(
-      // @ts-ignore
       <ErrorBoundary fallback={<h1>Error Component</h1>}>
         <Bam />
       </ErrorBoundary>,
@@ -186,12 +208,30 @@ describe('ErrorBoundary', () => {
       fireEvent.click(btn);
 
       expect(mockShowReportDialog).toHaveBeenCalledTimes(1);
-      expect(mockShowReportDialog).toHaveBeenCalledWith(options);
+      expect(mockShowReportDialog).toHaveBeenCalledWith({ ...options, eventId: EVENT_ID });
     });
 
-    it('resets to initial state when reset', () => {
-      const mockOnReset = jest.fn();
+    it('resets to initial state when reset', async () => {
       const { container } = render(
+        <TestApp fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(container.innerHTML).toContain('<h1>children</h1>');
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+      expect(container.innerHTML).toContain('<button data-testid="reset">');
+
+      const reset = screen.getByTestId('reset');
+      fireEvent.click(reset);
+
+      expect(container.innerHTML).toContain('<h1>children</h1>');
+    });
+
+    it('calls `onReset()` when reset', () => {
+      const mockOnReset = jest.fn();
+      render(
         <TestApp
           onReset={mockOnReset}
           fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}
@@ -200,17 +240,14 @@ describe('ErrorBoundary', () => {
         </TestApp>,
       );
 
-      expect(container.innerHTML).toContain('<h1>children</h1>');
       expect(mockOnReset).toHaveBeenCalledTimes(0);
-
       const btn = screen.getByTestId('errorBtn');
       fireEvent.click(btn);
-
-      expect(container.innerHTML).toContain('<button data-testid="reset">');
       expect(mockOnReset).toHaveBeenCalledTimes(0);
 
       const reset = screen.getByTestId('reset');
       fireEvent.click(reset);
+
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String));
     });

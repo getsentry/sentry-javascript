@@ -11,13 +11,31 @@ export type FallbackRender = (fallback: {
 }) => React.ReactNode;
 
 export type ErrorBoundaryProps = {
+  /** If a Sentry report dialog should be rendered on error */
   showDialog?: boolean;
+  /**
+   * Options to be passed into the Sentry report dialog.
+   * No-op if {@link showDialog} is false.
+   */
   dialogOptions?: Sentry.ReportDialogOptions;
-  // tslint:disable-next-line: no-null-undefined-union
+  // tslint:disable no-null-undefined-union
+  /**
+   * A fallback component that gets rendered when the error boundary encounters an error.
+   *
+   * Can either provide a React Component, or a function that returns React Component as
+   * a valid fallback prop. If a function is provided, the function will be called with
+   * the error, the component stack, and an function that resets the error boundary on error.
+   *
+   */
   fallback?: React.ReactNode | FallbackRender;
+  // tslint:enable no-null-undefined-union
+  /** Called with the error boundary encounters an error */
   onError?(error: Error, componentStack: string): void;
+  /** Called on componentDidMount() */
   onMount?(): void;
+  /** Called if resetError() is called from the fallback render props function  */
   onReset?(error: Error | null, componentStack: string | null): void;
+  /** Called on componentWillUnmount() */
   onUnmount?(error: Error | null, componentStack: string | null): void;
 };
 
@@ -31,17 +49,21 @@ const INITIAL_STATE = {
   error: null,
 };
 
+/**
+ * A ErrorBoundary component that logs errors to Sentry.
+ * Requires React >= 16
+ */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
 
   public componentDidCatch(error: Error, { componentStack }: React.ErrorInfo): void {
-    Sentry.captureException(error, { contexts: { react: { componentStack } } });
+    const eventId = Sentry.captureException(error, { contexts: { react: { componentStack } } });
     const { onError, showDialog, dialogOptions } = this.props;
     if (onError) {
       onError(error, componentStack);
     }
     if (showDialog) {
-      Sentry.showReportDialog(dialogOptions);
+      Sentry.showReportDialog({ ...dialogOptions, eventId });
     }
 
     // componentDidCatch is used over getDerivedStateFromError
