@@ -10,6 +10,11 @@ const TRACING_GETTER = ({
   id: 'Tracing',
 } as any) as IntegrationClass<Integration>;
 
+// https://stackoverflow.com/questions/52702466/detect-react-reactdom-development-production-build
+function isReactInDevMode(): boolean {
+  return '_self' in React.createElement('div');
+}
+
 /**
  *
  * Based on implementation from Preact:
@@ -39,6 +44,12 @@ function afterNextFrame(callback: Function): void {
   timeout = window.setTimeout(done, 100);
 }
 
+let profilerCount = 0;
+
+const profiledComponents: {
+  [key: string]: number;
+} = {};
+
 /**
  * getInitActivity pushes activity based on React component mount
  * @param name displayName of component that started activity
@@ -46,18 +57,52 @@ function afterNextFrame(callback: Function): void {
 const getInitActivity = (name: string): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
-  if (tracingIntegration !== null) {
-    // tslint:disable-next-line:no-unsafe-any
-    return (tracingIntegration as any).constructor.pushActivity(name, {
-      description: `<${name}>`,
-      op: 'react',
-    });
+  if (tracingIntegration === null) {
+    logger.warn(
+      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
+    );
+
+    return null;
   }
 
-  logger.warn(
-    `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
-  );
-  return null;
+  // tslint:disable-next-line:no-unsafe-any
+  const activity = (tracingIntegration as any).constructor.pushActivity(name, {
+    description: `<${name}>`,
+    op: 'react',
+  }) as number;
+
+  /**
+   * If an activity was already generated, this the component is in React.StrictMode.
+   * React.StrictMode will call constructors and setState hooks twice, effectively
+   * creating redundant spans for every render (ex. two <App /> spans, two <Link /> spans)
+   *
+   * React.StrictMode only has this behaviour in Development Mode
+   * See: https://reactjs.org/docs/strict-mode.html
+   *
+   * To account for this, we track all profiled components, and cancel activities that
+   * we recognize to be coming from redundant push activity calls. It is important to note
+   * that it is the first call to push activity that is invalid, as that is the one caused
+   * by React.StrictMode.
+   *
+   */
+  if (isReactInDevMode()) {
+    // We can make the guarantee here that if a redundant activity exists, it comes right
+    // before the current activity, hence having a profilerCount one less than the existing count.
+    const redundantActivity = profiledComponents[String(`${name}${profilerCount - 1}`)];
+
+    if (redundantActivity) {
+      // tslint:disable-next-line:no-unsafe-any
+      (tracingIntegration as any).constructor.cancelActivity(redundantActivity);
+    } else {
+      // If an redundant activity didn't exist, we can store the current activity to
+      // check later. We have to do this inside an else block because of the case of
+      // the edge case where two components may share a single components name.
+      profiledComponents[String(`${name}${profilerCount}`)] = activity;
+    }
+  }
+
+  profilerCount += 1;
+  return activity;
 };
 
 export type ProfilerProps = {
