@@ -13,6 +13,7 @@ describe('Hub', () => {
   test('call bindClient with provided client when constructing new instance', () => {
     const testClient: any = { setupIntegrations: jest.fn() };
     const spy = jest.spyOn(Hub.prototype, 'bindClient');
+    // tslint:disable-next-line:no-unused-expression
     new Hub(testClient);
     expect(spy).toHaveBeenCalledWith(testClient);
   });
