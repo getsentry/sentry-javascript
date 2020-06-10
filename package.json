@@ -22,6 +22,7 @@
     "packages/apm",
     "packages/browser",
     "packages/core",
+    "packages/gatsby",
     "packages/hub",
     "packages/integrations",
     "packages/minimal",
