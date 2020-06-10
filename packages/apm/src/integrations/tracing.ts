@@ -1,3 +1,4 @@
+// tslint:disable: max-file-line-count
 import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
@@ -116,6 +117,7 @@ interface Activity {
 
 const global = getGlobalObject<Window>();
 const defaultTracingOrigins = ['localhost', /^\//];
+const SPAN_IGNORE_KEY = '__sentry_delete_span';
 
 /**
  * Tracing Integration
@@ -474,6 +476,11 @@ export class Tracing implements Integration {
             return span;
           }
 
+          // if a span is supposed to be ignored, don't add it to the transaction
+          if (span.data[SPAN_IGNORE_KEY]) {
+            return false;
+          }
+
           // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
           if (!span.endTimestamp) {
             span.endTimestamp = endTimestamp;
@@ -764,7 +771,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Starts tracking for a specifc activity
+   * Starts tracking for a specific activity
    *
    * @param name Name of the activity, can be any string (Only used internally to identify the activity)
    * @param spanContext If provided a Span with the SpanContext will be created.
@@ -864,6 +871,31 @@ export class Tracing implements Integration {
       setTimeout(() => {
         Tracing.finishIdleTransaction(end);
       }, timeout);
+    }
+  }
+
+  /**
+   * Cancels an activity if it exists
+   */
+  public static cancelActivity(id: number): void {
+    if (!id) {
+      return;
+    }
+
+    const activity = Tracing._activities[id];
+
+    if (activity) {
+      Tracing._log(`[Tracing] cancelActivity ${activity.name}#${id}`);
+      if (activity.span) {
+        // Ignore the span in the transaction
+        activity.span.setData(SPAN_IGNORE_KEY, true);
+      }
+
+      // tslint:disable-next-line: no-dynamic-delete
+      delete Tracing._activities[id];
+
+      const count = Object.keys(Tracing._activities).length;
+      Tracing._log('[Tracing] activies count', count);
     }
   }
 }
