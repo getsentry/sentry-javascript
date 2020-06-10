@@ -6,6 +6,7 @@
 - [react] feat: Add @sentry/react package (#2631)
 - [react] feat: Add Error Boundary component (#2647)
 - [react] feat: Add useProfiler hook (#2659)
+- [core] feat: Export `makeMain` (#2665)
 
 ## 5.17.0
 
