@@ -51,15 +51,32 @@ describe('Hub', () => {
       expect(hub.getStack()[1].client).toBe(testClient);
     });
 
-    test('bindClient', () => {
-      const testClient: any = { bla: 'a' };
-      const hub = new Hub(testClient);
-      const ndClient: any = { foo: 'bar' };
-      hub.pushScope();
-      hub.bindClient(ndClient);
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[0].client).toBe(testClient);
-      expect(hub.getStack()[1].client).toBe(ndClient);
+    describe('bindClient', () => {
+      test('simple', () => {
+        const testClient: any = { bla: 'a' };
+        const hub = new Hub(testClient);
+        const ndClient: any = { foo: 'bar' };
+        hub.pushScope();
+        hub.bindClient(ndClient);
+        expect(hub.getStack()).toHaveLength(2);
+        expect(hub.getStack()[0].client).toBe(testClient);
+        expect(hub.getStack()[1].client).toBe(ndClient);
+      });
+      test('call setupIntegrations', () => {
+        const setupIntegrations = jest.fn();
+        const testClient: any = { setupIntegrations };
+        const hub = new Hub(testClient);
+        hub.bindClient(testClient);
+        expect(setupIntegrations).toHaveBeenCalled();
+      });
+
+      test('call setupIntegrations from constructor', () => {
+        const setupIntegrations = jest.fn();
+        const testClient: any = { setupIntegrations };
+        const hub = new Hub(testClient);
+        expect(setupIntegrations).toHaveBeenCalled();
+        expect(hub).toBeTruthy();
+      });
     });
 
     test('inherit processors', () => {
