@@ -6,8 +6,16 @@ const clientFn: any = jest.fn();
 
 describe('Hub', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
     jest.useRealTimers();
+  });
+
+  test('call bindClient with provided client when constructing new instance', () => {
+    const testClient: any = { setupIntegrations: jest.fn() };
+    const spy = jest.spyOn(Hub.prototype, 'bindClient');
+    // tslint:disable-next-line:no-unused-expression
+    new Hub(testClient);
+    expect(spy).toHaveBeenCalledWith(testClient);
   });
 
   test('push process into stack', () => {
@@ -51,15 +59,35 @@ describe('Hub', () => {
       expect(hub.getStack()[1].client).toBe(testClient);
     });
 
-    test('bindClient', () => {
-      const testClient: any = { bla: 'a' };
-      const hub = new Hub(testClient);
-      const ndClient: any = { foo: 'bar' };
-      hub.pushScope();
-      hub.bindClient(ndClient);
-      expect(hub.getStack()).toHaveLength(2);
-      expect(hub.getStack()[0].client).toBe(testClient);
-      expect(hub.getStack()[1].client).toBe(ndClient);
+    describe('bindClient', () => {
+      test('should override curent client', () => {
+        const testClient: any = { setupIntegrations: jest.fn() };
+        const nextClient: any = { setupIntegrations: jest.fn() };
+        const hub = new Hub(testClient);
+        hub.bindClient(nextClient);
+        expect(hub.getStack()).toHaveLength(1);
+        expect(hub.getStack()[0].client).toBe(nextClient);
+      });
+
+      test('should bind client to the top-most layer', () => {
+        const testClient: any = { bla: 'a' };
+        const nextClient: any = { foo: 'bar' };
+        const hub = new Hub(testClient);
+        hub.pushScope();
+        hub.bindClient(nextClient);
+        expect(hub.getStack()).toHaveLength(2);
+        expect(hub.getStack()[0].client).toBe(testClient);
+        expect(hub.getStack()[1].client).toBe(nextClient);
+      });
+
+      test('should call setupIntegration method of passed client', () => {
+        const testClient: any = { setupIntegrations: jest.fn() };
+        const nextClient: any = { setupIntegrations: jest.fn() };
+        const hub = new Hub(testClient);
+        hub.bindClient(nextClient);
+        expect(testClient.setupIntegrations).toHaveBeenCalled();
+        expect(nextClient.setupIntegrations).toHaveBeenCalled();
+      });
     });
 
     test('inherit processors', () => {

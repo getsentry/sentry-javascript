@@ -64,17 +64,72 @@ describe("wrapped built-ins", function() {
     });
   });
 
-  it("should capture exceptions inside requestAnimationFrame", function() {
-    // needs to be visible or requestAnimationFrame won't ever fire
-    sandbox.style.display = "block";
+  describe("requestAnimationFrame", function() {
+    it("should capture exceptions inside callback", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
 
-    return runInSandbox(sandbox, { manual: true }, function() {
-      requestAnimationFrame(function() {
-        window.finalizeManualTest();
-        foo();
+      return runInSandbox(sandbox, { manual: true }, function() {
+        requestAnimationFrame(function() {
+          window.finalizeManualTest();
+          foo();
+        });
+      }).then(function(summary) {
+        assert.match(summary.events[0].exception.values[0].value, /baz/);
       });
-    }).then(function(summary) {
-      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
+
+    it("wrapped callback should preserve correct context - window (not-bound)", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        requestAnimationFrame(function() {
+          window.capturedCtx = this;
+          window.finalizeManualTest();
+        });
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx, summary.window);
+        delete summary.window.capturedCtx;
+      });
+    });
+
+    it("wrapped callback should preserve correct context - class bound method", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        // TypeScript-transpiled class syntax
+        var Foo = (function() {
+          function Foo() {
+            var _this = this;
+            this.magicNumber = 42;
+            this.getThis = function() {
+              window.capturedCtx = _this;
+              window.finalizeManualTest();
+            };
+          }
+          return Foo;
+        })();
+        var foo = new Foo();
+        requestAnimationFrame(foo.getThis);
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
+        delete summary.window.capturedCtx;
+      });
+    });
+
+    it("wrapped callback should preserve correct context - `bind` bound method", function() {
+      // needs to be visible or requestAnimationFrame won't ever fire
+      sandbox.style.display = "block";
+      return runInSandbox(sandbox, { manual: true }, function() {
+        function foo() {
+          window.capturedCtx = this;
+          window.finalizeManualTest();
+        }
+        requestAnimationFrame(foo.bind({ magicNumber: 42 }));
+      }).then(function(summary) {
+        assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
+        delete summary.window.capturedCtx;
+      });
     });
   });
 

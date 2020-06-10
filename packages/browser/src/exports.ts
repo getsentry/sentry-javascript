@@ -25,6 +25,7 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   Hub,
+  makeMain,
   Scope,
   startTransaction,
   setContext,
