@@ -13,7 +13,7 @@ export {
   setUser,
   withScope,
 } from '@sentry/minimal';
-export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, Scope } from '@sentry/hub';
+export { addGlobalEventProcessor, getCurrentHub, getHubFromCarrier, Hub, makeMain, Scope } from '@sentry/hub';
 export { API } from './api';
 export { BaseClient } from './baseclient';
 export { BackendClass, BaseBackend } from './basebackend';
