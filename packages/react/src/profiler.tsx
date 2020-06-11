@@ -88,7 +88,7 @@ const getInitActivity = (name: string, shouldCancel = false): number | null => {
   if (isReactInDevMode()) {
     // We can make the guarantee here that if a redundant activity exists, it comes right
     // before the current activity, hence having a profilerCount one less than the existing count.
-    const redundantActivity = profiledComponents[String(`${name}${profilerCount - 1}`)];
+    const redundantActivity = profiledComponents[`${name}${profilerCount - 1}`];
 
     if (redundantActivity) {
       // tslint:disable: no-unsafe-any
@@ -102,7 +102,7 @@ const getInitActivity = (name: string, shouldCancel = false): number | null => {
       // If an redundant activity didn't exist, we can store the current activity to
       // check later. We have to do this inside an else block because of the case of
       // the edge case where two components may share a single components name.
-      profiledComponents[String(`${name}${profilerCount}`)] = activity;
+      profiledComponents[`${name}${profilerCount}`] = activity;
     }
   }
 
