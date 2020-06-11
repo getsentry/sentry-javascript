@@ -6,6 +6,9 @@
 - [react] feat: Add @sentry/react package (#2631)
 - [react] feat: Add Error Boundary component (#2647)
 - [react] feat: Add useProfiler hook (#2659)
+- [core] feat: Export `makeMain` (#2665)
+- [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
+- [gatsby] feat: Add @sentry/gatsby package (#2652)
 
 ## 5.17.0
 

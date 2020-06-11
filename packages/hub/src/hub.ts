@@ -61,6 +61,7 @@ export class Hub implements HubInterface {
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
     this._stack.push({ client, scope });
+    this.bindClient(client);
   }
 
   /**
