@@ -196,3 +196,11 @@ export function _callOnClient(method: string, ...args: any[]): void {
 export function startTransaction(context: TransactionContext): Transaction {
   return callOnHub('startTransaction', { ...context });
 }
+
+/**
+ * Callback to retrieve an ongoing Transaction in case there is one.
+ * @param callback Will only be invoked in case there is an active transaction
+ */
+export function getTransaction(callback: (transaction: Transaction) => void): void {
+  callOnHub<void>('getTransaction', callback);
+}

@@ -383,6 +383,13 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  public getTransaction(callback: (transaction: Transaction) => void): void {
+    this._callExtensionMethod('getTransaction', callback);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public traceHeaders(): { [key: string]: string } {
     return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
   }

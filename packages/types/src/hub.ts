@@ -199,4 +199,10 @@ export interface Hub {
    * @param context Properties of the new `Transaction`.
    */
   startTransaction(context: TransactionContext): Transaction;
+
+  /**
+   * Callback to retrieve an ongoing Transaction in case there is one.
+   * @param callback Will only be invoked in case there is an active transaction
+   */
+  getTransaction(callback: (transaction: Transaction) => void): void;
 }
