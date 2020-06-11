@@ -54,7 +54,7 @@ const profiledComponents: {
  * getInitActivity pushes activity based on React component mount
  * @param name displayName of component that started activity
  */
-const getInitActivity = (name: string, shouldCancel = false): number | null => {
+const getInitActivity = (name: string): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
   if (tracingIntegration === null) {
@@ -91,13 +91,8 @@ const getInitActivity = (name: string, shouldCancel = false): number | null => {
     const redundantActivity = profiledComponents[`${name}${profilerCount - 1}`];
 
     if (redundantActivity) {
-      // tslint:disable: no-unsafe-any
-      if (shouldCancel) {
-        (tracingIntegration as any).constructor.cancelActivity(redundantActivity);
-      } else {
-        (tracingIntegration as any).constructor._activities[redundantActivity].span.op = 'react.strict';
-      }
-      // tslint:enable: no-unsafe-any
+      // tslint:disable-next-line: no-unsafe-any
+      (tracingIntegration as any).constructor.cancelActivity(redundantActivity);
     } else {
       // If an redundant activity didn't exist, we can store the current activity to
       // check later. We have to do this inside an else block because of the case of
@@ -116,10 +111,11 @@ export type ProfilerProps = {
 
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null;
+
   public constructor(props: ProfilerProps) {
     super(props);
 
-    this.activity = getInitActivity(this.props.name, this.props.shouldCancel);
+    this.activity = getInitActivity(this.props.name);
   }
 
   // If a component mounted, we can finish the mount activity.
