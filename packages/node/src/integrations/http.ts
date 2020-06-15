@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Span, Transaction } from '@sentry/types';
+import { Integration, Span } from '@sentry/types';
 import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
