@@ -20,12 +20,12 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 }
 
 /**
- * {@see Hub.getTransaction}
+ * {@see Hub.getSpan}
  */
-function getTransaction(this: Hub, callback: (transaction: Transaction) => void): void {
+function getSpan(this: Hub, callback: (span: Span) => void): void {
   const scope = this.getScope();
   if (scope) {
-    const span = scope.getSpan() as Transaction;
+    const span = scope.getSpan();
     if (span) {
       callback(span);
     }
@@ -109,8 +109,8 @@ export function addExtensionMethods(): void {
     if (!carrier.__SENTRY__.extensions.startSpan) {
       carrier.__SENTRY__.extensions.startSpan = startSpan;
     }
-    if (!carrier.__SENTRY__.extensions.getTransaction) {
-      carrier.__SENTRY__.extensions.getTransaction = getTransaction;
+    if (!carrier.__SENTRY__.extensions.getSpan) {
+      carrier.__SENTRY__.extensions.getSpan = getSpan;
     }
     if (!carrier.__SENTRY__.extensions.traceHeaders) {
       carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;

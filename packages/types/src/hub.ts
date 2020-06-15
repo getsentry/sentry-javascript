@@ -201,8 +201,8 @@ export interface Hub {
   startTransaction(context: TransactionContext): Transaction;
 
   /**
-   * Callback to retrieve an ongoing Transaction in case there is one.
-   * @param callback Will only be invoked in case there is an active transaction
+   * Callback that receives a Span if there is one on the Scope.
+   * @param callback Will only be invoked in case there is a Span on the Scope
    */
-  getTransaction(callback: (transaction: Transaction) => void): void;
+  getSpan(callback: (span: Span) => void): void;
 }

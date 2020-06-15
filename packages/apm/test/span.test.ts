@@ -366,6 +366,19 @@ describe('Span', () => {
     });
   });
 
+  test('getTransaction on Span from Transaction', () => {
+    const transaction = hub.startTransaction({ name: 'test' });
+    const childSpan = transaction.startChild();
+    childSpan.finish();
+    transaction.finish();
+    expect(childSpan.getTransaction()).toBe(transaction);
+  });
+
+  test('getTransaction on new Span()', () => {
+    const span = new Span({});
+    expect(span.getTransaction()).toBe(span);
+  });
+
   describe('getTraceContext', () => {
     test('should have status attribute undefined if no status tag is available', () => {
       const span = new Span({});

@@ -9,6 +9,7 @@
 - [core] feat: Export `makeMain` (#2665)
 - [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
 - [gatsby] feat: Add @sentry/gatsby package (#2652)
+- [apm] feat: Add `Sentry.getSpan` to return the Span on the Scope (#2668)
 
 ## 5.17.0
 

@@ -1,5 +1,5 @@
-import { Span as SpanInterface, SpanContext } from '@sentry/types';
-import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
+import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
 import { SpanRecorder } from './transaction';
@@ -151,6 +151,19 @@ export class Span implements SpanInterface, SpanContext {
     }
 
     return span;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTransaction(): Transaction {
+    const recorder = this.spanRecorder;
+    if (!recorder) {
+      logger.warn('This Span has no reference to a Transaction. Returning an instance to itself.');
+      logger.warn('It means that the Transaction has been sampled or the Span did not originate from a Transaction.');
+      return (this as unknown) as Transaction;
+    }
+    return recorder.spans[0] as Transaction;
   }
 
   /**

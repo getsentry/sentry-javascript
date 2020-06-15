@@ -1,3 +1,5 @@
+import { Transaction } from './transaction';
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -132,6 +134,11 @@ export interface Span extends SpanContext {
   startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span;
+
+  /**
+   * Retruns the reference to the root Span (Transaction).
+   */
+  getTransaction(): Transaction;
 
   /**
    * Determines whether span was successful (HTTP200)

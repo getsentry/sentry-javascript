@@ -383,8 +383,8 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public getTransaction(callback: (transaction: Transaction) => void): void {
-    this._callExtensionMethod<void>('getTransaction', callback);
+  public getSpan(callback: (span: Span) => void): void {
+    this._callExtensionMethod<void>('getSpan', callback);
   }
 
   /**
