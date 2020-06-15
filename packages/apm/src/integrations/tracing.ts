@@ -852,7 +852,6 @@ export class Tracing implements Integration {
     }
 
     const count = Object.keys(Tracing._activities).length;
-
     Tracing._log('[Tracing] activies count', count);
 
     if (count === 0 && Tracing._activeTransaction) {
@@ -862,7 +861,9 @@ export class Tracing implements Integration {
       // Remeber timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
       setTimeout(() => {
-        Tracing.finishIdleTransaction(end);
+        if (Object.keys(Tracing._activities).length === 0 && Tracing._activeTransaction) {
+          Tracing.finishIdleTransaction(end);
+        }
       }, timeout);
     }
   }
