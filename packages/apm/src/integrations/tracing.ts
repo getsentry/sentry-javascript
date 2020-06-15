@@ -80,7 +80,7 @@ export interface TracingOptions {
   /**
    * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
    * not suited towards doing precise measurements of operations. Background transaction can mess up your
-   * statistics in non deterministic ways that's why we by default recommend leaving this opition enabled.
+   * statistics in non deterministic ways that's why we by default recommend leaving this option enabled.
    *
    * Default: true
    */
@@ -194,7 +194,7 @@ export class Tracing implements Integration {
       traceXHR: true,
       tracingOrigins: defaultTracingOrigins,
     };
-    // NOTE: Logger doesn't work in contructors, as it's initialized after integrations instances
+    // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
     if (!_options || !Array.isArray(_options.tracingOrigins) || _options.tracingOrigins.length === 0) {
       this._emitOptionsWarning = true;
     }
@@ -481,7 +481,7 @@ export class Tracing implements Integration {
             Tracing._log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
           }
 
-          // We remove all spans that happend after the end of the transaction
+          // We remove all spans that occurred after the end of the transaction
           // This is here to prevent super long transactions and timing issues
           const keepSpan = span.startTimestamp < endTimestamp;
           if (!keepSpan) {
@@ -764,7 +764,7 @@ export class Tracing implements Integration {
   }
 
   /**
-   * Starts tracking for a specifc activity
+   * Starts tracking for a specific activity
    *
    * @param name Name of the activity, can be any string (Only used internally to identify the activity)
    * @param spanContext If provided a Span with the SpanContext will be created.
@@ -801,7 +801,7 @@ export class Tracing implements Integration {
     }
 
     Tracing._log(`[Tracing] pushActivity: ${name}#${Tracing._currentIndex}`);
-    Tracing._log('[Tracing] activies count', Object.keys(Tracing._activities).length);
+    Tracing._log('[Tracing] activities count', Object.keys(Tracing._activities).length);
     if (options && typeof options.autoPopAfter === 'number') {
       Tracing._log(`[Tracing] auto pop of: ${name}#${Tracing._currentIndex} in ${options.autoPopAfter}ms`);
       const index = Tracing._currentIndex;
@@ -852,13 +852,13 @@ export class Tracing implements Integration {
     }
 
     const count = Object.keys(Tracing._activities).length;
-    Tracing._log('[Tracing] activies count', count);
+    Tracing._log('[Tracing] activities count', count);
 
     if (count === 0 && Tracing._activeTransaction) {
       const timeout = Tracing.options && Tracing.options.idleTimeout;
       Tracing._log(`[Tracing] Flushing Transaction in ${timeout}ms`);
       // We need to add the timeout here to have the real endtimestamp of the transaction
-      // Remeber timestampWithMs is in seconds, timeout is in ms
+      // Remember timestampWithMs is in seconds, timeout is in ms
       const end = timestampWithMs() + timeout / 1000;
       setTimeout(() => {
         if (Object.keys(Tracing._activities).length === 0 && Tracing._activeTransaction) {
