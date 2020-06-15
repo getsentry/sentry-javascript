@@ -136,9 +136,10 @@ export interface Span extends SpanContext {
   ): Span;
 
   /**
-   * Retruns the reference to the root Span (Transaction).
+   * Callback to retrieve the root Span (Transaction) in case there is one.
+   * @param callback Will only be invoked in case there is an active transaction
    */
-  getTransaction(): Transaction;
+  getTransaction(callback: (transaction: Transaction) => void): void;
 
   /**
    * Determines whether span was successful (HTTP200)

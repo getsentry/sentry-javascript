@@ -199,10 +199,4 @@ export interface Hub {
    * @param context Properties of the new `Transaction`.
    */
   startTransaction(context: TransactionContext): Transaction;
-
-  /**
-   * Callback that receives a Span if there is one on the Scope.
-   * @param callback Will only be invoked in case there is a Span on the Scope
-   */
-  getSpan(callback: (span: Span) => void): void;
 }

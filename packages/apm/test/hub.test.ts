@@ -18,16 +18,20 @@ describe('Hub', () => {
       hub.configureScope(scope => {
         scope.setSpan(transaction);
       });
-      hub.getSpan(t => {
-        expect(t).toBe(transaction);
+      hub.configureScope(s => {
+        s.getTransaction(t => {
+          expect(t).toBe(transaction);
+        });
       });
     });
 
     test('not invoke', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'foo' });
-      hub.getSpan(_ => {
-        expect(true).toBe(false);
+      hub.configureScope(s => {
+        s.getTransaction(_ => {
+          expect(true).toBe(false);
+        });
       });
       transaction.finish();
     });

@@ -2,6 +2,7 @@ import { Breadcrumb } from './breadcrumb';
 import { EventProcessor } from './eventprocessor';
 import { Severity } from './severity';
 import { Span } from './span';
+import { Transaction } from './transaction';
 import { User } from './user';
 
 /** JSDocs */
@@ -88,6 +89,17 @@ export interface Scope {
    * @param span Span
    */
   setSpan(span?: Span): this;
+
+  /**
+   * Returns the current set span if there is one
+   */
+  getSpan(): Span | undefined;
+
+  /**
+   * Callback to retrieve an ongoing Transaction in case there is one.
+   * @param callback Will only be invoked in case there is an active transaction
+   */
+  getTransaction(callback: (transaction: Transaction) => void): void;
 
   /**
    * Updates the scope with provided data. Can work in three variations:

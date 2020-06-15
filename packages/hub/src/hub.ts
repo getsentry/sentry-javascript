@@ -383,13 +383,6 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public getSpan(callback: (span: Span) => void): void {
-    this._callExtensionMethod<void>('getSpan', callback);
-  }
-
-  /**
-   * @inheritDoc
-   */
   public traceHeaders(): { [key: string]: string } {
     return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
   }

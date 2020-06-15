@@ -1,14 +1,5 @@
 import { getCurrentHub, Hub, Scope } from '@sentry/hub';
-import {
-  Breadcrumb,
-  CaptureContext,
-  Event,
-  Severity,
-  Span,
-  Transaction,
-  TransactionContext,
-  User,
-} from '@sentry/types';
+import { Breadcrumb, CaptureContext, Event, Severity, Transaction, TransactionContext, User } from '@sentry/types';
 
 /**
  * This calls a function on the current hub.
@@ -204,12 +195,4 @@ export function _callOnClient(method: string, ...args: any[]): void {
  */
 export function startTransaction(context: TransactionContext): Transaction {
   return callOnHub('startTransaction', { ...context });
-}
-
-/**
- * Callback that receives a Span if there is one on the Scope.
- * @param callback Will only be invoked in case there is a Span on the Scope
- */
-export function getSpan(callback: (span: Span) => void): void {
-  callOnHub<void>('getSpan', callback);
 }

@@ -8,6 +8,7 @@ import {
   ScopeContext,
   Severity,
   Span,
+  Transaction,
   User,
 } from '@sentry/types';
 import { getGlobalObject, isPlainObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
@@ -215,6 +216,18 @@ export class Scope implements ScopeInterface {
    */
   public getSpan(): Span | undefined {
     return this._span;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTransaction(callback: (transaction: Transaction) => void): void {
+    const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
+    if (span) {
+      if (span.spanRecorder && span.spanRecorder.spans[0]) {
+        callback(span.spanRecorder.spans[0] as Transaction);
+      }
+    }
   }
 
   /**

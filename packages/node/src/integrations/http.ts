@@ -79,17 +79,14 @@ function createHandlerWrapper(
       }
 
       let span: Span | undefined;
-      let transaction: Transaction | undefined;
 
       const scope = getCurrentHub().getScope();
-      if (scope) {
-        transaction = scope.getSpan() as Transaction;
-      }
-
-      if (tracingEnabled && transaction) {
-        span = transaction.startChild({
-          description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
-          op: 'request',
+      if (scope && tracingEnabled) {
+        scope.getTransaction(transaction => {
+          span = transaction.startChild({
+            description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
+            op: 'request',
+          });
         });
       }
 

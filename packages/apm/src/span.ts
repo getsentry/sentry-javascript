@@ -156,14 +156,14 @@ export class Span implements SpanInterface, SpanContext {
   /**
    * @inheritDoc
    */
-  public getTransaction(): Transaction {
+  public getTransaction(callback: (transaction: Transaction) => void): void {
     const recorder = this.spanRecorder;
-    if (!recorder) {
+    if (!recorder || !recorder.spans[0]) {
       logger.warn('This Span has no reference to a Transaction. Returning an instance to itself.');
       logger.warn('It means that the Transaction has been sampled or the Span did not originate from a Transaction.');
-      return (this as unknown) as Transaction;
+      return;
     }
-    return recorder.spans[0] as Transaction;
+    callback(recorder.spans[0] as Transaction);
   }
 
   /**
