@@ -6,6 +6,17 @@ import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
 const mockPushActivity = jest.fn().mockReturnValue(1);
 const mockPopActivity = jest.fn();
+const mockLoggerWarn = jest.fn();
+
+let integrationIsNull = false;
+
+jest.mock('@sentry/utils', () => ({
+  logger: {
+    warn: (message: string) => {
+      mockLoggerWarn(message);
+    },
+  },
+}));
 
 jest.mock('@sentry/browser', () => ({
   getCurrentHub: () => ({
@@ -20,7 +31,11 @@ jest.mock('@sentry/browser', () => ({
         public static popActivity: () => void = mockPopActivity;
       }
 
-      return new MockIntegration('test');
+      if (!integrationIsNull) {
+        return new MockIntegration('test');
+      }
+
+      return null;
     },
   }),
 }));
@@ -30,6 +45,8 @@ describe('withProfiler', () => {
     jest.useFakeTimers();
     mockPushActivity.mockClear();
     mockPopActivity.mockClear();
+    mockLoggerWarn.mockClear();
+    integrationIsNull = false;
   });
 
   it('sets displayName properly', () => {
@@ -37,6 +54,18 @@ describe('withProfiler', () => {
 
     const ProfiledComponent = withProfiler(TestComponent);
     expect(ProfiledComponent.displayName).toBe('profiler(TestComponent)');
+  });
+
+  it('sets a custom displayName', () => {
+    const TestComponent = () => <h1>Hello World</h1>;
+
+    const ProfiledComponent = withProfiler(TestComponent, 'BestComponent');
+    expect(ProfiledComponent.displayName).toBe('profiler(BestComponent)');
+  });
+
+  it('defaults to an unknown displayName', () => {
+    const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
+    expect(ProfiledComponent.displayName).toBe(`profiler(${UNKNOWN_COMPONENT})`);
   });
 
   it('popActivity() is called when unmounted', () => {
@@ -63,6 +92,23 @@ describe('withProfiler', () => {
       op: 'react',
     });
   });
+
+  it('does not start an activity when integration is disabled', () => {
+    integrationIsNull = true;
+    const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
+
+    expect(mockPushActivity).toHaveBeenCalledTimes(0);
+    expect(mockLoggerWarn).toHaveBeenCalledTimes(0);
+
+    const profiler = render(<ProfiledComponent />);
+    expect(mockPopActivity).toHaveBeenCalledTimes(0);
+    expect(mockPushActivity).toHaveBeenCalledTimes(0);
+
+    expect(mockLoggerWarn).toHaveBeenCalledTimes(1);
+
+    profiler.unmount();
+    expect(mockPopActivity).toHaveBeenCalledTimes(0);
+  });
 });
 
 describe('useProfiler()', () => {
@@ -70,6 +116,8 @@ describe('useProfiler()', () => {
     jest.useFakeTimers();
     mockPushActivity.mockClear();
     mockPopActivity.mockClear();
+    mockLoggerWarn.mockClear();
+    integrationIsNull = false;
   });
 
   it('popActivity() is called when unmounted', () => {
@@ -94,5 +142,21 @@ describe('useProfiler()', () => {
       description: `<Example>`,
       op: 'react',
     });
+  });
+
+  it('does not start an activity when integration is disabled', () => {
+    integrationIsNull = true;
+    expect(mockPushActivity).toHaveBeenCalledTimes(0);
+    expect(mockLoggerWarn).toHaveBeenCalledTimes(0);
+
+    // tslint:disable-next-line: no-void-expression
+    const profiler = renderHook(() => useProfiler('Example'));
+    expect(mockPopActivity).toHaveBeenCalledTimes(0);
+    expect(mockPushActivity).toHaveBeenCalledTimes(0);
+
+    expect(mockLoggerWarn).toHaveBeenCalledTimes(1);
+
+    profiler.unmount();
+    expect(mockPopActivity).toHaveBeenCalledTimes(0);
   });
 });

@@ -37,9 +37,9 @@ Sentry.init({
   // An array of strings or regexps that'll be used to ignore specific errors based on their type/message
   ignoreErrors: [/PickleRick_\d\d/, 'RangeError'],
   // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
-  blacklistUrls: ['external-lib.js'],
+  denyUrls: ['external-lib.js'],
   // An array of strings or regexps that'll be used to allow specific errors based on their origin url
-  whitelistUrls: ['http://localhost:5000', 'https://browser.sentry-cdn'],
+  allowUrls: ['http://localhost:5000', 'https://browser.sentry-cdn'],
   // Debug mode with valuable initialization/lifecycle informations.
   debug: true,
   // Whether SDK should be enabled or not.
@@ -93,7 +93,7 @@ Sentry.init({
 // Testing code, irrelevant vvvvv
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelector('#blacklist-url').addEventListener('click', () => {
+  document.querySelector('#deny-url').addEventListener('click', () => {
     const script = document.createElement('script');
     script.crossOrigin = 'anonymous';
     script.src =
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(script);
   });
 
-  document.querySelector('#whitelist-url').addEventListener('click', () => {
+  document.querySelector('#allow-url').addEventListener('click', () => {
     const script = document.createElement('script');
     script.crossOrigin = 'anonymous';
     script.src =

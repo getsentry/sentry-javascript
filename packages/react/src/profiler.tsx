@@ -39,6 +39,10 @@ function afterNextFrame(callback: Function): void {
   timeout = window.setTimeout(done, 100);
 }
 
+/**
+ * getInitActivity pushes activity based on React component mount
+ * @param name displayName of component that started activity
+ */
 const getInitActivity = (name: string): number | null => {
   const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
 
@@ -68,10 +72,13 @@ class Profiler extends React.Component<ProfilerProps> {
     this.activity = getInitActivity(this.props.name);
   }
 
+  // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
     afterNextFrame(this.finishProfile);
   }
 
+  // Sometimes a component will unmount first, so we make
+  // sure to also finish the mount activity here.
   public componentWillUnmount(): void {
     afterNextFrame(this.finishProfile);
   }
@@ -94,8 +101,15 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 }
 
-function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>): React.FC<P> {
-  const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+/**
+ * withProfiler is a higher order component that wraps a
+ * component in a {@link Profiler} component.
+ *
+ * @param WrappedComponent component that is wrapped by Profiler
+ * @param name displayName of component being profiled
+ */
+function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>, name?: string): React.FC<P> {
+  const componentDisplayName = name || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
     <Profiler name={componentDisplayName}>
@@ -119,7 +133,7 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
  * @param name displayName of component being profiled
  */
 function useProfiler(name: string): void {
-  const activity = getInitActivity(name);
+  const [activity] = React.useState(() => getInitActivity(name));
 
   React.useEffect(() => {
     afterNextFrame(() => {

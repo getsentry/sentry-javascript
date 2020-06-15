@@ -132,6 +132,15 @@ export interface Options {
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
 
+  /**
+   * Controls how many milliseconds to wait before shutting down. The default is
+   * SDK-specific but typically around 2 seconds. Setting this too low can cause
+   * problems for sending events from command line applications. Setting it too
+   * high can cause the application to block for users with network connectivity
+   * problems.
+   */
+  shutdownTimeout?: number;
+
   _experiments?: {
     [key: string]: any;
   };
