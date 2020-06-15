@@ -131,7 +131,7 @@ export interface Options {
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Breadcrumb | null;
-  
+
   /**
    * Controls how many milliseconds to wait before shutting down. The default is
    * SDK-specific but typically around 2 seconds. Setting this too low can cause
@@ -139,7 +139,7 @@ export interface Options {
    * high can cause the application to block for users with network connectivity
    * problems.
    */
-  shutdownTimeout?: number; 
+  shutdownTimeout?: number;
 
   _experiments?: {
     [key: string]: any;

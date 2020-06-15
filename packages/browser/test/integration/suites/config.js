@@ -21,10 +21,10 @@ describe("config", function() {
        * > bar.js file called a function in baz.js
        * > baz.js threw an error
        *
-       * foo.js is blacklisted in the `init` call (init.js), thus we filter it
+       * foo.js is denied in the `init` call (init.js), thus we filter it
        * */
-      var urlWithBlacklistedUrl = new Error("filter");
-      urlWithBlacklistedUrl.stack =
+      var urlWithDeniedUrl = new Error("filter");
+      urlWithDeniedUrl.stack =
         "Error: bar\n" +
         " at http://localhost:5000/foo.js:7:19\n" +
         " at bar(http://localhost:5000/bar.js:2:3)\n" +
@@ -35,17 +35,17 @@ describe("config", function() {
        * > bar-pass.js file called a function in baz-pass.js
        * > baz-pass.js threw an error
        *
-       * foo-pass.js is *not* blacklisted in the `init` call (init.js), thus we don't filter it
+       * foo-pass.js is *not* denied in the `init` call (init.js), thus we don't filter it
        * */
-      var urlWithoutBlacklistedUrl = new Error("pass");
-      urlWithoutBlacklistedUrl.stack =
+      var urlWithoutDeniedUrl = new Error("pass");
+      urlWithoutDeniedUrl.stack =
         "Error: bar\n" +
         " at http://localhost:5000/foo-pass.js:7:19\n" +
         " at bar(http://localhost:5000/bar-pass.js:2:3)\n" +
         " at baz(http://localhost:5000/baz-pass.js:2:9)\n";
 
-      Sentry.captureException(urlWithBlacklistedUrl);
-      Sentry.captureException(urlWithoutBlacklistedUrl);
+      Sentry.captureException(urlWithDeniedUrl);
+      Sentry.captureException(urlWithoutDeniedUrl);
     }).then(function(summary) {
       assert.lengthOf(summary.events, 1);
       assert.equal(summary.events[0].exception.values[0].type, "Error");

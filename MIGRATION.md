@@ -253,7 +253,7 @@ Sentry.addBreadcrumb({
 
 ### Ignoring Urls
 
-> 'ignoreUrls' was renamed to 'blacklistUrls'. 'ignoreErrors', which has a similar name was not renamed. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#blacklist-urls) and [Decluttering Sentry](https://docs.sentry.io/platforms/javascript/#decluttering-sentry)
+> 'ignoreUrls' was renamed to 'denyUrls'. 'ignoreErrors', which has a similar name was not renamed. [Docs](https://docs.sentry.io/error-reporting/configuration/?platform=browser#deny-urls) and [Decluttering Sentry](https://docs.sentry.io/platforms/javascript/#decluttering-sentry)
 
 _Old_:
 
@@ -270,7 +270,7 @@ _New_:
 
 ```js
 Sentry.init({
-  blacklistUrls: [
+  denyUrls: [
     'https://www.baddomain.com',
     /graph\.facebook\.com/i,
   ],

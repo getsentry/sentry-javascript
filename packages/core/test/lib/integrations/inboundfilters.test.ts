@@ -18,38 +18,38 @@ describe('InboundFilters', () => {
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
     });
 
-    it('should drop when url is blacklisted', () => {
-      inboundFilters._isBlacklistedUrl = () => true;
+    it('should drop when url is denied', () => {
+      inboundFilters._isDeniedUrl = () => true;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
     });
 
-    it('should drop when url is not whitelisted', () => {
-      inboundFilters._isWhitelistedUrl = () => false;
+    it('should drop when url is not allowed', () => {
+      inboundFilters._isAllowedUrl = () => false;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
     });
 
-    it('should drop when url is not blacklisted, but also not whitelisted', () => {
-      inboundFilters._isBlacklistedUrl = () => false;
-      inboundFilters._isWhitelistedUrl = () => false;
+    it('should drop when url is not denied, but also not allowed', () => {
+      inboundFilters._isDeniedUrl = () => false;
+      inboundFilters._isAllowedUrl = () => false;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
     });
 
-    it('should drop when url is blacklisted and whitelisted at the same time', () => {
-      inboundFilters._isBlacklistedUrl = () => true;
-      inboundFilters._isWhitelistedUrl = () => true;
+    it('should drop when url is denied and allowed at the same time', () => {
+      inboundFilters._isDeniedUrl = () => true;
+      inboundFilters._isAllowedUrl = () => true;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(true);
     });
 
-    it('should not drop when url is not blacklisted, but whitelisted', () => {
-      inboundFilters._isBlacklistedUrl = () => false;
-      inboundFilters._isWhitelistedUrl = () => true;
+    it('should not drop when url is not denied, but allowed', () => {
+      inboundFilters._isDeniedUrl = () => false;
+      inboundFilters._isAllowedUrl = () => true;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(false);
     });
 
     it('should not drop when any of checks dont match', () => {
       inboundFilters._isIgnoredError = () => false;
-      inboundFilters._isBlacklistedUrl = () => false;
-      inboundFilters._isWhitelistedUrl = () => true;
+      inboundFilters._isDeniedUrl = () => false;
+      inboundFilters._isAllowedUrl = () => true;
       expect(inboundFilters._shouldDropEvent({}, inboundFilters._mergeOptions())).toBe(false);
     });
   });
@@ -251,7 +251,7 @@ describe('InboundFilters', () => {
     });
   });
 
-  describe('blacklistUrls/whitelistUrls', () => {
+  describe('denyUrls/allowUrls', () => {
     const messageEvent = {
       message: 'wat',
       stacktrace: {
@@ -284,20 +284,20 @@ describe('InboundFilters', () => {
 
     it('should filter captured message based on its stack trace using string filter', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           messageEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           messageEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
@@ -305,18 +305,18 @@ describe('InboundFilters', () => {
 
     it('should filter captured message based on its stack trace using regexp filter', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           messageEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: [/awesome-analytics\.io/],
+            denyUrls: [/awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           messageEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: [/awesome-analytics\.io/],
+            denyUrls: [/awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
@@ -324,24 +324,24 @@ describe('InboundFilters', () => {
 
     it('should not filter captured messages with no stacktraces', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           {
             message: 'any',
           },
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(false);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           {
             message: 'any',
           },
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
@@ -349,20 +349,20 @@ describe('InboundFilters', () => {
 
     it('should filter captured exception based on its stack trace using string filter', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
@@ -370,20 +370,20 @@ describe('InboundFilters', () => {
 
     it('should filter captured exceptions based on its stack trace using regexp filter', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: [/awesome-analytics\.io/],
-            whitelistUrls: [/awesome-analytics\.io/],
+            allowUrls: [/awesome-analytics\.io/],
+            denyUrls: [/awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: [/awesome-analytics\.io/],
-            whitelistUrls: [/awesome-analytics\.io/],
+            allowUrls: [/awesome-analytics\.io/],
+            denyUrls: [/awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
@@ -391,20 +391,20 @@ describe('InboundFilters', () => {
 
     it('should not filter events that doesnt pass the test', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['some-other-domain.com'],
-            whitelistUrls: ['some-other-domain.com'],
+            allowUrls: ['some-other-domain.com'],
+            denyUrls: ['some-other-domain.com'],
           }),
         ),
       ).toBe(false);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['some-other-domain.com'],
-            whitelistUrls: ['some-other-domain.com'],
+            allowUrls: ['some-other-domain.com'],
+            denyUrls: ['some-other-domain.com'],
           }),
         ),
       ).toBe(false);
@@ -412,46 +412,46 @@ describe('InboundFilters', () => {
 
     it('should be able to use multiple filters', () => {
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-            whitelistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
+            allowUrls: ['some-other-domain.com', /awesome-analytics\.io/],
+            denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           exceptionEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
-            whitelistUrls: ['some-other-domain.com', /awesome-analytics\.io/],
+            allowUrls: ['some-other-domain.com', /awesome-analytics\.io/],
+            denyUrls: ['some-other-domain.com', /awesome-analytics\.io/],
           }),
         ),
       ).toBe(true);
     });
 
-    it('should not fail with malformed event event and default to false for isBlacklistedUrl and true for isWhitelistedUrl', () => {
+    it('should not fail with malformed event event and default to false for isdeniedUrl and true for isallowedUrl', () => {
       const malformedEvent = {
         stacktrace: {
           frames: undefined,
         },
       };
       expect(
-        inboundFilters._isBlacklistedUrl(
+        inboundFilters._isDeniedUrl(
           malformedEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(false);
       expect(
-        inboundFilters._isWhitelistedUrl(
+        inboundFilters._isAllowedUrl(
           malformedEvent,
           inboundFilters._mergeOptions({
-            blacklistUrls: ['https://awesome-analytics.io'],
-            whitelistUrls: ['https://awesome-analytics.io'],
+            allowUrls: ['https://awesome-analytics.io'],
+            denyUrls: ['https://awesome-analytics.io'],
           }),
         ),
       ).toBe(true);
