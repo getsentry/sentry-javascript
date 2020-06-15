@@ -34,7 +34,7 @@ function initSDK() {
     integrations: [new Sentry.Integrations.Dedupe()],
     attachStacktrace: true,
     ignoreErrors: ["ignoreErrorTest"],
-    blacklistUrls: ["foo.js"],
+    denyUrls: ["foo.js"],
     beforeSend: function(event, eventHint) {
       events.push(event);
       eventHints.push(eventHint);

@@ -335,9 +335,9 @@ function _htmlElementAsString(el: unknown): string {
       out.push(`.${classes[i]}`);
     }
   }
-  const attrWhitelist = ['type', 'name', 'title', 'alt'];
-  for (i = 0; i < attrWhitelist.length; i++) {
-    key = attrWhitelist[i];
+  const allowedAttrs = ['type', 'name', 'title', 'alt'];
+  for (i = 0; i < allowedAttrs.length; i++) {
+    key = allowedAttrs[i];
     attr = elem.getAttribute(key);
     if (attr) {
       out.push(`[${key}="${attr}"]`);
