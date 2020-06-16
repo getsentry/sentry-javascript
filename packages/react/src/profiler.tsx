@@ -74,6 +74,11 @@ function popActivity(activity: number | null): void {
   (globalTracingIntegration as any).constructor.popActivity(activity, undefined);
 }
 
+/**
+ * Obtain a span given an activity id.
+ * Is a no-op if invalid Tracing integration.
+ * @param activity activity id associated with obtained span
+ */
 function getActivitySpan(activity: number | null): Span | undefined {
   if (globalTracingIntegration === null) {
     return undefined;
@@ -86,13 +91,14 @@ function getActivitySpan(activity: number | null): Span | undefined {
 export type ProfilerProps = {
   // The name of the component being profiled.
   name: string;
-  // If the Profiler is disabled. False by default.
+  // If the Profiler is disabled. False by default. This is useful if you want to disable profilers
+  // in certain environments.
   disabled?: boolean;
   // If time component is on page should be displayed as spans. False by default.
   hasRenderSpan?: boolean;
   // If component updates should be displayed as spans. True by default.
   hasUpdateSpan?: boolean;
-  // props from child component
+  // props given to component being profiled.
   updateProps: { [key: string]: any };
 };
 
@@ -147,25 +153,33 @@ class Profiler extends React.Component<ProfilerProps> {
     }
   }
 
-  public componentDidUpdate(prevProps: ProfilerProps): void {
-    const { hasUpdateSpan = true } = prevProps;
-    if (hasUpdateSpan && this.mountSpan && prevProps.updateProps !== this.props.updateProps) {
-      const changedProps = Object.keys(prevProps).filter(k => prevProps.updateProps[k] !== this.props.updateProps[k]);
+  public componentDidUpdate({ updateProps, hasUpdateSpan = true }: ProfilerProps): void {
+    // Only generate an update span if hasUpdateSpan is true, if there is a valid mountSpan,
+    // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
+    // We are just trying to give baseline clues for further investigation.
+    if (hasUpdateSpan && this.mountSpan && updateProps !== this.props.updateProps) {
+      // See what props haved changed between the previous props, and the current props. This is
+      // set as data on the span. We just store the prop keys as the values could be potenially very large.
+      const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
+        // The update span is a point in time span with 0 duration, just signifying that the component
+        // has been updated.
         const now = timestampWithMs();
-        const updateSpan = this.mountSpan.startChild({
-          description: `<${prevProps.name}>`,
+        this.mountSpan.startChild({
+          data: {
+            changedProps,
+          },
+          description: `<${this.props.name}>`,
           endTimestamp: now,
           op: `react.update`,
           startTimestamp: now,
         });
-
-        updateSpan.setData('changedProps', changedProps);
       }
     }
   }
 
-  // If a component doesn't mount, the render activity will be end when the
+  // If a component is unmounted, we can say it is no longer on the screen.
+  // This means we can finish the span representing the component render.
   public componentWillUnmount(): void {
     if (this.renderSpan) {
       this.renderSpan.finish();
@@ -179,13 +193,16 @@ class Profiler extends React.Component<ProfilerProps> {
 
 /**
  * withProfiler is a higher order component that wraps a
- * component in a {@link Profiler} component.
+ * component in a {@link Profiler} component. It is recommended that
+ * the higher order component be used over the regular {@link Profiler} component.
  *
  * @param WrappedComponent component that is wrapped by Profiler
  * @param options the {@link ProfilerProps} you can pass into the Profiler
  */
 function withProfiler<P extends object>(
   WrappedComponent: React.ComponentType<P>,
+  // We do not want to have `updateProps` given in options, it is instead filled through
+  // the HOC.
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
 ): React.FC<P> {
   const componentDisplayName =
