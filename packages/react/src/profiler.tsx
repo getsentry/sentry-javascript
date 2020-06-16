@@ -119,6 +119,8 @@ export type ProfilerProps = {
   disabled?: boolean;
   // If component updates should be displayed as spans. False by default.
   generateUpdateSpans?: boolean;
+  // props from child component
+  updateProps: { [key: string]: any };
 };
 
 /**
@@ -174,13 +176,18 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public componentDidUpdate(prevProps: ProfilerProps): void {
     if (prevProps.generateUpdateSpans && this.span && prevProps !== this.props) {
-      const now = timestampWithMs();
-      this.span.startChild({
-        description: `<${prevProps.name}>`,
-        endTimestamp: now,
-        op: `react.update`,
-        startTimestamp: now,
-      });
+      const changedProps = Object.keys(prevProps).filter(k => prevProps.updateProps[k] !== this.props.updateProps[k]);
+      if (changedProps.length > 0) {
+        const now = timestampWithMs();
+        const updateSpan = this.span.startChild({
+          description: `<${prevProps.name}>`,
+          endTimestamp: now,
+          op: `react.update`,
+          startTimestamp: now,
+        });
+
+        updateSpan.setData('changedProps', changedProps);
+      }
     }
   }
 
@@ -209,13 +216,13 @@ class Profiler extends React.Component<ProfilerProps> {
  */
 function withProfiler<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  options?: Partial<ProfilerProps>,
+  options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
 ): React.FC<P> {
   const componentDisplayName =
     (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
-    <Profiler name={componentDisplayName} disabled={options && options.disabled}>
+    <Profiler name={componentDisplayName} disabled={options && options.disabled} updateProps={props}>
       <WrappedComponent {...props} />
     </Profiler>
   );
