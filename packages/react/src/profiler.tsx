@@ -62,16 +62,20 @@ function warnAboutTracing(name: string): void {
  * pushActivity creates an new react activity
  * @param name displayName of component that started activity
  */
-const pushActivity = (name: string): number | null => {
+const pushActivity = (name: string, op: string, options?: Object): number | null => {
   if (globalTracingIntegration === null) {
     return null;
   }
 
   // tslint:disable-next-line:no-unsafe-any
-  return (globalTracingIntegration as any).constructor.pushActivity(name, {
-    description: `<${name}>`,
-    op: 'react',
-  });
+  return (globalTracingIntegration as any).constructor.pushActivity(
+    name,
+    {
+      description: `<${name}>`,
+      op: `react.${op}`,
+    },
+    options,
+  );
 };
 
 /**
@@ -99,10 +103,10 @@ export type ProfilerProps = {
  * spans based on component lifecycles.
  */
 class Profiler extends React.Component<ProfilerProps> {
-  public activity: number | null = null;
-  // The activity representing when a component was mounted onto a page.
   public mountInfo: {
+    // The activity representing when a component was mounted onto a page.
     activity: number | null;
+    // The span from the mountInfo activity
     span: Span | null;
   } = {
     activity: null,
@@ -120,7 +124,7 @@ class Profiler extends React.Component<ProfilerProps> {
     }
 
     if (getTracingIntegration()) {
-      this.activity = pushActivity(name);
+      this.mountInfo.activity = pushActivity(name, 'mount');
     } else {
       warnAboutTracing(name);
     }
@@ -128,21 +132,23 @@ class Profiler extends React.Component<ProfilerProps> {
 
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
-    afterNextFrame(this.finishProfile);
-  }
-
-  // Sometimes a component will unmount first, so we make
-  // sure to also finish the mount activity here.
-  public componentWillUnmount(): void {
-    afterNextFrame(this.finishProfile);
-  }
-
-  public finishProfile = () => {
     afterNextFrame(() => {
-      popActivity(this.activity);
-      this.activity = null;
+      popActivity(this.mountInfo.activity);
+      this.mountInfo.activity = null;
+
+      this.visibleActivity = pushActivity(this.props.name, 'visible');
     });
-  };
+  }
+
+  // If a component doesn't mount, the visible activity will be end when the
+  public componentWillUnmount(): void {
+    afterNextFrame(() => {
+      popActivity(this.visibleActivity);
+      this.visibleActivity = null;
+    });
+  }
+
+  public finishProfile = () => {};
 
   public render(): React.ReactNode {
     return this.props.children;
