@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/browser';
-import { Integration, IntegrationClass } from '@sentry/types';
+import { Integration, IntegrationClass, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -88,20 +88,41 @@ const popActivity = (activity: number | null): void => {
 };
 
 export type ProfilerProps = {
+  // The name of the component being profiled.
   name: string;
+  // If the Profiler is disabled. False by default.
+  disabled?: boolean;
 };
 
+/**
+ * The Profiler component leverages Sentry's Tracing integration to generate
+ * spans based on component lifecycles.
+ */
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null = null;
+  // The activity representing when a component was mounted onto a page.
+  public mountInfo: {
+    activity: number | null;
+    span: Span | null;
+  } = {
+    activity: null,
+    span: null,
+  };
+  // The activity representing how long a component was on the page.
+  public visibleActivity: number | null = null;
 
   public constructor(props: ProfilerProps) {
     super(props);
+    const { name, disabled = false } = this.props;
 
-    // We should check for tracing integration per Profiler instance
+    if (disabled) {
+      return;
+    }
+
     if (getTracingIntegration()) {
-      this.activity = pushActivity(this.props.name);
+      this.activity = pushActivity(name);
     } else {
-      warnAboutTracing(this.props.name);
+      warnAboutTracing(name);
     }
   }
 
@@ -117,8 +138,10 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 
   public finishProfile = () => {
-    popActivity(this.activity);
-    this.activity = null;
+    afterNextFrame(() => {
+      popActivity(this.activity);
+      this.activity = null;
+    });
   };
 
   public render(): React.ReactNode {
@@ -131,13 +154,17 @@ class Profiler extends React.Component<ProfilerProps> {
  * component in a {@link Profiler} component.
  *
  * @param WrappedComponent component that is wrapped by Profiler
- * @param name displayName of component being profiled
+ * @param options the {@link ProfilerProps} you can pass into the Profiler
  */
-function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>, name?: string): React.FC<P> {
-  const componentDisplayName = name || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
+function withProfiler<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  options?: Partial<ProfilerProps>,
+): React.FC<P> {
+  const componentDisplayName =
+    (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
-    <Profiler name={componentDisplayName}>
+    <Profiler name={componentDisplayName} disabled={options && options.disabled}>
       <WrappedComponent {...props} />
     </Profiler>
   );
