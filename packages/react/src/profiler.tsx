@@ -59,18 +59,32 @@ function warnAboutTracing(name: string): void {
 }
 
 /**
- * getInitActivity pushes activity based on React component mount
+ * pushActivity creates an new react activity
  * @param name displayName of component that started activity
  */
-const getInitActivity = (name: string): number | null => {
-  if (globalTracingIntegration !== null) {
-    // tslint:disable-next-line:no-unsafe-any
-    return (globalTracingIntegration as any).constructor.pushActivity(name, {
-      description: `<${name}>`,
-      op: 'react',
-    });
+const pushActivity = (name: string): number | null => {
+  if (globalTracingIntegration === null) {
+    return null;
   }
-  return null;
+
+  // tslint:disable-next-line:no-unsafe-any
+  return (globalTracingIntegration as any).constructor.pushActivity(name, {
+    description: `<${name}>`,
+    op: 'react',
+  });
+};
+
+/**
+ * popActivity removes a React activity if it exists
+ * @param activity id of activity that is being popped
+ */
+const popActivity = (activity: number | null): void => {
+  if (activity === null || globalTracingIntegration === null) {
+    return;
+  }
+
+  // tslint:disable-next-line:no-unsafe-any
+  (globalTracingIntegration as any).constructor.popActivity(activity);
 };
 
 export type ProfilerProps = {
@@ -79,13 +93,13 @@ export type ProfilerProps = {
 
 class Profiler extends React.Component<ProfilerProps> {
   public activity: number | null = null;
-  public tracingIntegration: Integration | null = getTracingIntegration();
 
   public constructor(props: ProfilerProps) {
     super(props);
 
-    if (this.tracingIntegration) {
-      this.activity = getInitActivity(this.props.name);
+    // We should check for tracing integration per Profiler instance
+    if (getTracingIntegration()) {
+      this.activity = pushActivity(this.props.name);
     } else {
       warnAboutTracing(this.props.name);
     }
@@ -103,12 +117,7 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 
   public finishProfile = () => {
-    if (!this.activity || !this.tracingIntegration) {
-      return;
-    }
-
-    // tslint:disable-next-line:no-unsafe-any
-    (this.tracingIntegration as any).constructor.popActivity(this.activity);
+    popActivity(this.activity);
     this.activity = null;
   };
 
@@ -149,7 +158,7 @@ function withProfiler<P extends object>(WrappedComponent: React.ComponentType<P>
  * @param name displayName of component being profiled
  */
 function useProfiler(name: string): void {
-  const [activity] = React.useState(() => getInitActivity(name));
+  const [activity] = React.useState(() => pushActivity(name));
 
   React.useEffect(() => {
     afterNextFrame(() => {
