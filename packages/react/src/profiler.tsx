@@ -88,10 +88,10 @@ export type ProfilerProps = {
   name: string;
   // If the Profiler is disabled. False by default.
   disabled?: boolean;
-  // If component updates should be displayed as spans. False by default.
-  generateUpdateSpans?: boolean;
-  // If time component is on page should be displayed as spans. True by default.
-  generateRenderSpans?: boolean;
+  // If time component is on page should be displayed as spans. False by default.
+  hasRenderSpan?: boolean;
+  // If component updates should be displayed as spans. True by default.
+  hasUpdateSpan?: boolean;
   // props from child component
   updateProps: { [key: string]: any };
 };
@@ -110,8 +110,8 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
-    generateRenderSpans: true,
-    generateUpdateSpans: false,
+    hasRenderSpan: false,
+    hasUpdateSpan: true,
   };
 
   public constructor(props: ProfilerProps) {
@@ -135,18 +135,21 @@ class Profiler extends React.Component<ProfilerProps> {
     popActivity(this.mountActivity);
     this.mountActivity = null;
 
+    const { name, hasRenderSpan = false } = this.props;
+
     // If we were able to obtain the spanId of the mount activity, we should set the
     // next activity as a child to the component mount activity.
-    if (this.mountSpan) {
+    if (this.mountSpan && hasRenderSpan) {
       this.renderSpan = this.mountSpan.startChild({
-        description: `<${this.props.name}>`,
+        description: `<${name}>`,
         op: `react.render`,
       });
     }
   }
 
   public componentDidUpdate(prevProps: ProfilerProps): void {
-    if (prevProps.generateUpdateSpans && this.mountSpan && prevProps.updateProps !== this.props.updateProps) {
+    const { hasUpdateSpan = true } = prevProps;
+    if (hasUpdateSpan && this.mountSpan && prevProps.updateProps !== this.props.updateProps) {
       const changedProps = Object.keys(prevProps).filter(k => prevProps.updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampWithMs();
@@ -209,8 +212,18 @@ function withProfiler<P extends object>(
  * Requires React 16.8 or above.
  * @param name displayName of component being profiled
  */
-function useProfiler(name: string): void {
+function useProfiler(
+  name: string,
+  options?: {
+    disabled?: boolean;
+    hasRenderSpan?: boolean;
+  },
+): void {
   const [mountActivity] = React.useState(() => {
+    if (options && options.disabled) {
+      return null;
+    }
+
     if (getTracingIntegration()) {
       return pushActivity(name, 'mount');
     }
@@ -223,12 +236,13 @@ function useProfiler(name: string): void {
     const mountSpan = getActivitySpan(mountActivity);
     popActivity(mountActivity);
 
-    const renderSpan = mountSpan
-      ? mountSpan.startChild({
-          description: `<${name}>`,
-          op: `react.render`,
-        })
-      : undefined;
+    const renderSpan =
+      mountSpan && options && options.hasRenderSpan
+        ? mountSpan.startChild({
+            description: `<${name}>`,
+            op: `react.render`,
+          })
+        : undefined;
 
     return () => {
       if (renderSpan) {
