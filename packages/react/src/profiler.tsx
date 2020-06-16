@@ -10,35 +10,6 @@ const TRACING_GETTER = ({
   id: 'Tracing',
 } as any) as IntegrationClass<Integration>;
 
-/**
- *
- * Based on implementation from Preact:
- * https:github.com/preactjs/preact/blob/9a422017fec6dab287c77c3aef63c7b2fef0c7e1/hooks/src/index.js#L301-L313
- *
- * Schedule a callback to be invoked after the browser has a chance to paint a new frame.
- * Do this by combining requestAnimationFrame (rAF) + setTimeout to invoke a callback after
- * the next browser frame.
- *
- * Also, schedule a timeout in parallel to the the rAF to ensure the callback is invoked
- * even if RAF doesn't fire (for example if the browser tab is not visible)
- *
- * This is what we use to tell if a component activity has finished
- *
- */
-function afterNextFrame(callback: Function): void {
-  let timeout: number | undefined;
-  let raf: number;
-
-  const done = () => {
-    window.clearTimeout(timeout);
-    window.cancelAnimationFrame(raf);
-    window.setTimeout(callback);
-  };
-
-  raf = window.requestAnimationFrame(done);
-  timeout = window.setTimeout(done, 100);
-}
-
 let globalTracingIntegration: Integration | null = null;
 const getTracingIntegration = () => {
   if (globalTracingIntegration) {
@@ -119,6 +90,8 @@ export type ProfilerProps = {
   disabled?: boolean;
   // If component updates should be displayed as spans. False by default.
   generateUpdateSpans?: boolean;
+  // If time component is on page should be displayed as spans. True by default.
+  generateRenderSpans?: boolean;
   // props from child component
   updateProps: { [key: string]: any };
 };
@@ -131,14 +104,14 @@ class Profiler extends React.Component<ProfilerProps> {
   // The activity representing how long it takes to mount a component.
   public mountActivity: number | null = null;
   // The span of the mount activity
-  public span: Span | undefined = undefined;
-  // The activity representing how long a component was on the page.
-  public renderActivity: number | null = null;
+  public mountSpan: Span | undefined = undefined;
+  // The span of the render
   public renderSpan: Span | undefined = undefined;
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
-    generateUpdateSpans: true,
+    generateRenderSpans: true,
+    generateUpdateSpans: false,
   };
 
   public constructor(props: ProfilerProps) {
@@ -158,28 +131,26 @@ class Profiler extends React.Component<ProfilerProps> {
 
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
-    // afterNextFrame(() => {
-    this.span = getActivitySpan(this.mountActivity);
+    this.mountSpan = getActivitySpan(this.mountActivity);
     popActivity(this.mountActivity);
     this.mountActivity = null;
 
     // If we were able to obtain the spanId of the mount activity, we should set the
     // next activity as a child to the component mount activity.
-    if (this.span) {
-      this.renderSpan = this.span.startChild({
+    if (this.mountSpan) {
+      this.renderSpan = this.mountSpan.startChild({
         description: `<${this.props.name}>`,
         op: `react.render`,
       });
     }
-    // });
   }
 
   public componentDidUpdate(prevProps: ProfilerProps): void {
-    if (prevProps.generateUpdateSpans && this.span && prevProps !== this.props) {
+    if (prevProps.generateUpdateSpans && this.mountSpan && prevProps.updateProps !== this.props.updateProps) {
       const changedProps = Object.keys(prevProps).filter(k => prevProps.updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampWithMs();
-        const updateSpan = this.span.startChild({
+        const updateSpan = this.mountSpan.startChild({
           description: `<${prevProps.name}>`,
           endTimestamp: now,
           op: `react.update`,
@@ -193,13 +164,9 @@ class Profiler extends React.Component<ProfilerProps> {
 
   // If a component doesn't mount, the render activity will be end when the
   public componentWillUnmount(): void {
-    afterNextFrame(() => {
-      if (this.renderSpan) {
-        this.renderSpan.finish();
-      }
-      // popActivity(this.renderActivity);
-      // this.renderActivity = null;
-    });
+    if (this.renderSpan) {
+      this.renderSpan.finish();
+    }
   }
 
   public render(): React.ReactNode {
@@ -243,17 +210,31 @@ function withProfiler<P extends object>(
  * @param name displayName of component being profiled
  */
 function useProfiler(name: string): void {
-  const [activity] = React.useState(() => pushActivity(name, 'mount'));
+  const [mountActivity] = React.useState(() => {
+    if (getTracingIntegration()) {
+      return pushActivity(name, 'mount');
+    }
+
+    warnAboutTracing(name);
+    return null;
+  });
 
   React.useEffect(() => {
-    afterNextFrame(() => {
-      popActivity(activity);
-      const renderActivity = pushActivity(name, 'render');
+    const mountSpan = getActivitySpan(mountActivity);
+    popActivity(mountActivity);
 
-      return () => {
-        popActivity(renderActivity);
-      };
-    });
+    const renderSpan = mountSpan
+      ? mountSpan.startChild({
+          description: `<${name}>`,
+          op: `react.render`,
+        })
+      : undefined;
+
+    return () => {
+      if (renderSpan) {
+        renderSpan.finish();
+      }
+    };
   }, []);
 }
 
