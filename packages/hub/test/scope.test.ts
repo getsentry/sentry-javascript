@@ -73,17 +73,17 @@ describe('Scope', () => {
       expect((scope as any)._level).toEqual(Severity.Critical);
     });
 
-    test('setTransaction', () => {
+    test('setTransactionName', () => {
       const scope = new Scope();
-      scope.setTransaction('/abc');
-      expect((scope as any)._transaction).toEqual('/abc');
+      scope.setTransactionName('/abc');
+      expect((scope as any)._transactionName).toEqual('/abc');
     });
 
-    test('setTransaction with no value unsets it', () => {
+    test('setTransactionName with no value unsets it', () => {
       const scope = new Scope();
-      scope.setTransaction('/abc');
-      scope.setTransaction();
-      expect((scope as any)._transaction).toBeUndefined();
+      scope.setTransactionName('/abc');
+      scope.setTransactionName();
+      expect((scope as any)._transactionName).toBeUndefined();
     });
 
     test('setContext', () => {
@@ -157,7 +157,7 @@ describe('Scope', () => {
       scope.setUser({ id: '1' });
       scope.setFingerprint(['abcd']);
       scope.setLevel(Severity.Warning);
-      scope.setTransaction('/abc');
+      scope.setTransactionName('/abc');
       scope.addBreadcrumb({ message: 'test' }, 100);
       scope.setContext('os', { id: '1' });
       const event: Event = {};
@@ -256,7 +256,7 @@ describe('Scope', () => {
     test('scope transaction should have priority over event transaction', () => {
       expect.assertions(1);
       const scope = new Scope();
-      scope.setTransaction('/abc');
+      scope.setTransactionName('/abc');
       const event: Event = {};
       event.transaction = '/cdf';
       return scope.applyToEvent(event).then(processedEvent => {

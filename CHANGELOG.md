@@ -9,7 +9,8 @@
 - [core] feat: Export `makeMain` (#2665)
 - [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
 - [gatsby] feat: Add @sentry/gatsby package (#2652)
-- [apm] feat: Add `Sentry.getSpan` to return the Span on the Scope (#2668)
+- [apm] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
+- [apm] ref: Depracate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
 - [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls` (#2671)
 
 ## 5.17.0
