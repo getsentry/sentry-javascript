@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/browser';
-import { Integration, IntegrationClass, Span, SpanContext } from '@sentry/types';
+import { Integration, IntegrationClass, Span } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -68,7 +68,6 @@ function warnAboutTracing(name: string): void {
 function pushActivity(
   name: string,
   op: string,
-  context?: SpanContext,
   options?: {
     autoPopAfter?: number;
     parentSpanId?: string;
@@ -84,7 +83,6 @@ function pushActivity(
     {
       description: `<${name}>`,
       op: `react.${op}`,
-      ...context,
     },
     options,
   );
@@ -96,13 +94,13 @@ function pushActivity(
  * @param activity id of activity that is being popped
  * @param finish if a span should be finished after the activity is removed
  */
-function popActivity(activity: number | null, finish: boolean = true): void {
+function popActivity(activity: number | null): void {
   if (activity === null || globalTracingIntegration === null) {
     return;
   }
 
   // tslint:disable-next-line:no-unsafe-any
-  (globalTracingIntegration as any).constructor.popActivity(activity, undefined, finish);
+  (globalTracingIntegration as any).constructor.popActivity(activity, undefined);
 }
 
 function getActivitySpan(activity: number | null): Span | undefined {
@@ -130,14 +128,15 @@ export type ProfilerProps = {
 class Profiler extends React.Component<ProfilerProps> {
   // The activity representing how long it takes to mount a component.
   public mountActivity: number | null = null;
-  // The spanId of the mount activity
-  public mountSpanId: string | null = null;
+  // The span of the mount activity
+  public span: Span | undefined = undefined;
   // The activity representing how long a component was on the page.
   public renderActivity: number | null = null;
+  public renderSpan: Span | undefined = undefined;
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
-    generateUpdateSpans: false,
+    generateUpdateSpans: true,
   };
 
   public constructor(props: ProfilerProps) {
@@ -157,42 +156,42 @@ class Profiler extends React.Component<ProfilerProps> {
 
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
-    afterNextFrame(() => {
-      const span = getActivitySpan(this.mountActivity);
-      if (span) {
-        this.mountSpanId = span.spanId;
-      }
-      popActivity(this.mountActivity);
-      this.mountActivity = null;
+    // afterNextFrame(() => {
+    this.span = getActivitySpan(this.mountActivity);
+    popActivity(this.mountActivity);
+    this.mountActivity = null;
 
-      // If we were able to obtain the spanId of the mount activity, we should set the
-      // next activity as a child to the component mount activity.
-      const options = span ? { parentSpanId: span.spanId } : {};
-      this.renderActivity = pushActivity(this.props.name, 'render', {}, options);
-    });
+    // If we were able to obtain the spanId of the mount activity, we should set the
+    // next activity as a child to the component mount activity.
+    if (this.span) {
+      this.renderSpan = this.span.startChild({
+        description: `<${this.props.name}>`,
+        op: `react.render`,
+      });
+    }
+    // });
   }
 
   public componentDidUpdate(prevProps: ProfilerProps): void {
-    if (prevProps.generateUpdateSpans && this.mountSpanId) {
+    if (prevProps.generateUpdateSpans && this.span && prevProps !== this.props) {
       const now = timestampWithMs();
-      const updateActivity = pushActivity(
-        prevProps.name,
-        'update',
-        {
-          endTimestamp: now,
-          startTimestamp: now,
-        },
-        { parentSpanId: this.mountSpanId },
-      );
-      popActivity(updateActivity, false);
+      this.span.startChild({
+        description: `<${prevProps.name}>`,
+        endTimestamp: now,
+        op: `react.update`,
+        startTimestamp: now,
+      });
     }
   }
 
   // If a component doesn't mount, the render activity will be end when the
   public componentWillUnmount(): void {
     afterNextFrame(() => {
-      popActivity(this.renderActivity, false);
-      this.renderActivity = null;
+      if (this.renderSpan) {
+        this.renderSpan.finish();
+      }
+      // popActivity(this.renderActivity);
+      // this.renderActivity = null;
     });
   }
 

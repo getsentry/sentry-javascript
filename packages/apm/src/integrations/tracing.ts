@@ -1,3 +1,4 @@
+// tslint:disable: max-file-line-count
 import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
@@ -827,7 +828,7 @@ export class Tracing implements Integration {
    * @param finish if a span should be finished after the activity is removed
    *
    */
-  public static popActivity(id: number, spanData?: { [key: string]: any }, finish: boolean = true): void {
+  public static popActivity(id: number, spanData?: { [key: string]: any }): void {
     // The !id is on purpose to also fail with 0
     // Since 0 is returned by push activity in case there is no active transaction
     if (!id) {
@@ -854,9 +855,7 @@ export class Tracing implements Integration {
         if (Tracing.options && Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
           Tracing._addSpanDebugInfo(span);
         }
-        if (finish) {
-          span.finish();
-        }
+        span.finish();
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete Tracing._activities[id];
@@ -888,7 +887,10 @@ export class Tracing implements Integration {
     if (Tracing._getCurrentHub) {
       const hub = Tracing._getCurrentHub();
       if (hub) {
-        return Tracing._activities[id].span;
+        const activity = Tracing._activities[id];
+        if (activity) {
+          return activity.span;
+        }
       }
     }
     return undefined;
