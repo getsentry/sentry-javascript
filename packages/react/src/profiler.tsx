@@ -39,24 +39,37 @@ function afterNextFrame(callback: Function): void {
   timeout = window.setTimeout(done, 100);
 }
 
+let globalTracingIntegration: Integration | null = null;
+const getTracingIntegration = () => {
+  if (globalTracingIntegration) {
+    return globalTracingIntegration;
+  }
+
+  globalTracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
+  return globalTracingIntegration;
+};
+
+/** JSDOC */
+function warnAboutTracing(name: string): void {
+  if (globalTracingIntegration === null) {
+    logger.warn(
+      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
+    );
+  }
+}
+
 /**
  * getInitActivity pushes activity based on React component mount
  * @param name displayName of component that started activity
  */
 const getInitActivity = (name: string): number | null => {
-  const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-
-  if (tracingIntegration !== null) {
+  if (globalTracingIntegration !== null) {
     // tslint:disable-next-line:no-unsafe-any
-    return (tracingIntegration as any).constructor.pushActivity(name, {
+    return (globalTracingIntegration as any).constructor.pushActivity(name, {
       description: `<${name}>`,
       op: 'react',
     });
   }
-
-  logger.warn(
-    `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
-  );
   return null;
 };
 
@@ -65,11 +78,17 @@ export type ProfilerProps = {
 };
 
 class Profiler extends React.Component<ProfilerProps> {
-  public activity: number | null;
+  public activity: number | null = null;
+  public tracingIntegration: Integration | null = getTracingIntegration();
+
   public constructor(props: ProfilerProps) {
     super(props);
 
-    this.activity = getInitActivity(this.props.name);
+    if (this.tracingIntegration) {
+      this.activity = getInitActivity(this.props.name);
+    } else {
+      warnAboutTracing(this.props.name);
+    }
   }
 
   // If a component mounted, we can finish the mount activity.
@@ -84,16 +103,13 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 
   public finishProfile = () => {
-    if (!this.activity) {
+    if (!this.activity || !this.tracingIntegration) {
       return;
     }
 
-    const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-    if (tracingIntegration !== null) {
-      // tslint:disable-next-line:no-unsafe-any
-      (tracingIntegration as any).constructor.popActivity(this.activity);
-      this.activity = null;
-    }
+    // tslint:disable-next-line:no-unsafe-any
+    (this.tracingIntegration as any).constructor.popActivity(this.activity);
+    this.activity = null;
   };
 
   public render(): React.ReactNode {
