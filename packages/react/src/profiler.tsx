@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/browser';
-import { Integration, IntegrationClass, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { Integration, IntegrationClass, Span, SpanContext } from '@sentry/types';
+import { logger, timestampWithMs } from '@sentry/utils';
 import * as hoistNonReactStatic from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -49,20 +49,31 @@ const getTracingIntegration = () => {
   return globalTracingIntegration;
 };
 
-/** JSDOC */
+/**
+ * Warn if tracing integration not configured. Will only warn once.
+ */
 function warnAboutTracing(name: string): void {
   if (globalTracingIntegration === null) {
     logger.warn(
-      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure to setup the Tracing integration.`,
+      `Unable to profile component ${name} due to invalid Tracing Integration. Please make sure the Tracing integration is setup properly.`,
     );
   }
 }
 
 /**
- * pushActivity creates an new react activity
+ * pushActivity creates an new react activity.
+ * Is a no-op if Tracing integration is not valid
  * @param name displayName of component that started activity
  */
-const pushActivity = (name: string, op: string, options?: Object): number | null => {
+function pushActivity(
+  name: string,
+  op: string,
+  context?: SpanContext,
+  options?: {
+    autoPopAfter?: number;
+    parentSpanId?: string;
+  },
+): number | null {
   if (globalTracingIntegration === null) {
     return null;
   }
@@ -73,29 +84,43 @@ const pushActivity = (name: string, op: string, options?: Object): number | null
     {
       description: `<${name}>`,
       op: `react.${op}`,
+      ...context,
     },
     options,
   );
-};
+}
 
 /**
- * popActivity removes a React activity if it exists
+ * popActivity removes a React activity.
+ * Is a no-op if invalid Tracing integration or invalid activity id.
  * @param activity id of activity that is being popped
+ * @param finish if a span should be finished after the activity is removed
  */
-const popActivity = (activity: number | null): void => {
+function popActivity(activity: number | null, finish: boolean = true): void {
   if (activity === null || globalTracingIntegration === null) {
     return;
   }
 
   // tslint:disable-next-line:no-unsafe-any
-  (globalTracingIntegration as any).constructor.popActivity(activity);
-};
+  (globalTracingIntegration as any).constructor.popActivity(activity, undefined, finish);
+}
+
+function getActivitySpan(activity: number | null): Span | undefined {
+  if (globalTracingIntegration === null) {
+    return undefined;
+  }
+
+  // tslint:disable-next-line:no-unsafe-any
+  return (globalTracingIntegration as any).constructor.getActivitySpan(activity) as Span | undefined;
+}
 
 export type ProfilerProps = {
   // The name of the component being profiled.
   name: string;
   // If the Profiler is disabled. False by default.
   disabled?: boolean;
+  // If component updates should be displayed as spans. False by default.
+  generateUpdateSpans?: boolean;
 };
 
 /**
@@ -103,17 +128,17 @@ export type ProfilerProps = {
  * spans based on component lifecycles.
  */
 class Profiler extends React.Component<ProfilerProps> {
-  public mountInfo: {
-    // The activity representing when a component was mounted onto a page.
-    activity: number | null;
-    // The span from the mountInfo activity
-    span: Span | null;
-  } = {
-    activity: null,
-    span: null,
-  };
+  // The activity representing how long it takes to mount a component.
+  public mountActivity: number | null = null;
+  // The spanId of the mount activity
+  public mountSpanId: string | null = null;
   // The activity representing how long a component was on the page.
-  public visibleActivity: number | null = null;
+  public renderActivity: number | null = null;
+
+  public static defaultProps: Partial<ProfilerProps> = {
+    disabled: false,
+    generateUpdateSpans: false,
+  };
 
   public constructor(props: ProfilerProps) {
     super(props);
@@ -124,7 +149,7 @@ class Profiler extends React.Component<ProfilerProps> {
     }
 
     if (getTracingIntegration()) {
-      this.mountInfo.activity = pushActivity(name, 'mount');
+      this.mountActivity = pushActivity(name, 'mount');
     } else {
       warnAboutTracing(name);
     }
@@ -133,22 +158,43 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
     afterNextFrame(() => {
-      popActivity(this.mountInfo.activity);
-      this.mountInfo.activity = null;
+      const span = getActivitySpan(this.mountActivity);
+      if (span) {
+        this.mountSpanId = span.spanId;
+      }
+      popActivity(this.mountActivity);
+      this.mountActivity = null;
 
-      this.visibleActivity = pushActivity(this.props.name, 'visible');
+      // If we were able to obtain the spanId of the mount activity, we should set the
+      // next activity as a child to the component mount activity.
+      const options = span ? { parentSpanId: span.spanId } : {};
+      this.renderActivity = pushActivity(this.props.name, 'render', {}, options);
     });
   }
 
-  // If a component doesn't mount, the visible activity will be end when the
+  public componentDidUpdate(prevProps: ProfilerProps): void {
+    if (prevProps.generateUpdateSpans && this.mountSpanId) {
+      const now = timestampWithMs();
+      const updateActivity = pushActivity(
+        prevProps.name,
+        'update',
+        {
+          endTimestamp: now,
+          startTimestamp: now,
+        },
+        { parentSpanId: this.mountSpanId },
+      );
+      popActivity(updateActivity, false);
+    }
+  }
+
+  // If a component doesn't mount, the render activity will be end when the
   public componentWillUnmount(): void {
     afterNextFrame(() => {
-      popActivity(this.visibleActivity);
-      this.visibleActivity = null;
+      popActivity(this.renderActivity, false);
+      this.renderActivity = null;
     });
   }
-
-  public finishProfile = () => {};
 
   public render(): React.ReactNode {
     return this.props.children;
@@ -191,15 +237,16 @@ function withProfiler<P extends object>(
  * @param name displayName of component being profiled
  */
 function useProfiler(name: string): void {
-  const [activity] = React.useState(() => pushActivity(name));
+  const [activity] = React.useState(() => pushActivity(name, 'mount'));
 
   React.useEffect(() => {
     afterNextFrame(() => {
-      const tracingIntegration = getCurrentHub().getIntegration(TRACING_GETTER);
-      if (tracingIntegration !== null) {
-        // tslint:disable-next-line:no-unsafe-any
-        (tracingIntegration as any).constructor.popActivity(activity);
-      }
+      popActivity(activity);
+      const renderActivity = pushActivity(name, 'render');
+
+      return () => {
+        popActivity(renderActivity);
+      };
     });
   }, []);
 }

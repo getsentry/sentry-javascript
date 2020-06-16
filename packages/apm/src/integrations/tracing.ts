@@ -769,12 +769,14 @@ export class Tracing implements Integration {
    * @param name Name of the activity, can be any string (Only used internally to identify the activity)
    * @param spanContext If provided a Span with the SpanContext will be created.
    * @param options _autoPopAfter_ | Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
+   * @param options _parentSpanId_ | Set a custom parent span id for the activity's span.
    */
   public static pushActivity(
     name: string,
     spanContext?: SpanContext,
     options?: {
       autoPopAfter?: number;
+      parentSpanId?: string;
     },
   ): number {
     const activeTransaction = Tracing._activeTransaction;
@@ -789,6 +791,9 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = activeTransaction.startChild(spanContext);
+        if (options && options.parentSpanId) {
+          span.parentSpanId = options.parentSpanId;
+        }
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,
@@ -817,8 +822,12 @@ export class Tracing implements Integration {
 
   /**
    * Removes activity and finishes the span in case there is one
+   * @param id the id of the activity being removed
+   * @param spanData span data that can be updated
+   * @param finish if a span should be finished after the activity is removed
+   *
    */
-  public static popActivity(id: number, spanData?: { [key: string]: any }): void {
+  public static popActivity(id: number, spanData?: { [key: string]: any }, finish: boolean = true): void {
     // The !id is on purpose to also fail with 0
     // Since 0 is returned by push activity in case there is no active transaction
     if (!id) {
@@ -845,7 +854,9 @@ export class Tracing implements Integration {
         if (Tracing.options && Tracing.options.debug && Tracing.options.debug.spanDebugTimingInfo) {
           Tracing._addSpanDebugInfo(span);
         }
-        span.finish();
+        if (finish) {
+          span.finish();
+        }
       }
       // tslint:disable-next-line: no-dynamic-delete
       delete Tracing._activities[id];
@@ -865,6 +876,22 @@ export class Tracing implements Integration {
         Tracing.finishIdleTransaction(end);
       }, timeout);
     }
+  }
+
+  /**
+   * Get span based on activity id
+   */
+  public static getActivitySpan(id: number): Span | undefined {
+    if (!id) {
+      return undefined;
+    }
+    if (Tracing._getCurrentHub) {
+      const hub = Tracing._getCurrentHub();
+      if (hub) {
+        return Tracing._activities[id].span;
+      }
+    }
+    return undefined;
   }
 }
 
