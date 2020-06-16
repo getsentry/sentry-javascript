@@ -54,8 +54,8 @@ interface IntegrationOptions {
   logErrors: boolean;
 
   /**
-   * When set to `false`, disables tracking of components lifecycle performance.
-   * By default, it tracks only when `Tracing` integration is also enabled.
+   * When set to `true`, enables tracking of components lifecycle performance.
+   * It requires `Tracing` integration to be also enabled.
    */
   tracing: boolean;
 
