@@ -147,7 +147,7 @@ export class Vue implements Integration {
       Vue: getGlobalObject<any>().Vue, // tslint:disable-line:no-unsafe-any
       attachProps: true,
       logErrors: false,
-      tracing: true,
+      tracing: false,
       ...options,
       tracingOptions: {
         hooks: ['mount', 'update'],
