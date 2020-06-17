@@ -52,7 +52,6 @@ function pushActivity(name: string, op: string): number | null {
  * popActivity removes a React activity.
  * Is a no-op if invalid Tracing integration or invalid activity id.
  * @param activity id of activity that is being popped
- * @param finish if a span should be finished after the activity is removed
  */
 function popActivity(activity: number | null): void {
   if (activity === null || globalTracingIntegration === null) {

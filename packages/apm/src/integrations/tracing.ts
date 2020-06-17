@@ -820,7 +820,6 @@ export class Tracing implements Integration {
    * Removes activity and finishes the span in case there is one
    * @param id the id of the activity being removed
    * @param spanData span data that can be updated
-   * @param finish if a span should be finished after the activity is removed
    *
    */
   public static popActivity(id: number, spanData?: { [key: string]: any }): void {
