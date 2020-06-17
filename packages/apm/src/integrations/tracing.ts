@@ -776,7 +776,7 @@ export class Tracing implements Integration {
     spanContext?: SpanContext,
     options?: {
       autoPopAfter?: number;
-    },∂
+    },
   ): number {
     const activeTransaction = Tracing._activeTransaction;
 

@@ -12,8 +12,7 @@ SENTRY_APM_SAMPLING = 1
 )*/
 const TEST_SPAN_ID = '518999beeceb49af';
 
-const mockSpanFinish = jest.fn();
-const mockStartChild = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs, finish: mockSpanFinish }));
+const mockStartChild = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
 const TEST_SPAN = {
   spanId: TEST_SPAN_ID,
   startChild: mockStartChild,
@@ -57,7 +56,6 @@ beforeEach(() => {
   mockLoggerWarn.mockClear();
   mockGetActivitySpan.mockClear();
   mockStartChild.mockClear();
-  mockSpanFinish.mockClear();
 });
 
 describe('withProfiler', () => {
@@ -111,26 +109,30 @@ describe('withProfiler', () => {
   });
 
   describe('render span', () => {
-    it('does not get created by default', () => {
+    it('is created on unmount', () => {
       const ProfiledComponent = withProfiler(() => <h1>Testing</h1>);
       expect(mockStartChild).toHaveBeenCalledTimes(0);
-      render(<ProfiledComponent />);
-      expect(mockStartChild).toHaveBeenCalledTimes(0);
+
+      const component = render(<ProfiledComponent />);
+      component.unmount();
+
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          description: `<${UNKNOWN_COMPONENT}>`,
+          op: 'react.render',
+        }),
+      );
     });
 
-    it('is created when given hasRenderSpan option', () => {
-      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { hasRenderSpan: true });
+    it('is not created if hasRenderSpan is false', () => {
+      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { hasRenderSpan: false });
       expect(mockStartChild).toHaveBeenCalledTimes(0);
-      const component = render(<ProfiledComponent />);
-      expect(mockStartChild).toHaveBeenCalledTimes(1);
-      expect(mockStartChild).toHaveBeenLastCalledWith({
-        description: `<${UNKNOWN_COMPONENT}>`,
-        op: 'react.render',
-      });
 
-      expect(mockSpanFinish).toHaveBeenCalledTimes(0);
+      const component = render(<ProfiledComponent />);
       component.unmount();
-      expect(mockSpanFinish).toHaveBeenCalledTimes(1);
+
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -207,25 +209,27 @@ describe('useProfiler()', () => {
   });
 
   describe('render span', () => {
-    it('does not get created by default', () => {
+    it('does not get created when hasRenderSpan is false', () => {
       // tslint:disable-next-line: no-void-expression
-      renderHook(() => useProfiler('Example'));
+      const component = renderHook(() => useProfiler('Example', { hasRenderSpan: false }));
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
+      component.unmount();
       expect(mockStartChild).toHaveBeenCalledTimes(0);
     });
 
-    it('is created when given hasRenderSpan option', () => {
+    it('is created by default', () => {
       // tslint:disable-next-line: no-void-expression
-      const component = renderHook(() => useProfiler('Example', { hasRenderSpan: true }));
+      const component = renderHook(() => useProfiler('Example'));
 
-      expect(mockStartChild).toHaveBeenCalledTimes(1);
-      expect(mockStartChild).toHaveBeenLastCalledWith({
-        description: '<Example>',
-        op: 'react.render',
-      });
-
-      expect(mockSpanFinish).toHaveBeenCalledTimes(0);
+      expect(mockStartChild).toHaveBeenCalledTimes(0);
       component.unmount();
-      expect(mockSpanFinish).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockStartChild).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          description: '<Example>',
+          op: 'react.render',
+        }),
+      );
     });
   });
 });

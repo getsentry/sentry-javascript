@@ -83,7 +83,7 @@ export type ProfilerProps = {
   // If the Profiler is disabled. False by default. This is useful if you want to disable profilers
   // in certain environments.
   disabled?: boolean;
-  // If time component is on page should be displayed as spans. False by default.
+  // If time component is on page should be displayed as spans. True by default.
   hasRenderSpan?: boolean;
   // If component updates should be displayed as spans. True by default.
   hasUpdateSpan?: boolean;
@@ -105,7 +105,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public static defaultProps: Partial<ProfilerProps> = {
     disabled: false,
-    hasRenderSpan: false,
+    hasRenderSpan: true,
     hasUpdateSpan: true,
   };
 
@@ -129,17 +129,6 @@ class Profiler extends React.Component<ProfilerProps> {
     this.mountSpan = getActivitySpan(this.mountActivity);
     popActivity(this.mountActivity);
     this.mountActivity = null;
-
-    const { name, hasRenderSpan = false } = this.props;
-
-    // If we were able to obtain the spanId of the mount activity, we should set the
-    // next activity as a child to the component mount activity.
-    if (this.mountSpan && hasRenderSpan) {
-      this.renderSpan = this.mountSpan.startChild({
-        description: `<${name}>`,
-        op: `react.render`,
-      });
-    }
   }
 
   public componentDidUpdate({ updateProps, hasUpdateSpan = true }: ProfilerProps): void {
@@ -170,8 +159,17 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component is unmounted, we can say it is no longer on the screen.
   // This means we can finish the span representing the component render.
   public componentWillUnmount(): void {
-    if (this.renderSpan) {
-      this.renderSpan.finish();
+    const { name, hasRenderSpan = true } = this.props;
+
+    if (this.mountSpan && hasRenderSpan) {
+      // If we were able to obtain the spanId of the mount activity, we should set the
+      // next activity as a child to the component mount activity.
+      this.mountSpan.startChild({
+        description: `<${name}>`,
+        endTimestamp: timestampWithMs(),
+        op: `react.render`,
+        startTimestamp: this.mountSpan.endTimestamp,
+      });
     }
   }
 
@@ -219,9 +217,9 @@ function withProfiler<P extends object>(
  */
 function useProfiler(
   name: string,
-  options?: {
-    disabled?: boolean;
-    hasRenderSpan?: boolean;
+  options: { disabled?: boolean; hasRenderSpan?: boolean } = {
+    disabled: false,
+    hasRenderSpan: true,
   },
 ): void {
   const [mountActivity] = React.useState(() => {
@@ -241,17 +239,14 @@ function useProfiler(
     const mountSpan = getActivitySpan(mountActivity);
     popActivity(mountActivity);
 
-    const renderSpan =
-      mountSpan && options && options.hasRenderSpan
-        ? mountSpan.startChild({
-            description: `<${name}>`,
-            op: `react.render`,
-          })
-        : undefined;
-
     return () => {
-      if (renderSpan) {
-        renderSpan.finish();
+      if (mountSpan && options.hasRenderSpan) {
+        mountSpan.startChild({
+          description: `<${name}>`,
+          endTimestamp: timestampWithMs(),
+          op: `react.render`,
+          startTimestamp: mountSpan.endTimestamp,
+        });
       }
     };
   }, []);
