@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration, Span } from '@sentry/types';
+import { Integration, Span, Transaction } from '@sentry/types';
 import { fill, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -79,15 +79,17 @@ function createHandlerWrapper(
       }
 
       let span: Span | undefined;
+      let transaction: Transaction | undefined;
 
       const scope = getCurrentHub().getScope();
       if (scope && tracingEnabled) {
-        scope.getTransaction(transaction => {
+        transaction = scope.getTransaction();
+        if (transaction) {
           span = transaction.startChild({
             description: `${typeof options === 'string' || !options.method ? 'GET' : options.method} ${requestUrl}`,
             op: 'request',
           });
-        });
+        }
       }
 
       return originalHandler
