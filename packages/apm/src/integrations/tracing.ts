@@ -171,7 +171,9 @@ export class Tracing implements Integration {
    */
   public constructor(_options?: Partial<TracingOptions>) {
     if (global.performance) {
-      global.performance.mark('sentry-tracing-init');
+      if (global.performance.mark) {
+        global.performance.mark('sentry-tracing-init');
+      }
       Tracing._trackLCP();
     }
     const defaults = {
