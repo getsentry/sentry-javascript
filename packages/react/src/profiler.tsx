@@ -36,27 +36,16 @@ function warnAboutTracing(name: string): void {
  * Is a no-op if Tracing integration is not valid
  * @param name displayName of component that started activity
  */
-function pushActivity(
-  name: string,
-  op: string,
-  options?: {
-    autoPopAfter?: number;
-    parentSpanId?: string;
-  },
-): number | null {
+function pushActivity(name: string, op: string): number | null {
   if (globalTracingIntegration === null) {
     return null;
   }
 
   // tslint:disable-next-line:no-unsafe-any
-  return (globalTracingIntegration as any).constructor.pushActivity(
-    name,
-    {
-      description: `<${name}>`,
-      op: `react.${op}`,
-    },
-    options,
-  );
+  return (globalTracingIntegration as any).constructor.pushActivity(name, {
+    description: `<${name}>`,
+    op: `react.${op}`,
+  });
 }
 
 /**

@@ -770,15 +770,13 @@ export class Tracing implements Integration {
    * @param name Name of the activity, can be any string (Only used internally to identify the activity)
    * @param spanContext If provided a Span with the SpanContext will be created.
    * @param options _autoPopAfter_ | Time in ms, if provided the activity will be popped automatically after this timeout. This can be helpful in cases where you cannot gurantee your application knows the state and calls `popActivity` for sure.
-   * @param options _parentSpanId_ | Set a custom parent span id for the activity's span.
    */
   public static pushActivity(
     name: string,
     spanContext?: SpanContext,
     options?: {
       autoPopAfter?: number;
-      parentSpanId?: string;
-    },
+    },∂
   ): number {
     const activeTransaction = Tracing._activeTransaction;
 
@@ -792,9 +790,6 @@ export class Tracing implements Integration {
       const hub = _getCurrentHub();
       if (hub) {
         const span = activeTransaction.startChild(spanContext);
-        if (options && options.parentSpanId) {
-          span.parentSpanId = options.parentSpanId;
-        }
         Tracing._activities[Tracing._currentIndex] = {
           name,
           span,

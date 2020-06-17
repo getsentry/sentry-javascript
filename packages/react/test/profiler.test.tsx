@@ -98,14 +98,10 @@ describe('withProfiler', () => {
       render(<ProfiledComponent />);
 
       expect(mockPushActivity).toHaveBeenCalledTimes(1);
-      expect(mockPushActivity).toHaveBeenLastCalledWith(
-        UNKNOWN_COMPONENT,
-        {
-          description: `<${UNKNOWN_COMPONENT}>`,
-          op: 'react.mount',
-        },
-        undefined,
-      );
+      expect(mockPushActivity).toHaveBeenLastCalledWith(UNKNOWN_COMPONENT, {
+        description: `<${UNKNOWN_COMPONENT}>`,
+        op: 'react.mount',
+      });
       expect(mockGetActivitySpan).toHaveBeenCalledTimes(1);
       expect(mockGetActivitySpan).toHaveBeenLastCalledWith(1);
 
@@ -198,14 +194,10 @@ describe('useProfiler()', () => {
       renderHook(() => useProfiler('Example'));
 
       expect(mockPushActivity).toHaveBeenCalledTimes(1);
-      expect(mockPushActivity).toHaveBeenLastCalledWith(
-        'Example',
-        {
-          description: '<Example>',
-          op: 'react.mount',
-        },
-        undefined,
-      );
+      expect(mockPushActivity).toHaveBeenLastCalledWith('Example', {
+        description: '<Example>',
+        op: 'react.mount',
+      });
       expect(mockGetActivitySpan).toHaveBeenCalledTimes(1);
       expect(mockGetActivitySpan).toHaveBeenLastCalledWith(1);
 
