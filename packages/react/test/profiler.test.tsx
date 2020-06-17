@@ -4,24 +4,18 @@ import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';
 
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
-/*(
-for key in SENTRY_FEATURES:
-	SENTRY_FEATURES[key] = True
 
-SENTRY_APM_SAMPLING = 1
-)*/
 const TEST_SPAN_ID = '518999beeceb49af';
+const TEST_TIMESTAMP = '123456';
 
 const mockStartChild = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
-const TEST_SPAN = {
-  spanId: TEST_SPAN_ID,
-  startChild: mockStartChild,
-};
-const TEST_TIMESTAMP = '123456';
 const mockPushActivity = jest.fn().mockReturnValue(1);
 const mockPopActivity = jest.fn();
 const mockLoggerWarn = jest.fn();
-const mockGetActivitySpan = jest.fn().mockReturnValue(TEST_SPAN);
+const mockGetActivitySpan = jest.fn().mockReturnValue({
+  spanId: TEST_SPAN_ID,
+  startChild: mockStartChild,
+});
 
 jest.mock('@sentry/utils', () => ({
   logger: {

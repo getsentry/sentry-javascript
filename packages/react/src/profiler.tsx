@@ -50,7 +50,7 @@ function pushActivity(name: string, op: string): number | null {
 
 /**
  * popActivity removes a React activity.
- * Is a no-op if invalid Tracing integration or invalid activity id.
+ * Is a no-op if Tracing integration is not valid.
  * @param activity id of activity that is being popped
  */
 function popActivity(activity: number | null): void {
@@ -64,11 +64,11 @@ function popActivity(activity: number | null): void {
 
 /**
  * Obtain a span given an activity id.
- * Is a no-op if invalid Tracing integration.
+ * Is a no-op if Tracing integration is not valid.
  * @param activity activity id associated with obtained span
  */
 function getActivitySpan(activity: number | null): Span | undefined {
-  if (globalTracingIntegration === null) {
+  if (activity === null || globalTracingIntegration === null) {
     return undefined;
   }
 
