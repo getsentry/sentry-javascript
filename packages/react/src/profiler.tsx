@@ -71,7 +71,7 @@ function popActivity(activity: number | null): void {
   }
 
   // tslint:disable-next-line:no-unsafe-any
-  (globalTracingIntegration as any).constructor.popActivity(activity, undefined);
+  (globalTracingIntegration as any).constructor.popActivity(activity);
 }
 
 /**
@@ -201,15 +201,14 @@ class Profiler extends React.Component<ProfilerProps> {
  */
 function withProfiler<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  // We do not want to have `updateProps` given in options, it is instead filled through
-  // the HOC.
+  // We do not want to have `updateProps` given in options, it is instead filled through the HOC.
   options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
 ): React.FC<P> {
   const componentDisplayName =
     (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
-    <Profiler name={componentDisplayName} disabled={options && options.disabled} updateProps={props}>
+    <Profiler {...options} name={componentDisplayName} updateProps={props}>
       <WrappedComponent {...props} />
     </Profiler>
   );
