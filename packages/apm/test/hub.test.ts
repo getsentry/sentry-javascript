@@ -11,7 +11,7 @@ describe('Hub', () => {
     jest.useRealTimers();
   });
 
-  describe('getSpan', () => {
+  describe('getTransaction', () => {
     test('simple invoke', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'foo' });
@@ -19,9 +19,7 @@ describe('Hub', () => {
         scope.setSpan(transaction);
       });
       hub.configureScope(s => {
-        s.getTransaction(t => {
-          expect(t).toBe(transaction);
-        });
+        expect(s.getTransaction()).toBe(transaction);
       });
     });
 
@@ -29,9 +27,7 @@ describe('Hub', () => {
       const hub = new Hub(new BrowserClient({ tracesSampleRate: 1 }));
       const transaction = hub.startTransaction({ name: 'foo' });
       hub.configureScope(s => {
-        s.getTransaction(_ => {
-          expect(true).toBe(false);
-        });
+        expect(s.getTransaction()).toBeUndefined();
       });
       transaction.finish();
     });

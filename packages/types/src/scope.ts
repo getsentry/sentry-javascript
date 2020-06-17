@@ -90,15 +90,14 @@ export interface Scope {
   setSpan(span?: Span): this;
 
   /**
-   * Returns the current set span if there is one
+   * Returns the `Span` if there is one
    */
   getSpan(): Span | undefined;
 
   /**
-   * Callback to retrieve an ongoing Transaction in case there is one.
-   * @param callback Will only be invoked in case there is an active transaction
+   * Returns the `Transaction` if there is one
    */
-  getTransaction(callback: (transaction: Transaction) => void): void;
+  getTransaction(): Transaction | undefined;
 
   /**
    * Updates the scope with provided data. Can work in three variations:

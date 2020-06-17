@@ -229,13 +229,14 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public getTransaction(callback: (transaction: Transaction) => void): void {
+  public getTransaction(): Transaction | undefined {
     const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
     if (span) {
       if (span.spanRecorder && span.spanRecorder.spans[0]) {
-        callback(span.spanRecorder.spans[0] as Transaction);
+        return span.spanRecorder.spans[0] as Transaction;
       }
     }
+    return undefined;
   }
 
   /**
