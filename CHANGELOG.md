@@ -11,6 +11,7 @@
 - [gatsby] feat: Add @sentry/gatsby package (#2652)
 - [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls`
 - [react] ref: Refactor Profiler to account for update and render (#2677)
+- [tracing] feat: Add ability to get span from activity using `getActivitySpan` (#2677)
 
 ## 5.17.0
 

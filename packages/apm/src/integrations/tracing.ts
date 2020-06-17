@@ -879,14 +879,9 @@ export class Tracing implements Integration {
     if (!id) {
       return undefined;
     }
-    if (Tracing._getCurrentHub) {
-      const hub = Tracing._getCurrentHub();
-      if (hub) {
-        const activity = Tracing._activities[id];
-        if (activity) {
-          return activity.span;
-        }
-      }
+    const activity = Tracing._activities[id];
+    if (activity) {
+      return activity.span;
     }
     return undefined;
   }
