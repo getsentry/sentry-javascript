@@ -1,3 +1,4 @@
+// tslint:disable: max-file-line-count
 import { Hub } from '@sentry/hub';
 import { Event, EventProcessor, Integration, Severity, Span, SpanContext, TransactionContext } from '@sentry/types';
 import {
@@ -817,6 +818,9 @@ export class Tracing implements Integration {
 
   /**
    * Removes activity and finishes the span in case there is one
+   * @param id the id of the activity being removed
+   * @param spanData span data that can be updated
+   *
    */
   public static popActivity(id: number, spanData?: { [key: string]: any }): void {
     // The !id is on purpose to also fail with 0
@@ -865,6 +869,20 @@ export class Tracing implements Integration {
         Tracing.finishIdleTransaction(end);
       }, timeout);
     }
+  }
+
+  /**
+   * Get span based on activity id
+   */
+  public static getActivitySpan(id: number): Span | undefined {
+    if (!id) {
+      return undefined;
+    }
+    const activity = Tracing._activities[id];
+    if (activity) {
+      return activity.span;
+    }
+    return undefined;
   }
 }
 
