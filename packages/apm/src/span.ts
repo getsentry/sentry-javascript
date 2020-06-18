@@ -1,5 +1,5 @@
-import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+import { Span as SpanInterface, SpanContext } from '@sentry/types';
+import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
 import { SpanRecorder } from './transaction';

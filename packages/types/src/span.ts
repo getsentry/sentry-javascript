@@ -1,5 +1,3 @@
-import { Transaction } from './transaction';
-
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -134,12 +132,6 @@ export interface Span extends SpanContext {
   startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span;
-
-  /**
-   * Callback to retrieve the root Span (Transaction) in case there is one.
-   * @param callback Will only be invoked in case there is an active transaction
-   */
-  getTransaction(callback: (transaction: Transaction) => void): void;
 
   /**
    * Determines whether span was successful (HTTP200)
