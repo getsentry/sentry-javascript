@@ -250,7 +250,7 @@ export class Vue implements Integration {
     const childHandler = (hook: Hook, operation: Operation) => {
       // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
       const shouldTrack = Array.isArray(this._options.tracingOptions.trackComponents)
-        ? this._options.tracingOptions.trackComponents.includes(name)
+        ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
         : this._options.tracingOptions.trackComponents;
 
       if (!this._rootSpan || !shouldTrack) {

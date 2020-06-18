@@ -629,7 +629,7 @@ export class Tracing implements Integration {
               resource.startTimestamp = timeOrigin + startTime;
               resource.endTimestamp = resource.startTimestamp + duration;
               // We remember the entry script end time to calculate the difference to the first init mark
-              if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').includes(resourceName)) {
+              if (entryScriptStartEndTime === undefined && (entryScriptSrc || '').indexOf(resourceName) > -1) {
                 entryScriptStartEndTime = resource.endTimestamp;
               }
             }
