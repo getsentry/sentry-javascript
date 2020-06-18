@@ -219,8 +219,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Internal getter for Span, used in Hub.
-   * @hidden
+   * @inheritDoc
    */
   public getSpan(): Span | undefined {
     return this._span;
