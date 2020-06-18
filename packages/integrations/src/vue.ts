@@ -54,8 +54,8 @@ interface IntegrationOptions {
   logErrors: boolean;
 
   /**
-   * When set to `false`, disables tracking of components lifecycle performance.
-   * By default, it tracks only when `Tracing` integration is also enabled.
+   * When set to `true`, enables tracking of components lifecycle performance.
+   * It requires `Tracing` integration to be also enabled.
    */
   tracing: boolean;
 
@@ -75,9 +75,10 @@ interface TracingOptions {
   timeout: number;
   /**
    * List of hooks to keep track of during component lifecycle.
-   * Available hooks: https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
+   * Available hooks: 'activate' | 'create' | 'destroy' | 'mount' | 'update'
+   * Based on https://vuejs.org/v2/api/#Options-Lifecycle-Hooks
    */
-  hooks: Hook[];
+  hooks: Operation[];
 }
 
 /** Optional metadata attached to Sentry Event */
@@ -103,19 +104,13 @@ type Hook =
 
 type Operation = 'activate' | 'create' | 'destroy' | 'mount' | 'update';
 
-// Mappings from lifecycle hook to corresponding operation,
-// used to track already started measurements.
-const OPERATIONS: { [key in Hook]: Operation } = {
-  activated: 'activate',
-  beforeCreate: 'create',
-  beforeDestroy: 'destroy',
-  beforeMount: 'mount',
-  beforeUpdate: 'update',
-  created: 'create',
-  deactivated: 'activate',
-  destroyed: 'destroy',
-  mounted: 'mount',
-  updated: 'update',
+// Mappings from operation to corresponding lifecycle hook.
+const HOOKS: { [key in Operation]: Hook[] } = {
+  activate: ['activated', 'deactivated'],
+  create: ['beforeCreate', 'created'],
+  destroy: ['beforeDestroy', 'destroyed'],
+  mount: ['beforeMount', 'mounted'],
+  update: ['beforeUpdate', 'updated'],
 };
 
 const COMPONENT_NAME_REGEXP = /(?:^|[-_/])(\w)/g;
@@ -152,10 +147,10 @@ export class Vue implements Integration {
       Vue: getGlobalObject<any>().Vue, // tslint:disable-line:no-unsafe-any
       attachProps: true,
       logErrors: false,
-      tracing: true,
+      tracing: false,
       ...options,
       tracingOptions: {
-        hooks: ['beforeMount', 'mounted', 'beforeUpdate', 'updated'],
+        hooks: ['mount', 'update'],
         timeout: 2000,
         trackComponents: false,
         ...options.tracingOptions,
@@ -252,10 +247,10 @@ export class Vue implements Integration {
       }
     };
 
-    const childHandler = (hook: Hook) => {
+    const childHandler = (hook: Hook, operation: Operation) => {
       // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
       const shouldTrack = Array.isArray(this._options.tracingOptions.trackComponents)
-        ? this._options.tracingOptions.trackComponents.includes(name)
+        ? this._options.tracingOptions.trackComponents.indexOf(name) > -1
         : this._options.tracingOptions.trackComponents;
 
       if (!this._rootSpan || !shouldTrack) {
@@ -263,8 +258,7 @@ export class Vue implements Integration {
       }
 
       const now = timestampWithMs();
-      const op = OPERATIONS[hook];
-      const span = spans[op];
+      const span = spans[operation];
 
       // On the first handler call (before), it'll be undefined, as `$once` will add it in the future.
       // However, on the second call (after), it'll be already in place.
@@ -274,9 +268,9 @@ export class Vue implements Integration {
       } else {
         vm.$once(`hook:${hook}`, () => {
           if (this._rootSpan) {
-            spans[op] = this._rootSpan.startChild({
+            spans[operation] = this._rootSpan.startChild({
               description: `Vue <${name}>`,
-              op,
+              op: operation,
             });
           }
         });
@@ -284,17 +278,30 @@ export class Vue implements Integration {
     };
 
     // Each compomnent has it's own scope, so all activities are only related to one of them
-    this._options.tracingOptions.hooks.forEach(hook => {
-      const handler = rootMount ? rootHandler.bind(this, hook) : childHandler.bind(this, hook);
-      const currentValue = vm.$options[hook];
+    this._options.tracingOptions.hooks.forEach(operation => {
+      // Retrieve corresponding hooks from Vue lifecycle.
+      // eg. mount => ['beforeMount', 'mounted']
+      const internalHooks = HOOKS[operation];
 
-      if (Array.isArray(currentValue)) {
-        vm.$options[hook] = [handler, ...currentValue];
-      } else if (typeof currentValue === 'function') {
-        vm.$options[hook] = [handler, currentValue];
-      } else {
-        vm.$options[hook] = [handler];
+      if (!internalHooks) {
+        logger.warn(`Unknown hook: ${operation}`);
+        return;
       }
+
+      internalHooks.forEach(internalHook => {
+        const handler = rootMount
+          ? rootHandler.bind(this, internalHook)
+          : childHandler.bind(this, internalHook, operation);
+        const currentValue = vm.$options[internalHook];
+
+        if (Array.isArray(currentValue)) {
+          vm.$options[internalHook] = [handler, ...currentValue];
+        } else if (typeof currentValue === 'function') {
+          vm.$options[internalHook] = [handler, currentValue];
+        } else {
+          vm.$options[internalHook] = [handler];
+        }
+      });
     });
   };
 

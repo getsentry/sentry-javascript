@@ -9,9 +9,11 @@
 - [core] feat: Export `makeMain` (#2665)
 - [core] fix: Call `bindClient` when creating new `Hub` to make integrations work automatically (#2665)
 - [gatsby] feat: Add @sentry/gatsby package (#2652)
-- [apm] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
-- [apm] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
+- [tracing] feat: Add `scope.getTransaction` to return a Transaction if it exists (#2668)
+- [tracing] ref: Deprecate `scope.setTransaction` in favor of `scope.setTransactionName` (#2668)
 - [core] ref: Rename `whitelistUrls/blacklistUrls` to `allowUrls/denyUrls` (#2671)
+- [react] ref: Refactor Profiler to account for update and render (#2677)
+- [tracing] feat: Add ability to get span from activity using `getActivitySpan` (#2677)
 
 ## 5.17.0
 
