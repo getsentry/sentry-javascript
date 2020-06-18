@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "test/**/*.ts", "../apm/test/span.test.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
     "rootDir": ".",
