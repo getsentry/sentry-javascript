@@ -15,6 +15,8 @@
 - [react] ref: Refactor Profiler to account for update and render (#2677)
 - [apm] feat: Add ability to get span from activity using `getActivitySpan` (#2677)
 - [apm] fix: Check if `performance.mark` exists before calling it (#2680)
+- [tracing] feat: Add `beforeNavigate` option (#2691)
+- [tracing] ref: Create navigation transactions using `window.location.pathname` instead of `window.location.href` (#2691)
 
 ## 5.17.0
 
