@@ -107,6 +107,15 @@ export interface TracingOptions {
     writeAsBreadcrumbs: boolean;
     spanDebugTimingInfo: boolean;
   };
+
+  /**
+   * beforeNavigate is called before a pageload/navigation transaction is created and allows for users
+   * to set a custom navigation transaction name based on the current `window.location`. Defaults to returning
+   * `window.location.pathname`.
+   *
+   * @param location the current location before navigation span is created
+   */
+  beforeNavigate(location: Location): string;
 }
 
 /** JSDoc */
@@ -177,6 +186,9 @@ export class Tracing implements Integration {
       Tracing._trackLCP();
     }
     const defaults = {
+      beforeNavigate(location: Location): string {
+        return location.pathname;
+      },
       debug: {
         spanDebugTimingInfo: false,
         writeAsBreadcrumbs: false,
@@ -224,7 +236,7 @@ export class Tracing implements Integration {
     if (global.location && global.location.href && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
       // Use `${global.location.href}` as transaction name
       Tracing.startIdleTransaction({
-        name: global.location.href,
+        name: Tracing.options.beforeNavigate(window.location),
         op: 'pageload',
       });
     }
@@ -997,7 +1009,7 @@ function historyCallback(_: { [key: string]: any }): void {
   if (Tracing.options.startTransactionOnLocationChange && global && global.location) {
     Tracing.finishIdleTransaction(timestampWithMs());
     Tracing.startIdleTransaction({
-      name: global.location.href,
+      name: Tracing.options.beforeNavigate(window.location),
       op: 'navigation',
     });
   }
