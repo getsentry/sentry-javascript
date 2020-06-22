@@ -230,10 +230,8 @@ export class Scope implements ScopeInterface {
    */
   public getTransaction(): Transaction | undefined {
     const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
-    if (span) {
-      if (span.spanRecorder && span.spanRecorder.spans[0]) {
-        return span.spanRecorder.spans[0] as Transaction;
-      }
+    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
+      return span.spanRecorder.spans[0] as Transaction;
     }
     return undefined;
   }
