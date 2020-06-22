@@ -3,6 +3,9 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 5.18.0
+
 - [react] feat: Add @sentry/react package (#2631)
 - [react] feat: Add Error Boundary component (#2647)
 - [react] feat: Add useProfiler hook (#2659)
