@@ -233,8 +233,7 @@ export class Tracing implements Integration {
     }
 
     // Starting pageload transaction
-    if (global.location && global.location.href && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
-      // Use `${global.location.href}` as transaction name
+    if (global.location && Tracing.options && Tracing.options.startTransactionOnPageLoad) {
       Tracing.startIdleTransaction({
         name: Tracing.options.beforeNavigate(window.location),
         op: 'pageload',
