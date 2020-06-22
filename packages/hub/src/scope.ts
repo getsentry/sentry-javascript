@@ -8,6 +8,7 @@ import {
   ScopeContext,
   Severity,
   Span,
+  Transaction,
   User,
 } from '@sentry/types';
 import { getGlobalObject, isPlainObject, isThenable, SyncPromise, timestampWithMs } from '@sentry/utils';
@@ -47,8 +48,8 @@ export class Scope implements ScopeInterface {
   /** Severity */
   protected _level?: Severity;
 
-  /** Transaction */
-  protected _transaction?: string;
+  /** Transaction Name */
+  protected _transactionName?: string;
 
   /** Span */
   protected _span?: Span;
@@ -185,10 +186,18 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setTransaction(transaction?: string): this {
-    this._transaction = transaction;
+  public setTransactionName(name?: string): this {
+    this._transactionName = name;
     this._notifyScopeListeners();
     return this;
+  }
+
+  /**
+   * Can be removed in major version.
+   * @deprecated in favor of {@link this.setTransactionName}
+   */
+  public setTransaction(name?: string): this {
+    return this.setTransactionName(name);
   }
 
   /**
@@ -210,11 +219,21 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Internal getter for Span, used in Hub.
-   * @hidden
+   * @inheritDoc
    */
   public getSpan(): Span | undefined {
     return this._span;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTransaction(): Transaction | undefined {
+    const span = this.getSpan() as Span & { spanRecorder: { spans: Span[] } };
+    if (span && span.spanRecorder && span.spanRecorder.spans[0]) {
+      return span.spanRecorder.spans[0] as Transaction;
+    }
+    return undefined;
   }
 
   /**
@@ -231,7 +250,7 @@ export class Scope implements ScopeInterface {
       newScope._user = scope._user;
       newScope._level = scope._level;
       newScope._span = scope._span;
-      newScope._transaction = scope._transaction;
+      newScope._transactionName = scope._transactionName;
       newScope._fingerprint = scope._fingerprint;
       newScope._eventProcessors = [...scope._eventProcessors];
     }
@@ -294,7 +313,7 @@ export class Scope implements ScopeInterface {
     this._user = {};
     this._contexts = {};
     this._level = undefined;
-    this._transaction = undefined;
+    this._transactionName = undefined;
     this._fingerprint = undefined;
     this._span = undefined;
     this._notifyScopeListeners();
@@ -374,8 +393,8 @@ export class Scope implements ScopeInterface {
     if (this._level) {
       event.level = this._level;
     }
-    if (this._transaction) {
-      event.transaction = this._transaction;
+    if (this._transactionName) {
+      event.transaction = this._transactionName;
     }
     // We want to set the trace context for normal events only if there isn't already
     // a trace context on the event. There is a product feature in place where we link
