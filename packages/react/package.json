@@ -23,8 +23,8 @@
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
-    "react": "^16.0.0",
-    "react-dom": "^16.0.0"
+    "react": "15.x || 16.x",
+    "react-dom": "15.x || 16.x"
   },
   "devDependencies": {
     "@testing-library/react": "^10.0.6",
